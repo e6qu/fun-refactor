@@ -24,6 +24,16 @@ fn report(output: Output, code: i32) -> Value {
 }
 
 fn fixture() -> (tempfile::TempDir, Value, String) {
+    fixture_with_check(concat!(
+        "from pathlib import Path; ",
+        "compile(open('app.py').read(), ",
+        "'app.py', 'exec'); ",
+        "raise SystemExit(7 if ",
+        "Path('.fail-workflow').exists() else 0)"
+    ))
+}
+
+fn fixture_with_check(program: &str) -> (tempfile::TempDir, Value, String) {
     let root = tempfile::tempdir().unwrap();
     fs::write(root.path().join("app.py"), "def before():\n    return 1\n").unwrap();
     fs::create_dir(root.path().join(".fr")).unwrap();
@@ -33,7 +43,7 @@ fn fixture() -> (tempfile::TempDir, Value, String) {
             "schema": 1,
             "checks": [{
                 "name": "syntax",
-                "argv": ["python3", "-c", "from pathlib import Path; compile(open('app.py').read(), 'app.py', 'exec'); raise SystemExit(7 if Path('.fail-workflow').exists() else 0)"],
+                "argv": ["python3", "-c", program],
                 "cwd": ".",
                 "timeout_seconds": 10,
                 "covers": ["Python syntax"]
@@ -148,7 +158,7 @@ fn failed_checks_stop_before_reversal_and_patch_delivery() {
         1,
     );
     assert_eq!(failed["passed"], false);
-    assert_eq!(failed["transaction_status"], "applied");
+    assert_eq!(failed["transaction_status"], "applied", "{failed}");
     assert_eq!(failed["stages"][0]["status"], "passed");
     assert_eq!(failed["stages"][1]["status"], "failed");
     assert_eq!(failed["stages"][2]["status"], "pending");
@@ -245,4 +255,77 @@ fn source_drift_refuses_and_preserves_the_drift_for_review() {
         "def user_edit():\n    return 2\n"
     );
     assert!(!root.path().join("change.patch").exists());
+}
+
+#[test]
+fn restored_check_failure_stops_in_the_undone_state() {
+    let (root, plan, basis) = fixture_with_check(concat!(
+        "from pathlib import Path; ",
+        "p=Path('.check-count'); ",
+        "n=int(p.read_text())+1 if ",
+        "p.exists() else 1; p.write_text(str(n)); ",
+        "raise SystemExit(9 if n == 2 else 0)"
+    ));
+    write_manifest(root.path(), &plan, &basis, true, Some("change.patch"));
+    let failed = report(
+        fr(
+            root.path(),
+            &["workflow", "--from", ".fr-workflow", "--write"],
+        ),
+        1,
+    );
+    assert_eq!(failed["transaction_status"], "undone");
+    assert_eq!(failed["stages"][3]["status"], "failed");
+    assert_eq!(failed["stages"][4]["status"], "pending");
+    assert!(fs::read_to_string(root.path().join("app.py"))
+        .unwrap()
+        .contains("before"));
+    assert!(!root.path().join("change.patch").exists());
+}
+
+#[test]
+fn reapplied_check_failure_stops_applied_without_delivering() {
+    let (root, plan, basis) = fixture_with_check(concat!(
+        "from pathlib import Path; ",
+        "p=Path('.check-count'); ",
+        "n=int(p.read_text())+1 if ",
+        "p.exists() else 1; p.write_text(str(n)); ",
+        "raise SystemExit(9 if n == 3 else 0)"
+    ));
+    write_manifest(root.path(), &plan, &basis, true, Some("change.patch"));
+    let failed = report(
+        fr(
+            root.path(),
+            &["workflow", "--from", ".fr-workflow", "--write"],
+        ),
+        1,
+    );
+    assert_eq!(failed["transaction_status"], "applied");
+    assert_eq!(failed["stages"][5]["status"], "failed");
+    assert_eq!(failed["stages"][6]["status"], "pending");
+    assert!(fs::read_to_string(root.path().join("app.py"))
+        .unwrap()
+        .contains("after"));
+    assert!(!root.path().join("change.patch").exists());
+}
+
+#[test]
+fn patch_collision_created_by_a_check_is_reported_after_apply() {
+    let (root, plan, basis) =
+        fixture_with_check("open('change.artifact', 'w').write('check output')");
+    write_manifest(root.path(), &plan, &basis, false, Some("change.artifact"));
+    let failed = report(
+        fr(
+            root.path(),
+            &["workflow", "--from", ".fr-workflow", "--write"],
+        ),
+        1,
+    );
+    assert_eq!(failed["transaction_status"], "applied", "{failed}");
+    assert_eq!(failed["stages"][1]["status"], "passed");
+    assert_eq!(failed["stages"][2]["status"], "failed");
+    assert_eq!(
+        fs::read_to_string(root.path().join("change.artifact")).unwrap(),
+        "check output"
+    );
 }

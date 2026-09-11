@@ -1,5 +1,3 @@
-//! Bounded orchestration for one reviewed source-history transaction.
-
 use crate::checks;
 use crate::history::{self, Action, History, Status};
 use anyhow::{bail, ensure, Context, Result};
@@ -79,9 +77,6 @@ impl Stage {
     }
 }
 
-/// Return the next state (`0` planned, `1` applied, `2` refused).
-///
-/// Stage codes follow [`Stage`]. This small policy is mirrored in Lean.
 pub fn workflow_stage_state(applied: bool, stage: usize) -> usize {
     match (applied, stage) {
         (false, 0 | 3) => usize::from(stage == 0),
@@ -156,13 +151,13 @@ fn patch_path(root: &Path, requested: &Path) -> Result<PathBuf> {
             && requested
                 .components()
                 .all(|component| matches!(component, Component::Normal(_))),
-        "workflow patch output must be a relative normal path of at most 4096 bytes"
+        "workflow patch output must be a relative normal path of at most 4096 bytes."
     );
     ensure!(
         !requested.components().any(|component| {
             matches!(component.as_os_str().to_str(), Some(".git" | ".fr-history"))
         }),
-        "workflow patch output cannot enter .git or .fr-history"
+        "workflow patch output cannot enter .git or .fr-history."
     );
     let mut path = root.to_path_buf();
     let components = requested.components().collect::<Vec<_>>();
@@ -170,7 +165,7 @@ fn patch_path(root: &Path, requested: &Path) -> Result<PathBuf> {
         path.push(component.as_os_str());
         match fs::symlink_metadata(&path) {
             Ok(metadata) if metadata.file_type().is_symlink() => {
-                bail!("workflow patch output cannot traverse a symlink")
+                bail!("workflow patch output cannot traverse a symlink.")
             }
             Ok(_) if index + 1 == components.len() => {
                 bail!(
@@ -179,12 +174,12 @@ fn patch_path(root: &Path, requested: &Path) -> Result<PathBuf> {
                 )
             }
             Ok(metadata) if !metadata.is_dir() => {
-                bail!("workflow patch output parent is not a directory")
+                bail!("workflow patch output parent is not a directory.")
             }
             Ok(_) => {}
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 if index + 1 != components.len() {
-                    bail!("workflow patch output parent does not exist")
+                    bail!("workflow patch output parent does not exist.")
                 }
             }
             Err(error) => return Err(error.into()),
@@ -228,7 +223,7 @@ fn preflight(root: &Path, options: &Options) -> Result<Preflight> {
     );
     ensure!(
         manifest.check_output_bytes <= 65_536,
-        "workflow check output budget must be between 0 and 65536 bytes"
+        "workflow check output budget must be between 0 and 65536 bytes."
     );
 
     let history = History::read(&root)?;
@@ -241,7 +236,7 @@ fn preflight(root: &Path, options: &Options) -> Result<Preflight> {
     let complete_context = history::transaction_context_basis(record);
     ensure!(
         manifest.transaction_context_basis == complete_context,
-        "stale or conflicting workflow transaction context basis"
+        "stale or conflicting workflow transaction context basis."
     );
     history::act_with_context(
         &root,
@@ -253,16 +248,16 @@ fn preflight(root: &Path, options: &Options) -> Result<Preflight> {
     )?;
 
     let selection = checks::select(&root, &manifest.checks.names)?
-        .context("workflow requires at least one declared check")?;
+        .context("workflow requires at least one declared check.")?;
     ensure!(
         basis_matches(&manifest.checks.basis, &selection.configuration_basis),
-        "workflow check configuration basis is missing or stale"
+        "workflow check configuration basis is missing or stale."
     );
     if let Some(required) = &record.required_checks {
         ensure!(
             required.configuration_basis == selection.configuration_basis
                 && required.checks == selection.checks,
-            "workflow checks do not satisfy the transaction's required selection"
+            "workflow checks do not satisfy the transaction's required selection."
         );
     }
 
@@ -279,7 +274,7 @@ fn preflight(root: &Path, options: &Options) -> Result<Preflight> {
                 .changes
                 .iter()
                 .any(|change| change.path == request.output),
-            "workflow patch output conflicts with a transaction target"
+            "workflow patch output conflicts with a transaction target."
         );
     }
 
@@ -413,7 +408,7 @@ pub fn run(root: &Path, options: &Options) -> Result<Outcome> {
                     &root,
                     transaction,
                     index,
-                    "workflow lifecycle policy refused the stage".into(),
+                    "workflow lifecycle policy refused the stage.".into(),
                 ),
                 passed: false,
             });
@@ -451,17 +446,20 @@ pub fn run(root: &Path, options: &Options) -> Result<Outcome> {
                 })
             }
             Stage::DeliverPatch => {
-                let path = patch_path
-                    .as_deref()
-                    .context("workflow patch stage has no output path")?;
-                patch_path_for_delivery(&root, &manifest, path)?;
-                write_patch(path, &patch).map(|()| {
+                let mut delivered = || -> Result<()> {
+                    let path = patch_path
+                        .as_deref()
+                        .context("workflow patch stage has no output path")?;
+                    patch_path_for_delivery(&root, &manifest, path)?;
+                    write_patch(path, &patch)?;
                     report["stages"][index]["result"] = json!({
                         "output": manifest.patch.as_ref().unwrap().output,
                         "bytes": patch.len(),
                         "sha256": patch_digest,
                     });
-                })
+                    Ok(())
+                };
+                delivered()
             }
         };
         if let Err(error) = result {
@@ -494,7 +492,7 @@ fn patch_path_for_delivery(root: &Path, manifest: &Manifest, expected: &Path) ->
     let current = patch_path(root, requested)?;
     ensure!(
         current == expected,
-        "workflow patch output resolved differently after validation"
+        "workflow patch output resolved differently after validation."
     );
     Ok(())
 }

@@ -274,16 +274,16 @@ Verification and acceptance:
 4. Reversal exercise starts planned, visits applied, restored and reapplied states in order, and
    finishes applied when all stages pass.
 5. A failed check or transition stops later stages. The report names the completed stages and the
-   current transaction status, and no patch artifact is written.
+   current transaction status. The command writes no patch artifact.
 6. Rust and Lean agree on every state and stage pair. The complete native, WASM, prose,
    capability and strict Lean gates pass.
 
 Planned checkpoints:
 
-1. **In progress.** Freeze the manifest, preflight rules and Lean-backed lifecycle policy.
-2. Add compact execution, check receipts, optional reversal exercise and delayed patch delivery.
-3. Add refusal and interrupted-lifecycle regressions plus complete CLI and formal documentation.
-4. Add the portable workflow route and executable examples within its current byte budgets.
+1. **Complete.** Freeze the manifest, preflight rules and Lean-backed lifecycle policy.
+2. **Complete.** Add compact execution, check receipts, optional reversal exercise and delayed patch delivery.
+3. **Complete.** Add refusal and stopped-lifecycle regressions plus complete CLI and formal documentation.
+4. **Complete.** Add the portable workflow route and executable examples within its current byte budgets.
 5. Retain a controlled call, context and state-equivalence measurement. Use it to decide whether
    a fresh Luna-low trial is warranted.
 

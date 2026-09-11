@@ -25,6 +25,7 @@ ROUTES = {
     "exploration": ["SKILL.md", "references/explore.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
+    "verified-workflow": ["SKILL.md", "references/workflow.md"],
 }
 
 
@@ -317,6 +318,42 @@ def author_workflow(exercise, root):
     assert (root / ".git/index").read_bytes() == initial_index
 
 
+def verified_workflow(exercise, root):
+    source = root / "app.py"
+    source.write_text("def before():\n    return 1\n")
+    (root / ".fr").mkdir()
+    (root / ".fr/checks.json").write_text(json.dumps({"schema": 1, "checks": [{
+        "name": "unit", "argv": [sys.executable, "-B", "-c",
+        "compile(open('app.py').read(), 'app.py', 'exec')"],
+        "cwd": ".", "timeout_seconds": 30, "covers": ["Python syntax"]}]}))
+    listing, _ = exercise.run(root, ["checks"])
+    plan, _ = exercise.run(root, ["rename", "before", "after", "--save-plan"])
+    transaction = str(plan["transaction"])
+    shown, _ = exercise.run(root, ["history", "show", transaction])
+    control = root / ".fr-workflow"
+    control.write_text(json.dumps({
+        "schema": 1,
+        "transaction": plan["transaction"],
+        "transaction-context-basis": shown["records"][0]["context_basis"],
+        "checks": {"basis": listing["basis"], "names": ["unit"]},
+        "exercise-reversal": True,
+        "patch": {"output": "change.patch"},
+        "check-output-bytes": 256,
+    }))
+    exercise.values["<WORKFLOW_MANIFEST>"] = str(control)
+    path = SKILL / "references/workflow.md"
+    for command in commands(path):
+        value = exercise.example(root, path, command)
+        if "--write" not in command:
+            assert value["ready"] and not value["executed"]
+            assert "before" in source.read_text()
+        else:
+            assert value["passed"] and value["transaction_status"] == "applied"
+            assert all(stage["status"] == "passed" for stage in value["stages"])
+    assert "after" in source.read_text()
+    assert (root / "change.patch").read_text().startswith("diff --git ")
+
+
 def lean_workflow(exercise, root):
     path = SKILL / "references/lean.md"
     (root / "src").mkdir()
@@ -352,9 +389,11 @@ def main():
         (root / "source").mkdir()
         (root / "proof").mkdir()
         (root / "author").mkdir()
+        (root / "workflow").mkdir()
         source_bytes = source_workflow(exercise, root / "source")
         checks_workflow(exercise, root / "source")
         author_workflow(exercise, root / "author")
+        verified_workflow(exercise, root / "workflow")
         lean_workflow(exercise, root / "proof")
     expected = [(path, tuple(command)) for path in files for command in commands(path)]
     assert sorted(exercise.executed) == sorted(expected), "Every fenced shell example must execute."

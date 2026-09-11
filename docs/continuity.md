@@ -17,6 +17,19 @@ manifest will bind a saved transaction, reviewed checks, optional reversal exerc
 Git patch output. The workflow will preflight all inputs before mutation, reuse durable history
 transitions, stop at a reported state on failure and create the patch only after requested checks pass.
 
+The first four checkpoints add `fr workflow --from MANIFEST`. Preview verifies one planned
+transaction, its complete `frtb2:` basis, an exact declared-check selection, patch rendering and a
+new relative artifact destination. Write mode applies with compact evidence and records passing
+checks. Optional reversal exercise checks applied, restored and reapplied source in order. Patch
+creation waits until all stages pass.
+
+Seven CLI scenarios cover the complete lifecycle, preflight refusals, source drift, failures in
+each checked state and an output collision created by a check. Later stages remain pending and each
+failure reports the current history status. The late-collision case found and fixed a structured
+report escape before commit. `FrKernels.Workflow` proves that generated lifecycles finish applied
+and constrains checks and delivery to their source states. All twelve state-stage pairs agree with
+Rust. The portable bundle has 45 executable shell examples. Every route remains under 7,168 bytes.
+
 The historical PR 9 work follows.
 Its first checkpoint adds `fr project batch --from MANIFEST`: up to sixteen existing read-only
 project queries share one constructed snapshot and final workspace verification. The outer response

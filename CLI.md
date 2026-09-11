@@ -1315,6 +1315,50 @@ Pagination follows request order and then project order. Cursors bind the comple
 scope, local and signature choices, source mode, source budget and project revision.
 Each selector is limited to 512 UTF-8 bytes and their combined input to 4,096 bytes.
 
+### `fr workflow`
+
+```sh
+fr workflow --from .fr-workflow
+fr workflow --from .fr-workflow --write
+```
+
+This command carries one reviewed, planned source-history transaction through compact application,
+declared checks and optional Git patch delivery. Its versioned JSON manifest has this shape:
+
+```json
+{
+  "schema": 1,
+  "transaction": 7,
+  "transaction-context-basis": "frtb2:<DIGEST>",
+  "checks": {"basis": "<CHECK_DIGEST>", "names": ["unit"]},
+  "exercise-reversal": true,
+  "patch": {"output": "artifacts/change.patch"},
+  "check-output-bytes": 2048
+}
+```
+
+Preview changes no files. It verifies the planned transaction, complete `frtb2:` basis, check names,
+configuration, patch representation and output safety. It also verifies the planned source revision
+and affected snapshots. A manifest cannot exceed 65,536 bytes. It requires one through 32 unique checks.
+The check output budget defaults to 4,096 bytes and cannot exceed 65,536.
+
+`--write` applies the transaction and runs the selected checks with quiet successful streams. The
+report omits reviewed declarations. Passing checks attach evidence to the applied transaction. With
+`exercise-reversal`, the command then undoes the transaction, checks the restored source, redoes it
+and checks the result again. Restored checks report results without attaching an applied-state receipt.
+The generated lifecycle always finishes applied when every stage passes.
+
+Patch output is optional. The command creates it only after every requested stage succeeds. The response
+contains its path, size and SHA-256 instead of its contents. The path must be new, relative, at most
+4,096 bytes and made only of normal components. It cannot enter `.git` or `.fr-history`, traverse a
+symlink or overlap a transaction target. Its parent must already exist.
+
+A failed stage stops the workflow. Later stages remain `pending`. The command creates no patch and
+reports the current history status. History transition failures retain the recovery rules above.
+Declared checks run as project commands and can have side effects; their source or configuration
+drift fails the stage. Keep a generated manifest outside recognized source, or create it before the
+change plan, because any recognized source added after planning correctly invalidates that plan.
+
 
 ### `fr history`
 

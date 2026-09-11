@@ -28,6 +28,8 @@ The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selecte
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
 Passing checks can record a configuration- and source-bound receipt on an applied source transaction with `--record-for <TX>`.
+`fr workflow --from MANIFEST` preflights one saved transaction, exact checks, optional undo/redo
+exercise and delayed Git patch delivery. `--write` runs the bounded lifecycle and reports its durable stage.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
