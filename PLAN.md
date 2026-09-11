@@ -197,8 +197,8 @@ snapshot without repeating project construction, revision coverage or process ca
 Deliverables:
 
 - Run existing read-only `fr project` queries from one versioned manifest and one verified snapshot.
-- Emit revision, handle prefix and coverage once, while retaining a digest for the complete manifest
-  and each resolved request.
+- Emit revision, handle prefix and coverage once, while retaining separate digests for the complete
+  manifest and the ordered resolved request set.
 - Enforce request, argument and serialized-report budgets; omit only complete reports and state the
   exact omission instead of clipping JSON or facts.
 - Allow later requests to consume bounded string results from earlier requests without copying

@@ -215,6 +215,7 @@ impl Project<'_> {
         let mut omitted = 0usize;
         let mut results = Vec::with_capacity(requests.len());
         let mut reports = BTreeMap::new();
+        let mut resolved_requests = Vec::new();
         for request in requests {
             let arguments = resolve_arguments(&request, &reports)?;
             let query = NestedQuery::try_parse_from(
@@ -225,10 +226,7 @@ impl Project<'_> {
                 !matches!(query.command, Command::Batch(_)),
                 "project batches cannot contain another batch."
             );
-            let request_basis = format!(
-                "frpqr1:{}",
-                hash((SCHEMA, &request.id, &request.arguments, &arguments))?
-            );
+            resolved_requests.push((request.id.clone(), arguments));
             let mut report = self
                 .report(&query.command)
                 .with_context(|| format!("project batch request '{}' failed", request.id))?;
@@ -249,10 +247,7 @@ impl Project<'_> {
                 used += bytes;
                 results.push(json!({
                     "id": request.id,
-                    "query": report["query"],
-                    "request_basis": request_basis,
                     "status": "returned",
-                    "report_bytes": bytes,
                     "report": report
                 }));
             } else {
@@ -260,7 +255,6 @@ impl Project<'_> {
                 results.push(json!({
                     "id": request.id,
                     "query": report["query"],
-                    "request_basis": request_basis,
                     "status": "omitted-report-budget",
                     "required_report_bytes": bytes
                 }));
@@ -269,6 +263,15 @@ impl Project<'_> {
 
         let mut result = common;
         result["manifest_basis"] = json!(manifest_basis);
+        result["resolution_basis"] = json!(format!(
+            "frpqb2:{}",
+            hash((
+                SCHEMA,
+                &self.revision,
+                &result["manifest_basis"],
+                resolved_requests
+            ))?
+        ));
         result["requests"] = json!(results);
         result["report_budget"] = json!({
             "limit_bytes": options.report_bytes,

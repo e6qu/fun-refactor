@@ -144,10 +144,6 @@ fn project_batch_reuses_one_verified_context_for_existing_queries() {
     assert_eq!(batch["report_budget"]["omitted_requests"], 0);
     for request in batch["requests"].as_array().unwrap() {
         assert_eq!(request["status"], "returned");
-        assert!(request["request_basis"]
-            .as_str()
-            .unwrap()
-            .starts_with("frpqr1:"));
         for common in [
             "schema",
             "revision",
@@ -158,6 +154,10 @@ fn project_batch_reuses_one_verified_context_for_existing_queries() {
             assert!(request["report"].get(common).is_none());
         }
     }
+    assert!(batch["resolution_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frpqb2:"));
     assert_eq!(
         reconstruct_batch_report(&batch, 0),
         ok(
@@ -205,7 +205,9 @@ fn project_batch_budget_omits_only_whole_reports_and_keeps_later_small_queries()
         }),
         1_048_576,
     );
-    let small_bytes = unlimited["requests"][1]["report_bytes"].as_u64().unwrap() as usize;
+    let small_bytes = serde_json::to_vec(&unlimited["requests"][1]["report"])
+        .unwrap()
+        .len();
     let batch = project_batch(
         dir.path(),
         serde_json::json!({
@@ -244,16 +246,20 @@ fn project_batch_references_prior_string_results_even_when_the_source_report_is_
         reconstruct_batch_report(&unlimited, 1),
         ok(dir.path(), &["project", "show", handle])
     );
-    let inspect_bytes = unlimited["requests"][1]["report_bytes"].as_u64().unwrap() as usize;
-    assert!(unlimited["requests"][0]["report_bytes"].as_u64().unwrap() > inspect_bytes as u64);
+    let inspect_bytes = serde_json::to_vec(&unlimited["requests"][1]["report"])
+        .unwrap()
+        .len();
+    assert!(
+        serde_json::to_vec(&unlimited["requests"][0]["report"])
+            .unwrap()
+            .len()
+            > inspect_bytes
+    );
 
     let bounded = project_batch(dir.path(), manifest, inspect_bytes);
     assert_eq!(bounded["requests"][0]["status"], "omitted-report-budget");
     assert_eq!(bounded["requests"][1]["status"], "returned");
-    assert_eq!(
-        bounded["requests"][1]["request_basis"],
-        unlimited["requests"][1]["request_basis"]
-    );
+    assert_eq!(bounded["resolution_basis"], unlimited["resolution_basis"]);
     assert_eq!(
         reconstruct_batch_report(&bounded, 1),
         ok(dir.path(), &["project", "show", handle])

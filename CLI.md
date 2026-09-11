@@ -775,8 +775,8 @@ input:
 Each `arguments` array starts with the subcommand name and uses its ordinary options. Global CLI
 options do not belong there, and a batch cannot contain another batch. Request IDs are unique,
 bounded ASCII identifiers. The manifest limits each request to 64 arguments and 4096 argument bytes,
-with 16384 argument bytes across the batch. `manifest_basis` hashes the normalized versioned input;
-each `request_basis` hashes its ID, declarative arguments and resolved arguments.
+with 16384 argument bytes across the batch. `manifest_basis` hashes the normalized versioned input.
+`resolution_basis` additionally hashes the project revision and ordered IDs with resolved arguments.
 
 An argument can instead be `{"request":"ID","pointer":"/JSON/pointer"}`. It resolves one string
 from an earlier nested report using RFC 6901 JSON Pointer syntax. References cannot point forward,

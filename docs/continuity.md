@@ -14,7 +14,7 @@ The current `project_context_v5` branch is roadmap PR 9, Bounded Project Query B
 Its first checkpoint adds `fr project batch --from MANIFEST`: up to sixteen existing read-only
 project queries share one constructed snapshot and final workspace verification. The outer response
 retains revision, handle prefix, coverage and context basis once. Each nested report omits those
-common fields and carries a digest of its request. The versioned manifest has a separate digest.
+common fields. The versioned manifest and ordered resolved request set carry separate digests.
 A shared serialized-report budget admits or omits only complete nested reports. An omitted request
 retains its ID, query kind, request digest and required byte count, and a later smaller report can
 still use the remaining budget. Request counts, IDs, argument counts and bytes are bounded;
@@ -29,8 +29,8 @@ batch envelope and cover whole-report omission and adversarial manifests.
 The second checkpoint lets a request argument use an RFC 6901 JSON Pointer into an earlier nested
 report. References are backward-only and must resolve to a string, so a lookup can feed its exact
 revision-bound handle into `show`, `calls` or another existing query without an agent round trip.
-The resolved arguments remain subject to the per-request byte bound and join the declarative input
-in `request_basis`. Reports remain available for internal references when the output budget omits
+The resolved arguments remain subject to the per-request byte bound and join the project revision
+and manifest identity in `resolution_basis`. Reports remain available for internal references when the output budget omits
 them; their facts do not otherwise leak. Regressions cover omitted producers, missing pointers,
 forward references and non-string results.
 
