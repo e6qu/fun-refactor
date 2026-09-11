@@ -66,6 +66,10 @@ The `fr` arm uses 15,458 measured context tokens and 42 calls; ordinary files us
 This single pair shows a 33.3% `fr` context premium and makes no context-parity claim.
 The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
+The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
+workspace and retains every mutation and verification step. It reduces that trace to 29 calls
+and 13,104 context tokens, 2,354 below the observed `fr` arm and 1,504 above the ordinary-file
+arm. This is a one-trace counterfactual; fresh-agent adoption remains unmeasured.
 
 The file agents retained verbose successful check logs while the `fr` agents used compact output.
 The checksum-bound M4ac projection applies the same output policy to both arms without altering prompts, requests, calls or other payloads.
@@ -166,8 +170,8 @@ Planned checkpoints:
 1. **Complete.** Freeze the trace-derived call-reduction contract and add handle-aware multi-selection with a Lean-backed status policy.
 2. **Complete.** Add a compact authoring workflow description and exact transition templates.
 3. **Complete.** Repair acceptance-harness help and artifact-reference boundaries, with adversarial regressions.
-4. Update and remeasure the portable skill routes against the observed failures.
-5. Publish the bounded counterfactual workflow report and document what it can and cannot claim.
+4. **Complete.** Update and remeasure the portable skill routes against the observed failures.
+5. **Complete.** Publish the bounded counterfactual workflow report and document what it can and cannot claim.
 6. Run and retain a fresh Luna-low paired cohort, then close only the measured bottlenecks supported by its trace.
 
 ## Formal verification policy

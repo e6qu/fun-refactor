@@ -25,6 +25,14 @@ The third checkpoint fixes two acceptance-boundary defects from the retained tra
 manifest validation now passes `-h` and `--help` through to the CLI. Artifact writes return an
 explicit canonical `fr_reference`; the prompt requires copying it verbatim into fragment and
 manifest fields, and invalid relative paths name that contract in their refusal.
+The fourth checkpoint keeps every portable route within its byte ceiling and all 42 shell
+examples executable. The targeted five-file route is 1,763 tokens, eight below the merged PR 7
+files while adding handle, help and artifact guidance.
+The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
+It checks the immutable accepted trace and exercises the current handle selection on the pinned
+workspace. The prescribed sequence retains every mutation and verification step while reducing
+42 calls to 29 and measured context from 15,458 to 13,104 tokens. This 2,354-token reduction is
+a one-trace counterfactual, not autonomous adoption or a population claim.
 PR 7 targeted the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
 It targets the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
 review-bound payload omission, a smaller task-routed skill and a fresh paired acceptance cohort.

@@ -133,6 +133,13 @@ same route falls from 2,699 to 1,693 tokens, a 37.3% reduction. It is 269 tokens
 The executable checker covers the route and enforces bounded routes for built-in changes,
 recipes, recovery, exploration, Lean and Git administration as well.
 
+PR 8 adds exact handle-selection, author-help and artifact-path guidance. Recomputed from the
+merged starting files, the five-file route falls from 1,771 to 1,763 tokens under the same
+framing. It is 70 tokens above the earlier 1,693-token snapshot because PR 7 added diagnostic
+schema guidance after that retained measurement. All 42 examples and route byte ceilings still
+pass. The [workflow v4 evaluation](agent-workflow-v4-evaluation.md) measures the combined
+prescribed path separately.
+
 M4o subsequently combines lookup and source inspection under one page budget.
 The [controlled source-lookup comparison](project-context-evaluation.md#bounded-source-during-name-lookup) measures that command composition separately from these skill-reading costs.
 

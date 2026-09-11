@@ -1,19 +1,29 @@
 # Author selected code
 
-`fr author` operations are `replace-body`, `replace-declaration`, `insert-declaration`, and `batch`. A batch holds up to 32 disjoint operations and also accepts `organize-imports`. Signature changes need coordinated caller edits; unsupported targets refuse.
+`fr author` has `replace-body`, `replace-declaration`, `insert-declaration`, and `batch`;
+batches accept up to 32 disjoint steps including `organize-imports`. Coordinate callers after
+signature changes. Unsupported targets refuse.
 
 Use `fr author guide` for machine-readable operations, limits and transitions. After reading
 this route, skip subcommand help.
 
-Use `project find NAME --in FILE --source`; its `root` is the file handle. A module/trait row selects that container, while any direct method selects its impl/trait. If needed, get a file handle with `project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
+Use `project find NAME --in FILE --source`; `root` is its file handle. A module/trait row
+selects that container; a direct method selects its impl/trait. Otherwise use
+`project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
 
-External UTF-8 fragments are limited to 64 KiB. Batch operations need `op` and `handle`; fragment operations add `from`, short IDs need top-level `revision`, and `organize-imports` takes a file handle. All steps use original source; overlaps refuse. Use `postconditions` for exact `files-changed`, `edits`, `changed-operations`, or `paths-changed` expectations.
+UTF-8 fragments are limited to 64 KiB. Steps need `op` and `handle`; fragment steps add
+`from`, short IDs need top-level `revision`, and `organize-imports` takes a file handle. Steps
+use original source; overlaps refuse. Exact `postconditions`: `files-changed`, `edits`,
+`changed-operations`, and `paths-changed`.
 Paths are project-relative. Copy absolute paths from external artifact writers verbatim into
 fragment `from` fields and batch `--from`.
 
-Review a complete diff and retain `plan_context_basis`. Repeat the same plan with `--save-plan --plan-basis BASIS`; drift or clipping refuses before persistence. The saved result supplies `transaction_context_basis` for compact forward application.
+Review the complete diff and retain `plan_context_basis`. Repeat it with
+`--save-plan --plan-basis BASIS`; drift or clipping refuses before persistence. The result's
+`transaction_context_basis` compacts forward application.
 
-Rust insertion preserves fragment bytes, accepts outer doc comments, and permits bodyless functions only in traits. Body replacement covers Rust, Go functions/methods, Java methods/constructors/default methods, and supported TypeScript/TSX bindings. TypeScript arrows may change body form.
+Rust insertion preserves bytes and doc comments; only traits allow bodyless functions. Body
+replacement covers Rust, Go, Java, and supported TypeScript/TSX bindings; arrows may change form.
 
 ```rust
 /// Increments a value twice.

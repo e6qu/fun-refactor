@@ -46,6 +46,11 @@ context_v3_spec = importlib.util.spec_from_file_location(
 context_protocol_v3 = importlib.util.module_from_spec(context_v3_spec)
 context_v3_spec.loader.exec_module(context_protocol_v3)
 
+workflow_v4_spec = importlib.util.spec_from_file_location(
+    "agent_workflow_v4", TOOLS / "agent-workflow-v4.py")
+workflow_v4 = importlib.util.module_from_spec(workflow_v4_spec)
+workflow_v4_spec.loader.exec_module(workflow_v4)
+
 
 class ContextProtocolEvidence(unittest.TestCase):
     def payload(self, result):
@@ -164,6 +169,24 @@ class ContextProtocolV3Evidence(unittest.TestCase):
         }
         bases = context_protocol_v3.projection_transaction_bases([event])
         self.assertEqual(bases, {7: "frtb2:" + "a" * 64})
+
+
+class AgentWorkflowV4Evidence(unittest.TestCase):
+    def test_prescribed_trace_reduction_is_live_bounded_and_retained(self):
+        retained = json.loads(
+            (TOOLS.parent / "tests/agent-eval/agent-workflow-v4.json").read_text()
+        )
+        actual = workflow_v4.measure(TOOLS.parent / "target/debug/fr")
+        self.assertTrue(actual["passed"])
+        self.assertEqual(actual["observed"]["calls"], 42)
+        self.assertEqual(actual["prescribed"]["calls"], 29)
+        self.assertEqual(actual["difference"]["calls"], -13)
+        self.assertEqual(len(actual["removed_calls"]), 13)
+        for section in ("observed", "prescribed", "difference"):
+            for field in ("calls", "prompt_bytes", "visible_output_bytes", "tool_request_bytes"):
+                self.assertEqual(actual[section][field], retained[section][field])
+        self.assertEqual(actual["removed_calls"], retained["removed_calls"])
+        self.assertEqual(actual["measurement_files"], retained["measurement_files"])
 
 
 class CheckPolicyEvidence(unittest.TestCase):
