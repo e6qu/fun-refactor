@@ -48,6 +48,7 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
             "inspect",
             "preview",
             "save",
+            "checked-delivery",
             "apply",
             "patch",
             "undo-preview",
