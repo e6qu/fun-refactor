@@ -10,7 +10,36 @@ PR 6, Verified Feature Migration, merged as GitHub PR 266.
 Release PR 260 then published the completed roadmap state from `main`.
 PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
 PR 8, Agent Workflow Simplification, merged as GitHub PR 269.
-The current `project_context_v5` branch is roadmap PR 9, Bounded Project Query Batches.
+PR 9, Bounded Project Query Batches, merged as GitHub PR 270.
+The current `agent_change_workflow` branch is roadmap PR 10, Verified Change Workflow.
+It targets the remaining change-and-delivery overhead in the retained agent trials. One bounded
+manifest will bind a saved transaction, reviewed checks, optional reversal exercise and delayed
+Git patch output. The workflow will preflight all inputs before mutation, reuse durable history
+transitions, stop at a reported state on failure and create the patch only after requested checks pass.
+
+The first four checkpoints add `fr workflow --from MANIFEST`. Preview verifies one planned
+transaction, its complete `frtb2:` basis, an exact declared-check selection, patch rendering and a
+new relative artifact destination. Write mode applies with compact evidence and records passing
+checks. Optional reversal exercise checks applied, restored and reapplied source in order. Patch
+creation waits until all stages pass.
+
+Seven CLI scenarios cover the complete lifecycle, preflight refusals, source drift, failures in
+each checked state and an output collision created by a check. Later stages remain pending and each
+failure reports the current history status. The late-collision case found and fixed a structured
+report escape before commit. `FrKernels.Workflow` proves that generated lifecycles finish applied
+and constrains checks and delivery to their source states. All twelve state-stage pairs agree with
+Rust. The portable bundle has 45 executable shell examples. Every route remains under 7,168 bytes.
+
+The fifth checkpoint retains `tests/agent-eval/workflow-context.json`. A generic Python fixture
+compares seven compact manual lifecycle calls with one workflow preview and write. Both arms apply,
+check, undo, check, redo, check and export the same transaction. Across three rotating repetitions,
+median counted context falls from 2,047 to 1,880 tokens, or 8.2%. Calls fall from seven to two and
+bytes fall from 6,368 to 5,556. Median local subprocess time falls from 0.220 to 0.205 seconds.
+Every normalized stage, final history record, source and patch matches. The fixed comparison excludes
+planning, skill reads, agent behavior, independent oracles and receiver checks. Its reduction supports
+one fresh Luna-low adoption pair after the complete deterministic gate passes.
+
+The historical PR 9 work follows.
 Its first checkpoint adds `fr project batch --from MANIFEST`: up to sixteen existing read-only
 project queries share one constructed snapshot and final workspace verification. The outer response
 retains revision, handle prefix, coverage and context basis once. Each nested report omits those

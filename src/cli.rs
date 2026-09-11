@@ -143,6 +143,8 @@ enum Command {
         #[command(subcommand)]
         command: crate::project::Command,
     },
+    #[command(about = "Validate and deliver one reviewed source-history transaction.")]
+    Workflow(crate::workflow::Options),
     /// List, inspect, apply or reverse workspace transactions.
     History {
         #[command(subcommand)]
@@ -974,6 +976,14 @@ fn dispatch(cli: &Cli) -> Result<()> {
             Ok(())
         }
         Command::Project { command } => cmd_project(cli, command),
+        Command::Workflow(options) => {
+            let outcome = crate::workflow::run(&workspace_root(cli), options)?;
+            println!("{}", serde_json::to_string(&outcome.report)?);
+            if !outcome.passed {
+                std::process::exit(1);
+            }
+            Ok(())
+        }
         Command::Migrate { command } => cmd_migrate(cli, command),
         Command::History { action } => cmd_history(cli, action.as_ref()),
         Command::Capabilities {

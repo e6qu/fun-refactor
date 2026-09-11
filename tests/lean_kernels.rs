@@ -760,6 +760,25 @@ fn snapshot_git_modes_match_lean_for_regular_files_and_symlinks() {
 }
 
 #[test]
+fn workflow_stage_policy_matches_lean_for_every_state_and_stage() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("workflow-stages")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for applied in [false, true] {
+        for stage in 0..6 {
+            expected.push(fun_refactor::workflow::workflow_stage_state(applied, stage).to_string());
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn owner_executable_settings_match_lean_across_permission_bits_and_u32_boundaries() {
     use fun_refactor::history::owner_executable_mode;
     build_kernel();

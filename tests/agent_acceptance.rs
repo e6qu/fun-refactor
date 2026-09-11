@@ -78,3 +78,19 @@ fn batched_project_queries_match_separate_compact_reports() {
         "tests/agent-eval/project-batch-context.json",
     ]);
 }
+
+#[test]
+fn verified_workflow_matches_the_manual_delivery_lifecycle() {
+    python(&[
+        "tools/workflow-context.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+        "--repetitions",
+        "1",
+    ]);
+    python(&[
+        "tools/workflow-context.py",
+        "--audit",
+        "tests/agent-eval/workflow-context.json",
+    ]);
+}

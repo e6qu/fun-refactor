@@ -64,6 +64,7 @@ pub fn guide() -> Value {
             {"step": "inspect", "command": "fr project select <SELECTOR>... --source --bytes <N>"},
             {"step": "preview", "command": "fr author batch --from <MANIFEST>"},
             {"step": "save", "command": "fr author batch --from <MANIFEST> --save-plan --plan-basis <PLAN_CONTEXT_BASIS>"},
+            {"step": "checked-delivery", "command": "fr workflow --from <WORKFLOW_MANIFEST> --write"},
             {"step": "apply", "command": "fr history apply <TX> --write --context-basis <TRANSACTION_CONTEXT_BASIS>"},
             {"step": "patch", "command": "fr history patch <TX> --output <PATCH>"},
             {"step": "undo-preview", "command": "fr history undo <TX>"},
@@ -73,6 +74,7 @@ pub fn guide() -> Value {
         ],
         "evidence": [
             "Review the complete preview before using its plan_context_basis.",
+            "Use workflow delivery when reviewed project checks cover the requested lifecycle.",
             "Run declared checks on original, changed, undone and redone states.",
             "Retain refusals, coverage gaps, patch checks and receiver evidence."
         ]

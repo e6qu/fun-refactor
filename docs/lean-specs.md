@@ -159,6 +159,14 @@ All twenty-four Boolean combinations agree with the two Rust predicates.
 The proof uses no custom axiom or compiler-trust tactic.
 It covers the final conjunction only; command execution, digest construction, filesystem observation and history persistence retain Rust and integration-test evidence.
 
+`FrKernels.Workflow` models the finite state policy for verified change delivery. Six stages cover
+apply, checks in both source states, undo, redo and patch delivery. The model proves that every
+generated lifecycle starts planned and finishes applied. It also proves that delivery requires an
+applied state, restored checks require a planned state and the reversal sequence returns to applied.
+All twelve Rust state-stage pairs agree with Lean. The model does not prove command execution,
+filesystem durability, process behavior, hashing or manifest parsing. History, check and patch
+regressions cover those implementation boundaries.
+
 `FrKernels.Git` models the inclusive line-range predicate used by changed-declaration views.
 Six theorems characterize membership, reject lines before/after or within reversed bounds, characterize singletons, and preserve matches when bounds widen.
 Shared execution compares 1,728 cases, including zero, reversed ranges and 32-bit/64-bit maximum values.
