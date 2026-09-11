@@ -1,5 +1,6 @@
 import FrKernels.History
 import FrKernels.Patch
+import FrKernels.Workflow
 
 open FrKernels.History
 
@@ -52,4 +53,8 @@ def main (args : List String) : IO Unit :=
   | ["patch-basis"] => patchBasisCases
   | ["owner-executable"] => ownerExecutableCases
   | ["snapshot-modes"] => snapshotModeCases
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes or no arguments")
+  | ["workflow-stages"] =>
+      for applied in [false, true] do
+        for stage in List.range 6 do
+          IO.println (FrKernels.Workflow.stageState applied stage)
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages or no arguments")

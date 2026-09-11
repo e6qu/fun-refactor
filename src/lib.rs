@@ -9,6 +9,8 @@ pub mod checks;
 #[cfg(feature = "cli")]
 pub mod cli;
 pub mod vfs;
+#[cfg(feature = "cli")]
+pub mod workflow;
 // The C the grammars call, which `wasm32-unknown-unknown` does not supply.
 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 extern crate fun_refactor_wasm_libc;

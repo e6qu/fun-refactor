@@ -135,7 +135,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Nine merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Ten merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -148,6 +148,7 @@ The first packaged roadmap is complete. Nine merged pull requests established th
 | [PR 6](https://github.com/e6qu/fun-refactor/pull/266) | Verified feature migration | Merged |
 | [PR 7](https://github.com/e6qu/fun-refactor/pull/267) | Context-Competitive Agent Workflow | Merged |
 | [PR 8](https://github.com/e6qu/fun-refactor/pull/269) | Agent Workflow Simplification | Merged |
+| [PR 9](https://github.com/e6qu/fun-refactor/pull/270) | Bounded Project Query Batches | Merged |
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -197,7 +198,7 @@ Planned checkpoints:
 
 ### PR 9. Bounded Project Query Batches
 
-Status: ready for review on `project_context_v5`.
+Status: merged as [PR 270](https://github.com/e6qu/fun-refactor/pull/270).
 
 Goal: let an agent obtain several heterogeneous high-level project views from one immutable
 snapshot without repeating project construction, revision coverage or process calls.
@@ -239,6 +240,52 @@ Planned checkpoints:
 4. **Complete.** Retain a controlled separate-versus-batch measurement with immutable payload and binary digests.
 5. **Complete.** Exercise the route in a fresh broad-exploration pair after the controlled evidence
    justifies quota use, and retain both successful sessions without intervention.
+
+### PR 10. Verified Change Workflow
+
+Status: in progress on `agent_change_workflow`.
+
+Goal: carry one reviewed source-history transaction through declared validation, reversible
+exercise and Git patch delivery without repeated command discovery or duplicated successful output.
+
+Deliverables:
+
+- Add one versioned, bounded manifest for a saved transaction, its reviewed transaction basis,
+  an exact declared-check selection and an optional patch artifact.
+- Preflight the complete request before source mutation. Bind the transaction, check configuration,
+  patch representability and artifact destination to the report.
+- Apply with compact transition evidence. Run checks against the exact resulting source and record
+  their receipt on the transaction.
+- Optionally undo, check the restored source, redo and check the reapplied source in one explicit
+  lifecycle. Stop on failure and report the durable state reached.
+- Write the Git patch only after every requested stage passes. Return its byte count and digest
+  instead of copying reviewed source into the final report.
+- Model the allowed workflow states and stages in Lean. Exercise every shared finite state case
+  against the Rust policy.
+- Teach the portable skill the route and retain a controlled comparison before another agent trial.
+
+Verification and acceptance:
+
+1. Unknown manifest fields, stale bases, invalid check selections, unsafe artifact paths and
+   unrepresentable patches refuse before source changes or artifact creation.
+2. Every mutating stage uses durable history transitions and preserves their conflict and recovery rules.
+3. Checks bind their reviewed configuration and a stable source revision. Passing final checks
+   record evidence; restored-state checks do not claim evidence for an applied transaction.
+4. Reversal exercise starts planned, visits applied, restored and reapplied states in order, and
+   finishes applied when all stages pass.
+5. A failed check or transition stops later stages. The report names the completed stages and the
+   current transaction status, and no patch artifact is written.
+6. Rust and Lean agree on every state and stage pair. The complete native, WASM, prose,
+   capability and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **In progress.** Freeze the manifest, preflight rules and Lean-backed lifecycle policy.
+2. Add compact execution, check receipts, optional reversal exercise and delayed patch delivery.
+3. Add refusal and interrupted-lifecycle regressions plus complete CLI and formal documentation.
+4. Add the portable workflow route and executable examples within its current byte budgets.
+5. Retain a controlled call, context and state-equivalence measurement. Use it to decide whether
+   a fresh Luna-low trial is warranted.
 
 ## Formal verification policy
 

@@ -10,7 +10,14 @@ PR 6, Verified Feature Migration, merged as GitHub PR 266.
 Release PR 260 then published the completed roadmap state from `main`.
 PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
 PR 8, Agent Workflow Simplification, merged as GitHub PR 269.
-The current `project_context_v5` branch is roadmap PR 9, Bounded Project Query Batches.
+PR 9, Bounded Project Query Batches, merged as GitHub PR 270.
+The current `agent_change_workflow` branch is roadmap PR 10, Verified Change Workflow.
+It targets the remaining change-and-delivery overhead in the retained agent trials. One bounded
+manifest will bind a saved transaction, reviewed checks, optional reversal exercise and delayed
+Git patch output. The workflow will preflight all inputs before mutation, reuse durable history
+transitions, stop at a reported state on failure and create the patch only after requested checks pass.
+
+The historical PR 9 work follows.
 Its first checkpoint adds `fr project batch --from MANIFEST`: up to sixteen existing read-only
 project queries share one constructed snapshot and final workspace verification. The outer response
 retains revision, handle prefix, coverage and context basis once. Each nested report omits those
