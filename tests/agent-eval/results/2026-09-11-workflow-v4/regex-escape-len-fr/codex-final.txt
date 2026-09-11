@@ -1,0 +1,8 @@
+Implemented and validated:
+
+- Added documented `escape_len` APIs to `regex` and `regex-syntax`.
+- Ensured UTF-8 byte-length calculation without allocation.
+- Updated escaping capacity reservation for allocation efficiency.
+- Preserved existing behavior and no-default-feature builds.
+
+All declared checks passed, including undo/redo and receiver verification.

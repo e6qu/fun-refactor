@@ -59,6 +59,37 @@ The complete failed evidence remains at
 Its token audit passes, while replay refuses it because acceptance failed. No agent received a
 human correction or restart.
 
+## Fresh passing adoption pair
+
+A second pair used the same task, archive, binary hash, runner and Luna-low configuration after
+the diagnostic fixes. Both arms pass the original, changed, undone and redone checks. They also
+pass both 1,060-case behavior oracles, exact reversal, patch receiver and index-preservation
+gates. Token audit and complete patch replay pass without rerunning an agent.
+
+| Measure | `fr` | Ordinary files | Difference |
+|---|---:|---:|---:|
+| Context tokens | 13,949 | 12,815 | 1,134 (8.8%) |
+| Prompt tokens | 1,448 | 1,227 | 221 |
+| Visible output tokens | 12,501 | 11,588 | 913 |
+| Tool-request tokens | 1,678 | 1,100 | 578 |
+| Calls | 30 | 23 | 7 |
+| Tool time | 90.390 s | 13.513 s | 76.877 s |
+| Agent workflow time | 251.520 s | 113.433 s | 138.087 s |
+
+The `fr` arm uses 3,972 inspection tokens, while ordinary files use 7,902. Its skill costs 1,068
+tokens, checks cost 2,416, and authoring plus delivery cost 5,045. The last category and tool
+latency now dominate the premium. Each arm has one recovered invalid request: `fr git sentinel`
+in the `fr` arm and `checks --list` in the files arm. Neither received a correction or restart.
+
+The passing `fr` agent uses the author guide, exact artifact references, a single manifest,
+the `frpb1` plan basis, compact forward history and one saved batch. It uses handle selection for
+one declaration and separate file-scoped finds for the others, so autonomous adoption did not
+reach the 29-call prescribed sequence. The passing pair supports an 8.8% comparison for this
+sample. It does not establish a population result, billed-token reduction or latency parity.
+
+The accepted evidence is retained at
+[`2026-09-11-workflow-v4`](../tests/agent-eval/results/2026-09-11-workflow-v4/manifest.json).
+
 The token audit uses tiktoken 0.12.0, `o200k_base`, and the repository's checksum-pinned
 vocabulary. Reproduce the retained report with:
 

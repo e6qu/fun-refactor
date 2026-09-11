@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent transactions, recovery, conflict checks, apply, undo and redo | Retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and twenty passing autonomous trials | Make context use competitive and extend authoring scope |
+| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and twenty-two passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -55,7 +55,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Twenty passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
+- Twenty-two passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
@@ -75,6 +75,11 @@ The first fresh PR 8 pair produced correct patches and passed both 1,060-case be
 Both agents edited before running the original-state checks, so neither passed acceptance. The
 `fr` arm used 23,973 context tokens and 49 calls; ordinary files used 13,852 and 21. The retained
 diagnostic now drives an execution-time original-check gate and narrower command guidance.
+
+The second fresh PR 8 pair passes every gate and replays from retained patches. The `fr` arm
+uses 13,949 context tokens and 30 calls; ordinary files use 12,815 and 23. The 1,134-token or
+8.8% `fr` premium in this sample is below the PR 7 pair's 33.3% premium. Inspection favors
+`fr`; authoring, delivery output and tool time remain the measured costs.
 
 The file agents retained verbose successful check logs while the `fr` agents used compact output.
 The checksum-bound M4ac projection applies the same output policy to both arms without altering prompts, requests, calls or other payloads.
@@ -139,7 +144,7 @@ Git history and [development continuity](docs/continuity.md) retain checkpoint-l
 
 ### PR 8. Agent Workflow Simplification
 
-Status: in progress on `agent_workflow_v4`.
+Status: ready for review on `agent_workflow_v4`.
 
 Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 trace while retaining bounded evidence, independent validation, exact patch replay and undo/redo.
 
@@ -147,6 +152,7 @@ Measured baseline:
 
 - The current checksum-bound projection uses 11,092 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,282-token or 62.9% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
+- The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
 - These measurements diagnose the workflow. They do not establish population-level agent behavior or predict savings from unfinished changes.
 
@@ -177,8 +183,8 @@ Planned checkpoints:
 3. **Complete.** Repair acceptance-harness help and artifact-reference boundaries, with adversarial regressions.
 4. **Complete.** Update and remeasure the portable skill routes against the observed failures.
 5. **Complete.** Publish the bounded counterfactual workflow report and document what it can and cannot claim.
-6. **In progress.** Retain the first fresh diagnostic, enforce original checks before source
-   mutation, clarify its observed command boundaries, and run a second Luna-low pair.
+6. **Complete.** Retain the first fresh diagnostic, enforce original checks before source
+   mutation, clarify its observed command boundaries, and retain a passing second Luna-low pair.
 
 ## Formal verification policy
 

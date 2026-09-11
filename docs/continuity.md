@@ -41,6 +41,13 @@ original-state check before editing, so the ordered workflow rejected them. The 
 13,852 tokens and 21 calls. The harness now refuses source mutation before original checks pass;
 skill and prompt guidance also cover the exact command errors in the trace.
 
+The second fresh PR 8 pair passes all acceptance gates and exact replay. The `fr` arm uses
+13,949 context tokens and 30 calls; ordinary files use 12,815 and 23. This leaves a 1,134-token
+or 8.8% `fr` premium in one sample, down from the PR 7 pair's 33.3%. The `fr` arm uses fewer
+inspection tokens; authoring, delivery payloads and tool latency remain larger. Its agent uses
+the author guide, exact artifact references, one final manifest, the right plan basis, compact
+history and a single saved batch without correction.
+
 PR 7 targeted the fixed-projection gap through multi-symbol inspection, review-bound payload
 omission, a smaller task-routed skill and a fresh paired acceptance cohort.
 The retained fresh cohort passes independent project and receiver oracles, ordered checks, exact
@@ -868,5 +875,5 @@ Both arms pass, while `fr` uses 33.3% more measured context and 22 more calls in
 Use its refused path guesses, help calls and repeated inspection to simplify authoring discovery
 before spending quota on another autonomous cohort.
 Keep portable skill references selective and executable against the distributed binary.
-PR 7 merged as GitHub PR 267. PR 8 continues the remaining M2 context-efficiency and M4
-authoring outcomes in [PLAN.md](../PLAN.md).
+PR 7 merged as GitHub PR 267. PR 8 is ready for review on `agent_workflow_v4`; after merge,
+choose the next M2 context-efficiency or M4 authoring outcome in [PLAN.md](../PLAN.md).

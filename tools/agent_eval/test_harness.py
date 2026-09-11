@@ -189,6 +189,35 @@ class AgentWorkflowV4Evidence(unittest.TestCase):
         self.assertEqual(actual["removed_calls"], retained["removed_calls"])
         self.assertEqual(actual["measurement_files"], retained["measurement_files"])
 
+    def test_fresh_cohorts_retain_failed_and_passing_acceptance(self):
+        root = TOOLS.parent / "tests/agent-eval/results"
+        expected = {
+            "2026-09-11-workflow-v4-diagnostic-1": {
+                "accepted": False, "commit": "882a13fd172796da340428de76747134c91a930d",
+                "fr": (False, 23973, 49), "files": (False, 13852, 21),
+            },
+            "2026-09-11-workflow-v4": {
+                "accepted": True, "commit": "d579f6b4ade93608d4b8043fc657e9b2323c6f88",
+                "fr": (True, 13949, 30), "files": (True, 12815, 23),
+            },
+        }
+        for directory, cohort in expected.items():
+            evidence = root / directory
+            manifest = json.loads((evidence / "manifest.json").read_text())
+            self.assertEqual(manifest["acceptance"]["passed"], cohort["accepted"])
+            self.assertEqual(manifest["implementation_commit"], cohort["commit"])
+            for relative, sha256 in manifest["files"].items():
+                self.assertEqual(harness.digest(harness.within(evidence, relative).read_bytes()), sha256)
+            for arm in ("fr", "files"):
+                result = json.loads((evidence / f"regex-escape-len-{arm}/result.json").read_text())
+                self.assertEqual(
+                    (result["passed"], result["context_tokens"], result["tool_calls"]),
+                    cohort[arm],
+                )
+                for field in ("undo_exact", "redo_exact", "index_unchanged",
+                              "receiver_index_unchanged", "receiver_matches"):
+                    self.assertTrue(result[field])
+
 
 class CheckPolicyEvidence(unittest.TestCase):
     def setUp(self):
