@@ -34,6 +34,12 @@ in `request_basis`. Reports remain available for internal references when the ou
 them; their facts do not otherwise leak. Regressions cover omitted producers, missing pointers,
 forward references and non-string results.
 
+The third checkpoint adds the versioned manifest to the portable Explore skill. Its broad route
+combines map, exact lookup, referenced source inspection, incoming calls, test candidates and gaps.
+The skill checker creates the documented artifact, runs the batch through the built binary, checks
+all request outcomes and enforces the 256-byte nested source limit. The portable bundle now has 43
+executable shell examples. CLI and Lean documentation state the reconstruction and proof boundaries.
+
 The historical PR 8 work follows.
 It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
 inspection and ambiguous artifact references account for the first concrete reductions.
