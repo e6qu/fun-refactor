@@ -5,6 +5,7 @@ use crate::lang::Language;
 use crate::model::FactGap;
 use crate::span::{LineCol, LineIndex, Span};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use wasm_bindgen::prelude::*;
 
@@ -23,6 +24,7 @@ pub struct Workspace {
     facts: std::collections::BTreeMap<PathBuf, (Language, crate::model::FileFacts)>,
     /// Files whose language this build has no grammar for.
     unsupported: Vec<String>,
+    history: crate::memory_history::History,
 }
 
 /// A rendered tree or report, printed by the analysis that owns it.
@@ -189,6 +191,7 @@ impl Workspace {
             order,
             facts,
             unsupported,
+            history: crate::memory_history::History::default(),
         })
     }
 }
@@ -432,6 +435,61 @@ impl Workspace {
     pub fn read(&self, path: &str) -> String {
         self.enter();
         crate::vfs::read_to_string(PathBuf::from(path)).unwrap_or_default()
+    }
+
+    pub fn history(&self) -> String {
+        self.enter();
+        ok(&self.history.summary())
+    }
+
+    pub fn undo(&mut self, transaction: u32) -> String {
+        self.enter();
+        let transition = match self.history.undo(transaction) {
+            Ok(transition) => transition,
+            Err(error) => return fail(error),
+        };
+        let written = transition
+            .files
+            .iter()
+            .map(|file| PathBuf::from(&file.path))
+            .collect::<Vec<_>>();
+        if let Err(error) = self.reindex(&written) {
+            return fail(error);
+        }
+        ok(&transition)
+    }
+
+    pub fn redo(&mut self, transaction: u32) -> String {
+        self.enter();
+        let transition = match self.history.redo(transaction) {
+            Ok(transition) => transition,
+            Err(error) => return fail(error),
+        };
+        let written = transition
+            .files
+            .iter()
+            .map(|file| PathBuf::from(&file.path))
+            .collect::<Vec<_>>();
+        if let Err(error) = self.reindex(&written) {
+            return fail(error);
+        }
+        ok(&transition)
+    }
+
+    pub fn transaction_patch(&self, transaction: u32, reverse: bool) -> String {
+        self.enter();
+        match self.history.patch(transaction, reverse) {
+            Ok(patch) => patch_report(Some(transaction), reverse, patch),
+            Err(error) => fail(error),
+        }
+    }
+
+    pub fn patch(&self) -> String {
+        self.enter();
+        match self.history.current_patch() {
+            Ok(patch) => patch_report(None, false, patch),
+            Err(error) => fail(error),
+        }
     }
 
     /// What satisfies the abstraction at this position.
@@ -1287,6 +1345,11 @@ impl Workspace {
     ) -> String {
         #[derive(Serialize)]
         struct Applied<'a> {
+            schema: &'static str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            transaction: Option<u32>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            transaction_basis: Option<&'a str>,
             files: Vec<Changed>,
             /// The sites the refactoring declined to touch.
             warnings: &'a [crate::refactor::Warning],
@@ -1297,6 +1360,8 @@ impl Workspace {
             before: String,
             after: String,
             diff: String,
+            before_exists: bool,
+            after_exists: bool,
         }
 
         let outcomes = match crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict) {
@@ -1304,6 +1369,19 @@ impl Workspace {
             Err(e) => return fail(e),
         };
 
+        let journal_changes = outcomes
+            .iter()
+            .filter(|outcome| outcome.changed())
+            .map(|outcome| crate::memory_history::Change {
+                path: outcome.path.clone(),
+                before: self
+                    .order
+                    .iter()
+                    .any(|path| path == &outcome.path)
+                    .then(|| outcome.original.clone()),
+                after: Some(outcome.updated.clone()),
+            })
+            .collect::<Vec<_>>();
         let changed: Vec<Changed> = outcomes
             .iter()
             .filter(|o| o.changed())
@@ -1312,8 +1390,22 @@ impl Workspace {
                 before: o.original.clone(),
                 after: o.updated.clone(),
                 diff: o.unified_diff(),
+                before_exists: self.order.iter().any(|path| path == &o.path),
+                after_exists: true,
             })
             .collect();
+        if changed.is_empty() {
+            return ok(&Applied {
+                schema: "fr-memory-apply-1",
+                transaction: None,
+                transaction_basis: None,
+                files: changed,
+                warnings: &warnings,
+            });
+        }
+        if let Err(error) = self.history.ensure_capacity(&journal_changes) {
+            return fail(error);
+        }
 
         if let Err(e) = crate::edit::commit(&outcomes) {
             return fail(e);
@@ -1328,7 +1420,12 @@ impl Workspace {
             return fail(e);
         }
 
+        let record = self.history.push(journal_changes);
+
         ok(&Applied {
+            schema: "fr-memory-apply-1",
+            transaction: Some(record.id),
+            transaction_basis: Some(&record.basis),
             files: changed,
             warnings: &warnings,
         })
@@ -1368,6 +1465,34 @@ impl Workspace {
         self.index = Index::build_from_facts(&all);
         Ok(())
     }
+}
+
+fn patch_report(transaction: Option<u32>, reverse: bool, patch: String) -> String {
+    #[derive(Serialize)]
+    struct Patch {
+        schema: &'static str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        transaction: Option<u32>,
+        reverse: bool,
+        format: &'static str,
+        sections: usize,
+        patch_bytes: usize,
+        patch_sha256: String,
+        patch: String,
+    }
+
+    let sections = patch.matches("diff --git ").count();
+    let patch_sha256 = format!("{:x}", Sha256::digest(patch.as_bytes()));
+    ok(&Patch {
+        schema: "fr-memory-patch-1",
+        transaction,
+        reverse,
+        format: "git-text-diff",
+        sections,
+        patch_bytes: patch.len(),
+        patch_sha256,
+        patch,
+    })
 }
 
 /// The version of the crate this build came from.

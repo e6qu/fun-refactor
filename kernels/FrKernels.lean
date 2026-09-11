@@ -1,6 +1,7 @@
 import FrKernels.Edit
 import FrKernels.Position
 import FrKernels.History
+import FrKernels.MemoryHistory
 import FrKernels.Patch
 import FrKernels.Project
 import FrKernels.Source

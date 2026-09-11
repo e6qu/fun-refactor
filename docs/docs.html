@@ -471,12 +471,16 @@ async def delete(postId: str, req: Request):
       bar walk back and forward through the jumps you made, and a right-click offers
       every action that applies to what is under the cursor, with a reason on each one
       that cannot run. Drag the columns, fold the sidebar sections, and the page
-      remembers the layout.
+      remembers the layout. Each refactoring is one transaction: Undo and Redo move
+      one checked transaction at a time, while Download Patch exports every transaction
+      still applied through the same Rust renderer as the terminal.
     </p>
     <p>
       The browser cannot do the parts that need a filesystem. It keeps no fact cache,
       and a repository has to fit in a tab, so the loader caps the file count and says
-      what it left out.
+      what it left out. Its bounded history lasts only for the loaded tab and has no
+      crash recovery; <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/browser-history.md">the browser history contract</a>
+      records the exact limits and trust boundary.
     </p>
 
     <h3>Asking the page instead of reading it</h3>

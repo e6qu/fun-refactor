@@ -73,7 +73,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.tag }}
 
@@ -148,7 +148,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.tag }}
 
@@ -179,9 +179,10 @@ jobs:
 
       # Same check the binaries get, in the runtime this artifact is for. The
       # module loads, the API answers, and the answer is about real source.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
+          package-manager-cache: false
       - name: Check it answers
         run: node web/test/api.mjs
 

@@ -61,6 +61,16 @@ def sizes(texts, encoding, roots):
     }
 
 
+def visible_stderr(data):
+    text = data.decode()
+    for line in text.splitlines():
+        value = json.loads(line)
+        progress = value.get("indexing") if isinstance(value, dict) else None
+        assert isinstance(progress, dict) and set(progress) == {"done", "total"}
+        assert all(type(progress[key]) is int and progress[key] >= 0 for key in progress)
+    return text
+
+
 def invoke(binary, root, args):
     started = time.perf_counter()
     result = subprocess.run(
@@ -71,8 +81,8 @@ def invoke(binary, root, args):
     )
     elapsed = time.perf_counter() - started
     assert result.returncode == 0, (args, result.stdout, result.stderr)
-    assert not result.stderr
-    return json.loads(result.stdout), result.stdout.decode(), elapsed
+    stderr = visible_stderr(result.stderr)
+    return json.loads(result.stdout), result.stdout.decode() + stderr, elapsed
 
 
 def prepare(binary, root):

@@ -21,11 +21,14 @@ pub mod extract;
 pub mod framework_kernel;
 #[cfg(feature = "cli")]
 pub mod git;
+pub mod git_patch;
 pub mod helm;
 #[cfg(feature = "cli")]
 pub mod history;
 pub mod index;
 pub mod lang;
+#[cfg(feature = "wasm")]
+mod memory_history;
 pub mod mentions;
 pub mod model;
 pub mod navigate;
@@ -42,6 +45,7 @@ pub mod span;
 pub mod spec;
 #[cfg(test)]
 pub mod testing;
+pub mod transaction_kernel;
 pub mod translate;
 pub mod transpile;
 #[cfg(feature = "wasm")]

@@ -26,18 +26,20 @@ jobs:
     # Forty-five minutes permits that work while still failing a stalled runner.
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install the Rust toolchain
         run: rustup toolchain install stable --profile minimal
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
-      - uses: actions/setup-go@v5
+          package-manager-cache: false
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.27"
-      - uses: actions/setup-java@v4
+          cache: false
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
@@ -59,7 +61,7 @@ jobs:
 
       - name: Cache the Lean toolchain
         id: lean-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /opt/lean
           key: lean-4.28.0-linux-x86_64

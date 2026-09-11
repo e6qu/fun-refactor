@@ -27,7 +27,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Milestone | Status | Delivered foundation | Remaining outcome |
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
-| M1 undo and redo | Complete | Persistent transactions, recovery, conflict checks, apply, undo and redo | Retention and large-journal work continues in Git lifecycle work |
+| M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and twenty-two passing autonomous trials | Make context use competitive and extend authoring scope |
@@ -51,7 +51,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
 - Bounded Git status, diff, changed-declaration and call-context views.
 - Unix staging previews and writes, durable staging undo/redo, reviewed commits and owned worktree creation, recovery, removal, resumption and archive compaction.
-- Native releases, a WASM API, a browser playground and patch downloads.
+- Native releases, a WASM API, and a browser playground with checked transaction undo/redo and shared Git patch downloads.
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
@@ -140,7 +140,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Ten merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Eleven merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -154,6 +154,7 @@ The first packaged roadmap is complete. Ten merged pull requests established the
 | [PR 7](https://github.com/e6qu/fun-refactor/pull/267) | Context-Competitive Agent Workflow | Merged |
 | [PR 8](https://github.com/e6qu/fun-refactor/pull/269) | Agent Workflow Simplification | Merged |
 | [PR 9](https://github.com/e6qu/fun-refactor/pull/270) | Bounded Project Query Batches | Merged |
+| [PR 10](https://github.com/e6qu/fun-refactor/pull/271) | Verified Change Workflow | Merged |
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -248,7 +249,7 @@ Planned checkpoints:
 
 ### PR 10. Verified Change Workflow
 
-Status: in progress on `agent_change_workflow`.
+Status: merged as [PR 271](https://github.com/e6qu/fun-refactor/pull/271).
 
 Goal: carry one reviewed source-history transaction through declared validation, reversible
 exercise and Git patch delivery without repeated command discovery or duplicated successful output.
@@ -291,8 +292,45 @@ Planned checkpoints:
 4. **Complete.** Add the portable workflow route and executable examples within its current byte budgets.
 5. **Complete.** Retain a controlled call, context and state-equivalence measurement. Its measured
    reduction warrants one fresh Luna-low adoption trial.
-6. **In progress.** Run one paired task with the workflow available to the `fr` arm. Retain every
-   attempt, independent oracle, exact reversal, patch replay and token audit.
+6. **Deferred.** The deterministic evaluator and low-cost Luna configuration are ready. No fresh
+   external pair was launched, so PR 10 makes only the controlled workflow claim above.
+
+### PR 11. Browser Transaction History
+
+Status: in progress on `browser_transaction_history`.
+
+Goal: give the in-memory WASM workspace the same transaction identity, checked stack ordering and
+Git-compatible delivery semantics that an agent receives from native source history.
+
+Deliverables:
+
+- Record each successful browser refactoring as a bounded in-memory transaction.
+  Keep a stable basis, exact before/after existence and text snapshots, and applied, undone or abandoned status.
+- Undo and redo one named stack-top transaction, preflight every selected snapshot before any write,
+  and preserve unrelated paths and conflicting later edits.
+- Remove created files on undo, recreate them on redo, and reindex the exact changed path set.
+- Export individual forward/reverse patches and one cumulative patch through the shared Rust Git
+  text renderer used by native history.
+- Replace the playground's whole-workspace reset and TypeScript patch renderer with WASM transaction
+  controls and test the exported artifact with real `git apply`.
+- Anchor the transition policy in Lean, prove the finite lifecycle and atomic multi-snapshot model,
+  and compare every status/action/top-of-stack case with Rust.
+
+Verification and acceptance:
+
+1. Non-top, abandoned, unknown and conflicting transitions refuse before any selected write.
+2. Undo/redo round trips exact text and existence, including generated files; a new edit abandons redo.
+3. Cumulative exports fold applied transactions from the loaded basis and pass `git apply --check`.
+4. History is bounded by record, changed-path, per-record byte and total retained-byte limits.
+5. Full and minimal WASM feature sets compile; native, browser, prose and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Share the native/browser Git text renderer and repair PR 10's cold-CI evaluator stderr handling.
+2. **Complete.** Add bounded checked in-memory transaction identity, stack transitions and WASM APIs.
+3. **Complete.** Wire one-step undo/redo and Rust patch download into the playground; remove the duplicate renderer.
+4. **Complete.** Add the anchored Lean lifecycle model and exhaustive Rust correspondence cases.
+5. **Complete.** Publish the contract and continuity docs and pass the complete repository gate.
 
 ## Formal verification policy
 
@@ -345,8 +383,8 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 
 - Complete dependency resolution, feature evaluation and package-manager semantics remain outside the current Cargo/npm subset.
 - Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
-- Native history needs retention and large-journal scaling. Browser undo still restores a loaded workspace rather than individual transactions.
-- Shared browser patch and transaction semantics remain pending.
+- Native history needs retention and large-journal scaling. Browser history is session-only, bounded,
+  and records UTF-8 regular-file snapshots with mode `0644`; it does not provide crash recovery or persistence.
 - Strict signature maps currently accept Rust source declarations only.
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
 - LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.

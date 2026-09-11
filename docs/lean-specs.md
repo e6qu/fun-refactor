@@ -91,6 +91,14 @@ The inverse and mixed-recovery proofs use Lean’s propositional extensionality 
 The selected-namespace proofs use no axioms. The model assumes durable journal checkpoints and atomic rename.
 Filesystem, path selection and full transaction implementation correspondence remain unproved. A Git-backed CLI test supplies concrete preservation evidence.
 
+`FrKernels.MemoryHistory` specializes the lifecycle boundary used by an in-memory WASM workspace.
+It proves that non-top and abandoned records cannot transition. Applied and undone records admit only
+their inverse action. A mismatched multi-snapshot basis refuses the whole abstract replacement, and
+apply followed by undo restores every selected snapshot. Its anchored transition predicate agrees
+with Rust for all 24 generated known/unknown status, action and stack-position cases. The list model
+does not prove that browser filesystem writes are atomic; Rust tests exercise the implementation's
+complete preflight and unchanged conflict result.
+
 `FrKernels.Patch` models Git regular, executable and symlink mode projection, supported permission changes and receiving patch-basis equality.
 Five Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.
 Mode fields use `UInt32`, matching Rust's `u32` domain, including complement and XOR operations.

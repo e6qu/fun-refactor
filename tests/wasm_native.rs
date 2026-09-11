@@ -148,7 +148,6 @@ fn translating_writes_the_new_file_into_the_workspace() {
         "the route has to travel with the result: {applied}"
     );
 
-    // The new file is in the workspace and indexed.
     let files = json(&ws.files());
     assert!(
         files
@@ -158,6 +157,68 @@ fn translating_writes_the_new_file_into_the_workspace() {
             .any(|f| f["path"] == written),
         "a file a refactoring created has to join the workspace:\n{files}"
     );
+
+    assert_eq!(applied["schema"], "fr-memory-apply-1");
+    assert_eq!(applied["transaction"], 1);
+    assert!(applied["transaction_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frmb1:"));
+    let patch = json(&ws.transaction_patch(1, false));
+    assert_eq!(patch["schema"], "fr-memory-patch-1");
+    assert!(patch["patch"].as_str().unwrap().contains("new file mode"));
+
+    let undone = json(&ws.undo(1));
+    assert_eq!(undone["status"], "undone");
+    assert!(json(&ws.files())
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|file| file["path"] != written));
+    let redone = json(&ws.redo(1));
+    assert_eq!(redone["status"], "applied");
+    assert!(json(&ws.files())
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|file| file["path"] == written));
+}
+
+#[test]
+fn browser_edits_have_checked_stack_history_and_a_cumulative_patch() {
+    let mut ws = workspace(&[("a.py", "def add(x: int) -> int:\n    return x\n")]);
+    let first = json(&ws.rename("a.py", 1, 5, "sum_one"));
+    assert_eq!(first["transaction"], 1, "{first}");
+    let second = json(&ws.rename("a.py", 1, 5, "sum_two"));
+    assert_eq!(second["transaction"], 2, "{second}");
+
+    let refused = json(&ws.undo(1));
+    assert!(refused["error"].as_str().unwrap().contains("stack order"));
+    assert!(ws.read("a.py").contains("sum_two"));
+
+    assert_eq!(json(&ws.undo(2))["status"], "undone");
+    assert!(ws.read("a.py").contains("sum_one"));
+    let history = json(&ws.history());
+    assert_eq!(history["applied"], serde_json::json!([1]));
+    assert_eq!(history["redo"], serde_json::json!([2]));
+
+    assert_eq!(json(&ws.redo(2))["status"], "applied");
+    let patch = json(&ws.patch());
+    let text = patch["patch"].as_str().unwrap();
+    assert!(text.contains("-def add"), "{text}");
+    assert!(text.contains("+def sum_two"), "{text}");
+    assert!(!text.contains("sum_one"), "{text}");
+    assert_eq!(patch["patch_sha256"].as_str().unwrap().len(), 64);
+}
+
+#[test]
+fn a_noop_refactoring_does_not_create_a_browser_transaction() {
+    let mut ws = workspace(&[("a.py", "def add(x: int) -> int:\n    return x\n")]);
+    let applied = json(&ws.organize_imports("a.py"));
+    assert_eq!(applied["schema"], "fr-memory-apply-1", "{applied}");
+    assert!(applied["transaction"].is_null(), "{applied}");
+    assert_eq!(applied["files"], serde_json::json!([]));
+    assert_eq!(json(&ws.history())["records"], serde_json::json!([]));
 }
 
 #[test]
