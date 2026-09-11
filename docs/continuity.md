@@ -27,8 +27,8 @@ CLI regressions reconstruct standalone map, select and package reports exactly f
 batch envelope and cover whole-report omission and adversarial manifests.
 
 The second checkpoint lets a request argument use an RFC 6901 JSON Pointer into an earlier nested
-report. References are backward-only and must resolve to a string, so a lookup can feed its exact
-revision-bound handle into `show`, `calls` or another existing query without an agent round trip.
+report. References are backward-only and must resolve to a string. A lookup can therefore feed its
+exact revision-bound handle into `show`, `calls` or another query without an agent round trip.
 The resolved arguments remain subject to the per-request byte bound and join the project revision
 and manifest identity in `resolution_basis`. Reports remain available for internal references when the output budget omits
 them; their facts do not otherwise leak. Regressions cover omitted producers, missing pointers,
@@ -47,8 +47,8 @@ first response's `context_basis`; the batch includes its 794-byte manifest in co
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
 Across three rotating repetitions, median context is 2,755 tokens for separate calls and 2,500 for
 the batch, a 255-token or 9.3% reduction. Calls fall from eight to one. Median local subprocess time
-is 0.420 versus 0.054 seconds with the fact cache disabled and 0.051 versus 0.008 seconds after each
-arm's separate cache is prewarmed. The release binary digest is
+is 0.420 versus 0.054 seconds with the fact cache disabled. It is 0.051 versus 0.008 seconds after
+each arm's separate cache is prewarmed. The release binary digest is
 `dafd9b8b557dc63658e3b8c94820e5f9a3b3c7b8f0371daa2454a0d341f068d4`.
 The audit recomputes every measurement-source digest, paired report identity and summary statistic.
 OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.

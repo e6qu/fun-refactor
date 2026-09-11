@@ -214,7 +214,7 @@ Deliverables:
 - Compare separate invocations with the equivalent batch under fixed inputs, payload audits and
   cold/warm cache controls before making a context or latency claim.
 - Run a fresh Luna-low paired task only after deterministic evidence shows that the batch targets
-  calls a broader exploration task actually needs.
+  calls a broader exploration task needs.
 
 Verification and acceptance:
 

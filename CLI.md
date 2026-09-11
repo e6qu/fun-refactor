@@ -783,15 +783,15 @@ from an earlier nested report using RFC 6901 JSON Pointer syntax. References can
 at the current request, or at a non-string value. The resolved request keeps the 4096-byte argument
 limit. In the example, `select` places the handle in column 1 because column 0 identifies the
 selector. A `find` report places its handle in column 0. References can consume an earlier report
-even when the output budget omits that report, and the referenced report remains covered by the
-shared revision and final verification.
+even when the output budget omits it. The shared revision and final verification still cover that
+referenced report.
 
 The outer report contains the common `schema`, `revision`, `handle_prefix`, `coverage` and
 `context_basis`. Each returned request omits those fields from its nested `report`. Copy them from
 the outer object to reconstruct the standalone response exactly. The nested report keeps its normal
 query, cursors, omissions, scope and uncertainty. `--report-bytes` defaults to 65536 and accepts 256
-through 1048576 bytes. It counts serialized nested reports. A report that does not fit is replaced
-by `status: "omitted-report-budget"` and `required_report_bytes`; later smaller reports may still fit.
+through 1048576 bytes. It counts serialized nested reports. If a report does not fit, the command
+returns `status: "omitted-report-budget"` and `required_report_bytes`; later smaller reports may still fit.
 Common context and bounded request metadata are outside that payload budget. The command never clips
 a nested report. Any invalid request or query failure refuses the whole batch before output.
 

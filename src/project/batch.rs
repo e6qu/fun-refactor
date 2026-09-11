@@ -166,21 +166,21 @@ fn resolve_arguments(request: &Request, reports: &BTreeMap<String, Value>) -> Re
                 .get(&reference.request)
                 .with_context(|| {
                     format!(
-                        "project batch reference names unavailable request '{}'",
+                        "project batch reference names unavailable request '{}'.",
                         reference.request
                     )
                 })?
                 .pointer(&reference.pointer)
                 .with_context(|| {
                     format!(
-                        "project batch reference '{}' has no value at '{}'",
+                        "project batch reference '{}' has no value at '{}'.",
                         reference.request, reference.pointer
                     )
                 })?
                 .as_str()
                 .with_context(|| {
                     format!(
-                        "project batch reference '{}' at '{}' is not a string",
+                        "project batch reference '{}' at '{}' is not a string.",
                         reference.request, reference.pointer
                     )
                 })?
@@ -188,7 +188,7 @@ fn resolve_arguments(request: &Request, reports: &BTreeMap<String, Value>) -> Re
         };
         bytes = bytes
             .checked_add(value.len())
-            .context("project batch resolved argument size overflow")?;
+            .context("project batch resolved argument size overflow.")?;
         arguments.push(value);
     }
     ensure!(

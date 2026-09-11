@@ -295,7 +295,6 @@ pub fn body_replacement_budget(before: usize, after: usize) -> bool {
     (1..=65536).contains(&before) && (1..=65536).contains(&after)
 }
 
-/// Decide whether one complete serialized report fits the remaining batch budget.
 pub fn batch_section_fits(used: usize, next: usize, budget: usize) -> bool {
     used <= budget && next <= budget - used
 }

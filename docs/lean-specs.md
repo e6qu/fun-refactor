@@ -259,7 +259,7 @@ JSON escaping and metadata lie outside the raw source-text budget.
 ## Project batch budget kernel
 
 `FrKernels.Project.batchSectionFits` models the admission check used by `project batch` before it
-emits a complete nested query report. It accepts exactly when the bytes already emitted do not
+emits a complete nested query report. It accepts when the bytes already emitted do not
 exceed the shared budget and adding the next complete report stays within that budget. The Rust
 predicate subtracts only after checking the first inequality, so machine arithmetic cannot
 underflow; successful addition is also bounded by the budget.
