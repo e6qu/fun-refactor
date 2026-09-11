@@ -41,6 +41,9 @@ measured context tokens and 42 calls; the files arm uses 11,600 tokens and 20 ca
 and `frtb2` delivery. The evaluator now reconstructs an omitted `files_changed` count only from a
 unique earlier batch preview with the same plan basis; missing and conflicting evidence refuse.
 The cohort passes exact token audit and complete patch replay.
+The final PR 7 native/WASM gate passes, including 408 library tests, 152 project scenarios,
+311/311 capability coverage and 42 Lean jobs. Strict specification verification reports fresh
+source anchors, zero obligations and a successful Lean package build.
 PR 6's first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.

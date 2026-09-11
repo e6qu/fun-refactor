@@ -120,3 +120,8 @@ previews remain rejected.
 Complete checksum-bound evidence is retained in
 [`2026-09-11-context-v3`](../tests/agent-eval/results/2026-09-11-context-v3/manifest.json).
 Its token audit and full patch replay pass without rerunning an agent.
+
+```sh
+target/agent-eval-venv/bin/python tools/agent-eval.py audit-tokens tests/agent-eval/results/2026-09-11-context-v3
+python3 tools/agent-eval.py replay tests/agent-eval/results/2026-09-11-context-v3
+```
