@@ -95,6 +95,11 @@ fact cache disabled and from 0.050 to 0.009 seconds with separate prewarmed cach
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
+The PR 10 controlled delivery fixture compares seven compact manual calls with a reviewed workflow
+preview and write. It counts the 318-byte manifest. Median context falls from 2,047 to 1,880 tokens,
+an 8.2% reduction, while calls fall from seven to two. Final stages, history, source and patch match
+in all three repetitions. This fixed sequence supports an adoption trial and makes no agent claim.
+
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.
 It makes repeated skill, inspection and transaction output the immediate optimization target.
 The [coordinated evaluation](docs/agent-coordinated-evaluation.md) contains the protocol, retained evidence and limits.
@@ -284,8 +289,10 @@ Planned checkpoints:
 2. **Complete.** Add compact execution, check receipts, optional reversal exercise and delayed patch delivery.
 3. **Complete.** Add refusal and stopped-lifecycle regressions plus complete CLI and formal documentation.
 4. **Complete.** Add the portable workflow route and executable examples within its current byte budgets.
-5. Retain a controlled call, context and state-equivalence measurement. Use it to decide whether
-   a fresh Luna-low trial is warranted.
+5. **Complete.** Retain a controlled call, context and state-equivalence measurement. Its measured
+   reduction warrants one fresh Luna-low adoption trial.
+6. **In progress.** Run one paired task with the workflow available to the `fr` arm. Retain every
+   attempt, independent oracle, exact reversal, patch replay and token audit.
 
 ## Formal verification policy
 

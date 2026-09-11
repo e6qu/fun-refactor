@@ -30,6 +30,15 @@ report escape before commit. `FrKernels.Workflow` proves that generated lifecycl
 and constrains checks and delivery to their source states. All twelve state-stage pairs agree with
 Rust. The portable bundle has 45 executable shell examples. Every route remains under 7,168 bytes.
 
+The fifth checkpoint retains `tests/agent-eval/workflow-context.json`. A generic Python fixture
+compares seven compact manual lifecycle calls with one workflow preview and write. Both arms apply,
+check, undo, check, redo, check and export the same transaction. Across three rotating repetitions,
+median counted context falls from 2,047 to 1,880 tokens, or 8.2%. Calls fall from seven to two and
+bytes fall from 6,368 to 5,556. Median local subprocess time falls from 0.220 to 0.205 seconds.
+Every normalized stage, final history record, source and patch matches. The fixed comparison excludes
+planning, skill reads, agent behavior, independent oracles and receiver checks. Its reduction supports
+one fresh Luna-low adoption pair after the complete deterministic gate passes.
+
 The historical PR 9 work follows.
 Its first checkpoint adds `fr project batch --from MANIFEST`: up to sixteen existing read-only
 project queries share one constructed snapshot and final workspace verification. The outer response
