@@ -89,9 +89,10 @@ The normalized fixed action sequence therefore leaves a 6,468.5-token mean `fr` 
 
 The PR 9 controlled broad-query fixture compares eight separate project calls, already reusing a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
-the batch manifest, median counted context falls from 2,755 to 2,500 tokens, a 9.3% reduction, while
-calls fall from eight to one. Median local subprocess time falls from 0.420 to 0.054 seconds with the
-fact cache disabled and from 0.051 to 0.008 seconds with separate prewarmed caches. This prescribed
+the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
+calls fall from eight to one. Median local subprocess time falls from 0.410 to 0.052 seconds with the
+fact cache disabled and from 0.050 to 0.009 seconds with separate prewarmed caches. Token counts use
+fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.

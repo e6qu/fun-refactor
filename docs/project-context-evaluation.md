@@ -313,15 +313,19 @@ compact-context markers, every corresponding report has the same SHA-256 in both
 | Cache policy | Separate | Batch | Difference |
 |---|---:|---:|---:|
 | Calls | 8 | 1 | 7 fewer |
-| Median counted context | 2,755 tokens | 2,500 tokens | 255 tokens (9.3%) fewer |
+| Median counted context | 2,695 tokens | 2,453 tokens | 242 tokens (9.0%) fewer |
 | Median counted context | 8,603 bytes | 8,285 bytes | 318 bytes (3.7%) fewer |
-| Fact cache disabled | 0.420 s | 0.054 s | 87.1% lower local wall time |
-| Separate prewarmed caches | 0.051 s | 0.008 s | 84.0% lower local wall time |
+| Fact cache disabled | 0.410 s | 0.052 s | 87.3% lower local wall time |
+| Separate prewarmed caches | 0.050 s | 0.009 s | 82.7% lower local wall time |
 
 Each policy has three runs with rotating arm order. The release binary, tokenizer vocabulary,
 measurement sources, fixture, manifest, per-query report identities and raw run metrics are bound in
 the artifact. `tools/project-batch-context.py --audit` recomputes source digests, pair equality and
 every summary statistic. A live one-repetition comparison runs in the default acceptance suite.
+
+Token counts replace isolated 32- and 64-character hexadecimal identities with recorded fixed-length
+representatives. This prevents random digest spelling from changing tokenizer results. Byte counts
+and report SHA-256 identities use the original output.
 
 The timings measure local subprocess wall time. Separate warmups isolate the fact cache per arm, but
 OS filesystem caching remains uncontrolled. The measurement prescribes queries; it has no agent,
