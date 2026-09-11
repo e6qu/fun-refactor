@@ -12,9 +12,14 @@ PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
 PR 8, Agent Workflow Simplification, merged as GitHub PR 269.
 PR 9, Bounded Project Query Batches, merged as GitHub PR 270.
 PR 10, Verified Change Workflow, merged as GitHub PR 271.
-The current `browser_transaction_history` branch is roadmap PR 11. It adds bounded transaction
+PR 11, Browser Transaction History, merged as GitHub PR 272. It adds bounded transaction
 identity, checked one-step undo/redo and shared Rust Git patch export to the in-memory WASM workspace.
 The playground consumes those APIs directly and no longer owns a separate TypeScript diff engine.
+
+The current `agent_task_bundle` branch is roadmap PR 12. It starts the second delivery package with
+one bounded, revision-bound task contract that composes project queries, exact target selection,
+conservative authoring eligibility, declared checks and ready delivery templates. Its purpose is to
+remove the path guessing, repeated help and repeated inspection observed in the latest agent traces.
 
 The browser journal keeps exact optional text snapshots, applied and redo stacks, a stable `frmb1:`
 basis and applied, undone or abandoned record status. Undo and redo verify every selected path before

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, Read};
 
-const SCHEMA: &str = "fr-project-batch-1";
+pub(super) const SCHEMA: &str = "fr-project-batch-1";
 const MAX_INPUT_BYTES: u64 = 65_536;
 
 #[derive(clap::Args)]
@@ -14,41 +14,41 @@ pub struct Options {
         long,
         help = "JSON batch manifest path, or - for standard input; at most 64 KiB."
     )]
-    from: PathBuf,
+    pub(super) from: PathBuf,
     #[arg(
         long,
         default_value_t = 65_536,
         help = "Shared serialized report budget, from 256 through 1048576 bytes."
     )]
-    report_bytes: usize,
+    pub(super) report_bytes: usize,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Manifest {
-    schema: String,
-    requests: Vec<Request>,
+pub(super) struct Manifest {
+    pub(super) schema: String,
+    pub(super) requests: Vec<Request>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Request {
-    id: String,
-    arguments: Vec<Argument>,
+pub(super) struct Request {
+    pub(super) id: String,
+    pub(super) arguments: Vec<Argument>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(untagged)]
-enum Argument {
+pub(super) enum Argument {
     Literal(String),
     Reference(Reference),
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Reference {
-    request: String,
-    pointer: String,
+pub(super) struct Reference {
+    pub(super) request: String,
+    pub(super) pointer: String,
 }
 
 #[derive(Parser)]
@@ -207,10 +207,23 @@ impl Project<'_> {
         let source = read_manifest(&self.root, &options.from)?;
         let manifest: Manifest = serde_json::from_str(&source)
             .context("project batch input must be a batch manifest.")?;
+        self.batch_manifest(manifest, options.report_bytes, "batch")
+    }
+
+    pub(super) fn batch_manifest(
+        &self,
+        manifest: Manifest,
+        report_bytes: usize,
+        query_name: &str,
+    ) -> Result<Value> {
+        ensure!(
+            (256..=1_048_576).contains(&report_bytes),
+            "report bytes must be between 256 and 1048576."
+        );
         let manifest_basis = format!("frpqb1:{}", hash((SCHEMA, &manifest))?);
         let requests = validate(manifest)?;
 
-        let common = self.envelope("batch");
+        let common = self.envelope(query_name);
         let mut used = 0usize;
         let mut omitted = 0usize;
         let mut results = Vec::with_capacity(requests.len());
@@ -223,8 +236,8 @@ impl Project<'_> {
             )
             .map_err(|error| anyhow::anyhow!(error.to_string()))?;
             ensure!(
-                !matches!(query.command, Command::Batch(_)),
-                "project batches cannot contain another batch."
+                !matches!(query.command, Command::Batch(_) | Command::Task(_)),
+                "project batches cannot contain another batch or task."
             );
             resolved_requests.push((request.id.clone(), arguments));
             let mut report = self
@@ -243,7 +256,7 @@ impl Project<'_> {
             }
             let bytes = serde_json::to_vec(&report)?.len();
             reports.insert(request.id.clone(), report.clone());
-            if batch_section_fits(used, bytes, options.report_bytes) {
+            if batch_section_fits(used, bytes, report_bytes) {
                 used += bytes;
                 results.push(json!({
                     "id": request.id,
@@ -274,7 +287,7 @@ impl Project<'_> {
         ));
         result["requests"] = json!(results);
         result["report_budget"] = json!({
-            "limit_bytes": options.report_bytes,
+            "limit_bytes": report_bytes,
             "returned_bytes": used,
             "omitted_requests": omitted,
             "scope": "serialized request reports; common context and request metadata excluded"

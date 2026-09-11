@@ -109,6 +109,150 @@ fn project_batch(root: &Path, manifest: Value, report_bytes: usize) -> Value {
     )
 }
 
+fn project_task(root: &Path, manifest: Value, report_bytes: usize) -> (bool, Value) {
+    let input = tempfile::NamedTempFile::new().unwrap();
+    fs::write(input.path(), serde_json::to_vec(&manifest).unwrap()).unwrap();
+    run(
+        root,
+        &[
+            "project",
+            "task",
+            "--from",
+            input.path().to_str().unwrap(),
+            "--report-bytes",
+            &report_bytes.to_string(),
+        ],
+    )
+}
+
+fn task_fixture() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("src")).unwrap();
+    fs::create_dir_all(dir.path().join(".fr")).unwrap();
+    fs::write(
+        dir.path().join("src/lib.rs"),
+        "use std::fmt;\n\npub fn render(value: &str) -> String {\n    value.to_owned()\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join(".fr/checks.json"),
+        r#"{"schema":1,"checks":[{"name":"unit","argv":["true"],"cwd":".","timeout_seconds":10,"covers":["render behavior"]}]}"#,
+    )
+    .unwrap();
+    dir
+}
+
+#[test]
+fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
+    let dir = task_fixture();
+    let manifest = serde_json::json!({
+        "schema": "fr-project-task-1",
+        "requests": [
+            {"id": "target", "arguments": ["find", "render", "--signature", "--source", "--bytes", "2048"]},
+            {"id": "calls", "arguments": ["calls", {"request": "target", "pointer": "/rows/0/0"}]}
+        ],
+        "targets": [{
+            "id": "render-body",
+            "handle": {"request": "target", "pointer": "/rows/0/0"},
+            "op": "replace-body"
+        }],
+        "checks": ["unit"],
+        "delivery": {"exercise-reversal": true, "patch": "artifacts/change.patch"}
+    });
+    let (success, task) = project_task(dir.path(), manifest.clone(), 1_048_576);
+    assert!(success, "{task}");
+    assert_eq!(task["query"], "task");
+    assert!(task["task_basis"].as_str().unwrap().starts_with("frpt1:"));
+    assert!(task["task_resolution_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frpt2:"));
+    assert_eq!(task["requests"].as_array().unwrap().len(), 2);
+    assert_eq!(task["targets"][0]["language"], "rust");
+    assert_eq!(task["targets"][0]["kind"], "function");
+    assert_eq!(task["targets"][0]["operation"], "replace-body");
+    assert_eq!(task["targets"][0]["eligibility"], "target-supported");
+    assert_eq!(task["targets"][0]["syntax_preflighted"], false);
+    let handle = task["targets"][0]["handle"].as_str().unwrap();
+    assert_eq!(task["author_manifest"]["operations"][0]["handle"], handle);
+    assert_eq!(
+        task["author_manifest"]["operations"][0]["from"],
+        "<FRAGMENT:render-body>"
+    );
+    assert_eq!(task["checks"]["selected"], true);
+    assert_eq!(task["checks"]["names"], serde_json::json!(["unit"]));
+    assert_eq!(
+        task["workflow_manifest"]["checks"]["basis"],
+        task["checks"]["basis"]
+    );
+    assert_eq!(task["workflow_manifest"]["exercise-reversal"], true);
+    assert_eq!(
+        task["workflow_manifest"]["patch"]["output"],
+        "artifacts/change.patch"
+    );
+    assert_eq!(
+        task["task_basis"],
+        project_task(dir.path(), manifest, 1_048_576).1["task_basis"]
+    );
+}
+
+#[test]
+fn project_task_refuses_invalid_targets_operations_checks_and_recursion() {
+    let dir = task_fixture();
+    let cases = [
+        serde_json::json!({
+            "schema": "old", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}]
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"bad id","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}]
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"edit","handle":{"request":"target","pointer":"rows/0/0"},"op":"replace-body"}]
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"insert-declaration"}]
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}],
+            "checks": ["missing"]
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"nested","arguments":["task","--from","other.json"]}],
+            "targets": [{"id":"edit","handle":"frp1:bad:0","op":"replace-body"}]
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}],
+            "delivery": {"patch":"../outside.patch"}
+        }),
+    ];
+    for manifest in cases {
+        let (success, report) = project_task(dir.path(), manifest.clone(), 1_048_576);
+        assert!(!success, "unexpected success for {manifest}: {report}");
+    }
+}
+
+#[test]
+fn project_task_refuses_a_target_whose_source_report_was_omitted() {
+    let dir = task_fixture();
+    let manifest = serde_json::json!({
+        "schema": "fr-project-task-1",
+        "requests": [{"id":"target","arguments":["find","render","--source","--bytes","65536"]}],
+        "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}]
+    });
+    let (success, report) = project_task(dir.path(), manifest, 256);
+    assert!(!success, "{report}");
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("omitted by the report budget"));
+}
+
 fn reconstruct_batch_report(batch: &Value, request: usize) -> Value {
     let mut report = batch["requests"][request]["report"].clone();
     for field in [

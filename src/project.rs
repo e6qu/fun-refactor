@@ -33,12 +33,17 @@ mod relationships;
 mod routes;
 mod schemas;
 mod service_calls;
+mod task;
 mod tests;
 
 #[derive(Subcommand)]
 pub enum Command {
     #[command(about = "Run several bounded read queries against one verified project snapshot.")]
     Batch(batch::Options),
+    #[command(
+        about = "Prepare exact project evidence and authoring transitions for one agent task."
+    )]
+    Task(task::Options),
     #[command(about = "Find declaration handles by literal name without loading file maps.")]
     Find(find::Options),
     #[command(about = "Find several exact declaration names in one revision-bound query.")]
@@ -1060,6 +1065,7 @@ impl<'a> Project<'a> {
     pub fn report(&self, command: &Command) -> Result<Value> {
         match command {
             Command::Batch(options) => self.batch(options),
+            Command::Task(options) => self.task(options),
             Command::Find(options) => self.find(options),
             Command::Select(options) => self.select(options),
             Command::Map {

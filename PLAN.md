@@ -140,7 +140,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Eleven merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Twelve merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -155,6 +155,10 @@ The first packaged roadmap is complete. Eleven merged pull requests established 
 | [PR 8](https://github.com/e6qu/fun-refactor/pull/269) | Agent Workflow Simplification | Merged |
 | [PR 9](https://github.com/e6qu/fun-refactor/pull/270) | Bounded Project Query Batches | Merged |
 | [PR 10](https://github.com/e6qu/fun-refactor/pull/271) | Verified Change Workflow | Merged |
+| [PR 11](https://github.com/e6qu/fun-refactor/pull/272) | Browser Transaction History | Merged |
+
+The second package begins with one task-oriented agent contract. Later PRs will be chosen from
+measured use rather than preassigning command shapes before their need is demonstrated.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -297,7 +301,7 @@ Planned checkpoints:
 
 ### PR 11. Browser Transaction History
 
-Status: in progress on `browser_transaction_history`.
+Status: merged as [PR 272](https://github.com/e6qu/fun-refactor/pull/272).
 
 Goal: give the in-memory WASM workspace the same transaction identity, checked stack ordering and
 Git-compatible delivery semantics that an agent receives from native source history.
@@ -331,6 +335,51 @@ Planned checkpoints:
 3. **Complete.** Wire one-step undo/redo and Rust patch download into the playground; remove the duplicate renderer.
 4. **Complete.** Add the anchored Lean lifecycle model and exhaustive Rust correspondence cases.
 5. **Complete.** Publish the contract and continuity docs and pass the complete repository gate.
+
+### PR 12. Revision-Bound Agent Task Bundles
+
+Status: in progress on `agent_task_bundle`.
+
+Goal: let an agent discover the project evidence, exact edit targets, supported authoring route and
+declared verification contract for one task in a single bounded, immutable project request.
+
+Deliverables:
+
+- Extend the project batch manifest into a versioned task manifest that runs heterogeneous existing
+  read queries against one verified revision and resolves backward references to their string results.
+- Resolve named task targets to exact full handles and report their language, declaration kind,
+  path and candidate high-level authoring operations without claiming that an unwritten fragment
+  has passed syntax preflight.
+- Select declared project checks in the same request and return their exact reviewed basis,
+  coverage and compact execution arguments.
+- Emit bounded author-batch and verified-workflow templates whose remaining placeholders are
+  explicit, along with the exact command sequence that turns fragments into a reviewed transaction.
+- Bind the complete task request, resolved queries, target decisions and check selection to stable
+  digests. Refuse stale handles, invalid references and unsupported requested operations.
+- Teach the portable skill this route and retain a controlled comparison against the equivalent
+  separate discovery, help and check-list calls before spending quota on another agent cohort.
+
+Verification and acceptance:
+
+1. Task queries reconstruct the same standalone reports and observe one revision reverified before emission.
+2. References are backward-only, string-valued and bounded; unknown, omitted, stale or non-handle targets refuse.
+3. Authoring eligibility is a conservative target-level claim. Existing author preview remains the
+   syntax and overlap authority once real fragment bytes exist.
+4. Check names are unique configured declarations and the returned basis is usable directly by
+   `checks --run` and `workflow`.
+5. Output budgets admit complete sections only and state every omission; no clipped JSON is presented as evidence.
+6. Lean models the finite target-eligibility policy and report admission, with exhaustive Rust/Lean cases.
+7. Native, WASM, documentation, skill, capability and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the manifest and response contract; add shared-revision queries,
+   backward target references and adversarial CLI regressions.
+2. Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
+3. Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
+4. Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
+5. Measure the equivalent separate and bundled flows, then run a fresh Luna-low pair only if the
+   deterministic result and complete repository gate justify it.
 
 ## Formal verification policy
 
