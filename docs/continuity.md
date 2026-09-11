@@ -89,6 +89,8 @@ construction with Luna at low effort. Both arms pass exact Rust-canonical valida
 SDK implementation source. Direct JSON uses four commands and 16,523 input tokens after reported
 cache hits; the SDK uses thirteen and 27,373. The SDK producer is 701 bytes versus 1,445. This single
 task favors direct JSON for one-off construction and leaves SDK reuse as a future cohort question.
+The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
+passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or

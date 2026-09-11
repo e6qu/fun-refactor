@@ -494,7 +494,7 @@ Planned checkpoints:
 
 ### PR 15. Agent IR Contract and Python SDK
 
-Status: in progress on `agent_ir_python_sdk`.
+Status: complete on `agent_ir_python_sdk`; ready for review.
 
 Goal: make semantic IR discoverable and safe to construct without asking an agent to memorize raw
 JSON. Keep Python objects visibly aligned with the public IR hierarchy.
@@ -539,7 +539,7 @@ Planned checkpoints:
 3. **Complete.** Build the typed Python SDK and exhaustive cross-runtime conformance suite.
 4. **Complete.** Add Lean catalog and admission proofs with Rust and Python correspondence.
 5. **Complete.** Teach both agent routes and retain deterministic and fresh Luna/low comparisons.
-6. **In progress.** Pass the complete repository gate and publish the large PR.
+6. **Complete.** Pass the complete repository gate and publish the large PR for review.
 
 ## Formal verification policy
 
