@@ -26,6 +26,28 @@ postconditions, declared checks, reversal and patch delivery into one reviewed t
 Preview must remain read-only. Write must require the unchanged complete basis before it records and
 executes the transaction through the existing checked workflow.
 
+The implemented `fr task-change --from MANIFEST` preview resolves project queries and exact targets
+from one snapshot. It validates concrete fragments, batch postconditions, the full combined diff,
+selected checks, reversal stages and a new patch path. Its `frtc1:` basis covers the task, authoring,
+exact source payload and delivery evidence. Write requires that complete basis, records one planned
+transaction with required checks, and delegates execution to the existing workflow state machine.
+
+Five lifecycle tests cover successful reversal and delivery, failed checks, fragment drift, source
+drift, manifest drift, check configuration drift, output collisions, bad syntax, invalid fragment
+choices and incomplete diffs. Preview and every preflight refusal leave history absent. Failed
+checks retain the reported applied state and leave the requested patch absent.
+
+`FrKernels.TaskChange.mode` anchors the finite review admission policy. Lean proves the necessary
+conditions for preview and execution. It composes accepted execution with the existing theorem that
+generated workflows finish applied. All sixteen boolean states agree with Rust.
+
+The controlled PR 13 report is `tests/agent-eval/task-change-context.json`. A generic Rust fixture
+compares the existing task, author and workflow composition with one task-change preview and write.
+Across three rotating repetitions, calls fall from five to two. Median counted context falls from
+4,623 to 3,736 tokens (19.2%), and bytes fall from 13,676 to 11,274 (17.6%). Both arms produce equal
+stage results, normalized history, source and patch identities. Task change additionally binds its
+selected checks to the planned transaction. This is prescribed workflow evidence without an agent claim.
+
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
 declaration targets from literal handles or returned query strings. A task target selects one of
@@ -48,7 +70,7 @@ The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A ge
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
 selection identity matches. Calls fall from four to one. Median counted context falls from 1,557 to
-1,510 tokens (3.0%), bytes from 5,586 to 4,744 (15.1%), and local subprocess time from 0.119 to 0.053
+1,510 tokens (3.0%), bytes from 5,586 to 4,744 (15.1%), and local subprocess time from 0.040 to 0.014
 seconds. The 446-byte task manifest is counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
@@ -102,7 +124,7 @@ compares seven compact manual lifecycle calls with one workflow preview and writ
 check, undo, check, redo, check and export the same transaction. Across three rotating repetitions,
 median counted context falls from 2,047 to 1,880 tokens, or 8.2%. Calls fall from seven to two and
 bytes fall from 6,368 to 5,556. The current rerun records median local subprocess time falling from
-0.247 to 0.209 seconds.
+0.284 to 0.262 seconds.
 Every normalized stage, final history record, source and patch matches. The fixed comparison excludes
 planning, skill reads, agent behavior, independent oracles and receiver checks. Its reduction supports
 one fresh Luna-low adoption pair after the complete deterministic gate passes.
@@ -144,7 +166,7 @@ first response's `context_basis`; the batch includes its 794-byte manifest in co
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
 Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
 the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
-is 1.792 versus 0.229 seconds with the fact cache disabled. It is 0.147 versus 0.025 seconds after
+is 0.413 versus 0.052 seconds with the fact cache disabled. It is 0.050 versus 0.008 seconds after
 each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
 representatives. Byte counts and report identities retain the real values. The release binary digest is
 `3f68f6e2425ca1bcf523095a2793401313f84b43eca6a51ac22d7e2f380afd5d`.
