@@ -148,14 +148,22 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     let manifest = serde_json::json!({
         "schema": "fr-project-task-1",
         "requests": [
+            {"id": "file", "arguments": ["map", "src/lib.rs", "--depth", "0", "--fields", "handle,kind,path"]},
             {"id": "target", "arguments": ["find", "render", "--signature", "--source", "--bytes", "2048"]},
             {"id": "calls", "arguments": ["calls", {"request": "target", "pointer": "/rows/0/0"}]}
         ],
-        "targets": [{
-            "id": "render-body",
-            "handle": {"request": "target", "pointer": "/rows/0/0"},
-            "op": "replace-body"
-        }],
+        "targets": [
+            {
+                "id": "new-helper",
+                "handle": {"request": "file", "pointer": "/rows/0/0"},
+                "op": "insert-declaration"
+            },
+            {
+                "id": "render-body",
+                "handle": {"request": "target", "pointer": "/rows/0/0"},
+                "op": "replace-body"
+            }
+        ],
         "checks": ["unit"],
         "delivery": {"exercise-reversal": true, "patch": "artifacts/change.patch"}
     });
@@ -167,19 +175,27 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
         .as_str()
         .unwrap()
         .starts_with("frpt2:"));
-    assert_eq!(task["requests"].as_array().unwrap().len(), 2);
+    assert_eq!(task["requests"].as_array().unwrap().len(), 3);
     assert_eq!(task["targets"][0]["language"], "rust");
-    assert_eq!(task["targets"][0]["kind"], "function");
-    assert_eq!(task["targets"][0]["operation"], "replace-body");
-    assert_eq!(task["targets"][0]["eligibility"], "target-supported");
-    assert_eq!(task["targets"][0]["syntax_preflighted"], false);
-    let handle = task["targets"][0]["handle"].as_str().unwrap();
+    assert_eq!(task["targets"][0]["kind"], "file");
+    assert_eq!(task["targets"][0]["operation"], "insert-declaration");
+    assert_eq!(task["targets"][1]["kind"], "function");
+    assert_eq!(task["targets"][1]["operation"], "replace-body");
+    for target in task["targets"].as_array().unwrap() {
+        assert_eq!(target["eligibility"], "target-supported");
+        assert_eq!(target["syntax_preflighted"], false);
+    }
+    let handle = task["targets"][1]["handle"].as_str().unwrap();
     assert_eq!(
-        task["author_manifest_template"]["operations"][0]["handle"],
+        task["author_manifest_template"]["operations"][1]["handle"],
         handle
     );
     assert_eq!(
         task["author_manifest_template"]["operations"][0]["from"],
+        "<FRAGMENT:new-helper>"
+    );
+    assert_eq!(
+        task["author_manifest_template"]["operations"][1]["from"],
         "<FRAGMENT:render-body>"
     );
     assert_eq!(task["checks"]["selected"], true);
