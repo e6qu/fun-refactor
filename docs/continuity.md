@@ -96,7 +96,8 @@ The fifth checkpoint retains `tests/agent-eval/workflow-context.json`. A generic
 compares seven compact manual lifecycle calls with one workflow preview and write. Both arms apply,
 check, undo, check, redo, check and export the same transaction. Across three rotating repetitions,
 median counted context falls from 2,047 to 1,880 tokens, or 8.2%. Calls fall from seven to two and
-bytes fall from 6,368 to 5,556. Median local subprocess time falls from 0.220 to 0.205 seconds.
+bytes fall from 6,368 to 5,556. The current rerun records median local subprocess time falling from
+0.247 to 0.209 seconds.
 Every normalized stage, final history record, source and patch matches. The fixed comparison excludes
 planning, skill reads, agent behavior, independent oracles and receiver checks. Its reduction supports
 one fresh Luna-low adoption pair after the complete deterministic gate passes.
@@ -138,7 +139,7 @@ first response's `context_basis`; the batch includes its 794-byte manifest in co
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
 Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
 the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
-is 0.410 versus 0.052 seconds with the fact cache disabled. It is 0.050 versus 0.009 seconds after
+is 1.792 versus 0.229 seconds with the fact cache disabled. It is 0.147 versus 0.025 seconds after
 each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
 representatives. Byte counts and report identities retain the real values. The release binary digest is
 `3f68f6e2425ca1bcf523095a2793401313f84b43eca6a51ac22d7e2f380afd5d`.
@@ -180,7 +181,8 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step while reducing
-42 calls to 29 and measured context from 15,458 to 13,278 tokens. This 2,180-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,405 tokens with the current skill. This
+2,053-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed

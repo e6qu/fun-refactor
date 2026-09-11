@@ -30,8 +30,9 @@ All source-changing calls, declared checks, plan preview/save/apply, patch expor
 sentinel, undo/redo, receiver and finish steps remain in their original order. Current skill
 payloads and the current harness prompt replace their frozen predecessors. The artifact
 requests use the absolute paths returned by their writes. The resulting prescribed sequence
-has 29 calls, no retained refusal, and 13,278 context tokens: 2,180 fewer than the observed
-trace. It remains 1,678 tokens, or 14.5%, above the passing ordinary-file arm.
+has 29 calls, no retained refusal, and 13,405 context tokens with the current portable skill:
+2,053 fewer than the observed trace. It remains 1,805 tokens, or 15.6%, above the passing
+ordinary-file arm.
 
 This is a counterfactual for one trace. It shows that the delivered commands can support the
 shorter sequence and measures its serialized payloads. It does not show that an autonomous

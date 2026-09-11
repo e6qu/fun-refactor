@@ -67,8 +67,8 @@ This single pair shows a 33.3% `fr` context premium and makes no context-parity 
 The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
-workspace and retains every mutation and verification step. It reduces that trace to 29 calls
-and 13,278 context tokens, 2,180 below the observed `fr` arm and 1,678 above the ordinary-file
+workspace and retains every mutation and verification step. With the current portable skill, it
+reduces that trace to 29 calls and 13,405 context tokens, 2,053 below the observed `fr` arm and 1,805 above the ordinary-file
 arm. This one-trace counterfactual is separate from the retained fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -90,14 +90,16 @@ The normalized fixed action sequence therefore leaves a 6,468.5-token mean `fr` 
 The PR 9 controlled broad-query fixture compares eight separate project calls, already reusing a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
 the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
-calls fall from eight to one. Median local subprocess time falls from 0.410 to 0.052 seconds with the
-fact cache disabled and from 0.050 to 0.009 seconds with separate prewarmed caches. Token counts use
+calls fall from eight to one. The current local rerun records median subprocess time falling from
+1.792 to 0.229 seconds with the fact cache disabled and from 0.147 to 0.025 seconds with separate
+prewarmed caches. Token counts use
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
 The PR 10 controlled delivery fixture compares seven compact manual calls with a reviewed workflow
 preview and write. It counts the 318-byte manifest. Median context falls from 2,047 to 1,880 tokens,
-an 8.2% reduction, while calls fall from seven to two. Final stages, history, source and patch match
+an 8.2% reduction, while calls fall from seven to two. The current local rerun records median time
+falling from 0.247 to 0.209 seconds. Final stages, history, source and patch match
 in all three repetitions. This fixed sequence supports an adoption trial and makes no agent claim.
 
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
@@ -178,7 +180,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,092 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,282-token or 62.9% `fr` premium.
+- The current checksum-bound projection uses 11,100 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,290-token or 63.0% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
