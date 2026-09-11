@@ -535,11 +535,11 @@ Verification and acceptance:
 Planned checkpoints:
 
 1. **Complete.** Run `fr` Rust-to-Python translation on the actual IR and record its limits.
-2. **In progress.** Freeze the discoverable semantic catalog and project-independent validator.
-3. **Planned.** Build the typed Python SDK and exhaustive cross-runtime conformance suite.
-4. **Planned.** Add Lean catalog and admission proofs with Rust and Python correspondence.
-5. **Planned.** Teach the agent routes and retain a direct JSON versus SDK comparison.
-6. **Planned.** Pass the complete repository gate and publish the large PR.
+2. **Complete.** Freeze the discoverable semantic catalog and project-independent validator.
+3. **Complete.** Build the typed Python SDK and exhaustive cross-runtime conformance suite.
+4. **Complete.** Add Lean catalog and admission proofs with Rust and Python correspondence.
+5. **Complete.** Teach both agent routes and retain deterministic and fresh Luna/low comparisons.
+6. **In progress.** Pass the complete repository gate and publish the large PR.
 
 ## Formal verification policy
 

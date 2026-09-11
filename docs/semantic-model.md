@@ -89,6 +89,12 @@ change.write("change.json")
 crossings immediately. The package has no `Unsupported` constructor. Its exhaustive fixture covers
 every authorable constructor and passes Rust deserialization and canonical serialization.
 
+The first fresh Luna/low pair produced exact canonical values through both routes. Direct JSON used
+fewer commands and 65.7% fewer input tokens after reported cache hits; the SDK producer used 51.5%
+fewer bytes. Treat direct JSON as the measured default for a small one-off body. Prefer the SDK when
+early category checks or reuse matters, and measure broader tasks before claiming a context saving.
+See `docs/agent-ir-sdk-evaluation.md` for the conditions and limits.
+
 The operation selects the existing function model, replaces its IR body and renders one function
 through the writer for the target language. It currently supports the same Rust, Go, Java,
 TypeScript and TSX targets as source body replacement. Rendering must carry no source verbatim and

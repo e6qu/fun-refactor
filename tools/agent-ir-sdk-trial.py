@@ -106,6 +106,7 @@ def score(sessions: Path) -> dict:
         source_reads = implementation_source_reads(session / "codex-events.jsonl")
         result = {
             "schema": "fr-agent-ir-sdk-trial-result-1", "trial": name, "arm": config["arm"],
+            "route": "python-sdk" if config["arm"] == "fr" else "direct-json",
             "passed": exact and run.get("exit_code") == 0 and source_reads == 0,
             "valid": valid, "exact_canonical": exact, "python_producer": producer.is_file(),
             "implementation_source_reads": source_reads,
@@ -119,6 +120,41 @@ def score(sessions: Path) -> dict:
     return summary
 
 
+def record(sessions: Path, out: Path, implementation_commit: str) -> None:
+    if out.exists():
+        raise ValueError(f"{out} already exists")
+    out.mkdir(parents=True)
+    shutil.copy2(sessions / "experiment.json", out / "experiment.json")
+    experiment = json.loads((sessions / "experiment.json").read_text())
+    for name in experiment["trials"]:
+        source = sessions / name
+        destination = out / name
+        destination.mkdir()
+        for filename in ("session.json", "prompt.txt", "expected.json", "codex-events.jsonl", "codex-stderr.txt", "codex-final.txt", "codex-run.json", "result.json"):
+            shutil.copy2(source / filename, destination / filename)
+        for filename in ("change.json", "make_change.py"):
+            candidate = source / "project" / filename
+            if candidate.is_file():
+                shutil.copy2(candidate, destination / filename)
+    files = {
+        str(path.relative_to(out)): digest(path)
+        for path in sorted(out.rglob("*"))
+        if path.is_file()
+    }
+    first = json.loads((out / experiment["trials"][0] / "codex-run.json").read_text())
+    manifest = {
+        "schema": "fr-agent-ir-sdk-evidence-1",
+        "implementation_commit": implementation_commit,
+        "model": first["model"],
+        "reasoning_effort": first["reasoning_effort"],
+        "service_tier": first["service_tier"],
+        "codex_version": first["codex_version"],
+        "conditions": "Fresh sequential ephemeral sessions, ignored user configuration and rules, workspace-write sandbox, no human corrections or restarts.",
+        "files": files,
+    }
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -127,9 +163,16 @@ def main() -> int:
     prepare_parser.add_argument("--fr", type=Path, default=ROOT / "target/debug/fr")
     score_parser = sub.add_parser("score")
     score_parser.add_argument("sessions", type=Path)
+    record_parser = sub.add_parser("record")
+    record_parser.add_argument("sessions", type=Path)
+    record_parser.add_argument("--out", type=Path, required=True)
+    record_parser.add_argument("--implementation-commit", required=True)
     args = parser.parse_args()
     if args.command == "prepare":
         prepare(args.out, args.fr.resolve())
+        return 0
+    if args.command == "record":
+        record(args.sessions, args.out, args.implementation_commit)
         return 0
     return 0 if score(args.sessions)["passed"] else 1
 

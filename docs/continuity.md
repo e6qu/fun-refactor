@@ -84,6 +84,12 @@ Rust-to-Python translation supplies the SDK scaffold evidence. Its 977 lines pre
 necessary for Serde encoding and runtime category rules. The deterministic comparison lives in
 `tests/agent-eval/semantic-ir-sdk.json`; it makes no agent-quality or quota claim.
 
+The fresh `tests/agent-eval/results/2026-09-11-semantic-ir-sdk` pair compares SDK and direct JSON
+construction with Luna at low effort. Both arms pass exact Rust-canonical validation without reading
+SDK implementation source. Direct JSON uses four commands and 16,523 input tokens after reported
+cache hits; the SDK uses thirteen and 27,373. The SDK producer is 701 bytes versus 1,445. This single
+task favors direct JSON for one-off construction and leaves SDK reuse as a future cohort question.
+
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
 declaration targets from literal handles or returned query strings. A task target selects one of

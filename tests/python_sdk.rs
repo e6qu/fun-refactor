@@ -1,4 +1,5 @@
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -105,4 +106,33 @@ fn checked_sdk_evaluation_is_reproducible() {
     )
     .unwrap();
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn retained_agent_pair_is_complete_and_digest_bound() {
+    let evidence = root().join("tests/agent-eval/results/2026-09-11-semantic-ir-sdk");
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(evidence.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(manifest["model"], "gpt-5.6-luna");
+    assert_eq!(manifest["reasoning_effort"], "low");
+    for (name, expected) in manifest["files"].as_object().unwrap() {
+        let bytes = fs::read(evidence.join(name)).unwrap();
+        assert_eq!(
+            format!("{:x}", Sha256::digest(bytes)),
+            expected.as_str().unwrap()
+        );
+    }
+    let sdk: Value =
+        serde_json::from_slice(&fs::read(evidence.join("semantic-ir-sdk-fr/result.json")).unwrap())
+            .unwrap();
+    let direct: Value = serde_json::from_slice(
+        &fs::read(evidence.join("semantic-ir-sdk-files/result.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(sdk["route"], "python-sdk");
+    assert_eq!(direct["route"], "direct-json");
+    assert_eq!(sdk["passed"], true);
+    assert_eq!(direct["passed"], true);
+    assert_eq!(sdk["implementation_source_reads"], 0);
+    assert_eq!(direct["implementation_source_reads"], 0);
 }
