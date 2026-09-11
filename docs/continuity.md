@@ -8,7 +8,24 @@ PR 4, the Lean Adoption Kit, merged as GitHub PR 264.
 PR 5, Framework Semantic Model, merged as GitHub PR 265.
 PR 6, Verified Feature Migration, merged as GitHub PR 266.
 Release PR 260 then published the completed roadmap state from `main`.
-The current `agent_context_v3` branch is roadmap PR 7, Context-Competitive Agent Workflow.
+PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
+The current `agent_workflow_v4` branch is roadmap PR 8, Agent Workflow Simplification.
+It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
+inspection and ambiguous artifact references account for the first concrete reductions.
+Its first checkpoint makes `project select` accept exact names and full revision-bound handles.
+The selection policy distinguishes outside-scope, non-declaration, omitted-local and returned
+declaration states and is modeled in Lean with exhaustive Rust correspondence.
+The remaining checkpoints cover compact authoring discovery, harness boundaries, skill routes,
+a bounded counterfactual measurement and a fresh Luna-low pair.
+`fr author guide` supplies the second checkpoint without requiring a project scan. Its bounded
+JSON names every operation and field, exact limits and the preview/save/apply/patch/undo/redo
+templates. The portable author route points integrations to that schema and tells an agent that
+already loaded the route not to spend additional subcommand-help calls.
+The third checkpoint fixes two acceptance-boundary defects from the retained trace. Coordinated
+manifest validation now passes `-h` and `--help` through to the CLI. Artifact writes return an
+explicit canonical `fr_reference`; the prompt requires copying it verbatim into fragment and
+manifest fields, and invalid relative paths name that contract in their refusal.
+PR 7 targeted the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
 It targets the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
 review-bound payload omission, a smaller task-routed skill and a fresh paired acceptance cohort.
 The retained fresh cohort passes independent project and receiver oracles, ordered checks, exact
@@ -836,5 +853,5 @@ Both arms pass, while `fr` uses 33.3% more measured context and 22 more calls in
 Use its refused path guesses, help calls and repeated inspection to simplify authoring discovery
 before spending quota on another autonomous cohort.
 Keep portable skill references selective and executable against the distributed binary.
-PR 7 is ready for review. After merge, choose the next milestone from the remaining M2
-context-efficiency or M4 authoring outcomes in [PLAN.md](../PLAN.md).
+PR 7 merged as GitHub PR 267. PR 8 continues the remaining M2 context-efficiency and M4
+authoring outcomes in [PLAN.md](../PLAN.md).

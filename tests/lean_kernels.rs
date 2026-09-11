@@ -2045,6 +2045,37 @@ fn reviewed_plan_basis_acceptance_matches_lean_for_every_input() {
     assert_eq!(actual, expected);
 }
 
+#[test]
+fn handle_selection_status_matches_lean_for_every_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("handle-selection")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<usize>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for in_scope in [false, true] {
+        for declaration in [false, true] {
+            for local in [false, true] {
+                for include_locals in [false, true] {
+                    expected.push(fun_refactor::project::handle_selection_status(
+                        in_scope,
+                        declaration,
+                        local,
+                        include_locals,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
 fn declaration_offset_samples() -> Vec<String> {
     let alphabet = ["a", " ", "\t", "\r", "\n", "é", "🙂"];
     let mut sources = vec![String::new()];

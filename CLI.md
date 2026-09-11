@@ -533,10 +533,16 @@ implementation proofs. The latter two stay false unless future evidence supplies
 ### `fr author`
 
 ```sh
+fr author guide
 fr author replace-body '<HANDLE>' --from /tmp/body.txt
 fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan --plan-basis '<PLAN_BASIS>'
 fr history apply '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
+
+`author guide` emits the bounded `fr-author-guide-1` JSON contract without scanning a
+project. It names every batch operation and required field, size limits, postconditions and
+the exact preview/save/apply/patch/undo/redo command sequence. This is a discovery surface;
+the individual preview and transition reports remain the evidence for a specific change.
 
 Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.
@@ -664,6 +670,7 @@ fr project map src --depth 4 --limit 80
 fr project map src/app.py --fields id,parent,kind,name,signature
 fr project map --cursor '<NEXT>'
 fr project select parse render validate --signature --source --bytes 2048
+fr project select '<HANDLE>' '<HANDLE>' --source --bytes 2048
 fr project show '<ID>' --revision '<REVISION>'
 fr project show '<HANDLE>' --source --bytes 2048
 fr project show '<HANDLE>' --source --offset 2048 --bytes 2048
@@ -1250,15 +1257,18 @@ Continue an incomplete slice with `project show HANDLE --source --offset NEXT --
 Row pagination requires the same source mode and byte budget. Without `--source`, default lookup reports and cursors keep their existing shape.
 Use `show` when node positions, child counts or relationships are also needed.
 
-#### `fr project select NAME...`
+#### `fr project select SELECTOR...`
 
-Select 1 through 32 unique exact names under one path or handle. One scan, revision,
+Select 1 through 32 unique exact declaration names or full revision-bound handles under one
+path or handle. Name selectors can match several declarations; each handle selects one exact
+node. A stale or malformed handle refuses the whole query. One scan, revision,
 coverage report, cursor and optional source budget serve the combined result. Rows identify
-their requested name, and `selections` reports matched, locally omitted or no-indexed-match
-status for every request. The last status is bounded by the report's source coverage.
-Pagination follows request order and then project order. Cursors bind the complete name list,
+their requested selector. `selections` reports `matched`, `matching-locals-omitted`,
+`no-indexed-match`, `outside-scope` or `not-a-declaration` for every request. Indexed absence
+applies only to name selectors and remains bounded by the report's source coverage.
+Pagination follows request order and then project order. Cursors bind the complete selector list,
 scope, local and signature choices, source mode, source budget and project revision.
-Each name is limited to 512 UTF-8 bytes and their combined input to 4,096 bytes.
+Each selector is limited to 512 UTF-8 bytes and their combined input to 4,096 bytes.
 
 
 ### `fr history`

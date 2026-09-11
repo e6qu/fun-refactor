@@ -430,6 +430,39 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "coordinated batch"):
                     harness.validate_coordinated_manifest(session, project, config, args)
 
+    def test_coordinated_manifest_validation_preserves_help_and_explains_artifact_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            artifacts = session / "artifacts"
+            project.mkdir()
+            artifacts.mkdir()
+            config = {"task": harness.regex_escape_len.TASK}
+            harness.validate_coordinated_manifest(
+                session, project, config, ["author", "batch", "--help"]
+            )
+            with self.assertRaisesRegex(ValueError, "absolute fr_reference"):
+                harness.validate_coordinated_manifest(
+                    session,
+                    project,
+                    config,
+                    ["author", "batch", "--from", "artifacts/manifest.json"],
+                )
+
+    def test_write_returns_the_exact_fr_artifact_reference(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            (session / "project").mkdir()
+            (session / "artifacts").mkdir()
+            result = harness.action(
+                session,
+                {"arm": "fr", "task": harness.regex_escape_len.TASK},
+                {"tool": "write", "path": "fragment.rs", "text": "{}\n"},
+            )
+            expected = str((session / "artifacts/fragment.rs").resolve())
+            self.assertEqual(result["path"], expected)
+            self.assertEqual(result["fr_reference"], expected)
+
     def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):
         task = harness.regex_escape_len.TASK
         observed = {"checks": [], "undo_exact": True, "redo_exact": True, "workflow_ordered": True}

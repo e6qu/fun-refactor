@@ -160,7 +160,7 @@ Tool objects:
 {{"tool":"search","pattern":"normalized","path":"src"}} runs literal rg with bounded output (baseline only).
 {{"tool":"replace","path":"src/lib.rs","old":"unique existing text","new":"replacement"}} requires exactly one match (baseline only).
 {{"tool":"append","path":"src/lib.rs","text":"new function text"}} appends source (baseline only).
-{{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns its absolute path (both arms).
+{{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns `fr_reference`, its absolute path (both arms). Copy `fr_reference` verbatim into every manifest `from` field and use the manifest write's `fr_reference` after `author batch --from`; relative paths resolve from the project and do not name the artifact directory.
 {{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
 {{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
 {{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only). Apply refuses until all declared checks pass on the state restored by reverse.
@@ -274,11 +274,20 @@ def category(request):
 def validate_coordinated_manifest(session, project, config, args):
     if config["task"] != regex_escape_len.TASK or args[:2] != ["author", "batch"]:
         return
+    if "--help" in args or "-h" in args:
+        return
     try:
         source = args[args.index("--from") + 1]
     except (ValueError, IndexError):
         raise ValueError("The coordinated author batch requires --from MANIFEST") from None
-    manifest = json.loads(within(session / "artifacts", (project / source).resolve()).read_text())
+    try:
+        manifest_path = within(session / "artifacts", (project / source).resolve())
+    except ValueError:
+        raise ValueError(
+            "The coordinated manifest must use the absolute fr_reference returned by the write tool, "
+            "or a project-relative path that resolves inside the artifact directory"
+        ) from None
+    manifest = json.loads(manifest_path.read_text())
     operations = manifest.get("operations")
     if not isinstance(operations, list):
         raise ValueError("The coordinated manifest requires an operations array")
@@ -345,7 +354,7 @@ def action(session, config, request):
         if not path.parent.is_dir() or path.name == "change.patch":
             raise ValueError("Use an existing artifact directory and a fragment filename")
         path.write_text(request["text"])
-        return {"path": str(path), "bytes": path.stat().st_size}
+        return {"path": str(path), "fr_reference": str(path), "bytes": path.stat().st_size}
     if kind == "fr":
         args = request["args"]
         if not args or (baseline and args[0] != "checks"):

@@ -292,6 +292,27 @@ pub fn body_replacement_budget(before: usize, after: usize) -> bool {
     (1..=65536).contains(&before) && (1..=65536).contains(&after)
 }
 
+/// Classify an exact-handle selection after resolving its revision-bound identity.
+///
+/// The values are part of the Rust/Lean correspondence harness: outside scope is 0,
+/// a non-declaration is 1, an omitted local is 2, and a returned declaration is 3.
+pub fn handle_selection_status(
+    in_scope: bool,
+    declaration: bool,
+    is_local: bool,
+    include_locals: bool,
+) -> usize {
+    if !in_scope {
+        0
+    } else if !declaration {
+        1
+    } else if is_local && !include_locals {
+        2
+    } else {
+        3
+    }
+}
+
 pub fn reviewed_plan_basis_allowed(complete: bool, supplied: bool, matches: bool) -> bool {
     !supplied || (complete && matches)
 }
@@ -614,6 +635,18 @@ impl<'a> Project<'a> {
             .symbol
             .and_then(|id| self.index.symbol(id))
             .is_some_and(|s| s.kind.is_local())
+    }
+
+    fn within(&self, mut node: usize, scope: usize) -> bool {
+        loop {
+            if node == scope {
+                return true;
+            }
+            let Some(parent) = self.nodes[node].parent else {
+                return false;
+            };
+            node = parent;
+        }
     }
 
     fn source(&self, id: usize) -> Result<(&str, Span)> {

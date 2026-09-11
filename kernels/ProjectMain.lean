@@ -47,6 +47,12 @@ def main (args : List String) : IO Unit := do
       for supplied in [false, true] do
         for identityMatches in [false, true] do
           IO.println (FrKernels.Author.reviewedPlanBasisAllowed complete supplied identityMatches)
+  else if args == ["handle-selection"] then
+    for inScope in [false, true] do
+      for declaration in [false, true] do
+        for isLocal in [false, true] do
+          for includeLocals in [false, true] do
+            IO.println (handleSelectionStatus inScope declaration isLocal includeLocals)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

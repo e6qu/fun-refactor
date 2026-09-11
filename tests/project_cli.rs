@@ -139,6 +139,100 @@ fn select_returns_several_exact_symbols_with_one_context_and_source_budget() {
 }
 
 #[test]
+fn select_accepts_exact_handles_and_reports_handle_boundaries() {
+    let dir = fixture();
+    let run_handle = ok(dir.path(), &["project", "find", "run"])["rows"][0][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let helper = ok(dir.path(), &["project", "find", "helper"])["rows"][0][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let local = ok(dir.path(), &["project", "find", "local", "--locals"])["rows"][0][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    let selected = ok(
+        dir.path(),
+        &[
+            "project",
+            "select",
+            &run_handle,
+            &helper,
+            "--source",
+            "--bytes",
+            "65536",
+        ],
+    );
+    assert_eq!(selected["page"]["total"], 2);
+    assert_eq!(selected["match"]["mode"], "exact-name-or-handle");
+    assert_eq!(selected["selections"][0]["kind"], "handle");
+    assert_eq!(selected["selections"][1]["kind"], "handle");
+    assert!(selected["selections"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|selection| selection["status"] == "matched"));
+    assert_eq!(rows(&selected)[0]["handle"], run_handle);
+    assert_eq!(rows(&selected)[1]["handle"], helper);
+    assert!(rows(&selected).iter().all(|row| row["source"]["text"]
+        .as_str()
+        .is_some_and(|text| !text.is_empty())));
+
+    let mixed = ok(dir.path(), &["project", "select", &run_handle, "helper"]);
+    assert_eq!(mixed["page"]["total"], 2);
+    assert_eq!(mixed["selections"][0]["kind"], "handle");
+    assert_eq!(mixed["selections"][1]["kind"], "name");
+
+    let omitted = ok(dir.path(), &["project", "select", &local]);
+    assert_eq!(
+        omitted["selections"][0]["status"],
+        "matching-locals-omitted"
+    );
+    assert_eq!(omitted["selections"][0]["matching_locals_omitted"], 1);
+    let included = ok(dir.path(), &["project", "select", &local, "--locals"]);
+    assert_eq!(included["selections"][0]["status"], "matched");
+
+    let app_map = ok(
+        dir.path(),
+        &[
+            "project",
+            "map",
+            "src/app.py",
+            "--depth",
+            "1",
+            "--fields",
+            "handle,name",
+        ],
+    );
+    let file = app_map["root"].as_str().unwrap();
+    let non_declaration = ok(dir.path(), &["project", "select", file]);
+    assert_eq!(
+        non_declaration["selections"][0]["status"],
+        "not-a-declaration"
+    );
+    let outside = ok(
+        dir.path(),
+        &["project", "select", &helper, "--in", "src/app.py"],
+    );
+    assert_eq!(outside["selections"][0]["status"], "outside-scope");
+
+    fs::write(
+        dir.path().join("src/lib.py"),
+        "def helper(name: str) -> str:\n    return name.upper()\n",
+    )
+    .unwrap();
+    let (success, stale) = run(dir.path(), &["project", "select", &helper]);
+    assert!(!success, "{stale}");
+    assert!(stale["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale or invalid project handle"));
+}
+
+#[test]
 fn select_pages_the_combined_result_and_binds_every_selection_option() {
     let dir = fixture();
     let first = ok(

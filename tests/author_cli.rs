@@ -26,6 +26,43 @@ fn ok(root: &Path, args: &[&str]) -> Value {
     value
 }
 
+#[test]
+fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
+    let dir = tempfile::tempdir().unwrap();
+    let guide = ok(dir.path(), &["author", "guide"]);
+    assert_eq!(guide["schema"], "fr-author-guide-1");
+    assert_eq!(guide["limits"]["operations"]["maximum"], 32);
+    assert_eq!(guide["limits"]["manifest_bytes"], 65536);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 4);
+    assert_eq!(guide["operations"][0]["op"], "replace-body");
+    assert_eq!(guide["operations"][3]["op"], "organize-imports");
+    let steps = guide["workflow"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|step| step["step"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        steps,
+        [
+            "inspect",
+            "preview",
+            "save",
+            "apply",
+            "patch",
+            "undo-preview",
+            "undo",
+            "redo-preview",
+            "redo"
+        ]
+    );
+    let (success, error) = run(
+        dir.path(),
+        &["--context-basis", "frcb1:unused", "author", "guide"],
+    );
+    assert!(!success, "{error}");
+}
+
 fn fixture(source: &str, body: &[u8]) -> (tempfile::TempDir, PathBuf, PathBuf) {
     fixture_file("app.rs", source, body)
 }

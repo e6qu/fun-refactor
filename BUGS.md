@@ -67,6 +67,16 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B689: the coordinated acceptance harness intercepted `fr author batch --help` as an
+  invalid manifest and returned artifact paths without naming the value agents must reuse.
+  Help now reaches the real CLI, writes return an explicit absolute `fr_reference`, and path
+  refusals explain the project-relative boundary.
+
+- [x] B688: `project find` returned revision-bound declaration handles that `project select`
+  silently treated as literal names, producing `no-indexed-match` for valid results. Selection
+  now accepts mixed exact names and full handles. Handle results distinguish scope exclusion,
+  non-declarations and filtered locals, while stale handles refuse the whole query.
+
 - [x] B845: **framework migration policies disappeared from non-CLI builds.**
   The translation writers called pure policy helpers through the CLI-gated project module.
   WASM and playground builds disable default features, so both failed before compiling the

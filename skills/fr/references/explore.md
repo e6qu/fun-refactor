@@ -17,8 +17,10 @@ fr project gaps --limit 8
 
 Use exact `project find NAME` for known declarations; add `--contains` for a literal substring.
 Find matches names before clipping and reports all candidates with pagination and source coverage.
-Use `project select NAME...` for several exact declarations so one revision, coverage report,
-cursor and source budget cover the complete request. Read every per-name status before claiming absence.
+Use `project select SELECTOR...` for several exact names or full handles so one revision,
+coverage report, cursor and source budget cover the complete request. Read every per-selector
+status before claiming absence. Handles select one exact node and can report `outside-scope`,
+`not-a-declaration` or an omitted local; stale handles refuse instead of becoming names.
 Use maps when the hierarchy itself matters. Choose `<HANDLE>` from the relevant declaration row. Full handles include their source revision.
 Alternatively use a short ID with the returned `--revision`; never reuse a bare ID across revisions.
 `show` gives the declaration's `position`, a 1-based line and column suitable for a refactoring target.
