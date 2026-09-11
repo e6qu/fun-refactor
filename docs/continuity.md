@@ -39,6 +39,14 @@ All 1,386 representative and out-of-domain policy cases agree with Rust. Task qu
 the existing proved whole-report admission predicate. The executable portable-skill fixture passes
 with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 
+The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
+compares separate target lookup, caller inspection, author-guide and check-list calls with one task
+bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,557 to
+1,510 tokens (3.0%), bytes from 5,586 to 4,744 (15.1%), and local subprocess time from 0.119 to 0.053
+seconds. The 446-byte task manifest is counted. Both arms stop before fragment creation or mutation,
+so this supports a fresh adoption test but makes no agent-success claim.
+
 The browser journal keeps exact optional text snapshots, applied and redo stacks, a stable `frmb1:`
 basis and applied, undone or abandoned record status. Undo and redo verify every selected path before
 writing any path. Generated files are removed on undo and recreated on redo; a new edit abandons the

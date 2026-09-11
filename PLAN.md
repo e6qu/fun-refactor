@@ -100,6 +100,14 @@ preview and write. It counts the 318-byte manifest. Median context falls from 2,
 an 8.2% reduction, while calls fall from seven to two. Final stages, history, source and patch match
 in all three repetitions. This fixed sequence supports an adoption trial and makes no agent claim.
 
+The PR 12 controlled task fixture compares four separate discovery and contract calls with one
+revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
+query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
+median counted context falls from 1,557 to 1,510 tokens, a 3.0% reduction; serialized context falls
+from 5,586 to 4,744 bytes, a 15.1% reduction. Calls fall from four to one and median local subprocess
+time falls from 0.119 to 0.053 seconds. Both arms stop before fragment creation or mutation. This is
+a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
+
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.
 It makes repeated skill, inspection and transaction output the immediate optimization target.
 The [coordinated evaluation](docs/agent-coordinated-evaluation.md) contains the protocol, retained evidence and limits.
@@ -378,8 +386,9 @@ Planned checkpoints:
 2. **Complete.** Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
 3. **Complete.** Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
 4. **Complete.** Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
-5. Measure the equivalent separate and bundled flows, then run a fresh Luna-low pair only if the
-   deterministic result and complete repository gate justify it.
+5. **In progress.** Measure the equivalent separate and bundled flows, then run a fresh Luna-low pair
+   only if the deterministic result and complete repository gate justify it. The controlled result
+   reduces calls by 75% and counted context by 3.0%; the full gate precedes any quota use.
 
 ## Formal verification policy
 

@@ -823,7 +823,7 @@ evidence from which it selected the handle. Literal targets must be full handles
 revision. Files and declarations are accepted; directories and locals outside the requested
 authoring scope refuse.
 
-The response retains the ordinary batch `requests`, common context and batch bases. `task_basis`
+The response retains the ordinary batch `requests` and common context. `task_basis`
 binds the complete input. `task_resolution_basis` additionally binds the project revision, resolved
 query arguments, exact target handles, operations and check names. Each target reports path,
 language, kind and `eligibility: target-supported`. This is a conservative target-level decision;
@@ -838,8 +838,8 @@ the live destination and parent directories.
 
 `author_manifest_template` contains the resolved handles and explicit `<FRAGMENT:TARGET_ID>` values.
 `workflow_manifest_template` carries the selected checks and delivery choices with explicit
-transaction placeholders. These are templates rather than accepted manifests. Replace every value
-named by `template_substitutions`, write the resulting JSON, then use the ordered `commands`: preview
+transaction placeholders. These are templates rather than accepted manifests. Replace every
+angle-bracketed value, write the resulting JSON, then use the commands in `next`: preview
 and save the author batch, preview the workflow, and execute it under the reviewed workflow basis.
 The task command itself is read-only and a final project verification still precedes its output.
 

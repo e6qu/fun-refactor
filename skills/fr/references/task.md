@@ -25,8 +25,8 @@ target’s `target-supported` eligibility only proves that its language and decl
 enter that authoring route. It does not validate fragment bytes or the exact syntax container.
 
 Write each required fragment outside recognized source. Replace every `<FRAGMENT:ID>` in
-`author_manifest_template` with the actual path and save the result. Follow the returned command
-arrays: preview the author batch, save it under the complete `plan_context_basis`, replace the
+`author_manifest_template` with the actual path and save the result. Follow `next`: preview the
+author batch, save it under the complete `plan_context_basis`, replace the
 transaction placeholders in `workflow_manifest_template`, preview the workflow, and write it under
 the complete `workflow_basis`.
 

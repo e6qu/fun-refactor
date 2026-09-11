@@ -325,7 +325,6 @@ impl Project<'_> {
                 "kind": if is_file { Value::String("file".into()) } else { json!(kind) },
                 "operation": target.op,
                 "eligibility": "target-supported",
-                "fragment": fragment,
                 "syntax_preflighted": false
             }));
             resolved_targets.push((target.id.clone(), handle, target.op));
@@ -365,6 +364,8 @@ impl Project<'_> {
                 &manifest.checks
             ))?
         );
+        report.as_object_mut().unwrap().remove("manifest_basis");
+        report.as_object_mut().unwrap().remove("resolution_basis");
         report["task_basis"] = json!(task_basis);
         report["task_resolution_basis"] = json!(resolution_basis);
         report["targets"] = json!(target_rows);
@@ -374,37 +375,12 @@ impl Project<'_> {
             "operations": author_operations
         });
         report["workflow_manifest_template"] = workflow_template.unwrap_or(Value::Null);
-        report["template_substitutions"] = json!({
-            "<FRAGMENT:TARGET_ID>": "write a UTF-8 fragment and replace the matching target placeholder with its path",
-            "<TRANSACTION_ID>": "transaction from the saved author plan",
-            "<TRANSACTION_CONTEXT_BASIS>": "transaction_context_basis from the saved author plan",
-            "<PLAN_CONTEXT_BASIS>": "plan_context_basis from the complete author preview",
-            "<WORKFLOW_BASIS>": "workflow_basis from the complete workflow preview"
+        report["next"] = json!({
+            "author-preview": "fr author batch --from <AUTHOR_MANIFEST>",
+            "author-save": "fr author batch --from <AUTHOR_MANIFEST> --save-plan --plan-basis <PLAN_CONTEXT_BASIS>",
+            "workflow-preview": "fr workflow --from <WORKFLOW_MANIFEST>",
+            "workflow-write": "fr workflow --from <WORKFLOW_MANIFEST> --write --basis <WORKFLOW_BASIS>"
         });
-        report["commands"] = json!([
-            ["fr", "author", "batch", "--from", "<AUTHOR_MANIFEST>"],
-            [
-                "fr",
-                "author",
-                "batch",
-                "--from",
-                "<AUTHOR_MANIFEST>",
-                "--save-plan",
-                "--plan-basis",
-                "<PLAN_CONTEXT_BASIS>"
-            ],
-            ["fr", "workflow", "--from", "<WORKFLOW_MANIFEST>"],
-            [
-                "fr",
-                "workflow",
-                "--from",
-                "<WORKFLOW_MANIFEST>",
-                "--write",
-                "--basis",
-                "<WORKFLOW_BASIS>"
-            ]
-        ]);
-        report["claim"] = json!("Target eligibility is conservative and revision-bound. Author preview remains authoritative for fragment syntax, exact container shape, edit overlap and no-op detection.");
         Ok(report)
     }
 }
