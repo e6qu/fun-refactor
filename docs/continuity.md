@@ -9,7 +9,24 @@ PR 5, Framework Semantic Model, merged as GitHub PR 265.
 PR 6, Verified Feature Migration, merged as GitHub PR 266.
 Release PR 260 then published the completed roadmap state from `main`.
 PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
-The current `agent_workflow_v4` branch is roadmap PR 8, Agent Workflow Simplification.
+PR 8, Agent Workflow Simplification, merged as GitHub PR 269.
+The current `project_context_v5` branch is roadmap PR 9, Bounded Project Query Batches.
+Its first checkpoint adds `fr project batch --from MANIFEST`: up to sixteen existing read-only
+project queries share one constructed snapshot and final workspace verification. The outer response
+retains revision, handle prefix, coverage and context basis once. Each nested report omits those
+common fields and carries a digest of its request. The versioned manifest has a separate digest.
+A shared serialized-report budget admits or omits only complete nested reports. An omitted request
+retains its ID, query kind, request digest and required byte count, and a later smaller report can
+still use the remaining budget. Request counts, IDs, argument counts and bytes are bounded;
+unknown command shapes and recursive batches refuse.
+
+`FrKernels.Project.batchSectionFits` models the overflow-safe admission predicate. Three theorems
+characterize acceptance, preservation of the total budget and rejection after exhaustion.
+All 1,728 combinations over representative machine-sized values agree with Rust on a 64-bit host.
+CLI regressions reconstruct standalone map, select and package reports exactly from the common
+batch envelope and cover whole-report omission and adversarial manifests.
+
+The historical PR 8 work follows.
 It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
 inspection and ambiguous artifact references account for the first concrete reductions.
 Its first checkpoint makes `project select` accept exact names and full revision-bound handles.

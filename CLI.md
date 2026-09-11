@@ -669,6 +669,7 @@ undeclared stays undeclared here, rather than invented.
 
 ```sh
 fr project map
+fr project batch --from project-queries.json --report-bytes 65536
 fr project map src --depth 4 --limit 80
 fr project map src/app.py --fields id,parent,kind,name,signature
 fr project map --cursor '<NEXT>'
@@ -753,6 +754,37 @@ This view does not include call-graph dispatch expansion, route contracts or inf
 `gaps` pages the corresponding diagnostics; unsupported extensions appear as counts.
 Ignore rules and size limits bound discovery. Hidden files follow `--no-ignore`.
 The workspace still requires indexing; output limits do not limit analysis to the returned nodes.
+
+`project batch` runs 1 through 16 existing read-only project subcommands against one constructed
+and finally verified snapshot. Its input is a UTF-8 JSON file of at most 64 KiB, or `-` for standard
+input:
+
+```json
+{
+  "schema": "fr-project-batch-1",
+  "requests": [
+    {"id": "structure", "arguments": ["map", "src", "--depth", "2", "--limit", "12"]},
+    {"id": "symbols", "arguments": ["select", "parse", "render", "--signature", "--source", "--bytes", "2048"]},
+    {"id": "packages", "arguments": ["packages", "--limit", "12"]},
+    {"id": "dependencies", "arguments": ["dependencies", "--limit", "24"]}
+  ]
+}
+```
+
+Each `arguments` array starts with the subcommand name and uses its ordinary options. Global CLI
+options do not belong there, and a batch cannot contain another batch. Request IDs are unique,
+bounded ASCII identifiers. The manifest limits each request to 64 arguments and 4096 argument bytes,
+with 16384 argument bytes across the batch. `manifest_basis` hashes the normalized versioned input;
+each `request_basis` hashes its ID and arguments.
+
+The outer report contains the common `schema`, `revision`, `handle_prefix`, `coverage` and
+`context_basis`. Each returned request omits those fields from its nested `report`. Copy them from
+the outer object to reconstruct the standalone response exactly. The nested report keeps its normal
+query, cursors, omissions, scope and uncertainty. `--report-bytes` defaults to 65536 and accepts 256
+through 1048576 bytes. It counts serialized nested reports. A report that does not fit is replaced
+by `status: "omitted-report-budget"` and `required_report_bytes`; later smaller reports may still fit.
+Common context and bounded request metadata are outside that payload budget. The command never clips
+a nested report. Any invalid request or query failure refuses the whole batch before output.
 
 `calls` and `implementations` accept a directory, file, full handle or short ID with `--revision`.
 Both default to the workspace root and 40 rows, with limits from 1 through 500.

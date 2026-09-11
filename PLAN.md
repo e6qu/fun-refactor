@@ -127,7 +127,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Eight merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Nine merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -139,12 +139,13 @@ The first packaged roadmap is complete. Eight merged pull requests established t
 | [PR 5](https://github.com/e6qu/fun-refactor/pull/265) | Framework semantic model | Merged |
 | [PR 6](https://github.com/e6qu/fun-refactor/pull/266) | Verified feature migration | Merged |
 | [PR 7](https://github.com/e6qu/fun-refactor/pull/267) | Context-Competitive Agent Workflow | Merged |
+| [PR 8](https://github.com/e6qu/fun-refactor/pull/269) | Agent Workflow Simplification | Merged |
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
 ### PR 8. Agent Workflow Simplification
 
-Status: ready for review on `agent_workflow_v4`.
+Status: merged as [PR 269](https://github.com/e6qu/fun-refactor/pull/269).
 
 Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 trace while retaining bounded evidence, independent validation, exact patch replay and undo/redo.
 
@@ -185,6 +186,50 @@ Planned checkpoints:
 5. **Complete.** Publish the bounded counterfactual workflow report and document what it can and cannot claim.
 6. **Complete.** Retain the first fresh diagnostic, enforce original checks before source
    mutation, clarify its observed command boundaries, and retain a passing second Luna-low pair.
+
+### PR 9. Bounded Project Query Batches
+
+Status: in progress on `project_context_v5`.
+
+Goal: let an agent obtain several heterogeneous high-level project views from one immutable
+snapshot without repeating project construction, revision coverage or process calls.
+
+Deliverables:
+
+- Run existing read-only `fr project` queries from one versioned manifest and one verified snapshot.
+- Emit revision, handle prefix and coverage once, while retaining a digest for the complete manifest
+  and each resolved request.
+- Enforce request, argument and serialized-report budgets; omit only complete reports and state the
+  exact omission instead of clipping JSON or facts.
+- Allow later requests to consume bounded string results from earlier requests without copying
+  revision-bound handles through an agent round trip.
+- Teach the portable skill an exact broad-exploration route and retain executable examples.
+- Compare separate invocations with the equivalent batch under fixed inputs, payload audits and
+  cold/warm cache controls before making a context or latency claim.
+- Run a fresh Luna-low paired task only after deterministic evidence shows that the batch targets
+  calls a broader exploration task actually needs.
+
+Verification and acceptance:
+
+1. Every returned nested report reconstructs the byte-identical standalone report from the shared
+   envelope, and all queries observe one revision that is reverified before emission.
+2. Invalid schemas, duplicate IDs, recursive batches, unsupported arguments, stale cursors and
+   source drift refuse without returning misleading partial evidence.
+3. Global budgets never emit a partial nested report; omitted reports retain identity, query kind
+   and the complete byte requirement.
+4. References are backward-only, string-valued, bounded and bound into the resolved request digest.
+5. The Lean model proves the report-admission budget law and exhaustive shared machine-sized cases
+   agree with Rust.
+6. Native, WASM, documentation, skill, capability and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Add manifest-driven query batches, a common response envelope, whole-report
+   budgeting, adversarial CLI regressions and a Lean-backed admission predicate.
+2. Add backward result references so one batch can discover and then inspect exact handles.
+3. Add portable skill guidance, executable examples and complete CLI/formal documentation.
+4. Retain a controlled separate-versus-batch measurement with immutable payload and binary digests.
+5. Exercise the route in a fresh broad-exploration pair if the controlled evidence justifies quota use.
 
 ## Formal verification policy
 

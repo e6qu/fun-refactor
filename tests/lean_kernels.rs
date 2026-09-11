@@ -900,6 +900,57 @@ fn project_page_lengths_match_lean_including_integer_limits() {
 }
 
 #[test]
+fn project_batch_budgets_match_lean_including_integer_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("batch-budgets")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let samples: [u64; 12] = [
+        0,
+        1,
+        2,
+        3,
+        4,
+        79,
+        80,
+        499,
+        500,
+        65536,
+        u32::MAX.into(),
+        u64::MAX,
+    ];
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let mut checked = 0usize;
+    for used in samples {
+        for next in samples {
+            for budget in samples {
+                let observed = actual.next().expect("one Lean result per budget case");
+                if let (Ok(used), Ok(next), Ok(budget)) = (
+                    usize::try_from(used),
+                    usize::try_from(next),
+                    usize::try_from(budget),
+                ) {
+                    let expected = fun_refactor::project::batch_section_fits(used, next, budget);
+                    assert_eq!(
+                        observed, expected,
+                        "used {used}, next {next}, budget {budget}"
+                    );
+                    if expected {
+                        assert!(used.checked_add(next).is_some_and(|sum| sum <= budget));
+                    }
+                    checked += 1;
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(checked, if usize::BITS == 64 { 1728 } else { 1331 });
+}
+
+#[test]
 fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
         component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
