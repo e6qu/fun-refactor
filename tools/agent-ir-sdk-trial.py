@@ -69,6 +69,19 @@ def usage(events: Path) -> dict:
     return {"commands": commands, **(completed or {})}
 
 
+def implementation_source_reads(events: Path) -> int:
+    reads = 0
+    for line in events.read_text().splitlines():
+        event = json.loads(line)
+        item = event.get("item", {})
+        if event.get("type") != "item.completed" or item.get("type") != "command_execution":
+            continue
+        command = item.get("command", "")
+        if "fr_ir/__init__.py" in command or "rg --files fr_ir" in command:
+            reads += 1
+    return reads
+
+
 def canonical(binary: Path, project: Path, payload: Path) -> tuple[bool, dict]:
     result = subprocess.run([str(binary), "--json", "--no-cache", "-C", str(project), "author", "validate-semantic", "--from", str(payload), "--canonical"], capture_output=True, text=True)
     try:
@@ -90,10 +103,12 @@ def score(sessions: Path) -> dict:
         exact = valid and report.get("canonical") == expected_value
         producer = project / "make_change.py"
         run = json.loads((session / "codex-run.json").read_text())
+        source_reads = implementation_source_reads(session / "codex-events.jsonl")
         result = {
             "schema": "fr-agent-ir-sdk-trial-result-1", "trial": name, "arm": config["arm"],
-            "passed": exact and run.get("exit_code") == 0,
+            "passed": exact and run.get("exit_code") == 0 and source_reads == 0,
             "valid": valid, "exact_canonical": exact, "python_producer": producer.is_file(),
+            "implementation_source_reads": source_reads,
             "producer_bytes": producer.stat().st_size if producer.is_file() else payload.stat().st_size if payload.is_file() else 0,
             "usage": usage(session / "codex-events.jsonl"), "run_sha256": digest(session / "codex-run.json"),
         }

@@ -82,6 +82,15 @@ fn semantic_contract_is_bounded_and_selectable_without_a_project() {
     assert_eq!(statement["variant"]["kind"], "if");
     assert_eq!(statement["variant"]["authorable"], true);
     assert_eq!(statement["python"]["constructor"], "Stmt.If");
+    let statements = ok(dir.path(), &["author", "semantic-schema", "statement"]);
+    assert_eq!(
+        statements["contract"]["variants"][4]["python_constructor"],
+        "Stmt.If"
+    );
+    assert_eq!(
+        statements["contract"]["python"]["object_fields"],
+        "pass as keyword arguments"
+    );
     assert!(statement["variant"]["value"]
         .as_str()
         .unwrap()

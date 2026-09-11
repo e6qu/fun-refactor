@@ -280,7 +280,23 @@ fn operators(section: Section) -> Option<&'static [&'static str]> {
 
 fn section_report(section: Section) -> Value {
     if let Some(specs) = specs(section) {
-        return json!({"section":section.name(),"encoding":{"tag":"kind","content":"value","case":"kebab-case"},"variants":specs});
+        let variants = specs
+            .iter()
+            .map(|entry| {
+                json!({
+                    "kind":entry.kind,
+                    "value":entry.value,
+                    "authorable":entry.authorable,
+                    "python_constructor":python_constructor(section, entry.kind)
+                })
+            })
+            .collect::<Vec<_>>();
+        return json!({
+            "section":section.name(),
+            "encoding":{"tag":"kind","content":"value","case":"kebab-case"},
+            "python":{"package":"fr_ir","object_fields":"pass as keyword arguments"},
+            "variants":variants
+        });
     }
     if let Some(values) = operators(section) {
         return json!({"section":section.name(),"encoding":"kebab-case string","values":values});
@@ -365,7 +381,8 @@ pub fn catalog(options: &SchemaOptions) -> Result<Value> {
             "section":"fr author semantic-schema <SECTION>",
             "variant":"fr author semantic-schema <SECTION> --kind <KIND>",
             "validate":"fr author validate-semantic --from <FILE>"
-        }
+        },
+        "python":{"package":"fr_ir","object_fields":"pass as keyword arguments","source_read_required":false}
     }))
 }
 
