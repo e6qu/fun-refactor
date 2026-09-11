@@ -226,7 +226,7 @@ Planned checkpoints:
 
 1. **Complete.** Add manifest-driven query batches, a common response envelope, whole-report
    budgeting, adversarial CLI regressions and a Lean-backed admission predicate.
-2. Add backward result references so one batch can discover and then inspect exact handles.
+2. **Complete.** Add backward result references so one batch can discover and then inspect exact handles.
 3. Add portable skill guidance, executable examples and complete CLI/formal documentation.
 4. Retain a controlled separate-versus-batch measurement with immutable payload and binary digests.
 5. Exercise the route in a fresh broad-exploration pair if the controlled evidence justifies quota use.

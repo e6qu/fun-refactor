@@ -765,6 +765,7 @@ input:
   "requests": [
     {"id": "structure", "arguments": ["map", "src", "--depth", "2", "--limit", "12"]},
     {"id": "symbols", "arguments": ["select", "parse", "render", "--signature", "--source", "--bytes", "2048"]},
+    {"id": "implementation", "arguments": ["show", {"request": "symbols", "pointer": "/rows/0/1"}, "--source", "--bytes", "4096"]},
     {"id": "packages", "arguments": ["packages", "--limit", "12"]},
     {"id": "dependencies", "arguments": ["dependencies", "--limit", "24"]}
   ]
@@ -775,7 +776,15 @@ Each `arguments` array starts with the subcommand name and uses its ordinary opt
 options do not belong there, and a batch cannot contain another batch. Request IDs are unique,
 bounded ASCII identifiers. The manifest limits each request to 64 arguments and 4096 argument bytes,
 with 16384 argument bytes across the batch. `manifest_basis` hashes the normalized versioned input;
-each `request_basis` hashes its ID and arguments.
+each `request_basis` hashes its ID, declarative arguments and resolved arguments.
+
+An argument can instead be `{"request":"ID","pointer":"/JSON/pointer"}`. It resolves one string
+from an earlier nested report using RFC 6901 JSON Pointer syntax. References cannot point forward,
+at the current request, or at a non-string value. The resolved request keeps the 4096-byte argument
+limit. In the example, `select` places the handle in column 1 because column 0 identifies the
+selector. A `find` report places its handle in column 0. References can consume an earlier report
+even when the output budget omits that report, and the referenced report remains covered by the
+shared revision and final verification.
 
 The outer report contains the common `schema`, `revision`, `handle_prefix`, `coverage` and
 `context_basis`. Each returned request omits those fields from its nested `report`. Copy them from

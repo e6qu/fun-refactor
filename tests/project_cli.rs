@@ -225,6 +225,77 @@ fn project_batch_budget_omits_only_whole_reports_and_keeps_later_small_queries()
 }
 
 #[test]
+fn project_batch_references_prior_string_results_even_when_the_source_report_is_omitted() {
+    let dir = fixture();
+    let manifest = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [
+            {"id": "lookup", "arguments": ["find", "run", "--source", "--bytes", "65536"]},
+            {"id": "inspect", "arguments": [
+                "show", {"request": "lookup", "pointer": "/rows/0/0"}
+            ]}
+        ]
+    });
+    let unlimited = project_batch(dir.path(), manifest.clone(), 1_048_576);
+    let handle = unlimited["requests"][0]["report"]["rows"][0][0]
+        .as_str()
+        .unwrap();
+    assert_eq!(
+        reconstruct_batch_report(&unlimited, 1),
+        ok(dir.path(), &["project", "show", handle])
+    );
+    let inspect_bytes = unlimited["requests"][1]["report_bytes"].as_u64().unwrap() as usize;
+    assert!(unlimited["requests"][0]["report_bytes"].as_u64().unwrap() > inspect_bytes as u64);
+
+    let bounded = project_batch(dir.path(), manifest, inspect_bytes);
+    assert_eq!(bounded["requests"][0]["status"], "omitted-report-budget");
+    assert_eq!(bounded["requests"][1]["status"], "returned");
+    assert_eq!(
+        bounded["requests"][1]["request_basis"],
+        unlimited["requests"][1]["request_basis"]
+    );
+    assert_eq!(
+        reconstruct_batch_report(&bounded, 1),
+        ok(dir.path(), &["project", "show", handle])
+    );
+}
+
+#[test]
+fn project_batch_references_are_backward_string_only_and_bounded() {
+    let dir = fixture();
+    let cases = [
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "first", "arguments": ["show", {"request": "later", "pointer": "/root"}]},
+            {"id": "later", "arguments": ["map"]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "map", "arguments": ["map"]},
+            {"id": "bad-pointer", "arguments": ["show", {"request": "map", "pointer": "root"}]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "map", "arguments": ["map"]},
+            {"id": "missing", "arguments": ["show", {"request": "map", "pointer": "/not-there"}]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "map", "arguments": ["map"]},
+            {"id": "object", "arguments": ["show", {"request": "map", "pointer": "/page"}]}
+        ]}),
+    ];
+    for manifest in cases {
+        let input = tempfile::NamedTempFile::new().unwrap();
+        fs::write(input.path(), serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(
+            !run(
+                dir.path(),
+                &["project", "batch", "--from", input.path().to_str().unwrap()]
+            )
+            .0,
+            "{manifest}"
+        );
+    }
+}
+
+#[test]
 fn project_batch_refuses_ambiguous_or_recursive_manifests_before_reporting() {
     let dir = fixture();
     let cases = [

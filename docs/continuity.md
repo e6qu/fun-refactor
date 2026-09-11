@@ -26,6 +26,14 @@ All 1,728 combinations over representative machine-sized values agree with Rust 
 CLI regressions reconstruct standalone map, select and package reports exactly from the common
 batch envelope and cover whole-report omission and adversarial manifests.
 
+The second checkpoint lets a request argument use an RFC 6901 JSON Pointer into an earlier nested
+report. References are backward-only and must resolve to a string, so a lookup can feed its exact
+revision-bound handle into `show`, `calls` or another existing query without an agent round trip.
+The resolved arguments remain subject to the per-request byte bound and join the declarative input
+in `request_basis`. Reports remain available for internal references when the output budget omits
+them; their facts do not otherwise leak. Regressions cover omitted producers, missing pointers,
+forward references and non-string results.
+
 The historical PR 8 work follows.
 It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
 inspection and ambiguous artifact references account for the first concrete reductions.
