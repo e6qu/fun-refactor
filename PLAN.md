@@ -197,7 +197,7 @@ Planned checkpoints:
 
 ### PR 9. Bounded Project Query Batches
 
-Status: in progress on `project_context_v5`.
+Status: ready for review on `project_context_v5`.
 
 Goal: let an agent obtain several heterogeneous high-level project views from one immutable
 snapshot without repeating project construction, revision coverage or process calls.
