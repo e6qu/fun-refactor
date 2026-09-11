@@ -8,9 +8,52 @@ PR 4, the Lean Adoption Kit, merged as GitHub PR 264.
 PR 5, Framework Semantic Model, merged as GitHub PR 265.
 PR 6, Verified Feature Migration, merged as GitHub PR 266.
 Release PR 260 then published the completed roadmap state from `main`.
-The current `agent_context_v3` branch is roadmap PR 7, Context-Competitive Agent Workflow.
-It targets the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
-review-bound payload omission, a smaller task-routed skill and a fresh paired acceptance cohort.
+PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
+The current `agent_workflow_v4` branch is roadmap PR 8, Agent Workflow Simplification.
+It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
+inspection and ambiguous artifact references account for the first concrete reductions.
+Its first checkpoint makes `project select` accept exact names and full revision-bound handles.
+The selection policy distinguishes outside-scope, non-declaration, omitted-local and returned
+declaration states and is modeled in Lean with exhaustive Rust correspondence.
+The remaining checkpoints cover compact authoring discovery, harness boundaries, skill routes,
+a bounded counterfactual measurement and a fresh Luna-low pair.
+`fr author guide` supplies the second checkpoint without requiring a project scan. Its bounded
+JSON names every operation and field, exact limits and the preview/save/apply/patch/undo/redo
+templates. The portable author route points integrations to that schema and tells an agent that
+already loaded the route not to spend additional subcommand-help calls.
+The third checkpoint fixes two acceptance-boundary defects from the retained trace. Coordinated
+manifest validation now passes `-h` and `--help` through to the CLI. Artifact writes return an
+explicit canonical `fr_reference`; the prompt requires copying it verbatim into fragment and
+manifest fields, and invalid relative paths name that contract in their refusal.
+The fourth checkpoint keeps every portable route within its byte ceiling and all 42 shell
+examples executable. After the first fresh diagnostic, the targeted five-file route is 1,825
+tokens. Its added guidance distinguishes coordinated lookup and plan bases from project bases.
+The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
+It checks the immutable accepted trace and exercises the current handle selection on the pinned
+workspace. The prescribed sequence retains every mutation and verification step while reducing
+42 calls to 29 and measured context from 15,458 to 13,278 tokens. This 2,180-token reduction is
+a one-trace counterfactual, not autonomous adoption or a population claim.
+
+The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed
+the project and receiver oracles, preserved indexes and reversed exactly. Both skipped the
+original-state check before editing, so the ordered workflow rejected them. The `fr` arm used
+23,973 context tokens and 49 calls, including 12 refused or failed requests. The files arm used
+13,852 tokens and 21 calls. The harness now refuses source mutation before original checks pass;
+skill and prompt guidance also cover the exact command errors in the trace.
+
+The second fresh PR 8 pair passes all acceptance gates and exact replay. The `fr` arm uses
+13,949 context tokens and 30 calls; ordinary files use 12,815 and 23. This leaves a 1,134-token
+or 8.8% `fr` premium in one sample, down from the PR 7 pair's 33.3%. The `fr` arm uses fewer
+inspection tokens; authoring, delivery payloads and tool latency remain larger. Its agent uses
+the author guide, exact artifact references, one final manifest, the right plan basis, compact
+history and a single saved batch without correction.
+
+The first hosted PR 8 check exposed a checkout-path dependency in the counterfactual prompt.
+It also exposed variable tokenization of opaque live hashes. The projection now reuses the
+frozen tool path and fixed high-entropy identities after it validates the real live response.
+
+PR 7 targeted the fixed-projection gap through multi-symbol inspection, review-bound payload
+omission, a smaller task-routed skill and a fresh paired acceptance cohort.
 The retained fresh cohort passes independent project and receiver oracles, ordered checks, exact
 reversal and index preservation. Its single-pair comparison remains narrower than a population claim.
 PR 7 checkpoint 2 adds `project select NAME...`: one bounded traversal retrieves up to
@@ -836,5 +879,5 @@ Both arms pass, while `fr` uses 33.3% more measured context and 22 more calls in
 Use its refused path guesses, help calls and repeated inspection to simplify authoring discovery
 before spending quota on another autonomous cohort.
 Keep portable skill references selective and executable against the distributed binary.
-PR 7 is ready for review. After merge, choose the next milestone from the remaining M2
-context-efficiency or M4 authoring outcomes in [PLAN.md](../PLAN.md).
+PR 7 merged as GitHub PR 267. PR 8 is ready for review on `agent_workflow_v4`; after merge,
+choose the next M2 context-efficiency or M4 authoring outcome in [PLAN.md](../PLAN.md).

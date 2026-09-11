@@ -1,0 +1,81 @@
+{
+  "schema": "fr-agent-eval-result-1",
+  "task": "regex-escape-len",
+  "arm": "fr",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "binary_sha256": "1aedc5c7646c066bc1fc2e7ae435e47965558589fa01a96c1d5076d97decafec",
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "tool_calls": 49,
+  "visible_output_tokens": 22597,
+  "output_tokens_by_category": {
+    "skill": 2754,
+    "inspection": 12601,
+    "checks": 1884,
+    "change_and_delivery": 5358
+  },
+  "prompt_tokens": 1376,
+  "tool_request_tokens": 2704,
+  "visible_output_bytes": 72308,
+  "source_bytes": 5553380,
+  "tool_seconds": 143.573,
+  "elapsed_seconds": 283.723,
+  "refusals_or_failures": 12,
+  "source_edit_steps": 3,
+  "manual_corrections": 0,
+  "changed_paths": [
+    "regex-syntax/src/lib.rs",
+    "src/lib.rs"
+  ],
+  "checks": [
+    {
+      "event": 38,
+      "passed": true,
+      "original": false,
+      "final": true
+    },
+    {
+      "event": 43,
+      "passed": true,
+      "original": true,
+      "final": false
+    },
+    {
+      "event": 46,
+      "passed": true,
+      "original": false,
+      "final": true
+    }
+  ],
+  "undo_exact": true,
+  "redo_exact": true,
+  "workflow_ordered": false,
+  "index_unchanged": true,
+  "receiver_index_unchanged": true,
+  "receiver_matches": true,
+  "oracle": {
+    "passed": true,
+    "stage": 2,
+    "detail": "1060 independent byte/allocation cases passed in both crates\n"
+  },
+  "original_oracle": {
+    "passed": false,
+    "stage": 1,
+    "detail": "\\n```\\n\\nOr:\\n\\n```\\nmod something_that_does_exist {\\n    pub static foo : i32 = 0i32;\\n}\\n\\nsomething_that_does_exist::foo; // ok!\\n```\\n\\nOr:\\n\\n```\\nlet unknown_variable = 12u32;\\nlet x = unknown_variable; // ok!\\n```\\n\\nIf the item is not defined in the current module, it must be imported using a\\n`use` statement, like so:\\n\\n```\\n# mod foo { pub fn bar() {} }\\n# fn main() {\\nuse foo::bar;\\nbar();\\n# }\\n```\\n\\nIf the item you are importing is not defined in some super-module of the\\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\\n\"},\"level\":\"error\",\"spans\":[{\"file_name\":\"/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-escape-len-oracle-6_3gyeij/oracle.rs\",\"byte_start\":1418,\"byte_end\":1428,\"line_start\":35,\"line_end\":35,\"column_start\":31,\"column_end\":41,\"is_primary\":true,\"text\":[{\"text\":\"        for length in [regex::escape_len as fn(&str) -> usize, regex_syntax::escape_len] {\",\"highlight_start\":31,\"highlight_end\":41}],\"label\":\"not found in `regex`\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null}],\"children\":[],\"rendered\":\"error[E0425]: cannot find value `escape_len` in crate `regex`\\n  --> /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-escape-len-oracle-6_3gyeij/oracle.rs:35:31\\n   |\\n35 |         for length in [regex::escape_len as fn(&str) -> usize, regex_syntax::escape_len] {\\n   |                               ^^^^^^^^^^ not found in `regex`\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"cannot find value `escape_len` in crate `regex_syntax`\",\"code\":{\"code\":\"E0425\",\"explanation\":\"An unresolved name was used.\\n\\nErroneous code examples:\\n\\n```compile_fail,E0425\\nsomething_that_doesnt_exist::foo;\\n// error: unresolved name `something_that_doesnt_exist::foo`\\n\\n// or:\\n\\ntrait Foo {\\n    fn bar() {\\n        Self; // error: unresolved name `Self`\\n    }\\n}\\n\\n// or:\\n\\nlet x = unknown_variable;  // error: unresolved name `unknown_variable`\\n```\\n\\nPlease verify that the name wasn't misspelled and ensure that the\\nidentifier being referred to is valid for the given situation. Example:\\n\\n```\\nenum something_that_does_exist {\\n    Foo,\\n}\\n```\\n\\nOr:\\n\\n```\\nmod something_that_does_exist {\\n    pub static foo : i32 = 0i32;\\n}\\n\\nsomething_that_does_exist::foo; // ok!\\n```\\n\\nOr:\\n\\n```\\nlet unknown_variable = 12u32;\\nlet x = unknown_variable; // ok!\\n```\\n\\nIf the item is not defined in the current module, it must be imported using a\\n`use` statement, like so:\\n\\n```\\n# mod foo { pub fn bar() {} }\\n# fn main() {\\nuse foo::bar;\\nbar();\\n# }\\n```\\n\\nIf the item you are importing is not defined in some super-module of the\\ncurrent module, then it must also be declared as public (e.g., `pub fn`).\\n\"},\"level\":\"error\",\"spans\":[{\"file_name\":\"/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-escape-len-oracle-6_3gyeij/oracle.rs\",\"byte_start\":1465,\"byte_end\":1475,\"line_start\":35,\"line_end\":35,\"column_start\":78,\"column_end\":88,\"is_primary\":true,\"text\":[{\"text\":\"        for length in [regex::escape_len as fn(&str) -> usize, regex_syntax::escape_len] {\",\"highlight_start\":78,\"highlight_end\":88}],\"label\":\"not found in `regex_syntax`\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null}],\"children\":[],\"rendered\":\"error[E0425]: cannot find value `escape_len` in crate `regex_syntax`\\n  --> /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-escape-len-oracle-6_3gyeij/oracle.rs:35:78\\n   |\\n35 |         for length in [regex::escape_len as fn(&str) -> usize, regex_syntax::escape_len] {\\n   |                                                                              ^^^^^^^^^^ not found in `regex_syntax`\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"aborting due to 2 previous errors\",\"code\":null,\"level\":\"error\",\"spans\":[],\"children\":[],\"rendered\":\"error: aborting due to 2 previous errors\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"For more information about this error, try `rustc --explain E0425`.\",\"code\":null,\"level\":\"failure-note\",\"spans\":[],\"children\":[],\"rendered\":\"For more information about this error, try `rustc --explain E0425`.\\n\"}\n"
+  },
+  "receiver_oracle": {
+    "passed": true,
+    "stage": 2,
+    "detail": "1060 independent byte/allocation cases passed in both crates\n"
+  },
+  "finished": true,
+  "measurement_scope": "Prompt and instrumented tool payloads; excludes system context, hidden reasoning, framing, caching and billed token usage. Cooperative isolation. One scored session.",
+  "repetition": 1,
+  "context_tokens": 23973,
+  "coordinated_batch": true,
+  "passed": false
+}

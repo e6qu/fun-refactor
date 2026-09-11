@@ -1,0 +1,13 @@
+Implemented the requested changes in:
+
+- `regex-syntax/src/lib.rs`
+- `src/lib.rs`
+
+Added documented `escape_len` APIs, optimized escape capacity reservation, and preserved existing behavior.
+
+Validation passed:
+
+- Upstream library tests
+- No-default-features check
+- Patch reversal/reapplication
+- Clean receiver parity verification

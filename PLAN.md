@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 687 |
+| Defects fixed | 691 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent transactions, recovery, conflict checks, apply, undo and redo | Retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and twenty passing autonomous trials | Make context use competitive and extend authoring scope |
+| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and twenty-two passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -55,7 +55,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Twenty passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
+- Twenty-two passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
@@ -66,6 +66,20 @@ The `fr` arm uses 15,458 measured context tokens and 42 calls; ordinary files us
 This single pair shows a 33.3% `fr` context premium and makes no context-parity claim.
 The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
+The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
+workspace and retains every mutation and verification step. It reduces that trace to 29 calls
+and 13,278 context tokens, 2,180 below the observed `fr` arm and 1,678 above the ordinary-file
+arm. This one-trace counterfactual is separate from the retained fresh adoption pair below.
+
+The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
+Both agents edited before running the original-state checks, so neither passed acceptance. The
+`fr` arm used 23,973 context tokens and 49 calls; ordinary files used 13,852 and 21. The retained
+diagnostic now drives an execution-time original-check gate and narrower command guidance.
+
+The second fresh PR 8 pair passes every gate and replays from retained patches. The `fr` arm
+uses 13,949 context tokens and 30 calls; ordinary files use 12,815 and 23. The 1,134-token or
+8.8% `fr` premium in this sample is below the PR 7 pair's 33.3% premium. Inspection favors
+`fr`; authoring, delivery output and tool time remain the measured costs.
 
 The file agents retained verbose successful check logs while the `fr` agents used compact output.
 The checksum-bound M4ac projection applies the same output policy to both arms without altering prompts, requests, calls or other payloads.
@@ -113,7 +127,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Its seven pull requests established the product foundation:
+The first packaged roadmap is complete. Eight merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -124,55 +138,53 @@ The first packaged roadmap is complete. Its seven pull requests established the 
 | [PR 4](https://github.com/e6qu/fun-refactor/pull/264) | Lean adoption kit | Merged |
 | [PR 5](https://github.com/e6qu/fun-refactor/pull/265) | Framework semantic model | Merged |
 | [PR 6](https://github.com/e6qu/fun-refactor/pull/266) | Verified feature migration | Merged |
+| [PR 7](https://github.com/e6qu/fun-refactor/pull/267) | Context-Competitive Agent Workflow | Merged |
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
-### PR 7. Context-Competitive Agent Workflow
+### PR 8. Agent Workflow Simplification
 
-Status: ready for review on `agent_context_v3`.
+Status: ready for review on `agent_workflow_v4`.
 
-Goal: reduce the context and call cost of a complete high-level change while retaining bounded evidence, independent validation, exact patch replay and undo/redo.
+Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 trace while retaining bounded evidence, independent validation, exact patch replay and undo/redo.
 
 Measured baseline:
 
-- The fixed v2 projection uses 11,229 mean `fr` context tokens and 6,810 ordinary-file tokens.
-- The remaining measured gap is 4,419 tokens, or a 64.9% `fr` premium.
-- Skill loading costs 1,962 tokens. Inspection costs 2,935, checks 2,133, authoring 1,466, delivery 1,838 and the prompt 925.
-- The first fresh pair remains a diagnostic because neither arm passed every acceptance oracle.
-- The checksum-bound v3 projection lowers the passing-cohort `fr` mean to 10,960 tokens,
-  a further 269-token reduction from v2. The remaining premium is 4,150 tokens or 60.9%.
-- A second fresh pair passes every acceptance gate. It measures 15,458 `fr` context tokens and
-  11,600 ordinary-file tokens, a 3,858-token or 33.3% `fr` premium in this one sample.
+- The current checksum-bound projection uses 11,092 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,282-token or 62.9% `fr` premium.
+- The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
+- The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
+- Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
+- These measurements diagnose the workflow. They do not establish population-level agent behavior or predict savings from unfinished changes.
 
 Deliverables:
 
-- Add one revision-bound query for several exact symbol selections, with shared coverage, pagination and source budgets.
-- Remove repeated authoring-plan and transaction payloads only when a reviewed cryptographic basis reconstructs them.
-- Keep failed checks, refusals, uncertainty, omissions and changed source evidence complete.
-- Shrink the portable skill and route agents to small task-specific references.
-- Bind each context projection to immutable transcripts, tool and skill fingerprints and an exact field-change allowlist.
-- Run a fresh paired task through ephemeral Codex CLI sessions with the weakest economical model at low effort.
-- Retain the prompt, events, patches, source states, independent oracles, exact reversal and token audit for every attempted trial.
+- Let one `project select` request accept exact names and full revision-bound handles, with explicit scope, declaration-kind and local-omission statuses.
+- Give agents a compact, machine-readable authoring contract and executable transition templates without requiring exploratory help calls.
+- Make the acceptance harness preserve CLI help and provide unambiguous artifact references for manifests and fragments.
+- Tighten the portable skill around observed mistakes while preserving bounded task-specific reading routes.
+- Publish a checksum-bound counterfactual workflow measurement that changes only calls made unnecessary by delivered behavior and labels its limits.
+- Run a fresh paired task through ephemeral Codex CLI sessions with `gpt-5.6-luna` at low effort after deterministic gates pass.
+- Retain every attempted trial's prompt, events, patches, source states, independent oracles, exact reversal and token audit.
 
 Verification and acceptance:
 
-1. Full reports reconstruct byte-for-byte from each compact report and its reviewed basis.
-2. Missing, stale, truncated and conflicting bases refuse before history or source writes.
-3. Batches return each requested symbol's match status and never turn an omitted result into evidence of absence.
-4. Fixed projections change only declared request and response fields while preserving calls, source states, scores and timings.
+1. Mixed name/handle selection preserves ordered pagination and reports each selector's outcome without treating omissions as absence.
+2. Stale handles, stale bases, clipped plans and conflicting evidence refuse before persistence or source writes.
+3. Authoring discovery and harness artifact guidance are executable, bounded and covered by refusal regressions.
+4. Counterfactual measurements bind immutable transcripts and alter only requests made redundant by implemented commands; fresh trials remain separate evidence.
 5. Both arms of the fresh comparison pass project and receiver oracles, ordered checks, exact undo/redo and index-preservation checks.
-6. A context-improvement claim requires a passing pair and reports skill, inspection, checks, authoring, delivery, request and latency costs separately.
-7. The complete native, WASM, prose, capability and Lean gates pass.
+6. Context reports separate skill, inspection, checks, authoring, delivery, request and latency costs.
+7. The complete native, WASM, prose, capability and strict Lean gates pass.
 
 Planned checkpoints:
 
-1. **Complete.** Reset the completed roadmap and freeze the PR 7 measurement contract.
-2. **Complete.** Add bounded multi-symbol project inspection and reconstruction tests.
-3. **Complete.** Add reviewed-plan and transaction compaction with stale-basis refusals.
-4. **Complete.** Reduce and retest the portable skill's task routes.
-5. **Complete.** Publish checksum-bound v3 projections and their measured contribution.
-6. **Complete.** Retain the first failed diagnostic and correct its skill-schema ambiguity.
-   Run a fresh passing pair with checksum, token, patch, receiver, exact reversal and ordered-workflow replay.
+1. **Complete.** Freeze the trace-derived call-reduction contract and add handle-aware multi-selection with a Lean-backed status policy.
+2. **Complete.** Add a compact authoring workflow description and exact transition templates.
+3. **Complete.** Repair acceptance-harness help and artifact-reference boundaries, with adversarial regressions.
+4. **Complete.** Update and remeasure the portable skill routes against the observed failures.
+5. **Complete.** Publish the bounded counterfactual workflow report and document what it can and cannot claim.
+6. **Complete.** Retain the first fresh diagnostic, enforce original checks before source
+   mutation, clarify its observed command boundaries, and retain a passing second Luna-low pair.
 
 ## Formal verification policy
 

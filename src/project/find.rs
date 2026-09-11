@@ -29,8 +29,12 @@ pub struct Options {
 
 #[derive(clap::Args)]
 pub struct SelectOptions {
-    #[arg(required = true, num_args = 1..=32)]
-    names: Vec<String>,
+    #[arg(
+        required = true,
+        num_args = 1..=32,
+        help = "Exact declaration names or full revision-bound project handles."
+    )]
+    selectors: Vec<String>,
     #[arg(long = "in", default_value = ".")]
     scope: String,
     #[arg(long)]
@@ -143,19 +147,19 @@ impl Project<'_> {
     pub(super) fn select(&self, options: &SelectOptions) -> Result<Value> {
         ensure!(
             options
-                .names
+                .selectors
                 .iter()
-                .all(|name| !name.is_empty() && name.len() <= 512),
-            "Choose 1 through 32 nonempty literal names of at most 512 UTF-8 bytes each."
+                .all(|selector| !selector.is_empty() && selector.len() <= 512),
+            "Choose 1 through 32 nonempty names or full handles of at most 512 UTF-8 bytes each."
         );
         ensure!(
-            options.names.iter().map(String::len).sum::<usize>() <= 4096,
-            "Selected names exceed the combined 4096-byte limit."
+            options.selectors.iter().map(String::len).sum::<usize>() <= 4096,
+            "Selected names and handles exceed the combined 4096-byte limit."
         );
-        let unique = options.names.iter().collect::<BTreeSet<_>>();
+        let unique = options.selectors.iter().collect::<BTreeSet<_>>();
         ensure!(
-            unique.len() == options.names.len(),
-            "Selected names must be unique."
+            unique.len() == options.selectors.len(),
+            "Selected names and handles must be unique."
         );
         check_limit(options.limit)?;
         if options.source && !(4..=65536).contains(&options.bytes) {
@@ -164,13 +168,39 @@ impl Project<'_> {
         let selected =
             self.target(&self.explicit_handle(&options.scope, options.revision.as_deref())?)?;
         let requested = options
-            .names
+            .selectors
             .iter()
             .enumerate()
-            .map(|(index, name)| (name.as_str(), index))
+            .filter(|(_, selector)| !selector.starts_with("frp1:"))
+            .map(|(index, selector)| (selector.as_str(), index))
             .collect::<BTreeMap<_, _>>();
-        let mut matches = vec![Vec::new(); options.names.len()];
-        let mut hidden_locals = vec![0usize; options.names.len()];
+        let mut matches = vec![Vec::new(); options.selectors.len()];
+        let mut hidden_locals = vec![0usize; options.selectors.len()];
+        let mut exact_status = vec![None; options.selectors.len()];
+        for (index, selector) in options.selectors.iter().enumerate() {
+            if selector.starts_with("frp1:") {
+                let id = self.resolve_handle(selector)?;
+                let status = handle_selection_status(
+                    self.within(id, selected),
+                    self.nodes[id].symbol.is_some(),
+                    self.local(id),
+                    options.locals,
+                );
+                exact_status[index] = Some(match status {
+                    0 => "outside-scope",
+                    1 => "not-a-declaration",
+                    2 => {
+                        hidden_locals[index] = 1;
+                        "matching-locals-omitted"
+                    }
+                    3 => {
+                        matches[index].push((id, self.nodes[id].parent, 0));
+                        "matched"
+                    }
+                    _ => unreachable!("handle selection policy has four states"),
+                });
+            }
+        }
         let mut stack = vec![selected];
         while let Some(id) = stack.pop() {
             let node = &self.nodes[id];
@@ -196,7 +226,7 @@ impl Project<'_> {
                 &self.revision,
                 "select",
                 selected,
-                &options.names,
+                &options.selectors,
                 options.locals,
                 options.signature
             ))?[..32]
@@ -227,7 +257,7 @@ impl Project<'_> {
         let nodes = page_matches.iter().map(|(_, row)| *row).collect::<Vec<_>>();
         let mut rows = self.rows(&nodes, &fields)?;
         for (row, (request, _)) in rows.iter_mut().zip(page_matches) {
-            row.insert(0, json!(&options.names[*request]));
+            row.insert(0, json!(&options.selectors[*request]));
         }
         let mut columns = vec![json!("request")];
         columns.extend(fields.iter().map(|field| json!(field)));
@@ -243,30 +273,33 @@ impl Project<'_> {
                 row.push(source);
             }
         }
-        let mut returned = vec![0usize; options.names.len()];
+        let mut returned = vec![0usize; options.selectors.len()];
         for (request, _) in page_matches {
             returned[*request] += 1;
         }
         let selections = options
-            .names
+            .selectors
             .iter()
             .enumerate()
-            .map(|(index, name)| {
+            .map(|(index, selector)| {
                 let total = matches[index].len();
-                let status = if total > 0 {
+                let status = exact_status[index].unwrap_or(if total > 0 {
                     "matched"
                 } else if hidden_locals[index] > 0 {
                     "matching-locals-omitted"
                 } else {
                     "no-indexed-match"
-                };
-                json!({"name": name, "status": status, "total": total,
+                });
+                json!({"name": selector, "selector": selector,
+                    "kind": if selector.starts_with("frp1:") { "handle" } else { "name" },
+                    "status": status, "total": total,
                     "returned": returned[index], "matching_locals_omitted": hidden_locals[index]})
             })
             .collect::<Vec<_>>();
         let mut report = self.envelope("select");
         report["root"] = json!(self.handle(selected));
-        report["match"] = json!({"names": options.names, "mode": "exact"});
+        report["match"] = json!({"names": options.selectors, "selectors": options.selectors,
+            "mode": "exact-name-or-handle"});
         report["columns"] = json!(columns);
         report["rows"] = json!(rows);
         report["selections"] = json!(selections);

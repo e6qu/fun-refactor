@@ -67,6 +67,26 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B691: the workflow counterfactual measured the current checkout path inside its generated
+  prompt. A checkout path with a different length changed the retained byte count and failed CI.
+  Opaque live hashes could also change token counts while retaining their lengths. The projection
+  now reuses the frozen tool path and fixed high-entropy identities after validating live output.
+
+- [x] B690: the acceptance harness allowed source edits before original-state checks and found
+  the ordering failure only after an agent finished. It now refuses every source-changing call
+  until all declared checks pass on the original snapshot. Prompt and skill boundaries also
+  name the read cap, instrumented argument shape, boolean `--contains` and distinct plan basis.
+
+- [x] B689: the coordinated acceptance harness intercepted `fr author batch --help` as an
+  invalid manifest. Artifact paths also omitted the value agents must reuse.
+  Help now reaches the real CLI, writes return an explicit absolute `fr_reference`, and path
+  refusals explain the project-relative boundary.
+
+- [x] B688: `project find` returned revision-bound declaration handles that `project select`
+  silently treated as literal names, producing `no-indexed-match` for valid results. Selection
+  now accepts mixed exact names and full handles. Handle results distinguish scope exclusion,
+  non-declarations and filtered locals, while stale handles refuse the whole query.
+
 - [x] B845: **framework migration policies disappeared from non-CLI builds.**
   The translation writers called pure policy helpers through the CLI-gated project module.
   WASM and playground builds disable default features, so both failed before compiling the

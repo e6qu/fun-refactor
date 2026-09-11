@@ -2346,7 +2346,21 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
 
 fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()> {
     use crate::project::author::Command;
+    if matches!(command, Command::Guide) {
+        anyhow::ensure!(
+            !cli.save_plan && cli.plan_basis.is_none() && cli.context_basis.is_none(),
+            "author guide does not accept plan or context bases."
+        );
+        let guide = crate::project::author::guide();
+        if cli.json {
+            println!("{}", serde_json::to_string(&guide)?);
+        } else {
+            println!("{}", serde_json::to_string_pretty(&guide)?);
+        }
+        return Ok(());
+    }
     let (write, diff_bytes) = match command {
+        Command::Guide => unreachable!(),
         Command::ReplaceBody(options)
         | Command::ReplaceDeclaration(options)
         | Command::InsertDeclaration(options) => (options.write, options.diff_bytes),
@@ -2363,6 +2377,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
         let mut plan = match command {
+            Command::Guide => unreachable!(),
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
             Command::InsertDeclaration(options) => project.insert_declaration(options)?,

@@ -1,6 +1,7 @@
 """Regressions for acceptance grading and evidence boundaries, without an agent service."""
 
 import copy
+import contextlib
 import hashlib
 import importlib.util
 import io
@@ -45,6 +46,11 @@ context_v3_spec = importlib.util.spec_from_file_location(
     "agent_context_protocol_v3", TOOLS / "agent-context-protocol-v3.py")
 context_protocol_v3 = importlib.util.module_from_spec(context_v3_spec)
 context_v3_spec.loader.exec_module(context_protocol_v3)
+
+workflow_v4_spec = importlib.util.spec_from_file_location(
+    "agent_workflow_v4", TOOLS / "agent-workflow-v4.py")
+workflow_v4 = importlib.util.module_from_spec(workflow_v4_spec)
+workflow_v4_spec.loader.exec_module(workflow_v4)
 
 
 class ContextProtocolEvidence(unittest.TestCase):
@@ -166,6 +172,68 @@ class ContextProtocolV3Evidence(unittest.TestCase):
         self.assertEqual(bases, {7: "frtb2:" + "a" * 64})
 
 
+class AgentWorkflowV4Evidence(unittest.TestCase):
+    def test_counterfactual_normalizes_checkout_paths_and_opaque_live_ids(self):
+        old_prompt = (workflow_v4.TRIAL / "prompt.txt").read_text()
+        expected = workflow_v4.prescribed_prompt(old_prompt)
+        checkout = Path("/home/runner/work/a-different-checkout")
+        with mock.patch.object(workflow_v4, "ROOT", checkout), \
+                mock.patch.object(workflow_v4.harness, "ROOT", checkout):
+            self.assertEqual(workflow_v4.prescribed_prompt(old_prompt), expected)
+
+        first = {"revision": "1" * 64, "handle": f"frp1:{'1' * 32}:abc",
+                 "context_basis": f"frcb1:{'2' * 64}"}
+        second = {"revision": "a" * 64, "handle": f"frp1:{'a' * 32}:abc",
+                  "context_basis": f"frcb1:{'b' * 64}"}
+        self.assertEqual(workflow_v4.stable_live_value(first),
+                         workflow_v4.stable_live_value(second))
+
+    def test_prescribed_trace_reduction_is_live_bounded_and_retained(self):
+        retained = json.loads(
+            (TOOLS.parent / "tests/agent-eval/agent-workflow-v4.json").read_text()
+        )
+        actual = workflow_v4.measure(TOOLS.parent / "target/debug/fr")
+        self.assertTrue(actual["passed"])
+        self.assertEqual(actual["observed"]["calls"], 42)
+        self.assertEqual(actual["prescribed"]["calls"], 29)
+        self.assertEqual(actual["difference"]["calls"], -13)
+        self.assertEqual(len(actual["removed_calls"]), 13)
+        for section in ("observed", "prescribed", "difference"):
+            for field in ("calls", "prompt_bytes", "visible_output_bytes", "tool_request_bytes"):
+                self.assertEqual(actual[section][field], retained[section][field])
+        self.assertEqual(actual["removed_calls"], retained["removed_calls"])
+        self.assertEqual(actual["measurement_files"], retained["measurement_files"])
+
+    def test_fresh_cohorts_retain_failed_and_passing_acceptance(self):
+        root = TOOLS.parent / "tests/agent-eval/results"
+        expected = {
+            "2026-09-11-workflow-v4-diagnostic-1": {
+                "accepted": False, "commit": "882a13fd172796da340428de76747134c91a930d",
+                "fr": (False, 23973, 49), "files": (False, 13852, 21),
+            },
+            "2026-09-11-workflow-v4": {
+                "accepted": True, "commit": "d579f6b4ade93608d4b8043fc657e9b2323c6f88",
+                "fr": (True, 13949, 30), "files": (True, 12815, 23),
+            },
+        }
+        for directory, cohort in expected.items():
+            evidence = root / directory
+            manifest = json.loads((evidence / "manifest.json").read_text())
+            self.assertEqual(manifest["acceptance"]["passed"], cohort["accepted"])
+            self.assertEqual(manifest["implementation_commit"], cohort["commit"])
+            for relative, sha256 in manifest["files"].items():
+                self.assertEqual(harness.digest(harness.within(evidence, relative).read_bytes()), sha256)
+            for arm in ("fr", "files"):
+                result = json.loads((evidence / f"regex-escape-len-{arm}/result.json").read_text())
+                self.assertEqual(
+                    (result["passed"], result["context_tokens"], result["tool_calls"]),
+                    cohort[arm],
+                )
+                for field in ("undo_exact", "redo_exact", "index_unchanged",
+                              "receiver_index_unchanged", "receiver_matches"):
+                    self.assertTrue(result[field])
+
+
 class CheckPolicyEvidence(unittest.TestCase):
     def setUp(self):
         root = checks_policy.EVIDENCE / "regex-escape-len-files-r1"
@@ -278,6 +346,10 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
         self.assertIn("do not pass --write to author batch", prompt)
         self.assertIn("both API insertion operations and the regex-syntax escape body replacement", prompt)
+        self.assertIn("at most 200 lines per read", prompt)
+        self.assertIn("omit the `fr` executable name", prompt)
+        self.assertIn("never write placeholder references", prompt)
+        self.assertIn("refuses every source-changing request until the original checks pass", prompt)
         self.assertIn("--request-stdin <<'FRJSON'", prompt)
         self.assertIn("Apply refuses until all declared checks pass", prompt)
         self.assertIn("It refuses until all declared checks pass after the final redo/apply", prompt)
@@ -397,6 +469,62 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertTrue(harness.current_state_checked(events, changed, ["unit"]))
         self.assertFalse(harness.current_state_checked(events, changed, ["unit", "missing"]))
 
+    def test_source_mutations_require_a_complete_original_check(self):
+        original = {"src/lib.rs": {"sha256": "old"}}
+        check = {"schema": "fr-checks-1", "executed": True, "passed": True,
+                 "results": [{"name": "upstream", "passed": True},
+                             {"name": "minimal", "passed": True}]}
+        event = {"before": original, "after": original,
+                 "visible": json.dumps({"exit_code": 0, "result": check})}
+        self.assertFalse(harness.state_checked([], original, ["upstream", "minimal"]))
+        self.assertTrue(harness.state_checked([event], original, ["upstream", "minimal"]))
+        incomplete = copy.deepcopy(event)
+        payload = json.loads(incomplete["visible"])
+        payload["result"]["results"].pop()
+        incomplete["visible"] = json.dumps(payload)
+        self.assertFalse(harness.state_checked([incomplete], original, ["upstream", "minimal"]))
+        for request in (
+            {"tool": "replace"}, {"tool": "append"}, {"tool": "reverse"},
+            {"tool": "apply"}, {"tool": "fr", "args": ["history", "apply", "1", "--write"]},
+        ):
+            self.assertTrue(harness.source_mutation_requested(request))
+        for request in ({"tool": "write"}, {"tool": "fr", "args": ["author", "batch"]}):
+            self.assertFalse(harness.source_mutation_requested(request))
+
+    def test_step_refuses_source_mutation_before_original_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            for name in harness.edit_paths(harness.regex_escape_len.TASK):
+                path = project / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("original\n")
+            harness.initialize(project)
+            original = harness.snapshot(project)
+            harness.save(session / "session.json", {
+                "arm": "files", "task": harness.regex_escape_len.TASK, "original": original,
+            })
+            request = {"tool": "replace", "path": "src/lib.rs",
+                       "old": "original", "new": "changed"}
+            with contextlib.redirect_stdout(io.StringIO()):
+                harness.step(session, request)
+            self.assertEqual((project / "src/lib.rs").read_text(), "original\n")
+            refusal = json.loads((session / "events.jsonl").read_text().splitlines()[0])
+            self.assertIn("original source", json.loads(refusal["visible"])["error"])
+
+            check = {"schema": "fr-checks-1", "executed": True, "passed": True,
+                     "results": [{"name": name, "passed": True}
+                                 for name in harness.required_checks(harness.regex_escape_len.TASK)]}
+            event = {"request": {"tool": "fr", "args": ["checks", "--run"]},
+                     "visible": json.dumps({"exit_code": 0, "result": check}),
+                     "before": original, "after": original, "index_sha256": "same",
+                     "sentinel": None}
+            with (session / "events.jsonl").open("a") as log:
+                log.write(json.dumps(event) + "\n")
+            with contextlib.redirect_stdout(io.StringIO()):
+                harness.step(session, request)
+            self.assertEqual((project / "src/lib.rs").read_text(), "changed\n")
+
     def test_coordinated_manifest_requires_the_complete_single_transaction(self):
         with tempfile.TemporaryDirectory() as tmp:
             session = Path(tmp)
@@ -429,6 +557,45 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
                 path.write_text(json.dumps(broken))
                 with self.assertRaisesRegex(ValueError, "coordinated batch"):
                     harness.validate_coordinated_manifest(session, project, config, args)
+
+    def test_coordinated_manifest_validation_preserves_help_and_explains_artifact_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            artifacts = session / "artifacts"
+            project.mkdir()
+            artifacts.mkdir()
+            config = {"task": harness.regex_escape_len.TASK}
+            harness.validate_coordinated_manifest(
+                session, project, config, ["author", "batch", "--help"]
+            )
+            with self.assertRaisesRegex(ValueError, "absolute fr_reference"):
+                harness.validate_coordinated_manifest(
+                    session,
+                    project,
+                    config,
+                    ["author", "batch", "--from", "artifacts/manifest.json"],
+                )
+            with self.assertRaisesRegex(ValueError, "omits the executable name"):
+                harness.action(
+                    session,
+                    {"arm": "fr", "task": harness.regex_escape_len.TASK},
+                    {"tool": "fr", "args": ["fr", "author", "batch"]},
+                )
+
+    def test_write_returns_the_exact_fr_artifact_reference(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            (session / "project").mkdir()
+            (session / "artifacts").mkdir()
+            result = harness.action(
+                session,
+                {"arm": "fr", "task": harness.regex_escape_len.TASK},
+                {"tool": "write", "path": "fragment.rs", "text": "{}\n"},
+            )
+            expected = str((session / "artifacts/fragment.rs").resolve())
+            self.assertEqual(result["path"], expected)
+            self.assertEqual(result["fr_reference"], expected)
 
     def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):
         task = harness.regex_escape_len.TASK

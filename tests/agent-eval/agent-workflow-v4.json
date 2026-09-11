@@ -1,0 +1,115 @@
+{
+  "schema": "fr-agent-workflow-counterfactual-1",
+  "passed": true,
+  "binary": {
+    "path": "target/debug/fr",
+    "sha256": "1d6616752b07bc2ab1dc11f2263f9917f2f3bab2454b44229b8192341f16b4ab"
+  },
+  "frozen_trace": {
+    "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
+    "sha256": "b92385d53e080cf3a9685d5cc9d6d80139f7b351508d92be2b6a1817a6c7f8cf",
+    "accepted": true
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "observed": {
+    "calls": 42,
+    "prompt_bytes": 6279,
+    "visible_output_bytes": 42971,
+    "tool_request_bytes": 6480,
+    "prompt_tokens": 1324,
+    "visible_output_tokens": 14134,
+    "context_tokens": 15458,
+    "tool_request_tokens": 2282
+  },
+  "prescribed": {
+    "calls": 29,
+    "prompt_bytes": 6860,
+    "visible_output_bytes": 35682,
+    "tool_request_bytes": 4626,
+    "prompt_tokens": 1445,
+    "visible_output_tokens": 11833,
+    "context_tokens": 13278,
+    "tool_request_tokens": 1640
+  },
+  "difference": {
+    "calls": -13,
+    "prompt_bytes": 581,
+    "visible_output_bytes": -7289,
+    "tool_request_bytes": -1854,
+    "prompt_tokens": 121,
+    "visible_output_tokens": -2301,
+    "context_tokens": -2180,
+    "tool_request_tokens": -642
+  },
+  "removed_calls": [
+    {
+      "event": 3,
+      "reason": "show accepts handles and byte slices; the skill names that shape"
+    },
+    {
+      "event": 4,
+      "reason": "show accepts handles and byte slices; the skill names that shape"
+    },
+    {
+      "event": 5,
+      "reason": "find uses --contains for literal substrings; the route names that option"
+    },
+    {
+      "event": 9,
+      "reason": "the handle-aware selection at event 8 returns this exact declaration"
+    },
+    {
+      "event": 10,
+      "reason": "the handle-aware selection at event 8 returns this exact declaration"
+    },
+    {
+      "event": 11,
+      "reason": "duplicate of event 10"
+    },
+    {
+      "event": 12,
+      "reason": "duplicate of event 9"
+    },
+    {
+      "event": 16,
+      "reason": "the loaded author route names every operation and transition"
+    },
+    {
+      "event": 17,
+      "reason": "the loaded author route names every operation and transition"
+    },
+    {
+      "event": 22,
+      "reason": "the write response supplies the exact manifest fr_reference"
+    },
+    {
+      "event": 23,
+      "reason": "fragment fr_reference values make the first manifest executable"
+    },
+    {
+      "event": 24,
+      "reason": "the first manifest uses the returned absolute fragment references"
+    },
+    {
+      "event": 31,
+      "reason": "the loaded Git route names history patch as the fr export path"
+    }
+  ],
+  "replacement": {
+    "event": 8,
+    "query": "handle-aware project select",
+    "returned_declarations": 2
+  },
+  "measurement_files": {
+    "tools/agent-workflow-v4.py": "b5a247873352a94ddc1560a0189a8eae1cd647b006b8f5b6f357c09b8a4039cf",
+    "skills/fr/SKILL.md": "59e4a46742aa261c3ce295063dfa59539f64220d7a2bf09e698551791ad4db6d",
+    "skills/fr/references/author.md": "a67f304b01543a455472872ec88fd0204518d9955389aa0e5a32eae15d345e26",
+    "tools/agent-eval.py": "47ff2e7511d94419985f7933a06c8c92fd59e75b6ccb09fc626640b49b8ed14f"
+  },
+  "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with semantically validated live output from this binary. Opaque live revision and context identities use fixed high-entropy representatives of the same byte lengths so token counts reproduce across runs. It uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path."
+}

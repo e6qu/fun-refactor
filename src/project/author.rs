@@ -15,6 +15,8 @@ use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Print the bounded authoring manifest and transaction workflow.")]
+    Guide,
     #[command(
         about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
@@ -29,6 +31,52 @@ pub enum Command {
     InsertDeclaration(ReplaceBodyOptions),
     #[command(about = "Plan disjoint authoring edits from one revision as one transaction.")]
     Batch(BatchOptions),
+}
+
+pub fn guide() -> Value {
+    json!({
+        "schema": "fr-author-guide-1",
+        "purpose": "Bounded structural authoring through revision-bound project handles.",
+        "limits": {
+            "operations": {"minimum": 1, "maximum": 32},
+            "manifest_bytes": 65536,
+            "fragment_bytes": 65536,
+            "diff_bytes": {"minimum": 0, "maximum": 65536}
+        },
+        "operations": [
+            {"op": "replace-body", "requires": ["handle", "from"],
+                "targets": "supported function or method body"},
+            {"op": "replace-declaration", "requires": ["handle", "from"],
+                "targets": "Rust function declaration with unchanged name"},
+            {"op": "insert-declaration", "requires": ["handle", "from"],
+                "targets": "Rust file, module, impl or trait"},
+            {"op": "organize-imports", "requires": ["handle"],
+                "targets": "supported source file"}
+        ],
+        "manifest": {
+            "revision": "optional; required when any handle is a short ID",
+            "operations": [{"op": "replace-body", "handle": "<FULL_HANDLE>",
+                "from": "<FRAGMENT_PATH>"}],
+            "postconditions": {"files-changed": "optional exact count", "edits": "optional exact count",
+                "changed-operations": "optional exact count", "paths-changed": "optional exact ordered paths"}
+        },
+        "workflow": [
+            {"step": "inspect", "command": "fr project select <SELECTOR>... --source --bytes <N>"},
+            {"step": "preview", "command": "fr author batch --from <MANIFEST>"},
+            {"step": "save", "command": "fr author batch --from <MANIFEST> --save-plan --plan-basis <PLAN_CONTEXT_BASIS>"},
+            {"step": "apply", "command": "fr history apply <TX> --write --context-basis <TRANSACTION_CONTEXT_BASIS>"},
+            {"step": "patch", "command": "fr history patch <TX> --output <PATCH>"},
+            {"step": "undo-preview", "command": "fr history undo <TX>"},
+            {"step": "undo", "command": "fr history undo <TX> --write"},
+            {"step": "redo-preview", "command": "fr history redo <TX>"},
+            {"step": "redo", "command": "fr history redo <TX> --write --context-basis <TRANSACTION_CONTEXT_BASIS>"}
+        ],
+        "evidence": [
+            "Review the complete preview before using its plan_context_basis.",
+            "Run declared checks on original, changed, undone and redone states.",
+            "Retain refusals, coverage gaps, patch checks and receiver evidence."
+        ]
+    })
 }
 
 #[derive(Args)]

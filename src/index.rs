@@ -1652,8 +1652,7 @@ impl Index {
                 .map(|s| s.id)
                 .collect();
         }
-        // A CSS module scopes class names and nothing else. A custom property, an
-        // element id and a data attribute group across files as they do anywhere.
+        // A CSS module scopes class names and nothing else.
         let scoped_to_its_file = sym.kind == SymbolKind::Selector;
         self.named_like(&sym.name)
             .filter(|s| s.name == sym.name && s.kind == sym.kind)

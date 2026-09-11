@@ -133,13 +133,13 @@ def prompt(session, task, arm):
     surface = (
         "Use fr for source exploration and edits. Start with the instrumented call "
         "{\"tool\":\"read\",\"path\":\"skill/SKILL.md\",\"start\":1,\"lines\":80}. "
-        "Load only needed references. Source read/search/replace tools are unavailable in this arm. "
+        "Load only needed references, with at most 200 lines per read. Source read/search/replace tools are unavailable in this arm. "
         "Use fr project handles and saved authoring plans. Write fragments under artifacts/ outside the project."
         if arm == "fr" else
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. The manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
+        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. The manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Write every fragment first, then copy each returned fr_reference into one final manifest; never write placeholder references. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
@@ -160,15 +160,15 @@ Tool objects:
 {{"tool":"search","pattern":"normalized","path":"src"}} runs literal rg with bounded output (baseline only).
 {{"tool":"replace","path":"src/lib.rs","old":"unique existing text","new":"replacement"}} requires exactly one match (baseline only).
 {{"tool":"append","path":"src/lib.rs","text":"new function text"}} appends source (baseline only).
-{{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns its absolute path (both arms).
-{{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
+{{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns `fr_reference`, its absolute path (both arms). Copy `fr_reference` verbatim into every manifest `from` field and use the manifest write's `fr_reference` after `author batch --from`; relative paths resolve from the project and do not name the artifact directory.
+{{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. The args array starts with `checks`, `project`, `author`, `history` or `git`; omit the `fr` executable name. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
 {{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
 {{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only). Apply refuses until all declared checks pass on the state restored by reverse.
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project. It refuses until all declared checks pass after the final redo/apply.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
-Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. The harness refuses every source-changing request until the original checks pass. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
 
 Execute each successful workflow step once. Do not repeat a successful skill read, listing, saved plan, mutation, patch export, check, or receiver call. Preserve the order above, including the original-state check before any edit and the final-state check before receiver verification.
 
@@ -274,11 +274,20 @@ def category(request):
 def validate_coordinated_manifest(session, project, config, args):
     if config["task"] != regex_escape_len.TASK or args[:2] != ["author", "batch"]:
         return
+    if "--help" in args or "-h" in args:
+        return
     try:
         source = args[args.index("--from") + 1]
     except (ValueError, IndexError):
         raise ValueError("The coordinated author batch requires --from MANIFEST") from None
-    manifest = json.loads(within(session / "artifacts", (project / source).resolve()).read_text())
+    try:
+        manifest_path = within(session / "artifacts", (project / source).resolve())
+    except ValueError:
+        raise ValueError(
+            "The coordinated manifest must use the absolute fr_reference returned by the write tool, "
+            "or a project-relative path that resolves inside the artifact directory"
+        ) from None
+    manifest = json.loads(manifest_path.read_text())
     operations = manifest.get("operations")
     if not isinstance(operations, list):
         raise ValueError("The coordinated manifest requires an operations array")
@@ -345,11 +354,13 @@ def action(session, config, request):
         if not path.parent.is_dir() or path.name == "change.patch":
             raise ValueError("Use an existing artifact directory and a fragment filename")
         path.write_text(request["text"])
-        return {"path": str(path), "bytes": path.stat().st_size}
+        return {"path": str(path), "fr_reference": str(path), "bytes": path.stat().st_size}
     if kind == "fr":
         args = request["args"]
         if not args or (baseline and args[0] != "checks"):
             raise ValueError("Only fr checks is shared with the ordinary-file arm")
+        if args[0] == "fr":
+            raise ValueError("The fr args array omits the executable name; start with its top-level command")
         validate_coordinated_manifest(session, project, config, args)
         if args[:2] == ["history", "redo"]:
             events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
@@ -397,6 +408,12 @@ def step(session, request):
     before = snapshot(session / "project")
     started = time.time()
     try:
+        events_path = session / "events.jsonl"
+        events = [json.loads(line) for line in events_path.read_text().splitlines()] if events_path.is_file() else []
+        if source_mutation_requested(request) and not state_checked(
+            events, config["original"], required_checks(config["task"])
+        ):
+            raise ValueError("Run all declared checks on the original source before any source-changing request")
         result = action(session, config, request)
     except (ValueError, OSError, subprocess.SubprocessError, RuntimeError) as error:
         result = {"error": str(error), "exit_code": 1}
@@ -464,11 +481,8 @@ def workflow(events, original, final, required_checks=()):
     return {"checks": checks, "undo_exact": bool(undo), "redo_exact": bool(redo), "workflow_ordered": ordered}
 
 
-def current_state_checked(events, state, required):
-    mutations = [index for index, event in enumerate(events) if event["before"] != event["after"]]
-    if not mutations:
-        return False
-    for event in events[mutations[-1] + 1:]:
+def state_checked(events, state, required):
+    for event in events:
         payload = json.loads(event["visible"])
         report = payload.get("result")
         if (payload.get("exit_code") == 0 and isinstance(report, dict)
@@ -477,6 +491,20 @@ def current_state_checked(events, state, required):
                 and set(required).issubset({check["name"] for check in report.get("results", []) if check.get("passed")})):
             return True
     return False
+
+
+def source_mutation_requested(request):
+    kind = request.get("tool")
+    if kind in ("replace", "append", "reverse", "apply"):
+        return True
+    return kind == "fr" and "--write" in request.get("args", [])
+
+
+def current_state_checked(events, state, required):
+    mutations = [index for index, event in enumerate(events) if event["before"] != event["after"]]
+    if not mutations:
+        return False
+    return state_checked(events[mutations[-1] + 1:], state, required)
 
 
 def coordinated_batch(events):

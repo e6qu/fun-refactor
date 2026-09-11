@@ -474,4 +474,36 @@ theorem body_replacement_budget_is_symmetric (before after : Nat) :
     bodyReplacementBudget before after = bodyReplacementBudget after before := by
   simp [bodyReplacementBudget, and_comm, and_left_comm, and_assoc]
 
+-- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
+-- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat
+def handleSelectionStatus (inScope : Bool) (declaration : Bool) (isLocal : Bool)
+    (includeLocals : Bool) : Nat :=
+  if !inScope then 0
+  else if !declaration then 1
+  else if isLocal && !includeLocals then 2
+  else 3
+
+theorem handle_selection_status_bounded (inScope declaration isLocal includeLocals : Bool) :
+    handleSelectionStatus inScope declaration isLocal includeLocals ≤ 3 := by
+  cases inScope <;> cases declaration <;> cases isLocal <;> cases includeLocals <;>
+    decide
+
+theorem handle_selection_outside_scope (declaration isLocal includeLocals : Bool) :
+    handleSelectionStatus false declaration isLocal includeLocals = 0 := by
+  simp [handleSelectionStatus]
+
+theorem handle_selection_non_declaration (isLocal includeLocals : Bool) :
+    handleSelectionStatus true false isLocal includeLocals = 1 := by
+  simp [handleSelectionStatus]
+
+theorem handle_selection_omits_filtered_local :
+    handleSelectionStatus true true true false = 2 := by
+  simp [handleSelectionStatus]
+
+theorem handle_selection_returns_declaration (isLocal includeLocals : Bool)
+    (allowed : isLocal = false ∨ includeLocals = true) :
+    handleSelectionStatus true true isLocal includeLocals = 3 := by
+  rcases allowed with localFalse | includeTrue <;>
+    simp [handleSelectionStatus, *]
+
 end FrKernels.Project

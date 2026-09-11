@@ -1,0 +1,7 @@
+Implemented and verified:
+
+- Added documented `escape_len` APIs to `regex-syntax` and `regex`.
+- Updated escaping capacity reservation to avoid reallocations.
+- Preserved existing escaping and append behavior.
+- Verified upstream tests and no-default-features build.
+- Exported, reversed, reapplied, and receiver-verified the patch.
