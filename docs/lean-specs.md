@@ -291,6 +291,15 @@ measurement, manifest parsing, report construction and outer metadata are truste
 regressions. The report budget deliberately excludes the common envelope and bounded request
 metadata, as documented by the command.
 
+`project task` reuses this proved whole-report admission predicate for its nested queries.
+`FrKernels.Project.taskAuthorTargetCandidate` separately models the conservative authoring decision
+for four operations, nineteen known language codes and seven target categories. Theorems characterize
+Rust declaration replacement and insertion and prove that import organization requires a file target.
+The shared executable compares Rust and Lean over 1,386 cases, including unknown operation, language
+and target codes. This proves the finite target policy on those codes. CLI regressions cover the
+trusted parser-backed author preview, language detection, handle resolution and JSON template assembly.
+The task report therefore keeps `syntax_preflighted` false.
+
 ## Reviewed plan basis kernel
 
 `FrKernels.Author.reviewedPlanBasisAllowed` models the final acceptance gate for compacting a

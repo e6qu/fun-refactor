@@ -94,3 +94,19 @@ fn verified_workflow_matches_the_manual_delivery_lifecycle() {
         "tests/agent-eval/workflow-context.json",
     ]);
 }
+
+#[test]
+fn task_bundle_matches_separate_discovery_and_contract_calls() {
+    python(&[
+        "tools/task-bundle-context.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+        "--repetitions",
+        "1",
+    ]);
+    python(&[
+        "tools/task-bundle-context.py",
+        "--audit",
+        "tests/agent-eval/task-bundle-context.json",
+    ]);
+}

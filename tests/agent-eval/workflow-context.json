@@ -1,8 +1,8 @@
 {
   "schema": "fr-workflow-context-1",
   "passed": true,
-  "binary_sha256": "20a201eba315e46a3056cdb0cb507b3683e49ff14750da0ac9e71262548ae6a9",
-  "source_commit": "c89a5d91093904c00223d009292188acd33d2f00",
+  "binary_sha256": "3797a062989ddabb14dbcac6428a14568d56255d1ea3b1299d6bf8d00d7340b1",
+  "source_commit": "b309bbec59017e381fadf2c44bb40b36145b2bc0",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
@@ -15,7 +15,7 @@
     "src/workflow.rs": "9dcb97d9b3f5ef146950ea01b3daf4181c93fb0797ea0bd64d848fd0d4f36e69",
     "src/history.rs": "a0db7a4c89712e702ad31652f92bb69485eac88ad7450db504891814a13bebc0",
     "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
-    "Cargo.lock": "73612842957f9dde0ea3cd24ff4bdaa743c75822837f4370a4c7106f719e3c38"
+    "Cargo.lock": "fc7a2e9ba4e7d8bf7c45ee6d661b106ec68acf53f79b5b0b1f23c410953bca3c"
   },
   "fixture": {
     "app.py": "def before(value: int) -> int:\n    return value + 1\n",
@@ -58,14 +58,14 @@
       "calls": 7,
       "median_context_bytes": 6368,
       "median_context_tokens": 2047,
-      "median_seconds": 0.22006945800967515
+      "median_seconds": 0.24725129100261256
     },
     "workflow": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 5556,
       "median_context_tokens": 1880,
-      "median_seconds": 0.2049170829996001
+      "median_seconds": 0.2088854989997344
     }
   },
   "runs": [
@@ -89,7 +89,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.22006945800967515,
+      "seconds": 0.24725129100261256,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -115,7 +115,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.2049170829996001,
+      "seconds": 0.2088854989997344,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -141,7 +141,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.21024516700708773,
+      "seconds": 0.20928212499711663,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -167,7 +167,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.22511312599817757,
+      "seconds": 0.2441424989956431,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -193,7 +193,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.21898399697965942,
+      "seconds": 0.24970879199099727,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -219,7 +219,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.2017614579963265,
+      "seconds": 0.2057630409981357,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",

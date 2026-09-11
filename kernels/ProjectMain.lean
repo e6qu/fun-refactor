@@ -58,6 +58,11 @@ def main (args : List String) : IO Unit := do
       for next in samples do
         for budget in samples do
           IO.println (batchSectionFits used next budget)
+  else if args == ["task-author-targets"] then
+    for operation in [0:7] do
+      for language in [0:22] do
+        for target in [0:9] do
+          IO.println (taskAuthorTargetCandidate operation language target)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

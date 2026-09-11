@@ -1,0 +1,259 @@
+{
+  "schema": "fr-task-bundle-context-1",
+  "passed": true,
+  "binary_sha256": "99327ca864d9dffc23ca4b32229652d430086ef91fdadba9296c876168c73934",
+  "source_commit": "8061330ef3182e3fdea790dfb529a1dc933f415e",
+  "repetitions": 3,
+  "runtime": {
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "python": "3.14.6",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "measurement_files": {
+    "tools/task-bundle-context.py": "9550843500a960a090d391f1ad26e87dfc265cc32b23312c05c67b873e3bfd9f",
+    "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f",
+    "src/project/task.rs": "5f27efacf70b3824054deee5468615e51b603874ce8d88bfd585143e51d8ced8",
+    "src/project/batch.rs": "7eeb5484aaf0f8fb9291204cc7b36a461405893dc347e900fd494372cbf78a10",
+    "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
+    "Cargo.lock": "fc7a2e9ba4e7d8bf7c45ee6d661b106ec68acf53f79b5b0b1f23c410953bca3c"
+  },
+  "fixture": {
+    "src/lib.rs": "use std::fmt;\n\npub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",
+    ".fr/checks.json": {
+      "schema": 1,
+      "checks": [
+        {
+          "name": "unit",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib"
+          ],
+          "cwd": ".",
+          "timeout_seconds": 60,
+          "covers": [
+            "render behavior"
+          ]
+        }
+      ]
+    }
+  },
+  "manifest": {
+    "schema": "fr-project-task-1",
+    "requests": [
+      {
+        "id": "target",
+        "arguments": [
+          "find",
+          "render",
+          "--signature",
+          "--source",
+          "--bytes",
+          "2048"
+        ]
+      },
+      {
+        "id": "callers",
+        "arguments": [
+          "calls",
+          {
+            "request": "target",
+            "pointer": "/rows/0/0"
+          },
+          "--direction",
+          "incoming",
+          "--limit",
+          "8"
+        ]
+      }
+    ],
+    "targets": [
+      {
+        "id": "render-body",
+        "handle": {
+          "request": "target",
+          "pointer": "/rows/0/0"
+        },
+        "op": "replace-body"
+      }
+    ],
+    "checks": [
+      "unit"
+    ],
+    "delivery": {
+      "exercise-reversal": true,
+      "patch": "artifacts/change.patch"
+    }
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "token_normalization": {
+    "pattern": "isolated lowercase hexadecimal identities of length 32 or 64",
+    "representatives": {
+      "32": "656b8228be49cadf9dc237f4c52062e9",
+      "64": "b21acd14ca03cfa6716ced4c7ec4b5d80a1dad3fc210f20856abeb2f03d676b7"
+    }
+  },
+  "summary": {
+    "separate": {
+      "samples": 3,
+      "calls": 4,
+      "median_context_bytes": 5586,
+      "median_context_tokens": 1557,
+      "median_seconds": 0.11945516499690711
+    },
+    "task": {
+      "samples": 3,
+      "calls": 1,
+      "median_context_bytes": 4744,
+      "median_context_tokens": 1510,
+      "median_seconds": 0.05281316599575803
+    }
+  },
+  "runs": [
+    {
+      "repetition": 1,
+      "arm": "separate",
+      "calls": 4,
+      "semantic_sha256": "02df7eaba6a57f3b8e305153c39a02bbff52d2120ae27e5b3e7ff68e3170d62c",
+      "stdout": {
+        "bytes": 5269,
+        "tokens": 1449
+      },
+      "requests": {
+        "bytes": 317,
+        "tokens": 108
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 5586,
+        "tokens": 1557
+      },
+      "seconds": 0.7040567079966422
+    },
+    {
+      "repetition": 1,
+      "arm": "task",
+      "calls": 1,
+      "semantic_sha256": "02df7eaba6a57f3b8e305153c39a02bbff52d2120ae27e5b3e7ff68e3170d62c",
+      "stdout": {
+        "bytes": 4205,
+        "tokens": 1359
+      },
+      "requests": {
+        "bytes": 93,
+        "tokens": 30
+      },
+      "artifact": {
+        "bytes": 446,
+        "tokens": 121
+      },
+      "context": {
+        "bytes": 4744,
+        "tokens": 1510
+      },
+      "seconds": 0.05342620800365694
+    },
+    {
+      "repetition": 2,
+      "arm": "task",
+      "calls": 1,
+      "semantic_sha256": "02df7eaba6a57f3b8e305153c39a02bbff52d2120ae27e5b3e7ff68e3170d62c",
+      "stdout": {
+        "bytes": 4205,
+        "tokens": 1359
+      },
+      "requests": {
+        "bytes": 93,
+        "tokens": 30
+      },
+      "artifact": {
+        "bytes": 446,
+        "tokens": 121
+      },
+      "context": {
+        "bytes": 4744,
+        "tokens": 1510
+      },
+      "seconds": 0.05279279100068379
+    },
+    {
+      "repetition": 2,
+      "arm": "separate",
+      "calls": 4,
+      "semantic_sha256": "02df7eaba6a57f3b8e305153c39a02bbff52d2120ae27e5b3e7ff68e3170d62c",
+      "stdout": {
+        "bytes": 5269,
+        "tokens": 1449
+      },
+      "requests": {
+        "bytes": 317,
+        "tokens": 108
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 5586,
+        "tokens": 1557
+      },
+      "seconds": 0.11810891699860804
+    },
+    {
+      "repetition": 3,
+      "arm": "separate",
+      "calls": 4,
+      "semantic_sha256": "02df7eaba6a57f3b8e305153c39a02bbff52d2120ae27e5b3e7ff68e3170d62c",
+      "stdout": {
+        "bytes": 5269,
+        "tokens": 1449
+      },
+      "requests": {
+        "bytes": 317,
+        "tokens": 108
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 5586,
+        "tokens": 1557
+      },
+      "seconds": 0.11945516499690711
+    },
+    {
+      "repetition": 3,
+      "arm": "task",
+      "calls": 1,
+      "semantic_sha256": "02df7eaba6a57f3b8e305153c39a02bbff52d2120ae27e5b3e7ff68e3170d62c",
+      "stdout": {
+        "bytes": 4205,
+        "tokens": 1359
+      },
+      "requests": {
+        "bytes": 93,
+        "tokens": 30
+      },
+      "artifact": {
+        "bytes": 446,
+        "tokens": 121
+      },
+      "context": {
+        "bytes": 4744,
+        "tokens": 1510
+      },
+      "seconds": 0.05281316599575803
+    }
+  ],
+  "source_unchanged": true,
+  "scope": "Prescribed generic Rust fixture. Four separate calls discover a target and callers, read the author guide and list declared checks. One task call returns equivalent query reports, target operation and selected check evidence; its manifest bytes are counted. Both arms stop before fragment creation or mutation. Token counts exclude system context, hidden reasoning, cache effects and billed usage. This is serialization and call-count evidence, not an agent or population claim."
+}

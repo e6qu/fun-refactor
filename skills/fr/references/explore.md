@@ -15,7 +15,8 @@ fr project features --limit 12
 fr project gaps --limit 8
 ```
 
-When the task needs several views, use the bounded manifest in [Batch](batch.md).
+When the task only needs several read views, use the bounded manifest in [Batch](batch.md).
+When those views select structural edit targets and declared checks, use [Task](task.md).
 
 Use exact `project find NAME` for known declarations. Add the boolean `--contains` flag for a literal substring; it takes no value.
 Find matches names before clipping and reports all candidates with pagination and source coverage.

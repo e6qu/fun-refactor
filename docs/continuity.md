@@ -12,9 +12,40 @@ PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
 PR 8, Agent Workflow Simplification, merged as GitHub PR 269.
 PR 9, Bounded Project Query Batches, merged as GitHub PR 270.
 PR 10, Verified Change Workflow, merged as GitHub PR 271.
-The current `browser_transaction_history` branch is roadmap PR 11. It adds bounded transaction
+PR 11, Browser Transaction History, merged as GitHub PR 272. It adds bounded transaction
 identity, checked one-step undo/redo and shared Rust Git patch export to the in-memory WASM workspace.
 The playground consumes those APIs directly and no longer owns a separate TypeScript diff engine.
+
+The current `agent_task_bundle` branch is roadmap PR 12. It starts the second delivery package with
+one bounded, revision-bound task contract that composes project queries, exact target selection,
+conservative authoring eligibility, declared checks and ready delivery templates. Its purpose is to
+remove the path guessing, repeated help and repeated inspection observed in the latest agent traces.
+
+The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
+snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
+declaration targets from literal handles or returned query strings. A task target selects one of
+four existing authoring operations. Unsupported language/kind pairs, omitted source reports, stale
+handles, unknown checks, recursive tasks and unsafe delivery paths refuse before output.
+
+The report binds its normalized request as `frpt1:` and the resolved revision, query arguments,
+targets, operations and checks as `frpt2:`. It selects declared check coverage and the full reviewed
+configuration basis without executing commands. Explicit author and workflow templates carry only
+known fields; named placeholders distinguish them from executable manifests. Author preview remains
+the authority for fragment grammar, exact syntax-tree shape, overlaps and no-op detection.
+
+`FrKernels.Project.taskAuthorTargetCandidate` models the finite operation/language/target policy.
+Three theorems characterize declaration replacement, insertion and file-only import organization.
+All 1,386 representative and out-of-domain policy cases agree with Rust. Task query sections reuse
+the existing proved whole-report admission predicate. The executable portable-skill fixture passes
+with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
+
+The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
+compares separate target lookup, caller inspection, author-guide and check-list calls with one task
+bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,557 to
+1,510 tokens (3.0%), bytes from 5,586 to 4,744 (15.1%), and local subprocess time from 0.119 to 0.053
+seconds. The 446-byte task manifest is counted. Both arms stop before fragment creation or mutation,
+so this supports a fresh adoption test but makes no agent-success claim.
 
 The browser journal keeps exact optional text snapshots, applied and redo stacks, a stable `frmb1:`
 basis and applied, undone or abandoned record status. Undo and redo verify every selected path before
@@ -65,7 +96,8 @@ The fifth checkpoint retains `tests/agent-eval/workflow-context.json`. A generic
 compares seven compact manual lifecycle calls with one workflow preview and write. Both arms apply,
 check, undo, check, redo, check and export the same transaction. Across three rotating repetitions,
 median counted context falls from 2,047 to 1,880 tokens, or 8.2%. Calls fall from seven to two and
-bytes fall from 6,368 to 5,556. Median local subprocess time falls from 0.220 to 0.205 seconds.
+bytes fall from 6,368 to 5,556. The current rerun records median local subprocess time falling from
+0.247 to 0.209 seconds.
 Every normalized stage, final history record, source and patch matches. The fixed comparison excludes
 planning, skill reads, agent behavior, independent oracles and receiver checks. Its reduction supports
 one fresh Luna-low adoption pair after the complete deterministic gate passes.
@@ -107,7 +139,7 @@ first response's `context_basis`; the batch includes its 794-byte manifest in co
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
 Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
 the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
-is 0.410 versus 0.052 seconds with the fact cache disabled. It is 0.050 versus 0.009 seconds after
+is 1.792 versus 0.229 seconds with the fact cache disabled. It is 0.147 versus 0.025 seconds after
 each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
 representatives. Byte counts and report identities retain the real values. The release binary digest is
 `3f68f6e2425ca1bcf523095a2793401313f84b43eca6a51ac22d7e2f380afd5d`.
@@ -149,7 +181,8 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step while reducing
-42 calls to 29 and measured context from 15,458 to 13,278 tokens. This 2,180-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,405 tokens with the current skill. This
+2,053-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed

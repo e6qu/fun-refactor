@@ -23,6 +23,7 @@ ROUTES = {
     "author-recovery": ["SKILL.md", "references/author.md", "references/checks.md",
                         "references/history.md", "references/recovery.md", "references/git.md"],
     "exploration": ["SKILL.md", "references/explore.md", "references/batch.md"],
+    "task": ["SKILL.md", "references/task.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
     "verified-workflow": ["SKILL.md", "references/workflow.md"],
@@ -318,6 +319,34 @@ def author_workflow(exercise, root):
     assert (root / ".git/index").read_bytes() == initial_index
 
 
+def task_workflow(exercise, root):
+    (root / "src").mkdir()
+    (root / ".fr").mkdir()
+    (root / "src/lib.rs").write_text(
+        "pub fn render(value: &str) -> String { value.to_owned() }\n")
+    (root / ".fr/checks.json").write_text(json.dumps({"schema": 1, "checks": [{
+        "name": "unit", "argv": ["true"], "cwd": ".", "timeout_seconds": 30,
+        "covers": ["render behavior"]}]}))
+    manifest = root / ".fr-task"
+    manifest.write_text(json.dumps({
+        "schema": "fr-project-task-1",
+        "requests": [
+            {"id": "target", "arguments": ["find", "render", "--signature", "--source"]},
+            {"id": "callers", "arguments": ["calls", {"request": "target", "pointer": "/rows/0/0"}]},
+        ],
+        "targets": [{"id": "render-body", "handle": {"request": "target", "pointer": "/rows/0/0"},
+                     "op": "replace-body"}],
+        "checks": ["unit"],
+        "delivery": {"exercise-reversal": True, "patch": "change.patch"},
+    }))
+    value, _ = exercise.run(root, ["project", "task", "--from", str(manifest)])
+    assert value["targets"][0]["eligibility"] == "target-supported"
+    assert value["targets"][0]["syntax_preflighted"] is False
+    assert value["checks"]["names"] == ["unit"]
+    assert value["author_manifest_template"]["operations"][0]["handle"].startswith("frp1:")
+    assert value["workflow_manifest_template"]["checks"]["basis"] == value["checks"]["basis"]
+
+
 def verified_workflow(exercise, root):
     source = root / "app.py"
     source.write_text("def before():\n    return 1\n")
@@ -391,10 +420,12 @@ def main():
         (root / "source").mkdir()
         (root / "proof").mkdir()
         (root / "author").mkdir()
+        (root / "task").mkdir()
         (root / "workflow").mkdir()
         source_bytes = source_workflow(exercise, root / "source")
         checks_workflow(exercise, root / "source")
         author_workflow(exercise, root / "author")
+        task_workflow(exercise, root / "task")
         verified_workflow(exercise, root / "workflow")
         lean_workflow(exercise, root / "proof")
     expected = [(path, tuple(command)) for path in files for command in commands(path)]

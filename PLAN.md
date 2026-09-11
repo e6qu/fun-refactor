@@ -67,9 +67,10 @@ This single pair shows a 33.3% `fr` context premium and makes no context-parity 
 The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
-workspace and retains every mutation and verification step. It reduces that trace to 29 calls
-and 13,278 context tokens, 2,180 below the observed `fr` arm and 1,678 above the ordinary-file
-arm. This one-trace counterfactual is separate from the retained fresh adoption pair below.
+workspace and retains every mutation and verification step. With the current portable skill, it
+reduces that trace to 29 calls and 13,405 context tokens. This is 2,053 below the observed `fr` arm
+and 1,805 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
 Both agents edited before running the original-state checks, so neither passed acceptance. The
@@ -90,15 +91,25 @@ The normalized fixed action sequence therefore leaves a 6,468.5-token mean `fr` 
 The PR 9 controlled broad-query fixture compares eight separate project calls, already reusing a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
 the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
-calls fall from eight to one. Median local subprocess time falls from 0.410 to 0.052 seconds with the
-fact cache disabled and from 0.050 to 0.009 seconds with separate prewarmed caches. Token counts use
+calls fall from eight to one. The current local rerun records median subprocess time falling from
+1.792 to 0.229 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
+0.147 to 0.025 seconds. Token counts use
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
 The PR 10 controlled delivery fixture compares seven compact manual calls with a reviewed workflow
 preview and write. It counts the 318-byte manifest. Median context falls from 2,047 to 1,880 tokens,
-an 8.2% reduction, while calls fall from seven to two. Final stages, history, source and patch match
+an 8.2% reduction, while calls fall from seven to two. The current local rerun records median time
+falling from 0.247 to 0.209 seconds. Final stages, history, source and patch match
 in all three repetitions. This fixed sequence supports an adoption trial and makes no agent claim.
+
+The PR 12 controlled task fixture compares four separate discovery and contract calls with one
+revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
+query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
+median counted context falls from 1,557 to 1,510 tokens, a 3.0% reduction. Serialized context falls
+from 5,586 to 4,744 bytes, a 15.1% reduction. Calls fall from four to one and median local subprocess
+time falls from 0.119 to 0.053 seconds. Both arms stop before fragment creation or mutation. This is
+a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.
 It makes repeated skill, inspection and transaction output the immediate optimization target.
@@ -140,7 +151,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Eleven merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Twelve merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -155,6 +166,10 @@ The first packaged roadmap is complete. Eleven merged pull requests established 
 | [PR 8](https://github.com/e6qu/fun-refactor/pull/269) | Agent Workflow Simplification | Merged |
 | [PR 9](https://github.com/e6qu/fun-refactor/pull/270) | Bounded Project Query Batches | Merged |
 | [PR 10](https://github.com/e6qu/fun-refactor/pull/271) | Verified Change Workflow | Merged |
+| [PR 11](https://github.com/e6qu/fun-refactor/pull/272) | Browser Transaction History | Merged |
+
+The second package begins with one task-oriented agent contract. Measured use will determine later
+PRs instead of preassigning command shapes before their need is clear.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -166,7 +181,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,092 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,282-token or 62.9% `fr` premium.
+- The current checksum-bound projection uses 11,100 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,290-token or 63.0% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -297,7 +312,7 @@ Planned checkpoints:
 
 ### PR 11. Browser Transaction History
 
-Status: in progress on `browser_transaction_history`.
+Status: merged as [PR 272](https://github.com/e6qu/fun-refactor/pull/272).
 
 Goal: give the in-memory WASM workspace the same transaction identity, checked stack ordering and
 Git-compatible delivery semantics that an agent receives from native source history.
@@ -331,6 +346,51 @@ Planned checkpoints:
 3. **Complete.** Wire one-step undo/redo and Rust patch download into the playground; remove the duplicate renderer.
 4. **Complete.** Add the anchored Lean lifecycle model and exhaustive Rust correspondence cases.
 5. **Complete.** Publish the contract and continuity docs and pass the complete repository gate.
+
+### PR 12. Revision-Bound Agent Task Bundles
+
+Status: in progress on `agent_task_bundle`.
+
+Goal: let one bounded, immutable request reveal project evidence, exact edit targets, the authoring
+route and the declared verification contract for an agent task.
+
+Deliverables:
+
+- Extend the project batch manifest into a versioned task manifest. It runs heterogeneous read
+  queries against one verified revision and resolves backward references to string results.
+- Resolve named task targets to exact full handles. Report their language, declaration kind, path
+  and candidate high-level operations without claiming syntax preflight for unwritten fragments.
+- Select declared project checks in the same request and return their exact reviewed basis,
+  coverage and compact execution arguments.
+- Emit bounded author-batch and verified-workflow templates whose remaining placeholders are
+  explicit, along with the exact command sequence that turns fragments into a reviewed transaction.
+- Bind the complete task request, resolved queries, target decisions and check selection to stable
+  digests. Refuse stale handles, invalid references and unsupported requested operations.
+- Teach the portable skill this route. Retain a controlled comparison with equivalent separate
+  discovery, help and check-list calls before spending quota on another agent cohort.
+
+Verification and acceptance:
+
+1. Task queries reconstruct the same standalone reports and observe one revision reverified before emission.
+2. References are backward-only, string-valued and bounded; unknown, omitted, stale or non-handle targets refuse.
+3. Authoring eligibility is a conservative target-level claim. Existing author preview remains the
+   syntax and overlap authority once real fragment bytes exist.
+4. Check names are unique configured declarations and the returned basis is usable directly by
+   `checks --run` and `workflow`.
+5. Output budgets admit complete sections only and state every omission; no clipped JSON is presented as evidence.
+6. Lean models the finite target-eligibility policy and report admission, with exhaustive Rust/Lean cases.
+7. Native, WASM, documentation, skill, capability and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the manifest and response contract; add shared-revision queries,
+   backward target references and adversarial CLI regressions.
+2. **Complete.** Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
+3. **Complete.** Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
+4. **Complete.** Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
+5. **In progress.** Measure the equivalent separate and bundled flows. Run a fresh Luna-low pair only
+   if the deterministic result and complete repository gate justify it. The controlled result reduces
+   calls by 75% and counted context by 3.0%; the full gate precedes any quota use.
 
 ## Formal verification policy
 

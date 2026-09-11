@@ -3,7 +3,7 @@
   "passed": true,
   "binary": {
     "path": "target/debug/fr",
-    "sha256": "17bbc4df2ebf2ee2c03f597bf8659cf42cc9785672bd3481de76d7e83bc1e07e"
+    "sha256": "3797a062989ddabb14dbcac6428a14568d56255d1ea3b1299d6bf8d00d7340b1"
   },
   "frozen_trace": {
     "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
@@ -29,21 +29,21 @@
   "prescribed": {
     "calls": 29,
     "prompt_bytes": 7472,
-    "visible_output_bytes": 35665,
+    "visible_output_bytes": 35692,
     "tool_request_bytes": 4626,
     "prompt_tokens": 1564,
-    "visible_output_tokens": 11831,
-    "context_tokens": 13395,
+    "visible_output_tokens": 11841,
+    "context_tokens": 13405,
     "tool_request_tokens": 1640
   },
   "difference": {
     "calls": -13,
     "prompt_bytes": 1193,
-    "visible_output_bytes": -7306,
+    "visible_output_bytes": -7279,
     "tool_request_bytes": -1854,
     "prompt_tokens": 240,
-    "visible_output_tokens": -2303,
-    "context_tokens": -2063,
+    "visible_output_tokens": -2293,
+    "context_tokens": -2053,
     "tool_request_tokens": -642
   },
   "removed_calls": [
@@ -107,7 +107,7 @@
   },
   "measurement_files": {
     "tools/agent-workflow-v4.py": "b5a247873352a94ddc1560a0189a8eae1cd647b006b8f5b6f357c09b8a4039cf",
-    "skills/fr/SKILL.md": "48a180c04d5bdefe3e8b60ef458cd1eec1e9f2010f9bfc4773c5223bdec201d9",
+    "skills/fr/SKILL.md": "945aaeaf4be78dc7034c8504015ba9f96c417a0d08c6c20e249e9b457683afd2",
     "skills/fr/references/author.md": "a67f304b01543a455472872ec88fd0204518d9955389aa0e5a32eae15d345e26",
     "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f"
   },

@@ -39,5 +39,10 @@ All four pass independent project/receiver oracles and exact reversal checks; th
 Its prompts, transcripts, scores, patches, frozen skills and evaluator fingerprints remain separate from the earlier cohorts and prescribed rehearsals.
 
 The [matched check-output projection](checks-policy-context.json) applies quiet-success policies to each retained coordinated check execution.
+
+The [task-bundle comparison](task-bundle-context.json) is a prescribed generic fixture. It compares
+four separate discovery/contract calls with one revision-bound task manifest, binds measurement
+sources and the binary by SHA-256, and preserves the same normalized query, target-operation and
+check-selection identity. It does not run an agent or mutate source.
 It preserves original scores and all other payloads while binding every transformed execution to its recorded payload hash.
 The executable measurement rejects stale or inconsistent evidence and checks its transformation against live successful and failing reports.
