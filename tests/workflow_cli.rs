@@ -116,12 +116,26 @@ fn reviewed_workflow_applies_checks_reverses_redoes_and_delivers_patch() {
     let completed = report(
         fr(
             root.path(),
-            &["workflow", "--from", ".fr-workflow", "--write"],
+            &[
+                "workflow",
+                "--from",
+                ".fr-workflow",
+                "--write",
+                "--basis",
+                preview["workflow_basis"].as_str().unwrap(),
+            ],
         ),
         0,
     );
     assert_eq!(completed["passed"], true);
     assert_eq!(completed["transaction_status"], "applied");
+    assert_eq!(completed["workflow_basis"], preview["workflow_basis"]);
+    assert!(completed.get("checks").is_none());
+    assert!(completed["reviewed_context_omitted"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|field| field == "checks"));
     assert!(completed["stages"]
         .as_array()
         .unwrap()
@@ -254,6 +268,34 @@ fn source_drift_refuses_and_preserves_the_drift_for_review() {
         fs::read_to_string(root.path().join("app.py")).unwrap(),
         "def user_edit():\n    return 2\n"
     );
+    assert!(!root.path().join("change.patch").exists());
+}
+
+#[test]
+fn stale_workflow_basis_refuses_before_apply() {
+    let (root, plan, basis) = fixture();
+    write_manifest(root.path(), &plan, &basis, false, Some("change.patch"));
+    let failed = report(
+        fr(
+            root.path(),
+            &[
+                "workflow",
+                "--from",
+                ".fr-workflow",
+                "--write",
+                "--basis",
+                "frwb1:stale",
+            ],
+        ),
+        1,
+    );
+    assert!(failed["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("workflow basis"));
+    assert!(fs::read_to_string(root.path().join("app.py"))
+        .unwrap()
+        .contains("before"));
     assert!(!root.path().join("change.patch").exists());
 }
 

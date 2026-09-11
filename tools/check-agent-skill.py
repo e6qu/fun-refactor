@@ -347,9 +347,11 @@ def verified_workflow(exercise, root):
         if "--write" not in command:
             assert value["ready"] and not value["executed"]
             assert "before" in source.read_text()
+            exercise.values["<WORKFLOW_BASIS>"] = value["workflow_basis"]
         else:
             assert value["passed"] and value["transaction_status"] == "applied"
             assert all(stage["status"] == "passed" for stage in value["stages"])
+            assert "checks" in value["reviewed_context_omitted"]
     assert "after" in source.read_text()
     assert (root / "change.patch").read_text().startswith("diff --git ")
 

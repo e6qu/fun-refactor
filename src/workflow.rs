@@ -25,6 +25,13 @@ pub struct Options {
         help = "Execute the preflighted workflow and write its patch artifact."
     )]
     pub write: bool,
+    #[arg(
+        long,
+        requires = "write",
+        value_name = "BASIS",
+        help = "Omit the unchanged preflight envelope reviewed under this workflow basis."
+    )]
+    pub basis: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -279,14 +286,17 @@ fn preflight(root: &Path, options: &Options) -> Result<Preflight> {
     }
 
     let manifest_digest = format!("{:x}", Sha256::digest(&manifest_bytes));
-    let workflow_basis = digest_parts(&[
-        b"fr-workflow-1",
-        manifest_digest.as_bytes(),
-        record.basis.as_bytes(),
-        complete_context.as_bytes(),
-        selection.configuration_basis.as_bytes(),
-        patch_digest.as_bytes(),
-    ]);
+    let workflow_basis = format!(
+        "frwb1:{}",
+        digest_parts(&[
+            b"fr-workflow-1",
+            manifest_digest.as_bytes(),
+            record.basis.as_bytes(),
+            complete_context.as_bytes(),
+            selection.configuration_basis.as_bytes(),
+            patch_digest.as_bytes(),
+        ])
+    );
     let planned_stages = stages(manifest.exercise_reversal, manifest.patch.is_some());
     let report = json!({
         "schema": "fr-workflow-1",
@@ -383,6 +393,13 @@ pub fn run(root: &Path, options: &Options) -> Result<Outcome> {
         });
     }
 
+    if let Some(supplied) = &options.basis {
+        ensure!(
+            supplied == &preflight.workflow_basis,
+            "stale or conflicting workflow basis."
+        );
+    }
+
     let Preflight {
         root,
         manifest,
@@ -395,6 +412,22 @@ pub fn run(root: &Path, options: &Options) -> Result<Outcome> {
         patch_path,
         mut report,
     } = preflight;
+    if options.basis.is_some() {
+        let object = report.as_object_mut().unwrap();
+        let omitted = [
+            "manifest_sha256",
+            "record_basis",
+            "transaction_context_basis",
+            "checks",
+            "exercise_reversal",
+            "patch",
+            "ready",
+        ];
+        for key in omitted {
+            object.remove(key);
+        }
+        report["reviewed_context_omitted"] = json!(omitted);
+    }
     let transaction = manifest.transaction;
     let planned_stages = stages(manifest.exercise_reversal, manifest.patch.is_some());
     let mut applied = false;

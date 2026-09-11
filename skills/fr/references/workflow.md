@@ -6,7 +6,7 @@ control manifest outside recognized source so creating it does not stale the pla
 
 ```sh
 fr workflow --from '<WORKFLOW_MANIFEST>'
-fr workflow --from '<WORKFLOW_MANIFEST>' --write
+fr workflow --from '<WORKFLOW_MANIFEST>' --write --basis '<WORKFLOW_BASIS>'
 ```
 
 The schema-one manifest names `transaction`, `transaction-context-basis`, and `checks` with `basis`
@@ -15,6 +15,7 @@ and `names`. Optional `exercise-reversal` checks apply, undo and redo states in 
 bounds retained failure streams.
 
 Review the preview's stage list, full resolved bases, check coverage, patch digest and destination.
+Copy its `workflow_basis` into the write. This omits that unchanged preflight envelope.
 A failed stage stops later work and leaves their status `pending`. Inspect `transaction_status` and
 preserve check diagnostics. A pending transaction still requires the separate recovery route.
 

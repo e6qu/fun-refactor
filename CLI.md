@@ -1319,7 +1319,7 @@ Each selector is limited to 512 UTF-8 bytes and their combined input to 4,096 by
 
 ```sh
 fr workflow --from .fr-workflow
-fr workflow --from .fr-workflow --write
+fr workflow --from .fr-workflow --write --basis 'frwb1:<DIGEST>'
 ```
 
 This command carries one reviewed, planned source-history transaction through compact application,
@@ -1347,6 +1347,9 @@ report omits reviewed declarations. Passing checks attach evidence to the applie
 `exercise-reversal`, the command then undoes the transaction, checks the restored source, redoes it
 and checks the result again. Restored checks report results without attaching an applied-state receipt.
 The generated lifecycle always finishes applied when every stage passes.
+After reviewing a preview, pass its exact `workflow_basis` to the write. The tool verifies it before
+mutation. The completion report then omits the unchanged manifest, transaction, check and patch
+envelope. It retains the basis, transaction status, all stage outcomes and `reviewed_context_omitted`.
 
 Patch output is optional. The command creates it only after every requested stage succeeds. The response
 contains its path, size and SHA-256 instead of its contents. The path must be new, relative, at most

@@ -156,21 +156,22 @@ def manual(binary, root, transaction, context, check_basis):
 def workflow(binary, root, manifest):
     control = root / ".fr-workflow"
     control.write_text(json.dumps(manifest, separators=(",", ":")))
-    commands = [
-        ["workflow", "--from", ".fr-workflow"],
-        ["workflow", "--from", ".fr-workflow", "--write"],
-    ]
-    reports, outputs, elapsed = [], [], []
-    for command in commands:
-        value, output, seconds = invoke(binary, root, command)
-        reports.append(value)
-        outputs.append(output)
-        elapsed.append(seconds)
+    preview_command = ["workflow", "--from", ".fr-workflow"]
+    preview, preview_output, preview_seconds = invoke(binary, root, preview_command)
+    write_command = ["workflow", "--from", ".fr-workflow", "--write", "--basis",
+                     preview["workflow_basis"]]
+    completed, completed_output, completed_seconds = invoke(binary, root, write_command)
+    commands = [preview_command, write_command]
+    reports = [preview, completed]
+    outputs = [preview_output, completed_output]
+    elapsed = [preview_seconds, completed_seconds]
     assert reports[0]["ready"] and not reports[0]["executed"]
     assert reports[1]["passed"] and reports[1]["transaction_status"] == "applied"
     stage_results = [normalized(stage["result"]) for stage in reports[1]["stages"]]
+    shown_commands = [preview_command,
+                      ["workflow", "--from", ".fr-workflow", "--write", "--basis", "<WORKFLOW_BASIS>"]]
     requests = [json.dumps({"tool": "fr", "args": command}, separators=(",", ":"))
-                for command in commands]
+                for command in shown_commands]
     return reports, stage_results, outputs, requests, [control.read_text()], sum(elapsed)
 
 
