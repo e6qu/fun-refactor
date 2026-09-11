@@ -779,6 +779,34 @@ fn workflow_stage_policy_matches_lean_for_every_state_and_stage() {
 }
 
 #[test]
+fn task_change_review_policy_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("task-change-modes")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for complete in [false, true] {
+        for write in [false, true] {
+            for supplied in [false, true] {
+                for matches in [false, true] {
+                    expected.push(
+                        fun_refactor::project::task_change::task_change_mode(
+                            complete, write, supplied, matches,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn browser_history_transition_policy_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))

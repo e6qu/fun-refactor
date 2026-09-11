@@ -63,6 +63,19 @@ Saving an identical plan again against the same revision reuses the existing pla
 
 Project, plan and transaction bases are separate namespaces. Check configuration bases, Git status revisions, raw patch record bases and worktree proposal bases keep their existing meanings and cannot substitute for them.
 
+## Reviewed task-change context
+
+`fr task-change` replaces the task-to-author and author-to-workflow joins with one `frtc1:` basis.
+The basis covers the complete task report, author report, exact source payloads, selected checks and
+delivery choices. Preview emits every covered field and writes nothing. Write accepts only the
+unchanged complete basis, then returns a compact report with `reviewed_context_omitted`.
+
+Reconstruct the execution context by retaining the preview and overlaying the write report. The
+write keeps the transaction and complete workflow outcomes. Project, author, workflow and check
+bases remain visible inside their owning evidence, but the caller does not copy them between
+manifests. Any changed source, fragment, task manifest, check configuration or patch destination
+refuses the reviewed write.
+
 ## Patch artifacts
 
 `fr history patch TX --output FILE` writes a new patch atomically and returns its SHA-256, byte count and transaction metadata without serializing the patch into agent context. The command refuses an existing output path. Keep the artifact alongside the compact report; ordinary stdout and JSON exports remain available when patch text is needed inline.

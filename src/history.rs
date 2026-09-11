@@ -535,6 +535,15 @@ pub fn record_with_status(
     record_with_removals_status(root, changes, &[], apply, validation, None)
 }
 
+pub(crate) fn record_with_required_checks(
+    root: &Path,
+    changes: &[FileChange<'_>],
+    validation: &str,
+    required_checks: &CheckRequirement,
+) -> Result<Option<RecordResult>> {
+    record_with_removals_status(root, changes, &[], false, validation, Some(required_checks))
+}
+
 pub(crate) fn record_with_removals_status(
     root: &Path,
     changes: &[FileChange<'_>],

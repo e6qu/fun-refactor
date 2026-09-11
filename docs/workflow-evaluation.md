@@ -20,7 +20,7 @@ patch. The workflow arm counts its 318-byte manifest, one preview and one write 
 | Calls | 7 | 2 | 5 fewer |
 | Median counted context | 2,047 tokens | 1,880 tokens | 167 tokens (8.2%) fewer |
 | Median counted context | 6,368 bytes | 5,556 bytes | 812 bytes (12.8%) fewer |
-| Median local wall time | 0.247 s | 0.209 s | 15.5% lower |
+| Median local wall time | 0.284 s | 0.262 s | 7.7% lower |
 
 All three rotating repetitions produce the same normalized stage identity in both arms. Final
 history state, check receipts, source bytes and patch bytes also match. The optimized release binary,

@@ -461,6 +461,13 @@ kernel-generation annotation remains a proposal.
 A zero `sorry` count describes the selected files, not the completeness of their specifications.
 Reject unapproved axioms and expose assumptions before claiming stronger coverage.
 
+The reviewed task-change model anchors the Rust preview/write admission function. Lean proves that
+preview requires a complete review with no write intent or supplied basis. Execution requires a
+complete review, write intent, a supplied basis and an exact match. It composes that admission with
+the existing workflow theorem, so every accepted generated lifecycle finishes applied when all
+host stages succeed. Rust and Lean agree on all sixteen boolean inputs. Hashing, parsing, project
+construction, check processes, history persistence and filesystem operations remain host-tested.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

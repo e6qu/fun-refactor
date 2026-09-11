@@ -68,8 +68,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,405 context tokens. This is 2,053 below the observed `fr` arm
-and 1,805 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+reduces that trace to 29 calls and 13,404 context tokens. This is 2,054 below the observed `fr` arm
+and 1,804 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
 fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -92,15 +92,15 @@ The PR 9 controlled broad-query fixture compares eight separate project calls, a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
 the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
 calls fall from eight to one. The current local rerun records median subprocess time falling from
-1.792 to 0.229 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
-0.147 to 0.025 seconds. Token counts use
+0.413 to 0.052 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
+0.050 to 0.008 seconds. Token counts use
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
 The PR 10 controlled delivery fixture compares seven compact manual calls with a reviewed workflow
 preview and write. It counts the 318-byte manifest. Median context falls from 2,047 to 1,880 tokens,
 an 8.2% reduction, while calls fall from seven to two. The current local rerun records median time
-falling from 0.247 to 0.209 seconds. Final stages, history, source and patch match
+falling from 0.284 to 0.262 seconds. Final stages, history, source and patch match
 in all three repetitions. This fixed sequence supports an adoption trial and makes no agent claim.
 
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
@@ -108,12 +108,19 @@ revision-bound task bundle. It counts the 446-byte task manifest and preserves i
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
 median counted context falls from 1,557 to 1,510 tokens, a 3.0% reduction. Serialized context falls
 from 5,586 to 4,744 bytes, a 15.1% reduction. Calls fall from four to one and median local subprocess
-time falls from 0.119 to 0.053 seconds. Both arms stop before fragment creation or mutation. This is
+time falls from 0.040 to 0.014 seconds. Both arms stop before fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.
 It makes repeated skill, inspection and transaction output the immediate optimization target.
 The [coordinated evaluation](docs/agent-coordinated-evaluation.md) contains the protocol, retained evidence and limits.
+
+The PR 13 controlled change fixture compares the composed task, author and workflow route with one
+reviewed task-change command. Calls fall from five to two. Median counted context falls from 4,623
+to 3,736 tokens, a 19.2% reduction. Serialized context falls from 13,676 to 11,274 bytes, a 17.6%
+reduction. Both arms resolve the same task, apply the same source change, run identical reversal
+stages and emit the same patch. The task-change transaction also binds its required checks. This
+fixed comparison makes no autonomous-agent or population claim.
 
 ## Product contract
 
@@ -151,7 +158,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Twelve merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Thirteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -167,8 +174,9 @@ The first packaged roadmap is complete. Twelve merged pull requests established 
 | [PR 9](https://github.com/e6qu/fun-refactor/pull/270) | Bounded Project Query Batches | Merged |
 | [PR 10](https://github.com/e6qu/fun-refactor/pull/271) | Verified Change Workflow | Merged |
 | [PR 11](https://github.com/e6qu/fun-refactor/pull/272) | Browser Transaction History | Merged |
+| [PR 12](https://github.com/e6qu/fun-refactor/pull/273) | Revision-Bound Agent Task Bundles | Merged |
 
-The second package begins with one task-oriented agent contract. Measured use will determine later
+The second package now joins task discovery to reviewed execution. Measured use will determine later
 PRs instead of preassigning command shapes before their need is clear.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
@@ -349,7 +357,7 @@ Planned checkpoints:
 
 ### PR 12. Revision-Bound Agent Task Bundles
 
-Status: in progress on `agent_task_bundle`.
+Status: merged as [PR 273](https://github.com/e6qu/fun-refactor/pull/273).
 
 Goal: let one bounded, immutable request reveal project evidence, exact edit targets, the authoring
 route and the declared verification contract for an agent task.
@@ -388,9 +396,50 @@ Planned checkpoints:
 2. **Complete.** Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
 3. **Complete.** Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
 4. **Complete.** Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
-5. **In progress.** Measure the equivalent separate and bundled flows. Run a fresh Luna-low pair only
-   if the deterministic result and complete repository gate justify it. The controlled result reduces
-   calls by 75% and counted context by 3.0%; the full gate precedes any quota use.
+5. **Complete.** Measure the equivalent separate and bundled flows. The controlled result reduces
+   calls by 75% and counted context by 3.0%. The complete repository gate passes. This deterministic
+   evidence makes no fresh agent claim.
+
+### PR 13. Reviewed Agent Task Changes
+
+Status: complete on `agent_task_change`; ready for review.
+
+Goal: let an agent preview and execute one task change without manually translating task evidence
+into separate author and workflow manifests.
+
+Deliverables:
+
+- Accept one versioned task-change manifest containing exact targets, fragment paths, postconditions,
+  declared checks, reversal policy and optional patch delivery.
+- Resolve every target and author all fragments against one verified project revision.
+- Preview the complete source diff, validation, check selection, reversal stages and patch destination
+  under one review basis without changing source or history.
+- Execute only the unchanged reviewed plan. Record one transaction, run the existing checked lifecycle,
+  exercise requested undo and redo, and delay patch creation until all checks pass.
+- Bind source, fragments, target resolution, check configuration and delivery choices into the review
+  basis so any stale input refuses before persistence or mutation.
+- Model the finite prepare, execute and delivery policy in Lean and compare its complete state space
+  with the Rust decision function.
+- Teach the portable skill the shorter route and measure it against the equivalent task, author and
+  workflow sequence with a generic fixture.
+
+Verification and acceptance:
+
+1. Preview performs no source, history, check or patch writes.
+2. Write requires the complete preview basis and refuses source, fragment, target, check or destination drift.
+3. All authoring operations retain existing syntax, overlap, preservation and postcondition checks.
+4. Failed checks return structured stage evidence and never create the requested patch.
+5. Requested reversal verifies the changed, restored and reapplied states in order.
+6. The delivered patch, applied source and recorded transaction describe the same reviewed edits.
+7. Native, WASM, documentation, skill, capability and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the combined manifest, preview basis and lifecycle boundaries.
+2. **Complete.** Add atomic reviewed execution with stale-input and failure-state regressions.
+3. **Complete.** Add the Lean policy and exhaustive Rust correspondence cases.
+4. **Complete.** Update CLI, portable skill and continuity documentation with an executable generic fixture.
+5. **Complete.** Retain a controlled comparison and pass the complete repository gate.
 
 ## Formal verification policy
 

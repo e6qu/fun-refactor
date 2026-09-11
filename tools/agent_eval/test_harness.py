@@ -39,6 +39,11 @@ project_batch_spec = importlib.util.spec_from_file_location(
 project_batch_measurement = importlib.util.module_from_spec(project_batch_spec)
 project_batch_spec.loader.exec_module(project_batch_measurement)
 
+task_change_spec = importlib.util.spec_from_file_location(
+    "task_change_context_measurement", TOOLS / "task-change-context.py")
+task_change_measurement = importlib.util.module_from_spec(task_change_spec)
+task_change_spec.loader.exec_module(task_change_measurement)
+
 checks_policy_spec = importlib.util.spec_from_file_location("checks_policy_measurement", TOOLS / "checks-policy-context.py")
 checks_policy = importlib.util.module_from_spec(checks_policy_spec)
 checks_policy_spec.loader.exec_module(checks_policy)
@@ -277,6 +282,22 @@ class ProjectBatchAgentEvidence(unittest.TestCase):
         self.assertEqual(sum(json.loads(event["visible"])["exit_code"] == 0
                              for event in batches), 2)
 
+
+class TaskChangeEvidence(unittest.TestCase):
+    def test_retained_comparison_is_bound_and_equivalent(self):
+        path = TOOLS.parent / "tests/agent-eval/task-change-context.json"
+        report = task_change_measurement.audit(path)
+        self.assertEqual(report["summary"]["composed"]["calls"], 5)
+        self.assertEqual(report["summary"]["task_change"]["calls"], 2)
+        self.assertEqual(report["summary"]["composed"]["median_context_tokens"], 4623)
+        self.assertEqual(report["summary"]["task_change"]["median_context_tokens"], 3736)
+        for repetition in range(1, 4):
+            pair = {run["arm"]: run for run in report["runs"]
+                    if run["repetition"] == repetition}
+            for key in ("stage_identity", "state_identity", "source_sha256", "patch_sha256"):
+                self.assertEqual(pair["composed"][key], pair["task_change"][key])
+            self.assertFalse(pair["composed"]["required_checks_bound"])
+            self.assertTrue(pair["task_change"]["required_checks_bound"])
 
 class CheckPolicyEvidence(unittest.TestCase):
     def setUp(self):

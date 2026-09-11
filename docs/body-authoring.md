@@ -201,6 +201,24 @@ Replacement signatures and insertion name-check limits remain visible where appl
 The combined diff shares one `--diff-bytes` budget, with the same omission reporting as individual authoring commands.
 Typing, name resolution and behavior still need project checks after application.
 
+## Reviewed task changes
+
+`fr task-change --from MANIFEST` composes task resolution, batch authoring and checked delivery.
+Use it when concrete fragments and declared checks already exist. The task-change manifest extends
+the task target rows with `from`, adds author postconditions, and carries the check output budget in
+`delivery`. One preview returns the query evidence, resolved targets, complete author diff and all
+planned lifecycle stages.
+
+The preview's `frtc1:` basis binds the manifest bytes, project revision, resolved queries and
+targets, fragment-derived author report, exact before/after payloads, selected check configuration,
+reversal choice and patch destination. Write recomputes those inputs and requires the exact basis.
+It records the author edit as one planned transaction with required checks, then delegates its
+apply, undo, redo, evidence and patch stages to `fr workflow`.
+
+Preview never creates history or runs commands. A partial diff cannot produce an executable review.
+Failed execution follows the workflow's reported-state contract. The source can remain applied or
+undone according to the failing stage, while the requested patch remains absent.
+
 ## Review and transactions
 
 Both output modes return JSON. Individual operations use schema `fr-author-1`; batches use `fr-author-batch-1`.

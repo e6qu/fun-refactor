@@ -143,6 +143,8 @@ enum Command {
         #[command(subcommand)]
         command: crate::project::Command,
     },
+    #[command(about = "Preview or execute one reviewed agent task change.")]
+    TaskChange(crate::project::task_change::Options),
     #[command(about = "Validate and deliver one reviewed source-history transaction.")]
     Workflow(crate::workflow::Options),
     /// List, inspect, apply or reverse workspace transactions.
@@ -976,6 +978,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             Ok(())
         }
         Command::Project { command } => cmd_project(cli, command),
+        Command::TaskChange(options) => cmd_task_change(cli, options),
         Command::Workflow(options) => {
             let outcome = crate::workflow::run(&workspace_root(cli), options)?;
             println!("{}", serde_json::to_string(&outcome.report)?);
@@ -2425,6 +2428,120 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         context.apply(&mut plan.report)?;
         finish_plan_context(plan_context, &mut plan.report);
         println!("{}", serde_json::to_string(&plan.report)?);
+        Ok(())
+    })
+}
+
+fn cmd_task_change(cli: &Cli, options: &crate::project::task_change::Options) -> Result<()> {
+    anyhow::ensure!(
+        !cli.save_plan && cli.plan_basis.is_none() && cli.context_basis.is_none(),
+        "task change uses its own reviewed basis and does not accept global plan or context options."
+    );
+    with_project(cli, |project, root| {
+        let mut prepared = project.task_change(options)?;
+        let outcomes =
+            crate::edit::plan(&prepared.plan.edits, crate::edit::Validation::ReparseStrict)?;
+        anyhow::ensure!(
+            outcomes.iter().any(crate::edit::FileOutcome::changed),
+            "task change produced no source change."
+        );
+        project.verify(root)?;
+        let diff = outcomes
+            .iter()
+            .map(|outcome| workspace_diff(cli, outcome))
+            .collect::<String>();
+        prepared.plan.set_diff(&diff, options.diff_bytes);
+        anyhow::ensure!(
+            prepared.plan.report["diff"].is_string(),
+            "task change requires a complete untruncated diff; raise --diff-bytes."
+        );
+        let changes = outcomes
+            .iter()
+            .map(crate::edit::FileChange::from)
+            .collect::<Vec<_>>();
+        if let Some(output) = &prepared.delivery.patch {
+            crate::workflow::validate_patch_output(root, output)?;
+            anyhow::ensure!(
+                !outcomes.iter().any(|change| {
+                    change
+                        .path
+                        .strip_prefix(root)
+                        .is_ok_and(|relative| relative == output)
+                }),
+                "task-change patch output conflicts with a source target."
+            );
+        }
+        prepared.report["author"] = prepared.plan.report;
+        prepared.report["stages"] = serde_json::json!(crate::workflow::planned_stage_names(
+            prepared.delivery.exercise_reversal,
+            prepared.delivery.patch.is_some(),
+        )
+        .into_iter()
+        .map(|stage| serde_json::json!({"stage": stage, "status": "pending"}))
+        .collect::<Vec<_>>());
+        let exact = exact_plan_changes(root, &changes, &[]);
+        let task_change_basis =
+            crate::project::task_change::review_basis(&prepared.report, &exact)?;
+        prepared.report["task_change_basis"] = serde_json::json!(task_change_basis);
+        prepared.report["ready"] = serde_json::json!(true);
+        let mode = crate::project::task_change::task_change_mode(
+            true,
+            options.write,
+            options.basis.is_some(),
+            options.basis.as_deref() == Some(task_change_basis.as_str()),
+        );
+        if mode == 0 {
+            println!("{}", serde_json::to_string(&prepared.report)?);
+            return Ok(());
+        }
+        anyhow::ensure!(
+            mode == 1,
+            "stale or conflicting task-change basis; review the complete current preview."
+        );
+        let requirement = crate::history::CheckRequirement {
+            configuration_basis: prepared.checks.configuration_basis.clone(),
+            checks: prepared.checks.checks.clone(),
+        };
+        let recorded = crate::history::record_with_required_checks(
+            root,
+            &changes,
+            "reparse-strict",
+            &requirement,
+        )?
+        .context("task change produced no recordable transaction")?;
+        let transaction_context_basis = crate::history::record_context_basis(root, recorded.id)?;
+        let workflow = crate::workflow::Manifest {
+            schema: 1,
+            transaction: recorded.id,
+            transaction_context_basis,
+            checks: crate::workflow::CheckRequest {
+                basis: prepared.checks.configuration_basis,
+                names: prepared.checks.checks,
+            },
+            exercise_reversal: prepared.delivery.exercise_reversal,
+            patch: prepared
+                .delivery
+                .patch
+                .map(|output| crate::workflow::PatchRequest { output }),
+            check_output_bytes: prepared.delivery.check_output_bytes,
+        };
+        let outcome = crate::workflow::run_manifest(root, workflow, true)?;
+        let report = serde_json::json!({
+            "schema": "fr-task-change-1",
+            "manifest_sha256": prepared.manifest_sha256,
+            "task_change_basis": task_change_basis,
+            "reviewed_context_omitted": ["revision", "task_basis", "task_resolution_basis", "coverage", "requests", "targets", "checks", "delivery", "author", "stages", "ready"],
+            "transaction": recorded.id,
+            "saved": recorded.created,
+            "reused_transaction": !recorded.created,
+            "executed": true,
+            "passed": outcome.passed,
+            "workflow": outcome.report,
+        });
+        println!("{}", serde_json::to_string(&report)?);
+        if !outcome.passed {
+            std::process::exit(1);
+        }
         Ok(())
     })
 }

@@ -2,7 +2,7 @@ use crate::checks;
 use crate::history::{self, Action, History, Status};
 use anyhow::{bail, ensure, Context, Result};
 use clap::Args;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
@@ -34,31 +34,31 @@ pub struct Options {
     pub basis: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-struct Manifest {
-    schema: u32,
-    transaction: u64,
-    transaction_context_basis: String,
-    checks: CheckRequest,
+pub(crate) struct Manifest {
+    pub schema: u32,
+    pub transaction: u64,
+    pub transaction_context_basis: String,
+    pub checks: CheckRequest,
     #[serde(default)]
-    exercise_reversal: bool,
-    patch: Option<PatchRequest>,
+    pub exercise_reversal: bool,
+    pub patch: Option<PatchRequest>,
     #[serde(default = "default_output_bytes")]
-    check_output_bytes: usize,
+    pub check_output_bytes: usize,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct CheckRequest {
-    basis: String,
-    names: Vec<String>,
+pub(crate) struct CheckRequest {
+    pub basis: String,
+    pub names: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct PatchRequest {
-    output: PathBuf,
+pub(crate) struct PatchRequest {
+    pub output: PathBuf,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -112,6 +112,13 @@ fn stages(exercise_reversal: bool, patch: bool) -> Vec<Stage> {
         stages.push(Stage::DeliverPatch);
     }
     stages
+}
+
+pub(crate) fn planned_stage_names(exercise_reversal: bool, patch: bool) -> Vec<&'static str> {
+    stages(exercise_reversal, patch)
+        .into_iter()
+        .map(Stage::name)
+        .collect()
 }
 
 fn read_manifest(path: &Path) -> Result<(Manifest, Vec<u8>)> {
@@ -195,6 +202,10 @@ fn patch_path(root: &Path, requested: &Path) -> Result<PathBuf> {
     Ok(path)
 }
 
+pub(crate) fn validate_patch_output(root: &Path, requested: &Path) -> Result<()> {
+    patch_path(&root.canonicalize()?, requested).map(drop)
+}
+
 fn write_patch(path: &Path, patch: &str) -> Result<()> {
     let parent = path
         .parent()
@@ -223,6 +234,14 @@ fn preflight(root: &Path, options: &Options) -> Result<Preflight> {
     let root = root.canonicalize()?;
     ensure!(root.is_dir(), "workflow root must be a directory");
     let (manifest, manifest_bytes) = read_manifest(&root.join(&options.from))?;
+    preflight_manifest(root, manifest, manifest_bytes)
+}
+
+fn preflight_manifest(
+    root: PathBuf,
+    manifest: Manifest,
+    manifest_bytes: Vec<u8>,
+) -> Result<Preflight> {
     ensure!(manifest.schema == 1, "workflow manifest requires schema 1");
     ensure!(
         manifest.transaction > 0,
@@ -386,16 +405,28 @@ pub struct Outcome {
 
 pub fn run(root: &Path, options: &Options) -> Result<Outcome> {
     let preflight = preflight(root, options)?;
-    if !options.write {
+    execute(preflight, options.write, options.basis.as_deref())
+}
+
+pub(crate) fn run_manifest(root: &Path, manifest: Manifest, write: bool) -> Result<Outcome> {
+    let root = root.canonicalize()?;
+    ensure!(root.is_dir(), "workflow root must be a directory");
+    let bytes = serde_json::to_vec(&manifest)?;
+    let preflight = preflight_manifest(root, manifest, bytes)?;
+    execute(preflight, write, None)
+}
+
+fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Outcome> {
+    if !write {
         return Ok(Outcome {
             report: preflight.report,
             passed: true,
         });
     }
 
-    if let Some(supplied) = &options.basis {
+    if let Some(supplied) = basis {
         ensure!(
-            supplied == &preflight.workflow_basis,
+            supplied == preflight.workflow_basis,
             "stale or conflicting workflow basis."
         );
     }
@@ -412,7 +443,7 @@ pub fn run(root: &Path, options: &Options) -> Result<Outcome> {
         patch_path,
         mut report,
     } = preflight;
-    if options.basis.is_some() {
+    if basis.is_some() {
         let object = report.as_object_mut().unwrap();
         let omitted = [
             "manifest_sha256",

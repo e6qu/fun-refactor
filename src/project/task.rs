@@ -10,7 +10,7 @@ use std::fs;
 use std::io::{self, Read};
 use std::path::{Component, Path, PathBuf};
 
-const SCHEMA: &str = "fr-project-task-1";
+pub(super) const SCHEMA: &str = "fr-project-task-1";
 const MAX_INPUT_BYTES: u64 = 65_536;
 
 #[derive(clap::Args)]
@@ -30,34 +30,34 @@ pub struct Options {
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Manifest {
-    schema: String,
-    requests: Vec<batch::Request>,
-    targets: Vec<Target>,
+pub(super) struct Manifest {
+    pub(super) schema: String,
+    pub(super) requests: Vec<batch::Request>,
+    pub(super) targets: Vec<Target>,
     #[serde(default)]
-    checks: Vec<String>,
-    delivery: Option<Delivery>,
+    pub(super) checks: Vec<String>,
+    pub(super) delivery: Option<Delivery>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Target {
-    id: String,
-    handle: batch::Argument,
-    op: AuthorOperation,
+pub(super) struct Target {
+    pub(super) id: String,
+    pub(super) handle: batch::Argument,
+    pub(super) op: AuthorOperation,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-struct Delivery {
+pub(super) struct Delivery {
     #[serde(default)]
-    exercise_reversal: bool,
-    patch: Option<PathBuf>,
+    pub(super) exercise_reversal: bool,
+    pub(super) patch: Option<PathBuf>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, ValueEnum, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-enum AuthorOperation {
+pub(super) enum AuthorOperation {
     ReplaceBody,
     ReplaceDeclaration,
     InsertDeclaration,
@@ -65,7 +65,7 @@ enum AuthorOperation {
 }
 
 impl AuthorOperation {
-    fn name(self) -> &'static str {
+    pub(super) fn name(self) -> &'static str {
         match self {
             Self::ReplaceBody => "replace-body",
             Self::ReplaceDeclaration => "replace-declaration",
@@ -83,7 +83,7 @@ impl AuthorOperation {
         }
     }
 
-    fn needs_fragment(self) -> bool {
+    pub(super) fn needs_fragment(self) -> bool {
         !matches!(self, Self::OrganizeImports)
     }
 }
@@ -207,6 +207,14 @@ impl Project<'_> {
         let bytes = read_manifest(&self.root, &options.from)?;
         let manifest: Manifest = serde_json::from_slice(&bytes)
             .context("project task input must be a task manifest.")?;
+        self.task_manifest(manifest, options.report_bytes)
+    }
+
+    pub(super) fn task_manifest(&self, manifest: Manifest, report_bytes: usize) -> Result<Value> {
+        ensure!(
+            (256..=1_048_576).contains(&report_bytes),
+            "report bytes must be between 256 and 1048576."
+        );
         ensure!(
             manifest.schema == SCHEMA,
             "project task manifest schema must be {SCHEMA}."
@@ -263,7 +271,7 @@ impl Project<'_> {
             schema: batch::SCHEMA.to_owned(),
             requests: manifest.requests.clone(),
         };
-        let mut report = self.batch_manifest(batch_manifest, options.report_bytes, "task")?;
+        let mut report = self.batch_manifest(batch_manifest, report_bytes, "task")?;
         let request_rows = report["requests"]
             .as_array()
             .context("task query results must be an array")?;

@@ -1,0 +1,244 @@
+{
+  "schema": "fr-task-change-context-1",
+  "passed": true,
+  "binary_sha256": "dca93ccfd3c7eedeba67f1ab90b562ffbf6a5bda04d4fc81e9604becf86270ae",
+  "source_commit": "da3dbd7b5449096f93369ddc03a479f52aca1bb1",
+  "repetitions": 3,
+  "runtime": {
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "python": "3.14.6",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "measurement_files": {
+    "tools/task-change-context.py": "614d9b8cc3777ffa3d2f8ed3ecedb824607b2e7e73ca798d961880572f98b433",
+    "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f",
+    "src/project/task_change.rs": "5a12fe284145b33ac8ca7889c6a2cf40efc175fb5eaed8ae37226a52415de05d",
+    "src/project/task.rs": "a8ea5e30036998c2a04f31ef9517990f7d40a4eb85f73af7a1bbdecb380becf2",
+    "src/project/author.rs": "a08073cfcb5e2199c0787a8ad2daf8534e34a45817a47bf33f851bb7aca7276a",
+    "src/workflow.rs": "58913a43576638e910c33d37e5fc3c5b88b1ebc31deb6d7ecaf6b2cf16a759a3",
+    "src/history.rs": "eb7bc3a682c1fa28b70f53e7a6688cb8541377cdc5b6971ba97fde1d549173bb",
+    "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
+    "Cargo.lock": "fc7a2e9ba4e7d8bf7c45ee6d661b106ec68acf53f79b5b0b1f23c410953bca3c"
+  },
+  "fixture": {
+    "src/lib.rs": "pub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",
+    ".fr/checks.json": {
+      "schema": 1,
+      "checks": [
+        {
+          "name": "syntax",
+          "argv": [
+            "rustc",
+            "--crate-type",
+            "lib",
+            "src/lib.rs",
+            "--emit",
+            "metadata",
+            "-o",
+            "artifacts/check.rmeta"
+          ],
+          "cwd": ".",
+          "timeout_seconds": 30,
+          "covers": [
+            "Rust syntax and types"
+          ]
+        }
+      ]
+    },
+    "render.fragment": "{ value.trim().to_uppercase() }\n"
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "token_normalization": {
+    "pattern": "temporary roots, elapsed milliseconds and isolated lowercase hexadecimal identities",
+    "representatives": {
+      "32": "2cfc391bb0937f8d66100798e6c8b0c2",
+      "64": "6d2641a18147c5a5619cb67ba9b1fad20a6bfd16b79c036a1a2432ae4a3a15dd"
+    }
+  },
+  "summary": {
+    "composed": {
+      "samples": 3,
+      "calls": 5,
+      "median_context_bytes": 13676,
+      "median_context_tokens": 4623,
+      "median_seconds": 0.39285483201092575
+    },
+    "task_change": {
+      "samples": 3,
+      "calls": 2,
+      "median_context_bytes": 11274,
+      "median_context_tokens": 3736,
+      "median_seconds": 0.3612411659996724
+    }
+  },
+  "runs": [
+    {
+      "repetition": 1,
+      "arm": "composed",
+      "calls": 5,
+      "stdout": {
+        "bytes": 11980,
+        "tokens": 4082
+      },
+      "requests": {
+        "bytes": 494,
+        "tokens": 159
+      },
+      "artifact": {
+        "bytes": 1202,
+        "tokens": 382
+      },
+      "context": {
+        "bytes": 13676,
+        "tokens": 4623
+      },
+      "seconds": 0.4385836650180863,
+      "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
+      "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": false
+    },
+    {
+      "repetition": 1,
+      "arm": "task_change",
+      "calls": 2,
+      "stdout": {
+        "bytes": 10358,
+        "tokens": 3506
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 734,
+        "tokens": 174
+      },
+      "context": {
+        "bytes": 11274,
+        "tokens": 3736
+      },
+      "seconds": 0.3645637929876102,
+      "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
+      "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    },
+    {
+      "repetition": 2,
+      "arm": "task_change",
+      "calls": 2,
+      "stdout": {
+        "bytes": 10358,
+        "tokens": 3506
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 734,
+        "tokens": 174
+      },
+      "context": {
+        "bytes": 11274,
+        "tokens": 3736
+      },
+      "seconds": 0.3612411659996724,
+      "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
+      "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    },
+    {
+      "repetition": 2,
+      "arm": "composed",
+      "calls": 5,
+      "stdout": {
+        "bytes": 11980,
+        "tokens": 4082
+      },
+      "requests": {
+        "bytes": 494,
+        "tokens": 159
+      },
+      "artifact": {
+        "bytes": 1202,
+        "tokens": 382
+      },
+      "context": {
+        "bytes": 13676,
+        "tokens": 4623
+      },
+      "seconds": 0.3581532509997487,
+      "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
+      "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": false
+    },
+    {
+      "repetition": 3,
+      "arm": "composed",
+      "calls": 5,
+      "stdout": {
+        "bytes": 11980,
+        "tokens": 4082
+      },
+      "requests": {
+        "bytes": 494,
+        "tokens": 159
+      },
+      "artifact": {
+        "bytes": 1202,
+        "tokens": 382
+      },
+      "context": {
+        "bytes": 13676,
+        "tokens": 4623
+      },
+      "seconds": 0.39285483201092575,
+      "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
+      "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": false
+    },
+    {
+      "repetition": 3,
+      "arm": "task_change",
+      "calls": 2,
+      "stdout": {
+        "bytes": 10358,
+        "tokens": 3506
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 734,
+        "tokens": 174
+      },
+      "context": {
+        "bytes": 11274,
+        "tokens": 3736
+      },
+      "seconds": 0.3109644169890089,
+      "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
+      "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    }
+  ],
+  "scope": "Prescribed generic Rust change. The composed arm counts task, author and workflow manifests plus five calls. The task-change arm counts one manifest and two calls. Both resolve the same task, author the same fragment, enforce the same postconditions, run the same reversal stages and produce equal source, patch and normalized history. Task change additionally binds required checks to its transaction. Counts exclude system context, hidden reasoning and billed usage. This is deterministic workflow evidence without an agent or population claim."
+}

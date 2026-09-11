@@ -34,6 +34,7 @@ mod routes;
 mod schemas;
 mod service_calls;
 mod task;
+pub mod task_change;
 mod tests;
 pub use task::task_author_target_candidate;
 

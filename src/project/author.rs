@@ -103,32 +103,32 @@ pub struct BatchOptions {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct BatchManifest {
-    revision: Option<String>,
-    operations: Vec<BatchStep>,
-    postconditions: Option<BatchPostconditions>,
+pub(super) struct BatchManifest {
+    pub(super) revision: Option<String>,
+    pub(super) operations: Vec<BatchStep>,
+    pub(super) postconditions: Option<BatchPostconditions>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-struct BatchPostconditions {
-    files_changed: Option<usize>,
-    edits: Option<usize>,
-    changed_operations: Option<usize>,
-    paths_changed: Option<Vec<PathBuf>>,
+pub(super) struct BatchPostconditions {
+    pub(super) files_changed: Option<usize>,
+    pub(super) edits: Option<usize>,
+    pub(super) changed_operations: Option<usize>,
+    pub(super) paths_changed: Option<Vec<PathBuf>>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct BatchStep {
-    op: BatchOperation,
-    handle: String,
-    from: Option<PathBuf>,
+pub(super) struct BatchStep {
+    pub(super) op: BatchOperation,
+    pub(super) handle: String,
+    pub(super) from: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-enum BatchOperation {
+pub(super) enum BatchOperation {
     ReplaceBody,
     ReplaceDeclaration,
     InsertDeclaration,
@@ -411,13 +411,21 @@ fn function_fragment<'tree>(
 
 impl Project<'_> {
     pub fn author_batch(&self, options: &BatchOptions) -> Result<Plan> {
-        ensure!(
-            options.diff_bytes <= 65536,
-            "diff bytes must be between 0 and 65536."
-        );
         let manifest: BatchManifest =
             serde_json::from_str(&fragment(&self.root.join(&options.from))?)
                 .context("batch input must be an authoring manifest.")?;
+        self.author_batch_manifest(manifest, options.diff_bytes)
+    }
+
+    pub(super) fn author_batch_manifest(
+        &self,
+        manifest: BatchManifest,
+        diff_bytes: usize,
+    ) -> Result<Plan> {
+        ensure!(
+            diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
         ensure!(
             (1..=32).contains(&manifest.operations.len()),
             "batch needs 1 through 32 operations."
@@ -451,7 +459,7 @@ impl Project<'_> {
                         from: step
                             .from
                             .context("authoring operation requires a fragment path.")?,
-                        diff_bytes: options.diff_bytes,
+                        diff_bytes,
                         write: false,
                     };
                     match operation {
