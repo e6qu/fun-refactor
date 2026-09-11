@@ -27,13 +27,37 @@ All source-changing calls, declared checks, plan preview/save/apply, patch expor
 sentinel, undo/redo, receiver and finish steps remain in their original order. Current skill
 payloads and the current harness prompt replace their frozen predecessors. The artifact
 requests use the absolute paths returned by their writes. The resulting prescribed sequence
-has 29 calls, no retained refusal, and 13,104 context tokens: 2,354 fewer than the observed
-trace. It remains 1,504 tokens, or 13.0%, above the passing ordinary-file arm.
+has 29 calls, no retained refusal, and 13,202 context tokens: 2,256 fewer than the observed
+trace. It remains 1,602 tokens, or 13.8%, above the passing ordinary-file arm.
 
 This is a counterfactual for one trace. It shows that the delivered commands can support the
 shorter sequence and measures its serialized payloads. It does not show that an autonomous
 agent will choose that sequence, predict latency or billed usage, or establish a population
 effect. A fresh paired run is the adoption test.
+
+## First fresh adoption diagnostic
+
+The first PR 8 pair used Codex CLI 0.154.0 with `gpt-5.6-luna`, low reasoning and the default
+service tier. Both agents made correct two-crate changes, passed the independent project and
+receiver oracles, preserved both indexes and completed exact reversal. Both edited source before
+running the original-state checks, so the ordered-workflow gate rejected both trials.
+
+| Arm | Accepted | Context tokens | Calls | Refusals or failures |
+|---|---:|---:|---:|---:|
+| `fr` | No | 23,973 | 49 | 12 |
+| Ordinary files | No | 13,852 | 21 | 1 |
+
+The common failure showed that the harness stated the ordering invariant but enforced it only
+after completion. It now refuses source-changing requests until every declared original-state
+check passes. The `fr` failures also identify five over-limit skill reads, four duplicated
+executable prefixes, one malformed `--contains` call, one project basis used as a plan basis and
+one unavailable file-list request. The prompt and portable routes now state those boundaries.
+The first placeholder manifest write also prompted an explicit single-final-manifest instruction.
+
+The complete failed evidence remains at
+[`2026-09-11-workflow-v4-diagnostic-1`](../tests/agent-eval/results/2026-09-11-workflow-v4-diagnostic-1/manifest.json).
+Its token audit passes, while replay refuses it because acceptance failed. No agent received a
+human correction or restart.
 
 The token audit uses tiktoken 0.12.0, `o200k_base`, and the repository's checksum-pinned
 vocabulary. Reproduce the retained report with:

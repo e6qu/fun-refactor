@@ -26,16 +26,23 @@ manifest validation now passes `-h` and `--help` through to the CLI. Artifact wr
 explicit canonical `fr_reference`; the prompt requires copying it verbatim into fragment and
 manifest fields, and invalid relative paths name that contract in their refusal.
 The fourth checkpoint keeps every portable route within its byte ceiling and all 42 shell
-examples executable. The targeted five-file route is 1,763 tokens, eight below the merged PR 7
-files while adding handle, help and artifact guidance.
+examples executable. After the first fresh diagnostic, the targeted five-file route is 1,825
+tokens. Its added guidance distinguishes coordinated lookup and plan bases from project bases.
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step while reducing
-42 calls to 29 and measured context from 15,458 to 13,104 tokens. This 2,354-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,202 tokens. This 2,256-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
-PR 7 targeted the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
-It targets the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
-review-bound payload omission, a smaller task-routed skill and a fresh paired acceptance cohort.
+
+The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed
+the project and receiver oracles, preserved indexes and reversed exactly. Both skipped the
+original-state check before editing, so the ordered workflow rejected them. The `fr` arm used
+23,973 context tokens and 49 calls, including 12 refused or failed requests. The files arm used
+13,852 tokens and 21 calls. The harness now refuses source mutation before original checks pass;
+skill and prompt guidance also cover the exact command errors in the trace.
+
+PR 7 targeted the fixed-projection gap through multi-symbol inspection, review-bound payload
+omission, a smaller task-routed skill and a fresh paired acceptance cohort.
 The retained fresh cohort passes independent project and receiver oracles, ordered checks, exact
 reversal and index preservation. Its single-pair comparison remains narrower than a population claim.
 PR 7 checkpoint 2 adds `project select NAME...`: one bounded traversal retrieves up to

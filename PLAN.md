@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 689 |
+| Defects fixed | 690 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -68,8 +68,13 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. It reduces that trace to 29 calls
-and 13,104 context tokens, 2,354 below the observed `fr` arm and 1,504 above the ordinary-file
+and 13,202 context tokens, 2,256 below the observed `fr` arm and 1,602 above the ordinary-file
 arm. This is a one-trace counterfactual; fresh-agent adoption remains unmeasured.
+
+The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
+Both agents edited before running the original-state checks, so neither passed acceptance. The
+`fr` arm used 23,973 context tokens and 49 calls; ordinary files used 13,852 and 21. The retained
+diagnostic now drives an execution-time original-check gate and narrower command guidance.
 
 The file agents retained verbose successful check logs while the `fr` agents used compact output.
 The checksum-bound M4ac projection applies the same output policy to both arms without altering prompts, requests, calls or other payloads.
@@ -140,7 +145,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The checksum-bound PR 7 projection uses 10,960 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,150-token or 60.9% `fr` premium.
+- The current checksum-bound projection uses 11,092 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,282-token or 62.9% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
 - These measurements diagnose the workflow. They do not establish population-level agent behavior or predict savings from unfinished changes.
@@ -172,7 +177,8 @@ Planned checkpoints:
 3. **Complete.** Repair acceptance-harness help and artifact-reference boundaries, with adversarial regressions.
 4. **Complete.** Update and remeasure the portable skill routes against the observed failures.
 5. **Complete.** Publish the bounded counterfactual workflow report and document what it can and cannot claim.
-6. Run and retain a fresh Luna-low paired cohort, then close only the measured bottlenecks supported by its trace.
+6. **In progress.** Retain the first fresh diagnostic, enforce original checks before source
+   mutation, clarify its observed command boundaries, and run a second Luna-low pair.
 
 ## Formal verification policy
 

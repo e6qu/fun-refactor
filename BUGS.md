@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B690: the acceptance harness allowed source edits before original-state checks and found
+  the ordering failure only after an agent finished. It now refuses every source-changing call
+  until all declared checks pass on the original snapshot. Prompt and skill boundaries also
+  name the read cap, instrumented argument shape, boolean `--contains` and distinct plan basis.
+
 - [x] B689: the coordinated acceptance harness intercepted `fr author batch --help` as an
   invalid manifest. Artifact paths also omitted the value agents must reuse.
   Help now reaches the real CLI, writes return an explicit absolute `fr_reference`, and path

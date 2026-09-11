@@ -7,10 +7,8 @@ signature changes. Unsupported targets refuse.
 Use `fr author guide` for machine-readable operations, limits and transitions. After reading
 this route, skip subcommand help.
 
-For several exact declarations, use one `project select NAME... --source`; duplicate names
-across files return together. Use `project find NAME --in FILE --source` for one declaration;
-`root` is its file handle. A module/trait row selects that container; a direct method selects
-its impl/trait. Otherwise use
+Use `project find NAME --in FILE --source`; `root` is its file handle. A module/trait row
+selects that container; a direct method selects its impl/trait. Otherwise use
 `project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
 
 UTF-8 fragments are limited to 64 KiB. Steps need `op` and `handle`; fragment steps add
@@ -22,8 +20,7 @@ fragment `from` fields and batch `--from`.
 
 Review the complete diff and retain `plan_context_basis`. Repeat it with
 `--save-plan --plan-basis BASIS`; drift or clipping refuses before persistence. The result's
-`transaction_context_basis` compacts forward application. `plan_context_basis` starts with
-`frpb1`; `frcb1` is a project basis and cannot save a plan.
+`transaction_context_basis` compacts forward application.
 
 Rust insertion preserves bytes and doc comments; only traits allow bodyless functions. Body
 replacement covers Rust, Go, Java, and supported TypeScript/TSX bindings; arrows may change form.

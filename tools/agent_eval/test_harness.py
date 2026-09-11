@@ -1,6 +1,7 @@
 """Regressions for acceptance grading and evidence boundaries, without an agent service."""
 
 import copy
+import contextlib
 import hashlib
 import importlib.util
 import io
@@ -301,6 +302,10 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
         self.assertIn("do not pass --write to author batch", prompt)
         self.assertIn("both API insertion operations and the regex-syntax escape body replacement", prompt)
+        self.assertIn("at most 200 lines per read", prompt)
+        self.assertIn("omit the `fr` executable name", prompt)
+        self.assertIn("never write placeholder references", prompt)
+        self.assertIn("refuses every source-changing request until the original checks pass", prompt)
         self.assertIn("--request-stdin <<'FRJSON'", prompt)
         self.assertIn("Apply refuses until all declared checks pass", prompt)
         self.assertIn("It refuses until all declared checks pass after the final redo/apply", prompt)
@@ -420,6 +425,62 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertTrue(harness.current_state_checked(events, changed, ["unit"]))
         self.assertFalse(harness.current_state_checked(events, changed, ["unit", "missing"]))
 
+    def test_source_mutations_require_a_complete_original_check(self):
+        original = {"src/lib.rs": {"sha256": "old"}}
+        check = {"schema": "fr-checks-1", "executed": True, "passed": True,
+                 "results": [{"name": "upstream", "passed": True},
+                             {"name": "minimal", "passed": True}]}
+        event = {"before": original, "after": original,
+                 "visible": json.dumps({"exit_code": 0, "result": check})}
+        self.assertFalse(harness.state_checked([], original, ["upstream", "minimal"]))
+        self.assertTrue(harness.state_checked([event], original, ["upstream", "minimal"]))
+        incomplete = copy.deepcopy(event)
+        payload = json.loads(incomplete["visible"])
+        payload["result"]["results"].pop()
+        incomplete["visible"] = json.dumps(payload)
+        self.assertFalse(harness.state_checked([incomplete], original, ["upstream", "minimal"]))
+        for request in (
+            {"tool": "replace"}, {"tool": "append"}, {"tool": "reverse"},
+            {"tool": "apply"}, {"tool": "fr", "args": ["history", "apply", "1", "--write"]},
+        ):
+            self.assertTrue(harness.source_mutation_requested(request))
+        for request in ({"tool": "write"}, {"tool": "fr", "args": ["author", "batch"]}):
+            self.assertFalse(harness.source_mutation_requested(request))
+
+    def test_step_refuses_source_mutation_before_original_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            for name in harness.edit_paths(harness.regex_escape_len.TASK):
+                path = project / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("original\n")
+            harness.initialize(project)
+            original = harness.snapshot(project)
+            harness.save(session / "session.json", {
+                "arm": "files", "task": harness.regex_escape_len.TASK, "original": original,
+            })
+            request = {"tool": "replace", "path": "src/lib.rs",
+                       "old": "original", "new": "changed"}
+            with contextlib.redirect_stdout(io.StringIO()):
+                harness.step(session, request)
+            self.assertEqual((project / "src/lib.rs").read_text(), "original\n")
+            refusal = json.loads((session / "events.jsonl").read_text().splitlines()[0])
+            self.assertIn("original source", json.loads(refusal["visible"])["error"])
+
+            check = {"schema": "fr-checks-1", "executed": True, "passed": True,
+                     "results": [{"name": name, "passed": True}
+                                 for name in harness.required_checks(harness.regex_escape_len.TASK)]}
+            event = {"request": {"tool": "fr", "args": ["checks", "--run"]},
+                     "visible": json.dumps({"exit_code": 0, "result": check}),
+                     "before": original, "after": original, "index_sha256": "same",
+                     "sentinel": None}
+            with (session / "events.jsonl").open("a") as log:
+                log.write(json.dumps(event) + "\n")
+            with contextlib.redirect_stdout(io.StringIO()):
+                harness.step(session, request)
+            self.assertEqual((project / "src/lib.rs").read_text(), "changed\n")
+
     def test_coordinated_manifest_requires_the_complete_single_transaction(self):
         with tempfile.TemporaryDirectory() as tmp:
             session = Path(tmp)
@@ -470,6 +531,12 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
                     project,
                     config,
                     ["author", "batch", "--from", "artifacts/manifest.json"],
+                )
+            with self.assertRaisesRegex(ValueError, "omits the executable name"):
+                harness.action(
+                    session,
+                    {"arm": "fr", "task": harness.regex_escape_len.TASK},
+                    {"tool": "fr", "args": ["fr", "author", "batch"]},
                 )
 
     def test_write_returns_the_exact_fr_artifact_reference(self):

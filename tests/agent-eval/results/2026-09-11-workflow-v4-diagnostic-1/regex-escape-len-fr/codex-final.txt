@@ -1,0 +1,7 @@
+Implemented and verified:
+
+- Added documented `escape_len` APIs to `regex-syntax` and `regex`.
+- `regex-syntax::escape` now reserves exact capacity before escaping.
+- Preserved existing escaping and append behavior.
+- Confirmed default and no-default-feature builds.
+- Completed transaction save/apply, export, undo/redo, sentinel, and receiver verification successfully.

@@ -15,7 +15,7 @@ fr project features --limit 12
 fr project gaps --limit 8
 ```
 
-Use exact `project find NAME` for known declarations. Add the boolean `--contains` flag for a literal substring; it takes no value.
+Use exact `project find NAME` for known declarations; add `--contains` for a literal substring.
 Find matches names before clipping and reports all candidates with pagination and source coverage.
 Use `project select SELECTOR...` for several exact names or full handles so one revision,
 coverage report, cursor and source budget cover the complete request. Read every per-selector

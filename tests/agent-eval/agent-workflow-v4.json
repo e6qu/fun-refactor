@@ -3,7 +3,7 @@
   "passed": true,
   "binary": {
     "path": "target/debug/fr",
-    "sha256": "4a3877bfc511ed3365ecb0b3307447ab6078a3661614373388abb973b7b03b6e"
+    "sha256": "1aedc5c7646c066bc1fc2e7ae435e47965558589fa01a96c1d5076d97decafec"
   },
   "frozen_trace": {
     "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
@@ -28,23 +28,23 @@
   },
   "prescribed": {
     "calls": 29,
-    "prompt_bytes": 6510,
-    "visible_output_bytes": 35433,
+    "prompt_bytes": 6860,
+    "visible_output_bytes": 35682,
     "tool_request_bytes": 4626,
-    "prompt_tokens": 1373,
-    "visible_output_tokens": 11731,
-    "context_tokens": 13104,
-    "tool_request_tokens": 1636
+    "prompt_tokens": 1445,
+    "visible_output_tokens": 11757,
+    "context_tokens": 13202,
+    "tool_request_tokens": 1632
   },
   "difference": {
     "calls": -13,
-    "prompt_bytes": 231,
-    "visible_output_bytes": -7538,
+    "prompt_bytes": 581,
+    "visible_output_bytes": -7289,
     "tool_request_bytes": -1854,
-    "prompt_tokens": 49,
-    "visible_output_tokens": -2403,
-    "context_tokens": -2354,
-    "tool_request_tokens": -646
+    "prompt_tokens": 121,
+    "visible_output_tokens": -2377,
+    "context_tokens": -2256,
+    "tool_request_tokens": -650
   },
   "removed_calls": [
     {
@@ -108,8 +108,8 @@
   "measurement_files": {
     "tools/agent-workflow-v4.py": "195fd75275b1a919dbb3368715c8c960c32949bf962094f05b74da9525e7bf4b",
     "skills/fr/SKILL.md": "59e4a46742aa261c3ce295063dfa59539f64220d7a2bf09e698551791ad4db6d",
-    "skills/fr/references/author.md": "32807626425d1380632ffb5592f831d43c148b57d4c87af5a16e103ca1d017a2",
-    "tools/agent-eval.py": "551efa18c2aa67cd60d9cb36bc15133eec92620083c2f99b52ef856e7173af94"
+    "skills/fr/references/author.md": "a67f304b01543a455472872ec88fd0204518d9955389aa0e5a32eae15d345e26",
+    "tools/agent-eval.py": "47ff2e7511d94419985f7933a06c8c92fd59e75b6ccb09fc626640b49b8ed14f"
   },
   "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with live output from this binary, uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path."
 }
