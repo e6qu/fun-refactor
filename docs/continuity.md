@@ -39,8 +39,9 @@ arbitrary diagnostics. The exact CI agent-acceptance command passes locally.
 
 The replacement PR run passes the WASM and complete playground lanes, including the generated-patch
 Git check. That run exposed Node 20 deprecation annotations from checkout v4 and setup-node v4. PR 11
-therefore refreshes every workflow to the maintained Node 24 action lines and keeps the previous npm
-cache choices explicit.
+therefore refreshes every workflow to maintained Node 24 action lines for checkout, language setup
+and direct caches. Existing npm cache choices stay explicit, and Go caching is disabled because this
+repository has no Go module to cache.
 
 PR 10 targeted the remaining change-and-delivery overhead in the retained agent trials. Its bounded
 manifest binds a saved transaction, reviewed checks, optional reversal exercise and delayed Git patch
