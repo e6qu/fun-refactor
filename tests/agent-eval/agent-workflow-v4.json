@@ -3,7 +3,7 @@
   "passed": true,
   "binary": {
     "path": "target/debug/fr",
-    "sha256": "1aedc5c7646c066bc1fc2e7ae435e47965558589fa01a96c1d5076d97decafec"
+    "sha256": "1d6616752b07bc2ab1dc11f2263f9917f2f3bab2454b44229b8192341f16b4ab"
   },
   "frozen_trace": {
     "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
@@ -32,9 +32,9 @@
     "visible_output_bytes": 35682,
     "tool_request_bytes": 4626,
     "prompt_tokens": 1445,
-    "visible_output_tokens": 11757,
-    "context_tokens": 13202,
-    "tool_request_tokens": 1632
+    "visible_output_tokens": 11833,
+    "context_tokens": 13278,
+    "tool_request_tokens": 1640
   },
   "difference": {
     "calls": -13,
@@ -42,9 +42,9 @@
     "visible_output_bytes": -7289,
     "tool_request_bytes": -1854,
     "prompt_tokens": 121,
-    "visible_output_tokens": -2377,
-    "context_tokens": -2256,
-    "tool_request_tokens": -650
+    "visible_output_tokens": -2301,
+    "context_tokens": -2180,
+    "tool_request_tokens": -642
   },
   "removed_calls": [
     {
@@ -106,10 +106,10 @@
     "returned_declarations": 2
   },
   "measurement_files": {
-    "tools/agent-workflow-v4.py": "195fd75275b1a919dbb3368715c8c960c32949bf962094f05b74da9525e7bf4b",
+    "tools/agent-workflow-v4.py": "b5a247873352a94ddc1560a0189a8eae1cd647b006b8f5b6f357c09b8a4039cf",
     "skills/fr/SKILL.md": "59e4a46742aa261c3ce295063dfa59539f64220d7a2bf09e698551791ad4db6d",
     "skills/fr/references/author.md": "a67f304b01543a455472872ec88fd0204518d9955389aa0e5a32eae15d345e26",
     "tools/agent-eval.py": "47ff2e7511d94419985f7933a06c8c92fd59e75b6ccb09fc626640b49b8ed14f"
   },
-  "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with live output from this binary, uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path."
+  "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with semantically validated live output from this binary. Opaque live revision and context identities use fixed high-entropy representatives of the same byte lengths so token counts reproduce across runs. It uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path."
 }

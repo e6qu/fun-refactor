@@ -31,7 +31,7 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step while reducing
-42 calls to 29 and measured context from 15,458 to 13,202 tokens. This 2,256-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,278 tokens. This 2,180-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed
@@ -47,6 +47,10 @@ or 8.8% `fr` premium in one sample, down from the PR 7 pair's 33.3%. The `fr` ar
 inspection tokens; authoring, delivery payloads and tool latency remain larger. Its agent uses
 the author guide, exact artifact references, one final manifest, the right plan basis, compact
 history and a single saved batch without correction.
+
+The first hosted PR 8 check exposed a checkout-path dependency in the counterfactual prompt.
+It also exposed variable tokenization of opaque live hashes. The projection now reuses the
+frozen tool path and fixed high-entropy identities after it validates the real live response.
 
 PR 7 targeted the fixed-projection gap through multi-symbol inspection, review-bound payload
 omission, a smaller task-routed skill and a fresh paired acceptance cohort.

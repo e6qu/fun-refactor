@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B691: the workflow counterfactual measured the current checkout path inside its generated
+  prompt. A checkout path with a different length changed the retained byte count and failed CI.
+  Opaque live hashes could also change token counts while retaining their lengths. The projection
+  now reuses the frozen tool path and fixed high-entropy identities after validating live output.
+
 - [x] B690: the acceptance harness allowed source edits before original-state checks and found
   the ordering failure only after an agent finished. It now refuses every source-changing call
   until all declared checks pass on the original snapshot. Prompt and skill boundaries also

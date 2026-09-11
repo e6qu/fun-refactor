@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 690 |
+| Defects fixed | 691 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -68,8 +68,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. It reduces that trace to 29 calls
-and 13,202 context tokens, 2,256 below the observed `fr` arm and 1,602 above the ordinary-file
-arm. This is a one-trace counterfactual; fresh-agent adoption remains unmeasured.
+and 13,278 context tokens, 2,180 below the observed `fr` arm and 1,678 above the ordinary-file
+arm. This one-trace counterfactual is separate from the retained fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
 Both agents edited before running the original-state checks, so neither passed acceptance. The

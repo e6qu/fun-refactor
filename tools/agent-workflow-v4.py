@@ -49,6 +49,20 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def stable_live_value(value):
+    revision = digest(b"workflow-v4-project-revision")
+    context = digest(b"workflow-v4-context-basis")
+    text = json.dumps(value, ensure_ascii=False)
+    text = re.sub(r"frp1:[0-9a-f]{32}:", f"frp1:{revision[:32]}:", text)
+    text = re.sub(r"frcb1:[0-9a-f]{64}", f"frcb1:{context}", text)
+    text = re.sub(
+        r'(\"revision\"\s*:\s*\")[0-9a-f]{64}(\")',
+        lambda match: f"{match.group(1)}{revision}{match.group(2)}",
+        text,
+    )
+    return json.loads(text)
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -109,7 +123,11 @@ def live_inspection(binary, find_request, select_request):
         wrap = lambda value: json.dumps({"exit_code": 0, "result": value,
                                          "stdout_omitted_bytes": 0, "stderr": "",
                                          "stderr_omitted_bytes": 0})
-        return wrap(find_report), request, wrap(report)
+        return (
+            wrap(stable_live_value(find_report)),
+            stable_live_value(request),
+            wrap(stable_live_value(report)),
+        )
 
 
 def current_write(event, request):
@@ -172,15 +190,26 @@ def metrics(events, prompt, encoding=None):
     return result
 
 
+def prescribed_prompt(old_prompt):
+    session_match = re.search(r"The task directory is (.+)/project\.\n", old_prompt)
+    require(session_match, "Frozen prompt does not expose its session path")
+    frozen_tools = set(re.findall(
+        r"^python3 (.+/tools/agent-eval\.py) step ", old_prompt, re.MULTILINE
+    ))
+    require(len(frozen_tools) == 1, "Frozen prompt does not expose one tool path")
+    live_tool = str(ROOT / "tools/agent-eval.py")
+    prompt = harness.prompt(Path(session_match.group(1)), regex_escape_len.TASK, "fr")
+    require(prompt.count(live_tool) == 2, "Current prompt does not expose both tool commands")
+    return prompt.replace(live_tool, frozen_tools.pop())
+
+
 def measure(binary, encoding=None):
     recorded = verify_evidence()
     binary = binary.resolve()
     require(binary.is_file(), f"Missing fr binary: {binary}")
     original, projected = projected_events(binary)
     old_prompt = (TRIAL / "prompt.txt").read_text()
-    match = re.search(r"The task directory is (.+)/project\.\n", old_prompt)
-    require(match, "Frozen prompt does not expose its session path")
-    current_prompt = harness.prompt(Path(match.group(1)), regex_escape_len.TASK, "fr")
+    current_prompt = prescribed_prompt(old_prompt)
     observed = metrics(original, old_prompt, encoding)
     prescribed = metrics(projected, current_prompt, encoding)
     if encoding is not None:
@@ -207,7 +236,7 @@ def measure(binary, encoding=None):
             "skills/fr/references/author.md": digest((ROOT / "skills/fr/references/author.md").read_bytes()),
             "tools/agent-eval.py": digest((ROOT / "tools/agent-eval.py").read_bytes()),
         },
-        "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with live output from this binary, uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path.",
+        "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with semantically validated live output from this binary. Opaque live revision and context identities use fixed high-entropy representatives of the same byte lengths so token counts reproduce across runs. It uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path.",
     }
 
 

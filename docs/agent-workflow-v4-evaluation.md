@@ -12,6 +12,9 @@ It checks the retained evidence manifest and event-stream checksum, requires the
 workspace. The live query repeats the trace's broad `escape` lookup and feeds its current
 handles to one `project select` request. Both exact declarations and their source must be
 returned with `matched` status.
+The measurement then replaces opaque revision and context identities with fixed high-entropy
+values of the same lengths. This keeps token counts stable without changing raw byte counts or
+the live semantic check.
 
 The projection removes thirteen calls:
 
@@ -27,8 +30,8 @@ All source-changing calls, declared checks, plan preview/save/apply, patch expor
 sentinel, undo/redo, receiver and finish steps remain in their original order. Current skill
 payloads and the current harness prompt replace their frozen predecessors. The artifact
 requests use the absolute paths returned by their writes. The resulting prescribed sequence
-has 29 calls, no retained refusal, and 13,202 context tokens: 2,256 fewer than the observed
-trace. It remains 1,602 tokens, or 13.8%, above the passing ordinary-file arm.
+has 29 calls, no retained refusal, and 13,278 context tokens: 2,180 fewer than the observed
+trace. It remains 1,678 tokens, or 14.5%, above the passing ordinary-file arm.
 
 This is a counterfactual for one trace. It shows that the delivered commands can support the
 shorter sequence and measures its serialized payloads. It does not show that an autonomous

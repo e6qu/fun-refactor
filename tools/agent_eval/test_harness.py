@@ -173,6 +173,21 @@ class ContextProtocolV3Evidence(unittest.TestCase):
 
 
 class AgentWorkflowV4Evidence(unittest.TestCase):
+    def test_counterfactual_normalizes_checkout_paths_and_opaque_live_ids(self):
+        old_prompt = (workflow_v4.TRIAL / "prompt.txt").read_text()
+        expected = workflow_v4.prescribed_prompt(old_prompt)
+        checkout = Path("/home/runner/work/a-different-checkout")
+        with mock.patch.object(workflow_v4, "ROOT", checkout), \
+                mock.patch.object(workflow_v4.harness, "ROOT", checkout):
+            self.assertEqual(workflow_v4.prescribed_prompt(old_prompt), expected)
+
+        first = {"revision": "1" * 64, "handle": f"frp1:{'1' * 32}:abc",
+                 "context_basis": f"frcb1:{'2' * 64}"}
+        second = {"revision": "a" * 64, "handle": f"frp1:{'a' * 32}:abc",
+                  "context_basis": f"frcb1:{'b' * 64}"}
+        self.assertEqual(workflow_v4.stable_live_value(first),
+                         workflow_v4.stable_live_value(second))
+
     def test_prescribed_trace_reduction_is_live_bounded_and_retained(self):
         retained = json.loads(
             (TOOLS.parent / "tests/agent-eval/agent-workflow-v4.json").read_text()
