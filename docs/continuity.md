@@ -21,7 +21,7 @@ one bounded, revision-bound task contract that composes project queries, exact t
 conservative authoring eligibility, declared checks and ready delivery templates. Its purpose is to
 remove the path guessing, repeated help and repeated inspection observed in the latest agent traces.
 
-The completed `agent_task_change` branch is roadmap PR 13. It joins exact targets, concrete fragments,
+PR 13 merged as GitHub PR 275. It joins exact targets, concrete fragments,
 postconditions, declared checks, reversal and patch delivery into one reviewed task-change lifecycle.
 Preview must remain read-only. Write must require the unchanged complete basis before it records and
 executes the transaction through the existing checked workflow.
@@ -48,6 +48,11 @@ Across three rotating repetitions, calls fall from five to two. Median counted c
 stage results, normalized history, source and patch identities. Task change additionally binds its
 selected checks to the planned transaction. This is prescribed workflow evidence without an agent claim.
 The complete native, WASM, documentation, skill, capability and strict Lean repository gate passes.
+
+The current `agent_semantic_ir` branch is roadmap PR 14. It exposes the internal cross-language IR
+as bounded, revision-bound agent data and adds the first source-free authoring route. The same PR
+will identify generic functional and effect patterns, carry typed bodies through reviewed task
+changes, model the finite admission boundaries in Lean and retain controlled context evidence.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
