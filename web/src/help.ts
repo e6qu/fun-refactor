@@ -53,8 +53,9 @@ const ABOUT = `
 <p>The whole analysis is compiled to WebAssembly. There is no server: a public
    repository is fetched from GitHub into this tab, indexed here, and every answer and
    every edit happens here. Nothing is uploaded, and nothing on GitHub changes — the
-   diff is the artifact, and <strong>Download patch</strong> hands you a file
-   <code>git apply</code> will take.</p>
+   transaction is recorded for checked one-step undo and redo. <strong>Download
+   patch</strong> exports the transactions still applied as a file <code>git
+   apply</code> will take.</p>
 <h3>What it is doing</h3>
 <p>Each file is parsed by tree-sitter into a tree that keeps every byte, and a set of
    facts is extracted from it — symbols, references, scopes, imports — each carrying a
@@ -66,7 +67,7 @@ const ABOUT = `
    map and called through it, a class named only in a string, a Helm value passed on a
    command line — these are undecidable from the source, and the tool reports them
    instead of guessing. That is why so much comes back as a list to review.</p>
-<h3>Fifteen languages, one index</h3>
+<h3>Seventeen languages, one index</h3>
 <p>Rust, Go, Zig, TypeScript, TSX, Python, Bash, HTML, CSS, SCSS, HCL, YAML, Helm,
    XML and Markdown all land in the same index, which is what lets a rename cross from
    a chart value into the code that reads it.</p>

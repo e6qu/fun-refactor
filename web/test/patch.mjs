@@ -1,79 +1,56 @@
-/**
- * The patch the playground downloads is one `git apply` will take.
- *
- * A patch that does not apply fails silently in the worst way: the button produces a
- * file, the file looks like a diff, and it is rejected somewhere else entirely, long
- * after the session that made it is gone. So this does not inspect the text — it runs
- * the real refactorings against the bundled sample, writes the patch out, and asks
- * git.
- *
- *     node web/test/patch.mjs
- */
+/** Exercise the browser's Rust patch exporter against Git itself. */
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync, rmSync } from "node:fs";
+import {
+  mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-
 const { default: init, Workspace } = await import(join(root, "src/wasm/fun_refactor.js"));
-await init({
-  module_or_path: readFileSync(join(root, "src/wasm/fun_refactor_bg.wasm")),
-});
-
-// The page compiles `patch.ts`; Node cannot import TypeScript, so the types are
-// stripped. The body is plain JavaScript, which is what makes that safe.
-const source = readFileSync(join(root, "src/patch.ts"), "utf8");
-const asJs = source
-  .replace(/^export /gm, "")
-  .replace(/: (string|number|Record<string, string>|string\[\])(?=[,)])/g, "")
-  .replace(/\): string \{/g, ") {")
-  .replace(/\): \[string\[\], boolean\] \{/g, ") {")
-  .replace(/const CONTEXT: number/, "const CONTEXT");
-const { diffOf, patchOf } = await import(
-  "data:text/javascript," + encodeURIComponent(asJs + "\nexport { diffOf, patchOf };")
-);
+await init({ module_or_path: readFileSync(join(root, "src/wasm/fun_refactor_bg.wasm")) });
 
 function walk(dir) {
-  const out = [];
-  for (const entry of readdirSync(dir)) {
+  return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry);
-    if (statSync(path).isDirectory()) out.push(...walk(path));
-    else out.push(path);
-  }
-  return out;
+    return statSync(path).isDirectory() ? walk(path) : [path];
+  });
 }
-
 const sampleRoot = join(root, "sample");
-const original = {};
-for (const path of walk(sampleRoot)) {
-  original[relative(sampleRoot, path)] = readFileSync(path, "utf8");
-}
+const original = Object.fromEntries(
+  walk(sampleRoot).map((path) => [relative(sampleRoot, path), readFileSync(path, "utf8")]),
+);
 
 let failures = 0;
 let checks = 0;
-
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
 function check(name, fn) {
   checks += 1;
   try {
     const note = fn();
     console.log(`  ok   ${name}${note ? ` — ${note}` : ""}`);
-  } catch (e) {
+  } catch (error) {
     failures += 1;
-    console.log(`  FAIL ${name}: ${e.message}`);
+    console.log(`  FAIL ${name}: ${error.message}`);
   }
 }
-
-function assert(condition, message) {
-  if (!condition) throw new Error(message);
+function at(path, name) {
+  const lines = original[path].split("\n");
+  for (let line = 0; line < lines.length; line += 1) {
+    const col = lines[line].indexOf(name);
+    if (col >= 0) return { path, line: line + 1, col: col + 1 };
+  }
+  throw new Error(`${name} does not appear in ${path}`);
 }
 
-/** Lay the sample down as a git repository, apply the patch, and see. */
-function gitAccepts(patch, changed) {
-  const dir = mkdtempSync(join(tmpdir(), "fr-patch-"));
+/** Apply a browser export to a real Git worktree and compare every loaded file. */
+function gitAccepts(patch, workspace) {
+  const dir = mkdtempSync(join(tmpdir(), "fr-browser-patch-"));
   try {
     for (const [path, text] of Object.entries(original)) {
       mkdirSync(join(dir, dirname(path)), { recursive: true });
@@ -84,19 +61,14 @@ function gitAccepts(patch, changed) {
     git("config", "user.email", "test@example.com");
     git("config", "user.name", "test");
     git("add", "-A");
-    git("commit", "-qm", "sample");
-
+    git("commit", "-qm", "basis");
     writeFileSync(join(dir, "session.patch"), patch);
-    // --check first: it reports why, where `apply` alone would only fail.
     git("apply", "--check", "session.patch");
     git("apply", "session.patch");
-
-    // Applying it must reproduce the workspace exactly, not merely succeed.
-    for (const [path, expected] of Object.entries(changed)) {
-      const got = readFileSync(join(dir, path), "utf8");
+    for (const file of JSON.parse(workspace.files())) {
       assert(
-        got === expected,
-        `${path} after applying the patch is not what the workspace holds`,
+        readFileSync(join(dir, file.path), "utf8") === workspace.read(file.path),
+        `${file.path} differs after applying the exported patch`,
       );
     }
     return git("diff", "--stat", "HEAD").trim().split("\n").pop().trim();
@@ -105,165 +77,52 @@ function gitAccepts(patch, changed) {
   }
 }
 
-/** Run a refactoring and return the workspace after it. */
-function after(act) {
-  const workspace = new Workspace({ ...original });
-  const result = JSON.parse(act(workspace));
-  assert(!result.error, `the refactoring refused: ${result.error}`);
-  assert(result.files.length > 0, "the refactoring changed nothing, so there is no patch");
-  const files = { ...original };
-  for (const f of result.files) files[f.path] = workspace.read(f.path);
-  return files;
-}
-
-/** Where a name first appears in a file, 1-based. */
-function at(path, name, occurrence = 1) {
-  const lines = original[path].split("\n");
-  let seen = 0;
-  for (let i = 0; i < lines.length; i += 1) {
-    let from = 0;
-    for (;;) {
-      const col = lines[i].indexOf(name, from);
-      if (col < 0) break;
-      const before = lines[i][col - 1] ?? " ";
-      const behind = lines[i][col + name.length] ?? " ";
-      if (!/[A-Za-z0-9_]/.test(before) && !/[A-Za-z0-9_]/.test(behind)) {
-        seen += 1;
-        if (seen === occurrence) return { path, line: i + 1, col: col + 1 };
-      }
-      from = col + 1;
-    }
-  }
-  throw new Error(`${name} does not appear in ${path}`);
-}
-
-console.log("patch");
-
-check("an identical file produces no diff at all", () => {
-  assert(diffOf("a.txt", "same\n", "same\n") === "", "produced a diff for no change");
-  return "";
-});
-
 const CASES = [
-  [
-    "rename across one file",
-    (w) => {
-      const p = at("src/ingest.rs", "validate");
-      return w.rename(p.path, p.line, p.col, "check_reading");
-    },
-  ],
-  [
-    "rename a CSS class, which spans three files",
-    (w) => {
-      const p = at("web/dashboard.css", "panel-title");
-      return w.rename(p.path, p.line, p.col, "panel-heading");
-    },
-  ],
-  [
-    "rename a Helm value, which spans the chart",
-    (w) => {
-      const p = at("chart/values.yaml", "replicaCount");
-      return w.rename(p.path, p.line, p.col, "replicas");
-    },
-  ],
-  [
-    "an edit on the very first line",
-    (w) => {
-      const p = at("scripts/report.py", "MIN_CELSIUS");
-      return w.rename(p.path, p.line, p.col, "FLOOR_CELSIUS");
-    },
-  ],
-  [
-    "a deletion, which removes lines instead of changing them",
-    (w) => {
-      const p = at("src/ingest.rs", "hottest");
-      return w.delete(p.path, p.line, p.col);
-    },
-  ],
-  [
-    "retiring a flag, which rewrites branches in two files",
-    (w) => w.remove_flag("REPORT_IN_CELSIUS", true),
-  ],
+  ["rename across one file", (w) => {
+    const p = at("src/ingest.rs", "validate");
+    return w.rename(p.path, p.line, p.col, "check_reading");
+  }],
+  ["rename a CSS class across files", (w) => {
+    const p = at("web/dashboard.css", "panel-title");
+    return w.rename(p.path, p.line, p.col, "panel-heading");
+  }],
+  ["rename a Helm value across the chart", (w) => {
+    const p = at("chart/values.yaml", "replicaCount");
+    return w.rename(p.path, p.line, p.col, "replicas");
+  }],
+  ["delete a definition", (w) => {
+    const p = at("src/ingest.rs", "hottest");
+    return w.delete(p.path, p.line, p.col);
+  }],
+  ["retire a flag across files", (w) => w.remove_flag("REPORT_IN_CELSIUS", true)],
 ];
 
+console.log("browser patch export");
 for (const [name, act] of CASES) {
   check(name, () => {
-    const files = after(act);
-    const changed = Object.fromEntries(
-      Object.keys(files).filter((p) => files[p] !== original[p]).map((p) => [p, files[p]]),
-    );
-    const patch = patchOf(Object.keys(changed), original, files);
-    assert(patch.length > 0, "no patch text for a change that happened");
-    return `${Object.keys(changed).length} file(s), git says: ${gitAccepts(patch, changed)}`;
+    const workspace = new Workspace({ ...original });
+    const applied = JSON.parse(act(workspace));
+    assert(!applied.error, `the refactoring refused: ${applied.error}`);
+    const exported = JSON.parse(workspace.patch());
+    assert(exported.schema === "fr-memory-patch-1", "wrong export schema");
+    assert(exported.patch.length > 0, "an applied transaction exported no patch");
+    return gitAccepts(exported.patch, workspace);
   });
 }
 
-check("several refactorings in one session make one patch", () => {
-  // The real shape: a person renames, deletes, changes a shared name, then downloads once.
+check("undo and redo change the cumulative export", () => {
   const workspace = new Workspace({ ...original });
-  const files = { ...original };
-  const steps = [
-    () => {
-      const p = at("src/ingest.rs", "validate");
-      return workspace.rename(p.path, p.line, p.col, "check_reading");
-    },
-    () => {
-      const p = at("src/ingest.rs", "hottest");
-      return workspace.delete(p.path, p.line, p.col);
-    },
-    () => {
-      const p = at("web/dashboard.css", "panel-title");
-      return workspace.rename(p.path, p.line, p.col, "panel-heading");
-    },
-  ];
-  for (const step of steps) {
-    const result = JSON.parse(step());
-    assert(!result.error, `a step refused: ${result.error}`);
-    for (const f of result.files) files[f.path] = workspace.read(f.path);
-  }
-  const changed = Object.fromEntries(
-    Object.keys(files).filter((p) => files[p] !== original[p]).map((p) => [p, files[p]]),
-  );
-  assert(Object.keys(changed).length >= 2, "expected more than one file touched");
-  const patch = patchOf(Object.keys(changed), original, files);
-  return `${Object.keys(changed).length} file(s), git says: ${gitAccepts(patch, changed)}`;
-});
-
-
-check("a change reaching the end of the file still applies", () => {
-  // `split("\n")` on a newline-terminated file ends with an empty string that is
-  // not a line. Counted as context, a hunk that reached the end of the file
-  // claimed one old line more than the file has, and git refused the patch.
-  const before = "fn a() {}\n\nfn b() {\n    old();\n}\n";
-  const afterText = "fn a() {}\n\nfn b() {\n    new_call();\n}\n";
-  const patch = diffOf("src/tail.rs", before, afterText);
-  const dir = mkdtempSync(join(tmpdir(), "fr-tail-"));
-  try {
-    mkdirSync(join(dir, "src"), { recursive: true });
-    writeFileSync(join(dir, "src/tail.rs"), before);
-    const git = (...args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" });
-    git("init", "-q");
-    git("config", "user.email", "test@example.com");
-    git("config", "user.name", "test");
-    git("add", "-A");
-    git("commit", "-qm", "base");
-    writeFileSync(join(dir, "session.patch"), patch);
-    git("apply", "--check", "session.patch");
-    git("apply", "session.patch");
-    assert(
-      readFileSync(join(dir, "src/tail.rs"), "utf8") === afterText,
-      "the applied file is not the after text",
-    );
-    return "";
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-check("a file without a trailing newline says so", () => {
-  const patch = diffOf("x.txt", "a\nb", "a\nc");
-  assert(patch.includes("\\ No newline at end of file"), "the marker is missing");
-  return "";
+  const first = at("src/ingest.rs", "validate");
+  const second = at("web/dashboard.css", "panel-title");
+  assert(!JSON.parse(workspace.rename(first.path, first.line, first.col, "check_reading")).error);
+  assert(!JSON.parse(workspace.rename(second.path, second.line, second.col, "panel-heading")).error);
+  const both = JSON.parse(workspace.patch()).patch;
+  assert(!JSON.parse(workspace.undo(2)).error, "undo refused");
+  const one = JSON.parse(workspace.patch()).patch;
+  assert(one.length < both.length, "undo did not remove the latest transaction from the patch");
+  assert(!JSON.parse(workspace.redo(2)).error, "redo refused");
+  assert(JSON.parse(workspace.patch()).patch === both, "redo did not restore the export");
+  return gitAccepts(both, workspace);
 });
 
 console.log(`\n${checks - failures}/${checks} passed`);

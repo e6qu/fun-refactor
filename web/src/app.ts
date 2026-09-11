@@ -24,7 +24,6 @@ import { draw, type Drawing, type GraphNode } from "./graph";
 import { installHelp, openHelp, livePages, PAGES } from "./help";
 import { decorate } from "./icons";
 import * as menu from "./menu";
-import { patchOf } from "./patch";
 import { escapeHtml, render } from "./render";
 import { installShell, setResizeHandler } from "./shell";
 import "./style.css";
@@ -88,6 +87,7 @@ const subjectLabel = el<HTMLSpanElement>("subject");
 const outline = el<HTMLUListElement>("outline");
 const outlineCount = el<HTMLSpanElement>("outline-count");
 const undoButton = el<HTMLButtonElement>("undo");
+const redoButton = el<HTMLButtonElement>("redo");
 const downloadButton = el<HTMLButtonElement>("download");
 const astPane = el<HTMLDivElement>("ast");
 const astCount = el<HTMLSpanElement>("ast-count");
@@ -96,8 +96,6 @@ const nodeKind = el<HTMLSpanElement>("node-kind");
 
 let workspace: Workspace | null = null;
 let files: Record<string, string> = {};
-/** What was loaded, before anything here changed it. */
-let original: Record<string, string> = {};
 let current = "";
 let workspaceName = "sample";
 const models = new Map<string, monaco.editor.ITextModel>();
@@ -419,10 +417,18 @@ function highlightAstAt(line: number, col: number) {
 }
 
 /** Re-read every model from the workspace after an edit changed the bytes. */
-function syncFromWorkspace(changed: { path: string }[]) {
+function syncFromWorkspace(changed: { path: string; after_exists?: boolean }[]) {
   if (!workspace) return;
   let listChanged = false;
-  for (const { path } of changed) {
+  for (const { path, after_exists = true } of changed) {
+    if (!after_exists) {
+      if (files[path] !== undefined) listChanged = true;
+      delete files[path];
+      models.get(path)?.dispose();
+      models.delete(path);
+      if (current === path) current = "";
+      continue;
+    }
     const text = workspace.read(path);
     if (files[path] === undefined) listChanged = true;
     files[path] = text;
@@ -434,6 +440,15 @@ function syncFromWorkspace(changed: { path: string }[]) {
     }
   }
   if (listChanged) renderFileList(el<HTMLInputElement>("filter").value);
+  if (!current) {
+    const next = Object.keys(files).sort()[0];
+    if (next) openFile(next);
+    else {
+      editor.setModel(null);
+      openPath.textContent = "No file open";
+      languageChip.textContent = "";
+    }
+  }
   renderOutline();
   renderAst();
   // The bytes under the cursor have changed, so what the status bar says about them
@@ -442,17 +457,15 @@ function syncFromWorkspace(changed: { path: string }[]) {
   refreshEditedState();
 }
 
-function editedPaths(): string[] {
-  return Object.keys(files).filter((p) => files[p] !== original[p]);
-}
-
 function refreshEditedState() {
-  const edited = editedPaths();
-  undoButton.disabled = edited.length === 0;
-  downloadButton.disabled = edited.length === 0;
-  undoButton.textContent = edited.length
-    ? `Undo ${edited.length} edited file${edited.length === 1 ? "" : "s"}`
-    : "Undo all edits";
+  const journal = workspace ? JSON.parse(workspace.history()) : { applied: [], redo: [] };
+  const undo = journal.applied.at(-1);
+  const redo = journal.redo.at(-1);
+  undoButton.disabled = undo === undefined;
+  redoButton.disabled = redo === undefined;
+  downloadButton.disabled = journal.applied.length === 0;
+  undoButton.textContent = undo === undefined ? "Undo" : `Undo transaction ${undo}`;
+  redoButton.textContent = redo === undefined ? "Redo" : `Redo transaction ${redo}`;
 }
 
 // ----------------------------------------------------------------- the actions
@@ -756,12 +769,8 @@ el<HTMLInputElement>("filter").addEventListener("input", (e) => {
 // --------------------------------------------------------------------- loading
 
 function adopt(loaded: Record<string, string>, name: string) {
-  // Undoing re-indexes the original bytes, which is the same code path as loading a
-  // repository. What it must not do is move you: you were reading a file when you
-  // pressed it, and coming back somewhere else is disorienting.
   const wasOpen = current;
   files = { ...loaded };
-  original = { ...loaded };
   workspaceName = name;
   models.forEach((m) => m.dispose());
   models.clear();
@@ -867,18 +876,40 @@ el<HTMLFormElement>("load-form").addEventListener("submit", async (e) => {
 // ----------------------------------------------------------------- the results
 
 undoButton.addEventListener("click", () => {
-  if (!editedPaths().length) return;
-  say("Reindexing the original files…", "busy");
-  adopt(original, workspaceName);
-  say(`${workspaceName} — back to what was loaded.`);
-  show(`<p class="hint">Every edit undone. The workspace is what was loaded.</p>`, "Undo");
+  if (!workspace) return;
+  const journal = JSON.parse(workspace.history());
+  const transaction = journal.applied.at(-1);
+  if (transaction === undefined) return;
+  const transition = JSON.parse(workspace.undo(transaction));
+  if (transition.error) {
+    show(`<p class="err">${escapeHtml(transition.error)}</p>`, "Undo");
+    return;
+  }
+  syncFromWorkspace(transition.files);
+  say(`Undid transaction ${transaction}.`);
+  show(render(transition, current), "Undo");
+});
+
+redoButton.addEventListener("click", () => {
+  if (!workspace) return;
+  const journal = JSON.parse(workspace.history());
+  const transaction = journal.redo.at(-1);
+  if (transaction === undefined) return;
+  const transition = JSON.parse(workspace.redo(transaction));
+  if (transition.error) {
+    show(`<p class="err">${escapeHtml(transition.error)}</p>`, "Redo");
+    return;
+  }
+  syncFromWorkspace(transition.files);
+  say(`Redid transaction ${transaction}.`);
+  show(render(transition, current), "Redo");
 });
 
 downloadButton.addEventListener("click", () => {
-  const edited = editedPaths();
-  if (!edited.length) return;
-  const patch = patchOf(edited, original, files);
-  const blob = new Blob([patch], { type: "text/x-patch" });
+  if (!workspace) return;
+  const exported = JSON.parse(workspace.patch());
+  if (exported.error || !exported.patch) return;
+  const blob = new Blob([exported.patch], { type: "text/x-patch" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = `${workspaceName.replace(/[^\w.-]+/g, "-")}.patch`;
