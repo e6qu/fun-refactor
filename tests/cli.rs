@@ -83,6 +83,7 @@ fn cache_uses_a_reported_runtime_fallback_when_the_default_is_unwritable() {
         .args(["--json", "cache"])
         .env_remove("FUN_REFACTOR_CACHE")
         .env_remove("XDG_CACHE_HOME")
+        .env_remove("XDG_RUNTIME_DIR")
         .env("HOME", &blocked_home)
         .env("TMPDIR", &runtime)
         .output()

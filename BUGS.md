@@ -67,6 +67,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B850: **the cache-fallback test inherited a competing Linux runtime directory.**
+  The test asserted its `TMPDIR` location while leaving `XDG_RUNTIME_DIR` active. It now removes
+  that higher-priority variable and exercises the intended fallback on every host.
+
 - [x] B849: **the project profiler inserted a second `project` subcommand.**
   Its Rust profiler accepts the project command directly. The Python driver now forwards the
   requested command unchanged, and its executable profile regression covers the invocation.
