@@ -235,59 +235,70 @@ struct IntentManifest {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "op", rename_all = "kebab-case", deny_unknown_fields)]
+#[serde(tag = "op", deny_unknown_fields)]
 enum Operation {
-    SetInt {
+    #[serde(rename = "set-int")]
+    Int {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
     },
-    SetFloat {
+    #[serde(rename = "set-float")]
+    Float {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
     },
-    SetString {
+    #[serde(rename = "set-string")]
+    String {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
     },
-    SetBool {
+    #[serde(rename = "set-bool")]
+    Bool {
         target: Vec<LocatorStep>,
         from: bool,
         to: bool,
     },
-    SetName {
+    #[serde(rename = "set-name")]
+    Name {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
     },
-    SetFieldName {
+    #[serde(rename = "set-field-name")]
+    FieldName {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
     },
-    SetKeywordName {
+    #[serde(rename = "set-keyword-name")]
+    KeywordName {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
     },
-    SetBinaryOperator {
+    #[serde(rename = "set-binary-operator")]
+    BinaryOperator {
         target: Vec<LocatorStep>,
         from: BinaryOp,
         to: BinaryOp,
     },
-    SetUnaryOperator {
+    #[serde(rename = "set-unary-operator")]
+    UnaryOperator {
         target: Vec<LocatorStep>,
         from: UnaryOp,
         to: UnaryOp,
     },
-    SetTemplateText {
+    #[serde(rename = "set-template-text")]
+    TemplateText {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
     },
-    SetComment {
+    #[serde(rename = "set-comment")]
+    Comment {
         target: Vec<LocatorStep>,
         from: String,
         to: String,
@@ -760,7 +771,7 @@ struct ScalarEdit {
 
 fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit)> {
     let result = match operation {
-        Operation::SetInt { target, from, to } => {
+        Operation::Int { target, from, to } => {
             ensure!(
                 portable_integer(&from) && portable_integer(&to),
                 "set-int needs a portable decimal integer."
@@ -780,7 +791,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 },
             )
         }
-        Operation::SetFloat { target, from, to } => {
+        Operation::Float { target, from, to } => {
             ensure!(
                 portable_float(&from) && portable_float(&to),
                 "set-float needs a portable decimal with a fractional part."
@@ -800,7 +811,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 },
             )
         }
-        Operation::SetString { target, from, to } => (
+        Operation::String { target, from, to } => (
             target,
             ScalarEdit {
                 code: 2,
@@ -814,7 +825,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 to: json!(to),
             },
         ),
-        Operation::SetBool { target, from, to } => (
+        Operation::Bool { target, from, to } => (
             target,
             ScalarEdit {
                 code: 3,
@@ -828,7 +839,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 to: json!(to),
             },
         ),
-        Operation::SetName { target, from, to } => {
+        Operation::Name { target, from, to } => {
             ensure!(
                 portable_name(&from) && portable_name(&to),
                 "set-name needs a portable identifier."
@@ -848,7 +859,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 },
             )
         }
-        Operation::SetFieldName { target, from, to } => {
+        Operation::FieldName { target, from, to } => {
             ensure!(
                 portable_name(&from) && portable_name(&to),
                 "set-field-name needs a portable identifier."
@@ -868,7 +879,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 },
             )
         }
-        Operation::SetKeywordName { target, from, to } => {
+        Operation::KeywordName { target, from, to } => {
             ensure!(
                 portable_name(&from) && portable_name(&to),
                 "set-keyword-name needs a portable identifier."
@@ -888,7 +899,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 },
             )
         }
-        Operation::SetBinaryOperator { target, from, to } => (
+        Operation::BinaryOperator { target, from, to } => (
             target,
             ScalarEdit {
                 code: 7,
@@ -902,7 +913,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 to: serde_json::to_value(to)?,
             },
         ),
-        Operation::SetUnaryOperator { target, from, to } => (
+        Operation::UnaryOperator { target, from, to } => (
             target,
             ScalarEdit {
                 code: 8,
@@ -916,7 +927,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 to: serde_json::to_value(to)?,
             },
         ),
-        Operation::SetTemplateText { target, from, to } => (
+        Operation::TemplateText { target, from, to } => (
             target,
             ScalarEdit {
                 code: 9,
@@ -930,7 +941,7 @@ fn operation_parts(operation: Operation) -> Result<(Vec<LocatorStep>, ScalarEdit
                 to: json!(to),
             },
         ),
-        Operation::SetComment { target, from, to } => (
+        Operation::Comment { target, from, to } => (
             target,
             ScalarEdit {
                 code: 10,
