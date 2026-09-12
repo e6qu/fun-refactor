@@ -160,7 +160,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Sixteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Eighteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -181,10 +181,12 @@ The first packaged roadmap is complete. Sixteen merged pull requests established
 | [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
-| [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | In review |
+| [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
+| PR 18 | Reviewed Semantic Edit Plans | In progress |
 
 The second package now applies the public semantic representation through checked, source-free
-operations. Later shapes remain evidence-driven.
+operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
+exact scalar edits. Later shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -599,7 +601,7 @@ Planned checkpoints:
 
 ### PR 17. Reviewed Semantic Intent Operations
 
-Status: in review as [PR 280](https://github.com/e6qu/fun-refactor/pull/280).
+Status: merged as [PR 280](https://github.com/e6qu/fun-refactor/pull/280).
 
 Goal: let an agent state common exact changes with typed semantic roles and scalar values. The agent
 does not need to construct a complete replacement node or navigate serialization-only `value` fields.
@@ -667,6 +669,61 @@ Planned checkpoints:
    bytes and seven commands, versus 1,930 bytes and nine commands for complete-body authoring. It
    uses fewer total input and output tokens, while input excluding reported cache hits is 18.8%
    higher. The complete native, strict Lean and WASM gate passes. PR 280 carries the completed checkpoint.
+
+### PR 18. Reviewed Semantic Edit Plans
+
+Status: in progress.
+
+Goal: let an agent discover and apply one exact scalar semantic edit without guessing a file path,
+constructing a JSON manifest or reading source. Preserve the reviewed semantic-intent contract as
+the audit representation used by every shorter route.
+
+Deliverables:
+
+- Let a semantic declaration query resolve one exact eligible name below a file or directory target.
+  Report the selected revision-bound handle and refuse zero or multiple matches without choosing by
+  traversal order.
+- Add a bounded edit-plan request over operation, exact current scalar and requested scalar. Resolve
+  exactly one role locator, validate the generated `fr-semantic-intent-1` payload and return its
+  canonical body basis, target and intent identity as review evidence.
+- Add direct project authoring for the same request. Preview and write compile the generated intent
+  through the existing checked delta engine and preserve body fidelity, surrounding bytes, history,
+  undo, redo and Git patch behavior.
+- Carry the plan through author batches, project tasks and reviewed task changes where the shorter
+  form remains complete. Keep the explicit semantic-intent manifest route for multi-operation and
+  ambiguous edits.
+- Mirror the plan request in the zero-dependency Python SDK without hiding the public intent shape.
+  Update the portable skill with one exact route and explicit fallbacks.
+- Model unique candidate selection, scalar request admission and generated-intent equivalence in
+  Lean. Anchor the critical Rust predicates and compare their complete bounded state spaces.
+- Compare the direct plan with the PR 17 manifest route on generic cross-language fixtures. Retain
+  a fresh Luna-low pair only after deterministic evidence reduces commands and counted context.
+
+Verification and acceptance:
+
+1. Directory and file discovery returns one eligible exact declaration or a structured zero/many
+   refusal; source and unsupported semantic text never enter the report.
+2. A plan is admitted only when operation and scalar encodings are valid and one generated locator
+   resolves to the exact current scalar under the reported body identity.
+3. Applying the plan produces the same canonical intent, compiled delta, semantic body and source
+   bytes as the explicit PR 17 route.
+4. Preview is read-only. Stale revisions, changed bodies, ambiguity, no-ops, unsupported writers and
+   invalid values refuse before source or history mutation.
+5. Direct, batch and task-change writes retain checks, exact undo and redo, and forward and reverse
+   Git patch identity.
+6. Lean proves unique-selection and admission laws. Exhaustive Rust correspondence and generated
+   cross-language cases connect the model to the implementation while retaining the documented
+   parser, writer, Serde, SHA-256 and filesystem trust boundaries.
+7. Native, Python, documentation, portable-skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **In progress.** Freeze the source-free discovery, plan, ambiguity and lifecycle contract.
+2. Implement workspace-scoped semantic declaration resolution and project-independent plan creation.
+3. Add direct authoring plus batch, task and task-change integration.
+4. Add Python builders, Lean models, anchors and exhaustive correspondence.
+5. Update the portable skill and docs; retain deterministic and fresh-agent evidence if its gate passes.
+6. Pass the complete repository gate and publish the large PR for review.
 
 ## Formal verification policy
 

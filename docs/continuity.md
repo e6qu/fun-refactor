@@ -135,7 +135,7 @@ typed category and kind. Ambiguous file requests and incomplete bodies refuse in
 an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
 fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
 
-PR 17 is in review as [GitHub PR 280](https://github.com/e6qu/fun-refactor/pull/280). Its reviewed `fr-semantic-intent-1` contract
+PR 17 merged as [GitHub PR 280](https://github.com/e6qu/fun-refactor/pull/280). Its reviewed `fr-semantic-intent-1` contract
 binds up to 64 ordered scalar operations to one canonical body identity. Typed role locators carry
 optional category, kind, index and label witnesses. Missing, ambiguous, stale or mismatched evidence
 refuses before a project write. Eleven operations cover portable literals, names, operators,
@@ -182,6 +182,15 @@ not prove behavior. Source writers can normalize text elsewhere inside the selec
 resolution, scalar locality, compiled-delta equivalence and bounds are the critical proof targets.
 Parser, writer, Serde, SHA-256, filesystem and Python behavior remain explicit trusted or tested
 boundaries.
+
+PR 18 is the active Reviewed Semantic Edit Plans milestone. PR 17's fresh intent trace used fewer
+commands and total tokens than complete-body authoring, but it first tried a directory as a semantic
+target and then manually assembled a payload already determined by one exact operation and scalar.
+The next contract combines workspace-scoped exact declaration discovery, unique scalar-role
+selection and direct authoring while retaining `fr-semantic-intent-1` as the review receipt. Zero or
+multiple candidates must refuse. The explicit manifest route remains available for ordered and
+ambiguous edits. Lean work targets unique selection, scalar request admission and equivalence with
+the existing checked intent compiler before another fresh Luna-low pair is retained.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
