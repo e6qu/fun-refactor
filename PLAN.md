@@ -546,7 +546,7 @@ Planned checkpoints:
 
 ### PR 16. Checked Semantic Delta Authoring
 
-Status: complete on `semantic_ir_operations`, pending review.
+Status: in review as [PR 278](https://github.com/e6qu/fun-refactor/pull/278).
 
 Goal: let an agent make a small typed semantic change without reproducing an entire function body
 or reading language-specific source.

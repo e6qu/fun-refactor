@@ -92,7 +92,7 @@ task favors direct JSON for one-off construction and leaves SDK reuse as a futur
 The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
 passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
-The `semantic_ir_operations` branch completes roadmap PR 16. It adds a checked semantic-delta
+Roadmap [PR 16](https://github.com/e6qu/fun-refactor/pull/278) adds a checked semantic-delta
 contract so an agent can replace one typed IR node or insert/delete one statement without resending
 the complete function body. The change stays bound to a canonical body identity and must preserve a
 strict, bounded, source-free body after every ordered operation.
