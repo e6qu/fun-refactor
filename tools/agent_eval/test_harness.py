@@ -289,8 +289,8 @@ class TaskChangeEvidence(unittest.TestCase):
         report = task_change_measurement.audit(path)
         self.assertEqual(report["summary"]["composed"]["calls"], 5)
         self.assertEqual(report["summary"]["task_change"]["calls"], 2)
-        self.assertEqual(report["summary"]["composed"]["median_context_tokens"], 4623)
-        self.assertEqual(report["summary"]["task_change"]["median_context_tokens"], 3736)
+        self.assertEqual(report["summary"]["composed"]["median_context_tokens"], 4627)
+        self.assertEqual(report["summary"]["task_change"]["median_context_tokens"], 3740)
         for repetition in range(1, 4):
             pair = {run["arm"]: run for run in report["runs"]
                     if run["repetition"] == repetition}

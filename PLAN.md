@@ -108,9 +108,9 @@ in all three repetitions. This fixed sequence supports an adoption trial and mak
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
 revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
-median counted context falls from 1,557 to 1,510 tokens, a 3.0% reduction. Serialized context falls
-from 5,586 to 4,744 bytes, a 15.1% reduction. Calls fall from four to one and median local subprocess
-time falls from 0.040 to 0.014 seconds. Both arms stop before fragment creation or mutation. This is
+median counted context falls from 1,696 to 1,514 tokens, a 10.7% reduction. Serialized context falls
+from 6,191 to 4,758 bytes, a 23.1% reduction. Calls fall from four to one. Both arms stop before
+fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.
@@ -118,8 +118,8 @@ It makes repeated skill, inspection and transaction output the immediate optimiz
 The [coordinated evaluation](docs/agent-coordinated-evaluation.md) contains the protocol, retained evidence and limits.
 
 The PR 13 controlled change fixture compares the composed task, author and workflow route with one
-reviewed task-change command. Calls fall from five to two. Median counted context falls from 4,623
-to 3,736 tokens, a 19.2% reduction. Serialized context falls from 13,676 to 11,274 bytes, a 17.6%
+reviewed task-change command. Calls fall from five to two. Median counted context falls from 4,627
+to 3,740 tokens, a 19.2% reduction. Serialized context falls from 13,690 to 11,288 bytes, a 17.5%
 reduction. Both arms resolve the same task, apply the same source change, run identical reversal
 stages and emit the same patch. The task-change transaction also binds its required checks. This
 fixed comparison makes no autonomous-agent or population claim.

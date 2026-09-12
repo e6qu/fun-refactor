@@ -17,9 +17,9 @@ write. Both count the common fragment.
 | Measure | Composed | Task change | Difference |
 |---|---:|---:|---:|
 | Calls | 5 | 2 | 3 fewer |
-| Median counted context | 4,623 tokens | 3,736 tokens | 887 tokens (19.2%) fewer |
-| Median counted context | 13,676 bytes | 11,274 bytes | 2,402 bytes (17.6%) fewer |
-| Median local wall time | 0.393 s | 0.361 s | 8.1% lower |
+| Median counted context | 4,627 tokens | 3,740 tokens | 887 tokens (19.2%) fewer |
+| Median counted context | 13,690 bytes | 11,288 bytes | 2,402 bytes (17.5%) fewer |
+| Median local wall time | 0.533 s | 0.442 s | 17.1% lower |
 
 All three rotating repetitions produce equal normalized stage, history, final source and patch
 identities. Task change also records the selected check requirement on its transaction. The older

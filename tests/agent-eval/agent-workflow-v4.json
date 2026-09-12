@@ -3,7 +3,7 @@
   "passed": true,
   "binary": {
     "path": "target/debug/fr",
-    "sha256": "491815ac89e6a6558067695f59e0c2fa28b10a776334911250c0a5fbc8ecf697"
+    "sha256": "be400f2e7386425b18482aa85546e20a5db04d947aa5448f19f9d3e6ad68ad96"
   },
   "frozen_trace": {
     "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
@@ -29,7 +29,7 @@
   "prescribed": {
     "calls": 29,
     "prompt_bytes": 7472,
-    "visible_output_bytes": 35687,
+    "visible_output_bytes": 35647,
     "tool_request_bytes": 4626,
     "prompt_tokens": 1564,
     "visible_output_tokens": 11819,
@@ -39,7 +39,7 @@
   "difference": {
     "calls": -13,
     "prompt_bytes": 1193,
-    "visible_output_bytes": -7284,
+    "visible_output_bytes": -7324,
     "tool_request_bytes": -1854,
     "prompt_tokens": 240,
     "visible_output_tokens": -2315,
@@ -108,7 +108,7 @@
   "measurement_files": {
     "tools/agent-workflow-v4.py": "b5a247873352a94ddc1560a0189a8eae1cd647b006b8f5b6f357c09b8a4039cf",
     "skills/fr/SKILL.md": "78e1ccb61e0c5a55b99204fbf91c4f015ea2be0be88d0be37faeb8b6e261bae1",
-    "skills/fr/references/author.md": "8bd0218901741385ba4318cd90e137307fb0c66e6bbc9f7533e5600d198324f0",
+    "skills/fr/references/author.md": "fc4d0855f753b46960aecb2693c04c0a0f4a8a3cebdc36c6cfb6006917f55d9d",
     "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f"
   },
   "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with semantically validated live output from this binary. Opaque live revision and context identities use fixed high-entropy representatives of the same byte lengths so token counts reproduce across runs. It uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path."
