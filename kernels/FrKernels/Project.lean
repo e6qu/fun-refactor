@@ -479,11 +479,11 @@ theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
   simp [batchSectionFits]
   omega
 
--- fr:spec src/project/task.rs::task_author_target_candidate @ 42793ab0a8d9b8b6b7d89061798611405395e2b4feda2741f91d1f81f458d7cb
+-- fr:spec src/project/task.rs::task_author_target_candidate @ 2e353a2552d226c3d5115f387ab31c45fecfc0bc6f3f13f0d3e34e09d8163a10
 -- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
 def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
   match operation with
-  | 0 | 4 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
+  | 0 | 4 | 5 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
       (target = 1 ∨ target = 2 ∨ (language = 4 ∨ language = 5) ∧ target = 3))
   | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
   | 2 => decide (language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5))
@@ -506,6 +506,11 @@ theorem organize_imports_requires_file (language target : Nat)
 
 theorem semantic_body_targets_match_source_body_targets (language target : Nat) :
     taskAuthorTargetCandidate 4 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+theorem semantic_delta_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 5 language target =
       taskAuthorTargetCandidate 0 language target := by
   simp [taskAuthorTargetCandidate]
 

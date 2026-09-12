@@ -119,7 +119,7 @@ pub(super) fn validate_body_input(input: &str) -> Result<ValidatedBody> {
         "semantic body schema must be fr-semantic-body-1."
     );
     ensure!(
-        manifest.body.len() <= MAX_STATEMENTS && nodes <= MAX_NODES,
+        semantic_change_result_bounded(manifest.body.len(), nodes),
         "semantic body input is limited to 512 statements and 4096 semantic nodes."
     );
     let canonical = serde_json::to_string(&manifest)?;
@@ -138,16 +138,47 @@ pub fn body_basis(body: &SemanticBody) -> Result<String> {
     ))
 }
 
+pub fn semantic_change_admitted(
+    schema_matches: bool,
+    base_well_formed: bool,
+    base_matches: bool,
+    source_free: bool,
+    operation_count: usize,
+) -> bool {
+    schema_matches
+        && base_well_formed
+        && base_matches
+        && source_free
+        && (1..=MAX_OPERATIONS).contains(&operation_count)
+}
+
+pub fn semantic_change_result_bounded(statements: usize, nodes: usize) -> bool {
+    statements <= MAX_STATEMENTS && nodes <= MAX_NODES
+}
+
+pub fn semantic_pointer_bounded(bytes: usize, segments: usize) -> bool {
+    (1..=MAX_POINTER_BYTES).contains(&bytes) && (1..=MAX_POINTER_SEGMENTS).contains(&segments)
+}
+
+pub fn semantic_statement_index_allowed(operation: usize, statements: usize, index: usize) -> bool {
+    match operation {
+        0 => index <= statements,
+        1 => index < statements,
+        _ => false,
+    }
+}
+
 fn canonical_pointer(path: &str, allow_body: bool) -> bool {
-    if path.len() > MAX_POINTER_BYTES
-        || !path.starts_with('/')
+    if !path.starts_with('/')
         || (!allow_body && !path.starts_with("/body/"))
         || (allow_body && path != "/body" && !path.starts_with("/body/"))
     {
         return false;
     }
     let segments = path[1..].split('/').collect::<Vec<_>>();
-    if segments.len() > MAX_POINTER_SEGMENTS || segments.iter().any(|part| part.is_empty()) {
+    if !semantic_pointer_bounded(path.len(), segments.len())
+        || segments.iter().any(|part| part.is_empty())
+    {
         return false;
     }
     segments.iter().all(|part| {
@@ -248,7 +279,7 @@ fn apply_insert(body: &mut Value, path: &str, index: usize, statement: Value) ->
         .as_array_mut()
         .with_context(|| format!("semantic insertion path '{path}' is not a statement list."))?;
     ensure!(
-        index <= list.len(),
+        semantic_statement_index_allowed(0, list.len(), index),
         "semantic insertion index is out of bounds."
     );
     list.insert(index, statement);
@@ -280,7 +311,7 @@ fn apply_delete(body: &mut Value, path: &str) -> Result<Value> {
             format!("semantic deletion parent '{parent_path}' is not a statement list.")
         })?;
     ensure!(
-        index < list.len(),
+        semantic_statement_index_allowed(1, list.len(), index),
         "semantic deletion index is out of bounds."
     );
     ensure!(
@@ -304,8 +335,9 @@ pub fn apply(body_input: &str, change_input: &str) -> Result<AppliedChange> {
     let input_basis = body_basis(&validated.manifest)?;
     let change_value: Value =
         serde_json::from_str(change_input).context("semantic change input must be JSON.")?;
+    let source_free = super::semantic_ir::source_free(&change_value);
     ensure!(
-        super::semantic_ir::source_free(&change_value),
+        source_free,
         "semantic change input must not contain source fields or unsupported nodes."
     );
     let change: ChangeManifest = serde_json::from_value(change_value)
@@ -314,12 +346,13 @@ pub fn apply(body_input: &str, change_input: &str) -> Result<AppliedChange> {
         change.schema == CHANGE_SCHEMA,
         "semantic change schema must be fr-semantic-change-1."
     );
+    let base_well_formed = change.base.starts_with(BODY_BASIS_PREFIX)
+        && change.base.len() == BODY_BASIS_PREFIX.len() + 64
+        && change.base[BODY_BASIS_PREFIX.len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit());
     ensure!(
-        change.base.starts_with(BODY_BASIS_PREFIX)
-            && change.base.len() == BODY_BASIS_PREFIX.len() + 64
-            && change.base[BODY_BASIS_PREFIX.len()..]
-                .bytes()
-                .all(|byte| byte.is_ascii_hexdigit()),
+        base_well_formed,
         "semantic change base must be an frsb1 SHA-256 identity."
     );
     ensure!(
@@ -329,6 +362,16 @@ pub fn apply(body_input: &str, change_input: &str) -> Result<AppliedChange> {
     ensure!(
         (1..=MAX_OPERATIONS).contains(&change.operations.len()),
         "semantic change needs 1 through 64 operations."
+    );
+    ensure!(
+        semantic_change_admitted(
+            change.schema == CHANGE_SCHEMA,
+            base_well_formed,
+            change.base == input_basis,
+            source_free,
+            change.operations.len()
+        ),
+        "semantic change admission failed."
     );
 
     let mut current = serde_json::to_value(&validated.manifest)?;

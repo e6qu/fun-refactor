@@ -162,6 +162,11 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
                 "id": "render-body",
                 "handle": {"request": "target", "pointer": "/rows/0/0"},
                 "op": "replace-body"
+            },
+            {
+                "id": "render-delta",
+                "handle": {"request": "target", "pointer": "/rows/0/0"},
+                "op": "edit-body-semantic"
             }
         ],
         "checks": ["unit"],
@@ -181,6 +186,8 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     assert_eq!(task["targets"][0]["operation"], "insert-declaration");
     assert_eq!(task["targets"][1]["kind"], "function");
     assert_eq!(task["targets"][1]["operation"], "replace-body");
+    assert_eq!(task["targets"][2]["kind"], "function");
+    assert_eq!(task["targets"][2]["operation"], "edit-body-semantic");
     for target in task["targets"].as_array().unwrap() {
         assert_eq!(target["eligibility"], "target-supported");
         assert_eq!(target["syntax_preflighted"], false);
@@ -197,6 +204,10 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     assert_eq!(
         task["author_manifest_template"]["operations"][1]["from"],
         "<FRAGMENT:render-body>"
+    );
+    assert_eq!(
+        task["author_manifest_template"]["operations"][2]["from"],
+        "<FRAGMENT:render-delta>"
     );
     assert_eq!(task["checks"]["selected"], true);
     assert_eq!(task["checks"]["names"], serde_json::json!(["unit"]));

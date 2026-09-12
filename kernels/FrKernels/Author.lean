@@ -206,6 +206,96 @@ theorem semantic_body_requires_supported_target
     targetSupported = true := by
   exact (semantic_body_admitted_iff schemaMatches targetSupported sourceFree bounded).mp accepted |>.2.1
 
+-- fr:spec src/project/semantic_change.rs::semantic_change_admitted @ dcc9951d19dcb195d5ab7acc76d705d4bc14e60c9d0a0c0dd033ad75620b0672
+-- fr:signature schema_matches: bool => schemaMatches: Bool; base_well_formed: bool => baseWellFormed: Bool; base_matches: bool => baseMatches: Bool; source_free: bool => sourceFree: Bool; operation_count: usize => operationCount: Nat; return: bool => return: Bool
+def semanticChangeAdmitted
+    (schemaMatches : Bool)
+    (baseWellFormed : Bool)
+    (baseMatches : Bool)
+    (sourceFree : Bool)
+    (operationCount : Nat) : Bool :=
+  schemaMatches && baseWellFormed && baseMatches && sourceFree &&
+    decide (1 ≤ operationCount ∧ operationCount ≤ 64)
+
+theorem semantic_change_admitted_iff
+    (schemaMatches baseWellFormed baseMatches sourceFree : Bool) (operationCount : Nat) :
+    semanticChangeAdmitted schemaMatches baseWellFormed baseMatches sourceFree operationCount = true ↔
+      schemaMatches = true ∧ baseWellFormed = true ∧ baseMatches = true ∧ sourceFree = true ∧
+        1 ≤ operationCount ∧ operationCount ≤ 64 := by
+  cases schemaMatches <;> cases baseWellFormed <;> cases baseMatches <;> cases sourceFree <;>
+    simp [semanticChangeAdmitted]
+
+theorem semantic_change_requires_matching_base
+    (schemaMatches baseWellFormed baseMatches sourceFree : Bool) (operationCount : Nat)
+    (accepted : semanticChangeAdmitted schemaMatches baseWellFormed baseMatches sourceFree operationCount = true) :
+    baseMatches = true := by
+  exact (semantic_change_admitted_iff schemaMatches baseWellFormed baseMatches sourceFree operationCount).mp accepted |>.2.2.1
+
+theorem semantic_change_operation_count_bounded
+    (schemaMatches baseWellFormed baseMatches sourceFree : Bool) (operationCount : Nat)
+    (accepted : semanticChangeAdmitted schemaMatches baseWellFormed baseMatches sourceFree operationCount = true) :
+    1 ≤ operationCount ∧ operationCount ≤ 64 := by
+  exact (semantic_change_admitted_iff schemaMatches baseWellFormed baseMatches sourceFree operationCount).mp accepted |>.2.2.2.2
+
+-- fr:spec src/project/semantic_change.rs::semantic_change_result_bounded @ eb74ff63a8e6b77513cb5bd673f44d9f6070b8521edf3ee60456dbf0bb1600af
+-- fr:signature statements: usize => statements: Nat; nodes: usize => nodes: Nat; return: bool => return: Bool
+def semanticChangeResultBounded (statements : Nat) (nodes : Nat) : Bool :=
+  decide (statements ≤ 512 ∧ nodes ≤ 4096)
+
+theorem semantic_change_result_bounded_iff (statements nodes : Nat) :
+    semanticChangeResultBounded statements nodes = true ↔ statements ≤ 512 ∧ nodes ≤ 4096 := by
+  simp [semanticChangeResultBounded]
+
+theorem semantic_change_result_preserves_node_limit (statements nodes : Nat)
+    (bounded : semanticChangeResultBounded statements nodes = true) : nodes ≤ 4096 := by
+  exact (semantic_change_result_bounded_iff statements nodes).mp bounded |>.2
+
+-- fr:spec src/project/semantic_change.rs::semantic_pointer_bounded @ 55932c6a0e8f38e98a7b182d1fa1016f9f93fc7017b63d88642036cabf066371
+-- fr:signature bytes: usize => bytes: Nat; segments: usize => segments: Nat; return: bool => return: Bool
+def semanticPointerBounded (bytes : Nat) (segments : Nat) : Bool :=
+  decide (1 ≤ bytes ∧ bytes ≤ 1024 ∧ 1 ≤ segments ∧ segments ≤ 64)
+
+theorem semantic_pointer_bounded_iff (bytes segments : Nat) :
+    semanticPointerBounded bytes segments = true ↔
+      1 ≤ bytes ∧ bytes ≤ 1024 ∧ 1 ≤ segments ∧ segments ≤ 64 := by
+  simp [semanticPointerBounded]
+
+-- fr:spec src/project/semantic_change.rs::semantic_statement_index_allowed @ edcadcd32782ccfb6070e55c87f4279d9d2ef075f0334790a43342290a8e0f41
+-- fr:signature operation: usize => operation: Nat; statements: usize => statements: Nat; index: usize => index: Nat; return: bool => return: Bool
+def semanticStatementIndexAllowed (operation : Nat) (statements : Nat) (index : Nat) : Bool :=
+  match operation with
+  | 0 => decide (index ≤ statements)
+  | 1 => decide (index < statements)
+  | _ => false
+
+def semanticStatementCountAfter (operation : Nat) (statements : Nat) : Nat :=
+  match operation with
+  | 0 => statements + 1
+  | 1 => statements - 1
+  | _ => statements
+
+theorem semantic_insert_acceptance_and_count (statements index : Nat) :
+    semanticStatementIndexAllowed 0 statements index = true ↔ index ≤ statements := by
+  simp [semanticStatementIndexAllowed]
+
+theorem semantic_insert_increases_count (statements : Nat) :
+    semanticStatementCountAfter 0 statements = statements + 1 := by
+  rfl
+
+theorem semantic_delete_acceptance_and_count (statements index : Nat) :
+    semanticStatementIndexAllowed 1 statements index = true ↔ index < statements := by
+  simp [semanticStatementIndexAllowed]
+
+theorem semantic_delete_requires_nonempty (statements index : Nat)
+    (accepted : semanticStatementIndexAllowed 1 statements index = true) : 0 < statements := by
+  exact Nat.lt_of_le_of_lt (Nat.zero_le index)
+    ((semantic_delete_acceptance_and_count statements index).mp accepted)
+
+theorem semantic_delete_decreases_count (statements : Nat) (nonempty : 0 < statements) :
+    semanticStatementCountAfter 1 statements + 1 = statements := by
+  simp [semanticStatementCountAfter]
+  omega
+
 def semanticTypeKinds : List String :=
   ["unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn"]
 

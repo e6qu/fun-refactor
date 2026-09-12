@@ -148,6 +148,7 @@ pub(super) struct BatchStep {
 pub(super) enum BatchOperation {
     ReplaceBody,
     ReplaceBodySemantic,
+    EditBodySemantic,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -541,6 +542,9 @@ impl Project<'_> {
                         BatchOperation::ReplaceBodySemantic => {
                             self.replace_body_semantic(&operation_options)
                         }
+                        BatchOperation::EditBodySemantic => {
+                            self.edit_body_semantic(&operation_options)
+                        }
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -563,7 +567,9 @@ impl Project<'_> {
             let id = self.resolve_handle(&handle)?;
             let path = self.root.join(&self.nodes[id].path);
             let key = match step.op {
-                BatchOperation::ReplaceBody | BatchOperation::ReplaceBodySemantic => "body",
+                BatchOperation::ReplaceBody
+                | BatchOperation::ReplaceBodySemantic
+                | BatchOperation::EditBodySemantic => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -603,6 +609,7 @@ impl Project<'_> {
                 "name_resolution_checked",
                 "semantic_input",
                 "semantic_render",
+                "semantic_change",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();

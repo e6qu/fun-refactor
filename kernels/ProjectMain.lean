@@ -73,6 +73,25 @@ def main (args : List String) : IO Unit := do
         for sourceFree in [false, true] do
           for bounded in [false, true] do
             IO.println (FrKernels.Author.semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded)
+  else if args == ["semantic-change-admission"] then
+    for schemaMatches in [false, true] do
+      for baseWellFormed in [false, true] do
+        for baseMatches in [false, true] do
+          for sourceFree in [false, true] do
+            for operationCount in frameworkSamples do
+              IO.println (FrKernels.Author.semanticChangeAdmitted schemaMatches baseWellFormed
+                baseMatches sourceFree operationCount)
+  else if args == ["semantic-change-bounds"] then
+    for statements in frameworkSamples do
+      for nodes in frameworkSamples do
+        IO.println (FrKernels.Author.semanticChangeResultBounded statements nodes)
+    for bytes in frameworkSamples do
+      for segments in frameworkSamples do
+        IO.println (FrKernels.Author.semanticPointerBounded bytes segments)
+    for operation in [0:4] do
+      for statements in frameworkSamples do
+        for index in frameworkSamples do
+          IO.println (FrKernels.Author.semanticStatementIndexAllowed operation statements index)
   else if args == ["semantic-ir-catalog"] then
     for category in [0:5] do
       for kind in [0:31] do
