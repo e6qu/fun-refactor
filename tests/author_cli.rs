@@ -724,6 +724,11 @@ fn semantic_intent_authoring_changes_scalars_across_supported_languages() {
         );
         assert_eq!(report["query"], "edit-body-intent");
         assert_eq!(report["semantic_intent"]["input_basis"], base);
+        assert!(report["semantic_intent"]["basis"]
+            .as_str()
+            .unwrap()
+            .starts_with("fri1:"));
+        assert!(report["semantic_intent"]["sha256"].is_string());
         assert_eq!(report["semantic_intent"]["refinement_checked"], true);
         assert_eq!(
             report["semantic_intent"]["operations"]

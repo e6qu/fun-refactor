@@ -161,8 +161,8 @@ SHA-256, parsers, writers, filesystem behavior and Python remain tested or trust
 
 The deterministic four-route report is `tests/agent-eval/semantic-intent.json`. Complete-body,
 pointer-delta, direct-intent and Python-intent routes produce equal behavior, source, body, patch,
-undo and redo evidence. Filtered direct intent uses 8,518 measured bytes, versus 8,609 for the
-complete body and 10,357 for the pointer delta. Python intent uses 8,989 after counting its producer.
+undo and redo evidence. Filtered direct intent uses 8,678 measured bytes, versus 8,609 for the
+complete body and 10,357 for the pointer delta. Python intent uses 9,149 after counting its producer.
 
 The fresh Luna-low comparison is retained under
 `tests/agent-eval/results/2026-09-12-semantic-intent`. Both isolated arms avoid source reads, produce
