@@ -15,6 +15,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 SCHEMA = "fr-semantic-body-1"
 CHANGE_SCHEMA = "fr-semantic-change-1"
+INTENT_SCHEMA = "fr-semantic-intent-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -58,6 +59,64 @@ class ParamKind(str, Enum):
     VAR_ARGS = "var-args"
     KEYWORD_ARGS = "keyword-args"
     MARKER = "marker"
+
+
+class NodeCategory(str, Enum):
+    TYPE = "type"
+    STATEMENT = "statement"
+    EXPRESSION = "expression"
+    TEMPLATE = "template"
+
+
+class Role(str, Enum):
+    STATEMENT = "statement"
+    RESULT = "result"
+    ANNOTATION = "annotation"
+    INITIALIZER = "initializer"
+    ASSIGNMENT_TARGET = "assignment-target"
+    ASSIGNMENT_VALUE = "assignment-value"
+    CONDITION = "condition"
+    THEN_STATEMENT = "then-statement"
+    ELSE_STATEMENT = "else-statement"
+    BODY_STATEMENT = "body-statement"
+    FINALLY_STATEMENT = "finally-statement"
+    ITERABLE = "iterable"
+    SUBJECT = "subject"
+    EXPRESSION = "expression"
+    MESSAGE = "message"
+    CALLEE = "callee"
+    ARGUMENT = "argument"
+    RECEIVER = "receiver"
+    INDEX = "index"
+    LEFT = "left"
+    RIGHT = "right"
+    OPERAND = "operand"
+    VALUE = "value"
+    FALLBACK = "fallback"
+    THEN_EXPRESSION = "then-expression"
+    ELSE_EXPRESSION = "else-expression"
+    ELEMENT = "element"
+    TEMPLATE_PART = "template-part"
+    TEMPLATE_EXPRESSION = "template-expression"
+    LAMBDA_BODY = "lambda-body"
+    COMPREHENSION_ELEMENT = "comprehension-element"
+    COMPREHENSION_CONDITION = "comprehension-condition"
+    TYPE_EXPRESSION = "type-expression"
+    INNER_TYPE = "inner-type"
+    MAP_KEY_TYPE = "map-key-type"
+    MAP_VALUE_TYPE = "map-value-type"
+    TUPLE_TYPE = "tuple-type"
+    TYPE_ARGUMENT = "type-argument"
+    PARAMETER_TYPE = "parameter-type"
+    RETURN_TYPE = "return-type"
+
+
+ROLE_NAMES = tuple(role.value for role in Role)
+INTENT_OPERATIONS = (
+    "set-int", "set-float", "set-string", "set-bool", "set-name", "set-field-name",
+    "set-keyword-name", "set-binary-operator", "set-unary-operator", "set-template-text",
+    "set-comment",
+)
 
 
 @dataclass(frozen=True)
@@ -534,9 +593,204 @@ class SemanticChange:
         Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
 
 
+@dataclass(frozen=True)
+class LocatorStep:
+    role: Role | str
+    index: int | None = None
+    category: NodeCategory | str | None = None
+    kind: str | None = None
+    label: str | None = None
+
+    def __post_init__(self) -> None:
+        _enum(self.role, Role, "semantic role")
+        if self.index is not None and (
+            isinstance(self.index, bool) or not isinstance(self.index, int) or self.index < 0
+        ):
+            raise IrError("semantic locator index must be a nonnegative integer")
+        if self.category is not None:
+            _enum(self.category, NodeCategory, "node category")
+        for value, field in ((self.kind, "kind"), (self.label, "label")):
+            if value is not None and not isinstance(value, str):
+                raise IrError(f"semantic locator {field} must be a string")
+
+    def to_data(self, _seen: set[int] | None = None) -> dict[str, Any]:
+        data: dict[str, Any] = {"role": _enum(self.role, Role, "semantic role")}
+        if self.index is not None:
+            data["index"] = self.index
+        if self.category is not None:
+            data["category"] = _enum(self.category, NodeCategory, "node category")
+        if self.kind is not None:
+            data["kind"] = self.kind
+        if self.label is not None:
+            data["label"] = self.label
+        return data
+
+
+def _portable_integer(value: str) -> bool:
+    return value == "0" or bool(value) and value[0] in "123456789" and value.isascii() and value.isdigit()
+
+
+def _portable_float(value: str) -> bool:
+    parts = value.split(".")
+    return len(parts) == 2 and _portable_integer(parts[0]) and bool(parts[1]) and parts[1].isascii() and parts[1].isdigit()
+
+
+def _portable_name(value: str) -> bool:
+    return (
+        bool(value)
+        and len(value.encode("utf-8")) <= 128
+        and value.isascii()
+        and (value[0].isalpha() or value[0] == "_")
+        and all(character.isalnum() or character == "_" for character in value)
+    )
+
+
+def _intent_steps(target: Iterable[LocatorStep]) -> list[LocatorStep]:
+    result = list(target)
+    if not 1 <= len(result) <= 64:
+        raise IrError("semantic intent locator needs 1 through 64 role steps")
+    if not all(isinstance(step, LocatorStep) for step in result):
+        raise IrError("semantic intent target must contain LocatorStep values")
+    return result
+
+
+@dataclass(frozen=True)
+class _IntentOperation:
+    op: str
+    target: Sequence[LocatorStep]
+    before: Any
+    after: Any
+
+    def to_data(self, _seen: set[int] | None = None) -> dict[str, Any]:
+        return {
+            "op": self.op,
+            "target": [step.to_data() for step in self.target],
+            "from": _data(self.before, set()),
+            "to": _data(self.after, set()),
+        }
+
+
+def _intent_scalar(
+    op: str,
+    target: Iterable[LocatorStep],
+    before: Any,
+    after: Any,
+) -> _IntentOperation:
+    if before == after and type(before) is type(after):
+        raise IrError("semantic intent operation must change its scalar")
+    string_operations = {"set-string", "set-template-text", "set-comment"}
+    name_operations = {"set-name", "set-field-name", "set-keyword-name"}
+    if op == "set-int":
+        if not all(isinstance(value, str) and _portable_integer(value) for value in (before, after)):
+            raise IrError("set-int needs portable decimal integer strings")
+    elif op == "set-float":
+        if not all(isinstance(value, str) and _portable_float(value) for value in (before, after)):
+            raise IrError("set-float needs portable decimal strings with a fractional part")
+    elif op == "set-bool":
+        if not all(type(value) is bool for value in (before, after)):
+            raise IrError("set-bool needs Boolean values")
+    elif op in string_operations:
+        if not all(isinstance(value, str) for value in (before, after)):
+            raise IrError(f"{op} needs string values")
+    elif op in name_operations:
+        if not all(isinstance(value, str) and _portable_name(value) for value in (before, after)):
+            raise IrError(f"{op} needs portable identifiers")
+    elif op == "set-binary-operator":
+        before = _enum(before, BinaryOp, "binary operator")
+        after = _enum(after, BinaryOp, "binary operator")
+    elif op == "set-unary-operator":
+        before = _enum(before, UnaryOp, "unary operator")
+        after = _enum(after, UnaryOp, "unary operator")
+    else:
+        raise IrError(f"unknown semantic intent operation: {op}")
+    return _IntentOperation(op, _intent_steps(target), before, after)
+
+
+class Intent:
+    @staticmethod
+    def SetInt(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-int", target, before, after)
+
+    @staticmethod
+    def SetFloat(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-float", target, before, after)
+
+    @staticmethod
+    def SetString(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-string", target, before, after)
+
+    @staticmethod
+    def SetBool(target: Iterable[LocatorStep], before: bool, after: bool) -> _IntentOperation:
+        return _intent_scalar("set-bool", target, before, after)
+
+    @staticmethod
+    def SetName(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-name", target, before, after)
+
+    @staticmethod
+    def SetFieldName(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-field-name", target, before, after)
+
+    @staticmethod
+    def SetKeywordName(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-keyword-name", target, before, after)
+
+    @staticmethod
+    def SetBinaryOperator(target: Iterable[LocatorStep], before: BinaryOp | str, after: BinaryOp | str) -> _IntentOperation:
+        return _intent_scalar("set-binary-operator", target, before, after)
+
+    @staticmethod
+    def SetUnaryOperator(target: Iterable[LocatorStep], before: UnaryOp | str, after: UnaryOp | str) -> _IntentOperation:
+        return _intent_scalar("set-unary-operator", target, before, after)
+
+    @staticmethod
+    def SetTemplateText(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-template-text", target, before, after)
+
+    @staticmethod
+    def SetComment(target: Iterable[LocatorStep], before: str, after: str) -> _IntentOperation:
+        return _intent_scalar("set-comment", target, before, after)
+
+
+def _semantic_basis(value: str | SemanticBody, description: str) -> str:
+    base = value.basis() if isinstance(value, SemanticBody) else value
+    valid = isinstance(base, str) and base.startswith("frsb1:") and len(base) == 70
+    if not valid or any(character not in "0123456789abcdefABCDEF" for character in base[6:]):
+        raise IrError(f"{description} base must be an frsb1 SHA-256 identity")
+    return base
+
+
+@dataclass(frozen=True)
+class SemanticIntent:
+    base: str | SemanticBody
+    operations: Sequence[_IntentOperation]
+
+    def __post_init__(self) -> None:
+        _semantic_basis(self.base, "semantic intent")
+        if not 1 <= len(self.operations) <= 64:
+            raise IrError("semantic intent needs 1 through 64 operations")
+        if not all(isinstance(operation, _IntentOperation) for operation in self.operations):
+            raise IrError("operations must contain Intent values")
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "schema": INTENT_SCHEMA,
+            "base": _semantic_basis(self.base, "semantic intent"),
+            "operations": [operation.to_data() for operation in self.operations],
+        }
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
+    def write(self, path: str | Path, *, indent: int | None = 2) -> None:
+        Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
+
+
 __all__ = [
-    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "EXPRESSION_KINDS", "Expr", "Function", "IrError", "Param",
-    "ExpressionNode", "ParamKind", "SCHEMA", "STATEMENT_KINDS", "SemanticBody", "StatementNode",
-    "SemanticChange", "Stmt", "TEMPLATE_KINDS", "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode",
-    "UnaryOp", "VariantArm",
+    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
+    "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
+    "ROLE_NAMES", "Role", "SCHEMA",
+    "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",
+    "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode", "UnaryOp", "VariantArm",
 ]

@@ -368,6 +368,7 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
             "positive_names",
             "--body",
             "--pointers",
+            "--locators",
             "--minimal",
         ],
     );
@@ -407,16 +408,83 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         ));
         assert!(paths.insert(path));
     }
+    assert_eq!(
+        direct["body_locators"]["basis"],
+        direct["body_identity"]["basis"]
+    );
+    assert_eq!(direct["body_locators"]["complete"], true);
+    assert_eq!(direct["body_locators"]["filter"]["operation"], Value::Null);
+    assert_eq!(
+        direct["body_locators"]["fields"],
+        serde_json::json!(["target", "category", "kind", "operation", "from"])
+    );
+    let locators = direct["body_locators"]["rows"].as_array().unwrap();
+    assert!(!locators.is_empty());
+    for row in locators {
+        assert!(row["target"]
+            .as_array()
+            .is_some_and(|steps| !steps.is_empty()));
+        assert!(row["operation"].as_str().unwrap().starts_with("set-"));
+        assert!(row["target"].to_string().contains("\"role\""));
+        assert!(!row["target"].to_string().contains("/value"));
+    }
     assert!(direct.get("coverage").is_none());
     assert!(direct["report_omitted"]
         .as_array()
         .unwrap()
         .iter()
         .any(|field| field == "coverage"));
+    let locator_only = ok(
+        dir.path(),
+        &[
+            "project",
+            "semantic",
+            "app.py",
+            "--declaration",
+            "positive_names",
+            "--body",
+            "--locators",
+            "--locators-only",
+            "--locator-op",
+            "set-int",
+            "--locator-from",
+            "0",
+            "--minimal",
+        ],
+    );
+    assert!(locator_only.get("model").is_none());
+    assert!(locator_only.get("patterns").is_none());
+    assert_eq!(
+        locator_only["content_omitted"],
+        serde_json::json!(["model", "patterns"])
+    );
+    assert_eq!(
+        locator_only["body_locators"]["basis"],
+        direct["body_locators"]["basis"]
+    );
+    assert_eq!(
+        locator_only["body_locators"]["filter"],
+        serde_json::json!({"operation":"set-int","from":"0"})
+    );
+    assert_eq!(
+        locator_only["body_locators"]["rows"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
     let missing_body = Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "--no-cache", "-C"])
         .arg(dir.path())
         .args(["project", "semantic", "app.py", "--pointers"])
+        .output()
+        .unwrap();
+    assert!(!missing_body.status.success());
+    assert!(String::from_utf8_lossy(&missing_body.stderr).contains("--body"));
+    let missing_body = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(dir.path())
+        .args(["project", "semantic", "app.py", "--locators"])
         .output()
         .unwrap();
     assert!(!missing_body.status.success());

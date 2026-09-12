@@ -1209,6 +1209,85 @@ fn semantic_change_bounds_match_lean_on_boundary_cases() {
 }
 
 #[test]
+fn semantic_intent_admission_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("semantic-intent-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let samples = [0, 1, 2, 63, 64, 65, 128, 512, 65_536];
+    for schema in [false, true] {
+        for base_well_formed in [false, true] {
+            for base_matches in [false, true] {
+                for source_free in [false, true] {
+                    for operations in samples {
+                        assert_eq!(
+                            actual.next(),
+                            Some(
+                                fun_refactor::project::semantic_intent::semantic_intent_admitted(
+                                    schema,
+                                    base_well_formed,
+                                    base_matches,
+                                    source_free,
+                                    operations,
+                                )
+                            )
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+}
+
+#[test]
+fn semantic_intent_bounds_and_operation_targets_match_lean() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("semantic-intent-bounds")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let samples = [0, 1, 2, 63, 64, 65, 128, 512, 65_536];
+    for steps in samples {
+        assert_eq!(
+            actual.next(),
+            Some(fun_refactor::project::semantic_intent::semantic_locator_bounded(steps))
+        );
+    }
+    assert!(actual.next().is_none());
+
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("semantic-intent-operations")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let mut accepted = 0usize;
+    for operation in 0..13 {
+        for category in 0..5 {
+            for kind in 0..31 {
+                let expected =
+                    fun_refactor::project::semantic_intent::semantic_intent_operation_allowed(
+                        operation, category, kind,
+                    );
+                assert_eq!(actual.next(), Some(expected));
+                accepted += usize::from(expected);
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(accepted, 11);
+}
+
+#[test]
 fn semantic_ir_catalog_admission_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

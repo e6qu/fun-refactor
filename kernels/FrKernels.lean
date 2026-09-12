@@ -13,3 +13,4 @@ import FrKernels.Adoption
 import FrKernels.Checks
 import FrKernels.Workflow
 import FrKernels.TaskChange
+import FrKernels.SemanticIntent

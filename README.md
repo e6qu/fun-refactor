@@ -25,10 +25,13 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. The [v2](docs/agent-context-v2-evaluation.md), [v3](docs/agent-context-v3-evaluation.md), and [prescribed v4 workflow](docs/agent-workflow-v4-evaluation.md) evaluations report fixed-workflow reductions, exact change boundaries and the latest passing comparison.
 The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
 [Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, TypeScript and TSX implementation changes through project handles and source-history transactions.
-[Semantic project data](docs/semantic-model.md) lets agents inspect source-free typed IR and author supported bodies with the same checked transactions.
+[Semantic project data](docs/semantic-model.md) lets agents inspect source-free typed IR and author
+supported bodies, checked deltas and role-based scalar intents through the same transactions.
 The [agent IR SDK evaluation](docs/agent-ir-sdk-evaluation.md) compares direct JSON and typed Python construction under deterministic and fresh-agent checks.
 The [semantic context comparison](docs/semantic-context-evaluation.md) records identical changes and patches, zero exposed source bytes and the current small-task payload premium.
 The [semantic delta evaluation](docs/semantic-delta-evaluation.md) compares basis-bound node edits with complete semantic-body replacement under deterministic and fresh-agent checks.
+The [semantic intent evaluation](docs/semantic-intent-evaluation.md) compares filtered role-based
+scalar edits with whole-body, pointer-delta and Python routes through the checked lifecycle.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
 Passing checks can record a configuration- and source-bound receipt on an applied source transaction with `--record-for <TX>`.

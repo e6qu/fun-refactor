@@ -99,7 +99,14 @@ fn semantic_contract_is_bounded_and_selectable_without_a_project() {
         "fr-semantic-intent-1"
     );
     assert_eq!(intent["contract"]["roles"][0], "statement");
-    assert_eq!(intent["contract"]["operations"][7], "set-binary-operator");
+    assert_eq!(
+        intent["contract"]["operations"][7]["op"],
+        "set-binary-operator"
+    );
+    assert_eq!(
+        intent["contract"]["operations"][7]["target"]["kind"],
+        "binary"
+    );
 
     let statement = ok(
         dir.path(),

@@ -160,3 +160,63 @@ index predicates. Lean proves that accepted changes have matching bases, 1 throu
 at most 512 top-level statements and 4,096 nodes. It also proves insertion and deletion count laws.
 Executable comparisons cover all Boolean states and selected numeric boundaries. These results do
 not prove RFC 6901 parsing, Serde, SHA-256, tree replacement or writer correctness.
+
+## Semantic intents
+
+`fr-semantic-intent-1` expresses shape-preserving scalar edits through semantic roles. A locator
+uses roles such as `statement`, `initializer`, `condition`, `callee`, `left`, `right`, `operand`,
+`element` and `template-part`. Optional category, kind, index and label fields act as exact
+witnesses. List roles never choose an implicit first item.
+
+Use a filtered locator-only query when the operation and current scalar are known:
+
+```sh
+fr project semantic src/lib.rs --declaration calculate --body --locators \
+  --locators-only --locator-op set-int --locator-from 1 --nodes 128 --minimal
+```
+
+`fr-semantic-body-locators-1` rows contain a copyable `target`, category, kind, supported operation
+and exact `from` scalar. Omitting `--locators-only` also returns the body when more structural context
+is needed. Omitting one or both filters broadens discovery. The index covers scalar nodes reachable
+through the published role vocabulary; switch arms, variant arms, catch records, map pairs and record
+literal fields still require a typed pointer delta or complete body.
+
+The eleven operations set integer, float, string and Boolean literals, name expressions, field and
+keyword names, binary and unary operators, template text and comments. Decimal strings are portable
+unsigned spellings. This keeps scalar output valid across the supported writers; negative values use
+the IR unary node. Identifier edits use the common ASCII identifier subset.
+
+```json
+{
+  "schema": "fr-semantic-intent-1",
+  "base": "frsb1:<CANONICAL_BODY_SHA256>",
+  "operations": [{
+    "op": "set-int",
+    "target": [
+      {"role": "statement", "index": 0, "category": "statement", "kind": "let"},
+      {"role": "initializer", "category": "expression", "kind": "binary"},
+      {"role": "right", "category": "expression", "kind": "int"}
+    ],
+    "from": "1",
+    "to": "2"
+  }]
+}
+```
+
+`fr author apply-semantic-intent --body BODY --intent INTENT --canonical --compiled` interprets each
+intent directly, compiles an ordered `fr-semantic-change-1`, runs the checked delta engine and
+requires equal canonical results. `fr author edit-body-intent HANDLE --from INTENT` carries the
+result through the existing writer, byte-preserving body splice and history lifecycle. Author
+batches, project tasks and reviewed task changes use `edit-body-intent`.
+
+The Python SDK mirrors `Role`, `NodeCategory`, `LocatorStep`, `Intent` and `SemanticIntent`. Direct
+JSON is the measured choice for a one-off scalar edit. Python provides earlier type and scalar checks
+when several operations or reusable producer logic justify it. The deterministic four-route result
+is documented in [semantic intent evaluation](semantic-intent-evaluation.md).
+
+`FrKernels.SemanticIntent` anchors admission, locator bounds and the exact operation/category/kind
+relation. It proves deterministic exact-singleton abstract locator resolution, scalar category,
+kind and child locality, direct/compiler equivalence and ordered composition. Exhaustive executable
+comparisons cover the finite admission and target relations. Runtime application also compares the
+direct result with the compiled delta result on every accepted request. Serde, role traversal,
+SHA-256, parsers, writers, filesystem behavior and Python remain tested or trusted boundaries.

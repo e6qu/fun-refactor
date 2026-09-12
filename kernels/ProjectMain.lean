@@ -4,6 +4,7 @@ import FrKernels.Source
 import FrKernels.Author
 import FrKernels.Adoption
 import FrKernels.Checks
+import FrKernels.SemanticIntent
 
 open FrKernels.Project
 
@@ -92,6 +93,22 @@ def main (args : List String) : IO Unit := do
       for statements in frameworkSamples do
         for index in frameworkSamples do
           IO.println (FrKernels.Author.semanticStatementIndexAllowed operation statements index)
+  else if args == ["semantic-intent-admission"] then
+    for schemaMatches in [false, true] do
+      for baseWellFormed in [false, true] do
+        for baseMatches in [false, true] do
+          for sourceFree in [false, true] do
+            for operationCount in frameworkSamples do
+              IO.println (FrKernels.SemanticIntent.admitted schemaMatches baseWellFormed
+                baseMatches sourceFree operationCount)
+  else if args == ["semantic-intent-bounds"] then
+    for steps in frameworkSamples do
+      IO.println (FrKernels.SemanticIntent.locatorBounded steps)
+  else if args == ["semantic-intent-operations"] then
+    for operation in [0:13] do
+      for category in [0:5] do
+        for kind in [0:31] do
+          IO.println (FrKernels.SemanticIntent.operationAllowed operation category kind)
   else if args == ["semantic-ir-catalog"] then
     for category in [0:5] do
       for kind in [0:31] do

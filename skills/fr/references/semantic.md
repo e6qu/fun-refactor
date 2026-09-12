@@ -52,7 +52,8 @@ tagged statements from the returned model. Keep `kind` and `value`. Never add `s
 }
 ```
 
-For smaller basis-bound edits, load [Semantic change](semantic-change.md).
+For a scalar edit, load [Semantic intent](semantic-intent.md). For complete-node replacement or
+statement insertion/deletion, load [Semantic change](semantic-change.md).
 
 Run `fr author validate-semantic --from FILE --canonical`, then preview
 `fr author replace-body-semantic HANDLE --from FILE`. Review the rendered diff and writer

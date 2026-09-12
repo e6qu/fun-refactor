@@ -27,7 +27,7 @@ pub struct ApplyOptions {
     pub canonical: bool,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, ValueEnum, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 #[clap(rename_all = "kebab-case")]
 pub enum NodeCategory {

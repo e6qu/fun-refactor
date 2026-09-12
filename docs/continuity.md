@@ -135,6 +135,36 @@ typed category and kind. Ambiguous file requests and incomplete bodies refuse in
 an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
 fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
 
+PR 17 is in progress on `semantic_intent_operations`. Its reviewed `fr-semantic-intent-1` contract
+binds up to 64 ordered scalar operations to one canonical body identity. Typed role locators carry
+optional category, kind, index and label witnesses. Missing, ambiguous, stale or mismatched evidence
+refuses before a project write. Eleven operations cover portable literals, names, operators,
+template text and comments. Every accepted operation is interpreted directly, compiled to a checked
+`fr-semantic-change-1` replacement and required to produce the same canonical body.
+
+Direct project authoring now passes the shared Rust, Go, Java and TypeScript body matrix. Author
+batches, project tasks and reviewed task changes carry `edit-body-intent` through read-only preview,
+checks, history, exact undo and redo, and forward and reverse patch verification. Changed body bases
+refuse before history creation.
+
+`fr project semantic --body --locators` publishes copyable role targets. `--locators-only` omits the
+duplicated body, while `--locator-op` and `--locator-from` return only exact supported matches. The
+Python SDK mirrors roles, categories, steps, all scalar operations and intent manifests. Direct JSON
+remains the measured one-off default.
+
+`FrKernels.SemanticIntent` anchors admission, locator bounds and the operation target relation. It
+proves deterministic singleton resolution, scalar category, kind and child preservation, direct and
+compiled equivalence, and ordered composition. Rust and Lean agree across every Boolean admission
+state, 2,015 operation/category/kind combinations and selected numeric boundaries. Runtime compares
+the direct and compiled full-tree results for every accepted request. Serde, concrete role traversal,
+SHA-256, parsers, writers, filesystem behavior and Python remain tested or trusted boundaries.
+
+The deterministic four-route report is `tests/agent-eval/semantic-intent.json`. Complete-body,
+pointer-delta, direct-intent and Python-intent routes produce equal behavior, source, body, patch,
+undo and redo evidence. Filtered direct intent uses 8,518 measured bytes, versus 8,609 for the
+complete body and 10,357 for the pointer delta. Python intent uses 8,989 after counting its producer.
+A fresh economical-agent comparison and the complete repository gate remain before publication.
+
 PR 17, Reviewed Semantic Intent Operations, is in progress. It addresses the main failure mode in
 the PR 16 agent trace. The agent had to navigate serialization-only pointer segments and reproduce
 complete typed nodes for scalar edits. The next contract uses a finite semantic-role vocabulary and

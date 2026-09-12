@@ -37,6 +37,30 @@ pub struct Options {
     pub(super) pointers: bool,
     #[arg(
         long,
+        requires = "body",
+        help = "List copyable semantic-role locators for scalar intent targets."
+    )]
+    pub(super) locators: bool,
+    #[arg(
+        long,
+        requires = "locators",
+        help = "Return the scalar locator index without duplicating the semantic body."
+    )]
+    pub(super) locators_only: bool,
+    #[arg(
+        long,
+        requires = "locators",
+        help = "Return locator rows for one exact semantic intent operation."
+    )]
+    pub(super) locator_op: Option<String>,
+    #[arg(
+        long,
+        requires = "locator_op",
+        help = "Return locator rows whose current scalar has this exact text value."
+    )]
+    pub(super) locator_from: Option<String>,
+    #[arg(
+        long,
         default_value_t = 256,
         help = "Maximum complete semantic nodes returned, from 1 through 4096."
     )]
@@ -282,6 +306,12 @@ impl Project<'_> {
             "semantic node budget must be between 1 and 4096."
         );
         ensure!(
+            options.locator_op.as_deref().is_none_or(|operation| {
+                super::semantic_intent::OPERATION_NAMES.contains(&operation)
+            }),
+            "--locator-op must name a semantic intent operation."
+        );
+        ensure!(
             options.declaration.is_none()
                 || !options.target.starts_with("frp1:") && options.revision.is_none(),
             "--declaration requires a path target without --revision."
@@ -355,7 +385,7 @@ impl Project<'_> {
         );
         let mut module = crate::transpile::read_module(file.language, source, parsed.root())?;
         let mut body_identity = None;
-        let mut pointer_body = None;
+        let mut authorable_body = None;
         let selected = if let Some(symbol) = node.symbol.and_then(|id| self.index.symbol(id)) {
             let item = selected_item(&module, symbol).with_context(|| {
                 format!(
@@ -364,8 +394,8 @@ impl Project<'_> {
                 )
             })?;
             ensure!(
-                !options.pointers || matches!(item, Item::Function(_)),
-                "semantic body pointers require one function or method declaration."
+                !(options.pointers || options.locators) || matches!(item, Item::Function(_)),
+                "semantic body pointers and locators require one function or method declaration."
             );
             if let Item::Function(function) = &item {
                 let body = super::semantic_change::SemanticBody {
@@ -383,8 +413,8 @@ impl Project<'_> {
                         "statements":body.body.len(),"semantic_nodes":nodes})
                 } else {
                     let basis = super::semantic_change::body_basis(&body)?;
-                    if options.pointers {
-                        pointer_body = Some(body.clone());
+                    if options.pointers || options.locators {
+                        authorable_body = Some(body.clone());
                     }
                     json!({"status":"available","source_free":true,
                         "schema":super::semantic_ir::BODY_SCHEMA,
@@ -396,8 +426,8 @@ impl Project<'_> {
             "declaration"
         } else {
             ensure!(
-                !options.pointers,
-                "semantic body pointers require one function or method declaration."
+                !(options.pointers || options.locators),
+                "semantic body pointers and locators require one function or method declaration."
             );
             "file"
         };
@@ -413,8 +443,9 @@ impl Project<'_> {
         }
         let required = semantic_nodes(&model).max(1);
         ensure!(
-            !options.pointers || semantic_section_fits(required, options.nodes),
-            "semantic body pointers require a complete body within the node budget."
+            !(options.pointers || options.locators)
+                || semantic_section_fits(required, options.nodes),
+            "semantic body pointers and locators require a complete body within the node budget."
         );
         let payload_hash = hash((&self.revision, self.handle(target), &model))?;
         let basis = format!("frsm1:{payload_hash}");
@@ -432,15 +463,40 @@ impl Project<'_> {
             report["body_identity"] = identity;
         }
         if options.pointers {
-            report["body_pointers"] = if let Some(body) = pointer_body {
+            report["body_pointers"] = if let Some(body) = &authorable_body {
                 json!({
                     "schema":"fr-semantic-body-pointers-1",
                     "basis":report["body_identity"]["basis"],
                     "fields":["path","category","kind"],
-                    "rows":super::semantic_change::body_pointers(&body)?
+                    "rows":super::semantic_change::body_pointers(body)?
                 })
             } else {
                 json!({"schema":"fr-semantic-body-pointers-1","status":"unavailable-body-identity"})
+            };
+        }
+        if options.locators {
+            report["body_locators"] = if let Some(body) = &authorable_body {
+                let mut rows = super::semantic_intent::body_locators(body)?;
+                if let Some(operation) = options.locator_op.as_deref() {
+                    rows.retain(|row| row["operation"] == operation);
+                }
+                if let Some(before) = options.locator_from.as_deref() {
+                    rows.retain(|row| match &row["from"] {
+                        Value::String(value) => value == before,
+                        Value::Bool(value) => before == value.to_string(),
+                        _ => false,
+                    });
+                }
+                json!({
+                    "schema":"fr-semantic-body-locators-1",
+                    "basis":report["body_identity"]["basis"],
+                    "fields":["target","category","kind","operation","from"],
+                    "rows":rows,
+                    "complete":true,
+                    "filter":{"operation":options.locator_op,"from":options.locator_from}
+                })
+            } else {
+                json!({"schema":"fr-semantic-body-locators-1","status":"unavailable-body-identity"})
             };
         }
         report["addressing"] = json!({
@@ -485,6 +541,11 @@ impl Project<'_> {
             report["status"] = json!("omitted-node-budget");
             report["model"] = Value::Null;
             report["patterns"] = json!([]);
+        }
+        if options.locators_only {
+            report.as_object_mut().unwrap().remove("model");
+            report.as_object_mut().unwrap().remove("patterns");
+            report["content_omitted"] = json!(["model", "patterns"]);
         }
         Ok(report)
     }

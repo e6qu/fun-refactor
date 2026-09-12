@@ -45,3 +45,24 @@ Apply it without scanning a project. Each operation addresses the result of the 
 fr author semantic-schema change
 fr author apply-semantic-change --body change.json --change delta.json --canonical
 ```
+
+For scalar edits, role locators avoid serialization-only `value` segments and complete replacement
+nodes. The object hierarchy mirrors `fr-semantic-intent-1` directly:
+
+```python
+from fr_ir import Intent, LocatorStep, NodeCategory, Role, SemanticIntent
+
+intent = SemanticIntent(change, [
+    Intent.SetInt([
+        LocatorStep(Role.STATEMENT, index=0, category=NodeCategory.STATEMENT, kind="return"),
+        LocatorStep(Role.RESULT, category=NodeCategory.EXPRESSION, kind="binary"),
+        LocatorStep(Role.RIGHT, category=NodeCategory.EXPRESSION, kind="int"),
+    ], "2", "3")
+])
+intent.write("intent.json")
+```
+
+`LocatorStep` accepts a role plus optional index, category, kind and label witnesses. Rust remains
+the authority for resolution against a body and compiles accepted intents through the checked delta
+engine. Python rejects malformed portable scalars, invalid roles, empty locators and no-op edits
+before serialization.

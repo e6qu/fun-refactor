@@ -30,7 +30,7 @@ fn python_sdk_unit_tests_pass_without_dependencies() {
 
 #[test]
 fn python_and_rust_publish_the_same_semantic_catalog() {
-    let script = "import json; from fr_ir import *; print(json.dumps([TYPE_KINDS, STATEMENT_KINDS, EXPRESSION_KINDS, TEMPLATE_KINDS, [x.value for x in BinaryOp], [x.value for x in UnaryOp]]))";
+    let script = "# => catalog fixture\nimport json; from fr_ir import *; print(json.dumps([TYPE_KINDS, STATEMENT_KINDS, EXPRESSION_KINDS, TEMPLATE_KINDS, [x.value for x in BinaryOp], [x.value for x in UnaryOp], ROLE_NAMES, INTENT_OPERATIONS]))";
     let output = python().args(["-c", script]).output().unwrap();
     assert!(output.status.success());
     let python: Vec<Vec<String>> = serde_json::from_slice(&output.stdout).unwrap();
@@ -41,6 +41,8 @@ fn python_and_rust_publish_the_same_semantic_catalog() {
         fun_refactor::project::semantic_ir::TEMPLATE_KINDS,
         fun_refactor::project::semantic_ir::BINARY_OPERATORS,
         fun_refactor::project::semantic_ir::UNARY_OPERATORS,
+        fun_refactor::project::semantic_intent::ROLE_NAMES,
+        fun_refactor::project::semantic_intent::OPERATION_NAMES,
     ];
     for (python, rust) in python.iter().zip(rust) {
         assert_eq!(python.iter().map(String::as_str).collect::<Vec<_>>(), rust);
@@ -139,6 +141,69 @@ SemanticChange(body, [
 }
 
 #[test]
+fn python_semantic_intents_compile_and_apply_through_the_rust_engine() {
+    let temp = tempfile::tempdir().unwrap();
+    let body = temp.path().join("body.json");
+    let intent = temp.path().join("intent.json");
+    let script = r#"# => checked semantic intent fixture
+import sys
+from fr_ir import BinaryOp, Expr, Intent, LocatorStep, NodeCategory, Role, SemanticBody, SemanticIntent, Stmt
+body = SemanticBody([Stmt.Return(Expr.Binary(BinaryOp.ADD, Expr.Name("value"), Expr.Int(1)))])
+body.write(sys.argv[1])
+SemanticIntent(body, [Intent.SetInt([
+    LocatorStep(Role.STATEMENT, index=0, category=NodeCategory.STATEMENT, kind="return"),
+    LocatorStep(Role.RESULT, category=NodeCategory.EXPRESSION, kind="binary"),
+    LocatorStep(Role.RIGHT, category=NodeCategory.EXPRESSION, kind="int"),
+], "1", "2")]).write(sys.argv[2])
+"#;
+    let generated = python()
+        .args(["-c", script])
+        .arg(&body)
+        .arg(&intent)
+        .output()
+        .unwrap();
+    assert!(
+        generated.status.success(),
+        "{}",
+        String::from_utf8_lossy(&generated.stderr)
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "-C"])
+        .arg(temp.path())
+        .args([
+            "author",
+            "apply-semantic-intent",
+            "--body",
+            "body.json",
+            "--intent",
+            "intent.json",
+            "--canonical",
+            "--compiled",
+        ])
+        .output()
+        .unwrap();
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap_or_else(|_| {
+        panic!(
+            "{} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    });
+    assert!(output.status.success(), "{report}");
+    assert_eq!(report["refinement_checked"], true);
+    assert_eq!(
+        report["canonical"].pointer("/body/0/value/value/right/value"),
+        Some(&Value::String("2".into()))
+    );
+    assert_eq!(
+        report["compiled_change"]["operations"][0]["path"],
+        "/body/0/value/value/right"
+    );
+    let intent: Value = serde_json::from_slice(&fs::read(intent).unwrap()).unwrap();
+    assert_eq!(report["input_basis"], intent["base"]);
+}
+
+#[test]
 fn checked_sdk_evaluation_is_reproducible() {
     let temp = tempfile::tempdir().unwrap();
     let output_path = temp.path().join("report.json");
@@ -158,6 +223,31 @@ fn checked_sdk_evaluation_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join("tests/agent-eval/semantic-ir-sdk.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn checked_semantic_intent_evaluation_is_reproducible() {
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/semantic-intent-eval.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let expected: Value = serde_json::from_slice(
+        &fs::read(root().join("tests/agent-eval/semantic-intent.json")).unwrap(),
     )
     .unwrap();
     assert_eq!(actual, expected);

@@ -652,16 +652,16 @@ Verification and acceptance:
 
 Planned checkpoints:
 
-1. **In progress.** Freeze the role, locator, intent, budget and receipt contracts and repair stale
+1. **Complete.** Freeze the role, locator, intent, budget and receipt contracts and repair stale
    PR 16 roadmap and evaluation metadata.
-2. Implement typed role resolution, direct intent interpretation, checked delta compilation and the
+2. **Complete.** Implement typed role resolution, direct intent interpretation, checked delta compilation and the
    project-independent CLI with adversarial refusal coverage.
-3. Add project authoring, compact reviewed receipts, author-batch, project-task and task-change
+3. **Complete.** Add project authoring, compact reviewed receipts, author-batch, project-task and task-change
    integration through the complete source-history lifecycle.
-4. Add the Python mirror, generated cross-runtime fixtures, semantic catalogs and executable skill
+4. **Complete.** Add the Python mirror, generated cross-runtime fixtures, semantic catalogs and executable skill
    routes.
-5. Add Lean models, source anchors, refinement theorems and exhaustive Rust correspondence.
-6. Retain cross-language and four-route controlled evidence, run qualifying economical-agent trials,
+5. **Complete.** Add Lean models, source anchors, refinement theorems and exhaustive Rust correspondence.
+6. **In progress.** Retain cross-language and four-route controlled evidence, run qualifying economical-agent trials,
    pass the complete repository gate and publish the large PR.
 
 ## Formal verification policy

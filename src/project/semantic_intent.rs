@@ -47,6 +47,13 @@ pub const ROLE_NAMES: &[&str] = &[
     "comprehension-element",
     "comprehension-condition",
     "type-expression",
+    "inner-type",
+    "map-key-type",
+    "map-value-type",
+    "tuple-type",
+    "type-argument",
+    "parameter-type",
+    "return-type",
 ];
 pub const OPERATION_NAMES: &[&str] = &[
     "set-int",
@@ -110,9 +117,59 @@ pub enum Role {
     ComprehensionElement,
     ComprehensionCondition,
     TypeExpression,
+    InnerType,
+    MapKeyType,
+    MapValueType,
+    TupleType,
+    TypeArgument,
+    ParameterType,
+    ReturnType,
 }
 
 impl Role {
+    const ALL: [Self; 40] = [
+        Self::Statement,
+        Self::Result,
+        Self::Annotation,
+        Self::Initializer,
+        Self::AssignmentTarget,
+        Self::AssignmentValue,
+        Self::Condition,
+        Self::ThenStatement,
+        Self::ElseStatement,
+        Self::BodyStatement,
+        Self::FinallyStatement,
+        Self::Iterable,
+        Self::Subject,
+        Self::Expression,
+        Self::Message,
+        Self::Callee,
+        Self::Argument,
+        Self::Receiver,
+        Self::Index,
+        Self::Left,
+        Self::Right,
+        Self::Operand,
+        Self::Value,
+        Self::Fallback,
+        Self::ThenExpression,
+        Self::ElseExpression,
+        Self::Element,
+        Self::TemplatePart,
+        Self::TemplateExpression,
+        Self::LambdaBody,
+        Self::ComprehensionElement,
+        Self::ComprehensionCondition,
+        Self::TypeExpression,
+        Self::InnerType,
+        Self::MapKeyType,
+        Self::MapValueType,
+        Self::TupleType,
+        Self::TypeArgument,
+        Self::ParameterType,
+        Self::ReturnType,
+    ];
+
     fn name(self) -> &'static str {
         match self {
             Self::Statement => "statement",
@@ -148,11 +205,18 @@ impl Role {
             Self::ComprehensionElement => "comprehension-element",
             Self::ComprehensionCondition => "comprehension-condition",
             Self::TypeExpression => "type-expression",
+            Self::InnerType => "inner-type",
+            Self::MapKeyType => "map-key-type",
+            Self::MapValueType => "map-value-type",
+            Self::TupleType => "tuple-type",
+            Self::TypeArgument => "type-argument",
+            Self::ParameterType => "parameter-type",
+            Self::ReturnType => "return-type",
         }
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct LocatorStep {
     role: Role,
@@ -269,71 +333,107 @@ fn label(value: &Value) -> Option<&str> {
     }
 }
 
-fn relative_role(kind: &str, role: Role) -> Option<&'static str> {
-    match (kind, role) {
-        ("return", Role::Result) => Some("value"),
-        ("let", Role::Annotation) => Some("value/ty"),
-        ("let", Role::Initializer) => Some("value/value"),
-        ("assign", Role::AssignmentTarget) => Some("value/target"),
-        ("assign", Role::AssignmentValue) => Some("value/value"),
-        ("tuple-assign", Role::AssignmentValue) => Some("value/value"),
-        ("if", Role::Condition) | ("while", Role::Condition) => Some("value/condition"),
-        ("if", Role::ThenStatement) | ("if-present", Role::ThenStatement) => Some("value/then"),
-        ("if", Role::ElseStatement) | ("if-present", Role::ElseStatement) => {
-            Some("value/otherwise")
+fn relative_role(
+    category: NodeCategory,
+    kind: &str,
+    role: Role,
+) -> Option<(&'static str, NodeCategory)> {
+    use NodeCategory::{Expression, Statement, Template, Type};
+    let edge = match (category, kind, role) {
+        (Statement, "return", Role::Result) => ("value", Expression),
+        (Statement, "let", Role::Annotation) => ("value/ty", Type),
+        (Statement, "let", Role::Initializer) => ("value/value", Expression),
+        (Statement, "assign", Role::AssignmentTarget) => ("value/target", Expression),
+        (Statement, "assign", Role::AssignmentValue) => ("value/value", Expression),
+        (Statement, "tuple-assign", Role::AssignmentValue) => ("value/value", Expression),
+        (Statement, "if", Role::Condition) | (Statement, "while", Role::Condition) => {
+            ("value/condition", Expression)
         }
-        ("if-present", Role::Value) | ("while-present", Role::Value) => Some("value/value"),
-        ("while", Role::BodyStatement)
-        | ("counted-for", Role::BodyStatement)
-        | ("for-each-indexed", Role::BodyStatement)
-        | ("while-present", Role::BodyStatement)
-        | ("for-each", Role::BodyStatement)
-        | ("local-function", Role::BodyStatement)
-        | ("try", Role::BodyStatement) => Some("value/body"),
-        ("defer", Role::BodyStatement)
-        | ("err-defer", Role::BodyStatement)
-        | ("block", Role::BodyStatement) => Some("value"),
-        ("try", Role::FinallyStatement) => Some("value/finally"),
-        ("counted-for", Role::Initializer) => Some("value/init"),
-        ("counted-for", Role::Condition) => Some("value/condition"),
-        ("counted-for", Role::AssignmentValue) => Some("value/update"),
-        ("for-each-indexed", Role::Iterable) | ("for-each", Role::Iterable) => {
-            Some("value/iterable")
+        (Statement, "if", Role::ThenStatement) | (Statement, "if-present", Role::ThenStatement) => {
+            ("value/then", Statement)
         }
-        ("switch", Role::Subject) | ("match-variants", Role::Subject) => Some("value/subject"),
-        ("expr", Role::Expression) | ("throw", Role::Expression) => Some("value"),
-        ("assert", Role::Condition) => Some("value/condition"),
-        ("assert", Role::Message) => Some("value/message"),
-        ("break-with", Role::Value) => Some("value/value"),
-        ("field", Role::Receiver) | ("index", Role::Receiver) => Some("value/of"),
-        ("index", Role::Index) => Some("value/index"),
-        ("call", Role::Callee) | ("new", Role::Callee) => Some("value/callee"),
-        ("call", Role::Argument) | ("new", Role::Argument) => Some("value/args"),
-        ("binary", Role::Left) => Some("value/left"),
-        ("binary", Role::Right) => Some("value/right"),
-        ("unary", Role::Operand) => Some("value/operand"),
-        ("await", Role::Operand) | ("propagate", Role::Operand) => Some("value"),
-        ("keyword", Role::Value) => Some("value/value"),
-        ("cast", Role::TypeExpression) | ("instance-of", Role::TypeExpression) => Some("value/ty"),
-        ("cast", Role::Value) | ("instance-of", Role::Value) => Some("value/value"),
-        ("coalesce", Role::Value) => Some("value/value"),
-        ("coalesce", Role::Fallback) => Some("value/fallback"),
-        ("ternary", Role::Condition) => Some("value/condition"),
-        ("ternary", Role::ThenExpression) => Some("value/then"),
-        ("ternary", Role::ElseExpression) => Some("value/otherwise"),
-        ("tuple", Role::Element) | ("list-lit", Role::Element) | ("set-lit", Role::Element) => {
-            Some("value")
+        (Statement, "if", Role::ElseStatement) | (Statement, "if-present", Role::ElseStatement) => {
+            ("value/otherwise", Statement)
         }
-        ("template", Role::TemplatePart) => Some("value"),
-        ("expr", Role::TemplateExpression) => Some("value"),
-        ("lambda", Role::LambdaBody) => Some("value/body"),
-        ("comprehension", Role::ComprehensionElement) => Some("value/element"),
-        ("comprehension", Role::Iterable) => Some("value/iterable"),
-        ("comprehension", Role::ComprehensionCondition) => Some("value/condition"),
-        _ => None,
-    }
+        (Statement, "if-present", Role::Value) | (Statement, "while-present", Role::Value) => {
+            ("value/value", Expression)
+        }
+        (Statement, "while", Role::BodyStatement)
+        | (Statement, "counted-for", Role::BodyStatement)
+        | (Statement, "for-each-indexed", Role::BodyStatement)
+        | (Statement, "while-present", Role::BodyStatement)
+        | (Statement, "for-each", Role::BodyStatement)
+        | (Statement, "local-function", Role::BodyStatement)
+        | (Statement, "try", Role::BodyStatement) => ("value/body", Statement),
+        (Statement, "defer", Role::BodyStatement)
+        | (Statement, "err-defer", Role::BodyStatement)
+        | (Statement, "block", Role::BodyStatement) => ("value", Statement),
+        (Statement, "try", Role::FinallyStatement) => ("value/finally", Statement),
+        (Statement, "counted-for", Role::Initializer) => ("value/init", Statement),
+        (Statement, "counted-for", Role::Condition) => ("value/condition", Expression),
+        (Statement, "counted-for", Role::AssignmentValue) => ("value/update", Statement),
+        (Statement, "for-each-indexed", Role::Iterable)
+        | (Statement, "for-each", Role::Iterable) => ("value/iterable", Expression),
+        (Statement, "switch", Role::Subject) | (Statement, "match-variants", Role::Subject) => {
+            ("value/subject", Expression)
+        }
+        (Statement, "expr", Role::Expression) | (Statement, "throw", Role::Expression) => {
+            ("value", Expression)
+        }
+        (Statement, "assert", Role::Condition) => ("value/condition", Expression),
+        (Statement, "assert", Role::Message) => ("value/message", Expression),
+        (Statement, "break-with", Role::Value) => ("value/value", Expression),
+        (Expression, "field", Role::Receiver) | (Expression, "index", Role::Receiver) => {
+            ("value/of", Expression)
+        }
+        (Expression, "index", Role::Index) => ("value/index", Expression),
+        (Expression, "call", Role::Callee) | (Expression, "new", Role::Callee) => {
+            ("value/callee", Expression)
+        }
+        (Expression, "call", Role::Argument) | (Expression, "new", Role::Argument) => {
+            ("value/args", Expression)
+        }
+        (Expression, "binary", Role::Left) => ("value/left", Expression),
+        (Expression, "binary", Role::Right) => ("value/right", Expression),
+        (Expression, "unary", Role::Operand) => ("value/operand", Expression),
+        (Expression, "await", Role::Operand) | (Expression, "propagate", Role::Operand) => {
+            ("value", Expression)
+        }
+        (Expression, "keyword", Role::Value) => ("value/value", Expression),
+        (Expression, "cast", Role::TypeExpression)
+        | (Expression, "instance-of", Role::TypeExpression) => ("value/ty", Expression),
+        (Expression, "cast", Role::Value) | (Expression, "instance-of", Role::Value) => {
+            ("value/value", Expression)
+        }
+        (Expression, "coalesce", Role::Value) => ("value/value", Expression),
+        (Expression, "coalesce", Role::Fallback) => ("value/fallback", Expression),
+        (Expression, "ternary", Role::Condition) => ("value/condition", Expression),
+        (Expression, "ternary", Role::ThenExpression) => ("value/then", Expression),
+        (Expression, "ternary", Role::ElseExpression) => ("value/otherwise", Expression),
+        (Expression, "tuple", Role::Element)
+        | (Expression, "list-lit", Role::Element)
+        | (Expression, "set-lit", Role::Element) => ("value", Expression),
+        (Expression, "template", Role::TemplatePart) => ("value", Template),
+        (Template, "expr", Role::TemplateExpression) => ("value", Expression),
+        (Expression, "lambda", Role::LambdaBody) => ("value/body", Expression),
+        (Expression, "comprehension", Role::ComprehensionElement) => ("value/element", Expression),
+        (Expression, "comprehension", Role::Iterable) => ("value/iterable", Expression),
+        (Expression, "comprehension", Role::ComprehensionCondition) => {
+            ("value/condition", Expression)
+        }
+        (Type, "list", Role::InnerType)
+        | (Type, "set", Role::InnerType)
+        | (Type, "optional", Role::InnerType) => ("value", Type),
+        (Type, "map", Role::MapKeyType) => ("value/0", Type),
+        (Type, "map", Role::MapValueType) => ("value/1", Type),
+        (Type, "tuple", Role::TupleType) => ("value", Type),
+        (Type, "named", Role::TypeArgument) => ("value/args", Type),
+        (Type, "fn", Role::ParameterType) => ("value/params", Type),
+        (Type, "fn", Role::ReturnType) => ("value/returns", Type),
+        _ => return None,
+    };
+    Some(edge)
 }
-
 fn step_matches(value: &Value, step: &LocatorStep) -> bool {
     let category_matches = step
         .category
@@ -349,36 +449,190 @@ fn step_matches(value: &Value, step: &LocatorStep) -> bool {
     category_matches && kind_matches && label_matches
 }
 
+fn locator_step(
+    role: Role,
+    index: Option<usize>,
+    category: NodeCategory,
+    value: &Value,
+) -> Option<LocatorStep> {
+    Some(LocatorStep {
+        role,
+        index,
+        category: Some(category),
+        kind: Some(value.get("kind")?.as_str()?.to_owned()),
+        label: None,
+    })
+}
+
+fn scalar_target(value: &Value, category: NodeCategory) -> Option<(&'static str, Value)> {
+    let kind = value.get("kind")?.as_str()?;
+    let slot = match (category, kind) {
+        (NodeCategory::Expression, "int") => ("set-int", "/value"),
+        (NodeCategory::Expression, "float") => ("set-float", "/value"),
+        (NodeCategory::Expression, "str") => ("set-string", "/value"),
+        (NodeCategory::Expression, "bool") => ("set-bool", "/value"),
+        (NodeCategory::Expression, "name") => ("set-name", "/value"),
+        (NodeCategory::Expression, "field") => ("set-field-name", "/value/name"),
+        (NodeCategory::Expression, "keyword") => ("set-keyword-name", "/value/name"),
+        (NodeCategory::Expression, "binary") => ("set-binary-operator", "/value/op"),
+        (NodeCategory::Expression, "unary") => ("set-unary-operator", "/value/op"),
+        (NodeCategory::Template, "text") => ("set-template-text", "/value"),
+        (NodeCategory::Statement, "comment") => ("set-comment", "/value"),
+        _ => return None,
+    };
+    let scalar = value.pointer(slot.1)?.clone();
+    let usable = match slot.0 {
+        "set-int" => scalar.as_str().is_some_and(portable_integer),
+        "set-float" => scalar.as_str().is_some_and(portable_float),
+        "set-name" | "set-field-name" | "set-keyword-name" => {
+            scalar.as_str().is_some_and(portable_name)
+        }
+        _ => true,
+    };
+    usable.then_some((slot.0, scalar))
+}
+
+fn collect_locators(
+    root: &Value,
+    path: &str,
+    category: NodeCategory,
+    target: &[LocatorStep],
+    rows: &mut Vec<Value>,
+) -> Result<()> {
+    ensure!(
+        semantic_locator_bounded(target.len()),
+        "semantic intent locator exceeds 64 role steps."
+    );
+    let node = root
+        .pointer(path)
+        .with_context(|| format!("semantic locator index reached missing path '{path}'."))?;
+    let kind = node
+        .get("kind")
+        .and_then(Value::as_str)
+        .context("semantic locator index reached a node without a kind.")?;
+    if let Some((operation, scalar)) = scalar_target(node, category) {
+        ensure!(
+            resolve(root, target)? == path,
+            "generated semantic role locator does not resolve to its source node."
+        );
+        rows.push(json!({
+            "target":target,
+            "category":category,
+            "kind":kind,
+            "operation":operation,
+            "from":scalar
+        }));
+    }
+    if target.len() == MAX_LOCATOR_STEPS {
+        return Ok(());
+    }
+    for role in Role::ALL {
+        let Some((relative, child_category)) = relative_role(category, kind, role) else {
+            continue;
+        };
+        let child_path = relative
+            .split('/')
+            .fold(path.to_owned(), |path, segment| append(&path, segment));
+        let Some(child) = root.pointer(&child_path).filter(|value| !value.is_null()) else {
+            continue;
+        };
+        if let Some(items) = child.as_array() {
+            for (index, item) in items.iter().enumerate() {
+                if !semantic_change::category_matches(item, child_category) {
+                    continue;
+                }
+                let Some(step) = locator_step(role, Some(index), child_category, item) else {
+                    continue;
+                };
+                let mut nested = target.to_vec();
+                nested.push(step);
+                collect_locators(
+                    root,
+                    &append(&child_path, &index.to_string()),
+                    child_category,
+                    &nested,
+                    rows,
+                )?;
+            }
+        } else if semantic_change::category_matches(child, child_category) {
+            let Some(step) = locator_step(role, None, child_category, child) else {
+                continue;
+            };
+            let mut nested = target.to_vec();
+            nested.push(step);
+            collect_locators(root, &child_path, child_category, &nested, rows)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn body_locators(body: &SemanticBody) -> Result<Vec<Value>> {
+    let root = serde_json::to_value(body)?;
+    let mut rows = Vec::new();
+    for (index, statement) in body.body.iter().enumerate() {
+        let value = serde_json::to_value(statement)?;
+        let step = locator_step(
+            Role::Statement,
+            Some(index),
+            NodeCategory::Statement,
+            &value,
+        )
+        .context("semantic body statement has no tagged kind.")?;
+        collect_locators(
+            &root,
+            &format!("/body/{index}"),
+            NodeCategory::Statement,
+            &[step],
+            &mut rows,
+        )?;
+    }
+    Ok(rows)
+}
+
 fn resolve(root: &Value, steps: &[LocatorStep]) -> Result<String> {
     ensure!(
         semantic_locator_bounded(steps.len()),
         "semantic intent locator needs 1 through 64 role steps."
     );
     let mut path = String::new();
+    let mut category = None;
     for (number, step) in steps.iter().enumerate() {
         let current = root.pointer(&path).with_context(|| missing_path(&path))?;
-        let child_path = if path.is_empty() && matches!(step.role, Role::Statement) {
-            "/body".to_string()
-        } else {
-            let kind = current
-                .get("kind")
-                .and_then(Value::as_str)
-                .with_context(|| {
+        let (child_path, child_category) =
+            if path.is_empty() && matches!(step.role, Role::Statement) {
+                ("/body".to_string(), NodeCategory::Statement)
+            } else {
+                let current_category =
+                    category.context("semantic intent locator lost its node category.")?;
+                let kind = current
+                    .get("kind")
+                    .and_then(Value::as_str)
+                    .with_context(|| {
+                        format!(
+                            "{} starts from a value without a semantic kind.",
+                            describe(step, number)
+                        )
+                    })?;
+                let (relative, child_category) = relative_role(current_category, kind, step.role)
+                    .with_context(|| {
                     format!(
-                        "{} starts from a value without a semantic kind.",
+                        "{} is unavailable on semantic kind '{kind}'.",
                         describe(step, number)
                     )
                 })?;
-            let relative = relative_role(kind, step.role).with_context(|| {
-                format!(
-                    "{} is unavailable on semantic kind '{kind}'.",
-                    describe(step, number)
+                (
+                    relative.split('/').fold(path.clone(), |path, segment| {
+                        append(&path, &pointer_segment(segment))
+                    }),
+                    child_category,
                 )
-            })?;
-            relative.split('/').fold(path.clone(), |path, segment| {
-                append(&path, &pointer_segment(segment))
-            })
-        };
+            };
+        ensure!(
+            step.category
+                .is_none_or(|expected| expected == child_category),
+            "{} category does not match the role's typed boundary.",
+            describe(step, number)
+        );
         let child = root.pointer(&child_path).with_context(|| {
             format!(
                 "{} resolves to a missing optional role.",
@@ -437,6 +691,7 @@ fn resolve(root: &Value, steps: &[LocatorStep]) -> Result<String> {
             );
             path = child_path;
         }
+        category = Some(child_category);
     }
     ensure!(
         path.starts_with("/body/"),
@@ -824,9 +1079,7 @@ pub fn apply(body_input: &str, intent_input: &str) -> Result<AppliedIntent> {
         }));
         reports.push(json!({
             "number":number + 1, "op":edit.name, "path":path,
-            "category":edit.category, "kind":edit.kind,
-            "before_sha256":digest(serde_json::to_vec(&before)?),
-            "after_sha256":digest(serde_json::to_vec(current.pointer(&path).unwrap())?)
+            "category":edit.category, "kind":edit.kind
         }));
     }
     ensure!(
