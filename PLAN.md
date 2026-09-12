@@ -494,8 +494,7 @@ Planned checkpoints:
 
 ### PR 15. Agent IR Contract and Python SDK
 
-Status: [PR 277](https://github.com/e6qu/fun-refactor/pull/277) is in review from
-`agent_ir_python_sdk`.
+Status: merged as [PR 277](https://github.com/e6qu/fun-refactor/pull/277).
 
 Goal: make semantic IR discoverable and safe to construct without asking an agent to memorize raw
 JSON. Keep Python objects visibly aligned with the public IR hierarchy.
@@ -541,6 +540,57 @@ Planned checkpoints:
 4. **Complete.** Add Lean catalog and admission proofs with Rust and Python correspondence.
 5. **Complete.** Teach both agent routes and retain deterministic and fresh Luna/low comparisons.
 6. **Complete.** Pass the complete repository gate and publish the large PR for review.
+
+### PR 16. Checked Semantic Delta Authoring
+
+Status: in progress on `semantic_ir_operations`.
+
+Goal: let an agent make a small typed semantic change without reproducing an entire function body
+or reading language-specific source.
+
+Deliverables:
+
+- Add a versioned `fr-semantic-change-1` contract bound to the canonical identity of one source-free
+  semantic body. Keep operation order explicit and cap input bytes, operation count and result size.
+- Support typed node replacement for types, statements, expressions and template parts, plus
+  statement insertion and deletion. Resolve RFC 6901 pointers against the current result and refuse
+  missing paths, category mismatches, no-ops and invalid intermediate bodies.
+- Add project-independent change validation and application. Return canonical input and result
+  identities without scanning a project or reading implementation source.
+- Report body identity with declaration semantic queries. Apply a semantic delta directly to an
+  exact function handle, then reuse writer fidelity, reparse, byte-preservation and transaction checks.
+- Carry semantic deltas through author batches and reviewed task changes, including source, fragment,
+  base-identity, result and delivery drift checks.
+- Extend the Python SDK with change objects that mirror the public operation hierarchy and accept
+  only the corresponding typed IR nodes.
+- Model operation admission, sequential bounds and statement-list size transitions in Lean. Anchor
+  the critical Rust predicates and compare their complete bounded state spaces.
+- Teach the portable skill the delta route and compare it with whole-body replacement on generic
+  fixtures. Run a fresh economical-agent pair when deterministic evidence passes.
+
+Verification and acceptance:
+
+1. Every accepted operation changes exactly its selected semantic subtree or statement-list slot.
+2. The base body identity must match before any operation; every intermediate and final body remains
+   strict, source-free `fr-semantic-body-1` within the existing statement and node limits.
+3. Project-independent application performs no project scan. Project authoring reads no fragment
+   containing source code and preserves bytes outside the selected function body.
+4. Missing and escaped pointers, wrong node categories, invalid indices, duplicate/no-op changes,
+   unsupported nodes and stale body identities refuse before source or history mutation.
+5. Preview remains read-only. Batch and task-change writes retain atomic apply, checks, undo, redo
+   and Git patch identity.
+6. Lean states the finite admission and size laws. Exhaustive Rust correspondence and
+   Python-generated fixtures connect the model, SDK and implementation without proving Serde or Python.
+7. Native, Python, documentation, skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **In progress.** Freeze the semantic-change contract, pure application engine and Python builders.
+2. **Planned.** Add body identity reporting and direct semantic-delta body authoring.
+3. **Planned.** Integrate author batches, reviewed task changes and lifecycle drift checks.
+4. **Planned.** Add Lean models, source anchors and exhaustive correspondence tests.
+5. **Planned.** Teach the agent workflow, retain controlled and fresh comparisons, and pass the
+   complete repository gate.
 
 ## Formal verification policy
 

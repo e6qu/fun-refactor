@@ -92,6 +92,12 @@ task favors direct JSON for one-off construction and leaves SDK reuse as a futur
 The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
 passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
+The current `semantic_ir_operations` branch is roadmap PR 16. It starts a checked semantic-delta
+contract so an agent can replace one typed IR node or insert/delete one statement without resending
+the complete function body. The change stays bound to a canonical body identity and must preserve a
+strict, bounded, source-free body after every ordered operation. Project authoring, reviewed task
+changes, Lean correspondence and agent evaluation follow on that pure contract.
+
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
 declaration targets from literal handles or returned query strings. A task target selects one of
