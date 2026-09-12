@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence and source-free semantic IR | Extend semantic coverage and lower repeated-query/context cost |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-six passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-eight passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -182,7 +182,7 @@ The first packaged roadmap is complete. Eighteen merged pull requests establishe
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
 | [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
-| PR 18 | Reviewed Semantic Edit Plans | In progress |
+| PR 18 | Reviewed Semantic Edit Plans | Ready for review |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
@@ -672,7 +672,7 @@ Planned checkpoints:
 
 ### PR 18. Reviewed Semantic Edit Plans
 
-Status: implementation complete; final repository gate in progress.
+Status: complete; ready for review.
 
 Goal: let an agent discover and apply one exact scalar semantic edit without guessing a file path,
 constructing a JSON manifest or reading source. Preserve the reviewed semantic-intent contract as
@@ -725,7 +725,7 @@ Planned checkpoints:
 5. **Complete.** The deterministic comparison saves one command and 21.2% of counted bytes. The
    corrected fresh Luna-low pair passes both arms without source reads. The direct route removes the
    query and payload, with lower total, non-cached input and output in this one pair.
-6. **In progress.** Pass the complete repository gate and publish the large PR for review.
+6. **Complete.** The complete native, browser, documentation, capability and Lean gate passes.
 
 ## Formal verification policy
 

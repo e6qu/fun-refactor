@@ -199,7 +199,7 @@ The first fresh Luna-low pair produced correct code but exposed misleading skill
 agent ran an unnecessary standalone query. Its digest-bound trace remains as diagnostic evidence.
 After the direct author route moved first, both fresh arms passed without source reads. The direct
 arm used no query or payload and had lower total input, non-cached input and output in this one pair.
-The complete repository gate remains before PR publication.
+The complete native, browser, documentation, capability and Lean repository gate passes.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
