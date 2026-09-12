@@ -102,6 +102,7 @@ pub enum Section {
     UnaryOperator,
     Record,
     Change,
+    Intent,
 }
 
 impl Section {
@@ -116,6 +117,7 @@ impl Section {
             Self::UnaryOperator => "unary-operator",
             Self::Record => "record",
             Self::Change => "change",
+            Self::Intent => "intent",
         }
     }
 }
@@ -331,6 +333,25 @@ fn section_report(section: Section) -> Value {
                 "pointer_bytes":1024,"pointer_segments":64},
             "semantics":"ordered; the validator checks every intermediate body"
         }),
+        Section::Intent => json!({
+            "section":"intent",
+            "shape":{"schema":super::semantic_intent::INTENT_SCHEMA,
+                "base":"frsb1:<CANONICAL_BODY_SHA256>","operations":"intent[]"},
+            "locator":{"shape":"role-step[]",
+                "step":{"role":"semantic role","index":"optional uint",
+                    "category":"optional exact type, statement, expression or template category",
+                    "kind":"optional exact semantic kind","label":"optional exact semantic label"},
+                "selection":"list roles need an index, kind or label and must resolve exactly one item"},
+            "roles":super::semantic_intent::ROLE_NAMES,
+            "operations":super::semantic_intent::OPERATION_NAMES,
+            "operation_fields":{"target":"role-step[]","from":"exact current scalar",
+                "to":"replacement scalar"},
+            "limits":{"bytes":super::semantic_change::MAX_INPUT_BYTES,
+                "operations":super::semantic_change::MAX_OPERATIONS,
+                "locator_steps":super::semantic_intent::MAX_LOCATOR_STEPS,
+                "resolved_targets":super::semantic_intent::MAX_RESOLVED_TARGETS},
+            "semantics":"ordered shape-preserving scalar edits compiled through fr-semantic-change-1"
+        }),
         _ => unreachable!(),
     }
 }
@@ -395,13 +416,15 @@ pub fn catalog(options: &SchemaOptions) -> Result<Value> {
             {"name":"template","entries":TEMPLATE_SPECS.len()},
             {"name":"binary-operator","entries":BINARY_OPERATORS.len()},
             {"name":"unary-operator","entries":UNARY_OPERATORS.len()},
-            {"name":"record","entries":4}, {"name":"change","entries":3}
+            {"name":"record","entries":4}, {"name":"change","entries":3},
+            {"name":"intent","entries":super::semantic_intent::OPERATION_NAMES.len()}
         ],
         "commands":{
             "section":"fr author semantic-schema <SECTION>",
             "variant":"fr author semantic-schema <SECTION> --kind <KIND>",
             "validate":"fr author validate-semantic --from <FILE>",
-            "apply_change":"fr author apply-semantic-change --body <BODY> --change <CHANGE>"
+            "apply_change":"fr author apply-semantic-change --body <BODY> --change <CHANGE>",
+            "apply_intent":"fr author apply-semantic-intent --body <BODY> --intent <INTENT>"
         },
         "python":{"package":"fr_ir","object_fields":"pass as keyword arguments","source_read_required":false}
     }))

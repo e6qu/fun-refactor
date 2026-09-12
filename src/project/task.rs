@@ -61,6 +61,7 @@ pub(super) enum AuthorOperation {
     ReplaceBody,
     ReplaceBodySemantic,
     EditBodySemantic,
+    EditBodyIntent,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -72,6 +73,7 @@ impl AuthorOperation {
             Self::ReplaceBody => "replace-body",
             Self::ReplaceBodySemantic => "replace-body-semantic",
             Self::EditBodySemantic => "edit-body-semantic",
+            Self::EditBodyIntent => "edit-body-intent",
             Self::ReplaceDeclaration => "replace-declaration",
             Self::InsertDeclaration => "insert-declaration",
             Self::OrganizeImports => "organize-imports",
@@ -86,6 +88,7 @@ impl AuthorOperation {
             Self::OrganizeImports => 3,
             Self::ReplaceBodySemantic => 4,
             Self::EditBodySemantic => 5,
+            Self::EditBodyIntent => 6,
         }
     }
 
@@ -193,7 +196,7 @@ fn target_code(file: bool, kind: Option<SymbolKind>) -> usize {
 /// deliberately checked later by the existing author preview.
 pub fn task_author_target_candidate(operation: usize, language: usize, target: usize) -> bool {
     match operation {
-        0 | 4 | 5 => {
+        0 | 4 | 5 | 6 => {
             matches!(language, 0 | 1 | 3 | 4 | 5)
                 && (matches!(target, 1 | 2) || matches!(language, 4 | 5) && target == 3)
         }

@@ -33,11 +33,12 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["schema"], "fr-author-guide-1");
     assert_eq!(guide["limits"]["operations"]["maximum"], 32);
     assert_eq!(guide["limits"]["manifest_bytes"], 65536);
-    assert_eq!(guide["operations"].as_array().unwrap().len(), 6);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 7);
     assert_eq!(guide["operations"][0]["op"], "replace-body");
     assert_eq!(guide["operations"][1]["op"], "replace-body-semantic");
     assert_eq!(guide["operations"][2]["op"], "edit-body-semantic");
-    assert_eq!(guide["operations"][5]["op"], "organize-imports");
+    assert_eq!(guide["operations"][3]["op"], "edit-body-intent");
+    assert_eq!(guide["operations"][6]["op"], "organize-imports");
     let steps = guide["workflow"]
         .as_array()
         .unwrap()
@@ -76,6 +77,8 @@ fn semantic_contract_is_bounded_and_selectable_without_a_project() {
     assert_eq!(index["sections"][2]["entries"], 26);
     assert_eq!(index["sections"][8]["name"], "change");
     assert_eq!(index["sections"][8]["entries"], 3);
+    assert_eq!(index["sections"][9]["name"], "intent");
+    assert_eq!(index["sections"][9]["entries"], 11);
 
     let change = ok(dir.path(), &["author", "semantic-schema", "change"]);
     assert_eq!(
@@ -90,6 +93,13 @@ fn semantic_contract_is_bounded_and_selectable_without_a_project() {
         change["contract"]["semantics"],
         "ordered; the validator checks every intermediate body"
     );
+    let intent = ok(dir.path(), &["author", "semantic-schema", "intent"]);
+    assert_eq!(
+        intent["contract"]["shape"]["schema"],
+        "fr-semantic-intent-1"
+    );
+    assert_eq!(intent["contract"]["roles"][0], "statement");
+    assert_eq!(intent["contract"]["operations"][7], "set-binary-operator");
 
     let statement = ok(
         dir.path(),
@@ -233,6 +243,65 @@ fn semantic_changes_apply_in_order_without_scanning_a_project() {
     assert_eq!(report["canonical"]["body"].as_array().unwrap().len(), 1);
     assert_eq!(report["canonical"]["body"][0]["value"]["value"], "right");
     assert_ne!(report["input_basis"], report["result_basis"]);
+}
+
+#[test]
+fn semantic_intents_resolve_roles_and_compile_without_scanning_a_project() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("body.json"),
+        r#"{"schema":"fr-semantic-body-1","body":[{"kind":"return","value":{"kind":"binary","value":{"op":"add","left":{"kind":"name","value":"input"},"right":{"kind":"int","value":"1"}}}}]}"#,
+    )
+    .unwrap();
+    let validated = ok(
+        dir.path(),
+        &["author", "validate-semantic", "--from", "body.json"],
+    );
+    let base = format!("frsb1:{}", validated["canonical_sha256"].as_str().unwrap());
+    fs::write(
+        dir.path().join("intent.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema":"fr-semantic-intent-1","base":base,"operations":[{
+                "op":"set-binary-operator","target":[
+                    {"role":"statement","kind":"return"},
+                    {"role":"result","kind":"binary"}],
+                "from":"add","to":"mul"
+            },{
+                "op":"set-int","target":[
+                    {"role":"statement","kind":"return"},
+                    {"role":"result","kind":"binary"},
+                    {"role":"right","kind":"int"}],
+                "from":"1","to":"2"
+            }]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let report = ok(
+        dir.path(),
+        &[
+            "author",
+            "apply-semantic-intent",
+            "--body",
+            "body.json",
+            "--intent",
+            "intent.json",
+            "--canonical",
+            "--compiled",
+        ],
+    );
+    assert_eq!(report["valid"], true);
+    assert_eq!(report["refinement_checked"], true);
+    assert_eq!(report["operations"][0]["path"], "/body/0/value");
+    assert_eq!(
+        report["canonical"]["body"][0]["value"]["value"]["op"],
+        "mul"
+    );
+    assert_eq!(
+        report["canonical"]["body"][0]["value"]["value"]["right"]["value"],
+        "2"
+    );
+    assert_eq!(report["compiled_change"]["schema"], "fr-semantic-change-1");
 }
 
 #[test]
@@ -513,6 +582,111 @@ fn semantic_delta_authoring_changes_one_expression_across_supported_languages() 
         );
         assert_eq!(report["semantic_change"]["operations"][0]["op"], "replace");
         assert_eq!(report["preservation"], "bytes outside the selected body");
+        assert!(fs::read_to_string(root.join(file))
+            .unwrap()
+            .contains(expected));
+    }
+}
+
+#[test]
+fn semantic_intent_authoring_changes_scalars_across_supported_languages() {
+    let cases = [
+        (
+            "app.rs",
+            "fn calc(value: i32) -> i32 { value + 1 }\n",
+            "value * 2",
+        ),
+        (
+            "app.go",
+            "package sample\nfunc calc(value int) int { return value + 1 }\n",
+            "value * 2",
+        ),
+        (
+            "App.java",
+            "final class App { static int calc(int value) { return value + 1; } }\n",
+            "value * 2",
+        ),
+        (
+            "app.ts",
+            "function calc(value: number): number { return value + 1; }\n",
+            "value * 2",
+        ),
+    ];
+    for (file, source, expected) in cases {
+        let (_temp, root, input) = fixture_file(file, source, b"{}");
+        let (handle, _) = selection(&root, "calc");
+        let semantic = ok(
+            &root,
+            &[
+                "project",
+                "semantic",
+                &handle,
+                "--body",
+                "--nodes",
+                "64",
+                "--minimal",
+            ],
+        );
+        let base = semantic["body_identity"]["basis"].as_str().unwrap();
+        fs::write(
+            &input,
+            serde_json::to_vec(&serde_json::json!({
+                "schema":"fr-semantic-intent-1","base":base,"operations":[{
+                    "op":"set-binary-operator","target":[
+                        {"role":"statement","kind":"return"},
+                        {"role":"result","kind":"binary"}],
+                    "from":"add","to":"mul"
+                },{
+                    "op":"set-int","target":[
+                        {"role":"statement","kind":"return"},
+                        {"role":"result","kind":"binary"},
+                        {"role":"right","kind":"int"}],
+                    "from":"1","to":"2"
+                }]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let report = ok(
+            &root,
+            &[
+                "author",
+                "edit-body-intent",
+                &handle,
+                "--from",
+                input.to_str().unwrap(),
+                "--write",
+            ],
+        );
+        assert_eq!(report["query"], "edit-body-intent");
+        assert_eq!(report["semantic_intent"]["input_basis"], base);
+        assert_eq!(report["semantic_intent"]["refinement_checked"], true);
+        assert_eq!(
+            report["semantic_intent"]["operations"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(report["preservation"], "bytes outside the selected body");
+        assert!(fs::read_to_string(root.join(file))
+            .unwrap()
+            .contains(expected));
+        let transaction = report["transaction"].as_u64().unwrap().to_string();
+        ok(&root, &["history", "undo", &transaction, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+        assert_eq!(
+            ok(&root, &["history", "patch", &transaction, "--check"])["matches_patch_basis"],
+            true
+        );
+        ok(&root, &["history", "redo", &transaction, "--write"]);
+        assert_eq!(
+            ok(
+                &root,
+                &["history", "patch", &transaction, "--reverse", "--check"]
+            )["matches_patch_basis"],
+            true
+        );
         assert!(fs::read_to_string(root.join(file))
             .unwrap()
             .contains(expected));

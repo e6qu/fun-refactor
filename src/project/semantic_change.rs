@@ -192,7 +192,7 @@ fn canonical_pointer(path: &str, allow_body: bool) -> bool {
     })
 }
 
-fn category_matches(value: &Value, category: NodeCategory) -> bool {
+pub(super) fn category_matches(value: &Value, category: NodeCategory) -> bool {
     match category {
         NodeCategory::Type => serde_json::from_value::<Type>(value.clone()).is_ok(),
         NodeCategory::Statement => serde_json::from_value::<Stmt>(value.clone()).is_ok(),

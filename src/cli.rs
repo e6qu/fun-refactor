@@ -2366,6 +2366,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             | Command::SemanticSchema(_)
             | Command::ValidateSemantic(_)
             | Command::ApplySemanticChange(_)
+            | Command::ApplySemanticIntent(_)
     ) {
         anyhow::ensure!(
             !cli.save_plan && cli.plan_basis.is_none() && cli.context_basis.is_none(),
@@ -2380,6 +2381,9 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             Command::ApplySemanticChange(options) => {
                 crate::project::semantic_change::apply_from_files(&cli.root, options)?
             }
+            Command::ApplySemanticIntent(options) => {
+                crate::project::semantic_intent::apply_from_files(&cli.root, options)?
+            }
             _ => unreachable!(),
         };
         if cli.json {
@@ -2393,10 +2397,12 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         Command::Guide
         | Command::SemanticSchema(_)
         | Command::ValidateSemantic(_)
-        | Command::ApplySemanticChange(_) => unreachable!(),
+        | Command::ApplySemanticChange(_)
+        | Command::ApplySemanticIntent(_) => unreachable!(),
         Command::ReplaceBody(options)
         | Command::ReplaceBodySemantic(options)
         | Command::EditBodySemantic(options)
+        | Command::EditBodyIntent(options)
         | Command::ReplaceDeclaration(options)
         | Command::InsertDeclaration(options) => (options.write, options.diff_bytes),
         Command::Batch(options) => (options.write, options.diff_bytes),
@@ -2415,10 +2421,12 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             Command::Guide
             | Command::SemanticSchema(_)
             | Command::ValidateSemantic(_)
-            | Command::ApplySemanticChange(_) => unreachable!(),
+            | Command::ApplySemanticChange(_)
+            | Command::ApplySemanticIntent(_) => unreachable!(),
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceBodySemantic(options) => project.replace_body_semantic(options)?,
             Command::EditBodySemantic(options) => project.edit_body_semantic(options)?,
+            Command::EditBodyIntent(options) => project.edit_body_intent(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
             Command::InsertDeclaration(options) => project.insert_declaration(options)?,
             Command::Batch(options) => project.author_batch(options)?,
