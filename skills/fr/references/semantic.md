@@ -9,10 +9,6 @@ A null model with `omitted-node-budget` needs the reported node count; never inf
 
 Use a full declaration handle when selecting one function or method. Keep `semantic_basis` beside
 any nested `BASIS#POINTER` addresses. Source or inventory drift invalidates project handles.
-When a complete body appears, retain `body_identity.basis`. A missing identity means the body is
-source-bearing or exceeds the authoring limits.
-Add `--pointers` with `--body` when constructing a delta. `body_pointers.fields` names the compact
-row columns. Each row gives one bounded path, exact category and kind under the same body basis.
 Unsupported source is hashed and counted by default. Reserve `--unsupported-source` for a task that
 requires the exact unsupported syntax because it exposes text.
 
@@ -56,34 +52,7 @@ tagged statements from the returned model. Keep `kind` and `value`. Never add `s
 }
 ```
 
-For a small change, bind a delta to `body_identity.basis` and send only changed typed nodes. Paths
-use bounded RFC 6901 pointers into the current body. Every operation sees the result of the previous
-operation. `replace` needs the target category. Statement-list insertion uses a list path and index;
-deletion uses the statement path.
-Follow every JSON key in the reported path. For example, an integer at the right side of a binary
-inside the value of a `let` can use `/body/0/value/value/value/right`.
-
-```python
-from fr_ir import Change, Expr, SemanticChange
-
-change = SemanticChange(body_basis, [
-    Change.Replace("/body/0/value", Expr.Int(2)),
-])
-change.write("change.json")
-```
-
-Use `SemanticChange(body, operations)` when the SDK already holds the complete `SemanticBody`.
-Direct JSON uses schema `fr-semantic-change-1`, `base`, and an ordered `operations` list. Inspect the
-exact operation shape with `fr author semantic-schema change`.
-
-Apply a delta without a project when testing composition:
-
-```sh
-fr author apply-semantic-change --body body.json --change change.json --canonical
-```
-
-`validate-semantic` accepts complete bodies only. For a project delta, the read-only
-`edit-body-semantic` preview performs complete validation against the current body.
+For smaller basis-bound edits, load [Semantic change](semantic-change.md).
 
 Run `fr author validate-semantic --from FILE --canonical`, then preview
 `fr author replace-body-semantic HANDLE --from FILE`. Review the rendered diff and writer
@@ -91,8 +60,3 @@ fidelity. Save or apply it through the same plan, history and checked-workflow r
 operations. Author batches, project tasks and task changes use operation `replace-body-semantic`.
 The route supports Rust, Go, Java, TypeScript and TSX function-body targets. A refusal means the IR
 cannot be lowered inside one body under the current contract; inspect the reported boundary.
-
-For a delta, preview `fr author edit-body-semantic HANDLE --from change.json`. Author batches,
-project tasks and task changes use operation `edit-body-semantic`. A stale base refuses before any
-source or history mutation. The final writer, reparse, byte-preservation and lifecycle checks match
-whole-body semantic replacement.

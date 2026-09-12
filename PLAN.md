@@ -28,9 +28,9 @@ A supported pair describes the accepted operation scope; individual inputs can s
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
-| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Expose a bounded semantic model and lower repeated-query/context cost |
+| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence and source-free semantic IR | Extend semantic coverage and lower repeated-query/context cost |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, bounded authoring, checks and twenty-two passing autonomous trials | Make context use competitive and replace source-fragment authoring with typed semantic operations |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic deltas, bounded authoring, checks and twenty-four passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -45,7 +45,9 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds within documented subsets.
 - Revision-bound migration plans for one-file Next.js/FastAPI route features, with endpoint agreement, explicit dispositions and reversible source-history writes.
 - Local recipes, expectations, workspace previews and canonical formatting.
-- Rust, Go, Java, TypeScript and TSX body authoring, Rust declaration replacement and Rust function insertion into files, inline modules, impls and traits.
+- Rust, Go, Java, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
+- Rust declaration replacement and function insertion into files, inline modules, impls and traits.
+- A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
@@ -158,7 +160,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Fifteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Sixteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -177,9 +179,10 @@ The first packaged roadmap is complete. Fifteen merged pull requests established
 | [PR 12](https://github.com/e6qu/fun-refactor/pull/273) | Revision-Bound Agent Task Bundles | Merged |
 | [PR 13](https://github.com/e6qu/fun-refactor/pull/275) | Reviewed Agent Task Changes | Merged |
 | [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
+| [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 
-The second package now moves the existing internal semantic representation onto the public agent
-surface and uses it for source-free authoring. Later shapes remain evidence-driven.
+The second package now applies the public semantic representation through checked, source-free
+operations. Later shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -543,7 +546,7 @@ Planned checkpoints:
 
 ### PR 16. Checked Semantic Delta Authoring
 
-Status: in progress on `semantic_ir_operations`.
+Status: complete on `semantic_ir_operations`, pending review.
 
 Goal: let an agent make a small typed semantic change without reproducing an entire function body
 or reading language-specific source.
@@ -589,8 +592,8 @@ Planned checkpoints:
 2. **Complete.** Add body identity reporting and direct semantic-delta body authoring.
 3. **Complete.** Integrate author batches, reviewed task changes and lifecycle drift checks.
 4. **Complete.** Add Lean models, source anchors and exhaustive correspondence tests.
-5. **In progress.** Teach the agent workflow, retain controlled and fresh comparisons, and pass the
-   complete repository gate.
+5. **Complete.** Teach the agent workflow, retain controlled and fresh comparisons, expose exact
+   body pointers, and pass the complete repository gate.
 
 ## Formal verification policy
 

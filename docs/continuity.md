@@ -92,11 +92,10 @@ task favors direct JSON for one-off construction and leaves SDK reuse as a futur
 The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
 passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
-The current `semantic_ir_operations` branch is roadmap PR 16. It starts a checked semantic-delta
+The `semantic_ir_operations` branch completes roadmap PR 16. It adds a checked semantic-delta
 contract so an agent can replace one typed IR node or insert/delete one statement without resending
 the complete function body. The change stays bound to a canonical body identity and must preserve a
-strict, bounded, source-free body after every ordered operation. Project authoring, reviewed task
-changes, Lean correspondence and agent evaluation follow on that pure contract.
+strict, bounded, source-free body after every ordered operation.
 
 The first checkpoint adds project-independent `fr author apply-semantic-change` and the discoverable
 `fr-semantic-change-1` contract. A base identity binds canonical body bytes. Up to 64 ordered
@@ -129,6 +128,12 @@ observed source read. The delta artifact is 331 bytes versus 1,930, but the delt
 input tokens after reported cache hits and nine commands. The complete-body arm uses 17,122 and
 five. The delta trace tried the wrong validator and three invalid paths. The skill now distinguishes
 validation routes, and optional semantic body pointers report exact paths, categories and kinds.
+
+The pointer follow-up returns a bounded `fr-semantic-body-pointers-1` index only for one complete,
+authorable function or method body. Every row resolves against the reported body and carries its
+typed category and kind. Ambiguous file requests and incomplete bodies refuse instead of returning
+an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
+fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or

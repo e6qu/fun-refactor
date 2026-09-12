@@ -395,6 +395,10 @@ impl Project<'_> {
             module.items = vec![item];
             "declaration"
         } else {
+            ensure!(
+                !options.pointers,
+                "semantic body pointers require one function or method declaration."
+            );
             "file"
         };
         let (omitted_bodies, omitted_statements) = if options.body {

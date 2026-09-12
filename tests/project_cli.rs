@@ -402,16 +402,21 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         .unwrap()
         .iter()
         .any(|field| field == "coverage"));
-    assert!(!run(
-        dir.path(),
-        &["project", "semantic", "app.py", "--pointers"]
-    )
-    .0);
-    assert!(!run(
-        dir.path(),
-        &["project", "semantic", "app.py", "--body", "--pointers"]
-    )
-    .0);
+    let missing_body = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(dir.path())
+        .args(["project", "semantic", "app.py", "--pointers"])
+        .output()
+        .unwrap();
+    assert!(!missing_body.status.success());
+    assert!(String::from_utf8_lossy(&missing_body.stderr).contains("--body"));
+    assert!(
+        !run(
+            dir.path(),
+            &["project", "semantic", "app.py", "--body", "--pointers"]
+        )
+        .0
+    );
 }
 
 #[test]
