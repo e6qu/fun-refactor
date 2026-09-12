@@ -40,7 +40,12 @@ def invoke(binary: Path, root: Path, arguments: list[str], expected: int = 0) ->
     )
     if result.returncode != expected:
         raise RuntimeError(f"{arguments}: {result.stdout.decode()} {result.stderr.decode()}")
-    return json.loads(result.stdout), len(result.stdout)
+    report = json.loads(result.stdout)
+    measured = result.stdout
+    if isinstance(report, dict) and isinstance(report.get("receiving_root"), str):
+        encoded_root = json.dumps(report["receiving_root"], ensure_ascii=False)[1:-1].encode()
+        measured = measured.replace(encoded_root, b"$ROOT")
+    return report, len(measured)
 
 
 def semantic(binary: Path, root: Path, pointers: bool = False) -> tuple[dict, int]:

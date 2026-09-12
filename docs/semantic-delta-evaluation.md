@@ -22,8 +22,9 @@ larger and the write report 28.7% larger. An agent that retains the initial sema
 receipts remain a possible optimization.
 
 The retained report is `tests/agent-eval/semantic-delta.json`. Its scope is one deterministic Rust
-fixture. It measures UTF-8 bytes, not model tokens, agent success rates, language coverage or a
-population effect.
+fixture. It measures UTF-8 bytes, with the temporary receiving root normalized to `$ROOT` in patch
+reports. It does not measure model tokens, agent success rates, language coverage or a population
+effect.
 
 ## Fresh agent pair
 
