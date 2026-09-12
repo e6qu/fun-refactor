@@ -163,7 +163,15 @@ The deterministic four-route report is `tests/agent-eval/semantic-intent.json`. 
 pointer-delta, direct-intent and Python-intent routes produce equal behavior, source, body, patch,
 undo and redo evidence. Filtered direct intent uses 8,518 measured bytes, versus 8,609 for the
 complete body and 10,357 for the pointer delta. Python intent uses 8,989 after counting its producer.
-A fresh economical-agent comparison and the complete repository gate remain before publication.
+
+The fresh Luna-low comparison is retained under
+`tests/agent-eval/results/2026-09-12-semantic-intent`. Both isolated arms avoid source reads, produce
+the exact expected semantic body and pass compiled behavior. Intent authoring uses 470 payload bytes
+and seven commands, compared with 1,930 bytes and nine commands for complete-body authoring. It uses
+22.9% fewer total input tokens and 32.5% fewer output tokens, but 18.8% more input after subtracting
+reported cache hits. The intent trace first tries one broad project query before finding the filtered
+locator route. A digest-bound Rust test preserves these mixed results. The complete repository gate
+remains before publication.
 
 PR 17, Reviewed Semantic Intent Operations, is in progress. It addresses the main failure mode in
 the PR 16 agent trace. The agent had to navigate serialization-only pointer segments and reproduce

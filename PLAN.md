@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence and source-free semantic IR | Extend semantic coverage and lower repeated-query/context cost |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic deltas, bounded authoring, checks and twenty-four passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-six passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -57,7 +57,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Twenty-four passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
+- Twenty-six passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
@@ -181,6 +181,7 @@ The first packaged roadmap is complete. Sixteen merged pull requests established
 | [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
+| PR 17 | Reviewed Semantic Intent Operations | In progress |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. Later shapes remain evidence-driven.
@@ -661,8 +662,11 @@ Planned checkpoints:
 4. **Complete.** Add the Python mirror, generated cross-runtime fixtures, semantic catalogs and executable skill
    routes.
 5. **Complete.** Add Lean models, source anchors, refinement theorems and exhaustive Rust correspondence.
-6. **In progress.** Retain cross-language and four-route controlled evidence, run qualifying economical-agent trials,
-   pass the complete repository gate and publish the large PR.
+6. **In progress.** Cross-language and four-route controlled evidence is retained. A fresh
+   Luna-low pair passes exact semantics and behavior in both arms. Semantic intent uses 470 payload
+   bytes and seven commands, versus 1,930 bytes and nine commands for complete-body authoring. It
+   uses fewer total input and output tokens, while input excluding reported cache hits is 18.8%
+   higher. Pass the complete repository gate and publish the large PR.
 
 ## Formal verification policy
 

@@ -123,7 +123,8 @@ def usage(path: Path) -> dict:
 
 def direct_source_reads(commands: list[str]) -> int:
     patterns = [
-        r"\b(cat|sed|head|tail|less|more|rg|grep|awk|perl)\b[^\n]*app\.rs",
+        r"\b(cat|sed|head|tail|less|more|grep|awk|perl)\b[^\n]*app\.rs",
+        r"\brg\b(?![^\n;&|]*\s--files(?:\s|$))[^\n;&|]*app\.rs",
         r"\b(read_text|read_bytes|open)\s*\([^\n]*app\.rs",
         r"\brustc\b[^\n]*app\.rs",
     ]

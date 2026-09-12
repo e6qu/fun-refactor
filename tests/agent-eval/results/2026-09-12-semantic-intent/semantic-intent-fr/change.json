@@ -1,0 +1,16 @@
+{
+  "schema": "fr-semantic-intent-1",
+  "base": "frsb1:55f350263f38d6fbbacbead88830be7a630c7f6460e34b0a5988944a7a0ccaaa",
+  "operations": [
+    {
+      "op": "set-int",
+      "target": [
+        {"role": "statement", "index": 0, "category": "statement", "kind": "let"},
+        {"role": "initializer", "category": "expression", "kind": "binary"},
+        {"role": "right", "category": "expression", "kind": "int"}
+      ],
+      "from": "1",
+      "to": "7"
+    }
+  ]
+}

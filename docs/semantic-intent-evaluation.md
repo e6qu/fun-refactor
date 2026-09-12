@@ -26,11 +26,50 @@ The Python producer makes that route 5.5% larger than direct intent in this one-
 The retained report is `tests/agent-eval/semantic-intent.json`. It measures UTF-8 process output,
 payloads and the Python producer. It does not measure model tokens, cache behavior, agent success or
 population effects. The filtered query assumes the operation and exact current scalar are known;
-broader discovery returns more rows. A fresh economical-agent trial remains separate evidence.
+broader discovery returns more rows.
+
+## Fresh agent pair
+
+One fresh sequential pair used Codex CLI 0.154.0, `gpt-5.6-luna`, low reasoning and the default
+service tier. Both ephemeral sessions ignored user configuration and rules. Neither agent read
+`app.rs`; both produced the exact expected semantic body and passed the compiled behavior check.
+
+| Measure | Semantic intent | Complete body |
+|---|---:|---:|
+| Authoring payload | 470 bytes | 1,930 bytes |
+| Commands | 7 | 9 |
+| Input tokens | 132,199 | 171,450 |
+| Cached input tokens | 105,216 | 148,736 |
+| Input tokens excluding reported cache hits | 26,983 | 22,714 |
+| Output tokens | 1,364 | 2,020 |
+| Reasoning output tokens | 312 | 326 |
+| Elapsed time | 39.9 seconds | 54.1 seconds |
+| Exact body and behavior | pass | pass |
+
+The intent arm used 75.6% fewer payload bytes, two fewer commands, 22.9% fewer total input tokens
+and 32.5% fewer output tokens. Its input excluding reported cache hits was 18.8% higher. The trace
+made one unsuccessful broad project query before using the exact filtered locator route, so the
+result identifies another skill and command-discovery opportunity. One pair does not estimate
+population success, stable latency or billing. Cache accounting comes from the CLI event stream.
+
+The complete retained evidence, prompts, command events and scored results are under
+`tests/agent-eval/results/2026-09-12-semantic-intent`. A manifest binds every file by SHA-256, and a
+Rust test checks the manifest, model, reasoning effort, route use, source-read rule, exact result and
+behavior result.
 
 Reproduce it with:
 
 ```sh
 python3 tools/semantic-intent-eval.py --fr target/debug/fr \
   --output tests/agent-eval/semantic-intent.json
+```
+
+Prepare and score a new fresh pair with:
+
+```sh
+python3 tools/agent-semantic-intent-trial.py prepare --out /tmp/fr-semantic-intent \
+  --fr target/debug/fr
+python3 tools/agent-eval-codex.py /tmp/fr-semantic-intent --model gpt-5.6-luna \
+  --reasoning-effort low --service-tier default --timeout 900
+python3 tools/agent-semantic-intent-trial.py score /tmp/fr-semantic-intent
 ```

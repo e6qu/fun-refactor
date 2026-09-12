@@ -14,6 +14,16 @@ fn python() -> Command {
     command
 }
 
+fn assert_evidence_digests(evidence: &Path, manifest: &Value) {
+    for (name, expected) in manifest["files"].as_object().unwrap() {
+        let bytes = fs::read(evidence.join(name)).unwrap();
+        assert_eq!(
+            format!("{:x}", Sha256::digest(bytes)),
+            expected.as_str().unwrap()
+        );
+    }
+}
+
 #[test]
 fn python_sdk_unit_tests_pass_without_dependencies() {
     let output = python()
@@ -260,13 +270,7 @@ fn retained_agent_pair_is_complete_and_digest_bound() {
         serde_json::from_slice(&fs::read(evidence.join("manifest.json")).unwrap()).unwrap();
     assert_eq!(manifest["model"], "gpt-5.6-luna");
     assert_eq!(manifest["reasoning_effort"], "low");
-    for (name, expected) in manifest["files"].as_object().unwrap() {
-        let bytes = fs::read(evidence.join(name)).unwrap();
-        assert_eq!(
-            format!("{:x}", Sha256::digest(bytes)),
-            expected.as_str().unwrap()
-        );
-    }
+    assert_evidence_digests(&evidence, &manifest);
     let sdk: Value =
         serde_json::from_slice(&fs::read(evidence.join("semantic-ir-sdk-fr/result.json")).unwrap())
             .unwrap();
@@ -280,4 +284,33 @@ fn retained_agent_pair_is_complete_and_digest_bound() {
     assert_eq!(direct["passed"], true);
     assert_eq!(sdk["implementation_source_reads"], 0);
     assert_eq!(direct["implementation_source_reads"], 0);
+}
+
+#[test]
+fn retained_semantic_intent_pair_is_complete_and_digest_bound() {
+    let evidence = root().join("tests/agent-eval/results/2026-09-12-semantic-intent");
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(evidence.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(manifest["model"], "gpt-5.6-luna");
+    assert_eq!(manifest["reasoning_effort"], "low");
+    assert_evidence_digests(&evidence, &manifest);
+
+    let intent: Value =
+        serde_json::from_slice(&fs::read(evidence.join("semantic-intent-fr/result.json")).unwrap())
+            .unwrap();
+    let body: Value = serde_json::from_slice(
+        &fs::read(evidence.join("semantic-intent-files/result.json")).unwrap(),
+    )
+    .unwrap();
+    for result in [&intent, &body] {
+        assert_eq!(result["passed"], true);
+        assert_eq!(result["exact_semantic_body"], true);
+        assert_eq!(result["behavior_passed"], true);
+        assert_eq!(result["direct_source_reads"], 0);
+    }
+    assert_eq!(intent["route"], "semantic-intent");
+    assert_eq!(intent["filtered_locator_used"], true);
+    assert_eq!(body["route"], "complete-body");
+    assert!(intent["payload_bytes"].as_u64().unwrap() < body["payload_bytes"].as_u64().unwrap());
+    assert!(intent["commands"].as_u64().unwrap() < body["commands"].as_u64().unwrap());
 }
