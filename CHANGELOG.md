@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.18.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.17.0...fun-refactor-v0.18.0) (2026-09-12)
+
+
+### Features
+
+* **agent:** add checked semantic IR SDK ([#277](https://github.com/e6qu/fun-refactor/issues/277)) ([898a309](https://github.com/e6qu/fun-refactor/commit/898a3097bac062736ecf663bb463094e108251f0))
+* **agent:** add revision-bound task bundles ([#273](https://github.com/e6qu/fun-refactor/issues/273)) ([3f020e5](https://github.com/e6qu/fun-refactor/commit/3f020e5b0815302066ca8bc0ab411ea63b2f4efd))
+* **agent:** add source-free semantic model and authoring ([#276](https://github.com/e6qu/fun-refactor/issues/276)) ([12fd8d9](https://github.com/e6qu/fun-refactor/commit/12fd8d962b635ee477c3b7402296105804934f14))
+* **agent:** execute reviewed task changes ([#275](https://github.com/e6qu/fun-refactor/issues/275)) ([75229aa](https://github.com/e6qu/fun-refactor/commit/75229aaa903d1ef9f6c484593c6d255b8cea9ffc))
+
 ## [0.17.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.16.0...fun-refactor-v0.17.0) (2026-09-11)
 
 
