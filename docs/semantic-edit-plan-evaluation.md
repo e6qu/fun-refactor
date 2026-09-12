@@ -37,3 +37,19 @@ Reproduce it with:
 python3 tools/semantic-edit-plan-eval.py --fr target/debug/fr \
   --output tests/agent-eval/semantic-edit-plan.json
 ```
+
+## Fresh agent evidence
+
+A fresh `gpt-5.6-luna` pair at low effort is retained under
+`tests/agent-eval/results/2026-09-12-semantic-edit-plan`. Both arms used the frozen portable skill,
+avoided source reads, produced the exact expected semantic body and passed compiled behavior. The
+direct arm used no project query or payload. It used 114,717 total input tokens and 936 output
+tokens. The explicit arm used 117,559 input tokens and 1,243 output tokens. After subtracting
+reported cache hits, their input counts are 17,437 and 23,351. This one pair reports 2.4% lower total
+input, 25.3% lower non-cached input and 24.7% lower output for the direct route.
+
+The first pair is retained as `2026-09-12-semantic-edit-plan-diagnostic-1`. Both edits were correct,
+but the direct agent ran the standalone edit-plan query before authoring. The skill placed that query
+before the direct author command. The corrected skill puts author preview and write first and states
+that no project query or payload is needed. Both evidence sets preserve complete event streams and
+digest-bound results. A single paired observation does not establish a population result.

@@ -672,7 +672,7 @@ Planned checkpoints:
 
 ### PR 18. Reviewed Semantic Edit Plans
 
-Status: in progress.
+Status: implementation complete; final repository gate in progress.
 
 Goal: let an agent discover and apply one exact scalar semantic edit without guessing a file path,
 constructing a JSON manifest or reading source. Preserve the reviewed semantic-intent contract as
@@ -718,12 +718,14 @@ Verification and acceptance:
 
 Planned checkpoints:
 
-1. **In progress.** Freeze the source-free discovery, plan, ambiguity and lifecycle contract.
-2. Implement workspace-scoped semantic declaration resolution and project-independent plan creation.
-3. Add direct authoring plus batch, task and task-change integration.
-4. Add Python builders, Lean models, anchors and exhaustive correspondence.
-5. Update the portable skill and docs; retain deterministic and fresh-agent evidence if its gate passes.
-6. Pass the complete repository gate and publish the large PR for review.
+1. **Complete.** Freeze the source-free discovery, plan, ambiguity and lifecycle contract.
+2. **Complete.** Implement workspace-scoped declaration resolution and project-independent planning.
+3. **Complete.** Add direct authoring plus batch, task and task-change integration.
+4. **Complete.** Add Python builders, Lean models, anchors and exhaustive correspondence.
+5. **Complete.** The deterministic comparison saves one command and 21.2% of counted bytes. The
+   corrected fresh Luna-low pair passes both arms without source reads. The direct route removes the
+   query and payload, with lower total, non-cached input and output in this one pair.
+6. **In progress.** Pass the complete repository gate and publish the large PR for review.
 
 ## Formal verification policy
 

@@ -356,3 +356,42 @@ fn retained_semantic_intent_pair_is_complete_and_digest_bound() {
     assert!(intent["payload_bytes"].as_u64().unwrap() < body["payload_bytes"].as_u64().unwrap());
     assert!(intent["commands"].as_u64().unwrap() < body["commands"].as_u64().unwrap());
 }
+
+#[test]
+fn retained_semantic_edit_plan_attempts_are_complete_and_digest_bound() {
+    let results = root().join("tests/agent-eval/results");
+    let diagnostic = results.join("2026-09-12-semantic-edit-plan-diagnostic-1");
+    let accepted = results.join("2026-09-12-semantic-edit-plan");
+    for evidence in [&diagnostic, &accepted] {
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(evidence.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(manifest["model"], "gpt-5.6-luna");
+        assert_eq!(manifest["reasoning_effort"], "low");
+        assert_evidence_digests(evidence, &manifest);
+    }
+
+    let diagnostic_direct: Value = serde_json::from_slice(
+        &fs::read(diagnostic.join("semantic-edit-plan-direct/result.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(diagnostic_direct["passed"], false);
+    assert_eq!(diagnostic_direct["exact_semantic_body"], true);
+    assert_eq!(diagnostic_direct["separate_query_avoided"], false);
+
+    for name in ["semantic-edit-plan-direct", "semantic-edit-plan-explicit"] {
+        let result: Value =
+            serde_json::from_slice(&fs::read(accepted.join(name).join("result.json")).unwrap())
+                .unwrap();
+        assert_eq!(result["passed"], true);
+        assert_eq!(result["exact_semantic_body"], true);
+        assert_eq!(result["behavior_passed"], true);
+        assert_eq!(result["direct_source_reads"], 0);
+    }
+    let direct: Value = serde_json::from_slice(
+        &fs::read(accepted.join("semantic-edit-plan-direct/result.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(direct["route"], "direct-scalar-plan");
+    assert_eq!(direct["separate_query_avoided"], true);
+    assert_eq!(direct["payload_bytes"], 0);
+}

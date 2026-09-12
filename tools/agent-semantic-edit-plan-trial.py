@@ -79,7 +79,8 @@ def prepare(out: Path, binary: Path) -> None:
         + "\n"
     )
     common = (
-        "Read the single Markdown file under ../skill first. Change summarize so stage_one adds 7 instead of 1. "
+        "Read the single Markdown file under ../skill first. The bundled executable is ./fr. "
+        "Change summarize so stage_one adds 7 instead of 1. "
         "Do not read app.rs or source text through any tool. Do not inspect fr implementation source. "
         "Preview the requested operation, then apply it with --write and the preview plan basis. "
         "Stop after the write succeeds."
@@ -260,6 +261,7 @@ def record(sessions: Path, out: Path, implementation_commit: str) -> None:
         for path in sorted(out.rglob("*"))
         if path.is_file()
     }
+    results = [load(out / name / "result.json") for name in experiment["trials"]]
     first = load(out / experiment["trials"][0] / "codex-run.json")
     manifest = {
         "schema": "fr-agent-semantic-edit-plan-evidence-1",
@@ -269,6 +271,8 @@ def record(sessions: Path, out: Path, implementation_commit: str) -> None:
         "service_tier": first["service_tier"],
         "codex_version": first["codex_version"],
         "conditions": "Fresh sequential ephemeral sessions, ignored user configuration and rules, workspace-write sandbox, no human corrections or restarts.",
+        "passed": all(result["passed"] for result in results),
+        "failed_trials": [result["trial"] for result in results if not result["passed"]],
         "files": files,
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

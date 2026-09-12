@@ -183,14 +183,23 @@ resolution, scalar locality, compiled-delta equivalence and bounds are the criti
 Parser, writer, Serde, SHA-256, filesystem and Python behavior remain explicit trusted or tested
 boundaries.
 
-PR 18 is the active Reviewed Semantic Edit Plans milestone. PR 17's fresh intent trace used fewer
-commands and total tokens than complete-body authoring, but it first tried a directory as a semantic
-target and then manually assembled a payload already determined by one exact operation and scalar.
-The next contract combines workspace-scoped exact declaration discovery, unique scalar-role
-selection and direct authoring while retaining `fr-semantic-intent-1` as the review receipt. Zero or
-multiple candidates must refuse. The explicit manifest route remains available for ordered and
-ambiguous edits. Lean work targets unique selection, scalar request admission and equivalence with
-the existing checked intent compiler before another fresh Luna-low pair is retained.
+PR 18 implements Reviewed Semantic Edit Plans. `project semantic` resolves one exact declaration
+below a path and can return a generated `fr-semantic-intent-1` plan for one unique scalar. `author
+edit-body-scalar` accepts the path and declaration directly, so preview and bound write need no
+query or payload. The same request runs through author batches, project tasks and reviewed task
+changes. Python mirrors the request. Lean models unique admission and generated-intent refinement;
+Rust exhaustively agrees on 144 admission states and 1,584 task-target states.
+
+The deterministic evaluation applies both routes through behavior, patches, undo and redo. Their
+canonical intent, compiled change, semantic body and final source identities agree. The direct route
+uses two authoring commands and 4,244 counted bytes. The explicit route uses three commands and 5,387
+bytes. The reduction is 21.2% on this fixture.
+
+The first fresh Luna-low pair produced correct code but exposed misleading skill order: the direct
+agent ran an unnecessary standalone query. Its digest-bound trace remains as diagnostic evidence.
+After the direct author route moved first, both fresh arms passed without source reads. The direct
+arm used no query or payload and had lower total input, non-cached input and output in this one pair.
+The complete repository gate remains before PR publication.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
