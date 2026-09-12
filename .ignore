@@ -1,0 +1,9 @@
+# Immutable agent transcripts and generated evaluation reports are test evidence,
+# not project source. Keep them available to replay tools without parsing them into
+# every project index.
+/tests/agent-eval/results/
+/tests/agent-eval/*.json
+
+# Generated site payloads contain rendered examples and analysis rows. Their
+# generators and consuming UI remain indexed; the payload copies do not.
+/docs/*-data.js

@@ -182,11 +182,13 @@ The first packaged roadmap is complete. Eighteen merged pull requests establishe
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
 | [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
-| PR 18 | Reviewed Semantic Edit Plans | Ready for review |
+| [PR 18](https://github.com/e6qu/fun-refactor/pull/281) | Reviewed Semantic Edit Plans | Merged |
+| PR 19 | Incremental Project Identity and Agent Query Latency | In progress |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
-exact scalar edits. Later shapes remain evidence-driven.
+exact scalar edits. PR 19 makes that interface practical while an agent repeatedly inspects and
+changes a large workspace. Later edit shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -672,7 +674,7 @@ Planned checkpoints:
 
 ### PR 18. Reviewed Semantic Edit Plans
 
-Status: complete; ready for review.
+Status: merged as [PR 281](https://github.com/e6qu/fun-refactor/pull/281).
 
 Goal: let an agent discover and apply one exact scalar semantic edit without guessing a file path,
 constructing a JSON manifest or reading source. Preserve the reviewed semantic-intent contract as
@@ -726,6 +728,70 @@ Planned checkpoints:
    corrected fresh Luna-low pair passes both arms without source reads. The direct route removes the
    query and payload, with lower total, non-cached input and output in this one pair.
 6. **Complete.** The complete native, browser, documentation, capability and Lean gate passes.
+
+### PR 19. Incremental Project Identity and Agent Query Latency
+
+Status: in progress.
+
+Goal: keep revision-bound project queries responsive across the repeated inspect, edit and verify
+loop that an agent performs. Preserve complete workspace identity, stale-handle refusal,
+coverage and deterministic output while avoiding work whose inputs are already known unchanged.
+
+The initial dogfood profile queried one exact declaration in this repository. A populated fact and
+resolution cache still spent 10.56 seconds in the debug build. Reference serialization took 7.85
+seconds, symbol serialization took 0.93 seconds and the second source hash took 0.72 seconds.
+Changing only the development profiler invalidated the workspace resolution snapshot and made the
+next call spend 66.05 seconds rebuilding resolution before another 9.64-second project construction.
+After ignore rules exclude generated evidence, the profile contains 957 indexed files and 435,556 references.
+These are single-host diagnostic measurements, not release latency claims.
+
+Deliverables:
+
+- Define a versioned project-revision material contract from selected scope, scan policy, captured
+  manifests, source identities, extraction semantics and reported gaps. Revision construction must
+  avoid serializing derived symbols and references when those inputs already determine them.
+- Compute cryptographic content identities once during parallel indexing and reuse them for
+  workspace cache keys, project revisions and source-race guards. Remove the current 64-bit cache-key
+  collision boundary without weakening exact stale-handle refusal.
+- Reuse cached resolution after edits whose extracted resolution inputs are unchanged. Make cache
+  admission explicit, deterministic and fail closed when file order, fact shape, candidate sets or
+  target identities differ.
+- Give long JSON project calls bounded machine-readable progress for scan, indexing, resolution and
+  project construction. Successful stdout remains the same report contract.
+- Make cache placement work in restricted agent environments through an explicit, inspectable
+  fallback that does not add project files or silently disable reuse.
+- Repair and extend the development profiler so its public command line is executable and reports
+  the files and languages responsible for reference cost. Retain before/after cold, warm and
+  post-edit measurements with byte-identical query results.
+- Add documented ignore rules for immutable evaluation transcripts and generated site payloads.
+  Retain their replay and build use outside the code index.
+- Model revision-material sufficiency, ordered identity changes and cache-admission guards in Lean.
+  Anchor the critical Rust predicates and compare bounded generated cases with independent oracles.
+
+Verification and acceptance:
+
+1. Any captured source, manifest, scan-policy, extraction-semantic or reported-gap change alters the
+   project revision; unchanged material produces the same revision regardless of cache state.
+2. A source edit cannot reuse a resolution snapshot unless the complete resolution projection and
+   stable target mapping still match. Corrupt, partial, reordered and stale snapshots refuse reuse.
+3. Cached and uncached reports remain byte-identical. Old handles and context bases refuse after
+   every revision-relevant change, including changes that preserve file length.
+4. The repeated exact-declaration dogfood query completes without source reads by the caller and
+   materially reduces warm and post-scalar-edit latency on this repository.
+5. Progress records are valid standalone JSON lines on stderr, monotonic within each phase and absent
+   from stdout. Short calls may complete without emitting progress.
+6. Native, Python tooling, documentation, portable-skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **In progress.** Freeze the revision material, cryptographic content identity, cache-admission and
+   progress contracts; retain the initial dogfood profile and fix its broken invocation.
+2. Implement shared content identities and the versioned project revision without derived-fact
+   serialization; prove and test revision sensitivity.
+3. Add conservative incremental resolution reuse and adversarial snapshot tests.
+4. Add restricted-environment cache fallback and phase progress, then update the portable skill.
+5. Retain deterministic cold, warm and post-edit comparisons on generic fixtures and this repository.
+6. Pass the complete repository gate and a fresh Luna-low dogfood trial before review.
 
 ## Formal verification policy
 

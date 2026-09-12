@@ -69,6 +69,33 @@ fn main() -> Result<()> {
     })?;
     let fact_cache_hits = cache.as_ref().map(|cache| cache.stats().hits);
     let indexed_files = index.file_count();
+    let mut references_by_language = BTreeMap::<&str, usize>::new();
+    let mut references_by_file = BTreeMap::<PathBuf, usize>::new();
+    for reference in &index.references {
+        *references_by_language
+            .entry(reference.language.name())
+            .or_default() += 1;
+        *references_by_file
+            .entry(reference.file.clone())
+            .or_default() += 1;
+    }
+    let mut largest_reference_files = references_by_file.into_iter().collect::<Vec<_>>();
+    largest_reference_files.sort_by(|(left_path, left_count), (right_path, right_count)| {
+        right_count
+            .cmp(left_count)
+            .then_with(|| left_path.cmp(right_path))
+    });
+    largest_reference_files.truncate(20);
+    let largest_reference_files = largest_reference_files
+        .into_iter()
+        .map(|(path, count)| {
+            (
+                path.strip_prefix(&root).unwrap_or(&path).to_path_buf(),
+                count,
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let reference_count = index.references.len();
     let dropping = Instant::now();
     drop(report);
     drop(project);
@@ -81,7 +108,10 @@ fn main() -> Result<()> {
         "{}",
         json!({"schema": "fr-project-profile-1", "report_stdout": report_stdout,
         "phases_seconds": phases, "measured_seconds": measured_seconds,
-        "fact_cache_hits": fact_cache_hits, "indexed_files": indexed_files, "construction_seconds": construction_seconds})
+        "fact_cache_hits": fact_cache_hits, "indexed_files": indexed_files,
+        "reference_count": reference_count, "references_by_language": references_by_language,
+        "largest_reference_files": largest_reference_files,
+        "construction_seconds": construction_seconds})
     );
     Ok(())
 }

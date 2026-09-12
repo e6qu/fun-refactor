@@ -1192,6 +1192,29 @@ CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test age
 Workspace replay needs the pinned regex dependencies. Follow the bootstrap in the workspace report on a cold machine.
 The integration regression is opt-in so default CI does not acquire this additional dependency requirement.
 
+## Project-query dogfood profile
+
+PR 19 starts from an exact declaration lookup against this repository rather than a synthetic task.
+The first isolated development profile used an explicit writable cache and returned the expected
+`semantic_edit_plan_admitted` signature without reading source through the caller. With 1,265 cached
+file facts, indexing took 92.00 seconds because no matching workspace resolution snapshot existed.
+Project construction then took 10.62 seconds: reference revision serialization took 7.82 seconds,
+symbol serialization 1.56 seconds and the second source hash 0.97 seconds.
+
+The identical next call reused resolution and reduced indexing to 0.27 seconds, but project
+construction still took 10.62 seconds. Editing only the development profiler invalidated the
+content-keyed workspace snapshot. After repository ignore rules removed immutable agent results and
+generated site payloads, the next call still spent 66.05 seconds resolving the changed workspace and
+9.64 seconds constructing its revision. After ignore rules exclude generated evidence, the enhanced
+profiler reports 957 indexed files and 435,556 references. Rust accounts for 369,756. Large
+implementation files, rather than retained transcripts, produce most of those references.
+
+This is debug-build, single-host diagnostic evidence. It establishes the repeated-query failure mode
+and its phase split, not a production latency threshold. PR 19 will retain controlled release and
+generic-fixture comparisons after the contracts are implemented. The public Python profile driver
+also passed an extra `project` subcommand that its Rust profiler does not accept; the driver now
+forwards the command unchanged, and the Rust report includes bounded reference-cost diagnostics.
+
 ## Next steps
 
 The agreed real-agent baseline is local `codex exec` with `gpt-5.6-luna`, `low` reasoning and the default service tier.
