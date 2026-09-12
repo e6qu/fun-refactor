@@ -68,6 +68,8 @@ fn main() -> Result<()> {
         Ok(serde_json::to_string(&report)? + "\n")
     })?;
     let fact_cache_hits = cache.as_ref().map(|cache| cache.stats().hits);
+    let resolution_cache_hits = cache.as_ref().map(|cache| cache.stats().resolution_hits);
+    let resolution_cache_misses = cache.as_ref().map(|cache| cache.stats().resolution_misses);
     let indexed_files = index.file_count();
     let mut references_by_language = BTreeMap::<&str, usize>::new();
     let mut references_by_file = BTreeMap::<PathBuf, usize>::new();
@@ -109,6 +111,8 @@ fn main() -> Result<()> {
         json!({"schema": "fr-project-profile-1", "report_stdout": report_stdout,
         "phases_seconds": phases, "measured_seconds": measured_seconds,
         "fact_cache_hits": fact_cache_hits, "indexed_files": indexed_files,
+        "resolution_cache_hits": resolution_cache_hits,
+        "resolution_cache_misses": resolution_cache_misses,
         "reference_count": reference_count, "references_by_language": references_by_language,
         "largest_reference_files": largest_reference_files,
         "construction_seconds": construction_seconds})

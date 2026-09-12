@@ -2240,7 +2240,7 @@ fn with_project(
     } else {
         crate::cache::Cache::open()
     };
-    let index = Index::build_with_cache(&scanned, cache.as_ref())?;
+    let index = build_index_from_scan(cli, &scanned, cache.as_ref(), true)?;
     let project = crate::project::Project::new(&root, &index, &scanned, &options)?;
     action(&project, &root)
 }
@@ -5947,8 +5947,6 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
 }
 
 fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
-    use std::io::IsTerminal;
-
     let options = scan_options(cli, languages)?;
     // Canonicalise the root so indexed paths match the ones commands resolve from
     // arguments; otherwise /var and /private/var name the same file but never match.
@@ -5961,51 +5959,92 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
         crate::cache::Cache::open()
     };
 
-    // A cold index of a large workspace takes most of a minute, and the silence read as a hang.
+    build_index_from_scan(cli, &scanned, cache.as_ref(), cli.json)
+}
+
+fn build_index_from_scan(
+    cli: &Cli,
+    scanned: &crate::scan::ScanResult,
+    cache: Option<&crate::cache::Cache>,
+    json_progress: bool,
+) -> Result<Index> {
+    use std::io::IsTerminal;
+
     let tty = std::io::stderr().is_terminal();
-    let paint = |done: usize, total: usize| {
+    let tty_state = std::sync::Mutex::new(ProgressOrder::default());
+    let paint = |phase: crate::index::IndexingPhase, done: usize, total: usize| {
+        let Ok(mut state) = tty_state.lock() else {
+            return;
+        };
+        if !state.advance(phase, done) {
+            return;
+        }
         // Repainting on every file would spend more time on the terminal than on a
         // small file, so the counter moves in coarse steps.
         if done.is_multiple_of(16) || done == total {
-            eprint!("\rindexing {done}/{total} files…");
+            eprint!("\rindexing {} {done}/{total}…", phase.as_str());
         }
     };
     let started = std::time::Instant::now();
-    let last_emitted = std::sync::atomic::AtomicU64::new(0);
-    let machine_paint = |done: usize, total: usize| {
-        use std::sync::atomic::Ordering;
-        // Nothing before the second boundary: a small workspace indexes in milliseconds and
-        // needs no progress at all.
+    let machine_state = std::sync::Mutex::new((ProgressOrder::default(), 0u64));
+    let machine_paint = |phase: crate::index::IndexingPhase, done: usize, total: usize| {
+        let Ok(mut state) = machine_state.lock() else {
+            return;
+        };
+        if !state.0.advance(phase, done) {
+            return;
+        }
+        // Limit progress volume; small workspaces finish before the first interval.
         let elapsed = started.elapsed().as_secs();
-        let previous = last_emitted.load(Ordering::Relaxed);
-        if elapsed > previous
-            && last_emitted
-                .compare_exchange(previous, elapsed, Ordering::Relaxed, Ordering::Relaxed)
-                .is_ok()
-        {
-            eprintln!("{}", indexing_progress_line(done, total));
+        if elapsed >= state.1.saturating_add(5) {
+            state.1 = elapsed;
+            eprintln!("{}", indexing_progress_line(phase, done, total));
         }
     };
-    let progress: Option<&(dyn Fn(usize, usize) + Sync)> = if tty {
+    let progress: Option<&(dyn Fn(crate::index::IndexingPhase, usize, usize) + Sync)> = if tty {
         Some(&paint)
-    } else if cli.json {
+    } else if json_progress {
         Some(&machine_paint)
     } else {
         None
     };
-    let index = Index::build_with_cache_reporting(&scanned, cache.as_ref(), progress)?;
+    let index = Index::build_with_cache_reporting(scanned, cache, progress)?;
     if tty {
-        let widest = format!("indexing {0}/{0} files…", scanned.files.len());
+        let widest = format!("indexing resolution {0}/{0}…", index.references.len());
         eprint!("\r{:width$}\r", "", width = widest.chars().count());
     }
 
-    if let Some(cache) = &cache {
+    if let Some(cache) = cache {
         let stats = cache.stats();
         let (hits, misses) = (stats.hits, stats.misses);
-        tracing::debug!("cache: {hits} hit(s), {misses} miss(es)");
+        let (resolution_hits, resolution_misses) = (stats.resolution_hits, stats.resolution_misses);
+        tracing::debug!(
+            "cache: {hits} fact hit(s), {misses} fact miss(es), \
+             {resolution_hits} resolution hit(s), {resolution_misses} resolution miss(es)"
+        );
     }
     warn_partial_index(cli, &index);
     Ok(index)
+}
+
+#[derive(Default)]
+struct ProgressOrder {
+    phase: Option<crate::index::IndexingPhase>,
+    done: usize,
+}
+
+impl ProgressOrder {
+    fn advance(&mut self, phase: crate::index::IndexingPhase, done: usize) -> bool {
+        if self.phase != Some(phase) {
+            self.phase = Some(phase);
+            self.done = 0;
+        }
+        if done <= self.done {
+            return false;
+        }
+        self.done = done;
+        true
+    }
 }
 
 fn build_call_graph(cli: &Cli, index: &Index) -> CallGraph {
@@ -6018,8 +6057,11 @@ fn build_call_graph(cli: &Cli, index: &Index) -> CallGraph {
 }
 
 /// One progress line for a JSON caller's stderr, while a cold index builds.
-fn indexing_progress_line(done: usize, total: usize) -> String {
-    serde_json::json!({ "indexing": { "done": done, "total": total } }).to_string()
+fn indexing_progress_line(phase: crate::index::IndexingPhase, done: usize, total: usize) -> String {
+    serde_json::json!({
+        "indexing": { "phase": phase.as_str(), "done": done, "total": total }
+    })
+    .to_string()
 }
 
 fn cmd_capabilities(
@@ -6101,11 +6143,13 @@ fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {
             serde_json::to_string_pretty(&serde_json::json!({
                 "location": cache.location(),
                 "bytes": bytes,
+                "fallback": cache.is_fallback(),
             }))?
         );
     } else {
         println!("location  {}", cache.location().display());
         println!("size      {} KiB", bytes / 1024);
+        println!("fallback  {}", cache.is_fallback());
         println!(
             "\nAn entry takes its key from every workspace file, the query set and the analysis \n\
              code, so an edit makes every stale answer unreachable rather than serving a \n\
@@ -6858,11 +6902,26 @@ mod tests {
     }
 
     #[test]
-    fn the_machine_progress_line_is_json_with_both_counts() {
-        let line = indexing_progress_line(3, 10);
+    fn the_machine_progress_line_is_json_with_phase_and_both_counts() {
+        let line = indexing_progress_line(crate::index::IndexingPhase::Resolution, 3, 10);
         let parsed: serde_json::Value = serde_json::from_str(&line).expect("one JSON line");
+        assert_eq!(parsed["indexing"]["phase"], "resolution");
         assert_eq!(parsed["indexing"]["done"], 3);
         assert_eq!(parsed["indexing"]["total"], 10);
+    }
+
+    #[test]
+    fn progress_order_rejects_duplicate_and_regressing_parallel_updates() {
+        use crate::index::IndexingPhase::{Facts, Resolution};
+
+        let mut order = ProgressOrder::default();
+        assert!(order.advance(Facts, 2));
+        assert!(!order.advance(Facts, 1));
+        assert!(!order.advance(Facts, 2));
+        assert!(order.advance(Facts, 3));
+        assert!(order.advance(Resolution, 1));
+        assert!(!order.advance(Resolution, 1));
+        assert!(order.advance(Resolution, 2));
     }
 
     #[test]

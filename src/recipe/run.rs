@@ -324,7 +324,10 @@ fn reindex(sources: &Sources) -> Result<Index> {
         extracted.push((path.clone(), *language, facts));
     }
     let mut index = Index::build_from_facts(&extracted);
-    for (path, (_, text)) in sources.iter() {
+    for (path, (_language, text)) in sources.iter() {
+        #[cfg(feature = "cli")]
+        index.note_content(path.clone(), *_language, text);
+        #[cfg(not(feature = "cli"))]
         index.note_content_hash(path.clone(), crate::index::content_hash_of(text));
     }
     Ok(index)
