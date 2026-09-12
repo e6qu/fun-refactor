@@ -105,6 +105,12 @@ engine strictly deserializes every intermediate body and uses structural witness
 node categories whose JSON encodings coincide. Python `SemanticChange` and `Change` objects emit the
 same contract and pass through the Rust engine in the cross-runtime suite.
 
+The second checkpoint adds an `frsb1:` body identity to bounded declaration semantic reports.
+`fr author edit-body-semantic` derives that same body from an exact handle, checks the delta base,
+applies every operation, and sends the result through the existing semantic writer and body splice.
+Rust, Go, Java and TypeScript fixtures change one expression while retaining every byte outside the
+selected body. Source-bearing or oversized current bodies expose no usable identity.
+
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
 declaration targets from literal handles or returned query strings. A task target selects one of

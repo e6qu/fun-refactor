@@ -30,6 +30,8 @@ pub enum Command {
     ReplaceBody(ReplaceBodyOptions),
     #[command(about = "Replace one supported function body from source-free semantic IR JSON.")]
     ReplaceBodySemantic(ReplaceBodyOptions),
+    #[command(about = "Apply a checked semantic delta to one supported function body.")]
+    EditBodySemantic(ReplaceBodyOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -57,6 +59,9 @@ pub fn guide() -> Value {
                 "targets": "supported function or method body"},
             {"op": "replace-body-semantic", "requires": ["handle", "from"],
                 "input-schema": "fr-semantic-body-1",
+                "targets": "supported function or method body"},
+            {"op": "edit-body-semantic", "requires": ["handle", "from"],
+                "input-schema": "fr-semantic-change-1",
                 "targets": "supported function or method body"},
             {"op": "replace-declaration", "requires": ["handle", "from"],
                 "targets": "Rust function declaration with unchanged name"},
@@ -1223,6 +1228,68 @@ impl Project<'_> {
             "language": language,
             "body_sha256": digest(&rendered_body),
             "fidelity": fidelity
+        });
+        Ok(plan)
+    }
+
+    pub fn edit_body_semantic(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let change_input = fragment(&self.root.join(&options.from))?;
+        let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
+        let id = self.resolve_handle(&handle)?;
+        let symbol = self.nodes[id]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("semantic body editing requires a function handle.")?;
+        let target_supported = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && BodySyntax::for_language(symbol.language).is_ok();
+        ensure!(
+            target_supported,
+            "selected target does not support semantic body editing."
+        );
+        let source = &self.sources[&symbol.file];
+        let parsed = Parsers::new().parse(symbol.language, source)?;
+        ensure!(
+            !parsed.has_errors(),
+            "semantic body editing requires a file without parser errors."
+        );
+        let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
+        let function = super::semantic::selected_function(&context, symbol).with_context(|| {
+            format!(
+                "the {} '{}' has no exact semantic function model.",
+                symbol.kind.as_str(),
+                symbol.name
+            )
+        })?;
+        let current = super::semantic_change::SemanticBody {
+            schema: super::semantic_ir::BODY_SCHEMA.into(),
+            body: function.body,
+        };
+        let body_input = serde_json::to_string(&current)?;
+        let applied = super::semantic_change::apply(&body_input, &change_input)?;
+        let result = serde_json::to_string(&applied.body)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
+        temporary.write_all(result.as_bytes())?;
+        temporary.flush()?;
+        let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
+            handle: options.handle.clone(),
+            revision: options.revision.clone(),
+            from: temporary.path().to_path_buf(),
+            diff_bytes: options.diff_bytes,
+            write: false,
+        })?;
+        plan.report["query"] = json!("edit-body-semantic");
+        plan.report["semantic_change"] = json!({
+            "schema":super::semantic_change::CHANGE_SCHEMA,
+            "sha256":applied.change_sha256,
+            "input_basis":applied.input_basis,
+            "result_basis":applied.result_basis,
+            "operations":applied.operations,
+            "semantic_nodes":applied.nodes,
+            "source_free":true
         });
         Ok(plan)
     }

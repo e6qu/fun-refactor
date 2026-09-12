@@ -2396,6 +2396,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         | Command::ApplySemanticChange(_) => unreachable!(),
         Command::ReplaceBody(options)
         | Command::ReplaceBodySemantic(options)
+        | Command::EditBodySemantic(options)
         | Command::ReplaceDeclaration(options)
         | Command::InsertDeclaration(options) => (options.write, options.diff_bytes),
         Command::Batch(options) => (options.write, options.diff_bytes),
@@ -2417,6 +2418,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             | Command::ApplySemanticChange(_) => unreachable!(),
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceBodySemantic(options) => project.replace_body_semantic(options)?,
+            Command::EditBodySemantic(options) => project.edit_body_semantic(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
             Command::InsertDeclaration(options) => project.insert_declaration(options)?,
             Command::Batch(options) => project.author_batch(options)?,

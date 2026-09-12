@@ -348,6 +348,7 @@ impl Project<'_> {
             "semantic source contains parser errors."
         );
         let mut module = crate::transpile::read_module(file.language, source, parsed.root())?;
+        let mut body_identity = None;
         let selected = if let Some(symbol) = node.symbol.and_then(|id| self.index.symbol(id)) {
             let item = selected_item(&module, symbol).with_context(|| {
                 format!(
@@ -355,6 +356,27 @@ impl Project<'_> {
                     symbol.kind.as_str(), symbol.name
                 )
             })?;
+            if let Item::Function(function) = &item {
+                let body = super::semantic_change::SemanticBody {
+                    schema: super::semantic_ir::BODY_SCHEMA.into(),
+                    body: function.body.clone(),
+                };
+                let value = serde_json::to_value(&body)?;
+                let nodes = semantic_nodes(&value);
+                body_identity = Some(if !super::semantic_ir::source_free(&value) {
+                    json!({"status":"unavailable-source-bearing","source_free":false})
+                } else if body.body.len() > super::semantic_change::MAX_STATEMENTS
+                    || nodes > super::semantic_change::MAX_NODES
+                {
+                    json!({"status":"unavailable-size","source_free":true,
+                        "statements":body.body.len(),"semantic_nodes":nodes})
+                } else {
+                    json!({"status":"available","source_free":true,
+                        "schema":super::semantic_ir::BODY_SCHEMA,
+                        "basis":super::semantic_change::body_basis(&body)?,
+                        "statements":body.body.len(),"semantic_nodes":nodes})
+                });
+            }
             module.items = vec![item];
             "declaration"
         } else {
@@ -383,6 +405,9 @@ impl Project<'_> {
             "language": file.language,
             "body_requested": options.body
         });
+        if let Some(identity) = body_identity {
+            report["body_identity"] = identity;
+        }
         report["addressing"] = json!({
             "format": "SEMANTIC_BASIS#RFC6901_JSON_POINTER",
             "root": format!("{}#/model", report["semantic_basis"].as_str().unwrap())

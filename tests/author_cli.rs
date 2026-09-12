@@ -33,10 +33,11 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["schema"], "fr-author-guide-1");
     assert_eq!(guide["limits"]["operations"]["maximum"], 32);
     assert_eq!(guide["limits"]["manifest_bytes"], 65536);
-    assert_eq!(guide["operations"].as_array().unwrap().len(), 5);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 6);
     assert_eq!(guide["operations"][0]["op"], "replace-body");
     assert_eq!(guide["operations"][1]["op"], "replace-body-semantic");
-    assert_eq!(guide["operations"][4]["op"], "organize-imports");
+    assert_eq!(guide["operations"][2]["op"], "edit-body-semantic");
+    assert_eq!(guide["operations"][5]["op"], "organize-imports");
     let steps = guide["workflow"]
         .as_array()
         .unwrap()
@@ -435,6 +436,83 @@ fn semantic_body_authoring_renders_one_typed_body_across_supported_languages() {
         assert_eq!(report["semantic_input"]["schema"], "fr-semantic-body-1");
         assert_eq!(report["semantic_input"]["source_free"], true);
         assert_eq!(report["semantic_render"]["fidelity"]["carried_verbatim"], 0);
+        assert!(fs::read_to_string(root.join(file))
+            .unwrap()
+            .contains(expected));
+    }
+}
+
+#[test]
+fn semantic_delta_authoring_changes_one_expression_across_supported_languages() {
+    let cases = [
+        (
+            "app.rs",
+            "fn calc(value: i32) -> i32 { value + 1 }\n",
+            "value * 2",
+        ),
+        (
+            "app.go",
+            "package sample\nfunc calc(value int) int { return value + 1 }\n",
+            "value * 2",
+        ),
+        (
+            "App.java",
+            "final class App { static int calc(int value) { return value + 1; } }\n",
+            "value * 2",
+        ),
+        (
+            "app.ts",
+            "function calc(value: number): number { return value + 1; }\n",
+            "value * 2",
+        ),
+    ];
+    for (file, source, expected) in cases {
+        let (_temp, root, input) = fixture_file(file, source, b"{}");
+        let (handle, _) = selection(&root, "calc");
+        let semantic = ok(
+            &root,
+            &[
+                "project",
+                "semantic",
+                &handle,
+                "--body",
+                "--nodes",
+                "64",
+                "--minimal",
+            ],
+        );
+        let base = semantic["body_identity"]["basis"].as_str().unwrap();
+        fs::write(
+            &input,
+            serde_json::to_vec(&serde_json::json!({
+                "schema":"fr-semantic-change-1","base":base,
+                "operations":[{"op":"replace","path":"/body/0/value",
+                    "category":"expression","value":{"kind":"binary","value":{
+                        "op":"mul","left":{"kind":"name","value":"value"},
+                        "right":{"kind":"int","value":"2"}}}}]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let report = ok(
+            &root,
+            &[
+                "author",
+                "edit-body-semantic",
+                &handle,
+                "--from",
+                input.to_str().unwrap(),
+                "--write",
+            ],
+        );
+        assert_eq!(report["query"], "edit-body-semantic");
+        assert_eq!(report["semantic_change"]["input_basis"], base);
+        assert_ne!(
+            report["semantic_change"]["input_basis"],
+            report["semantic_change"]["result_basis"]
+        );
+        assert_eq!(report["semantic_change"]["operations"][0]["op"], "replace");
+        assert_eq!(report["preservation"], "bytes outside the selected body");
         assert!(fs::read_to_string(root.join(file))
             .unwrap()
             .contains(expected));

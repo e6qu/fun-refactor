@@ -353,6 +353,12 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         .as_str()
         .unwrap()
         .starts_with("frp1:"));
+    assert_eq!(direct["body_identity"]["status"], "available");
+    assert_eq!(direct["body_identity"]["source_free"], true);
+    assert!(direct["body_identity"]["basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frsb1:"));
     assert!(direct.get("coverage").is_none());
     assert!(direct["report_omitted"]
         .as_array()
