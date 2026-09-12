@@ -356,6 +356,7 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
             "--declaration",
             "positive_names",
             "--body",
+            "--pointers",
             "--minimal",
         ],
     );
@@ -370,12 +371,47 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         .as_str()
         .unwrap()
         .starts_with("frsb1:"));
+    assert_eq!(
+        direct["body_pointers"]["basis"],
+        direct["body_identity"]["basis"]
+    );
+    let body = serde_json::json!({
+        "schema":"fr-semantic-body-1",
+        "body":direct["model"]["items"][0]["value"]["body"]
+    });
+    assert_eq!(
+        direct["body_pointers"]["fields"],
+        serde_json::json!(["path", "category", "kind"])
+    );
+    let pointers = direct["body_pointers"]["rows"].as_array().unwrap();
+    assert!(!pointers.is_empty());
+    let mut paths = std::collections::BTreeSet::new();
+    for row in pointers {
+        let path = row[0].as_str().unwrap();
+        let selected = body.pointer(path).unwrap();
+        assert_eq!(selected["kind"], row[2]);
+        assert!(matches!(
+            row[1].as_str().unwrap(),
+            "type" | "statement" | "expression" | "template"
+        ));
+        assert!(paths.insert(path));
+    }
     assert!(direct.get("coverage").is_none());
     assert!(direct["report_omitted"]
         .as_array()
         .unwrap()
         .iter()
         .any(|field| field == "coverage"));
+    assert!(!run(
+        dir.path(),
+        &["project", "semantic", "app.py", "--pointers"]
+    )
+    .0);
+    assert!(!run(
+        dir.path(),
+        &["project", "semantic", "app.py", "--body", "--pointers"]
+    )
+    .0);
 }
 
 #[test]

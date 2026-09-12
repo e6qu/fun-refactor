@@ -87,7 +87,8 @@ def prepare(out: Path, binary: Path) -> None:
         (project / "app.rs").write_text(SOURCE, encoding="utf-8")
         operation = "edit-body-semantic" if arm == "fr" else "replace-body-semantic"
         route = (
-            "Use one fr-semantic-change-1 replace operation and edit-body-semantic."
+            "Add --pointers to the semantic query. Use one fr-semantic-change-1 replace operation "
+            "and edit-body-semantic."
             if arm == "fr"
             else "Use one complete fr-semantic-body-1 payload and replace-body-semantic."
         )

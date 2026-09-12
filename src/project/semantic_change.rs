@@ -38,7 +38,7 @@ pub enum NodeCategory {
 }
 
 impl NodeCategory {
-    fn name(self) -> &'static str {
+    pub(super) fn name(self) -> &'static str {
         match self {
             Self::Type => "type",
             Self::Statement => "statement",
@@ -214,6 +214,65 @@ fn category_at(body: &Value, path: &str, category: NodeCategory) -> bool {
     };
     *target = sentinel;
     canonical_body_value(witness).is_ok()
+}
+
+fn pointer_segment(segment: &str) -> String {
+    segment.replace('~', "~0").replace('/', "~1")
+}
+
+pub(super) fn body_pointers(body: &SemanticBody) -> Result<Vec<Value>> {
+    let root = serde_json::to_value(body)?;
+    let mut pointers = Vec::new();
+    fn visit(root: &Value, value: &Value, path: &str, pointers: &mut Vec<Value>) -> Result<()> {
+        if let Some(kind) = value.get("kind").and_then(Value::as_str) {
+            if !canonical_pointer(path, false) {
+                return Ok(());
+            }
+            let candidates = [
+                NodeCategory::Type,
+                NodeCategory::Statement,
+                NodeCategory::Expression,
+                NodeCategory::Template,
+            ]
+            .into_iter()
+            .filter(|category| category_matches(value, *category))
+            .collect::<Vec<_>>();
+            let categories = if candidates.len() == 1 {
+                candidates
+            } else {
+                candidates
+                    .into_iter()
+                    .filter(|category| category_at(root, path, *category))
+                    .collect()
+            };
+            ensure!(
+                categories.len() == 1,
+                "semantic body node has no unique authoring category."
+            );
+            pointers.push(json!([path, categories[0], kind]));
+        }
+        match value {
+            Value::Array(items) => {
+                for (index, child) in items.iter().enumerate() {
+                    visit(root, child, &format!("{path}/{index}"), pointers)?;
+                }
+            }
+            Value::Object(fields) => {
+                for (key, child) in fields {
+                    visit(
+                        root,
+                        child,
+                        &format!("{path}/{}", pointer_segment(key)),
+                        pointers,
+                    )?;
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+    visit(&root, &root, "", &mut pointers)?;
+    Ok(pointers)
 }
 
 fn canonical_body_value(value: Value) -> Result<(Value, SemanticBody, usize)> {
@@ -514,5 +573,20 @@ mod tests {
                 "value":{"kind":"expr","value":{"kind":"name","value":"right"}}}]),
         );
         assert!(apply(statement_body, &wrong).is_err());
+    }
+
+    #[test]
+    fn body_pointer_catalog_preserves_structural_categories() {
+        let input = r#"{"schema":"fr-semantic-body-1","body":[{"kind":"expr","value":{"kind":"template","value":[{"kind":"expr","value":{"kind":"name","value":"item"}}]}}]}"#;
+        let body = validate_body_input(input).unwrap().manifest;
+        let pointers = body_pointers(&body).unwrap();
+        let rows = pointers
+            .iter()
+            .map(|row| (row[0].as_str().unwrap(), row[1].as_str().unwrap()))
+            .collect::<Vec<_>>();
+        assert!(rows.contains(&("/body/0", "statement")));
+        assert!(rows.contains(&("/body/0/value", "expression")));
+        assert!(rows.contains(&("/body/0/value/value/0", "template")));
+        assert!(rows.contains(&("/body/0/value/value/0/value", "expression")));
     }
 }

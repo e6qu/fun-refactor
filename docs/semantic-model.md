@@ -106,6 +106,10 @@ bounded RFC 6901 path, its `type`, `statement`, `expression` or `template` categ
 value. Statement insertion names a list path, index and statement. Statement deletion names the
 selected statement path. The catalog is available through `fr author semantic-schema change`.
 
+Add `--pointers` to a single-declaration body query when a delta needs exact addresses. The bounded
+`fr-semantic-body-pointers-1` list carries the same body basis and gives each authorable node's path,
+category and kind. Paths that exceed the change contract's limit do not appear.
+
 The pure `fr author apply-semantic-change --body BODY --change CHANGE --canonical` command checks a
 delta without scanning a project. It refuses malformed or escaped paths, missing targets, category
 crossings, unsupported or source-bearing nodes, invalid indices, stale bases, no-ops and any invalid

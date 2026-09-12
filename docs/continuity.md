@@ -124,7 +124,11 @@ The fifth checkpoint starts with `tests/agent-eval/semantic-delta.json`. On a ge
 Rust pipeline, one delta is 245 bytes versus 1,081 for the complete body. Both routes pass behavior,
 patch, undo and redo checks and produce identical source and body identities. Delta preview and
 write reports are 700 bytes larger because they retain operation receipts. The fresh economical
-agent pair remains pending.
+agent pair uses Luna at low effort. Both arms pass exact semantics and compiled behavior without an
+observed source read. The delta artifact is 331 bytes versus 1,930, but the delta arm uses 31,534
+input tokens after reported cache hits and nine commands. The complete-body arm uses 17,122 and
+five. The delta trace tried the wrong validator and three invalid paths. The skill now distinguishes
+validation routes, and optional semantic body pointers report exact paths, categories and kinds.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or

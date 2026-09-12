@@ -43,11 +43,14 @@ def invoke(binary: Path, root: Path, arguments: list[str], expected: int = 0) ->
     return json.loads(result.stdout), len(result.stdout)
 
 
-def semantic(binary: Path, root: Path) -> tuple[dict, int]:
-    return invoke(binary, root, [
+def semantic(binary: Path, root: Path, pointers: bool = False) -> tuple[dict, int]:
+    arguments = [
         "project", "semantic", "app.rs", "--declaration", "summarize", "--body",
         "--nodes", "128", "--minimal",
-    ])
+    ]
+    if pointers:
+        arguments.append("--pointers")
+    return invoke(binary, root, arguments)
 
 
 def fixture(root: Path) -> None:
@@ -131,7 +134,13 @@ def evaluate(binary: Path) -> dict:
         whole_root = base / "whole"
         fixture(delta_root)
         fixture(whole_root)
-        initial, _ = semantic(binary, delta_root)
+        initial, query_bytes = semantic(binary, delta_root)
+        indexed, indexed_bytes = semantic(binary, delta_root, pointers=True)
+        indexed_rows = indexed["body_pointers"]["rows"]
+        exact_pointer = any(
+            row == [POINTER, "expression", "int"]
+            for row in indexed_rows
+        )
         whole, delta = payloads(initial)
         delta_result = exercise(binary, delta_root, "edit-body-semantic", delta)
         whole_result = exercise(binary, whole_root, "replace-body-semantic", whole)
@@ -164,6 +173,12 @@ def evaluate(binary: Path) -> dict:
             "final_source_identity_equal": equivalent,
         },
         "stale_base_refused_before_write": stale_refused,
+        "pointer_follow_up": {
+            "exact_changed_node_listed": exact_pointer,
+            "nodes": len(indexed_rows),
+            "query_bytes": indexed_bytes,
+            "additional_query_bytes": indexed_bytes - query_bytes,
+        },
         "scope": "Deterministic CLI payload and lifecycle evidence on one generic Rust fixture.",
     }
 
