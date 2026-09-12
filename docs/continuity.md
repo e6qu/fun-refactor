@@ -92,10 +92,10 @@ task favors direct JSON for one-off construction and leaves SDK reuse as a futur
 The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
 passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
-Roadmap [PR 16](https://github.com/e6qu/fun-refactor/pull/278) adds a checked semantic-delta
-contract so an agent can replace one typed IR node or insert/delete one statement without resending
-the complete function body. The change stays bound to a canonical body identity and must preserve a
-strict, bounded, source-free body after every ordered operation.
+[PR 16](https://github.com/e6qu/fun-refactor/pull/278) merged with a checked semantic-delta contract.
+An agent can replace one typed IR node or insert/delete one statement without resending the complete
+function body. The change stays bound to a canonical body identity and must preserve a strict,
+bounded, source-free body after every ordered operation.
 
 The first checkpoint adds project-independent `fr author apply-semantic-change` and the discoverable
 `fr-semantic-change-1` contract. A base identity binds canonical body bytes. Up to 64 ordered
@@ -134,6 +134,17 @@ authorable function or method body. Every row resolves against the reported body
 typed category and kind. Ambiguous file requests and incomplete bodies refuse instead of returning
 an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
 fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
+
+PR 17, Reviewed Semantic Intent Operations, is in progress. It addresses the main failure mode in
+the PR 16 agent trace. The agent had to navigate serialization-only pointer segments and reproduce
+complete typed nodes for scalar edits. The next contract uses a finite semantic-role vocabulary and
+shape-preserving scalar intents, then compiles them into the checked PR 16 delta engine.
+
+The contract remains structural. A one-node name edit is not a binding-aware rename. Pattern rows do
+not prove behavior. Source writers can normalize text elsewhere inside the selected body. Role
+resolution, scalar locality, compiled-delta equivalence and bounds are the critical proof targets.
+Parser, writer, Serde, SHA-256, filesystem and Python behavior remain explicit trusted or tested
+boundaries.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
