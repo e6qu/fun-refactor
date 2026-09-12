@@ -206,4 +206,75 @@ theorem semantic_body_requires_supported_target
     targetSupported = true := by
   exact (semantic_body_admitted_iff schemaMatches targetSupported sourceFree bounded).mp accepted |>.2.1
 
+def semanticTypeKinds : List String :=
+  ["unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn"]
+
+def semanticStatementKinds : List String :=
+  ["return", "let", "assign", "tuple-assign", "if", "if-present", "while", "counted-for",
+   "for-each-indexed", "defer", "err-defer", "switch", "match-variants", "while-present",
+   "for-each", "expr", "assert", "comment", "local-function", "block", "throw", "try",
+   "break", "break-with", "continue", "unsupported"]
+
+def semanticExpressionKinds : List String :=
+  ["int", "float", "str", "bool", "null", "name", "field", "index", "call", "binary",
+   "unary", "await", "propagate", "keyword", "cast", "instance-of", "new", "record-lit",
+   "coalesce", "ternary", "variant", "tuple", "list-lit", "map-lit", "template", "lambda",
+   "set-lit", "comprehension", "unsupported"]
+
+def semanticTemplateKinds : List String := ["text", "expr"]
+
+theorem semantic_type_kinds_unique : semanticTypeKinds.Nodup := by decide
+theorem semantic_statement_kinds_unique : semanticStatementKinds.Nodup := by decide
+theorem semantic_expression_kinds_unique : semanticExpressionKinds.Nodup := by decide
+theorem semantic_template_kinds_unique : semanticTemplateKinds.Nodup := by decide
+
+-- fr:spec src/project/semantic_ir.rs::kind_authorable @ 567b7e0c45d59ea7758819565b19b0ab22ef98ff217b42954f2ecf3dbfa8a565
+-- fr:signature category: usize => category: Nat; kind: usize => kind: Nat; return: bool => return: Bool
+def semanticKindAuthorable (category : Nat) (kind : Nat) : Bool :=
+  match category with
+  | 0 => kind < semanticTypeKinds.length
+  | 1 => kind < semanticStatementKinds.length - 1
+  | 2 => kind < semanticExpressionKinds.length - 1
+  | 3 => kind < semanticTemplateKinds.length
+  | _ => false
+
+theorem unsupported_statement_is_refused : semanticKindAuthorable 1 25 = false := by decide
+theorem unsupported_expression_is_refused : semanticKindAuthorable 2 28 = false := by decide
+
+structure SemanticKindRef where
+  category : Nat
+  kind : Nat
+deriving DecidableEq
+
+theorem semantic_categories_remain_distinct (left right kind : Nat) (different : left ≠ right) :
+    SemanticKindRef.mk left kind ≠ SemanticKindRef.mk right kind := by
+  intro equal
+  exact different (congrArg SemanticKindRef.category equal)
+
+-- fr:spec src/project/semantic_ir.rs::semantic_node_source_free @ 81bce7f1c878aad8ea27bb456d47d8d6d44f4cde2779230be5e63b927b90a91f
+-- fr:signature has_source_field: bool => hasSourceField: Bool; unsupported_kind: bool => unsupportedKind: Bool; children_source_free: bool => childrenSourceFree: Bool; return: bool => return: Bool
+def semanticNodeSourceFree
+    (hasSourceField : Bool) (unsupportedKind : Bool) (childrenSourceFree : Bool) : Bool :=
+  !hasSourceField && !unsupportedKind && childrenSourceFree
+
+theorem semantic_node_source_free_iff
+    (hasSourceField unsupportedKind childrenSourceFree : Bool) :
+    semanticNodeSourceFree hasSourceField unsupportedKind childrenSourceFree = true ↔
+      hasSourceField = false ∧ unsupportedKind = false ∧ childrenSourceFree = true := by
+  cases hasSourceField <;> cases unsupportedKind <;> cases childrenSourceFree <;> decide
+
+theorem semantic_node_with_source_is_refused (unsupportedKind childrenSourceFree : Bool) :
+    semanticNodeSourceFree true unsupportedKind childrenSourceFree = false := by
+  cases unsupportedKind <;> cases childrenSourceFree <;> decide
+
+theorem semantic_unsupported_node_is_refused (hasSourceField childrenSourceFree : Bool) :
+    semanticNodeSourceFree hasSourceField true childrenSourceFree = false := by
+  cases hasSourceField <;> cases childrenSourceFree <;> decide
+
+theorem semantic_node_requires_source_free_children
+    (hasSourceField unsupportedKind childrenSourceFree : Bool)
+    (accepted : semanticNodeSourceFree hasSourceField unsupportedKind childrenSourceFree = true) :
+    childrenSourceFree = true := by
+  exact (semantic_node_source_free_iff hasSourceField unsupportedKind childrenSourceFree).mp accepted |>.2.2
+
 end FrKernels.Author

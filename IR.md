@@ -10,6 +10,12 @@ writer, the same eight. Fifty-six ordered pairs go through one vocabulary.
 The vocabulary lives in `src/transpile/ir.rs`. This document says what is in it,
 why each piece earned a place, and what a writer does when it cannot spell one.
 
+Agents can discover the public body subset through `fr author semantic-schema`. One category or
+one kind can be requested without reading this file or the Rust source. The adjacent-tag JSON uses
+`kind` and `value`; `fr author validate-semantic` performs strict Rust deserialization and returns a
+canonical identity. The Python package under `sdk/python` supplies matching `Type`, `Stmt`, `Expr`
+and `TemplatePart` constructors.
+
 ## Why a middle at all
 
 Direct translation costs a reader and a writer per pair. Fifty-six pairs need

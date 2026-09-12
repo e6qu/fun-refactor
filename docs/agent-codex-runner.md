@@ -15,7 +15,11 @@ Run the reviewed pair locally:
 python3 tools/agent-eval-codex.py /tmp/fr-agent-sessions --trial regex-escape-len-fr --trial regex-escape-len-files --confirm-agent-spend
 ```
 
-Each trial is a new `codex exec --ephemeral` invocation. The runner passes `--ignore-user-config` and `--ignore-rules`, pins `gpt-5.6-luna`, `model_reasoning_effort="low"`, `service_tier="default"` and the workspace-write sandbox, and reads the frozen prompt over standard input. It accepts only complete fr/files pairs from one prepared experiment and refuses a session with existing run or harness events.
+Each trial is a new `codex exec --ephemeral` invocation. The runner passes `--ignore-user-config`,
+`--ignore-rules` and `--skip-git-repo-check` for prepared snapshots. It pins `gpt-5.6-luna`,
+`model_reasoning_effort="low"`, `service_tier="default"` and the workspace-write sandbox, then reads
+the frozen prompt over standard input. It accepts only complete fr/files pairs from one prepared
+experiment and refuses a session with existing run or harness events.
 
 The session retains `codex-events.jsonl`, `codex-stderr.txt`, `codex-final.txt` and `codex-run.json`. The run record binds the prompt and streams by SHA-256 and records model, effort, service tier, elapsed time and exit status. `agent-eval.py record` copies these files when present and includes them in the evidence manifest.
 

@@ -73,6 +73,16 @@ def main (args : List String) : IO Unit := do
         for sourceFree in [false, true] do
           for bounded in [false, true] do
             IO.println (FrKernels.Author.semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded)
+  else if args == ["semantic-ir-catalog"] then
+    for category in [0:5] do
+      for kind in [0:31] do
+        IO.println (FrKernels.Author.semanticKindAuthorable category kind)
+  else if args == ["semantic-source-free"] then
+    for hasSourceField in [false, true] do
+      for unsupportedKind in [false, true] do
+        for childrenSourceFree in [false, true] do
+          IO.println (FrKernels.Author.semanticNodeSourceFree
+            hasSourceField unsupportedKind childrenSourceFree)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

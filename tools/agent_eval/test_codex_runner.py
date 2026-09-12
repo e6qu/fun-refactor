@@ -42,6 +42,7 @@ class CodexRunner(unittest.TestCase):
         for flag in ("--ephemeral", "--ignore-user-config", "--ignore-rules", "--json"):
             self.assertIn(flag, command)
         self.assertIn('model_reasoning_effort="low"', command)
+        self.assertIn("--skip-git-repo-check", command)
         self.assertIn('service_tier="default"', command)
         self.assertEqual(command[-1], "-")
 

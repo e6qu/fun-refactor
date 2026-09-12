@@ -65,6 +65,108 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert!(!success, "{error}");
 }
 
+#[test]
+fn semantic_contract_is_bounded_and_selectable_without_a_project() {
+    let dir = tempfile::tempdir().unwrap();
+    let index = ok(dir.path(), &["author", "semantic-schema"]);
+    assert_eq!(index["schema"], "fr-semantic-catalog-1");
+    assert_eq!(index["semantic_schema"], "fr-semantic-body-1");
+    assert_eq!(index["sections"][2]["name"], "statement");
+    assert_eq!(index["sections"][2]["entries"], 26);
+
+    let statement = ok(
+        dir.path(),
+        &["author", "semantic-schema", "statement", "--kind", "if"],
+    );
+    assert_eq!(statement["section"], "statement");
+    assert_eq!(statement["variant"]["kind"], "if");
+    assert_eq!(statement["variant"]["authorable"], true);
+    assert_eq!(statement["python"]["constructor"], "Stmt.If");
+    let statements = ok(dir.path(), &["author", "semantic-schema", "statement"]);
+    assert_eq!(
+        statements["contract"]["variants"][4]["python_constructor"],
+        "Stmt.If"
+    );
+    assert_eq!(
+        statements["contract"]["python"]["object_fields"],
+        "pass as keyword arguments"
+    );
+    assert!(statement["variant"]["value"]
+        .as_str()
+        .unwrap()
+        .contains("condition:expr"));
+
+    let refused = ok(
+        dir.path(),
+        &[
+            "author",
+            "semantic-schema",
+            "expression",
+            "--kind",
+            "unsupported",
+        ],
+    );
+    assert_eq!(refused["variant"]["authorable"], false);
+    assert!(
+        !run(
+            dir.path(),
+            &[
+                "author",
+                "semantic-schema",
+                "statement",
+                "--kind",
+                "missing"
+            ]
+        )
+        .0
+    );
+}
+
+#[test]
+fn semantic_validation_canonicalizes_without_scanning_a_project() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("body.json");
+    fs::write(
+        &input,
+        r#"{ "body": [{"value":{"value":"x","kind":"name"},"kind":"return"}], "schema":"fr-semantic-body-1" }"#,
+    )
+    .unwrap();
+    let report = ok(
+        dir.path(),
+        &[
+            "author",
+            "validate-semantic",
+            "--from",
+            input.to_str().unwrap(),
+            "--canonical",
+        ],
+    );
+    assert_eq!(report["valid"], true);
+    assert_eq!(report["source_free"], true);
+    assert_eq!(report["statements"], 1);
+    assert_eq!(report["canonical"]["body"][0]["kind"], "return");
+    assert_eq!(report["canonical"]["body"][0]["value"]["kind"], "name");
+    assert_ne!(report["input_sha256"], report["canonical_sha256"]);
+
+    fs::write(
+        &input,
+        r#"{"schema":"fr-semantic-body-1","body":[{"kind":"comment","value":"ok","extra":1}]}"#,
+    )
+    .unwrap();
+    assert!(
+        !run(
+            dir.path(),
+            &[
+                "author",
+                "validate-semantic",
+                "--from",
+                input.to_str().unwrap()
+            ]
+        )
+        .0
+    );
+}
+
 fn fixture(source: &str, body: &[u8]) -> (tempfile::TempDir, PathBuf, PathBuf) {
     fixture_file("app.rs", source, body)
 }

@@ -49,9 +49,9 @@ stage results, normalized history, source and patch identities. Task change addi
 selected checks to the planned transaction. This is prescribed workflow evidence without an agent claim.
 The complete native, WASM, documentation, skill, capability and strict Lean repository gate passes.
 
-The current `agent_semantic_ir` branch is roadmap PR 14. It exposes the internal cross-language IR
-as bounded, revision-bound agent data and adds the first source-free authoring route, generic pattern
-evidence, reviewed task-change integration, Lean admission models and controlled context evidence.
+PR 14 merged as GitHub PR 276. It exposes the internal cross-language IR as bounded,
+revision-bound agent data and adds the first source-free authoring route, generic pattern evidence,
+reviewed task-change integration, Lean admission models and controlled context evidence.
 
 PR 14 now publishes `fr-semantic-model-1` through `fr project semantic`. Reports omit bodies by
 default, return only complete requested models under a 4,096-node ceiling, redact unsupported source
@@ -75,6 +75,22 @@ bytes. The semantic route exposes zero source bytes; the source route exposes 48
 semantic output is 4,391 bytes versus 4,222 and its typed input is 179 bytes versus 26. This is a
 measured context premium, so broader compact addressing and a fresh agent trial remain future work.
 The complete native, documentation, skill, capability, Lean and WASM repository gate passes.
+
+Roadmap [PR 15](https://github.com/e6qu/fun-refactor/pull/277) adds project-independent semantic
+catalog and validation commands, a zero-dependency Python SDK, exhaustive Python-to-Rust canonical
+fixtures, and a Lean model of catalog uniqueness, category separation and author admission.
+Rust-to-Python translation supplies the SDK scaffold evidence. Its 977 lines preserve 11 functions,
+15 records and eight choice types, while 51 carried constructs show why checked adapters remain
+necessary for Serde encoding and runtime category rules. The deterministic comparison lives in
+`tests/agent-eval/semantic-ir-sdk.json`; it makes no agent-quality or quota claim.
+
+The fresh `tests/agent-eval/results/2026-09-11-semantic-ir-sdk` pair compares SDK and direct JSON
+construction with Luna at low effort. Both arms pass exact Rust-canonical validation without reading
+SDK implementation source. Direct JSON uses four commands and 16,523 input tokens after reported
+cache hits; the SDK uses thirteen and 27,373. The SDK producer is 701 bytes versus 1,445. This single
+task favors direct JSON for one-off construction and leaves SDK reuse as a future cohort question.
+The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
+passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
@@ -1085,5 +1101,5 @@ Both arms pass, while `fr` uses 33.3% more measured context and 22 more calls in
 Use its refused path guesses, help calls and repeated inspection to simplify authoring discovery
 before spending quota on another autonomous cohort.
 Keep portable skill references selective and executable against the distributed binary.
-PRs 7 through 10 merged as GitHub PRs 267, 269, 270 and 271. PR 11 is the current browser
-transaction-history work; [PLAN.md](../PLAN.md) is the authoritative active delivery plan.
+PRs 7 through 14 merged as GitHub PRs 267, 269, 270, 271, 272, 273, 275 and 276.
+[PLAN.md](../PLAN.md) is the authoritative active delivery plan.

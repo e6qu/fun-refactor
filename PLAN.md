@@ -158,7 +158,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Fourteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Fifteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -176,6 +176,7 @@ The first packaged roadmap is complete. Fourteen merged pull requests establishe
 | [PR 11](https://github.com/e6qu/fun-refactor/pull/272) | Browser Transaction History | Merged |
 | [PR 12](https://github.com/e6qu/fun-refactor/pull/273) | Revision-Bound Agent Task Bundles | Merged |
 | [PR 13](https://github.com/e6qu/fun-refactor/pull/275) | Reviewed Agent Task Changes | Merged |
+| [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
 
 The second package now moves the existing internal semantic representation onto the public agent
 surface and uses it for source-free authoring. Later shapes remain evidence-driven.
@@ -444,7 +445,7 @@ Planned checkpoints:
 
 ### PR 14. Semantic Agent Model and Authoring
 
-Status: in review as [PR 276](https://github.com/e6qu/fun-refactor/pull/276).
+Status: merged as [PR 276](https://github.com/e6qu/fun-refactor/pull/276).
 
 Goal: let an agent inspect and change supported program behavior through versioned semantic data
 without reading or writing language-specific source text.
@@ -490,6 +491,56 @@ Planned checkpoints:
 5. **Complete.** Add Lean policies and exhaustive Rust correspondence.
 6. **Complete.** Update CLI, portable skill and continuity documentation; retain controlled context evidence.
 7. **Complete.** Pass the complete repository gate and publish the large PR for review.
+
+### PR 15. Agent IR Contract and Python SDK
+
+Status: [PR 277](https://github.com/e6qu/fun-refactor/pull/277) is in review from
+`agent_ir_python_sdk`.
+
+Goal: make semantic IR discoverable and safe to construct without asking an agent to memorize raw
+JSON. Keep Python objects visibly aligned with the public IR hierarchy.
+
+Deliverables:
+
+- Dogfood Rust-to-Python translation of the real IR as the SDK scaffold and retain its fidelity
+  report. Repair SDK concerns that ordinary code translation cannot infer, including tagged-enum
+  JSON, defaults, validation and canonical serialization.
+- Add bounded CLI discovery for the body, type, statement, expression, template and operator
+  vocabulary. Let an agent request one category or one variant without loading the whole contract.
+- Add project-independent semantic payload validation and canonical identity reporting before an
+  agent selects a project or target language.
+- Ship a zero-dependency Python package with typed constructors that mirror `Type`, `Stmt`, `Expr`,
+  supporting records and enum variants. Emit exact `fr-semantic-body-1` JSON.
+- Keep the SDK source-free by construction. Reject category mismatches, unknown fields,
+  unsupported variants, source-bearing values, invalid operators and non-finite nesting.
+- Derive executable constructor examples from the SDK and check every one through Python, Rust
+  deserialization and Rust canonical serialization.
+- Model the finite category, kind and author-admission boundary in Lean. Compare all supported and
+  refused category-kind combinations with Rust, then check the Python catalog against the same set.
+- Teach the portable agent skill both direct JSON and Python routes. Retain a controlled comparison
+  of correctness, repair behavior, payload size and required contract context on generic fixtures.
+
+Verification and acceptance:
+
+1. CLI schema pages and Python constructor catalogs name the same versioned IR variants.
+2. Every SDK example round-trips through Python serialization and Rust canonical serialization.
+3. A node cannot cross type, statement or expression categories through an SDK constructor.
+4. Semantic authoring rejects unsupported, source-bearing, oversized, excessively nested and
+   unknown inputs before reading a project.
+5. Lean proves finite catalog uniqueness and author-admission properties; exhaustive Rust cases
+   and Python-generated fixtures agree with the model.
+6. Measure the translated scaffold's gaps. Documentation distinguishes translation output
+   from the checked SDK adapter rather than claiming automatic SDK generation.
+7. Native, Python, documentation, skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Run `fr` Rust-to-Python translation on the actual IR and record its limits.
+2. **Complete.** Freeze the discoverable semantic catalog and project-independent validator.
+3. **Complete.** Build the typed Python SDK and exhaustive cross-runtime conformance suite.
+4. **Complete.** Add Lean catalog and admission proofs with Rust and Python correspondence.
+5. **Complete.** Teach both agent routes and retain deterministic and fresh Luna/low comparisons.
+6. **Complete.** Pass the complete repository gate and publish the large PR for review.
 
 ## Formal verification policy
 

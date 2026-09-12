@@ -475,6 +475,17 @@ bound. Rust and Lean share selected numeric boundaries, all sixteen Boolean admi
 the expanded task target matrix. Parser, serializer, hash and writer correspondence remain outside
 these models.
 
+The semantic author catalog adds a third anchored policy. Its model lists every type, statement,
+expression and template kind and proves that each list has no duplicates. It refuses the statement
+and expression `unsupported` entries and keeps category-tagged references distinct. Exhaustive
+execution compares Rust and Lean admission for five category values and 31 kind values. Python
+publishes the same admitted kind lists, checked through the native integration suite. These checks
+leave Python runtime behavior, Serde correctness and the writer implementations in the trusted base.
+An anchored source-free node policy admits exactly nodes without a `source` field or `unsupported`
+kind whose children also pass. Lean proves each necessary condition, eight Boolean executions agree
+with Rust, and Rust tests the recursive JSON walk. JSON parsing and unbounded induction over the
+host value remain outside that correspondence claim.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fun-refactor-ir"
+version = "0.1.0"
+description = "Typed Python constructors for fun-refactor semantic IR"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-or-later"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+fr_ir = ["py.typed"]

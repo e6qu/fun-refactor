@@ -2360,12 +2360,22 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
 
 fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()> {
     use crate::project::author::Command;
-    if matches!(command, Command::Guide) {
+    if matches!(
+        command,
+        Command::Guide | Command::SemanticSchema(_) | Command::ValidateSemantic(_)
+    ) {
         anyhow::ensure!(
             !cli.save_plan && cli.plan_basis.is_none() && cli.context_basis.is_none(),
-            "author guide does not accept plan or context bases."
+            "author contract commands do not accept plan or context bases."
         );
-        let guide = crate::project::author::guide();
+        let guide = match command {
+            Command::Guide => crate::project::author::guide(),
+            Command::SemanticSchema(options) => crate::project::semantic_ir::catalog(options)?,
+            Command::ValidateSemantic(options) => {
+                crate::project::author::validate_semantic(&cli.root, options)?
+            }
+            _ => unreachable!(),
+        };
         if cli.json {
             println!("{}", serde_json::to_string(&guide)?);
         } else {
@@ -2374,7 +2384,9 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         return Ok(());
     }
     let (write, diff_bytes) = match command {
-        Command::Guide => unreachable!(),
+        Command::Guide | Command::SemanticSchema(_) | Command::ValidateSemantic(_) => {
+            unreachable!()
+        }
         Command::ReplaceBody(options)
         | Command::ReplaceBodySemantic(options)
         | Command::ReplaceDeclaration(options)
@@ -2392,7 +2404,9 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
         let mut plan = match command {
-            Command::Guide => unreachable!(),
+            Command::Guide | Command::SemanticSchema(_) | Command::ValidateSemantic(_) => {
+                unreachable!()
+            }
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceBodySemantic(options) => project.replace_body_semantic(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
