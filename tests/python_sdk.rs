@@ -239,6 +239,48 @@ fn checked_sdk_evaluation_is_reproducible() {
 }
 
 #[test]
+fn semantic_edit_plan_evaluation_is_reproducible() {
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/semantic-edit-plan-eval.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let retained: Value = serde_json::from_slice(
+        &fs::read(root().join("tests/agent-eval/semantic-edit-plan.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, retained);
+    assert!(actual["equivalence"]
+        .as_object()
+        .unwrap()
+        .values()
+        .all(|value| value == true));
+    assert_eq!(
+        actual["routes"]["scalar-plan"]["commands_before_lifecycle"],
+        2
+    );
+    assert!(
+        actual["routes"]["scalar-plan"]["measured_context_bytes"]
+            .as_u64()
+            .unwrap()
+            < actual["routes"]["explicit-intent"]["measured_context_bytes"]
+                .as_u64()
+                .unwrap()
+    );
+}
+
+#[test]
 fn checked_semantic_intent_evaluation_is_reproducible() {
     let temp = tempfile::tempdir().unwrap();
     let output_path = temp.path().join("report.json");

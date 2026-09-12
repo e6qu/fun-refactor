@@ -541,6 +541,12 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
     assert_eq!(edit_plan["edit_plan"]["intent"]["operations"][0]["to"], "7");
     assert_eq!(edit_plan["edit_plan"]["source_free"], true);
     assert_eq!(edit_plan["edit_plan"]["refinement_checked"], true);
+    assert!(edit_plan.get("model").is_none());
+    assert!(edit_plan.get("patterns").is_none());
+    assert_eq!(
+        edit_plan["content_omitted"],
+        serde_json::json!(["model", "patterns"])
+    );
     assert!(!edit_plan.to_string().contains("positive_names(names"));
     let missing_body = Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "--no-cache", "-C"])

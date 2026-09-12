@@ -121,7 +121,7 @@ shows the patch additive. What remains below is a limit of the available source 
   Agent skill examples and JSON regressions cover these failures.
 
 - [x] B837: **a failed multi-file commit left earlier replacements in place.**
-  The commit loop renamed staged files one at a time and had no recovery path.
+  The commit loop renamed staged files one at a time. It had no recovery path.
   It now stages recovery copies, restores earlier targets in reverse order and removes new files on failure.
   Failed recovery retains original copies and reports their paths.
   Identity, mode and content checks detect concurrent edits before restoration.

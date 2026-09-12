@@ -541,6 +541,10 @@ fr author semantic-schema statement --kind return
 
 fr author validate-semantic --from /tmp/change.json [--canonical]
 
+fr author plan-semantic-intent --body /tmp/body.json --operation set-int --from 1 --to 7 [--canonical]
+
+fr author edit-body-scalar '<HANDLE>' --operation set-int --from 1 --to 7
+
 fr author replace-body '<HANDLE>' --from /tmp/body.txt
 
 fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan --plan-basis '<PLAN_BASIS>'
@@ -558,6 +562,12 @@ Request one section or one `--kind` to bound contract context. A variant report 
 JSON value shape, author admission and Python SDK constructor. `author validate-semantic` reads one
 64 KiB input, rejects unknown or source-bearing structure, enforces statement and node limits, and
 returns its Rust-canonical SHA-256 identity. `--canonical` also returns the normalized payload.
+
+`author plan-semantic-intent` selects exactly one matching scalar from a complete semantic body and
+returns a checked `fr-semantic-edit-plan-1` report containing the generated
+`fr-semantic-intent-1`. `author edit-body-scalar` performs the same selection against a current
+function handle and uses the normal preview, plan-basis, write and history lifecycle. Both commands
+refuse zero or multiple matches, invalid scalar encodings and no-ops.
 
 Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.

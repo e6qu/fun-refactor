@@ -240,7 +240,7 @@ struct LocatorStep {
     label: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct IntentManifest {
     schema: String,
@@ -248,7 +248,7 @@ struct IntentManifest {
     operations: Vec<Operation>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(tag = "op", deny_unknown_fields)]
 enum Operation {
     #[serde(rename = "set-int")]
@@ -324,6 +324,7 @@ pub struct AppliedIntent {
     pub input_basis: String,
     pub result_basis: String,
     pub intent_sha256: String,
+    pub intent_basis: String,
     pub change_sha256: String,
     pub operations: Vec<Value>,
     pub compiled: Value,
@@ -1121,6 +1122,7 @@ pub fn apply(body_input: &str, intent_input: &str) -> Result<AppliedIntent> {
     ensure!(source_free, "semantic intent input must be source-free.");
     let manifest: IntentManifest = serde_json::from_value(intent_value)
         .context("semantic intent input must match fr-semantic-intent-1.")?;
+    let intent_basis = format!("fri1:{}", digest(serde_json::to_vec(&manifest)?));
     ensure!(
         manifest.schema == INTENT_SCHEMA,
         "semantic intent schema must be fr-semantic-intent-1."
@@ -1214,6 +1216,7 @@ pub fn apply(body_input: &str, intent_input: &str) -> Result<AppliedIntent> {
         input_basis: applied.input_basis,
         result_basis: applied.result_basis,
         intent_sha256: digest(intent_input),
+        intent_basis,
         change_sha256: applied.change_sha256,
         operations: reports,
         compiled,
@@ -1254,6 +1257,7 @@ pub fn apply_from_files(root: &Path, options: &ApplyOptions) -> Result<Value> {
         "input_basis":applied.input_basis,
         "result_basis":applied.result_basis,
         "intent_sha256":applied.intent_sha256,
+        "intent_basis":applied.intent_basis,
         "change_sha256":applied.change_sha256,
         "operations":applied.operations,
         "statements":applied.body.body.len(),
@@ -1290,6 +1294,7 @@ pub fn plan_from_file(root: &Path, options: &PlanOptions) -> Result<Value> {
         "target":planned.target,
         "intent":planned.manifest,
         "intent_sha256":planned.applied.intent_sha256,
+        "intent_basis":planned.applied.intent_basis,
         "compiled_change_sha256":planned.applied.change_sha256,
         "input_basis":planned.applied.input_basis,
         "result_basis":planned.applied.result_basis,

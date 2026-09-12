@@ -1,0 +1,48 @@
+{
+  "schema": "fr-semantic-edit-plan-evaluation-1",
+  "fixture": "generic three-statement Rust arithmetic pipeline",
+  "change": "replace one uniquely matched integer scalar",
+  "routes": {
+    "explicit-intent": {
+      "commands_before_lifecycle": 3,
+      "query_bytes": 1478,
+      "payload_bytes": 425,
+      "preview_bytes": 2870,
+      "write_bytes": 614,
+      "measured_context_bytes": 5387,
+      "intent_sha256": "e3c0ba61f3d984b90419e76e45143f3828d2765396552539cee652e64b3b14ed",
+      "intent_basis": "fri1:dbc1e407736aebe99deb09a808fa04bf3c046eaf839a5c131db9eb7cb0ecd7df",
+      "compiled_change_sha256": "4ae3b6c3ef38226c89f8a2681ba3509cd9a1c56d7808b6f862a1167596d3096d",
+      "behavior_passed": true,
+      "undo_exact": true,
+      "redo_exact": true,
+      "patch_checked": true,
+      "final_body_basis": "frsb1:b62dec5e229bf50b15f361440ec6a1d2513550481de345d5b781d2ae218d3421",
+      "final_source_sha256": "51c022221f7dbc1c8fa3c20b30e8202e5ee2eabfb2c5b74a97d1ed78b1dff861"
+    },
+    "scalar-plan": {
+      "commands_before_lifecycle": 2,
+      "query_bytes": 0,
+      "payload_bytes": 0,
+      "preview_bytes": 3627,
+      "write_bytes": 617,
+      "measured_context_bytes": 4244,
+      "intent_sha256": "52f9f723fe374d03165651fd8faf2c27a3f9ec7827d830b21dee1306db69cd72",
+      "intent_basis": "fri1:dbc1e407736aebe99deb09a808fa04bf3c046eaf839a5c131db9eb7cb0ecd7df",
+      "compiled_change_sha256": "4ae3b6c3ef38226c89f8a2681ba3509cd9a1c56d7808b6f862a1167596d3096d",
+      "behavior_passed": true,
+      "undo_exact": true,
+      "redo_exact": true,
+      "patch_checked": true,
+      "final_body_basis": "frsb1:b62dec5e229bf50b15f361440ec6a1d2513550481de345d5b781d2ae218d3421",
+      "final_source_sha256": "51c022221f7dbc1c8fa3c20b30e8202e5ee2eabfb2c5b74a97d1ed78b1dff861"
+    }
+  },
+  "equivalence": {
+    "intent_identity_equal": true,
+    "compiled_change_identity_equal": true,
+    "final_body_identity_equal": true,
+    "final_source_identity_equal": true
+  },
+  "scope": "Deterministic source-free discovery, authoring and lifecycle evidence on one generic Rust fixture; no agent or population claim."
+}

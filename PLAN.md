@@ -687,7 +687,7 @@ Deliverables:
   exactly one role locator, validate the generated `fr-semantic-intent-1` payload and return its
   canonical body basis, target and intent identity as review evidence.
 - Add direct project authoring for the same request. Preview and write compile the generated intent
-  through the existing checked delta engine and preserve body fidelity, surrounding bytes, history,
+  through the existing checked delta engine. Preserve body fidelity, surrounding bytes, history,
   undo, redo and Git patch behavior.
 - Carry the plan through author batches, project tasks and reviewed task changes where the shorter
   form remains complete. Keep the explicit semantic-intent manifest route for multi-operation and
@@ -703,11 +703,11 @@ Verification and acceptance:
 
 1. Directory and file discovery returns one eligible exact declaration or a structured zero/many
    refusal; source and unsupported semantic text never enter the report.
-2. A plan is admitted only when operation and scalar encodings are valid and one generated locator
-   resolves to the exact current scalar under the reported body identity.
+2. Plan admission requires valid operation and scalar encodings. One generated locator must resolve
+   to the exact current scalar under the reported body identity.
 3. Applying the plan produces the same canonical intent, compiled delta, semantic body and source
    bytes as the explicit PR 17 route.
-4. Preview is read-only. Stale revisions, changed bodies, ambiguity, no-ops, unsupported writers and
+4. Preview changes no files. Stale revisions, changed bodies, ambiguity, no-ops, unsupported writers and
    invalid values refuse before source or history mutation.
 5. Direct, batch and task-change writes retain checks, exact undo and redo, and forward and reverse
    Git patch identity.

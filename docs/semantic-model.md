@@ -1,19 +1,23 @@
 # Semantic project model
 
 `fr project semantic TARGET` returns cross-language program structure without returning source text.
-`TARGET` can be an indexed file path or a revision-bound declaration handle. The public contract is
-`fr-semantic-model-1`.
+`TARGET` can be an indexed directory or file path, or a revision-bound declaration handle. A
+directory requires `--declaration NAME` and must contain exactly one eligible declaration with that
+name. The public contract is `fr-semantic-model-1`.
 
 ```sh
 fr project semantic src/lib.rs
 fr project semantic src/lib.rs --declaration calculate
+fr project semantic . --declaration calculate --body --locator-op set-int \
+  --locator-from 1 --intent-to 7 --nodes 256 --minimal
 fr project semantic '<HANDLE>' --body --nodes 256 --minimal
 ```
 
 The default report retains declarations, parameters, types and containment, and omits executable
 bodies. `--body` requests a complete body. `--nodes` limits tagged IR nodes from 1 through 4,096.
-`--declaration NAME` selects one unique declaration directly inside a file path and returns its full
-handle; ambiguous names require a handle from the structural project queries.
+`--declaration NAME` selects one unique eligible declaration below a file or directory path and
+returns its full handle. Zero or multiple matches refuse; ambiguous names require a handle from the
+structural project queries.
 `--minimal` omits the generic project envelope after establishing the revision-bound semantic
 identity. `report_omitted` lists those fields. Omit this flag when workspace-wide coverage or a
 reusable project context basis matters.
@@ -52,10 +56,12 @@ fr author semantic-schema expression --kind binary
 {
   "schema": "fr-semantic-body-1",
   "body": [
+
     {
       "kind": "return",
       "value": {
         "kind": "binary",
+
         "value": {
           "op": "mul",
           "left": {"kind": "name", "value": "value"},
@@ -127,8 +133,8 @@ change = SemanticChange(body_basis, [
 change.write("change.json")
 ```
 
-`fr author edit-body-semantic HANDLE --from CHANGE` reconstructs the current function body, checks
-the basis, applies the delta, and reuses the semantic writer and exact body splice. Author batches,
+`fr author edit-body-semantic HANDLE --from CHANGE` reconstructs the current function body and
+checks the basis. It applies the delta through the semantic writer and exact body splice. Author batches,
 project tasks and reviewed task changes accept `edit-body-semantic`. Their normal preview, drift,
 checks, reversal and patch rules apply.
 
@@ -178,13 +184,40 @@ fr project semantic src/lib.rs --declaration calculate --body --locators \
 `fr-semantic-body-locators-1` rows contain a copyable `target`, category, kind, supported operation
 and exact `from` scalar. Omitting `--locators-only` also returns the body when more structural context
 is needed. Omitting one or both filters broadens discovery. The index covers scalar nodes reachable
-through the published role vocabulary; switch arms, variant arms, catch records, map pairs and record
-literal fields still require a typed pointer delta or complete body.
+through the published role vocabulary. Switch arms, variant arms, catch records, map pairs and
+record literal fields still require a typed pointer delta or complete body.
 
 The eleven operations set integer, float, string and Boolean literals, name expressions, field and
 keyword names, binary and unary operators, template text and comments. Decimal strings are portable
 unsigned spellings. This keeps scalar output valid across the supported writers; negative values use
 the IR unary node. Identifier edits use the common ASCII identifier subset.
+
+When the operation and both scalar values are known, add `--intent-to VALUE` to the filtered
+semantic query. It resolves exactly one locator and returns `fr-semantic-edit-plan-1` with the full
+generated intent, input and result body identities, and refinement evidence. When `--locators` is
+omitted, this form also omits the semantic model and pattern rows. It therefore discovers the file,
+handle, body basis and intent in one source-free request:
+
+```sh
+fr project semantic . --declaration calculate --body \
+  --locator-op set-int --locator-from 1 --intent-to 7 --nodes 128 --minimal
+```
+
+Preview the same request directly against the returned handle, then repeat with the unchanged plan
+basis and `--write`:
+
+```sh
+fr author edit-body-scalar '<HANDLE>' --operation set-int --from 1 --to 7
+
+fr author edit-body-scalar '<HANDLE>' --operation set-int --from 1 --to 7 \
+  --write --plan-basis '<PLAN_CONTEXT_BASIS>'
+```
+
+The author report retains the generated intent and compiled-change identity. Author batches,
+project tasks and task changes use `edit-body-scalar` with a `scalar` object containing
+`operation`, `from` and `to`. Use the explicit intent route when several ordered edits are needed or
+when a scalar is ambiguous. `fr author plan-semantic-intent --body BODY` exposes the same planner
+without scanning a project.
 
 ```json
 {
@@ -204,12 +237,13 @@ the IR unary node. Identifier edits use the common ASCII identifier subset.
 ```
 
 `fr author apply-semantic-intent --body BODY --intent INTENT --canonical --compiled` interprets each
-intent directly, compiles an ordered `fr-semantic-change-1`, runs the checked delta engine and
+intent directly and compiles an ordered `fr-semantic-change-1`. It runs the checked delta engine and
 requires equal canonical results. `fr author edit-body-intent HANDLE --from INTENT` carries the
 result through the existing writer, byte-preserving body splice and history lifecycle. Author
 batches, project tasks and reviewed task changes use `edit-body-intent`.
 
-The Python SDK mirrors `Role`, `NodeCategory`, `LocatorStep`, `Intent` and `SemanticIntent`. Direct
+The Python SDK mirrors `Role`, `NodeCategory`, `LocatorStep`, `Intent`, `SemanticIntent` and the
+three-field `ScalarRequest` used by task manifests. Direct
 JSON is the measured choice for a one-off scalar edit. Python provides earlier type and scalar checks
 when several operations or reusable producer logic justify it. The deterministic four-route result
 is documented in [semantic intent evaluation](semantic-intent-evaluation.md).
@@ -220,3 +254,7 @@ kind and child locality, direct/compiler equivalence and ordered composition. Ex
 comparisons cover the finite admission and target relations. Runtime application also compares the
 direct result with the compiled delta result on every accepted request. Serde, role traversal,
 SHA-256, parsers, writers, filesystem behavior and Python remain tested or trusted boundaries.
+
+The edit-plan extension additionally models exact-one candidate admission and proves that compiling
+the uniquely planned scalar intent produces the same abstract result as direct interpretation.
+Rust and Lean compare every Boolean admission state over selected candidate-count boundaries.

@@ -306,6 +306,48 @@ fn patterns(value: &Value, pointer: &str, basis: &str, out: &mut Vec<Value>) {
 }
 
 impl Project<'_> {
+    fn semantic_declaration_in_scope(&self, scope: usize, name: &str) -> Result<usize> {
+        ensure!(
+            matches!(self.nodes[scope].kind.as_str(), "file" | "directory"),
+            "--declaration requires a file or directory path target."
+        );
+        let mut matches = self.nodes.iter().enumerate().filter_map(|(id, node)| {
+            let symbol = node.symbol.and_then(|symbol| self.index.symbol(symbol))?;
+            (self.within(id, scope)
+                && symbol.name == name
+                && matches!(
+                    symbol.kind,
+                    SymbolKind::Function
+                        | SymbolKind::Method
+                        | SymbolKind::Class
+                        | SymbolKind::Struct
+                        | SymbolKind::Trait
+                        | SymbolKind::Interface
+                        | SymbolKind::Enum
+                        | SymbolKind::TypeAlias
+                        | SymbolKind::Constant
+                ))
+            .then_some(id)
+        });
+        let selected = matches.next().with_context(|| {
+            format!("no semantic declaration named '{name}' in the selected scope.")
+        })?;
+        ensure!(
+            matches.next().is_none(),
+            "semantic declaration name is ambiguous; select a revision-bound handle."
+        );
+        Ok(selected)
+    }
+
+    pub(super) fn semantic_declaration_handle(&self, target: &str, name: &str) -> Result<String> {
+        ensure!(
+            !target.starts_with("frp1:"),
+            "--declaration requires a path target without --revision."
+        );
+        let scope = self.target(target)?;
+        Ok(self.handle(self.semantic_declaration_in_scope(scope, name)?))
+    }
+
     pub(super) fn semantic(&self, options: &Options) -> Result<Value> {
         ensure!(
             (1..=4096).contains(&options.nodes),
@@ -331,36 +373,7 @@ impl Project<'_> {
             self.target(&options.target)?
         };
         if let Some(name) = &options.declaration {
-            ensure!(
-                matches!(self.nodes[target].kind.as_str(), "file" | "directory"),
-                "--declaration requires a file or directory path target."
-            );
-            let scope = target;
-            let mut matches = self.nodes.iter().enumerate().filter_map(|(id, node)| {
-                let symbol = node.symbol.and_then(|symbol| self.index.symbol(symbol))?;
-                (self.within(id, scope)
-                    && symbol.name == *name
-                    && matches!(
-                        symbol.kind,
-                        SymbolKind::Function
-                            | SymbolKind::Method
-                            | SymbolKind::Class
-                            | SymbolKind::Struct
-                            | SymbolKind::Trait
-                            | SymbolKind::Interface
-                            | SymbolKind::Enum
-                            | SymbolKind::TypeAlias
-                            | SymbolKind::Constant
-                    ))
-                .then_some(id)
-            });
-            target = matches.next().with_context(|| {
-                format!("no semantic declaration named '{name}' in the selected scope.")
-            })?;
-            ensure!(
-                matches.next().is_none(),
-                "semantic declaration name is ambiguous; select a revision-bound handle."
-            );
+            target = self.semantic_declaration_in_scope(target, name)?;
         }
         let node = &self.nodes[target];
         ensure!(
@@ -523,6 +536,7 @@ impl Project<'_> {
                 "target":plan.target,
                 "intent":plan.manifest,
                 "intent_sha256":plan.applied.intent_sha256,
+                "intent_basis":plan.applied.intent_basis,
                 "input_basis":plan.applied.input_basis,
                 "result_basis":plan.applied.result_basis,
                 "source_free":true,
@@ -572,7 +586,7 @@ impl Project<'_> {
             report["model"] = Value::Null;
             report["patterns"] = json!([]);
         }
-        if options.locators_only {
+        if options.locators_only || options.intent_to.is_some() && !options.locators {
             report.as_object_mut().unwrap().remove("model");
             report.as_object_mut().unwrap().remove("patterns");
             report["content_omitted"] = json!(["model", "patterns"]);

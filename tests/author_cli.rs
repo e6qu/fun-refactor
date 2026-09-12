@@ -776,11 +776,12 @@ fn direct_scalar_authoring_plans_one_exact_target_across_supported_languages() {
     ];
     for (file, source) in cases {
         let (_temp, root, _input) = fixture_file(file, source, b"");
-        let (handle, _) = selection(&root, "calc");
         let args = [
             "author",
             "edit-body-scalar",
-            &handle,
+            ".",
+            "--declaration",
+            "calc",
             "--operation",
             "set-int",
             "--from",
@@ -816,13 +817,14 @@ fn direct_scalar_authoring_plans_one_exact_target_across_supported_languages() {
 
     let source = "fn calc(value: i32) -> i32 { value + 1 + 1 }\n";
     let (_temp, root, _input) = fixture_file("app.rs", source, b"");
-    let (handle, _) = selection(&root, "calc");
     let (success, error) = run(
         &root,
         &[
             "author",
             "edit-body-scalar",
-            &handle,
+            ".",
+            "--declaration",
+            "calc",
             "--operation",
             "set-int",
             "--from",

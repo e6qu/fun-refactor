@@ -198,10 +198,16 @@ pub struct ReplaceBodyOptions {
 
 #[derive(Args)]
 pub struct EditBodyScalarOptions {
-    #[arg(help = "Full project handle, or a short ID with --revision.")]
+    #[arg(help = "Workspace path, full project handle, or a short ID with --revision.")]
     pub handle: String,
     #[arg(long, help = "Source revision required for a short ID.")]
     pub revision: Option<String>,
+    #[arg(
+        long,
+        conflicts_with = "revision",
+        help = "Resolve one exact function or method name below a path target."
+    )]
+    pub declaration: Option<String>,
     #[arg(long, help = "Exact semantic scalar operation, such as set-int.")]
     pub operation: String,
     #[arg(long, help = "Exact current scalar value.")]
@@ -581,6 +587,7 @@ impl Project<'_> {
                     self.edit_body_scalar(&EditBodyScalarOptions {
                         handle: step.handle.clone(),
                         revision: revision.clone(),
+                        declaration: None,
                         operation: scalar.operation,
                         from: scalar.from,
                         to: scalar.to,
@@ -1353,8 +1360,8 @@ impl Project<'_> {
         temporary.write_all(result.as_bytes())?;
         temporary.flush()?;
         let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
-            handle: options.handle.clone(),
-            revision: options.revision.clone(),
+            handle,
+            revision: None,
             from: temporary.path().to_path_buf(),
             diff_bytes: options.diff_bytes,
             write: false,
@@ -1425,6 +1432,7 @@ impl Project<'_> {
         plan.report["semantic_intent"] = json!({
             "schema":super::semantic_intent::INTENT_SCHEMA,
             "sha256":applied.intent_sha256,
+            "basis":applied.intent_basis,
             "compiled_change_sha256":applied.change_sha256,
             "input_basis":applied.input_basis,
             "result_basis":applied.result_basis,
@@ -1441,7 +1449,11 @@ impl Project<'_> {
             options.diff_bytes <= 65536,
             "diff bytes must be between 0 and 65536."
         );
-        let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
+        let handle = if let Some(name) = options.declaration.as_deref() {
+            self.semantic_declaration_handle(&options.handle, name)?
+        } else {
+            self.explicit_handle(&options.handle, options.revision.as_deref())?
+        };
         let id = self.resolve_handle(&handle)?;
         let symbol = self.nodes[id]
             .symbol
@@ -1482,8 +1494,8 @@ impl Project<'_> {
         temporary.write_all(result.as_bytes())?;
         temporary.flush()?;
         let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
-            handle: options.handle.clone(),
-            revision: options.revision.clone(),
+            handle,
+            revision: None,
             from: temporary.path().to_path_buf(),
             diff_bytes: options.diff_bytes,
             write: false,
@@ -1497,6 +1509,7 @@ impl Project<'_> {
             "target":planned.target,
             "intent":planned.manifest,
             "intent_sha256":planned.applied.intent_sha256,
+            "intent_basis":planned.applied.intent_basis,
             "compiled_change_sha256":planned.applied.change_sha256,
             "input_basis":planned.applied.input_basis,
             "result_basis":planned.applied.result_basis,
