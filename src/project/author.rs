@@ -26,6 +26,8 @@ pub enum Command {
     ApplySemanticChange(super::semantic_change::ApplyOptions),
     #[command(about = "Apply checked semantic intents without scanning a project.")]
     ApplySemanticIntent(super::semantic_intent::ApplyOptions),
+    #[command(about = "Plan one unique scalar semantic intent without scanning a project.")]
+    PlanSemanticIntent(super::semantic_intent::PlanOptions),
     #[command(
         about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
@@ -36,6 +38,8 @@ pub enum Command {
     EditBodySemantic(ReplaceBodyOptions),
     #[command(about = "Apply checked semantic intents to one supported function body.")]
     EditBodyIntent(ReplaceBodyOptions),
+    #[command(about = "Apply one uniquely selected scalar semantic intent without a manifest.")]
+    EditBodyScalar(EditBodyScalarOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -70,6 +74,9 @@ pub fn guide() -> Value {
             {"op": "edit-body-intent", "requires": ["handle", "from"],
                 "input-schema": "fr-semantic-intent-1",
                 "targets": "supported function or method body"},
+            {"op": "edit-body-scalar", "requires": ["handle", "operation", "from", "to"],
+                "generated-schema": "fr-semantic-intent-1",
+                "targets": "one unique supported scalar in a function or method body"},
             {"op": "replace-declaration", "requires": ["handle", "from"],
                 "targets": "Rust function declaration with unchanged name"},
             {"op": "insert-declaration", "requires": ["handle", "from"],
@@ -148,6 +155,8 @@ pub(super) struct BatchStep {
     pub(super) op: BatchOperation,
     pub(super) handle: String,
     pub(super) from: Option<PathBuf>,
+    #[serde(default)]
+    pub(super) scalar: Option<super::semantic_intent::ScalarRequest>,
 }
 
 #[derive(Clone, Copy, Deserialize)]
@@ -157,6 +166,7 @@ pub(super) enum BatchOperation {
     ReplaceBodySemantic,
     EditBodySemantic,
     EditBodyIntent,
+    EditBodyScalar,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -173,6 +183,37 @@ pub struct ReplaceBodyOptions {
         help = "UTF-8 fragment file, absolute or relative to the workspace root; at most 64 KiB."
     )]
     pub from: PathBuf,
+    #[arg(
+        long,
+        default_value_t = 4096,
+        help = "Maximum UTF-8 diff bytes, from 0 through 65536."
+    )]
+    pub diff_bytes: usize,
+    #[arg(
+        long,
+        help = "Record and apply the edit after checking the source revision."
+    )]
+    pub write: bool,
+}
+
+#[derive(Args)]
+pub struct EditBodyScalarOptions {
+    #[arg(help = "Workspace path, full project handle, or a short ID with --revision.")]
+    pub handle: String,
+    #[arg(long, help = "Source revision required for a short ID.")]
+    pub revision: Option<String>,
+    #[arg(
+        long,
+        conflicts_with = "revision",
+        help = "Resolve one exact function or method name below a path target."
+    )]
+    pub declaration: Option<String>,
+    #[arg(long, help = "Exact semantic scalar operation, such as set-int.")]
+    pub operation: String,
+    #[arg(long, help = "Exact current scalar value.")]
+    pub from: String,
+    #[arg(long, help = "Requested scalar value.")]
+    pub to: String,
     #[arg(
         long,
         default_value_t = 4096,
@@ -530,12 +571,35 @@ impl Project<'_> {
             let plan = match step.op {
                 BatchOperation::OrganizeImports => {
                     ensure!(
-                        step.from.is_none(),
-                        "organize-imports does not accept a fragment path."
+                        step.from.is_none() && step.scalar.is_none(),
+                        "organize-imports does not accept fragment or scalar input."
                     );
                     self.organize_imports(&step.handle, revision.as_deref())
                 }
+                BatchOperation::EditBodyScalar => {
+                    ensure!(
+                        step.from.is_none(),
+                        "edit-body-scalar does not accept a fragment path."
+                    );
+                    let scalar = step
+                        .scalar
+                        .context("edit-body-scalar requires a scalar request.")?;
+                    self.edit_body_scalar(&EditBodyScalarOptions {
+                        handle: step.handle.clone(),
+                        revision: revision.clone(),
+                        declaration: None,
+                        operation: scalar.operation,
+                        from: scalar.from,
+                        to: scalar.to,
+                        diff_bytes,
+                        write: false,
+                    })
+                }
                 operation => {
+                    ensure!(
+                        step.scalar.is_none(),
+                        "fragment authoring operations do not accept scalar input."
+                    );
                     let operation_options = ReplaceBodyOptions {
                         revision: revision.clone(),
                         handle: step.handle.clone(),
@@ -554,6 +618,7 @@ impl Project<'_> {
                             self.edit_body_semantic(&operation_options)
                         }
                         BatchOperation::EditBodyIntent => self.edit_body_intent(&operation_options),
+                        BatchOperation::EditBodyScalar => unreachable!(),
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -579,7 +644,8 @@ impl Project<'_> {
                 BatchOperation::ReplaceBody
                 | BatchOperation::ReplaceBodySemantic
                 | BatchOperation::EditBodySemantic
-                | BatchOperation::EditBodyIntent => "body",
+                | BatchOperation::EditBodyIntent
+                | BatchOperation::EditBodyScalar => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -621,6 +687,7 @@ impl Project<'_> {
                 "semantic_render",
                 "semantic_change",
                 "semantic_intent",
+                "semantic_edit_plan",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();
@@ -1293,8 +1360,8 @@ impl Project<'_> {
         temporary.write_all(result.as_bytes())?;
         temporary.flush()?;
         let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
-            handle: options.handle.clone(),
-            revision: options.revision.clone(),
+            handle,
+            revision: None,
             from: temporary.path().to_path_buf(),
             diff_bytes: options.diff_bytes,
             write: false,
@@ -1365,11 +1432,89 @@ impl Project<'_> {
         plan.report["semantic_intent"] = json!({
             "schema":super::semantic_intent::INTENT_SCHEMA,
             "sha256":applied.intent_sha256,
+            "basis":applied.intent_basis,
             "compiled_change_sha256":applied.change_sha256,
             "input_basis":applied.input_basis,
             "result_basis":applied.result_basis,
             "operations":applied.operations,
             "semantic_nodes":applied.nodes,
+            "source_free":true,
+            "refinement_checked":true
+        });
+        Ok(plan)
+    }
+
+    pub fn edit_body_scalar(&self, options: &EditBodyScalarOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let handle = if let Some(name) = options.declaration.as_deref() {
+            self.semantic_declaration_handle(&options.handle, name)?
+        } else {
+            self.explicit_handle(&options.handle, options.revision.as_deref())?
+        };
+        let id = self.resolve_handle(&handle)?;
+        let symbol = self.nodes[id]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("scalar semantic editing requires a function handle.")?;
+        let target_supported = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && BodySyntax::for_language(symbol.language).is_ok();
+        ensure!(
+            target_supported,
+            "selected target does not support scalar semantic editing."
+        );
+        let source = &self.sources[&symbol.file];
+        let parsed = Parsers::new().parse(symbol.language, source)?;
+        ensure!(
+            !parsed.has_errors(),
+            "scalar semantic editing requires a file without parser errors."
+        );
+        let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
+        let function = super::semantic::selected_function(&context, symbol).with_context(|| {
+            format!(
+                "the {} '{}' has no exact semantic function model.",
+                symbol.kind.as_str(),
+                symbol.name
+            )
+        })?;
+        let current = super::semantic_change::SemanticBody {
+            schema: super::semantic_ir::BODY_SCHEMA.into(),
+            body: function.body,
+        };
+        let planned = super::semantic_intent::plan_unique(
+            &current,
+            &options.operation,
+            &options.from,
+            &options.to,
+        )?;
+        let result = serde_json::to_string(&planned.applied.body)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
+        temporary.write_all(result.as_bytes())?;
+        temporary.flush()?;
+        let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
+            handle,
+            revision: None,
+            from: temporary.path().to_path_buf(),
+            diff_bytes: options.diff_bytes,
+            write: false,
+        })?;
+        plan.report["query"] = json!("edit-body-scalar");
+        plan.report["semantic_edit_plan"] = json!({
+            "schema":"fr-semantic-edit-plan-1",
+            "operation":options.operation,
+            "from":options.from,
+            "to":options.to,
+            "target":planned.target,
+            "intent":planned.manifest,
+            "intent_sha256":planned.applied.intent_sha256,
+            "intent_basis":planned.applied.intent_basis,
+            "compiled_change_sha256":planned.applied.change_sha256,
+            "input_basis":planned.applied.input_basis,
+            "result_basis":planned.applied.result_basis,
+            "operations":planned.applied.operations,
+            "semantic_nodes":planned.applied.nodes,
             "source_free":true,
             "refinement_checked":true
         });

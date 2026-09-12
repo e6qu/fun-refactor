@@ -239,6 +239,48 @@ fn checked_sdk_evaluation_is_reproducible() {
 }
 
 #[test]
+fn semantic_edit_plan_evaluation_is_reproducible() {
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/semantic-edit-plan-eval.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let retained: Value = serde_json::from_slice(
+        &fs::read(root().join("tests/agent-eval/semantic-edit-plan.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, retained);
+    assert!(actual["equivalence"]
+        .as_object()
+        .unwrap()
+        .values()
+        .all(|value| value == true));
+    assert_eq!(
+        actual["routes"]["scalar-plan"]["commands_before_lifecycle"],
+        2
+    );
+    assert!(
+        actual["routes"]["scalar-plan"]["measured_context_bytes"]
+            .as_u64()
+            .unwrap()
+            < actual["routes"]["explicit-intent"]["measured_context_bytes"]
+                .as_u64()
+                .unwrap()
+    );
+}
+
+#[test]
 fn checked_semantic_intent_evaluation_is_reproducible() {
     let temp = tempfile::tempdir().unwrap();
     let output_path = temp.path().join("report.json");
@@ -313,4 +355,43 @@ fn retained_semantic_intent_pair_is_complete_and_digest_bound() {
     assert_eq!(body["route"], "complete-body");
     assert!(intent["payload_bytes"].as_u64().unwrap() < body["payload_bytes"].as_u64().unwrap());
     assert!(intent["commands"].as_u64().unwrap() < body["commands"].as_u64().unwrap());
+}
+
+#[test]
+fn retained_semantic_edit_plan_attempts_are_complete_and_digest_bound() {
+    let results = root().join("tests/agent-eval/results");
+    let diagnostic = results.join("2026-09-12-semantic-edit-plan-diagnostic-1");
+    let accepted = results.join("2026-09-12-semantic-edit-plan");
+    for evidence in [&diagnostic, &accepted] {
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(evidence.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(manifest["model"], "gpt-5.6-luna");
+        assert_eq!(manifest["reasoning_effort"], "low");
+        assert_evidence_digests(evidence, &manifest);
+    }
+
+    let diagnostic_direct: Value = serde_json::from_slice(
+        &fs::read(diagnostic.join("semantic-edit-plan-direct/result.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(diagnostic_direct["passed"], false);
+    assert_eq!(diagnostic_direct["exact_semantic_body"], true);
+    assert_eq!(diagnostic_direct["separate_query_avoided"], false);
+
+    for name in ["semantic-edit-plan-direct", "semantic-edit-plan-explicit"] {
+        let result: Value =
+            serde_json::from_slice(&fs::read(accepted.join(name).join("result.json")).unwrap())
+                .unwrap();
+        assert_eq!(result["passed"], true);
+        assert_eq!(result["exact_semantic_body"], true);
+        assert_eq!(result["behavior_passed"], true);
+        assert_eq!(result["direct_source_reads"], 0);
+    }
+    let direct: Value = serde_json::from_slice(
+        &fs::read(accepted.join("semantic-edit-plan-direct/result.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(direct["route"], "direct-scalar-plan");
+    assert_eq!(direct["separate_query_avoided"], true);
+    assert_eq!(direct["payload_bytes"], 0);
 }

@@ -25,8 +25,16 @@ def digest(path):
 def selected_pairs(sessions, names):
     experiment = load(sessions / "experiment.json")
     planned = experiment.get("trials")
+    expected_arms = experiment.get("pair_arms", ["fr", "files"])
     if not isinstance(planned, list) or not planned:
         raise ValueError("Experiment has no planned trials")
+    if (
+        not isinstance(expected_arms, list)
+        or len(expected_arms) != 2
+        or len(set(expected_arms)) != 2
+        or not all(isinstance(arm, str) and arm for arm in expected_arms)
+    ):
+        raise ValueError("Experiment pair_arms must name two distinct non-empty arms")
     if not names:
         raise ValueError("Select both members of at least one pair with --trial")
     if len(names) != len(set(names)) or any(name not in planned for name in names):
@@ -37,13 +45,13 @@ def selected_pairs(sessions, names):
         session = sessions / name
         config = load(session / "session.json")
         key = (config["task"], config["repetition"])
-        if config["arm"] not in ("fr", "files") or config["arm"] in groups.setdefault(key, {}):
+        if config["arm"] not in expected_arms or config["arm"] in groups.setdefault(key, {}):
             raise ValueError(f"Pair {key} has repeated or unknown arms")
         groups.setdefault(key, {})[config["arm"]] = (name, session, config)
     for key, arms in groups.items():
-        if set(arms) != {"fr", "files"}:
-            raise ValueError(f"Select both fr and files trials for pair {key}")
-        selected.append((arms["fr"], arms["files"]))
+        if set(arms) != set(expected_arms):
+            raise ValueError(f"Select both {expected_arms[0]} and {expected_arms[1]} trials for pair {key}")
+        selected.append(tuple(arms[arm] for arm in expected_arms))
     return selected
 
 

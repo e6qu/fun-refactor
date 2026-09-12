@@ -172,6 +172,12 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
                 "id": "render-intent",
                 "handle": {"request": "target", "pointer": "/rows/0/0"},
                 "op": "edit-body-intent"
+            },
+            {
+                "id": "render-scalar",
+                "handle": {"request": "target", "pointer": "/rows/0/0"},
+                "op": "edit-body-scalar",
+                "scalar": {"operation":"set-name", "from":"str", "to":"to_uppercase"}
             }
         ],
         "checks": ["unit"],
@@ -195,6 +201,9 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     assert_eq!(task["targets"][2]["operation"], "edit-body-semantic");
     assert_eq!(task["targets"][3]["kind"], "function");
     assert_eq!(task["targets"][3]["operation"], "edit-body-intent");
+    assert_eq!(task["targets"][4]["kind"], "function");
+    assert_eq!(task["targets"][4]["operation"], "edit-body-scalar");
+    assert_eq!(task["targets"][4]["scalar"]["operation"], "set-name");
     for target in task["targets"].as_array().unwrap() {
         assert_eq!(target["eligibility"], "target-supported");
         assert_eq!(target["syntax_preflighted"], false);
@@ -219,6 +228,13 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     assert_eq!(
         task["author_manifest_template"]["operations"][3]["from"],
         "<FRAGMENT:render-intent>"
+    );
+    assert!(task["author_manifest_template"]["operations"][4]
+        .get("from")
+        .is_none());
+    assert_eq!(
+        task["author_manifest_template"]["operations"][4]["scalar"]["to"],
+        "to_uppercase"
     );
     assert_eq!(task["checks"]["selected"], true);
     assert_eq!(task["checks"]["names"], serde_json::json!(["unit"]));
@@ -373,6 +389,24 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         ],
     );
     assert_eq!(direct["selection"]["kind"], "declaration");
+
+    let workspace_direct = ok(
+        dir.path(),
+        &[
+            "project",
+            "semantic",
+            ".",
+            "--declaration",
+            "positive_names",
+            "--body",
+            "--minimal",
+        ],
+    );
+    assert_eq!(
+        workspace_direct["selection"]["handle"],
+        direct["selection"]["handle"]
+    );
+    assert_eq!(workspace_direct["body_identity"], direct["body_identity"]);
     assert!(direct["selection"]["handle"]
         .as_str()
         .unwrap()
@@ -473,6 +507,47 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
             .len(),
         1
     );
+    let edit_plan = ok(
+        dir.path(),
+        &[
+            "project",
+            "semantic",
+            ".",
+            "--declaration",
+            "positive_names",
+            "--body",
+            "--locator-op",
+            "set-int",
+            "--locator-from",
+            "0",
+            "--intent-to",
+            "7",
+            "--minimal",
+        ],
+    );
+    assert_eq!(edit_plan["edit_plan"]["status"], "ready");
+    assert_eq!(
+        edit_plan["edit_plan"]["handle"],
+        direct["selection"]["handle"]
+    );
+    assert_eq!(
+        edit_plan["edit_plan"]["intent"]["schema"],
+        "fr-semantic-intent-1"
+    );
+    assert_eq!(
+        edit_plan["edit_plan"]["intent"]["operations"][0]["from"],
+        "0"
+    );
+    assert_eq!(edit_plan["edit_plan"]["intent"]["operations"][0]["to"], "7");
+    assert_eq!(edit_plan["edit_plan"]["source_free"], true);
+    assert_eq!(edit_plan["edit_plan"]["refinement_checked"], true);
+    assert!(edit_plan.get("model").is_none());
+    assert!(edit_plan.get("patterns").is_none());
+    assert_eq!(
+        edit_plan["content_omitted"],
+        serde_json::json!(["model", "patterns"])
+    );
+    assert!(!edit_plan.to_string().contains("positive_names(names"));
     let missing_body = Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "--no-cache", "-C"])
         .arg(dir.path())
@@ -496,6 +571,28 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         )
         .0
     );
+
+    fs::write(
+        dir.path().join("other.py"),
+        "def positive_names(names):\n    return names\n",
+    )
+    .unwrap();
+    let (success, ambiguous) = run(
+        dir.path(),
+        &[
+            "project",
+            "semantic",
+            ".",
+            "--declaration",
+            "positive_names",
+            "--body",
+        ],
+    );
+    assert!(!success, "{ambiguous}");
+    assert!(ambiguous["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("ambiguous"));
 }
 
 #[test]

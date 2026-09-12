@@ -44,7 +44,7 @@ generated workflows finish applied. All sixteen boolean states agree with Rust.
 The controlled PR 13 report is `tests/agent-eval/task-change-context.json`. A generic Rust fixture
 compares the existing task, author and workflow composition with one task-change preview and write.
 Across three rotating repetitions, calls fall from five to two. Median counted context falls from
-4,623 to 3,736 tokens (19.2%), and bytes fall from 13,676 to 11,274 (17.6%). Both arms produce equal
+4,627 to 3,740 tokens (19.2%), and bytes fall from 13,690 to 11,288 (17.5%). Both arms produce equal
 stage results, normalized history, source and patch identities. Task change additionally binds its
 selected checks to the planned transaction. This is prescribed workflow evidence without an agent claim.
 The complete native, WASM, documentation, skill, capability and strict Lean repository gate passes.
@@ -135,7 +135,7 @@ typed category and kind. Ambiguous file requests and incomplete bodies refuse in
 an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
 fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
 
-PR 17 is in review as [GitHub PR 280](https://github.com/e6qu/fun-refactor/pull/280). Its reviewed `fr-semantic-intent-1` contract
+PR 17 merged as [GitHub PR 280](https://github.com/e6qu/fun-refactor/pull/280). Its reviewed `fr-semantic-intent-1` contract
 binds up to 64 ordered scalar operations to one canonical body identity. Typed role locators carry
 optional category, kind, index and label witnesses. Missing, ambiguous, stale or mismatched evidence
 refuses before a project write. Eleven operations cover portable literals, names, operators,
@@ -161,8 +161,8 @@ SHA-256, parsers, writers, filesystem behavior and Python remain tested or trust
 
 The deterministic four-route report is `tests/agent-eval/semantic-intent.json`. Complete-body,
 pointer-delta, direct-intent and Python-intent routes produce equal behavior, source, body, patch,
-undo and redo evidence. Filtered direct intent uses 8,518 measured bytes, versus 8,609 for the
-complete body and 10,357 for the pointer delta. Python intent uses 8,989 after counting its producer.
+undo and redo evidence. Filtered direct intent uses 8,678 measured bytes, versus 8,609 for the
+complete body and 10,357 for the pointer delta. Python intent uses 9,149 after counting its producer.
 
 The fresh Luna-low comparison is retained under
 `tests/agent-eval/results/2026-09-12-semantic-intent`. Both isolated arms avoid source reads, produce
@@ -182,6 +182,24 @@ not prove behavior. Source writers can normalize text elsewhere inside the selec
 resolution, scalar locality, compiled-delta equivalence and bounds are the critical proof targets.
 Parser, writer, Serde, SHA-256, filesystem and Python behavior remain explicit trusted or tested
 boundaries.
+
+PR 18 implements Reviewed Semantic Edit Plans. `project semantic` resolves one exact declaration
+below a path and can return a generated `fr-semantic-intent-1` plan for one unique scalar. `author
+edit-body-scalar` accepts the path and declaration directly, so preview and bound write need no
+query or payload. The same request runs through author batches, project tasks and reviewed task
+changes. Python mirrors the request. Lean models unique admission and generated-intent refinement;
+Rust exhaustively agrees on 144 admission states and 1,584 task-target states.
+
+The deterministic evaluation applies both routes through behavior, patches, undo and redo. Their
+canonical intent, compiled change, semantic body and final source identities agree. The direct route
+uses two authoring commands and 4,244 counted bytes. The explicit route uses three commands and 5,387
+bytes. The reduction is 21.2% on this fixture.
+
+The first fresh Luna-low pair produced correct code but exposed misleading skill order: the direct
+agent ran an unnecessary standalone query. Its digest-bound trace remains as diagnostic evidence.
+After the direct author route moved first, both fresh arms passed without source reads. The direct
+arm used no query or payload and had lower total input, non-cached input and output in this one pair.
+The complete native, browser, documentation, capability and Lean repository gate passes.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
@@ -204,9 +222,9 @@ with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
-selection identity matches. Calls fall from four to one. Median counted context falls from 1,557 to
-1,510 tokens (3.0%), bytes from 5,586 to 4,744 (15.1%), and local subprocess time from 0.040 to 0.014
-seconds. The 446-byte task manifest is counted. Both arms stop before fragment creation or mutation,
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,696 to
+1,514 tokens (10.7%), and bytes fall from 6,191 to 4,758 (23.1%). The 446-byte task manifest is
+counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
 The browser journal keeps exact optional text snapshots, applied and redo stacks, a stable `frmb1:`

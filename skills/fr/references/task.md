@@ -24,6 +24,11 @@ Run `fr project task --from '<TASK_MANIFEST>'`. Read every nested query’s gaps
 target’s `target-supported` eligibility only proves that its language and declaration kind can
 enter that authoring route. It does not validate fragment bytes or the exact syntax container.
 
+An `edit-body-scalar` target carries
+`"scalar":{"operation":"set-int","from":"1","to":"2"}` and needs no fragment. Task change
+validates its unique role match and generated intent during preview. Other authoring targets retain
+their existing fragment rules.
+
 Write each required fragment outside recognized source. Replace every `<FRAGMENT:ID>` in
 `author_manifest_template` with the actual path and save the result. Follow `next`: preview the
 author batch, save it under the complete `plan_context_basis`, replace the

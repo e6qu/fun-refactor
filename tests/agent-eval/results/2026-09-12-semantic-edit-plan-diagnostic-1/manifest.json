@@ -1,0 +1,35 @@
+{
+  "schema": "fr-agent-semantic-edit-plan-evidence-1",
+  "implementation_commit": "7a51735a16d910073ebe310a2810c1fb6e26fea4",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "low",
+  "service_tier": "default",
+  "codex_version": "codex-cli 0.154.0",
+  "conditions": "Fresh sequential ephemeral sessions, ignored user configuration and rules, workspace-write sandbox, no human corrections or restarts.",
+  "files": {
+    "experiment.json": "d4c7e3e6f8db245cf7289eb592cded00b4817ecba12bcafb0f77e50fb1180535",
+    "semantic-edit-plan-direct/codex-events.jsonl": "add0b2f6fd1229931b00dfd264956a9c97a0704e054c500ba7b738afe72a13b1",
+    "semantic-edit-plan-direct/codex-final.txt": "6d299e0c8eae1a793bc819e6923a67559d75e8ee24ac0a2a564db466d5fbd11a",
+    "semantic-edit-plan-direct/codex-run.json": "b27765bdee0060f05e84a0d220af0200d890362bc7d4913b8ffbb3ea97e89c83",
+    "semantic-edit-plan-direct/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "semantic-edit-plan-direct/expected.json": "df5e9468ddd2a7668e18e9d1eb3991202c04d288f7b53e3c6e6be71d35440fb6",
+    "semantic-edit-plan-direct/prompt.txt": "ab73c246636bf78ca104c492fbf10597edbdb12ce84bd4415cb94abdff1be28c",
+    "semantic-edit-plan-direct/result.json": "0f7871bf989415babcc19fa1781d0cc354fcc63c995a0bb40be60af450a3adeb",
+    "semantic-edit-plan-direct/semantic-intent.md": "cd978f96542af0879040c4616249145d112bb50819a6c2450d09066ec3afb948",
+    "semantic-edit-plan-direct/session.json": "1c0de01fd2c5b2067dd953e1fd36aa59ad37f82302112764b9c904e00862c7b2",
+    "semantic-edit-plan-explicit/change.json": "5ced423f0a64a0b097d1eeb48f4ea938f98ef41d679259980957a4498a719592",
+    "semantic-edit-plan-explicit/codex-events.jsonl": "877ffaa9a6540009cb338b94874e58906612200d79d62ac193e409116f3c2377",
+    "semantic-edit-plan-explicit/codex-final.txt": "164aee70952437c8b20fbbbc8a563267fedf91cc979380cc6d13d807e2b3f0ec",
+    "semantic-edit-plan-explicit/codex-run.json": "a16eb0e1f3fcd9d7a64dab2350bbab6eab81f4ea76029ee31d2e8b5b138a9d3c",
+    "semantic-edit-plan-explicit/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "semantic-edit-plan-explicit/expected.json": "df5e9468ddd2a7668e18e9d1eb3991202c04d288f7b53e3c6e6be71d35440fb6",
+    "semantic-edit-plan-explicit/prompt.txt": "975b506d863b27caaf8610aea495d872301de6938f1d1c211a5e423a9e6d55a6",
+    "semantic-edit-plan-explicit/result.json": "31d331d2601dcbd615fb2b5b1a79503c7812545debfa2baf208f7d43c1eaf8d8",
+    "semantic-edit-plan-explicit/semantic-intent.md": "cd978f96542af0879040c4616249145d112bb50819a6c2450d09066ec3afb948",
+    "semantic-edit-plan-explicit/session.json": "9f90bf7d90e7976f665c1f717b0996027efbaa91ffb949c7eaca8626ab99c1c9"
+  },
+  "passed": false,
+  "failed_trials": [
+    "semantic-edit-plan-direct"
+  ]
+}

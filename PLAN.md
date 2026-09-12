@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence and source-free semantic IR | Extend semantic coverage and lower repeated-query/context cost |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-six passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-eight passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -108,9 +108,9 @@ in all three repetitions. This fixed sequence supports an adoption trial and mak
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
 revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
-median counted context falls from 1,557 to 1,510 tokens, a 3.0% reduction. Serialized context falls
-from 5,586 to 4,744 bytes, a 15.1% reduction. Calls fall from four to one and median local subprocess
-time falls from 0.040 to 0.014 seconds. Both arms stop before fragment creation or mutation. This is
+median counted context falls from 1,696 to 1,514 tokens, a 10.7% reduction. Serialized context falls
+from 6,191 to 4,758 bytes, a 23.1% reduction. Calls fall from four to one. Both arms stop before
+fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.
@@ -118,8 +118,8 @@ It makes repeated skill, inspection and transaction output the immediate optimiz
 The [coordinated evaluation](docs/agent-coordinated-evaluation.md) contains the protocol, retained evidence and limits.
 
 The PR 13 controlled change fixture compares the composed task, author and workflow route with one
-reviewed task-change command. Calls fall from five to two. Median counted context falls from 4,623
-to 3,736 tokens, a 19.2% reduction. Serialized context falls from 13,676 to 11,274 bytes, a 17.6%
+reviewed task-change command. Calls fall from five to two. Median counted context falls from 4,627
+to 3,740 tokens, a 19.2% reduction. Serialized context falls from 13,690 to 11,288 bytes, a 17.5%
 reduction. Both arms resolve the same task, apply the same source change, run identical reversal
 stages and emit the same patch. The task-change transaction also binds its required checks. This
 fixed comparison makes no autonomous-agent or population claim.
@@ -160,7 +160,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Sixteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Eighteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -181,10 +181,12 @@ The first packaged roadmap is complete. Sixteen merged pull requests established
 | [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
-| [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | In review |
+| [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
+| PR 18 | Reviewed Semantic Edit Plans | Ready for review |
 
 The second package now applies the public semantic representation through checked, source-free
-operations. Later shapes remain evidence-driven.
+operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
+exact scalar edits. Later shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -599,7 +601,7 @@ Planned checkpoints:
 
 ### PR 17. Reviewed Semantic Intent Operations
 
-Status: in review as [PR 280](https://github.com/e6qu/fun-refactor/pull/280).
+Status: merged as [PR 280](https://github.com/e6qu/fun-refactor/pull/280).
 
 Goal: let an agent state common exact changes with typed semantic roles and scalar values. The agent
 does not need to construct a complete replacement node or navigate serialization-only `value` fields.
@@ -667,6 +669,63 @@ Planned checkpoints:
    bytes and seven commands, versus 1,930 bytes and nine commands for complete-body authoring. It
    uses fewer total input and output tokens, while input excluding reported cache hits is 18.8%
    higher. The complete native, strict Lean and WASM gate passes. PR 280 carries the completed checkpoint.
+
+### PR 18. Reviewed Semantic Edit Plans
+
+Status: complete; ready for review.
+
+Goal: let an agent discover and apply one exact scalar semantic edit without guessing a file path,
+constructing a JSON manifest or reading source. Preserve the reviewed semantic-intent contract as
+the audit representation used by every shorter route.
+
+Deliverables:
+
+- Let a semantic declaration query resolve one exact eligible name below a file or directory target.
+  Report the selected revision-bound handle and refuse zero or multiple matches without choosing by
+  traversal order.
+- Add a bounded edit-plan request over operation, exact current scalar and requested scalar. Resolve
+  exactly one role locator, validate the generated `fr-semantic-intent-1` payload and return its
+  canonical body basis, target and intent identity as review evidence.
+- Add direct project authoring for the same request. Preview and write compile the generated intent
+  through the existing checked delta engine. Preserve body fidelity, surrounding bytes, history,
+  undo, redo and Git patch behavior.
+- Carry the plan through author batches, project tasks and reviewed task changes where the shorter
+  form remains complete. Keep the explicit semantic-intent manifest route for multi-operation and
+  ambiguous edits.
+- Mirror the plan request in the zero-dependency Python SDK without hiding the public intent shape.
+  Update the portable skill with one exact route and explicit fallbacks.
+- Model unique candidate selection, scalar request admission and generated-intent equivalence in
+  Lean. Anchor the critical Rust predicates and compare their complete bounded state spaces.
+- Compare the direct plan with the PR 17 manifest route on generic cross-language fixtures. Retain
+  a fresh Luna-low pair only after deterministic evidence reduces commands and counted context.
+
+Verification and acceptance:
+
+1. Directory and file discovery returns one eligible exact declaration or a structured zero/many
+   refusal; source and unsupported semantic text never enter the report.
+2. Plan admission requires valid operation and scalar encodings. One generated locator must resolve
+   to the exact current scalar under the reported body identity.
+3. Applying the plan produces the same canonical intent, compiled delta, semantic body and source
+   bytes as the explicit PR 17 route.
+4. Preview changes no files. Stale revisions, changed bodies, ambiguity, no-ops, unsupported writers and
+   invalid values refuse before source or history mutation.
+5. Direct, batch and task-change writes retain checks, exact undo and redo, and forward and reverse
+   Git patch identity.
+6. Lean proves unique-selection and admission laws. Exhaustive Rust correspondence and generated
+   cross-language cases connect the model to the implementation while retaining the documented
+   parser, writer, Serde, SHA-256 and filesystem trust boundaries.
+7. Native, Python, documentation, portable-skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the source-free discovery, plan, ambiguity and lifecycle contract.
+2. **Complete.** Implement workspace-scoped declaration resolution and project-independent planning.
+3. **Complete.** Add direct authoring plus batch, task and task-change integration.
+4. **Complete.** Add Python builders, Lean models, anchors and exhaustive correspondence.
+5. **Complete.** The deterministic comparison saves one command and 21.2% of counted bytes. The
+   corrected fresh Luna-low pair passes both arms without source reads. The direct route removes the
+   query and payload, with lower total, non-cached input and output in this one pair.
+6. **Complete.** The complete native, browser, documentation, capability and Lean gate passes.
 
 ## Formal verification policy
 

@@ -36,6 +36,31 @@ class CodexRunner(unittest.TestCase):
             pairs = runner.selected_pairs(root, names)
             self.assertEqual([[entry[0] for entry in pair] for pair in pairs], [names])
 
+    def test_selection_accepts_declared_pair_arms(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = ["task-direct-r1", "task-explicit-r1"]
+            (root / "experiment.json").write_text(
+                json.dumps({"trials": names, "pair_arms": ["direct", "explicit"]})
+            )
+            for name, arm in zip(names, ("direct", "explicit")):
+                session = root / name
+                session.mkdir()
+                (session / "session.json").write_text(
+                    json.dumps({"task": "task", "arm": arm, "repetition": 1})
+                )
+            pairs = runner.selected_pairs(root, names)
+            self.assertEqual([[entry[0] for entry in pair] for pair in pairs], [names])
+
+    def test_selection_refuses_invalid_declared_pair_arms(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "experiment.json").write_text(
+                json.dumps({"trials": ["task"], "pair_arms": ["direct", "direct"]})
+            )
+            with self.assertRaisesRegex(ValueError, "two distinct"):
+                runner.selected_pairs(root, ["task"])
+
     def test_command_pins_fresh_low_cost_configuration(self):
         session = Path("/tmp/session")
         command = runner.codex_command(Path("codex"), session, "gpt-5.6-luna", "low", "default")

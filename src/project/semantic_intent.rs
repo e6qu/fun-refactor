@@ -81,6 +81,20 @@ pub struct ApplyOptions {
     pub compiled: bool,
 }
 
+#[derive(Args)]
+pub struct PlanOptions {
+    #[arg(long, help = "Source-free semantic body JSON, at most 64 KiB.")]
+    pub body: PathBuf,
+    #[arg(long, help = "Exact semantic scalar operation, such as set-int.")]
+    pub operation: String,
+    #[arg(long, help = "Exact current scalar value.")]
+    pub from: String,
+    #[arg(long, help = "Requested scalar value.")]
+    pub to: String,
+    #[arg(long, help = "Include the canonical resulting body in the report.")]
+    pub canonical: bool,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Role {
@@ -226,7 +240,7 @@ struct LocatorStep {
     label: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct IntentManifest {
     schema: String,
@@ -234,7 +248,7 @@ struct IntentManifest {
     operations: Vec<Operation>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(tag = "op", deny_unknown_fields)]
 enum Operation {
     #[serde(rename = "set-int")]
@@ -310,10 +324,26 @@ pub struct AppliedIntent {
     pub input_basis: String,
     pub result_basis: String,
     pub intent_sha256: String,
+    pub intent_basis: String,
     pub change_sha256: String,
     pub operations: Vec<Value>,
     pub compiled: Value,
     pub nodes: usize,
+}
+
+pub struct PlannedIntent {
+    pub input: String,
+    pub manifest: Value,
+    pub target: Value,
+    pub applied: AppliedIntent,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScalarRequest {
+    pub operation: String,
+    pub from: String,
+    pub to: String,
 }
 
 fn digest(bytes: impl AsRef<[u8]>) -> String {
@@ -1006,6 +1036,79 @@ pub fn semantic_intent_operation_allowed(operation: usize, category: usize, kind
     )
 }
 
+pub fn semantic_edit_plan_admitted(
+    operation_supported: bool,
+    candidate_count: usize,
+    from_valid: bool,
+    to_valid: bool,
+    different: bool,
+) -> bool {
+    operation_supported && candidate_count == 1 && from_valid && to_valid && different
+}
+
+fn planned_scalar(operation: &str, text: &str) -> Result<Value> {
+    if operation == "set-bool" {
+        return match text {
+            "true" => Ok(json!(true)),
+            "false" => Ok(json!(false)),
+            _ => anyhow::bail!("set-bool plan values must be 'true' or 'false'."),
+        };
+    }
+    Ok(json!(text))
+}
+
+pub fn plan_unique(
+    body: &SemanticBody,
+    operation: &str,
+    from: &str,
+    to: &str,
+) -> Result<PlannedIntent> {
+    let supported = OPERATION_NAMES.contains(&operation);
+    ensure!(supported, "semantic edit plan operation is unsupported.");
+    let from_value = planned_scalar(operation, from)?;
+    let to_value = planned_scalar(operation, to)?;
+    let candidates = body_locators(body)?
+        .into_iter()
+        .filter(|row| row["operation"] == operation && row["from"] == from_value)
+        .collect::<Vec<_>>();
+    ensure!(
+        candidates.len() == 1,
+        "semantic edit plan must resolve exactly one scalar target; found {}.",
+        candidates.len()
+    );
+    ensure!(
+        semantic_edit_plan_admitted(
+            supported,
+            candidates.len(),
+            true,
+            true,
+            from_value != to_value
+        ),
+        "semantic edit plan admission failed."
+    );
+    let basis = semantic_change::body_basis(body)?;
+    let target = candidates[0]["target"].clone();
+    let manifest = json!({
+        "schema": INTENT_SCHEMA,
+        "base": basis,
+        "operations": [{
+            "op": operation,
+            "target": target,
+            "from": from_value,
+            "to": to_value
+        }]
+    });
+    let input = serde_json::to_string(&manifest)?;
+    let body_input = serde_json::to_string(body)?;
+    let applied = apply(&body_input, &input)?;
+    Ok(PlannedIntent {
+        input,
+        manifest,
+        target,
+        applied,
+    })
+}
+
 pub fn apply(body_input: &str, intent_input: &str) -> Result<AppliedIntent> {
     ensure!(
         intent_input.len() <= semantic_change::MAX_INPUT_BYTES,
@@ -1019,6 +1122,7 @@ pub fn apply(body_input: &str, intent_input: &str) -> Result<AppliedIntent> {
     ensure!(source_free, "semantic intent input must be source-free.");
     let manifest: IntentManifest = serde_json::from_value(intent_value)
         .context("semantic intent input must match fr-semantic-intent-1.")?;
+    let intent_basis = format!("fri1:{}", digest(serde_json::to_vec(&manifest)?));
     ensure!(
         manifest.schema == INTENT_SCHEMA,
         "semantic intent schema must be fr-semantic-intent-1."
@@ -1112,6 +1216,7 @@ pub fn apply(body_input: &str, intent_input: &str) -> Result<AppliedIntent> {
         input_basis: applied.input_basis,
         result_basis: applied.result_basis,
         intent_sha256: digest(intent_input),
+        intent_basis,
         change_sha256: applied.change_sha256,
         operations: reports,
         compiled,
@@ -1152,6 +1257,7 @@ pub fn apply_from_files(root: &Path, options: &ApplyOptions) -> Result<Value> {
         "input_basis":applied.input_basis,
         "result_basis":applied.result_basis,
         "intent_sha256":applied.intent_sha256,
+        "intent_basis":applied.intent_basis,
         "change_sha256":applied.change_sha256,
         "operations":applied.operations,
         "statements":applied.body.body.len(),
@@ -1164,6 +1270,40 @@ pub fn apply_from_files(root: &Path, options: &ApplyOptions) -> Result<Value> {
     }
     if options.compiled {
         report["compiled_change"] = applied.compiled;
+    }
+    Ok(report)
+}
+
+pub fn plan_from_file(root: &Path, options: &PlanOptions) -> Result<Value> {
+    let body_input = input(&root.join(&options.body), "semantic body input")?;
+    let validated = semantic_change::validate_body_input(&body_input)?;
+    let planned = plan_unique(
+        &validated.manifest,
+        &options.operation,
+        &options.from,
+        &options.to,
+    )?;
+    let mut report = json!({
+        "schema":"fr-semantic-edit-plan-1",
+        "status":"ready",
+        "semantic_schema":super::semantic_ir::BODY_SCHEMA,
+        "intent_schema":INTENT_SCHEMA,
+        "operation":options.operation,
+        "from":options.from,
+        "to":options.to,
+        "target":planned.target,
+        "intent":planned.manifest,
+        "intent_sha256":planned.applied.intent_sha256,
+        "intent_basis":planned.applied.intent_basis,
+        "compiled_change_sha256":planned.applied.change_sha256,
+        "input_basis":planned.applied.input_basis,
+        "result_basis":planned.applied.result_basis,
+        "semantic_nodes":planned.applied.nodes,
+        "source_free":true,
+        "refinement_checked":true
+    });
+    if options.canonical {
+        report["canonical"] = serde_json::to_value(planned.applied.body)?;
     }
     Ok(report)
 }
@@ -1211,6 +1351,30 @@ mod tests {
                 .pointer("/body/0/value/value/value/right/value"),
             Some(&json!("7"))
         );
+    }
+
+    #[test]
+    fn edit_plan_selects_one_exact_scalar_and_reuses_the_intent_engine() {
+        let validated = semantic_change::validate_body_input(&body()).unwrap();
+        let plan = plan_unique(&validated.manifest, "set-int", "1", "7").unwrap();
+        assert_eq!(plan.manifest["schema"], INTENT_SCHEMA);
+        assert_eq!(plan.manifest["operations"][0]["target"], plan.target);
+        assert_eq!(plan.manifest["operations"][0]["from"], "1");
+        assert_eq!(plan.manifest["operations"][0]["to"], "7");
+        assert_eq!(
+            apply(&body(), &plan.input).unwrap().result_basis,
+            plan.applied.result_basis
+        );
+        assert!(plan_unique(&validated.manifest, "set-int", "1", "1").is_err());
+        assert!(plan_unique(&validated.manifest, "set-int", "9", "7").is_err());
+        assert!(plan_unique(&validated.manifest, "missing", "1", "7").is_err());
+
+        let ambiguous = semantic_change::validate_body_input(&body().replace(
+            r#"{"kind":"return","value":{"kind":"name","value":"total"}}"#,
+            r#"{"kind":"return","value":{"kind":"int","value":"1"}}"#,
+        ))
+        .unwrap();
+        assert!(plan_unique(&ambiguous.manifest, "set-int", "1", "7").is_err());
     }
 
     #[test]

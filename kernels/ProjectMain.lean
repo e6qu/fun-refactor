@@ -60,7 +60,7 @@ def main (args : List String) : IO Unit := do
         for budget in samples do
           IO.println (batchSectionFits used next budget)
   else if args == ["task-author-targets"] then
-    for operation in [0:7] do
+    for operation in [0:8] do
       for language in [0:22] do
         for target in [0:9] do
           IO.println (taskAuthorTargetCandidate operation language target)
@@ -109,6 +109,14 @@ def main (args : List String) : IO Unit := do
       for category in [0:5] do
         for kind in [0:31] do
           IO.println (FrKernels.SemanticIntent.operationAllowed operation category kind)
+  else if args == ["semantic-edit-plan-admission"] then
+    for operationSupported in [false, true] do
+      for candidateCount in frameworkSamples do
+        for fromValid in [false, true] do
+          for toValid in [false, true] do
+            for different in [false, true] do
+              IO.println (FrKernels.SemanticIntent.editPlanAdmitted operationSupported
+                candidateCount fromValid toValid different)
   else if args == ["semantic-ir-catalog"] then
     for category in [0:5] do
       for kind in [0:31] do

@@ -15,13 +15,13 @@ check forward and reverse patches, and restore and reapply exact bytes through u
 | Python producer | 0 bytes | 0 bytes | 0 bytes | 535 bytes |
 | Preview | 2,338 bytes | 3,038 bytes | 2,914 bytes | 2,914 bytes |
 | Write | 2,435 bytes | 3,135 bytes | 3,011 bytes | 3,011 bytes |
-| Measured total | 8,609 bytes | 10,357 bytes | 8,518 bytes | 8,989 bytes |
+| Measured total | 8,609 bytes | 10,357 bytes | 8,678 bytes | 9,149 bytes |
 | Behavior, patch, undo and redo | pass | pass | pass | pass |
 
 The filtered locator-only query plus direct intent uses 39.5% fewer query-and-payload bytes than the
-complete-body route. Its complete measured total is 1.1% smaller. It uses 17.8% fewer total bytes
-than the pointer route because the query omits both the semantic body and unrelated locator rows.
-The Python producer makes that route 5.5% larger than direct intent in this one-off case.
+complete-body route. Its complete measured total is 0.8% larger after adding raw and canonical
+intent identities to the review report. It uses 16.2% fewer total bytes than the pointer route. The
+Python producer makes that route 5.4% larger than direct intent in this one-off case.
 
 The retained report is `tests/agent-eval/semantic-intent.json`. It measures UTF-8 process output,
 payloads and the Python producer. It does not measure model tokens, cache behavior, agent success or
@@ -69,7 +69,8 @@ Prepare and score a new fresh pair with:
 ```sh
 python3 tools/agent-semantic-intent-trial.py prepare --out /tmp/fr-semantic-intent \
   --fr target/debug/fr
-python3 tools/agent-eval-codex.py /tmp/fr-semantic-intent --model gpt-5.6-luna \
-  --reasoning-effort low --service-tier default --timeout 900
+python3 tools/agent-eval-codex.py /tmp/fr-semantic-intent \
+  --trial semantic-intent-fr --trial semantic-intent-files --model gpt-5.6-luna \
+  --effort low --service-tier default --timeout 900 --confirm-agent-spend
 python3 tools/agent-semantic-intent-trial.py score /tmp/fr-semantic-intent
 ```

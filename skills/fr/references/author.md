@@ -1,11 +1,9 @@
 # Author selected code
 
-`fr author` can replace source or semantic bodies, apply typed semantic deltas, replace or insert
-Rust declarations, and organize imports. Batches accept up to 32 disjoint steps. Coordinate callers
-after signature changes. Unsupported targets refuse.
+`fr author` changes bodies, semantic deltas, scalar plans, Rust declarations and imports. Batches
+accept up to 32 disjoint steps. Coordinate callers after signature changes. Unsupported targets refuse.
 
-Use `fr author guide` for machine-readable operations, limits and transitions. After reading
-this route, skip subcommand help.
+Use `fr author guide` for machine-readable operations, limits and transitions.
 
 For several declarations, use one `project select NAME... --source`; duplicate names
 across files return together. Use `project find NAME --in FILE --source` for one declaration;
@@ -13,9 +11,10 @@ across files return together. Use `project find NAME --in FILE --source` for one
 its impl/trait. Otherwise use
 `project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
 
-Fragments fit 64 KiB. Steps need `op` and `handle`; fragment steps add `from`. Short IDs need
-top-level `revision`; `organize-imports` takes a file handle. Steps use original source; overlaps
-refuse. Optional exact postconditions cover changed files, edits, operations and paths. Fragment
+Fragments fit 64 KiB. Steps need `op` and `handle`; fragment steps add `from`.
+`edit-body-scalar` adds `scalar` with `operation`, `from` and `to`. Short IDs need top-level
+`revision`; `organize-imports` takes a file handle. Steps use original source; overlaps refuse.
+Optional postconditions cover changed files, edits, operations and paths. Fragment
 paths can be project-relative or absolute.
 
 Review the complete diff and retain `plan_context_basis`. Repeat it with

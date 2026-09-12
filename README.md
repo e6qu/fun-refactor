@@ -27,11 +27,15 @@ The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selecte
 [Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Semantic project data](docs/semantic-model.md) lets agents inspect source-free typed IR and author
 supported bodies, checked deltas and role-based scalar intents through the same transactions.
+Reviewed semantic edit plans resolve one exact declaration and scalar below a workspace path.
+Agents can preview or write the generated intent without reading source or building JSON.
 The [agent IR SDK evaluation](docs/agent-ir-sdk-evaluation.md) compares direct JSON and typed Python construction under deterministic and fresh-agent checks.
 The [semantic context comparison](docs/semantic-context-evaluation.md) records identical changes and patches, zero exposed source bytes and the current small-task payload premium.
 The [semantic delta evaluation](docs/semantic-delta-evaluation.md) compares basis-bound node edits with complete semantic-body replacement under deterministic and fresh-agent checks.
 The [semantic intent evaluation](docs/semantic-intent-evaluation.md) compares filtered role-based
 scalar edits with whole-body, pointer-delta and Python routes through the checked lifecycle.
+The [semantic edit-plan evaluation](docs/semantic-edit-plan-evaluation.md) compares explicit intent
+construction with direct unique-scalar planning and records equal canonical results.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
 Passing checks can record a configuration- and source-bound receipt on an applied source transaction with `--record-for <TX>`.

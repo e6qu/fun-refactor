@@ -190,4 +190,49 @@ theorem ordered_compiler_refines_interpretation (node : ScalarNode) (intents : L
       | some next =>
           simpa [compileAndApplyAll, interpretAll] using induction next
 
+-- fr:spec src/project/semantic_intent.rs::semantic_edit_plan_admitted @ 1a8e6d655862fe3c07e1715e308f2cca9159a8c7b4384bf0703ccd0b8fbbed27
+-- fr:signature operation_supported: bool => operationSupported: Bool; candidate_count: usize => candidateCount: Nat; from_valid: bool => fromValid: Bool; to_valid: bool => toValid: Bool; different: bool => different: Bool; return: bool => return: Bool
+def editPlanAdmitted
+    (operationSupported : Bool)
+    (candidateCount : Nat)
+    (fromValid : Bool)
+    (toValid : Bool)
+    (different : Bool) : Bool :=
+  operationSupported && decide (candidateCount = 1) && fromValid && toValid && different
+
+theorem edit_plan_admitted_iff
+    (operationSupported : Bool) (candidateCount : Nat) (fromValid toValid different : Bool) :
+    editPlanAdmitted operationSupported candidateCount fromValid toValid different = true ↔
+      operationSupported = true ∧ candidateCount = 1 ∧ fromValid = true ∧
+        toValid = true ∧ different = true := by
+  cases operationSupported <;> cases fromValid <;> cases toValid <;> cases different <;>
+    simp [editPlanAdmitted]
+
+theorem edit_plan_requires_one_candidate
+    (operationSupported : Bool) (candidateCount : Nat) (fromValid toValid different : Bool)
+    (accepted : editPlanAdmitted operationSupported candidateCount fromValid toValid different = true) :
+    candidateCount = 1 := by
+  exact (edit_plan_admitted_iff operationSupported candidateCount fromValid toValid different).mp
+    accepted |>.2.1
+
+def planInterpret (candidates : List ScalarNode) (intent : ScalarIntent) : Option ScalarNode :=
+  match candidates with
+  | [node] => interpret node intent
+  | _ => none
+
+def planCompile (candidates : List ScalarNode) (intent : ScalarIntent) : Option ScalarNode :=
+  match candidates with
+  | [node] => (compile node intent).bind (applyReplace node)
+  | _ => none
+
+theorem planned_compiler_refines_direct_interpretation
+    (candidates : List ScalarNode) (intent : ScalarIntent) :
+    planCompile candidates intent = planInterpret candidates intent := by
+  cases candidates with
+  | nil => rfl
+  | cons head tail =>
+      cases tail with
+      | nil => exact compiler_refines_direct_interpretation head intent
+      | cons next rest => rfl
+
 end FrKernels.SemanticIntent

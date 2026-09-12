@@ -1034,7 +1034,7 @@ fn project_task_authoring_targets_match_lean_exhaustively() {
     let actual = String::from_utf8(output.stdout).unwrap();
     let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
     let mut checked = 0usize;
-    for operation in 0..7 {
+    for operation in 0..8 {
         for language in 0..22 {
             for target in 0..9 {
                 assert_eq!(
@@ -1049,7 +1049,7 @@ fn project_task_authoring_targets_match_lean_exhaustively() {
         }
     }
     assert!(actual.next().is_none());
-    assert_eq!(checked, 1_386);
+    assert_eq!(checked, 1_584);
 }
 
 #[test]
@@ -1285,6 +1285,45 @@ fn semantic_intent_bounds_and_operation_targets_match_lean() {
     }
     assert!(actual.next().is_none());
     assert_eq!(accepted, 11);
+}
+
+#[test]
+fn semantic_edit_plan_admission_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("semantic-edit-plan-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let candidates = [0, 1, 2, 63, 64, 65, 128, 512, 65_536];
+    let mut checked = 0usize;
+    for operation_supported in [false, true] {
+        for candidate_count in candidates {
+            for from_valid in [false, true] {
+                for to_valid in [false, true] {
+                    for different in [false, true] {
+                        assert_eq!(
+                            actual.next(),
+                            Some(
+                                fun_refactor::project::semantic_intent::semantic_edit_plan_admitted(
+                                    operation_supported,
+                                    candidate_count,
+                                    from_valid,
+                                    to_valid,
+                                    different,
+                                )
+                            )
+                        );
+                        checked += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(checked, 144);
 }
 
 #[test]
