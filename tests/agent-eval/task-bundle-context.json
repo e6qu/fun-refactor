@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-bundle-context-1",
   "passed": true,
-  "binary_sha256": "86a8368f58a25b0d681531c78f68b8508bbb7bb48298ae728d39c7847c1a75ad",
-  "source_commit": "1b6ac9b4a311425cac05692db4e73d71d303d86e",
+  "binary_sha256": "c240dcbcc8a3b698ae441a574bcdd5b815233516f378e951bdd977cedb6d07f0",
+  "source_commit": "7c4e97e2ad701ba939a2127d64ef797683e7c893",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
@@ -15,7 +15,7 @@
     "src/project/task.rs": "c8fa09b1f6104e6204089df089d68de5a08751491e414cea9b900e39ed122f7e",
     "src/project/batch.rs": "7eeb5484aaf0f8fb9291204cc7b36a461405893dc347e900fd494372cbf78a10",
     "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
-    "Cargo.lock": "fc7a2e9ba4e7d8bf7c45ee6d661b106ec68acf53f79b5b0b1f23c410953bca3c"
+    "Cargo.lock": "e0ebe6c17c240b3e25444cf4af7dd00338ffbcf6d24741bdcb472dd172f9b009"
   },
   "fixture": {
     "src/lib.rs": "use std::fmt;\n\npub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",
@@ -104,14 +104,14 @@
       "calls": 4,
       "median_context_bytes": 5869,
       "median_context_tokens": 1621,
-      "median_seconds": 0.12530037501710467
+      "median_seconds": 0.05021200000192039
     },
     "task": {
       "samples": 3,
       "calls": 1,
       "median_context_bytes": 4744,
       "median_context_tokens": 1510,
-      "median_seconds": 0.05671991701819934
+      "median_seconds": 0.01672029198380187
     }
   },
   "runs": [
@@ -119,7 +119,7 @@
       "repetition": 1,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "6c519d47d463eb9a0b732307a8ff8d99522af98260e1d021942a5670b0316f12",
+      "semantic_sha256": "499d2015f5541aed57a9225fb0f0365223b14f825b0d4bb446bf28cbd95bc79e",
       "stdout": {
         "bytes": 5552,
         "tokens": 1513
@@ -136,13 +136,13 @@
         "bytes": 5869,
         "tokens": 1621
       },
-      "seconds": 0.131078583013732
+      "seconds": 0.057624916022177786
     },
     {
       "repetition": 1,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "6c519d47d463eb9a0b732307a8ff8d99522af98260e1d021942a5670b0316f12",
+      "semantic_sha256": "499d2015f5541aed57a9225fb0f0365223b14f825b0d4bb446bf28cbd95bc79e",
       "stdout": {
         "bytes": 4205,
         "tokens": 1359
@@ -159,13 +159,13 @@
         "bytes": 4744,
         "tokens": 1510
       },
-      "seconds": 0.05682837500353344
+      "seconds": 0.016328875004546717
     },
     {
       "repetition": 2,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "6c519d47d463eb9a0b732307a8ff8d99522af98260e1d021942a5670b0316f12",
+      "semantic_sha256": "499d2015f5541aed57a9225fb0f0365223b14f825b0d4bb446bf28cbd95bc79e",
       "stdout": {
         "bytes": 4205,
         "tokens": 1359
@@ -182,13 +182,13 @@
         "bytes": 4744,
         "tokens": 1510
       },
-      "seconds": 0.05671991701819934
+      "seconds": 0.023551541002234444
     },
     {
       "repetition": 2,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "6c519d47d463eb9a0b732307a8ff8d99522af98260e1d021942a5670b0316f12",
+      "semantic_sha256": "499d2015f5541aed57a9225fb0f0365223b14f825b0d4bb446bf28cbd95bc79e",
       "stdout": {
         "bytes": 5552,
         "tokens": 1513
@@ -205,13 +205,13 @@
         "bytes": 5869,
         "tokens": 1621
       },
-      "seconds": 0.12530037501710467
+      "seconds": 0.0431405829731375
     },
     {
       "repetition": 3,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "6c519d47d463eb9a0b732307a8ff8d99522af98260e1d021942a5670b0316f12",
+      "semantic_sha256": "499d2015f5541aed57a9225fb0f0365223b14f825b0d4bb446bf28cbd95bc79e",
       "stdout": {
         "bytes": 5552,
         "tokens": 1513
@@ -228,13 +228,13 @@
         "bytes": 5869,
         "tokens": 1621
       },
-      "seconds": 0.12056845801998861
+      "seconds": 0.05021200000192039
     },
     {
       "repetition": 3,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "6c519d47d463eb9a0b732307a8ff8d99522af98260e1d021942a5670b0316f12",
+      "semantic_sha256": "499d2015f5541aed57a9225fb0f0365223b14f825b0d4bb446bf28cbd95bc79e",
       "stdout": {
         "bytes": 4205,
         "tokens": 1359
@@ -251,7 +251,7 @@
         "bytes": 4744,
         "tokens": 1510
       },
-      "seconds": 0.05623420802294277
+      "seconds": 0.01672029198380187
     }
   ],
   "source_unchanged": true,
