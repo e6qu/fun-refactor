@@ -67,7 +67,16 @@ def prepare(out: Path, binary: Path) -> None:
     names = ["semantic-edit-plan-direct", "semantic-edit-plan-explicit"]
     out.mkdir(parents=True)
     (out / "experiment.json").write_text(
-        json.dumps({"project": "semantic-edit-plan", "repetitions": 1, "trials": names}, indent=2) + "\n"
+        json.dumps(
+            {
+                "project": "semantic-edit-plan",
+                "repetitions": 1,
+                "pair_arms": ["direct", "explicit"],
+                "trials": names,
+            },
+            indent=2,
+        )
+        + "\n"
     )
     common = (
         "Read the single Markdown file under ../skill first. Change summarize so stage_one adds 7 instead of 1. "
