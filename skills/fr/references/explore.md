@@ -1,7 +1,6 @@
 # Explore only the needed structure
 
-The examples use a project containing `app.py`. Substitute the relevant path in the real task.
-Keep the repository as the scan root when callers elsewhere matter; a single-file `-C` restricts discovery to that file.
+Keep the repository as the scan root when callers elsewhere matter. Substitute real paths for the examples.
 
 ```sh
 fr project find greet --in app.py --signature --limit 12
@@ -17,12 +16,19 @@ fr project gaps --limit 8
 
 When the task only needs several read views, use the bounded manifest in [Batch](batch.md).
 When those views select structural edit targets and declared checks, use [Task](task.md).
+Keep the cache enabled between related calls. A long cold call may emit standalone `indexing`
+objects on stderr every few seconds; these are progress, while stdout remains the query report.
+Inspect `fr --json cache` when an agent sandbox cannot write the platform cache directory.
+
+Run the first cold project query alone; do not fan out parallel queries that duplicate indexing.
+For behavior-based discovery, start with one name-only `find TERM --contains --limit 12` and no
+source. Do not start with a map. Narrow the best candidate by exact name and `--in PATH`, then request
+its source. Keep exploratory limits at 30 or less; paginate a known result set instead of raising them.
 
 Use exact `project find NAME` for known declarations. Add the boolean `--contains` flag for a literal substring; it takes no value.
-Find matches names before clipping and reports all candidates with pagination and source coverage.
-Use `project select SELECTOR...` for several exact names or full handles so one revision,
-coverage report, cursor and source budget cover the complete request. Read every per-selector
-status before claiming absence. Handles select one exact node and can report `outside-scope`,
+Find matches names before clipping and reports candidates with pagination and source coverage.
+Use `project select SELECTOR...` for several exact names or handles under one revision and budget.
+Read every selector status before claiming absence. Handles can report `outside-scope`,
 `not-a-declaration` or an omitted local; stale handles refuse instead of becoming names.
 Use maps when the hierarchy itself matters. Choose `<HANDLE>` from the relevant declaration row. Full handles include their source revision.
 Alternatively use a short ID with the returned `--revision`; never reuse a bare ID across revisions.
@@ -39,12 +45,7 @@ Call results preserve confidence and unresolved or dispatch-candidate rows; cand
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages`, `dependencies`, `links` and `workspaces` for manifest declarations and local relationships when package boundaries matter.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
-Use `project features` for the parent-linked Next.js App Router or FastAPI application, package, route, handler, contract, execution-dependency, middleware and schema hierarchy.
-Pass a returned `--feature ID` to retrieve one revision-bound subtree.
-Middleware order and direct FastAPI providers are syntax candidates; inspect their source before making runtime or authentication claims.
-Lifecycle, configuration and service facts also retain syntax evidence and explicit runtime gaps.
-Service targets omit query strings, fragments and URL credentials; use a source slice only when the task needs request details.
-Next.js page features include inherited layouts and bounded direct relative component imports.
-Their React facts cover props, hooks, events, styles and render edges.
-Unique same-file, default-import and named-import render targets include a source anchor; inspect unresolved targets directly.
+Use `project features [--feature ID]` for a bounded Next.js or FastAPI hierarchy. Treat middleware,
+providers, render targets and test associations as syntax candidates that need source inspection.
+Service targets redact credentials, queries and fragments. Reports retain explicit runtime and resolution gaps.
 These commands do not establish complete dependency resolution or framework semantics.

@@ -486,6 +486,26 @@ kind whose children also pass. Lean proves each necessary condition, eight Boole
 with Rust, and Rust tests the recursive JSON walk. JSON parsing and unbounded induction over the
 host value remain outside that correspondence claim.
 
+## Project identity and resolution-cache kernels
+
+`FrKernels.ProjectIdentity` models the ordered revision material and the admission guard applied to
+cached reference resolutions. The material names the revision schema, selected scope, package and
+fact semantics, scan policy, ordered file content identities and gaps, skipped evidence and manifest
+snapshots. Equal material gives an equal revision. Changed material gives a changed revision when
+the supplied digest is injective on these inputs. The model does not prove SHA-256 collision
+resistance or Serde's byte encoding.
+
+The executable `resolutionSnapshotAdmitted` model requires exactly one cache entry per current
+reference and bounds every present target by the current symbol count. Six theorems characterize
+the predicate, derive both accepted invariants and reject wrong lengths and out-of-range targets.
+Its source anchor and explicit signature map bind `src/index.rs::resolution_snapshot_admitted`.
+The native correspondence test compares 405 boundary states across empty and populated snapshots,
+small limits, the progress boundary and large natural-number counts. Postcard decoding, cache I/O,
+entry checksums, workspace-key construction, SHA-256 and general Rust/model correspondence remain
+trusted or regression-tested implementation boundaries.
+The axiom audit reports no dependencies for the three revision theorems and empty-snapshot result.
+The general snapshot theorems use `propext`, with `Quot.sound` where list membership requires it.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

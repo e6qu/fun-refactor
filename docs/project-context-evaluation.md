@@ -364,3 +364,38 @@ This single directed pair establishes route usability and task success. Its insp
 smaller than the files arm, but the complete workflow still has a 13.1% context premium. Skill
 loading and the existing structured authoring workflow account for that result. The cohort does not
 measure spontaneous adoption, population performance, hidden reasoning or billed tokens.
+
+## Incremental project identity
+
+PR 19 adds a self-contained evaluator for the cache and revision contracts used between agent
+queries. `tools/project-identity.py` creates a generic two-file Rust project and runs one exact
+declaration query through the development profiler. It compares uncached, cold and warm reports,
+then applies a same-length scalar edit, a structural rename and an exact restoration.
+
+The retained [project identity report](../tests/agent-eval/project-identity.json) passes every
+comparison. Cold, warm and uncached reports are byte-identical. The scalar edit changes the project
+revision while reusing the resolution snapshot; an uncached query returns the same changed report.
+The structural rename misses resolution and removes the queried declaration. The earlier handle
+refuses after the scalar edit, and restoration recovers the original report byte for byte.
+
+| State | Fact hits | Resolution hits | Resolution misses | Index ms | Process ms |
+|---|---:|---:|---:|---:|---:|
+| Uncached | n/a | n/a | n/a | 43.070 | 51.235 |
+| Empty cache | 0 | 0 | 1 | 42.561 | 55.725 |
+| Warm cache | 2 | 1 | 0 | 1.541 | 14.369 |
+| Same-length scalar edit | 1 | 1 | 0 | 42.027 | 54.834 |
+| Structural rename | 1 | 0 | 1 | 42.355 | 55.284 |
+| Restored source | 2 | 1 | 0 | 1.555 | 14.780 |
+
+The tiny fixture makes parsing one changed file dominate the scalar-edit time. The resolution
+counters establish which path ran; these timings do not estimate large-workspace edit latency.
+The report binds both executable hashes and the evaluator hash. It uses one macOS host, debug
+executables and warm operating-system caches, without an agent or task build.
+
+```sh
+cargo build --bin fr --example project-profile
+python3 tools/project-identity.py \
+  --fr target/debug/fr \
+  --profiler target/debug/examples/project-profile
+python3 tools/project-identity.py --audit tests/agent-eval/project-identity.json
+```

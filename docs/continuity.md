@@ -360,9 +360,8 @@ examples executable. After the first fresh diagnostic, the targeted five-file ro
 tokens. Its added guidance distinguishes coordinated lookup and plan bases from project bases.
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
-workspace. The prescribed sequence retains every mutation and verification step while reducing
-42 calls to 29 and measured context from 15,458 to 13,404 tokens with the current skill. This
-2,054-token reduction is
+workspace. The prescribed sequence retains every mutation and verification step. It reduces
+42 calls to 29 and measured context from 15,458 to 13,385 tokens. This 2,073-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed
@@ -1209,11 +1208,38 @@ generated site payloads, the next call still spent 66.05 seconds resolving the c
 profiler reports 957 indexed files and 435,556 references. Rust accounts for 369,756. Large
 implementation files, rather than retained transcripts, produce most of those references.
 
+The first PR 19 implementation removes symbol and reference serialization from the revision and
+uses the captured cryptographic source identities instead. The evolving checkout contains 958 files
+and 436,803 references. An immediate warm self-query reports one resolution-cache hit and 958 fact
+hits. Indexing takes 1.173 seconds, project construction 0.205 seconds and the complete profiling
+process 1.955 seconds. The query returns the exact declaration and its bounded source directly.
+The restricted workspace selected and reported a private temporary cache. Its cold call emitted
+monotonic `facts` and `resolution` JSON progress on stderr while leaving the final stdout report intact.
+
+Two fresh `codex exec` dogfood attempts used `gpt-5.6-luna`, low reasoning and the default service
+tier, with user configuration and repository rules disabled. The first found the Rust admission
+predicate, its two guards, the Lean model and the 405-case correspondence suite. It was functionally
+correct, but consumed 239,321 input tokens after launching independent cold queries in parallel,
+widening result limits and reading broad output. The second repeated exact queries, requested a
+500-row project map and broad source bodies. We stopped it before completion to cap quota use.
+The portable skill now sends behavior discovery through its bounded Explore route, requires a single
+cold query before fan-out and keeps initial limits at 12. Its deterministic route and executable
+example checks pass. These attempts reveal an autonomous efficiency failure and do not support a
+context-savings claim.
+
+These measurements use the debug profiler and a changing development checkout, so the earlier and
+current totals are diagnostic rather than a controlled speedup percentage. Generic fixture tests
+require cache-independent revisions, same-length source invalidation and byte-equivalent cached and
+uncached indexes. They also require resolution reuse after a scalar edit and a structural-edit miss.
+Lean models the admission predicate and revision collision assumption; 405 Rust/Lean boundary cases
+connect the snapshot model to the implementation.
+
 This is debug-build, single-host diagnostic evidence. It establishes the repeated-query failure mode
 and its phase split, not a production latency threshold. PR 19 will retain controlled release and
 generic-fixture comparisons after the contracts are implemented. The public Python profile driver
 also passed an extra `project` subcommand that its Rust profiler does not accept; the driver now
 forwards the command unchanged, and the Rust report includes bounded reference-cost diagnostics.
+The complete native, strict Lean, capability, portable-skill, prose and WASM gate passes.
 
 ## Next steps
 
@@ -1225,7 +1251,8 @@ Check execution metadata is now optional; use retained traces to reduce remainin
 Preserve coverage, source bases, guards and reviewable edits.
 Validate whether fresh agents adopt the targeted route before claiming autonomous context savings; include a task that actually requires broader exploration.
 Measure proposed reductions on fixed transcripts or controlled workflows before requesting another autonomous cohort.
-Reference serialization and hashing remain the largest measured construction cost after batching; evaluate further changes against this profile.
+Concurrent cold-query coalescing, task-scoped project reuse and enforced discovery budgets are the
+next measured work. Skill instructions alone did not keep the fresh agent on the bounded route.
 Keep revision inputs, coverage and final source verification intact; require byte-identical reports and distinguish model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots.

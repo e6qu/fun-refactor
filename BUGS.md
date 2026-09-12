@@ -67,6 +67,22 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B849: **the project profiler inserted a second `project` subcommand.**
+  Its Rust profiler accepts the project command directly. The Python driver now forwards the
+  requested command unchanged, and its executable profile regression covers the invocation.
+
+- [x] B848: **library indexing discarded its explicit language argument.**
+  `build_from_sources` detected a language from each path. It could parse supplied source with the
+  wrong grammar. It now uses the caller's language. The minimal-feature library build covers it.
+
+- [x] B847: **non-UTF-8 paths could share one workspace cache key.**
+  Lossy path conversion replaced distinct Unix bytes with the same text. Cache identity now hashes
+  raw platform path bytes, and a Unix regression supplies two colliding lossy forms.
+
+- [x] B846: **an unusable platform cache silently disabled reuse.**
+  Directory creation alone did not prove that later entry writes could succeed. Cache opening now
+  probes writability and selects an inspectable private runtime or temporary fallback.
+
 - [x] B691: the workflow counterfactual measured the current checkout path inside its generated
   prompt. A checkout path with a different length changed the retained byte count and failed CI.
   Opaque live hashes could also change token counts while retaining their lengths. The projection

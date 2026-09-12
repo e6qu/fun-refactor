@@ -1327,6 +1327,47 @@ fn semantic_edit_plan_admission_matches_lean_exhaustively() {
 }
 
 #[test]
+fn resolution_snapshot_admission_matches_lean_on_boundary_cases() {
+    use fun_refactor::index::resolution_snapshot_admitted;
+    use fun_refactor::model::{Confidence, SymbolId};
+
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("resolution-snapshots")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let samples = [0, 1, 2, 63, 64, 65, 128, 512, 65_536];
+    let entries = [
+        (None, Confidence::Exact),
+        (Some(SymbolId(0)), Confidence::ImportQualified),
+        (Some(SymbolId(1)), Confidence::FieldBased),
+        (Some(SymbolId(2)), Confidence::NameOnly),
+    ];
+    let mut checked = 0;
+    for reference_count in samples {
+        for symbol_count in samples {
+            for width in 0..=entries.len() {
+                assert_eq!(
+                    actual.next(),
+                    Some(resolution_snapshot_admitted(
+                        reference_count,
+                        symbol_count,
+                        &entries[..width],
+                    )),
+                    "reference_count={reference_count}, symbol_count={symbol_count}, width={width}",
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert_eq!(checked, 405);
+    assert!(actual.next().is_none());
+}
+
+#[test]
 fn semantic_ir_catalog_admission_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

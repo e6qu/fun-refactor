@@ -1759,8 +1759,17 @@ fr cache [--clear]
 ```
 
 Inspect or clear the fact cache. Entries depend on source content, query definitions and the extractor version.
-Queries read current source before looking up cached facts. A hit skips parsing and fact extraction; the index and project view still rebuild.
-`--no-cache` bypasses this cache. Set `FUN_REFACTOR_CACHE` to select a separate cache directory.
+Queries read current source before looking up cached facts. A fact hit skips parsing and extraction;
+an exact workspace-resolution hit also skips reference resolution. `fr cache --json` reports the
+selected location and whether it is a runtime fallback. If `fr` cannot write the platform cache
+directory, it tries per-user directories under `XDG_RUNTIME_DIR`, `TMPDIR` and the system
+temporary directory, in that order. `FUN_REFACTOR_CACHE` selects one explicit location and does not
+fall back elsewhere. `--no-cache` bypasses every cache layer.
+
+Long project calls write sparse progress objects such as
+`{"indexing":{"phase":"resolution","done":16384,"total":436803}}` to stderr. Each line is
+standalone JSON, counts only advance within a phase, and stdout remains the final project report.
+Calls that finish before the first five-second interval emit no progress.
 The [controlled cache comparison](docs/project-context-evaluation.md#query-time-and-the-fact-cache) checks complete reports and source invalidation alongside query time.
 
 ### `fr completions`

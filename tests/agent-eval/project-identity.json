@@ -1,0 +1,156 @@
+{
+  "schema": "fr-project-identity-eval-1",
+  "passed": true,
+  "started_at": "2026-09-12T22:56:11.247826+00:00",
+  "finished_at": "2026-09-12T22:56:11.741282+00:00",
+  "runtime": {
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "python": "3.14.6"
+  },
+  "binaries_sha256": {
+    "/Users/zardoz/projects/fun-refactor/target/debug/fr": "97b565e95cfe9d6f4a38e8c33cc343a1398c244a846d0698f924d12d2862e193",
+    "/Users/zardoz/projects/fun-refactor/target/debug/examples/project-profile": "ac159603872a702661f428dda2c883eaf62285f0d4ee6848aef12908385d9667"
+  },
+  "measurement_sha256": "9e010fcb65a215872a65476cca4f11c7cb27898ecae00a7e39f3a1f373c6294f",
+  "query": [
+    "find",
+    "alpha",
+    "--in",
+    "src/a.rs",
+    "--signature",
+    "--source",
+    "--bytes",
+    "1024"
+  ],
+  "uncached": {
+    "report_sha256": "6252cde687db7c27a033df95bbd43645123e45dab1c69fb1c813b13beb5c5f93",
+    "revision": "ffd13e10a480d0c575edf9a2608b38137af4262ada1f8b01a59bd6c7e95c6b99",
+    "fact_cache_hits": null,
+    "resolution_cache_hits": null,
+    "resolution_cache_misses": null,
+    "indexed_files": 2,
+    "reference_count": 2,
+    "phases_seconds": {
+      "cache_open": 8.3e-08,
+      "drop": 2.2958e-05,
+      "index": 0.04307025,
+      "project": 0.005401209,
+      "query": 0.000135958,
+      "root": 3.5083e-05,
+      "scan": 0.001676042,
+      "serialize": 3.7459e-05,
+      "verify": 0.000809583
+    },
+    "measured_seconds": 0.051235334
+  },
+  "cold": {
+    "report_sha256": "6252cde687db7c27a033df95bbd43645123e45dab1c69fb1c813b13beb5c5f93",
+    "revision": "ffd13e10a480d0c575edf9a2608b38137af4262ada1f8b01a59bd6c7e95c6b99",
+    "fact_cache_hits": 0,
+    "resolution_cache_hits": 0,
+    "resolution_cache_misses": 1,
+    "indexed_files": 2,
+    "reference_count": 2,
+    "phases_seconds": {
+      "cache_open": 0.005011583,
+      "drop": 2.3e-05,
+      "index": 0.042560708,
+      "project": 0.005591542,
+      "query": 0.000129042,
+      "root": 2.9583e-05,
+      "scan": 0.001518792,
+      "serialize": 3.7417e-05,
+      "verify": 0.000791583
+    },
+    "measured_seconds": 0.055725417
+  },
+  "warm": {
+    "report_sha256": "6252cde687db7c27a033df95bbd43645123e45dab1c69fb1c813b13beb5c5f93",
+    "revision": "ffd13e10a480d0c575edf9a2608b38137af4262ada1f8b01a59bd6c7e95c6b99",
+    "fact_cache_hits": 2,
+    "resolution_cache_hits": 1,
+    "resolution_cache_misses": 0,
+    "indexed_files": 2,
+    "reference_count": 2,
+    "phases_seconds": {
+      "cache_open": 0.0049105,
+      "drop": 2.3791e-05,
+      "index": 0.001541333,
+      "project": 0.005399625,
+      "query": 0.000204,
+      "root": 3.0417e-05,
+      "scan": 0.001406125,
+      "serialize": 3.6875e-05,
+      "verify": 0.000785958
+    },
+    "measured_seconds": 0.014368584
+  },
+  "scalar_edit": {
+    "report_sha256": "1041f12899a1d04f4e51a05430bf10c5ff0ad462cca6dc9393c2f8e560cc1c03",
+    "revision": "6cf784e190eeb2c334a1c66a4069be6803b8e04926c6b121949a8569809cc156",
+    "fact_cache_hits": 1,
+    "resolution_cache_hits": 1,
+    "resolution_cache_misses": 0,
+    "indexed_files": 2,
+    "reference_count": 2,
+    "phases_seconds": {
+      "cache_open": 0.004972375,
+      "drop": 1.9667e-05,
+      "index": 0.042026625,
+      "project": 0.005234625,
+      "query": 0.000131625,
+      "root": 3.725e-05,
+      "scan": 0.00155,
+      "serialize": 3.35e-05,
+      "verify": 0.0007875
+    },
+    "measured_seconds": 0.0548335
+  },
+  "structural_edit": {
+    "report_sha256": "09e5f949aeccbdfbdb3fec9ca49a0c897659145151b46a759498dd5b09874f30",
+    "revision": "7f5a84e0fddb5a2ca5a5477628e10bb617b429a39048b976b710d8bc94d5ed56",
+    "fact_cache_hits": 1,
+    "resolution_cache_hits": 0,
+    "resolution_cache_misses": 1,
+    "indexed_files": 2,
+    "reference_count": 2,
+    "phases_seconds": {
+      "cache_open": 0.004959417,
+      "drop": 1.9084e-05,
+      "index": 0.0423555,
+      "project": 0.00534575,
+      "query": 7.6084e-05,
+      "root": 3.35e-05,
+      "scan": 0.001634791,
+      "serialize": 2.6958e-05,
+      "verify": 0.000784125
+    },
+    "measured_seconds": 0.055284125
+  },
+  "restored": {
+    "report_sha256": "6252cde687db7c27a033df95bbd43645123e45dab1c69fb1c813b13beb5c5f93",
+    "revision": "ffd13e10a480d0c575edf9a2608b38137af4262ada1f8b01a59bd6c7e95c6b99",
+    "fact_cache_hits": 2,
+    "resolution_cache_hits": 1,
+    "resolution_cache_misses": 0,
+    "indexed_files": 2,
+    "reference_count": 2,
+    "phases_seconds": {
+      "cache_open": 0.005067667,
+      "drop": 2.2583e-05,
+      "index": 0.001554583,
+      "project": 0.005507042,
+      "query": 0.000245667,
+      "root": 2.7333e-05,
+      "scan": 0.001477292,
+      "serialize": 3.6667e-05,
+      "verify": 0.000803375
+    },
+    "measured_seconds": 0.014779875
+  },
+  "stale_handle": {
+    "exit_code": 1,
+    "output_sha256": "525badd3b54c73d8f85685c07b4af18d316501271fc78e93c6f82afd02fe9d77"
+  },
+  "scope": "Generated Rust fixture; one host; warm OS caches; no agent, build, parser proof, latency threshold or production-performance claim."
+}
