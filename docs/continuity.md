@@ -111,6 +111,21 @@ applies every operation, and sends the result through the existing semantic writ
 Rust, Go, Java and TypeScript fixtures change one expression while retaining every byte outside the
 selected body. Source-bearing or oversized current bodies expose no usable identity.
 
+The third checkpoint carries `edit-body-semantic` through author batches, project tasks and reviewed
+task changes. The reviewed lifecycle test covers read-only preview, declared checks, undo, redo and
+patch delivery. A changed body basis refuses before history creation.
+
+The fourth checkpoint anchors change admission, result bounds, pointer bounds and statement index
+rules to Rust. Lean proves matching-base and operation-count requirements, result limits, and
+statement insertion/deletion count laws. All 67 strict anchors are fresh with zero obligations or
+debts. Executable comparisons cover every Boolean state and selected numeric boundaries.
+
+The fifth checkpoint starts with `tests/agent-eval/semantic-delta.json`. On a generic six-statement
+Rust pipeline, one delta is 245 bytes versus 1,081 for the complete body. Both routes pass behavior,
+patch, undo and redo checks and produce identical source and body identities. Delta preview and
+write reports are 700 bytes larger because they retain operation receipts. The fresh economical
+agent pair remains pending.
+
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
 declaration targets from literal handles or returned query strings. A task target selects one of

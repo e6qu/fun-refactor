@@ -1,8 +1,8 @@
 # Author selected code
 
-`fr author` has `replace-body`, `replace-declaration`, `insert-declaration`, and `batch`;
-batches accept up to 32 disjoint steps including `organize-imports`. Coordinate callers after
-signature changes. Unsupported targets refuse.
+`fr author` can replace source or semantic bodies, apply typed semantic deltas, replace or insert
+Rust declarations, and organize imports. Batches accept up to 32 disjoint steps. Coordinate callers
+after signature changes. Unsupported targets refuse.
 
 Use `fr author guide` for machine-readable operations, limits and transitions. After reading
 this route, skip subcommand help.
@@ -27,6 +27,7 @@ Review the complete diff and retain `plan_context_basis`. Repeat it with
 
 Rust insertion preserves bytes and doc comments; only traits allow bodyless functions. Body
 replacement covers Rust, Go, Java, and supported TypeScript/TSX bindings; arrows may change form.
+For source-free body replacement and smaller checked changes, use [Semantic](semantic.md).
 
 ```rust
 /// Increments a value twice.
