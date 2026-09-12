@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.18.0...fun-refactor-v0.19.0) (2026-09-12)
+
+
+### Features
+
+* **agent:** author checked semantic deltas ([#278](https://github.com/e6qu/fun-refactor/issues/278)) ([63d25df](https://github.com/e6qu/fun-refactor/commit/63d25df1f6b07d721ea8e4aac4eb55fa434b7755))
+
 ## [0.18.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.17.0...fun-refactor-v0.18.0) (2026-09-12)
 
 
