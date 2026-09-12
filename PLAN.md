@@ -181,7 +181,7 @@ The first packaged roadmap is complete. Sixteen merged pull requests established
 | [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
-| PR 17 | Reviewed Semantic Intent Operations | In progress |
+| [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | In review |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. Later shapes remain evidence-driven.
@@ -599,7 +599,7 @@ Planned checkpoints:
 
 ### PR 17. Reviewed Semantic Intent Operations
 
-Status: in progress.
+Status: in review as [PR 280](https://github.com/e6qu/fun-refactor/pull/280).
 
 Goal: let an agent state common exact changes with typed semantic roles and scalar values. The agent
 does not need to construct a complete replacement node or navigate serialization-only `value` fields.
@@ -662,11 +662,11 @@ Planned checkpoints:
 4. **Complete.** Add the Python mirror, generated cross-runtime fixtures, semantic catalogs and executable skill
    routes.
 5. **Complete.** Add Lean models, source anchors, refinement theorems and exhaustive Rust correspondence.
-6. **In progress.** Cross-language and four-route controlled evidence is retained. A fresh
+6. **Complete.** Cross-language and four-route controlled evidence is retained. A fresh
    Luna-low pair passes exact semantics and behavior in both arms. Semantic intent uses 470 payload
    bytes and seven commands, versus 1,930 bytes and nine commands for complete-body authoring. It
    uses fewer total input and output tokens, while input excluding reported cache hits is 18.8%
-   higher. Pass the complete repository gate and publish the large PR.
+   higher. The complete native, strict Lean and WASM gate passes. PR 280 carries the completed checkpoint.
 
 ## Formal verification policy
 

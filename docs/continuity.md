@@ -135,7 +135,7 @@ typed category and kind. Ambiguous file requests and incomplete bodies refuse in
 an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
 fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
 
-PR 17 is in progress on `semantic_intent_operations`. Its reviewed `fr-semantic-intent-1` contract
+PR 17 is in review as [GitHub PR 280](https://github.com/e6qu/fun-refactor/pull/280). Its reviewed `fr-semantic-intent-1` contract
 binds up to 64 ordered scalar operations to one canonical body identity. Typed role locators carry
 optional category, kind, index and label witnesses. Missing, ambiguous, stale or mismatched evidence
 refuses before a project write. Eleven operations cover portable literals, names, operators,
@@ -170,13 +170,12 @@ the exact expected semantic body and pass compiled behavior. Intent authoring us
 and seven commands, compared with 1,930 bytes and nine commands for complete-body authoring. It uses
 22.9% fewer total input tokens and 32.5% fewer output tokens, but 18.8% more input after subtracting
 reported cache hits. The intent trace first tries one broad project query before finding the filtered
-locator route. A digest-bound Rust test preserves these mixed results. The complete repository gate
-remains before publication.
+locator route. A digest-bound Rust test preserves these mixed results.
 
-PR 17, Reviewed Semantic Intent Operations, is in progress. It addresses the main failure mode in
-the PR 16 agent trace. The agent had to navigate serialization-only pointer segments and reproduce
-complete typed nodes for scalar edits. The next contract uses a finite semantic-role vocabulary and
-shape-preserving scalar intents, then compiles them into the checked PR 16 delta engine.
+The complete PR gate passes. It includes formatting, warning-free native and browser builds, all
+default and WASM tests, 311/311 capability coverage and the 50-job Lean package. Strict verification
+reports 70 fresh source anchors, zero obligations and zero proof debts. The portable skill passes 45
+executable shell examples and every route-size limit.
 
 The contract remains structural. A one-node name edit is not a binding-aware rename. Pattern rows do
 not prove behavior. Source writers can normalize text elsewhere inside the selected body. Role
