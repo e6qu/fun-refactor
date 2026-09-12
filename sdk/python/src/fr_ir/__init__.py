@@ -670,12 +670,7 @@ class _IntentOperation:
         }
 
 
-def _intent_scalar(
-    op: str,
-    target: Iterable[LocatorStep],
-    before: Any,
-    after: Any,
-) -> _IntentOperation:
+def _intent_scalar_values(op: str, before: Any, after: Any) -> tuple[Any, Any]:
     if before == after and type(before) is type(after):
         raise IrError("semantic intent operation must change its scalar")
     string_operations = {"set-string", "set-template-text", "set-comment"}
@@ -703,6 +698,16 @@ def _intent_scalar(
         after = _enum(after, UnaryOp, "unary operator")
     else:
         raise IrError(f"unknown semantic intent operation: {op}")
+    return before, after
+
+
+def _intent_scalar(
+    op: str,
+    target: Iterable[LocatorStep],
+    before: Any,
+    after: Any,
+) -> _IntentOperation:
+    before, after = _intent_scalar_values(op, before, after)
     return _IntentOperation(op, _intent_steps(target), before, after)
 
 
@@ -752,6 +757,29 @@ class Intent:
         return _intent_scalar("set-comment", target, before, after)
 
 
+@dataclass(frozen=True)
+class ScalarRequest:
+    operation: str
+    before: Any
+    after: Any
+
+    def __post_init__(self) -> None:
+        before, after = _intent_scalar_values(self.operation, self.before, self.after)
+        object.__setattr__(self, "before", before)
+        object.__setattr__(self, "after", after)
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "operation": self.operation,
+            "from": _data(self.before, set()),
+            "to": _data(self.after, set()),
+        }
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
+
 def _semantic_basis(value: str | SemanticBody, description: str) -> str:
     base = value.basis() if isinstance(value, SemanticBody) else value
     valid = isinstance(base, str) and base.startswith("frsb1:") and len(base) == 70
@@ -790,7 +818,7 @@ class SemanticIntent:
 __all__ = [
     "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
     "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
-    "ROLE_NAMES", "Role", "SCHEMA",
+    "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",
     "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode", "UnaryOp", "VariantArm",
 ]

@@ -17,6 +17,7 @@ from fr_ir import (
     LocatorStep,
     NodeCategory,
     Role,
+    ScalarRequest,
     SemanticBody,
     SemanticChange,
     SemanticIntent,
@@ -131,6 +132,17 @@ class IrTests(unittest.TestCase):
             LocatorStep(Role.STATEMENT, index=True)
         with self.assertRaisesRegex(IrError, "1 through 64"):
             Intent.SetBool([], False, True)
+
+    def test_scalar_request_matches_the_reviewed_edit_plan_shape(self):
+        request = ScalarRequest("set-binary-operator", BinaryOp.ADD, BinaryOp.MUL)
+        self.assertEqual(request.to_data(), {
+            "operation": "set-binary-operator",
+            "from": "add",
+            "to": "mul",
+        })
+        self.assertEqual(json.loads(request.to_json()), request.to_data())
+        with self.assertRaisesRegex(IrError, "must change"):
+            ScalarRequest("set-int", "1", "1")
 
 
 if __name__ == "__main__":
