@@ -28,9 +28,9 @@ A supported pair describes the accepted operation scope; individual inputs can s
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
-| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Expose a bounded semantic model and lower repeated-query/context cost |
+| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence and source-free semantic IR | Extend semantic coverage and lower repeated-query/context cost |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, bounded authoring, checks and twenty-two passing autonomous trials | Make context use competitive and replace source-fragment authoring with typed semantic operations |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic deltas, bounded authoring, checks and twenty-four passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -45,7 +45,9 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds within documented subsets.
 - Revision-bound migration plans for one-file Next.js/FastAPI route features, with endpoint agreement, explicit dispositions and reversible source-history writes.
 - Local recipes, expectations, workspace previews and canonical formatting.
-- Rust, Go, Java, TypeScript and TSX body authoring, Rust declaration replacement and Rust function insertion into files, inline modules, impls and traits.
+- Rust, Go, Java, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
+- Rust declaration replacement and function insertion into files, inline modules, impls and traits.
+- A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
@@ -158,7 +160,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Fifteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Sixteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -177,9 +179,10 @@ The first packaged roadmap is complete. Fifteen merged pull requests established
 | [PR 12](https://github.com/e6qu/fun-refactor/pull/273) | Revision-Bound Agent Task Bundles | Merged |
 | [PR 13](https://github.com/e6qu/fun-refactor/pull/275) | Reviewed Agent Task Changes | Merged |
 | [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
+| [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 
-The second package now moves the existing internal semantic representation onto the public agent
-surface and uses it for source-free authoring. Later shapes remain evidence-driven.
+The second package now applies the public semantic representation through checked, source-free
+operations. Later shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -494,8 +497,7 @@ Planned checkpoints:
 
 ### PR 15. Agent IR Contract and Python SDK
 
-Status: [PR 277](https://github.com/e6qu/fun-refactor/pull/277) is in review from
-`agent_ir_python_sdk`.
+Status: merged as [PR 277](https://github.com/e6qu/fun-refactor/pull/277).
 
 Goal: make semantic IR discoverable and safe to construct without asking an agent to memorize raw
 JSON. Keep Python objects visibly aligned with the public IR hierarchy.
@@ -541,6 +543,57 @@ Planned checkpoints:
 4. **Complete.** Add Lean catalog and admission proofs with Rust and Python correspondence.
 5. **Complete.** Teach both agent routes and retain deterministic and fresh Luna/low comparisons.
 6. **Complete.** Pass the complete repository gate and publish the large PR for review.
+
+### PR 16. Checked Semantic Delta Authoring
+
+Status: in review as [PR 278](https://github.com/e6qu/fun-refactor/pull/278).
+
+Goal: let an agent make a small typed semantic change without reproducing an entire function body
+or reading language-specific source.
+
+Deliverables:
+
+- Add a versioned `fr-semantic-change-1` contract bound to the canonical identity of one source-free
+  semantic body. Keep operation order explicit and cap input bytes, operation count and result size.
+- Support typed node replacement for types, statements, expressions and template parts, plus
+  statement insertion and deletion. Resolve RFC 6901 pointers against the current result and refuse
+  missing paths, category mismatches, no-ops and invalid intermediate bodies.
+- Add project-independent change validation and application. Return canonical input and result
+  identities without scanning a project or reading implementation source.
+- Report body identity with declaration semantic queries. Apply a semantic delta directly to an
+  exact function handle, then reuse writer fidelity, reparse, byte-preservation and transaction checks.
+- Carry semantic deltas through author batches and reviewed task changes, including source, fragment,
+  base-identity, result and delivery drift checks.
+- Extend the Python SDK with change objects that mirror the public operation hierarchy and accept
+  only the corresponding typed IR nodes.
+- Model operation admission, sequential bounds and statement-list size transitions in Lean. Anchor
+  the critical Rust predicates and compare their complete bounded state spaces.
+- Teach the portable skill the delta route and compare it with whole-body replacement on generic
+  fixtures. Run a fresh economical-agent pair when deterministic evidence passes.
+
+Verification and acceptance:
+
+1. Every accepted operation changes exactly its selected semantic subtree or statement-list slot.
+2. The base body identity must match before any operation; every intermediate and final body remains
+   strict, source-free `fr-semantic-body-1` within the existing statement and node limits.
+3. Project-independent application performs no project scan. Project authoring reads no fragment
+   containing source code and preserves bytes outside the selected function body.
+4. Missing and escaped pointers, wrong node categories, invalid indices, duplicate/no-op changes,
+   unsupported nodes and stale body identities refuse before source or history mutation.
+5. Preview remains read-only. Batch and task-change writes retain atomic apply, checks, undo, redo
+   and Git patch identity.
+6. Lean states the finite admission and size laws. Exhaustive Rust correspondence and
+   Python-generated fixtures connect the model, SDK and implementation without proving Serde or Python.
+7. Native, Python, documentation, skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the semantic-change contract, pure application engine and Python builders.
+2. **Complete.** Add body identity reporting and direct semantic-delta body authoring.
+3. **Complete.** Integrate author batches, reviewed task changes and lifecycle drift checks.
+4. **Complete.** Add Lean models, source anchors and exhaustive correspondence tests.
+5. **Complete.** Teach the agent workflow, retain controlled and fresh comparisons, expose exact
+   body pointers, and pass the complete repository gate.
 
 ## Formal verification policy
 

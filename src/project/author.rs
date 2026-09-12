@@ -4,10 +4,10 @@ use crate::lang::Language;
 use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
-use crate::transpile::ir::{Item, Module, Stmt};
+use crate::transpile::ir::{Item, Module};
 use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -22,12 +22,16 @@ pub enum Command {
     SemanticSchema(super::semantic_ir::SchemaOptions),
     #[command(about = "Validate and canonically identify source-free semantic IR JSON.")]
     ValidateSemantic(ValidateSemanticOptions),
+    #[command(about = "Apply a checked semantic change without scanning a project.")]
+    ApplySemanticChange(super::semantic_change::ApplyOptions),
     #[command(
         about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
     #[command(about = "Replace one supported function body from source-free semantic IR JSON.")]
     ReplaceBodySemantic(ReplaceBodyOptions),
+    #[command(about = "Apply a checked semantic delta to one supported function body.")]
+    EditBodySemantic(ReplaceBodyOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -55,6 +59,9 @@ pub fn guide() -> Value {
                 "targets": "supported function or method body"},
             {"op": "replace-body-semantic", "requires": ["handle", "from"],
                 "input-schema": "fr-semantic-body-1",
+                "targets": "supported function or method body"},
+            {"op": "edit-body-semantic", "requires": ["handle", "from"],
+                "input-schema": "fr-semantic-change-1",
                 "targets": "supported function or method body"},
             {"op": "replace-declaration", "requires": ["handle", "from"],
                 "targets": "Rust function declaration with unchanged name"},
@@ -141,6 +148,7 @@ pub(super) struct BatchStep {
 pub(super) enum BatchOperation {
     ReplaceBody,
     ReplaceBodySemantic,
+    EditBodySemantic,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -184,20 +192,6 @@ pub struct ValidateSemanticOptions {
 pub struct Plan {
     pub edits: EditSet,
     pub report: Value,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct SemanticBody {
-    schema: String,
-    body: Vec<Stmt>,
-}
-
-struct ValidatedSemanticBody {
-    manifest: SemanticBody,
-    input_sha256: String,
-    canonical: String,
-    nodes: usize,
 }
 
 pub fn semantic_body_admitted(
@@ -393,35 +387,9 @@ fn replacement(
     })
 }
 
-fn validated_semantic_body(input: &str) -> Result<ValidatedSemanticBody> {
-    let value: Value = serde_json::from_str(input).context("semantic body input must be JSON.")?;
-    ensure!(
-        super::semantic_ir::source_free(&value),
-        "semantic body input must not contain source fields or unsupported nodes."
-    );
-    let nodes = super::semantic::semantic_nodes(&value);
-    let manifest: SemanticBody = serde_json::from_value(value)
-        .context("semantic body input must match fr-semantic-body-1.")?;
-    ensure!(
-        manifest.schema == super::semantic_ir::BODY_SCHEMA,
-        "semantic body schema must be fr-semantic-body-1."
-    );
-    ensure!(
-        manifest.body.len() <= 512 && nodes <= 4096,
-        "semantic body input is limited to 512 statements and 4096 semantic nodes."
-    );
-    let canonical = serde_json::to_string(&manifest)?;
-    Ok(ValidatedSemanticBody {
-        manifest,
-        input_sha256: digest(input),
-        canonical,
-        nodes,
-    })
-}
-
 pub fn validate_semantic(root: &Path, options: &ValidateSemanticOptions) -> Result<Value> {
     let input = fragment(&root.join(&options.from))?;
-    let validated = validated_semantic_body(&input)?;
+    let validated = super::semantic_change::validate_body_input(&input)?;
     let mut report = json!({
         "schema": "fr-semantic-validation-1",
         "semantic_schema": super::semantic_ir::BODY_SCHEMA,
@@ -574,6 +542,9 @@ impl Project<'_> {
                         BatchOperation::ReplaceBodySemantic => {
                             self.replace_body_semantic(&operation_options)
                         }
+                        BatchOperation::EditBodySemantic => {
+                            self.edit_body_semantic(&operation_options)
+                        }
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -596,7 +567,9 @@ impl Project<'_> {
             let id = self.resolve_handle(&handle)?;
             let path = self.root.join(&self.nodes[id].path);
             let key = match step.op {
-                BatchOperation::ReplaceBody | BatchOperation::ReplaceBodySemantic => "body",
+                BatchOperation::ReplaceBody
+                | BatchOperation::ReplaceBodySemantic
+                | BatchOperation::EditBodySemantic => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -636,6 +609,7 @@ impl Project<'_> {
                 "name_resolution_checked",
                 "semantic_input",
                 "semantic_render",
+                "semantic_change",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();
@@ -1177,7 +1151,7 @@ impl Project<'_> {
             "diff bytes must be between 0 and 65536."
         );
         let input = fragment(&self.root.join(&options.from))?;
-        let validated = validated_semantic_body(&input)?;
+        let validated = super::semantic_change::validate_body_input(&input)?;
         let nodes = validated.nodes;
         let manifest = validated.manifest;
         let schema_matches = true;
@@ -1261,6 +1235,68 @@ impl Project<'_> {
             "language": language,
             "body_sha256": digest(&rendered_body),
             "fidelity": fidelity
+        });
+        Ok(plan)
+    }
+
+    pub fn edit_body_semantic(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let change_input = fragment(&self.root.join(&options.from))?;
+        let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
+        let id = self.resolve_handle(&handle)?;
+        let symbol = self.nodes[id]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("semantic body editing requires a function handle.")?;
+        let target_supported = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && BodySyntax::for_language(symbol.language).is_ok();
+        ensure!(
+            target_supported,
+            "selected target does not support semantic body editing."
+        );
+        let source = &self.sources[&symbol.file];
+        let parsed = Parsers::new().parse(symbol.language, source)?;
+        ensure!(
+            !parsed.has_errors(),
+            "semantic body editing requires a file without parser errors."
+        );
+        let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
+        let function = super::semantic::selected_function(&context, symbol).with_context(|| {
+            format!(
+                "the {} '{}' has no exact semantic function model.",
+                symbol.kind.as_str(),
+                symbol.name
+            )
+        })?;
+        let current = super::semantic_change::SemanticBody {
+            schema: super::semantic_ir::BODY_SCHEMA.into(),
+            body: function.body,
+        };
+        let body_input = serde_json::to_string(&current)?;
+        let applied = super::semantic_change::apply(&body_input, &change_input)?;
+        let result = serde_json::to_string(&applied.body)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
+        temporary.write_all(result.as_bytes())?;
+        temporary.flush()?;
+        let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
+            handle: options.handle.clone(),
+            revision: options.revision.clone(),
+            from: temporary.path().to_path_buf(),
+            diff_bytes: options.diff_bytes,
+            write: false,
+        })?;
+        plan.report["query"] = json!("edit-body-semantic");
+        plan.report["semantic_change"] = json!({
+            "schema":super::semantic_change::CHANGE_SCHEMA,
+            "sha256":applied.change_sha256,
+            "input_basis":applied.input_basis,
+            "result_basis":applied.result_basis,
+            "operations":applied.operations,
+            "semantic_nodes":applied.nodes,
+            "source_free":true
         });
         Ok(plan)
     }

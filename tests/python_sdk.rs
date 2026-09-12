@@ -84,6 +84,61 @@ fn every_python_constructor_deserializes_and_canonicalizes_in_rust() {
 }
 
 #[test]
+fn python_semantic_changes_apply_through_the_rust_engine() {
+    let temp = tempfile::tempdir().unwrap();
+    let body = temp.path().join("body.json");
+    let change = temp.path().join("change.json");
+    let script = r#"# => checked semantic change fixture
+import sys
+from fr_ir import Change, Expr, SemanticBody, SemanticChange, Stmt
+body = SemanticBody([Stmt.Return(Expr.Name("left"))])
+body.write(sys.argv[1])
+SemanticChange(body, [
+    Change.InsertStatement("/body", 0, Stmt.Comment("temporary")),
+    Change.Replace("/body/1/value", Expr.Name("right")),
+    Change.DeleteStatement("/body/0"),
+]).write(sys.argv[2])
+"#;
+    let generated = python()
+        .args(["-c", script])
+        .arg(&body)
+        .arg(&change)
+        .output()
+        .unwrap();
+    assert!(
+        generated.status.success(),
+        "{}",
+        String::from_utf8_lossy(&generated.stderr)
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "-C"])
+        .arg(temp.path())
+        .args([
+            "author",
+            "apply-semantic-change",
+            "--body",
+            "body.json",
+            "--change",
+            "change.json",
+            "--canonical",
+        ])
+        .output()
+        .unwrap();
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap_or_else(|_| {
+        panic!(
+            "{} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    });
+    assert!(output.status.success(), "{report}");
+    assert_eq!(report["canonical"]["body"].as_array().unwrap().len(), 1);
+    assert_eq!(report["canonical"]["body"][0]["value"]["value"], "right");
+    let change: Value = serde_json::from_slice(&fs::read(change).unwrap()).unwrap();
+    assert_eq!(report["input_basis"], change["base"]);
+}
+
+#[test]
 fn checked_sdk_evaluation_is_reproducible() {
     let temp = tempfile::tempdir().unwrap();
     let output_path = temp.path().join("report.json");

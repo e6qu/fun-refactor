@@ -95,6 +95,47 @@ fewer bytes. Treat direct JSON as the measured default for a small one-off body.
 early category checks or reuse matters, and measure broader tasks before claiming a context saving.
 See `docs/agent-ir-sdk-evaluation.md` for the conditions and limits.
 
+## Checked semantic deltas
+
+A complete bounded body report includes `body_identity` with schema `fr-semantic-body-1`, an
+`frsb1:` basis, statement and node counts, and `source_free: true`. Source-bearing or oversized
+bodies report why this identity is unavailable.
+
+`fr-semantic-change-1` binds up to 64 ordered operations to that basis. A replacement names a
+bounded RFC 6901 path, its `type`, `statement`, `expression` or `template` category, and one typed
+value. Statement insertion names a list path, index and statement. Statement deletion names the
+selected statement path. The catalog is available through `fr author semantic-schema change`.
+
+Add `--pointers` to a single-declaration body query when a delta needs exact addresses. The bounded
+`fr-semantic-body-pointers-1` list carries the same body basis and gives each authorable node's path,
+category and kind. Paths that exceed the change contract's limit do not appear.
+
+The pure `fr author apply-semantic-change --body BODY --change CHANGE --canonical` command checks a
+delta without scanning a project. It refuses malformed or escaped paths, missing targets, category
+crossings, unsupported or source-bearing nodes, invalid indices, stale bases, no-ops and any invalid
+intermediate body. Each operation resolves against the previous canonical result.
+
+The Python SDK mirrors the same operation hierarchy:
+
+```python
+from fr_ir import Change, Expr, SemanticChange, Stmt
+
+change = SemanticChange(body_basis, [
+    Change.Replace("/body/0/value", Expr.Name("replacement")),
+    Change.InsertStatement("/body", 1, Stmt.Return(Expr.Int(0))),
+])
+change.write("change.json")
+```
+
+`fr author edit-body-semantic HANDLE --from CHANGE` reconstructs the current function body, checks
+the basis, applies the delta, and reuses the semantic writer and exact body splice. Author batches,
+project tasks and reviewed task changes accept `edit-body-semantic`. Their normal preview, drift,
+checks, reversal and patch rules apply.
+
+The [controlled comparison](semantic-delta-evaluation.md) measures one small edit against complete
+body replacement. It reports the smaller delta input, larger receipt output and identical checked
+lifecycle result.
+
 The operation selects the existing function model, replaces its IR body and renders one function
 through the writer for the target language. It currently supports the same Rust, Go, Java,
 TypeScript and TSX targets as source body replacement. Rendering must carry no source verbatim and
@@ -103,8 +144,8 @@ splices only its body span and reparses the unchanged destination context.
 
 The report retains semantic input and rendered-body hashes, node count and writer fidelity.
 Preview, saved plans, batch steps, `task-change`, checks, undo, redo and patch delivery use the
-existing review bases and drift checks. Use `replace-body-semantic` as the operation name in author,
-project-task and task-change manifests.
+existing review bases and drift checks. Use `replace-body-semantic` or `edit-body-semantic` as the
+operation name in author, project-task and task-change manifests.
 
 The Lean project model proves whole-model budget admission. The Lean author model proves that
 admission requires the exact schema, a supported target, source-free input and bounded size. Shared
@@ -113,3 +154,9 @@ target matrix. The anchored catalog model proves uniqueness within each finite c
 both unsupported kinds and category separation. All 155 category/index cases agree with Rust.
 These proofs do not cover parser correctness, JSON deserialization, Python execution, SHA-256 or
 writer semantics.
+
+The semantic-change model adds source-anchored admission, result-bound, pointer-bound and statement
+index predicates. Lean proves that accepted changes have matching bases, 1 through 64 operations,
+at most 512 top-level statements and 4,096 nodes. It also proves insertion and deletion count laws.
+Executable comparisons cover all Boolean states and selected numeric boundaries. These results do
+not prove RFC 6901 parsing, Serde, SHA-256, tree replacement or writer correctness.

@@ -92,6 +92,49 @@ task favors direct JSON for one-off construction and leaves SDK reuse as a futur
 The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
 passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
+Roadmap [PR 16](https://github.com/e6qu/fun-refactor/pull/278) adds a checked semantic-delta
+contract so an agent can replace one typed IR node or insert/delete one statement without resending
+the complete function body. The change stays bound to a canonical body identity and must preserve a
+strict, bounded, source-free body after every ordered operation.
+
+The first checkpoint adds project-independent `fr author apply-semantic-change` and the discoverable
+`fr-semantic-change-1` contract. A base identity binds canonical body bytes. Up to 64 ordered
+operations replace a typed node or insert/delete a statement through bounded RFC 6901 pointers. The
+engine strictly deserializes every intermediate body and uses structural witnesses to distinguish
+node categories whose JSON encodings coincide. Python `SemanticChange` and `Change` objects emit the
+same contract and pass through the Rust engine in the cross-runtime suite.
+
+The second checkpoint adds an `frsb1:` body identity to bounded declaration semantic reports.
+`fr author edit-body-semantic` derives that same body from an exact handle, checks the delta base,
+applies every operation, and sends the result through the existing semantic writer and body splice.
+Rust, Go, Java and TypeScript fixtures change one expression while retaining every byte outside the
+selected body. Source-bearing or oversized current bodies expose no usable identity.
+
+The third checkpoint carries `edit-body-semantic` through author batches, project tasks and reviewed
+task changes. The reviewed lifecycle test covers read-only preview, declared checks, undo, redo and
+patch delivery. A changed body basis refuses before history creation.
+
+The fourth checkpoint anchors change admission, result bounds, pointer bounds and statement index
+rules to Rust. Lean proves matching-base and operation-count requirements, result limits, and
+statement insertion/deletion count laws. All 67 strict anchors are fresh with zero obligations or
+debts. Executable comparisons cover every Boolean state and selected numeric boundaries.
+
+The fifth checkpoint starts with `tests/agent-eval/semantic-delta.json`. On a generic six-statement
+Rust pipeline, one delta is 245 bytes versus 1,081 for the complete body. Both routes pass behavior,
+patch, undo and redo checks and produce identical source and body identities. Delta preview and
+write reports are 700 bytes larger because they retain operation receipts. The fresh economical
+agent pair uses Luna at low effort. Both arms pass exact semantics and compiled behavior without an
+observed source read. The delta artifact is 331 bytes versus 1,930, but the delta arm uses 31,534
+input tokens after reported cache hits and nine commands. The complete-body arm uses 17,122 and
+five. The delta trace tried the wrong validator and three invalid paths. The skill now distinguishes
+validation routes, and optional semantic body pointers report exact paths, categories and kinds.
+
+The pointer follow-up returns a bounded `fr-semantic-body-pointers-1` index only for one complete,
+authorable function or method body. Every row resolves against the reported body and carries its
+typed category and kind. Ambiguous file requests and incomplete bodies refuse instead of returning
+an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
+fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
+
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
 declaration targets from literal handles or returned query strings. A task target selects one of

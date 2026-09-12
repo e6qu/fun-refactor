@@ -1,0 +1,47 @@
+{
+  "schema": "fr-semantic-delta-evaluation-1",
+  "fixture": "generic six-statement arithmetic pipeline",
+  "change": "replace one integer expression",
+  "routes": {
+    "semantic-delta": {
+      "payload_bytes": 245,
+      "semantic_query_bytes": 2066,
+      "preview_bytes": 3038,
+      "write_bytes": 3135,
+      "patch_report_bytes": 689,
+      "changed": true,
+      "behavior_passed": true,
+      "patch_checked": true,
+      "undo_exact": true,
+      "redo_exact": true,
+      "final_body_basis": "frsb1:18c6cf3fc25873dfa8e6f1d8af270278656f87d59eb5dfb293f740047961c610",
+      "final_source_sha256": "453ef32241c00742ddf691cfa5bd210c95c8cbe5230b5e49fb29bfc04196a4ba"
+    },
+    "complete-body": {
+      "payload_bytes": 1081,
+      "semantic_query_bytes": 2066,
+      "preview_bytes": 2338,
+      "write_bytes": 2435,
+      "patch_report_bytes": 689,
+      "changed": true,
+      "behavior_passed": true,
+      "patch_checked": true,
+      "undo_exact": true,
+      "redo_exact": true,
+      "final_body_basis": "frsb1:18c6cf3fc25873dfa8e6f1d8af270278656f87d59eb5dfb293f740047961c610",
+      "final_source_sha256": "453ef32241c00742ddf691cfa5bd210c95c8cbe5230b5e49fb29bfc04196a4ba"
+    }
+  },
+  "equivalence": {
+    "final_body_identity_equal": true,
+    "final_source_identity_equal": true
+  },
+  "stale_base_refused_before_write": true,
+  "pointer_follow_up": {
+    "exact_changed_node_listed": true,
+    "nodes": 22,
+    "query_bytes": 3250,
+    "additional_query_bytes": 1184
+  },
+  "scope": "Deterministic CLI payload and lifecycle evidence on one generic Rust fixture."
+}

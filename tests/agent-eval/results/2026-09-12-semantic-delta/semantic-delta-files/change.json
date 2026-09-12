@@ -1,0 +1,86 @@
+{
+  "schema": "fr-semantic-body-1",
+  "body": [
+    {
+      "kind": "let",
+      "value": {
+        "mutable": false,
+        "name": "stage_one",
+        "ty": null,
+        "value": {
+          "kind": "binary",
+          "value": {
+            "left": {"kind": "name", "value": "value"},
+            "op": "add",
+            "right": {"kind": "int", "value": "7"}
+          }
+        }
+      }
+    },
+    {
+      "kind": "let",
+      "value": {
+        "mutable": false,
+        "name": "stage_two",
+        "ty": null,
+        "value": {
+          "kind": "binary",
+          "value": {
+            "left": {"kind": "name", "value": "stage_one"},
+            "op": "mul",
+            "right": {"kind": "int", "value": "2"}
+          }
+        }
+      }
+    },
+    {
+      "kind": "let",
+      "value": {
+        "mutable": false,
+        "name": "stage_three",
+        "ty": null,
+        "value": {
+          "kind": "binary",
+          "value": {
+            "left": {"kind": "name", "value": "stage_two"},
+            "op": "sub",
+            "right": {"kind": "int", "value": "3"}
+          }
+        }
+      }
+    },
+    {
+      "kind": "let",
+      "value": {
+        "mutable": false,
+        "name": "stage_four",
+        "ty": null,
+        "value": {
+          "kind": "binary",
+          "value": {
+            "left": {"kind": "name", "value": "stage_three"},
+            "op": "add",
+            "right": {"kind": "int", "value": "4"}
+          }
+        }
+      }
+    },
+    {
+      "kind": "let",
+      "value": {
+        "mutable": false,
+        "name": "stage_five",
+        "ty": null,
+        "value": {
+          "kind": "binary",
+          "value": {
+            "left": {"kind": "name", "value": "stage_four"},
+            "op": "mul",
+            "right": {"kind": "int", "value": "5"}
+          }
+        }
+      }
+    },
+    {"kind": "return", "value": {"kind": "name", "value": "stage_five"}}
+  ]
+}

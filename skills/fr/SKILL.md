@@ -15,6 +15,6 @@ Pass full `find` handles to `project select`. `project show` takes a handle and 
 For multi-view structural work, read [Task](references/task.md). It also covers reviewed execution
 after fragments exist and checks are set.
 
-Load only the needed route: [Semantic](references/semantic.md), [Explore](references/explore.md), [Author](references/author.md), [Change](references/change.md), [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md), [Git](references/git.md), or [Lean](references/lean.md).
+Load only the needed route: [Semantic](references/semantic.md), [Semantic change](references/semantic-change.md), [Explore](references/explore.md), [Author](references/author.md), [Change](references/change.md), [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md), [Git](references/git.md), or [Lean](references/lean.md).
 
 Authoring uses revision-bound handles; refactors use names or positions. Mutations preview by default. Prefer saved transactions for coordinated changes, then apply them. Preserve refusals, gaps, and uncertainty as evidence limits.

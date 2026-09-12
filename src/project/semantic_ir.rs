@@ -101,6 +101,7 @@ pub enum Section {
     BinaryOperator,
     UnaryOperator,
     Record,
+    Change,
 }
 
 impl Section {
@@ -114,6 +115,7 @@ impl Section {
             Self::BinaryOperator => "binary-operator",
             Self::UnaryOperator => "unary-operator",
             Self::Record => "record",
+            Self::Change => "change",
         }
     }
 }
@@ -311,6 +313,24 @@ fn section_report(section: Section) -> Value {
             "catch":"{binding:string|null,ty:type|null,body:statement[]}",
             "variant-arm":"{variant:string,bindings:[[string,string]],body:statement[]}"},
             "enums":{"param-kind":["normal","var-args","keyword-args","marker"]}}),
+        Section::Change => json!({
+            "section":"change",
+            "shape":{"schema":super::semantic_change::CHANGE_SCHEMA,
+                "base":"frsb1:<CANONICAL_BODY_SHA256>","operations":"operation[]"},
+            "operations":[
+                {"op":"replace","fields":{"path":"RFC6901 pointer below /body",
+                    "category":["type","statement","expression","template"],"value":"typed node"},
+                    "python_constructor":"Change.Replace"},
+                {"op":"insert-statement","fields":{"path":"statement-list pointer at or below /body",
+                    "index":"uint","value":"statement"},"python_constructor":"Change.InsertStatement"},
+                {"op":"delete-statement","fields":{"path":"statement pointer below /body"},
+                    "python_constructor":"Change.DeleteStatement"}
+            ],
+            "limits":{"bytes":super::semantic_change::MAX_INPUT_BYTES,
+                "operations":super::semantic_change::MAX_OPERATIONS,
+                "pointer_bytes":1024,"pointer_segments":64},
+            "semantics":"ordered; the validator checks every intermediate body"
+        }),
         _ => unreachable!(),
     }
 }
@@ -375,12 +395,13 @@ pub fn catalog(options: &SchemaOptions) -> Result<Value> {
             {"name":"template","entries":TEMPLATE_SPECS.len()},
             {"name":"binary-operator","entries":BINARY_OPERATORS.len()},
             {"name":"unary-operator","entries":UNARY_OPERATORS.len()},
-            {"name":"record","entries":4}
+            {"name":"record","entries":4}, {"name":"change","entries":3}
         ],
         "commands":{
             "section":"fr author semantic-schema <SECTION>",
             "variant":"fr author semantic-schema <SECTION> --kind <KIND>",
-            "validate":"fr author validate-semantic --from <FILE>"
+            "validate":"fr author validate-semantic --from <FILE>",
+            "apply_change":"fr author apply-semantic-change --body <BODY> --change <CHANGE>"
         },
         "python":{"package":"fr_ir","object_fields":"pass as keyword arguments","source_read_required":false}
     }))

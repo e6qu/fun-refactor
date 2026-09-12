@@ -162,6 +162,11 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
                 "id": "render-body",
                 "handle": {"request": "target", "pointer": "/rows/0/0"},
                 "op": "replace-body"
+            },
+            {
+                "id": "render-delta",
+                "handle": {"request": "target", "pointer": "/rows/0/0"},
+                "op": "edit-body-semantic"
             }
         ],
         "checks": ["unit"],
@@ -181,6 +186,8 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     assert_eq!(task["targets"][0]["operation"], "insert-declaration");
     assert_eq!(task["targets"][1]["kind"], "function");
     assert_eq!(task["targets"][1]["operation"], "replace-body");
+    assert_eq!(task["targets"][2]["kind"], "function");
+    assert_eq!(task["targets"][2]["operation"], "edit-body-semantic");
     for target in task["targets"].as_array().unwrap() {
         assert_eq!(target["eligibility"], "target-supported");
         assert_eq!(target["syntax_preflighted"], false);
@@ -197,6 +204,10 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     assert_eq!(
         task["author_manifest_template"]["operations"][1]["from"],
         "<FRAGMENT:render-body>"
+    );
+    assert_eq!(
+        task["author_manifest_template"]["operations"][2]["from"],
+        "<FRAGMENT:render-delta>"
     );
     assert_eq!(task["checks"]["selected"], true);
     assert_eq!(task["checks"]["names"], serde_json::json!(["unit"]));
@@ -345,6 +356,7 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
             "--declaration",
             "positive_names",
             "--body",
+            "--pointers",
             "--minimal",
         ],
     );
@@ -353,12 +365,58 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
         .as_str()
         .unwrap()
         .starts_with("frp1:"));
+    assert_eq!(direct["body_identity"]["status"], "available");
+    assert_eq!(direct["body_identity"]["source_free"], true);
+    assert!(direct["body_identity"]["basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frsb1:"));
+    assert_eq!(
+        direct["body_pointers"]["basis"],
+        direct["body_identity"]["basis"]
+    );
+    let body = serde_json::json!({
+        "schema":"fr-semantic-body-1",
+        "body":direct["model"]["items"][0]["value"]["body"]
+    });
+    assert_eq!(
+        direct["body_pointers"]["fields"],
+        serde_json::json!(["path", "category", "kind"])
+    );
+    let pointers = direct["body_pointers"]["rows"].as_array().unwrap();
+    assert!(!pointers.is_empty());
+    let mut paths = std::collections::BTreeSet::new();
+    for row in pointers {
+        let path = row[0].as_str().unwrap();
+        let selected = body.pointer(path).unwrap();
+        assert_eq!(selected["kind"], row[2]);
+        assert!(matches!(
+            row[1].as_str().unwrap(),
+            "type" | "statement" | "expression" | "template"
+        ));
+        assert!(paths.insert(path));
+    }
     assert!(direct.get("coverage").is_none());
     assert!(direct["report_omitted"]
         .as_array()
         .unwrap()
         .iter()
         .any(|field| field == "coverage"));
+    let missing_body = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(dir.path())
+        .args(["project", "semantic", "app.py", "--pointers"])
+        .output()
+        .unwrap();
+    assert!(!missing_body.status.success());
+    assert!(String::from_utf8_lossy(&missing_body.stderr).contains("--body"));
+    assert!(
+        !run(
+            dir.path(),
+            &["project", "semantic", "app.py", "--body", "--pointers"]
+        )
+        .0
+    );
 }
 
 #[test]

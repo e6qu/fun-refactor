@@ -5,8 +5,9 @@ It supports Rust, Go, Java, TypeScript and TSX.
 It retains the signature, outer attributes, documentation and every byte outside that block.
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 
-Use `fr project semantic HANDLE --body` and `fr author replace-body-semantic HANDLE --from FILE`
-when the agent should read and write the versioned cross-language IR instead of source fragments.
+Use `fr project semantic HANDLE --body` with `replace-body-semantic` for complete bodies or
+`edit-body-semantic` for checked deltas. These routes let an agent read and write versioned
+cross-language IR instead of source fragments.
 The [semantic model contract](semantic-model.md) defines its source boundary, node budget, JSON form,
 writer checks and task-change integration. Both routes preserve the same bytes outside the selected body.
 
@@ -151,7 +152,8 @@ Use the returned source-history transaction for exact application, undo/redo and
 ## Coordinated authoring batches
 
 `fr author batch --from MANIFEST` plans 1 through 32 existing authoring operations against one captured project revision.
-It accepts `replace-body`, `replace-body-semantic`, `replace-declaration`, `insert-declaration` and `organize-imports`, with their existing language and input restrictions.
+It accepts `replace-body`, `replace-body-semantic`, `edit-body-semantic`, `replace-declaration`,
+`insert-declaration` and `organize-imports`, with their existing language and input restrictions.
 Use this to update a caller and callee together, or change several implementations across files in one source-history transaction.
 
 The manifest is a regular UTF-8 JSON file of at most 64 KiB:

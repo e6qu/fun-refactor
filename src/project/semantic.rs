@@ -31,6 +31,12 @@ pub struct Options {
     pub(super) body: bool,
     #[arg(
         long,
+        requires = "body",
+        help = "List exact typed pointers for the selected authorable body."
+    )]
+    pub(super) pointers: bool,
+    #[arg(
+        long,
         default_value_t = 256,
         help = "Maximum complete semantic nodes returned, from 1 through 4096."
     )]
@@ -348,6 +354,8 @@ impl Project<'_> {
             "semantic source contains parser errors."
         );
         let mut module = crate::transpile::read_module(file.language, source, parsed.root())?;
+        let mut body_identity = None;
+        let mut pointer_body = None;
         let selected = if let Some(symbol) = node.symbol.and_then(|id| self.index.symbol(id)) {
             let item = selected_item(&module, symbol).with_context(|| {
                 format!(
@@ -355,9 +363,42 @@ impl Project<'_> {
                     symbol.kind.as_str(), symbol.name
                 )
             })?;
+            ensure!(
+                !options.pointers || matches!(item, Item::Function(_)),
+                "semantic body pointers require one function or method declaration."
+            );
+            if let Item::Function(function) = &item {
+                let body = super::semantic_change::SemanticBody {
+                    schema: super::semantic_ir::BODY_SCHEMA.into(),
+                    body: function.body.clone(),
+                };
+                let value = serde_json::to_value(&body)?;
+                let nodes = semantic_nodes(&value);
+                body_identity = Some(if !super::semantic_ir::source_free(&value) {
+                    json!({"status":"unavailable-source-bearing","source_free":false})
+                } else if body.body.len() > super::semantic_change::MAX_STATEMENTS
+                    || nodes > super::semantic_change::MAX_NODES
+                {
+                    json!({"status":"unavailable-size","source_free":true,
+                        "statements":body.body.len(),"semantic_nodes":nodes})
+                } else {
+                    let basis = super::semantic_change::body_basis(&body)?;
+                    if options.pointers {
+                        pointer_body = Some(body.clone());
+                    }
+                    json!({"status":"available","source_free":true,
+                        "schema":super::semantic_ir::BODY_SCHEMA,
+                        "basis":basis,
+                        "statements":body.body.len(),"semantic_nodes":nodes})
+                });
+            }
             module.items = vec![item];
             "declaration"
         } else {
+            ensure!(
+                !options.pointers,
+                "semantic body pointers require one function or method declaration."
+            );
             "file"
         };
         let (omitted_bodies, omitted_statements) = if options.body {
@@ -371,6 +412,10 @@ impl Project<'_> {
             redact_sources(&mut model, &mut redacted);
         }
         let required = semantic_nodes(&model).max(1);
+        ensure!(
+            !options.pointers || semantic_section_fits(required, options.nodes),
+            "semantic body pointers require a complete body within the node budget."
+        );
         let payload_hash = hash((&self.revision, self.handle(target), &model))?;
         let basis = format!("frsm1:{payload_hash}");
         let mut report = self.envelope("semantic");
@@ -383,6 +428,21 @@ impl Project<'_> {
             "language": file.language,
             "body_requested": options.body
         });
+        if let Some(identity) = body_identity {
+            report["body_identity"] = identity;
+        }
+        if options.pointers {
+            report["body_pointers"] = if let Some(body) = pointer_body {
+                json!({
+                    "schema":"fr-semantic-body-pointers-1",
+                    "basis":report["body_identity"]["basis"],
+                    "fields":["path","category","kind"],
+                    "rows":super::semantic_change::body_pointers(&body)?
+                })
+            } else {
+                json!({"schema":"fr-semantic-body-pointers-1","status":"unavailable-body-identity"})
+            };
+        }
         report["addressing"] = json!({
             "format": "SEMANTIC_BASIS#RFC6901_JSON_POINTER",
             "root": format!("{}#/model", report["semantic_basis"].as_str().unwrap())
