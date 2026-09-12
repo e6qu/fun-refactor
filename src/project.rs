@@ -34,6 +34,7 @@ mod routes;
 mod schemas;
 mod semantic;
 pub mod semantic_change;
+pub mod semantic_intent;
 pub mod semantic_ir;
 pub(crate) use semantic::minimize as minimize_semantic_report;
 pub use semantic::semantic_section_fits;

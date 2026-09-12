@@ -12,9 +12,14 @@ from fr_ir import (
     BinaryOp,
     Change,
     Expr,
+    Intent,
     IrError,
+    LocatorStep,
+    NodeCategory,
+    Role,
     SemanticBody,
     SemanticChange,
+    SemanticIntent,
     Stmt,
     TemplatePart,
     Type,
@@ -88,6 +93,44 @@ class IrTests(unittest.TestCase):
             Change.DeleteStatement("/body/~2bad")
         with self.assertRaisesRegex(IrError, "1 through 64"):
             SemanticChange("frsb1:" + "0" * 64, [])
+
+    def test_semantic_intents_mirror_roles_scalars_and_body_identity(self):
+        body = SemanticBody([
+            Stmt.Return(Expr.Binary(BinaryOp.ADD, Expr.Name("value"), Expr.Int(1)))
+        ])
+        target = [
+            LocatorStep(Role.STATEMENT, index=0, category=NodeCategory.STATEMENT, kind="return"),
+            LocatorStep(Role.RESULT, category=NodeCategory.EXPRESSION, kind="binary"),
+            LocatorStep(Role.RIGHT, category=NodeCategory.EXPRESSION, kind="int"),
+        ]
+        intent = SemanticIntent(body, [Intent.SetInt(target, "1", "2")])
+        self.assertEqual(intent.to_data(), {
+            "schema": "fr-semantic-intent-1",
+            "base": body.basis(),
+            "operations": [{
+                "op": "set-int",
+                "target": [
+                    {"role": "statement", "index": 0, "category": "statement", "kind": "return"},
+                    {"role": "result", "category": "expression", "kind": "binary"},
+                    {"role": "right", "category": "expression", "kind": "int"},
+                ],
+                "from": "1",
+                "to": "2",
+            }],
+        })
+
+    def test_semantic_intent_constructors_refuse_invalid_values(self):
+        target = [LocatorStep(Role.STATEMENT, index=0)]
+        with self.assertRaisesRegex(IrError, "portable decimal"):
+            Intent.SetInt(target, "1", "-2")
+        with self.assertRaisesRegex(IrError, "portable identifiers"):
+            Intent.SetName(target, "before", "not-portable")
+        with self.assertRaisesRegex(IrError, "must change"):
+            Intent.SetComment(target, "same", "same")
+        with self.assertRaisesRegex(IrError, "nonnegative"):
+            LocatorStep(Role.STATEMENT, index=True)
+        with self.assertRaisesRegex(IrError, "1 through 64"):
+            Intent.SetBool([], False, True)
 
 
 if __name__ == "__main__":

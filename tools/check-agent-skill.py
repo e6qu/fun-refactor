@@ -25,6 +25,7 @@ ROUTES = {
     "exploration": ["SKILL.md", "references/explore.md", "references/batch.md"],
     "semantic": ["SKILL.md", "references/semantic.md", "references/author.md"],
     "semantic-change": ["SKILL.md", "references/semantic-change.md", "references/author.md"],
+    "semantic-intent": ["SKILL.md", "references/semantic-intent.md", "references/author.md"],
     "task": ["SKILL.md", "references/task.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],

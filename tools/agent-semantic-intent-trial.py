@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare, score and retain a semantic-delta versus complete-body agent pair."""
+"""Prepare, score and retain a semantic-intent versus complete-body agent pair."""
 
 from __future__ import annotations
 
@@ -64,15 +64,14 @@ def expected_body(binary: Path, project: Path) -> dict:
 def prepare(out: Path, binary: Path) -> None:
     if out.exists():
         raise ValueError(f"{out} already exists")
-    names = ["semantic-delta-fr", "semantic-delta-files"]
+    names = ["semantic-intent-fr", "semantic-intent-files"]
     out.mkdir(parents=True)
     (out / "experiment.json").write_text(
-        json.dumps({"project": "semantic-delta", "repetitions": 1, "trials": names}, indent=2) + "\n"
+        json.dumps({"project": "semantic-intent", "repetitions": 1, "trials": names}, indent=2) + "\n"
     )
     common = (
-        "Read ../skill/semantic.md first. Change summarize so stage_one adds 7 instead of 1. "
-        "Do not read app.rs or source text through any tool. Inspect only source-free semantic data "
-        "with ./fr project semantic app.rs --declaration summarize --body --nodes 128 --minimal. "
+        "Read the single Markdown file under ../skill first. Change summarize so stage_one adds 7 instead of 1. "
+        "Do not read app.rs or source text through any tool. Inspect only source-free semantic data with ./fr project semantic. "
         "Do not inspect fr implementation source. Write the authoring payload only to ../change.json, "
         "preview the requested operation, then apply it with --write. Stop after the write succeeds."
     )
@@ -83,17 +82,17 @@ def prepare(out: Path, binary: Path) -> None:
         project.mkdir(parents=True)
         skill.mkdir()
         shutil.copy2(binary, project / "fr")
-        shutil.copy2(ROOT / "skills/fr/references/semantic.md", skill / "semantic.md")
+        shutil.copy2(ROOT / "skills/fr/references" / ("semantic-intent.md" if arm == "fr" else "semantic.md"), skill / ("semantic-intent.md" if arm == "fr" else "semantic.md"))
         (project / "app.rs").write_text(SOURCE, encoding="utf-8")
-        operation = "edit-body-semantic" if arm == "fr" else "replace-body-semantic"
+        operation = "edit-body-intent" if arm == "fr" else "replace-body-semantic"
         route = (
-            "Add --pointers to the semantic query. Use one fr-semantic-change-1 replace operation "
-            "and edit-body-semantic."
+            "Use --body --locators --locators-only with exact --locator-op and --locator-from filters. "
+            "Use one fr-semantic-intent-1 operation and edit-body-intent."
             if arm == "fr"
             else "Use one complete fr-semantic-body-1 payload and replace-body-semantic."
         )
         (session / "session.json").write_text(
-            json.dumps({"task": "semantic-delta", "arm": arm, "repetition": 1, "operation": operation}, indent=2) + "\n"
+            json.dumps({"task": "semantic-intent", "arm": arm, "repetition": 1, "operation": operation}, indent=2) + "\n"
         )
         (session / "prompt.txt").write_text(f"{common} {route}\n", encoding="utf-8")
         (session / "expected.json").write_text(
@@ -162,30 +161,36 @@ def score(sessions: Path) -> dict:
         }
         expected = load(session / "expected.json")
         operation = config["operation"]
-        other = "replace-body-semantic" if operation == "edit-body-semantic" else "edit-body-semantic"
+        other = "replace-body-semantic" if operation == "edit-body-intent" else "edit-body-intent"
         source_reads = direct_source_reads(commands)
         route_used = any(operation in command for command in commands) and not any(
             other in command for command in commands
         )
-        expected_schema = "fr-semantic-change-1" if config["arm"] == "fr" else "fr-semantic-body-1"
+        expected_schema = "fr-semantic-intent-1" if config["arm"] == "fr" else "fr-semantic-body-1"
         behavior_passed = compile_test(project)
+        filtered_locator_used = config["arm"] != "fr" or any(
+            "--locators-only" in command and "--locator-op" in command and "--locator-from" in command
+            for command in commands
+        )
         passed = (
             run.get("exit_code") == 0
             and payload.get("schema") == expected_schema
             and route_used
+            and filtered_locator_used
             and source_reads == 0
             and body == expected
             and behavior_passed
             and (project / ".fr-history").is_dir()
         )
         result = {
-            "schema": "fr-agent-semantic-delta-result-1",
+            "schema": "fr-agent-semantic-intent-result-1",
             "trial": name,
-            "route": "semantic-delta" if config["arm"] == "fr" else "complete-body",
+            "route": "semantic-intent" if config["arm"] == "fr" else "complete-body",
             "passed": passed,
             "exact_semantic_body": body == expected,
             "behavior_passed": behavior_passed,
             "route_used": route_used,
+            "filtered_locator_used": filtered_locator_used,
             "direct_source_reads": source_reads,
             "payload_bytes": payload_path.stat().st_size if payload_path.is_file() else 0,
             "commands": len(commands),
@@ -195,7 +200,7 @@ def score(sessions: Path) -> dict:
         (session / "result.json").write_text(json.dumps(result, indent=2) + "\n")
         results.append(result)
     summary = {
-        "schema": "fr-agent-semantic-delta-pair-1",
+        "schema": "fr-agent-semantic-intent-pair-1",
         "passed": all(result["passed"] for result in results),
         "results": results,
     }
@@ -221,7 +226,8 @@ def record(sessions: Path, out: Path, implementation_commit: str) -> None:
             candidate = source / filename
             if candidate.is_file():
                 shutil.copy2(candidate, destination / filename)
-        shutil.copy2(source / "skill/semantic.md", destination / "semantic.md")
+        skill_name = "semantic-intent.md" if load(source / "session.json")["arm"] == "fr" else "semantic.md"
+        shutil.copy2(source / "skill" / skill_name, destination / skill_name)
     files = {
         str(path.relative_to(out)): digest(path)
         for path in sorted(out.rglob("*"))
@@ -229,7 +235,7 @@ def record(sessions: Path, out: Path, implementation_commit: str) -> None:
     }
     first = load(out / experiment["trials"][0] / "codex-run.json")
     manifest = {
-        "schema": "fr-agent-semantic-delta-evidence-1",
+        "schema": "fr-agent-semantic-intent-evidence-1",
         "implementation_commit": implementation_commit,
         "model": first["model"],
         "reasoning_effort": first["reasoning_effort"],

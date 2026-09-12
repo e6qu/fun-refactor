@@ -27,7 +27,7 @@ pub struct ApplyOptions {
     pub canonical: bool,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, ValueEnum, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 #[clap(rename_all = "kebab-case")]
 pub enum NodeCategory {
@@ -192,7 +192,7 @@ fn canonical_pointer(path: &str, allow_body: bool) -> bool {
     })
 }
 
-fn category_matches(value: &Value, category: NodeCategory) -> bool {
+pub(super) fn category_matches(value: &Value, category: NodeCategory) -> bool {
     match category {
         NodeCategory::Type => serde_json::from_value::<Type>(value.clone()).is_ok(),
         NodeCategory::Statement => serde_json::from_value::<Stmt>(value.clone()).is_ok(),

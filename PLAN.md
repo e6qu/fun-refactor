@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence and source-free semantic IR | Extend semantic coverage and lower repeated-query/context cost |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic deltas, bounded authoring, checks and twenty-four passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-six passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -57,7 +57,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Twenty-two passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
+- Twenty-six passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
@@ -180,6 +180,8 @@ The first packaged roadmap is complete. Sixteen merged pull requests established
 | [PR 13](https://github.com/e6qu/fun-refactor/pull/275) | Reviewed Agent Task Changes | Merged |
 | [PR 14](https://github.com/e6qu/fun-refactor/pull/276) | Semantic Agent Model and Authoring | Merged |
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
+| [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
+| [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | In review |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. Later shapes remain evidence-driven.
@@ -546,7 +548,7 @@ Planned checkpoints:
 
 ### PR 16. Checked Semantic Delta Authoring
 
-Status: in review as [PR 278](https://github.com/e6qu/fun-refactor/pull/278).
+Status: merged as [PR 278](https://github.com/e6qu/fun-refactor/pull/278).
 
 Goal: let an agent make a small typed semantic change without reproducing an entire function body
 or reading language-specific source.
@@ -594,6 +596,77 @@ Planned checkpoints:
 4. **Complete.** Add Lean models, source anchors and exhaustive correspondence tests.
 5. **Complete.** Teach the agent workflow, retain controlled and fresh comparisons, expose exact
    body pointers, and pass the complete repository gate.
+
+### PR 17. Reviewed Semantic Intent Operations
+
+Status: in review as [PR 280](https://github.com/e6qu/fun-refactor/pull/280).
+
+Goal: let an agent state common exact changes with typed semantic roles and scalar values. The agent
+does not need to construct a complete replacement node or navigate serialization-only `value` fields.
+
+Deliverables:
+
+- Add a versioned, source-free `fr-semantic-intent-1` contract bound to one canonical semantic-body
+  identity. Cap input bytes, intent count, locator depth, resolved targets and generated delta
+  operations.
+- Publish a finite semantic-role vocabulary over the existing type, statement, expression and
+  template hierarchy. Role locators carry expected category, kind and selected scalar evidence;
+  missing, ambiguous and mismatched steps refuse instead of choosing an implicit first match.
+- Add shape-preserving scalar intents for integer, float, string and Boolean literals. Cover name
+  expressions, field and keyword names, binary and unary operators, template text and comments.
+  Keep binding-wide rename and inferred behavior changes outside this contract until the IR carries
+  the identity needed to state them honestly.
+- Compile every accepted intent into ordered `fr-semantic-change-1` replacements and run the existing
+  checked delta engine. Compare the compiler result with direct typed intent interpretation before
+  returning it, retaining resolved pointers and both identities as audit evidence.
+- Add project-independent compile/apply commands and direct project authoring. Carry intent inputs
+  through author batches, project tasks and reviewed task changes with the existing checks, undo,
+  redo and Git patch lifecycle.
+- Mirror locators and intents in the zero-dependency Python SDK while keeping direct JSON first-class.
+  Teach the portable skill to choose among whole bodies, typed deltas, Python construction and
+  semantic intents from measured evidence.
+- Model locator determinism, exact resolution, scalar locality, shape preservation and compiler
+  refinement in Lean. Anchor small Rust admission and transition kernels, exhaust their bounded
+  domains and compare generated typed-tree cases with Rust.
+- Compare whole-body, pointer-delta, Python-SDK and intent routes on generic fixtures. Run fresh
+  rotated Luna-low trials only after the deterministic intent route reduces total counted context
+  and repair calls.
+
+Verification and acceptance:
+
+1. A resolved role locator identifies exactly one typed node under the supplied body identity.
+   Missing roles, ambiguous selectors, invalid indices and category, kind or scalar mismatches refuse.
+2. Every accepted scalar intent changes one declared scalar slot while preserving the target node's
+   category, kind and other children. Ordered intents see the result of every preceding intent.
+3. Direct typed interpretation and application of the compiled semantic delta produce the same
+   canonical body and result identity. Generated pointers are distinct or explicitly ordered, and
+   total generated operations remain within the public bound.
+4. Stale bases, unsupported nodes, malformed scalar values, invalid operators, no-ops and input,
+   locator, match or result limit breaches refuse before project or history mutation.
+5. Project authoring preserves bytes outside the selected function body. Batch and task-change
+   writes retain atomic checks, exact undo and redo, and forward and reverse Git patch identity.
+6. Lean proves the abstract locator and scalar-compiler laws. Anchors and exhaustive generated cases
+   connect those models to Rust while keeping Serde, SHA-256, parsers, writers and Python outside the
+   proof boundary.
+7. Deterministic comparisons, Python conformance, portable-skill execution, native, strict Lean and
+   WASM gates pass before any fresh agent run is retained.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the role, locator, intent, budget and receipt contracts and repair stale
+   PR 16 roadmap and evaluation metadata.
+2. **Complete.** Implement typed role resolution, direct intent interpretation, checked delta compilation and the
+   project-independent CLI with adversarial refusal coverage.
+3. **Complete.** Add project authoring, compact reviewed receipts, author-batch, project-task and task-change
+   integration through the complete source-history lifecycle.
+4. **Complete.** Add the Python mirror, generated cross-runtime fixtures, semantic catalogs and executable skill
+   routes.
+5. **Complete.** Add Lean models, source anchors, refinement theorems and exhaustive Rust correspondence.
+6. **Complete.** Cross-language and four-route controlled evidence is retained. A fresh
+   Luna-low pair passes exact semantics and behavior in both arms. Semantic intent uses 470 payload
+   bytes and seven commands, versus 1,930 bytes and nine commands for complete-body authoring. It
+   uses fewer total input and output tokens, while input excluding reported cache hits is 18.8%
+   higher. The complete native, strict Lean and WASM gate passes. PR 280 carries the completed checkpoint.
 
 ## Formal verification policy
 

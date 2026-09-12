@@ -163,6 +163,68 @@ fn use_semantic_delta(root: &Path) -> String {
     base
 }
 
+fn use_semantic_intent(root: &Path) -> String {
+    let selected = report(
+        fr(
+            root,
+            &[
+                "project",
+                "find",
+                "render",
+                "--signature",
+                "--source",
+                "--bytes",
+                "2048",
+            ],
+        ),
+        0,
+    );
+    let handle = selected["rows"][0][0].as_str().unwrap();
+    let semantic = report(
+        fr(
+            root,
+            &[
+                "project",
+                "semantic",
+                handle,
+                "--body",
+                "--nodes",
+                "64",
+                "--minimal",
+            ],
+        ),
+        0,
+    );
+    let base = semantic["body_identity"]["basis"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let intent = json!({
+        "schema":"fr-semantic-intent-1",
+        "base":base,
+        "operations":[{
+            "op":"set-name",
+            "target":[
+                {"role":"statement","index":0,"kind":"return"},
+                {"role":"result","kind":"call"},
+                {"role":"callee","kind":"name"}
+            ],
+            "from":"str",
+            "to":"to_uppercase"
+        }]
+    });
+    fs::write(
+        root.join(".fr/replacement.fragment"),
+        serde_json::to_vec_pretty(&intent).unwrap(),
+    )
+    .unwrap();
+    let manifest_path = root.join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["targets"][0]["op"] = json!("edit-body-intent");
+    fs::write(manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+    base
+}
+
 #[test]
 fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
     let root = fixture("true");
@@ -332,6 +394,80 @@ fn reviewed_semantic_delta_runs_checks_reversal_and_patch_delivery() {
             .unwrap()
             .contains("value.to_uppercase")
     );
+}
+
+#[test]
+fn reviewed_semantic_intent_runs_checks_reversal_and_patch_delivery() {
+    let root = fixture("true");
+    let base = use_semantic_intent(root.path());
+    let preview = preview(root.path());
+    assert_eq!(preview["ready"], true);
+    assert_eq!(
+        preview["author"]["steps"][0]["operation"],
+        "edit-body-intent"
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["semantic_intent"]["input_basis"],
+        base
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["semantic_intent"]["refinement_checked"],
+        true
+    );
+    assert!(!root.path().join(".fr-history").exists());
+
+    let completed = report(
+        fr(
+            root.path(),
+            &[
+                "task-change",
+                "--from",
+                ".fr/task-change.json",
+                "--write",
+                "--basis",
+                preview["task_change_basis"].as_str().unwrap(),
+            ],
+        ),
+        0,
+    );
+    assert_eq!(completed["passed"], true);
+    assert!(completed["workflow"]["stages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|stage| stage["status"] == "passed"));
+    assert!(fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_uppercase(value)"));
+    assert!(
+        fs::read_to_string(root.path().join("artifacts/change.patch"))
+            .unwrap()
+            .contains("to_uppercase(value)")
+    );
+}
+
+#[test]
+fn stale_semantic_intent_refuses_before_history() {
+    let root = fixture("true");
+    use_semantic_intent(root.path());
+    fs::write(
+        root.path().join("src/lib.rs"),
+        "pub fn render(value: &str) -> String { value.repeat(2) }\n",
+    )
+    .unwrap();
+    let failed = report(
+        fr(
+            root.path(),
+            &["task-change", "--from", ".fr/task-change.json"],
+        ),
+        1,
+    );
+    assert!(failed["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("semantic intent base does not match"));
+    assert!(!root.path().join(".fr-history").exists());
+    assert!(!root.path().join("artifacts/change.patch").exists());
 }
 
 #[test]

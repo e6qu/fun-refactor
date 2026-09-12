@@ -92,10 +92,10 @@ task favors direct JSON for one-off construction and leaves SDK reuse as a futur
 The complete native, Python, documentation, skill, capability, strict Lean and WASM repository gate
 passes. Strict verification reports 61 fresh anchors with zero proof obligations or debts.
 
-Roadmap [PR 16](https://github.com/e6qu/fun-refactor/pull/278) adds a checked semantic-delta
-contract so an agent can replace one typed IR node or insert/delete one statement without resending
-the complete function body. The change stays bound to a canonical body identity and must preserve a
-strict, bounded, source-free body after every ordered operation.
+[PR 16](https://github.com/e6qu/fun-refactor/pull/278) merged with a checked semantic-delta contract.
+An agent can replace one typed IR node or insert/delete one statement without resending the complete
+function body. The change stays bound to a canonical body identity and must preserve a strict,
+bounded, source-free body after every ordered operation.
 
 The first checkpoint adds project-independent `fr author apply-semantic-change` and the discoverable
 `fr-semantic-change-1` contract. A base identity binds canonical body bytes. Up to 64 ordered
@@ -134,6 +134,54 @@ authorable function or method body. Every row resolves against the reported body
 typed category and kind. Ambiguous file requests and incomplete bodies refuse instead of returning
 an unusable index. The complete default and WASM gates pass. Strict specification checks report 67
 fresh anchors with zero obligations or debts, and the Lean package builds all 48 jobs.
+
+PR 17 is in review as [GitHub PR 280](https://github.com/e6qu/fun-refactor/pull/280). Its reviewed `fr-semantic-intent-1` contract
+binds up to 64 ordered scalar operations to one canonical body identity. Typed role locators carry
+optional category, kind, index and label witnesses. Missing, ambiguous, stale or mismatched evidence
+refuses before a project write. Eleven operations cover portable literals, names, operators,
+template text and comments. Every accepted operation is interpreted directly, compiled to a checked
+`fr-semantic-change-1` replacement and required to produce the same canonical body.
+
+Direct project authoring now passes the shared Rust, Go, Java and TypeScript body matrix. Author
+batches, project tasks and reviewed task changes carry `edit-body-intent` through read-only preview,
+checks, history, exact undo and redo, and forward and reverse patch verification. Changed body bases
+refuse before history creation.
+
+`fr project semantic --body --locators` publishes copyable role targets. `--locators-only` omits the
+duplicated body, while `--locator-op` and `--locator-from` return only exact supported matches. The
+Python SDK mirrors roles, categories, steps, all scalar operations and intent manifests. Direct JSON
+remains the measured one-off default.
+
+`FrKernels.SemanticIntent` anchors admission, locator bounds and the operation target relation. It
+proves deterministic singleton resolution, scalar category, kind and child preservation, direct and
+compiled equivalence, and ordered composition. Rust and Lean agree across every Boolean admission
+state, 2,015 operation/category/kind combinations and selected numeric boundaries. Runtime compares
+the direct and compiled full-tree results for every accepted request. Serde, concrete role traversal,
+SHA-256, parsers, writers, filesystem behavior and Python remain tested or trusted boundaries.
+
+The deterministic four-route report is `tests/agent-eval/semantic-intent.json`. Complete-body,
+pointer-delta, direct-intent and Python-intent routes produce equal behavior, source, body, patch,
+undo and redo evidence. Filtered direct intent uses 8,518 measured bytes, versus 8,609 for the
+complete body and 10,357 for the pointer delta. Python intent uses 8,989 after counting its producer.
+
+The fresh Luna-low comparison is retained under
+`tests/agent-eval/results/2026-09-12-semantic-intent`. Both isolated arms avoid source reads, produce
+the exact expected semantic body and pass compiled behavior. Intent authoring uses 470 payload bytes
+and seven commands, compared with 1,930 bytes and nine commands for complete-body authoring. It uses
+22.9% fewer total input tokens and 32.5% fewer output tokens, but 18.8% more input after subtracting
+reported cache hits. The intent trace first tries one broad project query before finding the filtered
+locator route. A digest-bound Rust test preserves these mixed results.
+
+The complete PR gate passes. It includes formatting, warning-free native and browser builds, all
+default and WASM tests, 311/311 capability coverage and the 50-job Lean package. Strict verification
+reports 70 fresh source anchors, zero obligations and zero proof debts. The portable skill passes 45
+executable shell examples and every route-size limit.
+
+The contract remains structural. A one-node name edit is not a binding-aware rename. Pattern rows do
+not prove behavior. Source writers can normalize text elsewhere inside the selected body. Role
+resolution, scalar locality, compiled-delta equivalence and bounds are the critical proof targets.
+Parser, writer, Serde, SHA-256, filesystem and Python behavior remain explicit trusted or tested
+boundaries.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or

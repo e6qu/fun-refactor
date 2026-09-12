@@ -24,6 +24,8 @@ pub enum Command {
     ValidateSemantic(ValidateSemanticOptions),
     #[command(about = "Apply a checked semantic change without scanning a project.")]
     ApplySemanticChange(super::semantic_change::ApplyOptions),
+    #[command(about = "Apply checked semantic intents without scanning a project.")]
+    ApplySemanticIntent(super::semantic_intent::ApplyOptions),
     #[command(
         about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
@@ -32,6 +34,8 @@ pub enum Command {
     ReplaceBodySemantic(ReplaceBodyOptions),
     #[command(about = "Apply a checked semantic delta to one supported function body.")]
     EditBodySemantic(ReplaceBodyOptions),
+    #[command(about = "Apply checked semantic intents to one supported function body.")]
+    EditBodyIntent(ReplaceBodyOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -62,6 +66,9 @@ pub fn guide() -> Value {
                 "targets": "supported function or method body"},
             {"op": "edit-body-semantic", "requires": ["handle", "from"],
                 "input-schema": "fr-semantic-change-1",
+                "targets": "supported function or method body"},
+            {"op": "edit-body-intent", "requires": ["handle", "from"],
+                "input-schema": "fr-semantic-intent-1",
                 "targets": "supported function or method body"},
             {"op": "replace-declaration", "requires": ["handle", "from"],
                 "targets": "Rust function declaration with unchanged name"},
@@ -149,6 +156,7 @@ pub(super) enum BatchOperation {
     ReplaceBody,
     ReplaceBodySemantic,
     EditBodySemantic,
+    EditBodyIntent,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -545,6 +553,7 @@ impl Project<'_> {
                         BatchOperation::EditBodySemantic => {
                             self.edit_body_semantic(&operation_options)
                         }
+                        BatchOperation::EditBodyIntent => self.edit_body_intent(&operation_options),
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -569,7 +578,8 @@ impl Project<'_> {
             let key = match step.op {
                 BatchOperation::ReplaceBody
                 | BatchOperation::ReplaceBodySemantic
-                | BatchOperation::EditBodySemantic => "body",
+                | BatchOperation::EditBodySemantic
+                | BatchOperation::EditBodyIntent => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -610,6 +620,7 @@ impl Project<'_> {
                 "semantic_input",
                 "semantic_render",
                 "semantic_change",
+                "semantic_intent",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();
@@ -1297,6 +1308,70 @@ impl Project<'_> {
             "operations":applied.operations,
             "semantic_nodes":applied.nodes,
             "source_free":true
+        });
+        Ok(plan)
+    }
+
+    pub fn edit_body_intent(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let intent_input = fragment(&self.root.join(&options.from))?;
+        let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
+        let id = self.resolve_handle(&handle)?;
+        let symbol = self.nodes[id]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("semantic intent editing requires a function handle.")?;
+        let target_supported = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && BodySyntax::for_language(symbol.language).is_ok();
+        ensure!(
+            target_supported,
+            "selected target does not support semantic intent editing."
+        );
+        let source = &self.sources[&symbol.file];
+        let parsed = Parsers::new().parse(symbol.language, source)?;
+        ensure!(
+            !parsed.has_errors(),
+            "semantic intent editing requires a file without parser errors."
+        );
+        let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
+        let function = super::semantic::selected_function(&context, symbol).with_context(|| {
+            format!(
+                "the {} '{}' has no exact semantic function model.",
+                symbol.kind.as_str(),
+                symbol.name
+            )
+        })?;
+        let current = super::semantic_change::SemanticBody {
+            schema: super::semantic_ir::BODY_SCHEMA.into(),
+            body: function.body,
+        };
+        let body_input = serde_json::to_string(&current)?;
+        let applied = super::semantic_intent::apply(&body_input, &intent_input)?;
+        let result = serde_json::to_string(&applied.body)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
+        temporary.write_all(result.as_bytes())?;
+        temporary.flush()?;
+        let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
+            handle: options.handle.clone(),
+            revision: options.revision.clone(),
+            from: temporary.path().to_path_buf(),
+            diff_bytes: options.diff_bytes,
+            write: false,
+        })?;
+        plan.report["query"] = json!("edit-body-intent");
+        plan.report["semantic_intent"] = json!({
+            "schema":super::semantic_intent::INTENT_SCHEMA,
+            "sha256":applied.intent_sha256,
+            "compiled_change_sha256":applied.change_sha256,
+            "input_basis":applied.input_basis,
+            "result_basis":applied.result_basis,
+            "operations":applied.operations,
+            "semantic_nodes":applied.nodes,
+            "source_free":true,
+            "refinement_checked":true
         });
         Ok(plan)
     }
