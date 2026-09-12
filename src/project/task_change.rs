@@ -58,6 +58,8 @@ struct Target {
     handle: batch::Argument,
     op: task::AuthorOperation,
     from: Option<PathBuf>,
+    #[serde(default)]
+    scalar: Option<super::semantic_intent::ScalarRequest>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -105,6 +107,7 @@ fn batch_operation(operation: task::AuthorOperation) -> author::BatchOperation {
         task::AuthorOperation::ReplaceBodySemantic => author::BatchOperation::ReplaceBodySemantic,
         task::AuthorOperation::EditBodySemantic => author::BatchOperation::EditBodySemantic,
         task::AuthorOperation::EditBodyIntent => author::BatchOperation::EditBodyIntent,
+        task::AuthorOperation::EditBodyScalar => author::BatchOperation::EditBodyScalar,
         task::AuthorOperation::ReplaceDeclaration => author::BatchOperation::ReplaceDeclaration,
         task::AuthorOperation::InsertDeclaration => author::BatchOperation::InsertDeclaration,
         task::AuthorOperation::OrganizeImports => author::BatchOperation::OrganizeImports,
@@ -142,6 +145,12 @@ impl Project<'_> {
                 "task-change target '{}' has an invalid fragment choice.",
                 target.id
             );
+            ensure!(
+                matches!(target.op, task::AuthorOperation::EditBodyScalar)
+                    == target.scalar.is_some(),
+                "task-change target '{}' has an invalid scalar choice.",
+                target.id
+            );
         }
 
         let task_manifest = task::Manifest {
@@ -154,6 +163,7 @@ impl Project<'_> {
                     id: target.id.clone(),
                     handle: target.handle.clone(),
                     op: target.op,
+                    scalar: target.scalar.clone(),
                 })
                 .collect(),
             checks: manifest.checks.clone(),
@@ -182,6 +192,7 @@ impl Project<'_> {
                         .context("task-change target has no resolved handle")?
                         .to_owned(),
                     from: target.from.clone(),
+                    scalar: target.scalar.clone(),
                 })
             })
             .collect::<Result<Vec<_>>>()?;

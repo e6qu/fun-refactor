@@ -49,7 +49,7 @@ pub struct Options {
     pub(super) locators_only: bool,
     #[arg(
         long,
-        requires = "locators",
+        requires = "body",
         help = "Return locator rows for one exact semantic intent operation."
     )]
     pub(super) locator_op: Option<String>,
@@ -59,6 +59,12 @@ pub struct Options {
         help = "Return locator rows whose current scalar has this exact text value."
     )]
     pub(super) locator_from: Option<String>,
+    #[arg(
+        long,
+        requires = "locator_from",
+        help = "Build one exact scalar semantic intent using this requested value."
+    )]
+    pub(super) intent_to: Option<String>,
     #[arg(
         long,
         default_value_t = 256,
@@ -316,6 +322,7 @@ impl Project<'_> {
                 || !options.target.starts_with("frp1:") && options.revision.is_none(),
             "--declaration requires a path target without --revision."
         );
+        let needs_authorable = options.pointers || options.locators || options.intent_to.is_some();
         let mut target = if options.target.starts_with("frp1:") || options.revision.is_some() {
             self.resolve_handle(
                 &self.explicit_handle(&options.target, options.revision.as_deref())?,
@@ -325,13 +332,13 @@ impl Project<'_> {
         };
         if let Some(name) = &options.declaration {
             ensure!(
-                self.nodes[target].kind == "file",
-                "--declaration requires a file path target."
+                matches!(self.nodes[target].kind.as_str(), "file" | "directory"),
+                "--declaration requires a file or directory path target."
             );
-            let path = &self.nodes[target].path;
+            let scope = target;
             let mut matches = self.nodes.iter().enumerate().filter_map(|(id, node)| {
                 let symbol = node.symbol.and_then(|symbol| self.index.symbol(symbol))?;
-                (node.path == *path
+                (self.within(id, scope)
                     && symbol.name == *name
                     && matches!(
                         symbol.kind,
@@ -347,9 +354,9 @@ impl Project<'_> {
                     ))
                 .then_some(id)
             });
-            target = matches
-                .next()
-                .with_context(|| format!("no semantic declaration named '{name}' in the file."))?;
+            target = matches.next().with_context(|| {
+                format!("no semantic declaration named '{name}' in the selected scope.")
+            })?;
             ensure!(
                 matches.next().is_none(),
                 "semantic declaration name is ambiguous; select a revision-bound handle."
@@ -394,8 +401,8 @@ impl Project<'_> {
                 )
             })?;
             ensure!(
-                !(options.pointers || options.locators) || matches!(item, Item::Function(_)),
-                "semantic body pointers and locators require one function or method declaration."
+                !needs_authorable || matches!(item, Item::Function(_)),
+                "semantic body pointers, locators and edit plans require one function or method declaration."
             );
             if let Item::Function(function) = &item {
                 let body = super::semantic_change::SemanticBody {
@@ -413,7 +420,7 @@ impl Project<'_> {
                         "statements":body.body.len(),"semantic_nodes":nodes})
                 } else {
                     let basis = super::semantic_change::body_basis(&body)?;
-                    if options.pointers || options.locators {
+                    if needs_authorable {
                         authorable_body = Some(body.clone());
                     }
                     json!({"status":"available","source_free":true,
@@ -426,8 +433,8 @@ impl Project<'_> {
             "declaration"
         } else {
             ensure!(
-                !(options.pointers || options.locators),
-                "semantic body pointers and locators require one function or method declaration."
+                !needs_authorable,
+                "semantic body pointers, locators and edit plans require one function or method declaration."
             );
             "file"
         };
@@ -443,9 +450,9 @@ impl Project<'_> {
         }
         let required = semantic_nodes(&model).max(1);
         ensure!(
-            !(options.pointers || options.locators)
+            !needs_authorable
                 || semantic_section_fits(required, options.nodes),
-            "semantic body pointers and locators require a complete body within the node budget."
+            "semantic body pointers, locators and edit plans require a complete body within the node budget."
         );
         let payload_hash = hash((&self.revision, self.handle(target), &model))?;
         let basis = format!("frsm1:{payload_hash}");
@@ -498,6 +505,29 @@ impl Project<'_> {
             } else {
                 json!({"schema":"fr-semantic-body-locators-1","status":"unavailable-body-identity"})
             };
+        }
+        if let Some(to) = options.intent_to.as_deref() {
+            let body = authorable_body
+                .as_ref()
+                .context("semantic edit plan requires an available source-free body identity.")?;
+            let operation = options.locator_op.as_deref().unwrap();
+            let from = options.locator_from.as_deref().unwrap();
+            let plan = super::semantic_intent::plan_unique(body, operation, from, to)?;
+            report["edit_plan"] = json!({
+                "schema":"fr-semantic-edit-plan-1",
+                "status":"ready",
+                "handle":report["selection"]["handle"],
+                "operation":operation,
+                "from":from,
+                "to":to,
+                "target":plan.target,
+                "intent":plan.manifest,
+                "intent_sha256":plan.applied.intent_sha256,
+                "input_basis":plan.applied.input_basis,
+                "result_basis":plan.applied.result_basis,
+                "source_free":true,
+                "refinement_checked":true
+            });
         }
         report["addressing"] = json!({
             "format": "SEMANTIC_BASIS#RFC6901_JSON_POINTER",

@@ -225,6 +225,22 @@ fn use_semantic_intent(root: &Path) -> String {
     base
 }
 
+fn use_semantic_scalar(root: &Path) {
+    let manifest_path = root.join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["targets"][0]["op"] = json!("edit-body-scalar");
+    manifest["targets"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("from");
+    manifest["targets"][0]["scalar"] = json!({
+        "operation":"set-name",
+        "from":"str",
+        "to":"to_uppercase"
+    });
+    fs::write(manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+}
+
 #[test]
 fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
     let root = fixture("true");
@@ -412,6 +428,56 @@ fn reviewed_semantic_intent_runs_checks_reversal_and_patch_delivery() {
     );
     assert_eq!(
         preview["author"]["steps"][0]["semantic_intent"]["refinement_checked"],
+        true
+    );
+    assert!(!root.path().join(".fr-history").exists());
+
+    let completed = report(
+        fr(
+            root.path(),
+            &[
+                "task-change",
+                "--from",
+                ".fr/task-change.json",
+                "--write",
+                "--basis",
+                preview["task_change_basis"].as_str().unwrap(),
+            ],
+        ),
+        0,
+    );
+    assert_eq!(completed["passed"], true);
+    assert!(completed["workflow"]["stages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|stage| stage["status"] == "passed"));
+    assert!(fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_uppercase(value)"));
+    assert!(
+        fs::read_to_string(root.path().join("artifacts/change.patch"))
+            .unwrap()
+            .contains("to_uppercase(value)")
+    );
+}
+
+#[test]
+fn reviewed_scalar_plan_runs_checks_reversal_and_patch_delivery() {
+    let root = fixture("true");
+    use_semantic_scalar(root.path());
+    let preview = preview(root.path());
+    assert_eq!(preview["ready"], true);
+    assert_eq!(
+        preview["author"]["steps"][0]["operation"],
+        "edit-body-scalar"
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["semantic_edit_plan"]["intent"]["schema"],
+        "fr-semantic-intent-1"
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["semantic_edit_plan"]["refinement_checked"],
         true
     );
     assert!(!root.path().join(".fr-history").exists());

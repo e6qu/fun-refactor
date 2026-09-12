@@ -33,12 +33,13 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["schema"], "fr-author-guide-1");
     assert_eq!(guide["limits"]["operations"]["maximum"], 32);
     assert_eq!(guide["limits"]["manifest_bytes"], 65536);
-    assert_eq!(guide["operations"].as_array().unwrap().len(), 7);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 8);
     assert_eq!(guide["operations"][0]["op"], "replace-body");
     assert_eq!(guide["operations"][1]["op"], "replace-body-semantic");
     assert_eq!(guide["operations"][2]["op"], "edit-body-semantic");
     assert_eq!(guide["operations"][3]["op"], "edit-body-intent");
-    assert_eq!(guide["operations"][6]["op"], "organize-imports");
+    assert_eq!(guide["operations"][4]["op"], "edit-body-scalar");
+    assert_eq!(guide["operations"][7]["op"], "organize-imports");
     let steps = guide["workflow"]
         .as_array()
         .unwrap()
@@ -309,6 +310,62 @@ fn semantic_intents_resolve_roles_and_compile_without_scanning_a_project() {
         "2"
     );
     assert_eq!(report["compiled_change"]["schema"], "fr-semantic-change-1");
+}
+
+#[test]
+fn semantic_edit_plan_builds_a_complete_checked_intent_without_a_project() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("body.json"),
+        r#"{"schema":"fr-semantic-body-1","body":[{"kind":"return","value":{"kind":"binary","value":{"op":"add","left":{"kind":"name","value":"input"},"right":{"kind":"int","value":"1"}}}}]}"#,
+    )
+    .unwrap();
+    let plan = ok(
+        dir.path(),
+        &[
+            "author",
+            "plan-semantic-intent",
+            "--body",
+            "body.json",
+            "--operation",
+            "set-int",
+            "--from",
+            "1",
+            "--to",
+            "7",
+            "--canonical",
+        ],
+    );
+    assert_eq!(plan["schema"], "fr-semantic-edit-plan-1");
+    assert_eq!(plan["intent"]["schema"], "fr-semantic-intent-1");
+    assert_eq!(plan["intent"]["base"], plan["input_basis"]);
+    assert_eq!(
+        plan["canonical"]["body"][0]["value"]["value"]["right"]["value"],
+        "7"
+    );
+    assert_eq!(plan["source_free"], true);
+    assert_eq!(plan["refinement_checked"], true);
+
+    let (success, ambiguous) = run(
+        dir.path(),
+        &[
+            "author",
+            "plan-semantic-intent",
+            "--body",
+            "body.json",
+            "--operation",
+            "set-int",
+            "--from",
+            "9",
+            "--to",
+            "7",
+        ],
+    );
+    assert!(!success, "{ambiguous}");
+    assert!(ambiguous["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("exactly one scalar target"));
 }
 
 #[test]
@@ -698,6 +755,90 @@ fn semantic_intent_authoring_changes_scalars_across_supported_languages() {
             .unwrap()
             .contains(expected));
     }
+}
+
+#[test]
+fn direct_scalar_authoring_plans_one_exact_target_across_supported_languages() {
+    let cases = [
+        ("app.rs", "fn calc(value: i32) -> i32 { value + 1 }\n"),
+        (
+            "app.go",
+            "package sample\nfunc calc(value int) int { return value + 1 }\n",
+        ),
+        (
+            "App.java",
+            "final class App { static int calc(int value) { return value + 1; } }\n",
+        ),
+        (
+            "app.ts",
+            "function calc(value: number): number { return value + 1; }\n",
+        ),
+    ];
+    for (file, source) in cases {
+        let (_temp, root, _input) = fixture_file(file, source, b"");
+        let (handle, _) = selection(&root, "calc");
+        let args = [
+            "author",
+            "edit-body-scalar",
+            &handle,
+            "--operation",
+            "set-int",
+            "--from",
+            "1",
+            "--to",
+            "7",
+        ];
+        let preview = ok(&root, &args);
+        assert_eq!(preview["query"], "edit-body-scalar");
+        assert_eq!(preview["applied"], false);
+        assert_eq!(
+            preview["semantic_edit_plan"]["schema"],
+            "fr-semantic-edit-plan-1"
+        );
+        assert_eq!(
+            preview["semantic_edit_plan"]["intent"]["schema"],
+            "fr-semantic-intent-1"
+        );
+        assert_eq!(preview["semantic_edit_plan"]["source_free"], true);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+
+        let mut write_args = args.to_vec();
+        write_args.push("--write");
+        let written = ok(&root, &write_args);
+        assert_eq!(written["semantic_edit_plan"], preview["semantic_edit_plan"]);
+        assert!(fs::read_to_string(root.join(file)).unwrap().contains("+ 7"));
+        let transaction = written["transaction"].as_u64().unwrap().to_string();
+        ok(&root, &["history", "undo", &transaction, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+        ok(&root, &["history", "redo", &transaction, "--write"]);
+        assert!(fs::read_to_string(root.join(file)).unwrap().contains("+ 7"));
+    }
+
+    let source = "fn calc(value: i32) -> i32 { value + 1 + 1 }\n";
+    let (_temp, root, _input) = fixture_file("app.rs", source, b"");
+    let (handle, _) = selection(&root, "calc");
+    let (success, error) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-scalar",
+            &handle,
+            "--operation",
+            "set-int",
+            "--from",
+            "1",
+            "--to",
+            "7",
+            "--write",
+        ],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("exactly one scalar target; found 2"));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    assert!(!root.join(".fr-history").exists());
 }
 
 #[test]

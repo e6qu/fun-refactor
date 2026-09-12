@@ -45,6 +45,8 @@ pub(super) struct Target {
     pub(super) id: String,
     pub(super) handle: batch::Argument,
     pub(super) op: AuthorOperation,
+    #[serde(default)]
+    pub(super) scalar: Option<super::semantic_intent::ScalarRequest>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -62,6 +64,7 @@ pub(super) enum AuthorOperation {
     ReplaceBodySemantic,
     EditBodySemantic,
     EditBodyIntent,
+    EditBodyScalar,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -74,6 +77,7 @@ impl AuthorOperation {
             Self::ReplaceBodySemantic => "replace-body-semantic",
             Self::EditBodySemantic => "edit-body-semantic",
             Self::EditBodyIntent => "edit-body-intent",
+            Self::EditBodyScalar => "edit-body-scalar",
             Self::ReplaceDeclaration => "replace-declaration",
             Self::InsertDeclaration => "insert-declaration",
             Self::OrganizeImports => "organize-imports",
@@ -89,11 +93,12 @@ impl AuthorOperation {
             Self::ReplaceBodySemantic => 4,
             Self::EditBodySemantic => 5,
             Self::EditBodyIntent => 6,
+            Self::EditBodyScalar => 7,
         }
     }
 
     pub(super) fn needs_fragment(self) -> bool {
-        !matches!(self, Self::OrganizeImports)
+        !matches!(self, Self::OrganizeImports | Self::EditBodyScalar)
     }
 }
 
@@ -196,7 +201,7 @@ fn target_code(file: bool, kind: Option<SymbolKind>) -> usize {
 /// deliberately checked later by the existing author preview.
 pub fn task_author_target_candidate(operation: usize, language: usize, target: usize) -> bool {
     match operation {
-        0 | 4 | 5 | 6 => {
+        0 | 4 | 5 | 6 | 7 => {
             matches!(language, 0 | 1 | 3 | 4 | 5)
                 && (matches!(target, 1 | 2) || matches!(language, 4 | 5) && target == 3)
         }
@@ -255,6 +260,10 @@ impl Project<'_> {
                     "project task target references need a valid request ID and a 1 through 512 byte JSON pointer."
                 ),
             }
+            ensure!(
+                matches!(target.op, AuthorOperation::EditBodyScalar) == target.scalar.is_some(),
+                "project task scalar input must appear exactly for edit-body-scalar."
+            );
         }
         ensure!(
             manifest.checks.len() <= 32,
@@ -333,6 +342,9 @@ impl Project<'_> {
             if let Some(fragment) = &fragment {
                 operation["from"] = json!(fragment);
             }
+            if let Some(scalar) = &target.scalar {
+                operation["scalar"] = serde_json::to_value(scalar)?;
+            }
             author_operations.push(operation);
             target_rows.push(json!({
                 "id": target.id,
@@ -341,10 +353,11 @@ impl Project<'_> {
                 "language": language,
                 "kind": if is_file { Value::String("file".into()) } else { json!(kind) },
                 "operation": target.op,
+                "scalar": target.scalar,
                 "eligibility": "target-supported",
                 "syntax_preflighted": false
             }));
-            resolved_targets.push((target.id.clone(), handle, target.op));
+            resolved_targets.push((target.id.clone(), handle, target.op, target.scalar.clone()));
         }
 
         let selection = crate::checks::select(&self.root, &manifest.checks)?;
