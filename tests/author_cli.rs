@@ -73,6 +73,22 @@ fn semantic_contract_is_bounded_and_selectable_without_a_project() {
     assert_eq!(index["semantic_schema"], "fr-semantic-body-1");
     assert_eq!(index["sections"][2]["name"], "statement");
     assert_eq!(index["sections"][2]["entries"], 26);
+    assert_eq!(index["sections"][8]["name"], "change");
+    assert_eq!(index["sections"][8]["entries"], 3);
+
+    let change = ok(dir.path(), &["author", "semantic-schema", "change"]);
+    assert_eq!(
+        change["contract"]["shape"]["schema"],
+        "fr-semantic-change-1"
+    );
+    assert_eq!(
+        change["contract"]["operations"][0]["python_constructor"],
+        "Change.Replace"
+    );
+    assert_eq!(
+        change["contract"]["semantics"],
+        "ordered; the validator checks every intermediate body"
+    );
 
     let statement = ok(
         dir.path(),
@@ -165,6 +181,110 @@ fn semantic_validation_canonicalizes_without_scanning_a_project() {
         )
         .0
     );
+}
+
+#[test]
+fn semantic_changes_apply_in_order_without_scanning_a_project() {
+    let dir = tempfile::tempdir().unwrap();
+    let body = dir.path().join("body.json");
+    let change = dir.path().join("change.json");
+    fs::write(
+        &body,
+        r#"{"schema":"fr-semantic-body-1","body":[{"kind":"return","value":{"kind":"name","value":"left"}}]}"#,
+    )
+    .unwrap();
+    let validated = ok(
+        dir.path(),
+        &["author", "validate-semantic", "--from", "body.json"],
+    );
+    let base = format!("frsb1:{}", validated["canonical_sha256"].as_str().unwrap());
+    fs::write(
+        &change,
+        serde_json::to_vec(&serde_json::json!({
+            "schema":"fr-semantic-change-1",
+            "base":base,
+            "operations":[
+                {"op":"insert-statement","path":"/body","index":0,
+                    "value":{"kind":"comment","value":"temporary"}},
+                {"op":"replace","path":"/body/1/value","category":"expression",
+                    "value":{"kind":"name","value":"right"}},
+                {"op":"delete-statement","path":"/body/0"}
+            ]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let report = ok(
+        dir.path(),
+        &[
+            "author",
+            "apply-semantic-change",
+            "--body",
+            "body.json",
+            "--change",
+            "change.json",
+            "--canonical",
+        ],
+    );
+    assert_eq!(report["schema"], "fr-semantic-change-result-1");
+    assert_eq!(report["valid"], true);
+    assert_eq!(report["operations"].as_array().unwrap().len(), 3);
+    assert_eq!(report["canonical"]["body"].as_array().unwrap().len(), 1);
+    assert_eq!(report["canonical"]["body"][0]["value"]["value"], "right");
+    assert_ne!(report["input_basis"], report["result_basis"]);
+}
+
+#[test]
+fn semantic_changes_refuse_stale_bases_and_category_crossings() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("body.json"),
+        r#"{"schema":"fr-semantic-body-1","body":[{"kind":"return","value":{"kind":"name","value":"left"}}]}"#,
+    )
+    .unwrap();
+    let path = dir.path().join("change.json");
+    let write_change = |base: String, category: &str| {
+        fs::write(
+            &path,
+            serde_json::to_vec(&serde_json::json!({
+                "schema":"fr-semantic-change-1","base":base,
+                "operations":[{"op":"replace","path":"/body/0/value",
+                    "category":category,"value":{"kind":"comment","value":"wrong"}}]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+    };
+    write_change(format!("frsb1:{}", "0".repeat(64)), "statement");
+    let args = [
+        "author",
+        "apply-semantic-change",
+        "--body",
+        "body.json",
+        "--change",
+        "change.json",
+    ];
+    let (success, error) = run(dir.path(), &args);
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("base does not match"));
+
+    let validated = ok(
+        dir.path(),
+        &["author", "validate-semantic", "--from", "body.json"],
+    );
+    write_change(
+        format!("frsb1:{}", validated["canonical_sha256"].as_str().unwrap()),
+        "statement",
+    );
+    let (success, error) = run(dir.path(), &args);
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("target is not a statement node"));
 }
 
 fn fixture(source: &str, body: &[u8]) -> (tempfile::TempDir, PathBuf, PathBuf) {

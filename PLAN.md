@@ -585,8 +585,8 @@ Verification and acceptance:
 
 Planned checkpoints:
 
-1. **In progress.** Freeze the semantic-change contract, pure application engine and Python builders.
-2. **Planned.** Add body identity reporting and direct semantic-delta body authoring.
+1. **Complete.** Freeze the semantic-change contract, pure application engine and Python builders.
+2. **In progress.** Add body identity reporting and direct semantic-delta body authoring.
 3. **Planned.** Integrate author batches, reviewed task changes and lifecycle drift checks.
 4. **Planned.** Add Lean models, source anchors and exhaustive correspondence tests.
 5. **Planned.** Teach the agent workflow, retain controlled and fresh comparisons, and pass the

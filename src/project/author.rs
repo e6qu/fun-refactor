@@ -4,10 +4,10 @@ use crate::lang::Language;
 use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
-use crate::transpile::ir::{Item, Module, Stmt};
+use crate::transpile::ir::{Item, Module};
 use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -22,6 +22,8 @@ pub enum Command {
     SemanticSchema(super::semantic_ir::SchemaOptions),
     #[command(about = "Validate and canonically identify source-free semantic IR JSON.")]
     ValidateSemantic(ValidateSemanticOptions),
+    #[command(about = "Apply a checked semantic change without scanning a project.")]
+    ApplySemanticChange(super::semantic_change::ApplyOptions),
     #[command(
         about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
@@ -184,20 +186,6 @@ pub struct ValidateSemanticOptions {
 pub struct Plan {
     pub edits: EditSet,
     pub report: Value,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct SemanticBody {
-    schema: String,
-    body: Vec<Stmt>,
-}
-
-struct ValidatedSemanticBody {
-    manifest: SemanticBody,
-    input_sha256: String,
-    canonical: String,
-    nodes: usize,
 }
 
 pub fn semantic_body_admitted(
@@ -393,35 +381,9 @@ fn replacement(
     })
 }
 
-fn validated_semantic_body(input: &str) -> Result<ValidatedSemanticBody> {
-    let value: Value = serde_json::from_str(input).context("semantic body input must be JSON.")?;
-    ensure!(
-        super::semantic_ir::source_free(&value),
-        "semantic body input must not contain source fields or unsupported nodes."
-    );
-    let nodes = super::semantic::semantic_nodes(&value);
-    let manifest: SemanticBody = serde_json::from_value(value)
-        .context("semantic body input must match fr-semantic-body-1.")?;
-    ensure!(
-        manifest.schema == super::semantic_ir::BODY_SCHEMA,
-        "semantic body schema must be fr-semantic-body-1."
-    );
-    ensure!(
-        manifest.body.len() <= 512 && nodes <= 4096,
-        "semantic body input is limited to 512 statements and 4096 semantic nodes."
-    );
-    let canonical = serde_json::to_string(&manifest)?;
-    Ok(ValidatedSemanticBody {
-        manifest,
-        input_sha256: digest(input),
-        canonical,
-        nodes,
-    })
-}
-
 pub fn validate_semantic(root: &Path, options: &ValidateSemanticOptions) -> Result<Value> {
     let input = fragment(&root.join(&options.from))?;
-    let validated = validated_semantic_body(&input)?;
+    let validated = super::semantic_change::validate_body_input(&input)?;
     let mut report = json!({
         "schema": "fr-semantic-validation-1",
         "semantic_schema": super::semantic_ir::BODY_SCHEMA,
@@ -1177,7 +1139,7 @@ impl Project<'_> {
             "diff bytes must be between 0 and 65536."
         );
         let input = fragment(&self.root.join(&options.from))?;
-        let validated = validated_semantic_body(&input)?;
+        let validated = super::semantic_change::validate_body_input(&input)?;
         let nodes = validated.nodes;
         let manifest = validated.manifest;
         let schema_matches = true;

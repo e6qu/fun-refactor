@@ -3,7 +3,22 @@ import json
 import re
 import unittest
 
-from fr_ir import EXPRESSION_KINDS, STATEMENT_KINDS, TEMPLATE_KINDS, TYPE_KINDS, BinaryOp, Expr, IrError, SemanticBody, Stmt, TemplatePart, Type
+from fr_ir import (
+    CHANGE_SCHEMA,
+    EXPRESSION_KINDS,
+    STATEMENT_KINDS,
+    TEMPLATE_KINDS,
+    TYPE_KINDS,
+    BinaryOp,
+    Change,
+    Expr,
+    IrError,
+    SemanticBody,
+    SemanticChange,
+    Stmt,
+    TemplatePart,
+    Type,
+)
 
 
 def kinds(namespace):
@@ -52,6 +67,27 @@ class IrTests(unittest.TestCase):
         self.assertEqual(set(kinds(Stmt)), set(STATEMENT_KINDS))
         self.assertEqual(set(kinds(Expr)), set(EXPRESSION_KINDS))
         self.assertEqual(set(kinds(TemplatePart)), set(TEMPLATE_KINDS))
+
+    def test_semantic_changes_infer_typed_replacement_categories(self):
+        body = SemanticBody([Stmt.Return(Expr.Name("left"))])
+        change = SemanticChange(body, [
+            Change.InsertStatement("/body", 0, Stmt.Comment("kept")),
+            Change.Replace("/body/1/value", Expr.Name("right")),
+            Change.DeleteStatement("/body/0"),
+        ])
+        data = change.to_data()
+        self.assertEqual(data["schema"], CHANGE_SCHEMA)
+        self.assertEqual(data["base"], body.basis())
+        self.assertEqual(data["operations"][1]["category"], "expression")
+        self.assertEqual(data["operations"][1]["value"]["kind"], "name")
+
+    def test_semantic_change_constructors_refuse_wrong_categories_and_paths(self):
+        with self.assertRaisesRegex(IrError, "must be a statement node"):
+            Change.InsertStatement("/body", 0, Expr.Int(1))
+        with self.assertRaisesRegex(IrError, "canonical RFC 6901"):
+            Change.DeleteStatement("/body/~2bad")
+        with self.assertRaisesRegex(IrError, "1 through 64"):
+            SemanticChange("frsb1:" + "0" * 64, [])
 
 
 if __name__ == "__main__":

@@ -98,6 +98,13 @@ the complete function body. The change stays bound to a canonical body identity 
 strict, bounded, source-free body after every ordered operation. Project authoring, reviewed task
 changes, Lean correspondence and agent evaluation follow on that pure contract.
 
+The first checkpoint adds project-independent `fr author apply-semantic-change` and the discoverable
+`fr-semantic-change-1` contract. A base identity binds canonical body bytes. Up to 64 ordered
+operations replace a typed node or insert/delete a statement through bounded RFC 6901 pointers. The
+engine strictly deserializes every intermediate body and uses structural witnesses to distinguish
+node categories whose JSON encodings coincide. Python `SemanticChange` and `Change` objects emit the
+same contract and pass through the Rust engine in the cross-runtime suite.
+
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
 declaration targets from literal handles or returned query strings. A task target selects one of

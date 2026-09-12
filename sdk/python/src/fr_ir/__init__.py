@@ -8,11 +8,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 SCHEMA = "fr-semantic-body-1"
+CHANGE_SCHEMA = "fr-semantic-change-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -441,13 +443,100 @@ class SemanticBody:
     def to_json(self, *, indent: int | None = None) -> str:
         return json.dumps(self.to_data(), ensure_ascii=False, indent=indent, separators=None if indent else (",", ":"))
 
+    def basis(self) -> str:
+        canonical = self.to_json().encode("utf-8")
+        return "frsb1:" + hashlib.sha256(canonical).hexdigest()
+
+    def write(self, path: str | Path, *, indent: int | None = 2) -> None:
+        Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
+
+
+def _pointer(path: str, *, allow_body: bool) -> str:
+    if not isinstance(path, str) or len(path.encode("utf-8")) > 1024:
+        raise IrError("semantic path must be a string of at most 1024 bytes")
+    if not path.startswith("/") or (not allow_body and not path.startswith("/body/")):
+        raise IrError("semantic path must be below /body")
+    if allow_body and path != "/body" and not path.startswith("/body/"):
+        raise IrError("semantic path must be at or below /body")
+    parts = path[1:].split("/")
+    if len(parts) > 64 or any(not part for part in parts):
+        raise IrError("semantic path must contain 1 through 64 nonempty segments")
+    for part in parts:
+        index = 0
+        while index < len(part):
+            if part[index] == "~":
+                if index + 1 == len(part) or part[index + 1] not in "01":
+                    raise IrError("semantic path must use canonical RFC 6901 escapes")
+                index += 1
+            index += 1
+    return path
+
+
+@dataclass(frozen=True)
+class _ChangeOperation:
+    op: str
+    fields: Mapping[str, Any]
+
+    def to_data(self, _seen: set[int] | None = None) -> dict[str, Any]:
+        seen = set() if _seen is None else _seen
+        return {"op": self.op, **{key: _data(value, seen) for key, value in self.fields.items()}}
+
+
+class Change:
+    @staticmethod
+    def Replace(path: str, value: _Node) -> _ChangeOperation:
+        if not isinstance(value, _Node):
+            raise IrError("semantic replacement value must be a typed IR node")
+        category = "expression" if value.category == "expr" else value.category
+        return _ChangeOperation("replace", {
+            "path": _pointer(path, allow_body=False), "category": category, "value": value
+        })
+
+    @staticmethod
+    def InsertStatement(path: str, index: int, value: _Node) -> _ChangeOperation:
+        if isinstance(index, bool) or not isinstance(index, int) or index < 0:
+            raise IrError("semantic insertion index must be a nonnegative integer")
+        return _ChangeOperation("insert-statement", {
+            "path": _pointer(path, allow_body=True), "index": index,
+            "value": _expect(value, "statement", "value")
+        })
+
+    @staticmethod
+    def DeleteStatement(path: str) -> _ChangeOperation:
+        return _ChangeOperation("delete-statement", {"path": _pointer(path, allow_body=False)})
+
+
+@dataclass(frozen=True)
+class SemanticChange:
+    base: str | SemanticBody
+    operations: Sequence[_ChangeOperation]
+
+    def __post_init__(self) -> None:
+        base = self.base.basis() if isinstance(self.base, SemanticBody) else self.base
+        valid_base = isinstance(base, str) and base.startswith("frsb1:") and len(base) == 70
+        if not valid_base or any(character not in "0123456789abcdefABCDEF" for character in base[6:]):
+            raise IrError("semantic change base must be an frsb1 SHA-256 identity")
+        if not 1 <= len(self.operations) <= 64:
+            raise IrError("semantic change needs 1 through 64 operations")
+        if not all(isinstance(operation, _ChangeOperation) for operation in self.operations):
+            raise IrError("operations must contain Change values")
+
+    def to_data(self) -> dict[str, Any]:
+        base = self.base.basis() if isinstance(self.base, SemanticBody) else self.base
+        return {"schema": CHANGE_SCHEMA, "base": base,
+                "operations": [operation.to_data(set()) for operation in self.operations]}
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
     def write(self, path: str | Path, *, indent: int | None = 2) -> None:
         Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
 
 
 __all__ = [
-    "BinaryOp", "Catch", "EXPRESSION_KINDS", "Expr", "Function", "IrError", "Param",
+    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "EXPRESSION_KINDS", "Expr", "Function", "IrError", "Param",
     "ExpressionNode", "ParamKind", "SCHEMA", "STATEMENT_KINDS", "SemanticBody", "StatementNode",
-    "Stmt", "TEMPLATE_KINDS", "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode",
+    "SemanticChange", "Stmt", "TEMPLATE_KINDS", "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode",
     "UnaryOp", "VariantArm",
 ]
