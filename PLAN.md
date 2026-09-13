@@ -199,7 +199,7 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 18](https://github.com/e6qu/fun-refactor/pull/281) | Reviewed Semantic Edit Plans | Merged |
 | [PR 19](https://github.com/e6qu/fun-refactor/pull/282) | Incremental Project Identity and Agent Query Latency | Merged |
 | [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
-| PR 21 | Merkle-Committed Progressive Agent Disclosure | In progress |
+| [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | In review |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
@@ -872,7 +872,7 @@ Planned checkpoints:
 
 ### PR 21. Merkle-Committed Progressive Agent Disclosure
 
-Status: in progress on `progressive_disclosure`.
+Status: in review as [PR 284](https://github.com/e6qu/fun-refactor/pull/284).
 
 Goal: let an agent inspect and manipulate a declaration through the smallest useful semantic
 hierarchy. Commit every hidden part to one revision-bound view, reveal source only through an
@@ -922,8 +922,8 @@ Planned checkpoints:
    add shared Rust/Lean boundary execution.
 5. **Complete.** Adversarial CLI coverage, independent-oracle evaluation, portable skill, protocol,
    roadmap, continuity and defect records are current.
-6. **In progress.** The complete repository gate passes. Commit the reviewable checkpoints, open the
-   large PR and monitor CI.
+6. **In progress.** The complete repository gate passes and reviewable commits are in PR 284. Monitor
+   its CI before completing the checkpoint.
 
 ## Formal verification policy
 

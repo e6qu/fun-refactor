@@ -1297,7 +1297,7 @@ PRs 7 through 14 merged as GitHub PRs 267, 269, 270, 271, 272, 273, 275 and 276.
 
 ## Merkle-committed progressive disclosure
 
-PR 21 is active on `progressive_disclosure`, stacked from merged PR 20. It adds
+PR 21 is in review as [PR 284](https://github.com/e6qu/fun-refactor/pull/284). It adds
 `project disclose FULL_HANDLE` as the selective project-reading route. The initial response carries
 only target identity, one combined commitment, a semantic-IR hole and an exact-source hole. Semantic
 reveals expose one JSON level, inline small scalars and retain composite or large values as holes.
@@ -1326,4 +1326,4 @@ source pages and exact reconstruction. The deterministic evaluator is retained a
 `tests/agent-eval/progressive-disclosure.json`; no live Codex trial is claimed for this milestone.
 
 The complete native, WASM, strict Lean, capability, portable-skill, evaluator and prose gate passes.
-Remaining before review: commit the checkpoints, push the branch, open the PR and monitor CI.
+Three reviewable commits are pushed. PR 284 CI remains the final milestone checkpoint.
