@@ -992,6 +992,8 @@ Planned checkpoints:
    evidence after the response-shape extension.
 6. **Complete.** Prose, portable-skill and defect records are current. The full native, WASM,
    playground, strict Lean, capability, Python and documentation gate passes locally.
+7. **Complete.** Rebase onto release 0.19.0 and make retained context evidence stable across
+   first party version-only lockfile changes while preserving third party dependency identities.
 
 ## Formal verification policy
 

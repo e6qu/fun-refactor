@@ -14,6 +14,8 @@ import subprocess
 import tempfile
 import time
 
+from evidence_basis import file_digest
+
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = importlib.util.spec_from_file_location("agent_eval_harness", ROOT / "tools/agent-eval.py")
 HARNESS = importlib.util.module_from_spec(SPEC)
@@ -188,14 +190,15 @@ def measure(binary, repetitions, encoding):
                 "median_context_tokens": statistics.median(run["context"]["tokens"] for run in selected) if encoding else None,
                 "median_seconds": statistics.median(run["seconds"] for run in selected),
             }
-    sources = [Path(__file__).resolve(), ROOT / "tools/agent-eval.py", ROOT / "src/project.rs",
+    sources = [Path(__file__).resolve(), ROOT / "tools/evidence_basis.py",
+               ROOT / "tools/agent-eval.py", ROOT / "src/project.rs",
                ROOT / "src/project/batch.rs", ROOT / "Cargo.lock"]
     return {
         "schema": "fr-project-batch-context-1", "passed": True, "binary_sha256": binary_sha,
         "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         "repetitions": repetitions, "runtime": {"platform": platform.platform(), "python": platform.python_version(),
                                                     "rustc": subprocess.check_output(["rustc", "--version"], text=True).strip()},
-        "measurement_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in sources},
+        "measurement_files": {str(path.relative_to(ROOT)): file_digest(path) for path in sources},
         "fixture": FILES, "manifest": manifest(),
         "tokenizer": {"package": "tiktoken", "version": "0.12.0", "encoding": "o200k_base",
                       "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"} if encoding else None,
@@ -217,7 +220,7 @@ def audit(path):
         str(length): value for length, value in TOKEN_IDENTITIES.items()
     }
     for name, expected in report["measurement_files"].items():
-        assert digest((ROOT / name).read_bytes()) == expected, name
+        assert file_digest(ROOT / name) == expected, name
     for policy in POLICIES:
         separate_runs = [run for run in report["runs"] if run["policy"] == policy and run["arm"] == "separate"]
         batch_runs = [run for run in report["runs"] if run["policy"] == policy and run["arm"] == "batch"]

@@ -10,6 +10,11 @@ fn python(args: &[&str]) {
 }
 
 #[test]
+fn retained_evidence_ignores_only_first_party_release_versions() {
+    python(&["tools/evidence_basis.py"]);
+}
+
+#[test]
 fn acceptance_grading_requires_correct_behavior_and_ordered_evidence() {
     python(&["tools/agent_eval/test_harness.py"]);
 }

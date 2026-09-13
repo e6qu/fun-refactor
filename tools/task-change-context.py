@@ -14,6 +14,8 @@ import subprocess
 import tempfile
 import time
 
+from evidence_basis import file_digest
+
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = importlib.util.spec_from_file_location("agent_eval_harness", ROOT / "tools/agent-eval.py")
 HARNESS = importlib.util.module_from_spec(SPEC)
@@ -256,7 +258,8 @@ def measure(binary, repetitions, encoding):
             "median_context_tokens": statistics.median(run["context"]["tokens"] for run in selected),
             "median_seconds": statistics.median(run["seconds"] for run in selected),
         }
-    sources = [Path(__file__).resolve(), ROOT / "tools/agent-eval.py",
+    sources = [Path(__file__).resolve(), ROOT / "tools/evidence_basis.py",
+               ROOT / "tools/agent-eval.py",
                ROOT / "src/project/task_change.rs", ROOT / "src/project/task.rs",
                ROOT / "src/project/author.rs", ROOT / "src/workflow.rs",
                ROOT / "src/history.rs", ROOT / "src/checks.rs", ROOT / "Cargo.lock"]
@@ -268,7 +271,7 @@ def measure(binary, repetitions, encoding):
         "repetitions": repetitions,
         "runtime": {"platform": platform.platform(), "python": platform.python_version(),
                     "rustc": subprocess.check_output(["rustc", "--version"], text=True).strip()},
-        "measurement_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in sources},
+        "measurement_files": {str(path.relative_to(ROOT)): file_digest(path) for path in sources},
         "fixture": {"src/lib.rs": SOURCE, ".fr/checks.json": CHECKS,
                     "render.fragment": FRAGMENT},
         "tokenizer": {"package": "tiktoken", "version": "0.12.0", "encoding": "o200k_base",
@@ -289,7 +292,7 @@ def audit(path):
     assert report["token_normalization"]["representatives"] == {
         str(length): value for length, value in TOKEN_IDENTITIES.items()}
     for name, expected in report["measurement_files"].items():
-        assert digest((ROOT / name).read_bytes()) == expected, name
+        assert file_digest(ROOT / name) == expected, name
     for repetition in range(1, report["repetitions"] + 1):
         pair = {run["arm"]: run for run in report["runs"] if run["repetition"] == repetition}
         assert pair["composed"]["calls"] == 5 and pair["task_change"]["calls"] == 2

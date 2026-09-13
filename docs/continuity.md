@@ -1370,4 +1370,7 @@ initial response under the 4,096-byte compact ceiling.
 The complete native, WASM/playground, strict Lean, capability, Python, portable-skill and prose gate
 passes. The skill checker executes all 49 shell examples, including capability discovery, preview
 and a basis-bound write whose Rust result compiles. The largest skill route is 7,088 bytes under its
-7,168-byte ceiling. No live-agent savings claim is made for this deterministic milestone.
+7,168-byte ceiling. After release 0.19.0 moved the synthetic merge basis, context evidence began
+hashing a canonical dependency lock basis. First party version-only changes no longer invalidate
+the reports; registry versions, sources and checksums remain bound. No live-agent savings claim is
+made for this deterministic milestone.

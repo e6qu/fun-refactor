@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B857: **a release-only workspace version bump invalidated retained evaluation evidence.**
+
+  Four context audits hashed `Cargo.lock` bytes, so the release automation changed their basis even
+  though it left the resolved dependency graph intact. Evidence now canonicalizes versions of
+  source-free workspace packages while retaining registry versions, sources and checksums.
+  A regression proves release versions leave the basis intact. It also proves registry changes alter it.
+
 - [x] B856: **a hidden large scalar reappeared in its author preview.**
   Progressive disclosure committed a long string instead of returning it inline. The first receipt
   copied the entire current value and generated intent back into the report.
