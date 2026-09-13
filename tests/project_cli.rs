@@ -26,6 +26,36 @@ fn ok(root: &Path, args: &[&str]) -> Value {
     report
 }
 
+fn run_owned(root: &Path, args: &[String]) -> (bool, Value) {
+    let borrowed = args.iter().map(String::as_str).collect::<Vec<_>>();
+    run(root, &borrowed)
+}
+
+fn ok_owned(root: &Path, args: &[String]) -> Value {
+    let (success, report) = run_owned(root, args);
+    assert!(success, "{args:?}: {report}");
+    report
+}
+
+fn exact_arguments(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|argument| argument.as_str().unwrap().to_owned())
+        .collect()
+}
+
+fn assert_disclosure_budget(report: &Value) {
+    let actual = serde_json::to_vec(report).unwrap().len() + 1;
+    assert_eq!(report["token_budget"]["used_upper_bound"], actual);
+    assert!(actual <= report["token_budget"]["limit"].as_u64().unwrap() as usize);
+    assert_eq!(
+        report["token_budget"]["unit"],
+        "conservative-model-token-upper-bound"
+    );
+}
+
 fn ok_cached(root: &Path, cache: &Path, args: &[&str]) -> Value {
     let output = Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "-C"])
@@ -58,6 +88,246 @@ fn fixture() -> tempfile::TempDir {
     )
     .unwrap();
     dir
+}
+
+#[test]
+fn progressive_disclosure_starts_source_free_and_follows_exact_semantic_and_source_actions() {
+    let dir = fixture();
+    let found = ok(dir.path(), &["project", "find", "run"]);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        dir.path(),
+        &["project", "disclose", handle, "--token-limit", "4096"],
+    );
+    assert_disclosure_budget(&initial);
+    assert_eq!(initial["schema"], "fr-progressive-disclosure-1");
+    assert_eq!(initial["status"], "frontier");
+    assert!(initial.get("model").is_none());
+    assert!(initial.get("text").is_none());
+    assert_eq!(initial["frontier"].as_array().unwrap().len(), 2);
+    assert_eq!(initial["frontier"][0]["domain"], "semantic-ir");
+    assert_eq!(initial["frontier"][1]["domain"], "exact-source");
+    assert!(!initial["semantic_shortcuts"].as_array().unwrap().is_empty());
+    let shortcut = ok_owned(
+        dir.path(),
+        &exact_arguments(&initial["semantic_shortcuts"][0]["reveal"]["arguments"]),
+    );
+    assert_disclosure_budget(&shortcut);
+    assert_eq!(shortcut["commitment"], initial["commitment"]);
+    assert_eq!(shortcut["revealed"]["domain"], "semantic-ir");
+
+    let semantic = ok_owned(
+        dir.path(),
+        &exact_arguments(&initial["frontier"][0]["reveal"]["arguments"]),
+    );
+    assert_disclosure_budget(&semantic);
+    assert_eq!(semantic["commitment"], initial["commitment"]);
+    assert_eq!(semantic["view_basis"], initial["view_basis"]);
+    assert_eq!(semantic["revealed"]["domain"], "semantic-ir");
+    assert!(semantic["revealed"]["children"].is_array());
+    assert!(semantic.get("text").is_none());
+
+    let source = ok_owned(
+        dir.path(),
+        &exact_arguments(&initial["frontier"][1]["reveal"]["arguments"]),
+    );
+    assert_disclosure_budget(&source);
+    assert_eq!(source["commitment"], initial["commitment"]);
+    assert_eq!(source["revealed"]["domain"], "exact-source");
+    assert!(source["revealed"]["text"]
+        .as_str()
+        .unwrap()
+        .contains("def run"));
+}
+
+#[test]
+fn progressive_source_reveals_are_utf8_safe_bounded_and_reconstruct_exactly() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir(dir.path().join("src")).unwrap();
+    let body = "λ名🙂\\\"".repeat(1_500);
+    let declaration = format!("def render():\n    return {body:?}\n");
+    fs::write(dir.path().join("src/app.py"), &declaration).unwrap();
+    let found = ok(dir.path(), &["project", "find", "render"]);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        dir.path(),
+        &["project", "disclose", handle, "--token-limit", "4096"],
+    );
+    let mut arguments = exact_arguments(&initial["frontier"][1]["reveal"]["arguments"]);
+    let mut reconstructed = String::new();
+    let mut pages = 0;
+    loop {
+        let report = ok_owned(dir.path(), &arguments);
+        assert_disclosure_budget(&report);
+        reconstructed.push_str(report["revealed"]["text"].as_str().unwrap());
+        pages += 1;
+        let Some(next) = report["frontier"].as_array().unwrap().first() else {
+            break;
+        };
+        arguments = exact_arguments(&next["reveal"]["arguments"]);
+    }
+    assert!(pages > 2);
+    assert_eq!(reconstructed, declaration.trim_end());
+}
+
+#[test]
+fn progressive_disclosure_refuses_stale_holes_cursors_and_invalid_budgets() {
+    let dir = fixture();
+    let found = ok(dir.path(), &["project", "find", "run"]);
+    let handle = found["rows"][0][0].as_str().unwrap().to_owned();
+    let initial = ok(
+        dir.path(),
+        &["project", "disclose", &handle, "--token-limit", "4096"],
+    );
+    let source_args = exact_arguments(&initial["frontier"][1]["reveal"]["arguments"]);
+
+    let (success, error) = run(
+        dir.path(),
+        &["project", "disclose", &handle, "--token-limit", "1023"],
+    );
+    assert!(!success);
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("1024..4096"));
+
+    let mut bad_hole = source_args.clone();
+    let position = bad_hole
+        .iter()
+        .position(|value| value == "--reveal")
+        .unwrap()
+        + 1;
+    bad_hole[position].push('0');
+    let (success, error) = run_owned(dir.path(), &bad_hole);
+    assert!(!success);
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("source hole"));
+
+    fs::write(
+        dir.path().join("src/app.py"),
+        "class Service:\n    def run(self):\n        return 'changed'\n",
+    )
+    .unwrap();
+    let (success, error) = run_owned(dir.path(), &source_args);
+    assert!(!success);
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale or invalid project handle"));
+
+    let fresh = ok(dir.path(), &["project", "find", "run"]);
+    let fresh_handle = fresh["rows"][0][0].as_str().unwrap();
+    let changed = ok(
+        dir.path(),
+        &["project", "disclose", fresh_handle, "--token-limit", "4096"],
+    );
+    assert_ne!(initial["commitment"]["root"], changed["commitment"]["root"]);
+}
+
+#[test]
+fn progressive_semantic_strings_page_exactly_and_bind_cursors_to_the_budget() {
+    let dir = tempfile::tempdir().unwrap();
+    let payload = "λ名🙂\\\"".repeat(1_500);
+    let source = format!("def payload():\n    return {payload:?}\n");
+    fs::write(dir.path().join("app.py"), source).unwrap();
+    let found = ok(dir.path(), &["project", "find", "payload"]);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        dir.path(),
+        &["project", "disclose", handle, "--token-limit", "4096"],
+    );
+    let mut holes = vec![initial["frontier"][0].clone()];
+    let mut string_hole = None;
+    for _ in 0..64 {
+        let hole = holes.remove(0);
+        if hole["value_kind"] == "string" && hole["subtree_bytes"].as_u64().unwrap_or(0) > 4_096 {
+            string_hole = Some(hole);
+            break;
+        }
+        let mut report = ok_owned(dir.path(), &exact_arguments(&hole["reveal"]["arguments"]));
+        loop {
+            assert_disclosure_budget(&report);
+            for child in report["revealed"]["children"].as_array().unwrap() {
+                if let Some(hole) = child.get("hole") {
+                    holes.push(hole.clone());
+                }
+            }
+            let Some(continuation) = report.get("continuation") else {
+                break;
+            };
+            report = ok_owned(dir.path(), &exact_arguments(&continuation["arguments"]));
+        }
+    }
+    let string_hole = string_hole.expect("large semantic string hole");
+    let first = ok_owned(
+        dir.path(),
+        &exact_arguments(&string_hole["reveal"]["arguments"]),
+    );
+    assert_disclosure_budget(&first);
+    let continuation = &first["continuation"]["arguments"];
+    let mut tampered = exact_arguments(continuation);
+    let limit = tampered
+        .iter()
+        .position(|argument| argument == "--token-limit")
+        .unwrap()
+        + 1;
+    tampered[limit] = "4095".into();
+    let (success, error) = run_owned(dir.path(), &tampered);
+    assert!(!success);
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("semantic hole"));
+
+    let mut reconstructed = first["revealed"]["value_fragment"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let mut next = Some(exact_arguments(continuation));
+    while let Some(arguments) = next {
+        let report = ok_owned(dir.path(), &arguments);
+        assert_disclosure_budget(&report);
+        reconstructed.push_str(report["revealed"]["value_fragment"].as_str().unwrap());
+        next = report
+            .get("continuation")
+            .map(|continuation| exact_arguments(&continuation["arguments"]));
+    }
+    assert_eq!(reconstructed, payload);
+}
+
+#[test]
+fn profiled_batch_composes_discovery_frontier_and_semantic_reveal_in_one_project_view() {
+    let dir = fixture();
+    let reference =
+        |request: &str, pointer: &str| serde_json::json!({"request": request, "pointer": pointer});
+    let manifest = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [
+            {"id": "discover", "arguments": ["project", "explore", "run"]},
+            {"id": "frontier", "arguments": [
+                "project", "disclose", reference("discover", "/rows/0/handle"),
+                "--token-limit", "4096"
+            ]},
+            {"id": "reveal", "arguments": [
+                "project", "disclose", reference("discover", "/rows/0/handle"),
+                "--reveal", reference("frontier", "/frontier/0/id"),
+                "--token-limit", "4096"
+            ]}
+        ]
+    });
+    let (success, report) = project_profile_batch(dir.path(), manifest, 32_768, "compact");
+    assert!(success, "{report}");
+    assert_eq!(report["agent_profile"]["project_views"], 1);
+    assert_eq!(report["requests"][0]["status"], "returned");
+    assert_eq!(report["requests"][1]["report"]["status"], "frontier");
+    assert_eq!(report["requests"][2]["report"]["status"], "revealed");
+    assert_eq!(
+        report["requests"][1]["report"]["commitment"],
+        report["requests"][2]["report"]["commitment"]
+    );
+    assert!(report["requests"][1]["report"].get("coverage").is_none());
 }
 
 fn reconstruct_context(mut compact: Value, reviewed: &Value) -> Value {
