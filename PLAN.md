@@ -937,7 +937,7 @@ Planned checkpoints:
 
 ### PR 22. Disclosure-Bound Semantic Editing
 
-Status: ready for review on `disclosure_bound_editing`.
+Status: in review as [PR 285](https://github.com/e6qu/fun-refactor/pull/285).
 
 Goal: let an agent turn one progressively revealed scalar into an exact reviewed change without
 reading source, reconstructing a pointer or writing a semantic-intent locator. Preserve the typed

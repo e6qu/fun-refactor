@@ -1330,7 +1330,8 @@ PR 284 CI also passed its default, WASM, playground and title jobs before merge.
 
 ## Disclosure-bound semantic editing
 
-PR 22 continues the progressive hierarchy into exact source-free authoring. Every scalar that the
+PR 22 is in review as [PR 285](https://github.com/e6qu/fun-refactor/pull/285). It continues the
+progressive hierarchy into exact source-free authoring. Every scalar that the
 current semantic reader and body writer can author receives an opaque `frde1:` capability when it is
 revealed. Its ID binds the revision, full declaration handle, canonical body basis, scalar pointer,
 operation, current value and typed role locator. Equal values at different positions have different
