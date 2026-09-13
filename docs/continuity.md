@@ -222,8 +222,8 @@ with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
-selection identity matches. Calls fall from four to one. Median counted context falls from 1,696 to
-1,514 tokens (10.7%), and bytes fall from 6,191 to 4,758 (23.1%). The 446-byte task manifest is
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,746 to
+1,514 tokens (13.3%), and bytes fall from 6,407 to 4,758 (25.7%). The 446-byte task manifest is
 counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
@@ -361,7 +361,7 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step. It reduces
-42 calls to 29 and measured context from 15,458 to 13,377 tokens. This 2,081-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,419 tokens. This 2,039-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed

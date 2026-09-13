@@ -72,8 +72,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,377 context tokens. This is 2,081 below the observed `fr` arm
-and 1,777 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+reduces that trace to 29 calls and 13,419 context tokens. This is 2,039 below the observed `fr` arm
+and 1,819 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
 fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -110,8 +110,8 @@ in all three repetitions. This fixed sequence supports an adoption trial and mak
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
 revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
-median counted context falls from 1,696 to 1,514 tokens, a 10.7% reduction. Serialized context falls
-from 6,191 to 4,758 bytes, a 23.1% reduction. Calls fall from four to one. Both arms stop before
+median counted context falls from 1,746 to 1,514 tokens, a 13.3% reduction. Serialized context falls
+from 6,407 to 4,758 bytes, a 25.7% reduction. Calls fall from four to one. Both arms stop before
 fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
@@ -226,7 +226,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,072 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,262-token or 62.6% `fr` premium.
+- The current checksum-bound projection uses 11,114 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,304-token or 63.2% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.

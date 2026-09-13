@@ -368,7 +368,7 @@ impl Project<'_> {
                 operation["disclosed"] = serde_json::to_value(disclosed)?;
             }
             author_operations.push(operation);
-            target_rows.push(json!({
+            let mut target_row = json!({
                 "id": target.id,
                 "handle": handle,
                 "path": node.path,
@@ -376,10 +376,13 @@ impl Project<'_> {
                 "kind": if is_file { Value::String("file".into()) } else { json!(kind) },
                 "operation": target.op,
                 "scalar": target.scalar,
-                "disclosed": target.disclosed,
                 "eligibility": "target-supported",
                 "syntax_preflighted": false
-            }));
+            });
+            if let Some(disclosed) = &target.disclosed {
+                target_row["disclosed"] = serde_json::to_value(disclosed)?;
+            }
+            target_rows.push(target_row);
             resolved_targets.push((
                 target.id.clone(),
                 handle,
