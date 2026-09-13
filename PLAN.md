@@ -937,7 +937,7 @@ Planned checkpoints:
 
 ### PR 22. Disclosure-Bound Semantic Editing
 
-Status: in progress on `disclosure_bound_editing`.
+Status: ready for review on `disclosure_bound_editing`.
 
 Goal: let an agent turn one progressively revealed scalar into an exact reviewed change without
 reading source, reconstructing a pointer or writing a semantic-intent locator. Preserve the typed
@@ -990,8 +990,8 @@ Planned checkpoints:
    compare the finite models.
 5. **Complete.** Retain the independent generic evaluator and refresh the progressive-disclosure
    evidence after the response-shape extension.
-6. **In progress.** Complete prose, portable-skill and defect records; pass the full local and CI
-   gates; open the reviewable PR.
+6. **Complete.** Prose, portable-skill and defect records are current. The full native, WASM,
+   playground, strict Lean, capability, Python and documentation gate passes locally.
 
 ## Formal verification policy
 

@@ -1366,6 +1366,7 @@ disclosure responses totaling 13,577 bytes under the explicit expanded limit; it
 is 8,068 bytes and its preview is 3,968 bytes. The refreshed PR 21 artifact records a 3,762-byte
 initial response under the 4,096-byte compact ceiling.
 
-The remaining checkpoint is the complete native, WASM/playground, strict Lean, capability, Python,
-portable-skill and prose gate, followed by CI on the reviewable PR. No live-agent savings claim is
-made for this deterministic milestone.
+The complete native, WASM/playground, strict Lean, capability, Python, portable-skill and prose gate
+passes. The skill checker executes all 49 shell examples, including capability discovery, preview
+and a basis-bound write whose Rust result compiles. The largest skill route is 7,088 bytes under its
+7,168-byte ceiling. No live-agent savings claim is made for this deterministic milestone.
