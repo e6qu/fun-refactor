@@ -361,7 +361,7 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step. It reduces
-42 calls to 29 and measured context from 15,458 to 13,419 tokens. This 2,039-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,380 tokens. This 2,078-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed

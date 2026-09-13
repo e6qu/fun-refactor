@@ -19,8 +19,7 @@ Replace only `<NEW_VALUE>` and run that array after `fr`:
 
 ```sh
 fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE>
-fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE> \
-  --write --plan-basis <PLAN_CONTEXT_BASIS>
+fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE> --write --plan-basis <PLAN_CONTEXT_BASIS>
 ```
 
 Equal values can have different IDs. Copy the ID associated with the intended semantic address.

@@ -124,8 +124,7 @@ def source_workflow(exercise, root):
     query_manifest.write_text(blocks(reference / "batch.md", "json")[0])
     exercise.values["<PROJECT_QUERIES>"] = str(query_manifest)
 
-    for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md",
-                 reference / "disclosure.md"]:
+    for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
             value = exercise.example(root, path, command)
             if value.get("query") in ("map", "find"):
@@ -328,6 +327,57 @@ def author_workflow(exercise, root):
     assert (root / ".git/index").read_bytes() == initial_index
 
 
+def disclosure_workflow(exercise, root):
+    source = root / "src/lib.rs"
+    source.parent.mkdir()
+    original = "pub fn calc(value: i32) -> i32 { value + 1 }\n"
+    source.write_text(original)
+    git(root, "init", "-q", "-b", "main")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "disclosure fixture")
+    found, _ = exercise.run(root, ["project", "find", "calc"])
+    exercise.values["<HANDLE>"] = found["rows"][0][0]
+    exercise.values["<NEW_VALUE>"] = "7"
+
+    path = SKILL / "references/disclosure.md"
+    for command in commands(path):
+        value = exercise.example(root, path, command)
+        if command[1:3] == ["project", "disclose"]:
+            assert value["token_budget"]["used_upper_bound"] <= value["token_budget"]["limit"]
+            shortcuts = [shortcut for shortcut in value["semantic_shortcuts"]
+                         if shortcut["editable_scalars"] > 0]
+            assert shortcuts
+            edit = None
+            for shortcut in shortcuts:
+                pending = [shortcut["reveal"]["arguments"]]
+                while pending and not edit:
+                    revealed, _ = exercise.run(root, pending.pop(0))
+                    for child in revealed.get("revealed", {}).get("children", []):
+                        if child.get("edit", {}).get("operation") == "set-int":
+                            edit = child["edit"]
+                            break
+                        if "hole" in child:
+                            pending.append(child["hole"]["reveal"]["arguments"])
+                    if "continuation" in revealed:
+                        pending.append(revealed["continuation"]["arguments"])
+                if edit:
+                    break
+            assert edit, "Disclosure must expose the fixture's integer edit capability."
+            exercise.values["<EDIT_ID>"] = edit["id"]
+        elif "--write" not in command:
+            assert not value["applied"] and source.read_text() == original
+            exercise.values["<PLAN_CONTEXT_BASIS>"] = value["plan_context_basis"]
+        else:
+            assert value["applied"]
+            changed = source.read_text()
+            assert changed != original and "value + 7" in changed
+            library = root.parent / "disclosure.rlib"
+            compiled = subprocess.run(["rustc", "--edition=2021", "--crate-type=lib",
+                                       str(source), "-o", str(library)], capture_output=True,
+                                      timeout=60)
+            assert compiled.returncode == 0, compiled.stderr.decode(errors="replace")
+
+
 def task_workflow(exercise, root):
     (root / "src").mkdir()
     (root / ".fr").mkdir()
@@ -429,11 +479,13 @@ def main():
         (root / "source").mkdir()
         (root / "proof").mkdir()
         (root / "author").mkdir()
+        (root / "disclosure").mkdir()
         (root / "task").mkdir()
         (root / "workflow").mkdir()
         source_bytes = source_workflow(exercise, root / "source")
         checks_workflow(exercise, root / "source")
         author_workflow(exercise, root / "author")
+        disclosure_workflow(exercise, root / "disclosure")
         task_workflow(exercise, root / "task")
         verified_workflow(exercise, root / "workflow")
         lean_workflow(exercise, root / "proof")
