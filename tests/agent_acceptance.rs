@@ -99,6 +99,20 @@ fn bounded_agent_discovery_coalesces_and_reuses_one_project_view() {
 }
 
 #[test]
+fn progressive_disclosure_follows_bounded_actions_and_verifies_merkle_commitments() {
+    python(&[
+        "tools/progressive-disclosure.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+    ]);
+    python(&[
+        "tools/progressive-disclosure.py",
+        "--audit",
+        "tests/agent-eval/progressive-disclosure.json",
+    ]);
+}
+
+#[test]
 fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",

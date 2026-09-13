@@ -7,6 +7,7 @@ import FrKernels.Checks
 import FrKernels.SemanticIntent
 import FrKernels.ProjectIdentity
 import FrKernels.AgentDiscovery
+import FrKernels.Disclosure
 
 open FrKernels.Project
 
@@ -15,6 +16,10 @@ def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 1
 def frameworkSamples : List Nat := [0, 1, 2, 63, 64, 65, 128, 512, 65536]
 
 def agentSamples : List Nat := [0, 1, 2, 11, 12, 13, 30, 2048, 4096, 16384, 32768, 65536]
+
+def disclosureSamples : List Nat :=
+  [0, 1, 2, 1023, 1024, 4095, 4096, 4097, 16383, 16384, 16385, 65536,
+   18446744073709551615]
 
 def schemaSamples : List (List String) := [[], ["a"], ["a", "b"], ["b", "a"], ["a", "a"]]
 
@@ -155,6 +160,18 @@ def main (args : List String) : IO Unit := do
     for owner in [false, true] do
       for admitted in [false, true] do
         IO.println (FrKernels.AgentDiscovery.snapshotPublishable owner admitted)
+  else if args == ["progressive-disclosure"] then
+    for profile in [0:4] do
+      for serializedBytes in disclosureSamples do
+        for tokenLimit in disclosureSamples do
+          IO.println (FrKernels.Disclosure.budgetAdmitted serializedBytes tokenLimit profile)
+    for kind in [0:4] do
+      for offset in disclosureSamples do
+        for total in disclosureSamples do
+          IO.println (FrKernels.Disclosure.transitionAllowed kind offset total)
+    for hidden in disclosureSamples do
+      for children in disclosureSamples do
+        IO.println (FrKernels.Disclosure.frontierAfter hidden children)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do
