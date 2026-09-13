@@ -1,0 +1,28 @@
+{
+  "schema": "fr-agent-discovery-eval-1",
+  "passed": true,
+  "tool_sha256": "e3337ccfea792a466d0804b0e0bd8d1b42472a70d6c4d64b01e8c0e21b5dcba1",
+  "binary_sha256": "4fb06ce27fa7c77c9cd177a4af05758541a6bccada6e1a631a70f49e091afc85",
+  "parallel": {
+    "queries": 2,
+    "reports_byte_identical": true,
+    "resolution_owners": 1,
+    "resolution_waiters": 1,
+    "resolution_timeouts": 0,
+    "elapsed_seconds": 1.952358
+  },
+  "compact": {
+    "name_rows": 1,
+    "source_bytes": 46,
+    "relationship_rows": 2,
+    "report_bytes": 1890
+  },
+  "batch": {
+    "requests": 2,
+    "project_views": 1,
+    "report_limit_bytes": 16384,
+    "manifest_basis_schema": "frpqb2"
+  },
+  "stale_handle_refused": true,
+  "scope": "Generated Python fixture on one host; no agent, parser proof, scheduler proof, hostile-filesystem proof or production latency claim."
+}

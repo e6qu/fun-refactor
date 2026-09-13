@@ -6,12 +6,15 @@ import FrKernels.Adoption
 import FrKernels.Checks
 import FrKernels.SemanticIntent
 import FrKernels.ProjectIdentity
+import FrKernels.AgentDiscovery
 
 open FrKernels.Project
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def frameworkSamples : List Nat := [0, 1, 2, 63, 64, 65, 128, 512, 65536]
+
+def agentSamples : List Nat := [0, 1, 2, 11, 12, 13, 30, 2048, 4096, 16384, 32768, 65536]
 
 def schemaSamples : List (List String) := [[], ["a"], ["a", "b"], ["b", "a"], ["a", "a"]]
 
@@ -136,6 +139,22 @@ def main (args : List String) : IO Unit := do
         for width in List.range (entries.length + 1) do
           IO.println (FrKernels.ProjectIdentity.resolutionSnapshotAdmitted
             referenceCount symbolCount (entries.take width))
+  else if args == ["agent-discovery"] then
+    for profile in [0:2] do
+      for rows in agentSamples do
+        for sourceBytes in agentSamples do
+          for reportBytes in agentSamples do
+            IO.println (FrKernels.AgentDiscovery.budgetAdmittedCode
+              rows sourceBytes reportBytes profile)
+    for mode in [0:4] do
+      for target in [false, true] do
+        IO.println (FrKernels.AgentDiscovery.transitionAllowed mode target)
+    for stale in [false, true] do
+      for expired in [false, true] do
+        IO.println (FrKernels.AgentDiscovery.waitAction stale expired)
+    for owner in [false, true] do
+      for admitted in [false, true] do
+        IO.println (FrKernels.AgentDiscovery.snapshotPublishable owner admitted)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

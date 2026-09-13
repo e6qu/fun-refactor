@@ -1,9 +1,8 @@
 # Explore only the needed structure
 
-Keep the repository as the scan root when callers elsewhere matter. Substitute real paths for the examples.
-
 ```sh
-fr project find greet --in app.py --signature --limit 12
+fr project explore greet --in app.py
+fr project explore greet --mode behavior --target '<HANDLE>'
 fr project select greet render validate --signature --source --bytes 2048
 fr project show '<HANDLE>'
 fr project show '<HANDLE>' --relations --limit 8
@@ -16,21 +15,23 @@ fr project gaps --limit 8
 
 When the task only needs several read views, use the bounded manifest in [Batch](batch.md).
 When those views select structural edit targets and declared checks, use [Task](task.md).
-Keep the cache enabled between related calls. A long cold call may emit standalone `indexing`
-objects on stderr every few seconds; these are progress, while stdout remains the query report.
-Inspect `fr --json cache` when an agent sandbox cannot write the platform cache directory.
+Keep the cache enabled. Cold calls may emit `indexing` progress on stderr; stdout remains the report.
 
-Run the first cold project query alone; do not fan out parallel queries that duplicate indexing.
-For behavior-based discovery, start with one name-only `find TERM --contains --limit 12` and no
-source. Do not start with a map. Narrow the best candidate by exact name and `--in PATH`, then request
-its source. Keep exploratory limits at 30 or less; paginate a known result set instead of raising them.
+For behavior discovery, start with one `project explore TERM [--contains]`. It returns no source in
+names mode and caps the page at twelve rows. Execute the selected row's `next.arguments` exactly to
+obtain its bounded source and direct relationships. Execute truncation continuations instead of
+raising limits. Use `--profile expanded` only through the reported explicit expansion action.
 
-Use exact `project find NAME` for known declarations. Add the boolean `--contains` flag for a literal substring; it takes no value.
-Find matches names before clipping and reports candidates with pagination and source coverage.
+When two stages are known, put `explore` requests in one `project batch --profile compact`
+manifest and reference the selected handle through `/rows/0/handle`. This reuses one project
+snapshot and enforces an aggregate report budget. Independent cold processes coalesce identical
+resolution work.
+
+Use exact `project find NAME` for known declarations. `--contains` is a boolean literal-substring flag.
 Use `project select SELECTOR...` for several exact names or handles under one revision and budget.
 Read every selector status before claiming absence. Handles can report `outside-scope`,
 `not-a-declaration` or an omitted local; stale handles refuse instead of becoming names.
-Use maps when the hierarchy itself matters. Choose `<HANDLE>` from the relevant declaration row. Full handles include their source revision.
+Use maps when hierarchy matters. Choose `<HANDLE>` from a declaration row. Full handles include their source revision.
 Alternatively use a short ID with the returned `--revision`; never reuse a bare ID across revisions.
 `show` gives the declaration's `position`, a 1-based line and column suitable for a refactoring target.
 Its syntax header can contain defaults and attributes; it is not a complete semantic contract.

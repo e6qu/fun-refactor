@@ -1241,6 +1241,38 @@ also passed an extra `project` subcommand that its Rust profiler does not accept
 forwards the command unchanged, and the Rust report includes bounded reference-cost diagnostics.
 The complete native, strict Lean, capability, portable-skill, prose and WASM gate passes.
 
+## Bounded agent discovery and concurrent resolution
+
+PR 20 adds `project explore` as the server-bounded behavior-discovery route. Compact names mode
+returns at most twelve declarations and no source. Behavior mode requires a matching full handle and
+returns 2,048 source bytes plus eight direct relationships. Expanded mode is explicit and reported.
+Every truncated dimension includes an exact argument-array continuation. Profiled project batches
+admit only explore requests, bind their profile into `frpqb2:` identity and reuse one constructed
+project across referenced stages.
+
+Two overlapping pre-change dogfood lookups each entered resolution for 437,220 references. The new
+cache ownership path was then exercised by two cold lookups over 961 files and 438,948 references.
+One process recorded ownership; the other recorded one wait and one cache hit. Their project reports
+were byte-identical. The waiter emitted monotonic `resolution-wait` progress and neither process
+timed out. A generic Python fixture independently records one owner, one waiter, identical reports,
+profile ceilings, a two-stage single-view batch and stale-handle refusal in
+`tests/agent-eval/agent-discovery.json`.
+
+Dogfooding the first behavior route exposed a 22.189-second whole-call-graph build for one 236-byte
+function. The route now uses direct indexed relationships. It also exposed a structurally invalid
+snapshot that could not be replaced, a silent coalesced waiter and the ownership publication race.
+BUGS.md records B851 through B854 and their regressions.
+
+The stable-tree rerun indexed 963 files and 439,439 references. Names mode used 1,675 serialized
+bytes. Its exact behavior continuation returned the 236-byte declaration, eight relationships and
+bounded follow-ups in 3,203 bytes and 1.713 seconds. A two-stage compact batch reused one project
+view, completed in 1.700 seconds and used 3,520 of its 16,384 nested-report bytes.
+
+`FrKernels.AgentDiscovery` models profile budgets, discovery transitions, wait actions and
+owner-only admitted publication. Four strict anchors and signature maps connect the decisions to
+Rust. The executable suite compares 3,472 cases. Filesystem and scheduler behavior remain host-tested
+rather than proved.
+
 ## Next steps
 
 The agreed real-agent baseline is local `codex exec` with `gpt-5.6-luna`, `low` reasoning and the default service tier.
@@ -1251,8 +1283,8 @@ Check execution metadata is now optional; use retained traces to reduce remainin
 Preserve coverage, source bases, guards and reviewable edits.
 Validate whether fresh agents adopt the targeted route before claiming autonomous context savings; include a task that actually requires broader exploration.
 Measure proposed reductions on fixed transcripts or controlled workflows before requesting another autonomous cohort.
-Concurrent cold-query coalescing, task-scoped project reuse and enforced discovery budgets are the
-next measured work. Skill instructions alone did not keep the fresh agent on the bounded route.
+Use the bounded discovery profile for the next authenticated agent cohort. Skill instructions alone
+did not keep the earlier fresh agent on the efficient route; server ceilings now constrain that path.
 Keep revision inputs, coverage and final source verification intact; require byte-identical reports and distinguish model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots.

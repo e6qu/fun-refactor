@@ -30,6 +30,7 @@ cd "$(dirname "$0")/.."
     lake exe fr-project-kernel semantic-ir-catalog >/dev/null
     lake exe fr-project-kernel semantic-source-free >/dev/null
     lake exe fr-project-kernel resolution-snapshots >/dev/null
+    lake exe fr-project-kernel agent-discovery >/dev/null
     lake exe fr-project-kernel framework-boundaries >/dev/null
     lake exe fr-project-kernel line-ranges >/dev/null
     lake exe fr-project-kernel call-selection >/dev/null

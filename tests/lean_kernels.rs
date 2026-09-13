@@ -1368,6 +1368,74 @@ fn resolution_snapshot_admission_matches_lean_on_boundary_cases() {
 }
 
 #[test]
+fn agent_discovery_and_resolution_coordination_match_lean() {
+    use fun_refactor::cache::{resolution_snapshot_publishable, resolution_wait_action};
+    use fun_refactor::project::{
+        agent_discovery_budget_admitted_code, agent_discovery_transition_allowed,
+    };
+
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("agent-discovery")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines();
+    let samples = [
+        0, 1, 2, 11, 12, 13, 30, 2_048, 4_096, 16_384, 32_768, 65_536,
+    ];
+    let mut checked = 0usize;
+    for profile in 0..2 {
+        for rows in samples {
+            for source_bytes in samples {
+                for report_bytes in samples {
+                    assert_eq!(
+                        actual.next().map(|line| line.parse::<bool>().unwrap()),
+                        Some(agent_discovery_budget_admitted_code(
+                            rows,
+                            source_bytes,
+                            report_bytes,
+                            profile,
+                        )),
+                    );
+                    checked += 1;
+                }
+            }
+        }
+    }
+    for mode in 0..4 {
+        for target in [false, true] {
+            assert_eq!(
+                actual.next().map(|line| line.parse::<bool>().unwrap()),
+                Some(agent_discovery_transition_allowed(mode, target)),
+            );
+            checked += 1;
+        }
+    }
+    for stale in [false, true] {
+        for expired in [false, true] {
+            assert_eq!(
+                actual.next().map(|line| line.parse::<usize>().unwrap()),
+                Some(resolution_wait_action(stale, expired)),
+            );
+            checked += 1;
+        }
+    }
+    for owner in [false, true] {
+        for admitted in [false, true] {
+            assert_eq!(
+                actual.next().map(|line| line.parse::<bool>().unwrap()),
+                Some(resolution_snapshot_publishable(owner, admitted)),
+            );
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 3_472);
+    assert!(actual.next().is_none());
+}
+
+#[test]
 fn semantic_ir_catalog_admission_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

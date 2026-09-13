@@ -740,6 +740,9 @@ undeclared stays undeclared here, rather than invented.
 ```sh
 fr project map
 fr project batch --from project-queries.json --report-bytes 65536
+fr project explore parse --contains
+fr project explore parse --mode behavior --target '<HANDLE>'
+fr project batch --from agent-queries.json --profile compact
 fr project map src --depth 4 --limit 80
 fr project map src/app.py --fields id,parent,kind,name,signature
 fr project map --cursor '<NEXT>'
@@ -825,6 +828,26 @@ This view does not include call-graph dispatch expansion, route contracts or inf
 Ignore rules and size limits bound discovery. Hidden files follow `--no-ignore`.
 The workspace still requires indexing; output limits do not limit analysis to the returned nodes.
 
+`project explore` is the server-bounded agent discovery route. Names mode is the default. It returns
+only declaration identity, kind, path and line, with no source or signature. Terms accept 1 through
+160 UTF-8 bytes. Exact matching is the
+default; `--contains` performs a case-sensitive literal substring match. Compact mode admits twelve
+name rows. Every row contains an exact `next.arguments` array that selects its full revision-bound
+handle in behavior mode. Page truncation returns the exact cursor continuation.
+
+Behavior mode requires `--target` with a handle returned by the same names query. It returns the
+bounded declaration source and direct incoming and outgoing indexed relationships. Compact mode
+admits eight relationship rows, 2,048 source bytes and a 16,384-byte report. Source and relationship
+truncation each return an exact argument-array continuation. `--profile expanded` is an explicit,
+reported mode change with ceilings of thirty name rows, twenty relationships, 4,096 source bytes and
+32,768 report bytes. The command rejects stale handles, targets outside `--in`, declarations that do
+not match the original term and options belonging to another mode.
+
+Both responses report the selected profile and `enforcement: server`. Callers should execute the
+returned argument arrays under the same root instead of reconstructing wider queries. Direct
+relationships avoid building the complete call graph; use `project calls` only when dispatch
+expansion or caller/callee graph analysis is required.
+
 `project batch` runs 1 through 16 existing read-only project subcommands against one constructed
 and finally verified snapshot. Its input is a UTF-8 JSON file of at most 64 KiB, or `-` for standard
 input:
@@ -865,6 +888,13 @@ through 1048576 bytes. It counts serialized nested reports. If a report does not
 returns `status: "omitted-report-budget"` and `required_report_bytes`; later smaller reports may still fit.
 Common context and bounded request metadata are outside that payload budget. The command never clips
 a nested report. Any invalid request or query failure refuses the whole batch before output.
+
+`--profile compact` turns the batch into a task-scoped agent discovery surface. It admits at most
+eight `explore` requests, caps their shared nested-report budget at 16,384 bytes and refuses expanded
+requests. `--profile expanded` admits at most sixteen `explore` requests and caps the shared budget
+at 32,768 bytes. The outer `agent_profile` records the enforced limits. Profiled manifest identities
+use `frpqb2:` and bind the profile. A later behavior request can consume `/rows/0/handle` from an
+earlier names response. The process reuses one constructed project and one final source verification.
 
 `project task` prepares the bounded evidence and transition contract for one high-level change. It
 uses the query and report limits from `project batch`. It then resolves 1 through 16 authoring

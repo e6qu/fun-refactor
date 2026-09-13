@@ -67,6 +67,23 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B854: **compact behavior discovery rebuilt the complete call graph.**
+  One small declaration took 22 seconds to construct 47,236 call edges. The bounded route now pages direct incoming and outgoing indexed
+  relationships, retaining confidence and targets without whole-graph construction.
+
+- [x] B853: **a coalesced resolution waiter appeared stalled.**
+  The first ownership implementation emitted no progress while another process resolved the
+  workspace. Waiters now emit monotonic `resolution-wait` JSON progress with the bounded wait.
+
+- [x] B852: **identical cold processes rebuilt the same workspace resolution.**
+  Two exact lookups each resolved more than 437,000 references for about a minute. A cache-keyed
+  owner lease now coalesces the work, rechecks publication after ownership races and gives every
+  waiter the same admitted snapshot.
+
+- [x] B851: **a structurally invalid resolution snapshot could survive every rebuild.**
+  An out-of-range target failed admission outside the cache. The later corrected snapshot could not replace its existing file. Admission now occurs
+  before ownership, removes rejected entries and publishes the rebuilt snapshot atomically.
+
 - [x] B850: **the cache-fallback test inherited a competing Linux runtime directory.**
   The test asserted its `TMPDIR` location while leaving `XDG_RUNTIME_DIR` active. It now removes
   that higher-priority variable and exercises the intended fallback on every host.
