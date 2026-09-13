@@ -40,6 +40,8 @@ pub enum Command {
     EditBodyIntent(ReplaceBodyOptions),
     #[command(about = "Apply one uniquely selected scalar semantic intent without a manifest.")]
     EditBodyScalar(EditBodyScalarOptions),
+    #[command(about = "Apply one exact scalar edit capability returned by project disclosure.")]
+    EditBodyDisclosed(EditBodyDisclosedOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -77,6 +79,10 @@ pub fn guide() -> Value {
             {"op": "edit-body-scalar", "requires": ["handle", "operation", "from", "to"],
                 "generated-schema": "fr-semantic-intent-1",
                 "targets": "one unique supported scalar in a function or method body"},
+            {"op": "edit-body-disclosed", "requires": ["full-handle", "edit", "to"],
+                "input-schema": "fr-disclosed-edit-1",
+                "generated-schema": "fr-semantic-intent-1",
+                "targets": "one exact scalar capability returned by project disclose"},
             {"op": "replace-declaration", "requires": ["handle", "from"],
                 "targets": "Rust function declaration with unchanged name"},
             {"op": "insert-declaration", "requires": ["handle", "from"],
@@ -157,6 +163,8 @@ pub(super) struct BatchStep {
     pub(super) from: Option<PathBuf>,
     #[serde(default)]
     pub(super) scalar: Option<super::semantic_intent::ScalarRequest>,
+    #[serde(default)]
+    pub(super) disclosed: Option<super::disclose::EditRequest>,
 }
 
 #[derive(Clone, Copy, Deserialize)]
@@ -167,6 +175,7 @@ pub(super) enum BatchOperation {
     EditBodySemantic,
     EditBodyIntent,
     EditBodyScalar,
+    EditBodyDisclosed,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -228,6 +237,30 @@ pub struct EditBodyScalarOptions {
 }
 
 #[derive(Args)]
+pub struct EditBodyDisclosedOptions {
+    #[arg(help = "Full revision-bound declaration handle returned by project disclosure.")]
+    pub handle: String,
+    #[arg(
+        long,
+        help = "Opaque edit ID returned with a disclosed semantic scalar."
+    )]
+    pub edit: String,
+    #[arg(long, help = "Requested scalar value.")]
+    pub to: String,
+    #[arg(
+        long,
+        default_value_t = 4096,
+        help = "Maximum UTF-8 diff bytes, from 0 through 65536."
+    )]
+    pub diff_bytes: usize,
+    #[arg(
+        long,
+        help = "Record and apply the edit after checking the source revision."
+    )]
+    pub write: bool,
+}
+
+#[derive(Args)]
 pub struct ValidateSemanticOptions {
     #[arg(
         long,
@@ -250,6 +283,16 @@ pub fn semantic_body_admitted(
     bounded: bool,
 ) -> bool {
     schema_matches && target_supported && source_free && bounded
+}
+
+pub fn disclosed_edit_admitted(
+    full_handle: bool,
+    reference_format: bool,
+    candidate_count: usize,
+    current_matches: bool,
+    different: bool,
+) -> bool {
+    full_handle && reference_format && candidate_count == 1 && current_matches && different
 }
 
 impl Plan {
@@ -356,6 +399,10 @@ impl BodySyntax {
         );
         Ok(Span::new(open.start_byte(), close.end_byte()))
     }
+}
+
+pub(super) fn semantic_body_authorable(language: Language) -> bool {
+    BodySyntax::for_language(language).is_ok()
 }
 
 fn fragment(path: &Path) -> Result<String> {
@@ -571,15 +618,15 @@ impl Project<'_> {
             let plan = match step.op {
                 BatchOperation::OrganizeImports => {
                     ensure!(
-                        step.from.is_none() && step.scalar.is_none(),
-                        "organize-imports does not accept fragment or scalar input."
+                        step.from.is_none() && step.scalar.is_none() && step.disclosed.is_none(),
+                        "organize-imports does not accept fragment, scalar or disclosed input."
                     );
                     self.organize_imports(&step.handle, revision.as_deref())
                 }
                 BatchOperation::EditBodyScalar => {
                     ensure!(
-                        step.from.is_none(),
-                        "edit-body-scalar does not accept a fragment path."
+                        step.from.is_none() && step.disclosed.is_none(),
+                        "edit-body-scalar accepts only scalar input."
                     );
                     let scalar = step
                         .scalar
@@ -595,10 +642,26 @@ impl Project<'_> {
                         write: false,
                     })
                 }
+                BatchOperation::EditBodyDisclosed => {
+                    ensure!(
+                        step.from.is_none() && step.scalar.is_none(),
+                        "edit-body-disclosed accepts only disclosed input."
+                    );
+                    let disclosed = step
+                        .disclosed
+                        .context("edit-body-disclosed requires a disclosed request.")?;
+                    self.edit_body_disclosed(&EditBodyDisclosedOptions {
+                        handle: step.handle.clone(),
+                        edit: disclosed.edit,
+                        to: disclosed.to,
+                        diff_bytes,
+                        write: false,
+                    })
+                }
                 operation => {
                     ensure!(
-                        step.scalar.is_none(),
-                        "fragment authoring operations do not accept scalar input."
+                        step.scalar.is_none() && step.disclosed.is_none(),
+                        "fragment authoring operations do not accept scalar or disclosed input."
                     );
                     let operation_options = ReplaceBodyOptions {
                         revision: revision.clone(),
@@ -619,6 +682,7 @@ impl Project<'_> {
                         }
                         BatchOperation::EditBodyIntent => self.edit_body_intent(&operation_options),
                         BatchOperation::EditBodyScalar => unreachable!(),
+                        BatchOperation::EditBodyDisclosed => unreachable!(),
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -645,7 +709,8 @@ impl Project<'_> {
                 | BatchOperation::ReplaceBodySemantic
                 | BatchOperation::EditBodySemantic
                 | BatchOperation::EditBodyIntent
-                | BatchOperation::EditBodyScalar => "body",
+                | BatchOperation::EditBodyScalar
+                | BatchOperation::EditBodyDisclosed => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -688,6 +753,7 @@ impl Project<'_> {
                 "semantic_change",
                 "semantic_intent",
                 "semantic_edit_plan",
+                "disclosed_edit",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();
@@ -1444,16 +1510,12 @@ impl Project<'_> {
         Ok(plan)
     }
 
-    pub fn edit_body_scalar(&self, options: &EditBodyScalarOptions) -> Result<Plan> {
-        ensure!(
-            options.diff_bytes <= 65536,
-            "diff bytes must be between 0 and 65536."
-        );
-        let handle = if let Some(name) = options.declaration.as_deref() {
-            self.semantic_declaration_handle(&options.handle, name)?
-        } else {
-            self.explicit_handle(&options.handle, options.revision.as_deref())?
-        };
+    fn semantic_body_for_edit(
+        &self,
+        handle: &str,
+        revision: Option<&str>,
+    ) -> Result<(String, super::semantic_change::SemanticBody)> {
+        let handle = self.explicit_handle(handle, revision)?;
         let id = self.resolve_handle(&handle)?;
         let symbol = self.nodes[id]
             .symbol
@@ -1483,6 +1545,21 @@ impl Project<'_> {
             schema: super::semantic_ir::BODY_SCHEMA.into(),
             body: function.body,
         };
+        Ok((handle, current))
+    }
+
+    pub fn edit_body_scalar(&self, options: &EditBodyScalarOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let handle = if let Some(name) = options.declaration.as_deref() {
+            self.semantic_declaration_handle(&options.handle, name)?
+        } else {
+            options.handle.clone()
+        };
+        let (handle, current) =
+            self.semantic_body_for_edit(&handle, options.revision.as_deref())?;
         let planned = super::semantic_intent::plan_unique(
             &current,
             &options.operation,
@@ -1518,6 +1595,94 @@ impl Project<'_> {
             "source_free":true,
             "refinement_checked":true
         });
+        Ok(plan)
+    }
+
+    pub fn edit_body_disclosed(&self, options: &EditBodyDisclosedOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        ensure!(
+            options.handle.starts_with("frp1:")
+                && super::disclose::edit_id_well_formed(&options.edit),
+            "disclosed semantic editing requires an exact returned full handle and edit ID."
+        );
+        let (handle, current) = self.semantic_body_for_edit(&options.handle, None)?;
+        let body_basis = super::semantic_change::body_basis(&current)?;
+        let candidates = super::semantic_intent::body_scalar_targets(&current)?;
+        let mut matched = Vec::new();
+        for candidate in &candidates {
+            if super::disclose::disclosed_edit_id(&self.revision, &handle, &body_basis, candidate)?
+                == options.edit
+            {
+                matched.push(candidate);
+            }
+        }
+        let different = matched
+            .first()
+            .map(|candidate| {
+                super::semantic_intent::scalar_replacement_differs(
+                    &candidate.operation,
+                    &candidate.from,
+                    &options.to,
+                )
+            })
+            .transpose()?
+            .unwrap_or(false);
+        let current_value = serde_json::to_value(&current)?;
+        let current_matches = matched.first().is_some_and(|candidate| {
+            current_value.pointer(&candidate.scalar_pointer) == Some(&candidate.from)
+        });
+        ensure!(
+            disclosed_edit_admitted(true, true, matched.len(), current_matches, different),
+            "disclosed semantic edit is stale, unknown, ambiguous or unchanged; reveal a fresh scalar edit capability."
+        );
+        let selected = matched[0];
+        let planned = super::semantic_intent::plan_target(&current, selected, &options.to)?;
+        let result = serde_json::to_string(&planned.applied.body)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
+        temporary.write_all(result.as_bytes())?;
+        temporary.flush()?;
+        let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
+            handle,
+            revision: None,
+            from: temporary.path().to_path_buf(),
+            diff_bytes: options.diff_bytes,
+            write: false,
+        })?;
+        plan.report["query"] = json!("edit-body-disclosed");
+        let to = planned.manifest["operations"][0]["to"].clone();
+        let inline_values = super::disclose::scalar_is_inline(&selected.from)?
+            && super::disclose::scalar_is_inline(&to)?;
+        let mut disclosed = json!({
+            "schema":super::disclose::EDIT_SCHEMA,
+            "id":options.edit,
+            "operation":selected.operation,
+            "node_pointer":selected.node_pointer,
+            "scalar_pointer":selected.scalar_pointer,
+            "target":planned.target,
+            "intent_sha256":planned.applied.intent_sha256,
+            "intent_basis":planned.applied.intent_basis,
+            "compiled_change_sha256":planned.applied.change_sha256,
+            "input_basis":planned.applied.input_basis,
+            "result_basis":planned.applied.result_basis,
+            "operations":planned.applied.operations,
+            "semantic_nodes":planned.applied.nodes,
+            "source_free":true,
+            "refinement_checked":true,
+            "exact_target":true,
+            "intent_included":inline_values
+        });
+        if inline_values {
+            disclosed["from"] = selected.from.clone();
+            disclosed["to"] = to;
+            disclosed["intent"] = planned.manifest;
+        } else {
+            disclosed["from_commitment"] = super::disclose::scalar_commitment(&selected.from)?;
+            disclosed["to_commitment"] = super::disclose::scalar_commitment(&to)?;
+        }
+        plan.report["disclosed_edit"] = disclosed;
         Ok(plan)
     }
 }

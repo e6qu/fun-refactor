@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-2";
 
 pub mod author;
+pub use author::disclosed_edit_admitted;
 mod batch;
 mod components;
 mod configuration;

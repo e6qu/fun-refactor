@@ -1,11 +1,43 @@
 use super::{bounded_text, hash, source_slice_length, AgentProfile, Project};
 use anyhow::{bail, ensure, Context, Result};
 use clap::Args;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 const SCHEMA: &str = "fr-progressive-disclosure-1";
 const TREE_SCHEMA: &str = "fr-semantic-merkle-1";
+pub(crate) const EDIT_SCHEMA: &str = "fr-disclosed-edit-1";
+const INLINE_SCALAR_BYTES: usize = 128;
 const MIN_TOKEN_LIMIT: usize = 1_024;
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct EditRequest {
+    pub(crate) edit: String,
+    pub(crate) to: String,
+}
+
+pub(crate) fn edit_id_well_formed(value: &str) -> bool {
+    value.strip_prefix("frde1:").is_some_and(|digest| {
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    })
+}
+
+pub(crate) fn scalar_commitment(value: &Value) -> Result<Value> {
+    let bytes = serde_json::to_vec(value)?;
+    Ok(json!({
+        "algorithm": "sha256-tagged-canonical-json-tree",
+        "digest": merkle(value)?,
+        "serialized_bytes": bytes.len()
+    }))
+}
+
+pub(crate) fn scalar_is_inline(value: &Value) -> Result<bool> {
+    Ok(serde_json::to_vec(value)?.len() <= INLINE_SCALAR_BYTES)
+}
 
 #[derive(Args)]
 pub struct Options {
@@ -67,6 +99,15 @@ struct View {
     root: String,
     basis: String,
     source: String,
+    edits: Vec<DisclosedEdit>,
+}
+
+#[derive(Clone)]
+struct DisclosedEdit {
+    id: String,
+    pointer: String,
+    operation: String,
+    from: Value,
 }
 
 struct ChildReveal<'a> {
@@ -149,10 +190,19 @@ fn semantic_shortcuts(view: &View, options: &Options) -> Result<Vec<Value>> {
                 {
                     let digest = merkle(value)?;
                     let id = hole_id(&view.basis, pointer, &digest)?;
+                    let descendant = format!("{pointer}/");
+                    let editable_scalars = view
+                        .edits
+                        .iter()
+                        .filter(|edit| {
+                            edit.pointer == pointer || edit.pointer.starts_with(&descendant)
+                        })
+                        .count();
                     out.push(json!({
                         "address": format!("{}#{pointer}", view.semantic_basis),
                         "kind": object.get("kind").and_then(Value::as_str).map(|value| bounded_text(value, 80)),
                         "name": object.get("name").and_then(Value::as_str).map(|value| bounded_text(value, 160)),
+                        "editable_scalars": editable_scalars,
                         "hole": id,
                         "reveal": {"arguments": arguments(options, &id, None)}
                     }));
@@ -188,6 +238,51 @@ fn hole_id(basis: &str, pointer: &str, digest: &str) -> Result<String> {
 
 fn source_hole_id(basis: &str, digest: &str, offset: usize) -> Result<String> {
     Ok(format!("frs1:{}", hash((SCHEMA, basis, digest, offset))?))
+}
+
+pub(crate) fn disclosed_edit_id(
+    revision: &str,
+    target: &str,
+    body_basis: &str,
+    scalar: &super::semantic_intent::BodyScalarTarget,
+) -> Result<String> {
+    Ok(format!(
+        "frde1:{}",
+        hash((
+            EDIT_SCHEMA,
+            revision,
+            target,
+            body_basis,
+            &scalar.scalar_pointer,
+            &scalar.operation,
+            &scalar.from,
+            &scalar.target
+        ))?
+    ))
+}
+
+fn edit_descriptor(view: &View, pointer: &str) -> Result<Option<Value>> {
+    let Some(edit) = view.edits.iter().find(|edit| edit.pointer == pointer) else {
+        return Ok(None);
+    };
+    let mut descriptor = json!({
+        "schema": EDIT_SCHEMA,
+        "id": edit.id,
+        "operation": edit.operation,
+        "preview_template": {
+            "arguments": [
+                "author", "edit-body-disclosed", view.target,
+                "--edit", edit.id, "--to", "<NEW_VALUE>"
+            ],
+            "replace": "<NEW_VALUE>"
+        }
+    });
+    if scalar_is_inline(&edit.from)? {
+        descriptor["from"] = edit.from.clone();
+    } else {
+        descriptor["from_commitment"] = scalar_commitment(&edit.from)?;
+    }
+    Ok(Some(descriptor))
 }
 
 fn arguments(options: &Options, hole: &str, cursor: Option<&str>) -> Vec<String> {
@@ -429,6 +524,49 @@ impl Project<'_> {
             .context("semantic response omitted its basis")?
             .to_owned();
         let semantic_root = merkle(&model)?;
+        let mut edits = Vec::new();
+        let node = &self.nodes[id];
+        if node
+            .symbol
+            .and_then(|symbol| self.index.symbol(symbol))
+            .is_some_and(|symbol| super::author::semantic_body_authorable(symbol.language))
+        {
+            if let Some(body) = model.pointer("/items/0/value/body") {
+                let candidate = super::semantic_change::SemanticBody {
+                    schema: super::semantic_ir::BODY_SCHEMA.to_owned(),
+                    body: serde_json::from_value(body.clone())
+                        .context("selected semantic body no longer matches the typed IR")?,
+                };
+                let value = serde_json::to_value(&candidate)?;
+                if super::semantic_ir::source_free(&value)
+                    && super::semantic_change::semantic_change_result_bounded(
+                        candidate.body.len(),
+                        super::semantic::semantic_nodes(&value),
+                    )
+                {
+                    let body_basis = super::semantic_change::body_basis(&candidate)?;
+                    for scalar in super::semantic_intent::body_scalar_targets(&candidate)? {
+                        let pointer = format!("/model/items/0/value{}", scalar.scalar_pointer);
+                        ensure!(
+                            model.pointer(pointer.trim_start_matches("/model"))
+                                == Some(&scalar.from),
+                            "disclosed semantic scalar does not match its typed intent target."
+                        );
+                        edits.push(DisclosedEdit {
+                            id: disclosed_edit_id(
+                                &self.revision,
+                                &options.target,
+                                &body_basis,
+                                &scalar,
+                            )?,
+                            pointer,
+                            operation: scalar.operation,
+                            from: scalar.from,
+                        });
+                    }
+                }
+            }
+        }
         let (source, span) = self.source(id)?;
         let source = source[span.start..span.end].to_owned();
         let source_root = hash((TREE_SCHEMA, "source", source.as_bytes()))?;
@@ -461,6 +599,7 @@ impl Project<'_> {
             root,
             basis,
             source,
+            edits,
         })
     }
 
@@ -481,7 +620,7 @@ impl Project<'_> {
                 ]);
                 let mut shortcuts = semantic_shortcuts(&view, options)?;
                 report["semantic_shortcuts"] = json!(shortcuts);
-                report["instructions"] = json!("Prefer a relevant semantic_shortcuts action; reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary.");
+                report["instructions"] = json!("Prefer a relevant semantic_shortcuts action. An editable_scalars count identifies authorable descendants without revealing them. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary.");
                 report["shortcut_budget"] = json!({
                     "limit": options.profile.row_limit(),
                     "returned": shortcuts.len(),
@@ -673,13 +812,19 @@ impl Project<'_> {
         for (key, value) in children.iter().skip(start) {
             let child_pointer = pointer_child(pointer, key);
             let child_digest = merkle(value)?;
-            let inline = !matches!(value, Value::Array(_) | Value::Object(_))
-                && serde_json::to_vec(value)?.len() <= 128;
-            rows.push(if inline {
+            let inline =
+                !matches!(value, Value::Array(_) | Value::Object(_)) && scalar_is_inline(value)?;
+            let mut row = if inline {
                 json!({"key": key, "digest": child_digest, "value": value})
             } else {
                 json!({"key": key, "hole": semantic_hole(view, options, &child_pointer, value)?})
-            });
+            };
+            if inline {
+                if let Some(edit) = edit_descriptor(view, &child_pointer)? {
+                    row["edit"] = edit;
+                }
+            }
+            rows.push(row);
             let end = start + rows.len();
             let next = (end < children.len())
                 .then(|| cursor(view, options, wanted, end))
@@ -790,6 +935,9 @@ impl Project<'_> {
             }
             if end == text.len() {
                 report["supersedes"] = json!(wanted);
+                if let Some(edit) = edit_descriptor(view, pointer)? {
+                    report["revealed"]["edit"] = edit;
+                }
             }
             report["frontier_delta"] = json!({
                 "removed": usize::from(end == text.len()),

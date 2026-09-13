@@ -56,6 +56,37 @@ fn assert_disclosure_budget(report: &Value) {
     );
 }
 
+fn disclosed_edits(root: &Path, name: &str, operation: &str) -> (String, Vec<Value>) {
+    let found = ok(root, &["project", "find", name]);
+    let handle = found["rows"][0][0].as_str().unwrap().to_owned();
+    let initial = ok(
+        root,
+        &[
+            "project",
+            "disclose",
+            &handle,
+            "--token-limit",
+            "16384",
+            "--profile",
+            "expanded",
+        ],
+    );
+    let mut edits = Vec::new();
+    for shortcut in initial["semantic_shortcuts"].as_array().unwrap() {
+        let revealed = ok_owned(root, &exact_arguments(&shortcut["reveal"]["arguments"]));
+        if let Some(children) = revealed["revealed"]["children"].as_array() {
+            edits.extend(
+                children
+                    .iter()
+                    .filter_map(|child| child.get("edit"))
+                    .filter(|edit| edit["operation"] == operation)
+                    .cloned(),
+            );
+        }
+    }
+    (handle, edits)
+}
+
 fn ok_cached(root: &Path, cache: &Path, args: &[&str]) -> Value {
     let output = Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "-C"])
@@ -564,6 +595,39 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
         task["task_basis"],
         project_task(dir.path(), manifest, 1_048_576).1["task_basis"]
     );
+}
+
+#[test]
+fn project_task_carries_a_disclosed_edit_into_its_author_template() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("app.rs"),
+        "fn calc(value: i32) -> i32 { value + 1 + 1 }\n",
+    )
+    .unwrap();
+    let (_handle, edits) = disclosed_edits(dir.path(), "calc", "set-int");
+    let manifest = serde_json::json!({
+        "schema":"fr-project-task-1",
+        "requests":[{"id":"target","arguments":["find","calc"]}],
+        "targets":[{
+            "id":"chosen-literal",
+            "handle":{"request":"target","pointer":"/rows/0/0"},
+            "op":"edit-body-disclosed",
+            "disclosed":{"edit":edits[1]["id"],"to":"9"}
+        }],
+        "checks":[]
+    });
+    let (success, task) = project_task(dir.path(), manifest, 65_536);
+    assert!(success, "{task}");
+    assert_eq!(task["targets"][0]["operation"], "edit-body-disclosed");
+    assert_eq!(task["targets"][0]["disclosed"]["edit"], edits[1]["id"]);
+    assert_eq!(
+        task["author_manifest_template"]["operations"][0]["disclosed"]["to"],
+        "9"
+    );
+    assert!(task["author_manifest_template"]["operations"][0]
+        .get("from")
+        .is_none());
 }
 
 #[test]

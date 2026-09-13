@@ -505,7 +505,10 @@ fn locator_step(
     })
 }
 
-fn scalar_target(value: &Value, category: NodeCategory) -> Option<(&'static str, Value)> {
+fn scalar_target(
+    value: &Value,
+    category: NodeCategory,
+) -> Option<(&'static str, &'static str, Value)> {
     let kind = value.get("kind")?.as_str()?;
     let slot = match (category, kind) {
         (NodeCategory::Expression, "int") => ("set-int", "/value"),
@@ -530,7 +533,18 @@ fn scalar_target(value: &Value, category: NodeCategory) -> Option<(&'static str,
         }
         _ => true,
     };
-    usable.then_some((slot.0, scalar))
+    usable.then_some((slot.0, slot.1, scalar))
+}
+
+#[derive(Clone)]
+pub(crate) struct BodyScalarTarget {
+    pub(crate) node_pointer: String,
+    pub(crate) scalar_pointer: String,
+    pub(crate) category: NodeCategory,
+    pub(crate) kind: String,
+    pub(crate) operation: String,
+    pub(crate) from: Value,
+    pub(crate) target: Value,
 }
 
 fn collect_locators(
@@ -538,7 +552,7 @@ fn collect_locators(
     path: &str,
     category: NodeCategory,
     target: &[LocatorStep],
-    rows: &mut Vec<Value>,
+    rows: &mut Vec<BodyScalarTarget>,
 ) -> Result<()> {
     ensure!(
         semantic_locator_bounded(target.len()),
@@ -551,18 +565,20 @@ fn collect_locators(
         .get("kind")
         .and_then(Value::as_str)
         .context("semantic locator index reached a node without a kind.")?;
-    if let Some((operation, scalar)) = scalar_target(node, category) {
+    if let Some((operation, slot, scalar)) = scalar_target(node, category) {
         ensure!(
             resolve(root, target)? == path,
             "generated semantic role locator does not resolve to its source node."
         );
-        rows.push(json!({
-            "target":target,
-            "category":category,
-            "kind":kind,
-            "operation":operation,
-            "from":scalar
-        }));
+        rows.push(BodyScalarTarget {
+            node_pointer: path.to_owned(),
+            scalar_pointer: format!("{path}{slot}"),
+            category,
+            kind: kind.to_owned(),
+            operation: operation.to_owned(),
+            from: scalar,
+            target: serde_json::to_value(target)?,
+        });
     }
     if target.len() == MAX_LOCATOR_STEPS {
         return Ok(());
@@ -607,7 +623,7 @@ fn collect_locators(
     Ok(())
 }
 
-pub fn body_locators(body: &SemanticBody) -> Result<Vec<Value>> {
+pub(crate) fn body_scalar_targets(body: &SemanticBody) -> Result<Vec<BodyScalarTarget>> {
     let root = serde_json::to_value(body)?;
     let mut rows = Vec::new();
     for (index, statement) in body.body.iter().enumerate() {
@@ -628,6 +644,21 @@ pub fn body_locators(body: &SemanticBody) -> Result<Vec<Value>> {
         )?;
     }
     Ok(rows)
+}
+
+pub fn body_locators(body: &SemanticBody) -> Result<Vec<Value>> {
+    Ok(body_scalar_targets(body)?
+        .into_iter()
+        .map(|row| {
+            json!({
+                "target": row.target,
+                "category": row.category,
+                "kind": row.kind,
+                "operation": row.operation,
+                "from": row.from
+            })
+        })
+        .collect())
 }
 
 fn resolve(root: &Value, steps: &[LocatorStep]) -> Result<String> {
@@ -1057,6 +1088,62 @@ fn planned_scalar(operation: &str, text: &str) -> Result<Value> {
     Ok(json!(text))
 }
 
+pub(crate) fn scalar_replacement_differs(operation: &str, from: &Value, to: &str) -> Result<bool> {
+    Ok(from != &planned_scalar(operation, to)?)
+}
+
+fn plan_selected(
+    body: &SemanticBody,
+    operation: &str,
+    from: Value,
+    to: Value,
+    target: Value,
+) -> Result<PlannedIntent> {
+    ensure!(
+        from != to,
+        "semantic edit plan must change its selected scalar."
+    );
+    let basis = semantic_change::body_basis(body)?;
+    let manifest = json!({
+        "schema": INTENT_SCHEMA,
+        "base": basis,
+        "operations": [{
+            "op": operation,
+            "target": target,
+            "from": from,
+            "to": to
+        }]
+    });
+    let input = serde_json::to_string(&manifest)?;
+    let body_input = serde_json::to_string(body)?;
+    let applied = apply(&body_input, &input)?;
+    Ok(PlannedIntent {
+        input,
+        manifest,
+        target,
+        applied,
+    })
+}
+
+pub(crate) fn plan_target(
+    body: &SemanticBody,
+    selected: &BodyScalarTarget,
+    to: &str,
+) -> Result<PlannedIntent> {
+    ensure!(
+        OPERATION_NAMES.contains(&selected.operation.as_str()),
+        "disclosed semantic edit operation is unsupported."
+    );
+    let to = planned_scalar(&selected.operation, to)?;
+    plan_selected(
+        body,
+        &selected.operation,
+        selected.from.clone(),
+        to,
+        selected.target.clone(),
+    )
+}
+
 pub fn plan_unique(
     body: &SemanticBody,
     operation: &str,
@@ -1086,27 +1173,8 @@ pub fn plan_unique(
         ),
         "semantic edit plan admission failed."
     );
-    let basis = semantic_change::body_basis(body)?;
     let target = candidates[0]["target"].clone();
-    let manifest = json!({
-        "schema": INTENT_SCHEMA,
-        "base": basis,
-        "operations": [{
-            "op": operation,
-            "target": target,
-            "from": from_value,
-            "to": to_value
-        }]
-    });
-    let input = serde_json::to_string(&manifest)?;
-    let body_input = serde_json::to_string(body)?;
-    let applied = apply(&body_input, &input)?;
-    Ok(PlannedIntent {
-        input,
-        manifest,
-        target,
-        applied,
-    })
+    plan_selected(body, operation, from_value, to_value, target)
 }
 
 pub fn apply(body_input: &str, intent_input: &str) -> Result<AppliedIntent> {

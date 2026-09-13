@@ -66,3 +66,18 @@ intent.write("intent.json")
 the authority for resolution against a body and compiles accepted intents through the checked delta
 engine. Python rejects malformed portable scalars, invalid roles, empty locators and no-op edits
 before serialization.
+
+When `project disclose` returns an opaque scalar edit capability, keep that identity instead of
+reconstructing its locator. `DisclosedEditRequest` mirrors the two fields accepted by author batch,
+project-task and task-change manifests:
+
+```python
+from fr_ir import DisclosedEditRequest
+
+request = DisclosedEditRequest("frde1:<64 lowercase hex digits>", "7")
+operation = {"op": "edit-body-disclosed", "handle": handle,
+             "disclosed": request.to_data()}
+```
+
+The SDK checks the wire shape. Rust rebinds the opaque identity to the current revision,
+declaration, body, scalar value and typed role locator before it plans an edit.

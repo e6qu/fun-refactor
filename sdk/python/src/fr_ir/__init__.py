@@ -16,6 +16,7 @@ from typing import Any, Iterable, Mapping, Sequence
 SCHEMA = "fr-semantic-body-1"
 CHANGE_SCHEMA = "fr-semantic-change-1"
 INTENT_SCHEMA = "fr-semantic-intent-1"
+DISCLOSED_EDIT_SCHEMA = "fr-disclosed-edit-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -780,6 +781,33 @@ class ScalarRequest:
                           separators=None if indent else (",", ":"))
 
 
+@dataclass(frozen=True)
+class DisclosedEditRequest:
+    """Exact opaque scalar capability input for author, task and batch manifests."""
+
+    edit: str
+    to: str
+
+    def __post_init__(self) -> None:
+        digest = self.edit.removeprefix("frde1:") if isinstance(self.edit, str) else ""
+        if (
+            not isinstance(self.edit, str)
+            or not self.edit.startswith("frde1:")
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise IrError("disclosed edit must be an exact frde1 SHA-256 identity")
+        if not isinstance(self.to, str):
+            raise IrError("disclosed edit replacement must be a string CLI scalar")
+
+    def to_data(self) -> dict[str, str]:
+        return {"edit": self.edit, "to": self.to}
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
+
 def _semantic_basis(value: str | SemanticBody, description: str) -> str:
     base = value.basis() if isinstance(value, SemanticBody) else value
     valid = isinstance(base, str) and base.startswith("frsb1:") and len(base) == 70
@@ -816,7 +844,7 @@ class SemanticIntent:
 
 
 __all__ = [
-    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
+    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DisclosedEditRequest", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
     "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
     "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",

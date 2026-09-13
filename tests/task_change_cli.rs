@@ -12,6 +12,20 @@ fn fr(root: &Path, args: &[&str]) -> Output {
         .unwrap()
 }
 
+fn fr_owned(root: &Path, args: &[String]) -> Output {
+    let args = args.iter().map(String::as_str).collect::<Vec<_>>();
+    fr(root, &args)
+}
+
+fn exact_arguments(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|argument| argument.as_str().unwrap().to_owned())
+        .collect()
+}
+
 fn report(output: Output, code: i32) -> Value {
     assert_eq!(
         output.status.code(),
@@ -236,6 +250,54 @@ fn use_semantic_scalar(root: &Path) {
     manifest["targets"][0]["scalar"] = json!({
         "operation":"set-name",
         "from":"str",
+        "to":"to_uppercase"
+    });
+    fs::write(manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+}
+
+fn use_disclosed_scalar(root: &Path) {
+    let found = report(fr(root, &["project", "find", "render"]), 0);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = report(
+        fr(
+            root,
+            &[
+                "project",
+                "disclose",
+                handle,
+                "--token-limit",
+                "16384",
+                "--profile",
+                "expanded",
+            ],
+        ),
+        0,
+    );
+    let mut selected = None;
+    for shortcut in initial["semantic_shortcuts"].as_array().unwrap() {
+        let revealed = report(
+            fr_owned(root, &exact_arguments(&shortcut["reveal"]["arguments"])),
+            0,
+        );
+        selected = revealed["revealed"]["children"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|child| child.get("edit"))
+            .find(|edit| edit["operation"] == "set-name" && edit["from"] == "str")
+            .cloned()
+            .or(selected);
+    }
+    let selected = selected.expect("render exposes its authorable callee name");
+    let manifest_path = root.join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["targets"][0]["op"] = json!("edit-body-disclosed");
+    manifest["targets"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("from");
+    manifest["targets"][0]["disclosed"] = json!({
+        "edit":selected["id"],
         "to":"to_uppercase"
     });
     fs::write(manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
@@ -478,6 +540,56 @@ fn reviewed_scalar_plan_runs_checks_reversal_and_patch_delivery() {
     );
     assert_eq!(
         preview["author"]["steps"][0]["semantic_edit_plan"]["refinement_checked"],
+        true
+    );
+    assert!(!root.path().join(".fr-history").exists());
+
+    let completed = report(
+        fr(
+            root.path(),
+            &[
+                "task-change",
+                "--from",
+                ".fr/task-change.json",
+                "--write",
+                "--basis",
+                preview["task_change_basis"].as_str().unwrap(),
+            ],
+        ),
+        0,
+    );
+    assert_eq!(completed["passed"], true);
+    assert!(completed["workflow"]["stages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|stage| stage["status"] == "passed"));
+    assert!(fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_uppercase(value)"));
+    assert!(
+        fs::read_to_string(root.path().join("artifacts/change.patch"))
+            .unwrap()
+            .contains("to_uppercase(value)")
+    );
+}
+
+#[test]
+fn reviewed_disclosed_edit_runs_checks_reversal_and_patch_delivery() {
+    let root = fixture("true");
+    use_disclosed_scalar(root.path());
+    let preview = preview(root.path());
+    assert_eq!(preview["ready"], true);
+    assert_eq!(
+        preview["author"]["steps"][0]["operation"],
+        "edit-body-disclosed"
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["disclosed_edit"]["exact_target"],
+        true
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["disclosed_edit"]["refinement_checked"],
         true
     );
     assert!(!root.path().join(".fr-history").exists());

@@ -26,6 +26,70 @@ fn ok(root: &Path, args: &[&str]) -> Value {
     value
 }
 
+fn ok_owned(root: &Path, args: &[String]) -> Value {
+    let args = args.iter().map(String::as_str).collect::<Vec<_>>();
+    ok(root, &args)
+}
+
+fn exact_arguments(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|argument| argument.as_str().unwrap().to_owned())
+        .collect()
+}
+
+fn disclosed_edits(root: &Path, name: &str, operation: &str) -> (String, Vec<Value>) {
+    let found = ok(root, &["project", "find", name]);
+    let handle = found["rows"][0][0].as_str().unwrap().to_owned();
+    let initial = ok(
+        root,
+        &[
+            "project",
+            "disclose",
+            &handle,
+            "--token-limit",
+            "16384",
+            "--profile",
+            "expanded",
+        ],
+    );
+    let mut edits = Vec::new();
+    for shortcut in initial["semantic_shortcuts"].as_array().unwrap() {
+        if shortcut["editable_scalars"].as_u64() == Some(0) {
+            continue;
+        }
+        let revealed = ok_owned(root, &exact_arguments(&shortcut["reveal"]["arguments"]));
+        if let Some(children) = revealed["revealed"]["children"].as_array() {
+            for child in children {
+                if let Some(edit) = child.get("edit") {
+                    if edit["operation"] == operation {
+                        edits.push(edit.clone());
+                    }
+                    continue;
+                }
+                let Some(hole) = child.get("hole") else {
+                    continue;
+                };
+                let mut report = ok_owned(root, &exact_arguments(&hole["reveal"]["arguments"]));
+                loop {
+                    if let Some(edit) = report["revealed"].get("edit") {
+                        if edit["operation"] == operation {
+                            edits.push(edit.clone());
+                        }
+                    }
+                    let Some(continuation) = report.get("continuation") else {
+                        break;
+                    };
+                    report = ok_owned(root, &exact_arguments(&continuation["arguments"]));
+                }
+            }
+        }
+    }
+    (handle, edits)
+}
+
 #[test]
 fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     let dir = tempfile::tempdir().unwrap();
@@ -33,13 +97,14 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["schema"], "fr-author-guide-1");
     assert_eq!(guide["limits"]["operations"]["maximum"], 32);
     assert_eq!(guide["limits"]["manifest_bytes"], 65536);
-    assert_eq!(guide["operations"].as_array().unwrap().len(), 8);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 9);
     assert_eq!(guide["operations"][0]["op"], "replace-body");
     assert_eq!(guide["operations"][1]["op"], "replace-body-semantic");
     assert_eq!(guide["operations"][2]["op"], "edit-body-semantic");
     assert_eq!(guide["operations"][3]["op"], "edit-body-intent");
     assert_eq!(guide["operations"][4]["op"], "edit-body-scalar");
-    assert_eq!(guide["operations"][7]["op"], "organize-imports");
+    assert_eq!(guide["operations"][5]["op"], "edit-body-disclosed");
+    assert_eq!(guide["operations"][8]["op"], "organize-imports");
     let steps = guide["workflow"]
         .as_array()
         .unwrap()
@@ -846,6 +911,207 @@ fn direct_scalar_authoring_plans_one_exact_target_across_supported_languages() {
         .contains("exactly one scalar target; found 2"));
     assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
     assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn disclosed_scalar_capabilities_edit_one_ambiguous_target_across_supported_languages() {
+    let cases = [
+        ("app.rs", "fn calc(value: i32) -> i32 { value + 1 + 1 }\n"),
+        (
+            "app.go",
+            "package sample\nfunc calc(value int) int { return value + 1 + 1 }\n",
+        ),
+        (
+            "App.java",
+            "final class App { static int calc(int value) { return value + 1 + 1; } }\n",
+        ),
+        (
+            "app.ts",
+            "function calc(value: number): number { return value + 1 + 1; }\n",
+        ),
+    ];
+    for (file, source) in cases {
+        let (_temp, root, _input) = fixture_file(file, source, b"");
+        let (handle, edits) = disclosed_edits(&root, "calc", "set-int");
+        assert_eq!(edits.len(), 2, "{file}: {edits:?}");
+        assert_ne!(edits[0]["id"], edits[1]["id"]);
+        assert_eq!(edits[0]["from"], "1");
+        assert_eq!(edits[0]["preview_template"]["arguments"][0], "author");
+        let edit = edits[0]["id"].as_str().unwrap();
+        let args = [
+            "author",
+            "edit-body-disclosed",
+            &handle,
+            "--edit",
+            edit,
+            "--to",
+            "7",
+        ];
+        let preview = ok(&root, &args);
+        assert_eq!(preview["query"], "edit-body-disclosed");
+        assert_eq!(preview["disclosed_edit"]["exact_target"], true);
+        assert_eq!(preview["disclosed_edit"]["id"], edit);
+        assert_eq!(preview["disclosed_edit"]["from"], "1");
+        assert_eq!(preview["disclosed_edit"]["to"], "7");
+        assert_eq!(preview["disclosed_edit"]["source_free"], true);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+
+        let mut write_args = args.to_vec();
+        write_args.push("--write");
+        let written = ok(&root, &write_args);
+        assert!(fs::read_to_string(root.join(file))
+            .unwrap()
+            .contains("+ 7 + 1"));
+        let transaction = written["transaction"].as_u64().unwrap().to_string();
+        ok(&root, &["history", "undo", &transaction, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+        ok(&root, &["history", "redo", &transaction, "--write"]);
+        assert!(fs::read_to_string(root.join(file))
+            .unwrap()
+            .contains("+ 7 + 1"));
+    }
+}
+
+#[test]
+fn disclosed_scalar_capabilities_refuse_stale_tampered_unchanged_and_unsupported_edits() {
+    let source = "fn calc(value: i32) -> i32 { value + 1 }\n";
+    let (_temp, root, _input) = fixture_file("app.rs", source, b"");
+    let (handle, edits) = disclosed_edits(&root, "calc", "set-int");
+    assert_eq!(edits.len(), 1);
+    let edit = edits[0]["id"].as_str().unwrap();
+
+    let (success, malformed) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed",
+            &handle,
+            "--edit",
+            "frde1:unknown",
+            "--to",
+            "7",
+        ],
+    );
+    assert!(!success, "{malformed}");
+    assert!(malformed["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("exact returned full handle and edit ID"));
+
+    let unknown = format!("frde1:{}", "0".repeat(64));
+    for (candidate, to) in [(edit, "1"), (unknown.as_str(), "7")] {
+        let (success, error) = run(
+            &root,
+            &[
+                "author",
+                "edit-body-disclosed",
+                &handle,
+                "--edit",
+                candidate,
+                "--to",
+                to,
+                "--write",
+            ],
+        );
+        assert!(!success, "{error}");
+        assert!(error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("stale, unknown, ambiguous or unchanged"));
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+
+    fs::write(root.join("app.rs"), source.replace("+ 1", "+ 2")).unwrap();
+    let (success, error) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed",
+            &handle,
+            "--edit",
+            edit,
+            "--to",
+            "7",
+            "--write",
+        ],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale"));
+    assert!(!root.join(".fr-history").exists());
+
+    let (_temp, python, _input) =
+        fixture_file("app.py", "def calc(value):\n    return value + 1\n", b"");
+    let (_handle, edits) = disclosed_edits(&python, "calc", "set-int");
+    assert!(edits.is_empty());
+}
+
+#[test]
+fn disclosed_large_strings_stay_committed_while_the_exact_edit_remains_authorable() {
+    let old = "λ名🙂".repeat(1_500);
+    let source = format!("fn payload() -> &'static str {{ {old:?} }}\n");
+    let (_temp, root, _input) = fixture_file("app.rs", &source, b"");
+    let (handle, edits) = disclosed_edits(&root, "payload", "set-string");
+    assert_eq!(edits.len(), 1);
+    let edit = &edits[0];
+    assert!(edit.get("from").is_none());
+    assert_eq!(
+        edit["from_commitment"]["serialized_bytes"],
+        serde_json::to_vec(&serde_json::json!(old)).unwrap().len()
+    );
+    assert_eq!(
+        edit["from_commitment"]["algorithm"],
+        "sha256-tagged-canonical-json-tree"
+    );
+
+    let id = edit["id"].as_str().unwrap();
+    let preview = ok(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed",
+            &handle,
+            "--edit",
+            id,
+            "--to",
+            "short",
+        ],
+    );
+    assert_eq!(preview["disclosed_edit"]["intent_included"], false);
+    assert!(preview["disclosed_edit"].get("from").is_none());
+    assert!(preview["disclosed_edit"].get("intent").is_none());
+    assert_eq!(
+        preview["disclosed_edit"]["from_commitment"],
+        edit["from_commitment"]
+    );
+    assert_eq!(
+        preview["disclosed_edit"]["to_commitment"]["serialized_bytes"],
+        7
+    );
+    assert!(!serde_json::to_string(&preview).unwrap().contains(&old));
+
+    let written = ok(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed",
+            &handle,
+            "--edit",
+            id,
+            "--to",
+            "short",
+            "--write",
+        ],
+    );
+    assert!(fs::read_to_string(root.join("app.rs"))
+        .unwrap()
+        .contains(r#""short""#));
+    let transaction = written["transaction"].as_u64().unwrap().to_string();
+    ok(&root, &["history", "undo", &transaction, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
 }
 
 #[test]
@@ -3082,6 +3348,40 @@ fn batch_manifest(root: &Path, operations: Vec<Value>, revision: Option<&str>) -
     }
     fs::write(&input, serde_json::to_vec(&manifest).unwrap()).unwrap();
     input
+}
+
+#[test]
+fn batch_carries_disclosed_scalar_capabilities_through_one_transaction() {
+    let source = "fn calc(value: i32) -> i32 { value + 1 + 1 }\n";
+    let (_temp, root, _) = fixture(source, b"{}");
+    let (handle, edits) = disclosed_edits(&root, "calc", "set-int");
+    let input = batch_manifest(
+        &root,
+        vec![serde_json::json!({
+            "op":"edit-body-disclosed",
+            "handle":handle,
+            "disclosed":{"edit":edits[1]["id"],"to":"9"}
+        })],
+        None,
+    );
+    let (success, preview) = batch(&root, &input, &[]);
+    assert!(success, "{preview}");
+    assert_eq!(preview["steps"][0]["operation"], "edit-body-disclosed");
+    assert_eq!(preview["steps"][0]["disclosed_edit"]["exact_target"], true);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+
+    let (success, written) = batch(&root, &input, &["--write"]);
+    assert!(success, "{written}");
+    assert!(fs::read_to_string(root.join("app.rs"))
+        .unwrap()
+        .contains("+ 1 + 9"));
+    let transaction = written["transaction"].as_u64().unwrap().to_string();
+    ok(&root, &["history", "undo", &transaction, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    ok(&root, &["history", "redo", &transaction, "--write"]);
+    assert!(fs::read_to_string(root.join("app.rs"))
+        .unwrap()
+        .contains("+ 1 + 9"));
 }
 
 fn batch(root: &Path, input: &Path, flags: &[&str]) -> (bool, Value) {
