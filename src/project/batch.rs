@@ -21,6 +21,12 @@ pub struct Options {
         help = "Shared serialized report budget, from 256 through 1048576 bytes."
     )]
     pub(super) report_bytes: usize,
+    #[arg(
+        long,
+        value_enum,
+        help = "Enforce compact or explicitly expanded agent-discovery budgets."
+    )]
+    pub(super) profile: Option<AgentProfile>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -207,7 +213,7 @@ impl Project<'_> {
         let source = read_manifest(&self.root, &options.from)?;
         let manifest: Manifest = serde_json::from_str(&source)
             .context("project batch input must be a batch manifest.")?;
-        self.batch_manifest(manifest, options.report_bytes, "batch")
+        self.batch_manifest_profile(manifest, options.report_bytes, "batch", options.profile)
     }
 
     pub(super) fn batch_manifest(
@@ -216,12 +222,37 @@ impl Project<'_> {
         report_bytes: usize,
         query_name: &str,
     ) -> Result<Value> {
+        self.batch_manifest_profile(manifest, report_bytes, query_name, None)
+    }
+
+    fn batch_manifest_profile(
+        &self,
+        manifest: Manifest,
+        report_bytes: usize,
+        query_name: &str,
+        profile: Option<AgentProfile>,
+    ) -> Result<Value> {
         ensure!(
             (256..=1_048_576).contains(&report_bytes),
             "report bytes must be between 256 and 1048576."
         );
-        let manifest_basis = format!("frpqb1:{}", hash((SCHEMA, &manifest))?);
+        let manifest_basis = match profile {
+            Some(profile) => format!("frpqb2:{}", hash((SCHEMA, &manifest, profile))?),
+            None => format!("frpqb1:{}", hash((SCHEMA, &manifest))?),
+        };
         let requests = validate(manifest)?;
+        if let Some(profile) = profile {
+            ensure!(
+                requests.len() <= profile.request_limit(),
+                "{} agent profile accepts at most {} requests.",
+                profile.as_str(),
+                profile.request_limit()
+            );
+        }
+        let requested_report_bytes = report_bytes;
+        let report_bytes = profile.map_or(report_bytes, |profile| {
+            report_bytes.min(profile.report_bytes())
+        });
 
         let common = self.envelope(query_name);
         let mut used = 0usize;
@@ -239,6 +270,15 @@ impl Project<'_> {
                 !matches!(query.command, Command::Batch(_) | Command::Task(_)),
                 "project batches cannot contain another batch or task."
             );
+            if let Some(profile) = profile {
+                let Command::Explore(explore) = &query.command else {
+                    bail!("agent-profile project batches admit only bounded explore requests.");
+                };
+                ensure!(
+                    profile.admits(explore.profile),
+                    "compact agent-profile batches cannot contain expanded explore requests."
+                );
+            }
             resolved_requests.push((request.id.clone(), arguments));
             let mut report = self
                 .report(&query.command)
@@ -286,12 +326,25 @@ impl Project<'_> {
             ))?
         ));
         result["requests"] = json!(results);
-        result["report_budget"] = json!({
+        let mut report_budget = json!({
             "limit_bytes": report_bytes,
             "returned_bytes": used,
             "omitted_requests": omitted,
             "scope": "serialized request reports; common context and request metadata excluded"
         });
+        if let Some(profile) = profile {
+            report_budget["requested_bytes"] = json!(requested_report_bytes);
+            result["agent_profile"] = json!({
+                "name": profile,
+                "request_limit": profile.request_limit(),
+                "row_limit": profile.row_limit(),
+                "source_bytes": profile.source_bytes(),
+                "report_bytes": profile.report_bytes(),
+                "project_views": 1,
+                "enforcement": "server"
+            });
+        }
+        result["report_budget"] = report_budget;
         Ok(result)
     }
 }
