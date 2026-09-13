@@ -625,6 +625,29 @@ fn reviewed_disclosed_edit_runs_checks_reversal_and_patch_delivery() {
 }
 
 #[test]
+fn task_change_refuses_a_malformed_disclosed_capability_before_history() {
+    let root = fixture("true");
+    use_disclosed_scalar(root.path());
+    let path = root.path().join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    manifest["targets"][0]["disclosed"]["edit"] = json!("frde1:short");
+    fs::write(path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+
+    let failed = report(
+        fr(
+            root.path(),
+            &["task-change", "--from", ".fr/task-change.json"],
+        ),
+        1,
+    );
+    assert!(failed["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("exact returned edit ID"));
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
 fn stale_semantic_intent_refuses_before_history() {
     let root = fixture("true");
     use_semantic_intent(root.path());

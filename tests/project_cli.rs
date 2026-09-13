@@ -617,7 +617,7 @@ fn project_task_carries_a_disclosed_edit_into_its_author_template() {
         }],
         "checks":[]
     });
-    let (success, task) = project_task(dir.path(), manifest, 65_536);
+    let (success, task) = project_task(dir.path(), manifest.clone(), 65_536);
     assert!(success, "{task}");
     assert_eq!(task["targets"][0]["operation"], "edit-body-disclosed");
     assert_eq!(task["targets"][0]["disclosed"]["edit"], edits[1]["id"]);
@@ -628,6 +628,15 @@ fn project_task_carries_a_disclosed_edit_into_its_author_template() {
     assert!(task["author_manifest_template"]["operations"][0]
         .get("from")
         .is_none());
+
+    let mut malformed = manifest;
+    malformed["targets"][0]["disclosed"]["edit"] = serde_json::json!("frde1:short");
+    let (success, error) = project_task(dir.path(), malformed, 65_536);
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("exact returned edit ID"));
 }
 
 #[test]
