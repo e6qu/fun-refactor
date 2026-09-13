@@ -1436,6 +1436,77 @@ fn agent_discovery_and_resolution_coordination_match_lean() {
 }
 
 #[test]
+fn progressive_disclosure_admission_and_frontiers_match_lean() {
+    use fun_refactor::project::{
+        disclosure_budget_admitted, disclosure_frontier_after, disclosure_transition_allowed,
+    };
+
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("progressive-disclosure")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines();
+    let samples = [
+        0,
+        1,
+        2,
+        1_023,
+        1_024,
+        4_095,
+        4_096,
+        4_097,
+        16_383,
+        16_384,
+        16_385,
+        65_536,
+        u64::MAX as usize,
+    ];
+    let mut checked = 0usize;
+    for profile in 0..4 {
+        for serialized_bytes in samples {
+            for token_limit in samples {
+                assert_eq!(
+                    actual.next().map(|line| line.parse::<bool>().unwrap()),
+                    Some(disclosure_budget_admitted(
+                        serialized_bytes,
+                        token_limit,
+                        profile
+                    ))
+                );
+                checked += 1;
+            }
+        }
+    }
+    for kind in 0..4 {
+        for offset in samples {
+            for total in samples {
+                assert_eq!(
+                    actual.next().map(|line| line.parse::<bool>().unwrap()),
+                    Some(disclosure_transition_allowed(kind, offset, total))
+                );
+                checked += 1;
+            }
+        }
+    }
+    for hidden in samples {
+        for children in samples {
+            let lean = actual.next().unwrap();
+            let rust = disclosure_frontier_after(hidden as u64, children as u64);
+            assert_eq!(
+                lean,
+                rust.map_or("none".to_owned(), |value| format!("(some {value})"))
+            );
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 1_521);
+    assert!(actual.next().is_none());
+}
+
+#[test]
 fn semantic_ir_catalog_admission_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

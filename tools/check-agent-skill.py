@@ -23,6 +23,7 @@ ROUTES = {
     "author-recovery": ["SKILL.md", "references/author.md", "references/checks.md",
                         "references/history.md", "references/recovery.md", "references/git.md"],
     "exploration": ["SKILL.md", "references/explore.md", "references/batch.md"],
+    "disclosure": ["SKILL.md", "references/disclosure.md"],
     "semantic": ["SKILL.md", "references/semantic.md", "references/author.md"],
     "semantic-change": ["SKILL.md", "references/semantic-change.md", "references/author.md"],
     "semantic-intent": ["SKILL.md", "references/semantic-intent.md", "references/author.md"],
@@ -123,7 +124,8 @@ def source_workflow(exercise, root):
     query_manifest.write_text(blocks(reference / "batch.md", "json")[0])
     exercise.values["<PROJECT_QUERIES>"] = str(query_manifest)
 
-    for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
+    for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md",
+                 reference / "disclosure.md"]:
         for command in commands(path):
             value = exercise.example(root, path, command)
             if value.get("query") in ("map", "find"):
@@ -148,6 +150,10 @@ def source_workflow(exercise, root):
                 assert all("coverage" not in request["report"] for request in value["requests"])
                 assert value["requests"][2]["report"]["query"] == "show"
                 assert size_of_source(value["requests"][2]["report"]) <= 256
+            if value.get("query") == "disclose":
+                assert value["token_budget"]["used_upper_bound"] <= value["token_budget"]["limit"]
+                if value["status"] == "frontier":
+                    exercise.values["<HOLE>"] = value["frontier"][0]["id"]
     assert not (root / ".fr-history").exists()
 
     path = reference / "change.md"

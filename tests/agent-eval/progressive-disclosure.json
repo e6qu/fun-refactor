@@ -1,0 +1,31 @@
+{
+  "schema": "fr-progressive-disclosure-eval-1",
+  "passed": true,
+  "tool_sha256": "2a8745815f669337b79a7f292673eb41e42406d28b5d445de6b660a8d913e7c1",
+  "fixture_sha256": "d3630ad90aca1c76faaa74e8b0279e91846d64039996772625b84e0d63e1d270",
+  "oracle": {
+    "semantic_root_verified": true,
+    "source_root_verified": true,
+    "combined_root_verified": true,
+    "root_hole_verified": true,
+    "shortcut_hole_verified": true,
+    "child_digests_verified": 1,
+    "hidden_change_detected": true
+  },
+  "flow": {
+    "initial_source_free": true,
+    "semantic_reveal_source_free": true,
+    "exact_actions_followed": 4,
+    "source_pages": 1,
+    "source_reconstructed": true,
+    "stale_action_refused": true
+  },
+  "budget": {
+    "limit": 4096,
+    "responses_checked": 4,
+    "maximum_response_bytes": 4047,
+    "initial_response_bytes": 4047,
+    "complete_semantic_response_bytes": 5381
+  },
+  "scope": "Generated generic Python fixture; deterministic agent-style continuations and independent SHA-256 oracle, without a live model or cryptographic collision proof."
+}

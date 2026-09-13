@@ -67,6 +67,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B855: **a project batch rejected copied exact project continuations.**
+  Project commands emit complete argument arrays beginning with `project`. Nested batch parsing
+  accepted only arrays beginning with the immediate subcommand. Batches now accept both forms. A
+  profiled integration test copies discovery results into disclosure. It then references a returned
+  Merkle hole in the same constructed project view.
+
 - [x] B854: **compact behavior discovery rebuilt the complete call graph.**
   One small declaration took 22 seconds to construct 47,236 call edges. The bounded route now pages direct incoming and outgoing indexed
   relationships, retaining confidence and targets without whole-graph construction.

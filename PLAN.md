@@ -21,14 +21,14 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 700 |
+| Defects fixed | 701 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
-| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence and source-free semantic IR | Extend semantic coverage and lower repeated-query/context cost |
+| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and Merkle-committed progressive disclosure | Extend semantic coverage and validate context savings on broader agent tasks |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-eight passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
@@ -48,6 +48,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rust, Go, Java, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
 - Rust declaration replacement and function insertion into files, inline modules, impls and traits.
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
+- Merkle-committed progressive semantic and source disclosure with exact actions and strict per-response bounds.
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
@@ -70,8 +71,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,385 context tokens. This is 2,073 below the observed `fr` arm
-and 1,785 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+reduces that trace to 29 calls and 13,377 context tokens. This is 2,081 below the observed `fr` arm
+and 1,777 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
 fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -124,10 +125,23 @@ reduction. Both arms resolve the same task, apply the same source change, run id
 stages and emit the same patch. The task-change transaction also binds its required checks. This
 fixed comparison makes no autonomous-agent or population claim.
 
+PR 20's deterministic discovery fixture records one resolution owner, one waiter, byte-identical
+cold reports, a two-stage profiled batch and stale-handle refusal. Repository dogfood returned a
+name-only report in 1,675 bytes and its exact behavior continuation in 3,203 bytes. Earlier Luna-low
+attempts found the right code but consumed excessive context; no later live-agent savings claim has
+replaced that result.
+
+PR 21's generic progressive-disclosure fixture uses an independent Python implementation of the
+documented Merkle format. It verifies semantic, source, combined, root-hole, shortcut and child
+identities; follows four exact actions; reconstructs source; detects a hidden change; and refuses a
+stale action. Its complete semantic response is 5,381 bytes. The abridged initial response is 4,047
+bytes and every response stays within the requested 4,096-byte conservative token upper bound. This
+is deterministic protocol evidence without a live model or a cryptographic collision proof.
+
 ## Product contract
 
-An agent should move from a project map to a module, symbol contract, relationships and selected implementation.
-It should request full bodies only when needed.
+An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
+relevant IR hierarchy, and request exact source only when needed.
 Every answer must state coverage, uncertainty, source basis and omitted results.
 
 A change must retain one identity through preview, validation, patch export, apply, undo and redo.
@@ -160,7 +174,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Nineteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Twenty merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -184,7 +198,8 @@ The first packaged roadmap is complete. Nineteen merged pull requests establishe
 | [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
 | [PR 18](https://github.com/e6qu/fun-refactor/pull/281) | Reviewed Semantic Edit Plans | Merged |
 | [PR 19](https://github.com/e6qu/fun-refactor/pull/282) | Incremental Project Identity and Agent Query Latency | Merged |
-| [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | In review |
+| [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
+| [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | In review |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
@@ -201,7 +216,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,080 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,270-token or 62.7% `fr` premium.
+- The current checksum-bound projection uses 11,072 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,262-token or 62.6% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -799,7 +814,7 @@ Planned checkpoints:
 
 ### PR 20. Bounded Agent Discovery and Concurrent Query Coalescing
 
-Status: in review.
+Status: merged as [PR 283](https://github.com/e6qu/fun-refactor/pull/283).
 
 Goal: make the efficient project-query route hard for an agent to accidentally bypass. Bound every
 discovery response, reuse one warmed project view across a task, and coalesce concurrent cold work
@@ -854,6 +869,61 @@ Planned checkpoints:
    and command documentation, and fix defects exposed by the new route.
 6. **Complete.** Pass the complete native, WASM, strict Lean, capability, skill and documentation
    gate before review.
+
+### PR 21. Merkle-Committed Progressive Agent Disclosure
+
+Status: in review as [PR 284](https://github.com/e6qu/fun-refactor/pull/284).
+
+Goal: let an agent inspect and manipulate a declaration through the smallest useful semantic
+hierarchy. Commit every hidden part to one revision-bound view, reveal source only through an
+explicit action, and enforce a conservative token ceiling on every response.
+
+Deliverables:
+
+- Add `project disclose` over a full declaration handle. Its initial response returns separate
+  semantic-IR and exact-source holes under one SHA-256 Merkle commitment, without either payload.
+- Reveal one semantic JSON level at a time. Inline bounded scalars, keep composite values as
+  individually addressed holes, and paginate large child sets and strings through exact actions.
+- Reveal exact source only through its separate hole, in UTF-8-safe pages that reconstruct the
+  committed declaration byte for byte.
+- Enforce compact and explicitly expanded per-response ceilings. Report serialized UTF-8 bytes
+  including the newline as a conservative upper bound for byte-fallback tokenizer tokens.
+- Compose discovery, frontier creation and semantic reveal in one profiled project batch by allowing
+  references to earlier handles and holes.
+- Publish the protocol in the CLI, portable skill and a verifier-oriented document. Retain a generic
+  agent-style fixture with a separate Python Merkle oracle.
+- Model budget admission, reveal extent and completed frontier replacement in Lean, with strict
+  source anchors and shared executable correspondence cases.
+
+Verification and acceptance:
+
+1. Initial and semantic responses contain no exact source. Every composite or paged omission has a
+   machine-copyable action bound to revision, target, view, profile, limit and offset.
+2. Every emitted JSON line stays within its declared upper bound. Compact accepts at most 4,096 and
+   expanded at most 16,384; invalid or incompatible continuations refuse.
+3. Semantic child digests, semantic root, source root, combined root and root-hole identity agree
+   with an independent implementation. A hidden change alters the commitment.
+4. Source pages preserve UTF-8 boundaries and reconstruct the exact declaration. Source changes
+   invalidate the old handle, holes and cursors before disclosure.
+5. Profiled batches perform discovery, frontier selection and a referenced reveal in one verified
+   project view. Exact actions carrying a leading `project` remain valid batch arguments.
+6. Lean builds warning-free, strict source correspondence passes, Rust agrees on all shared boundary
+   cases, and native, Python, skill, documentation, capability and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Implement versioned Merkle roots, opaque semantic/source holes, revision-bound view
+   identity and a source-free initial frontier.
+2. **Complete.** Add one-level semantic reveals, cursor-bound child and string pages, UTF-8 source
+   reconstruction and strict compact/expanded response budgets.
+3. **Complete.** Compose discovery and disclosure through referenced profiled batches; accept exact
+   emitted project actions inside batch manifests.
+4. **Complete.** Prove numeric ceilings, admitted offsets and exact completed-frontier replacement;
+   add shared Rust/Lean boundary execution.
+5. **Complete.** Adversarial CLI coverage, independent-oracle evaluation, portable skill, protocol,
+   roadmap, continuity and defect records are current.
+6. **Complete.** The complete local repository gate and every PR 284 CI job pass on the reviewable
+   implementation, verification, evaluator, skill and documentation commits.
 
 ## Formal verification policy
 

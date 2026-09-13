@@ -23,6 +23,10 @@ mod contracts;
 mod digest;
 #[cfg(test)]
 mod digest_tests;
+mod disclose;
+pub use disclose::{
+    disclosure_budget_admitted, disclosure_frontier_after, disclosure_transition_allowed,
+};
 mod explore;
 mod fast_routes;
 mod features;
@@ -57,6 +61,8 @@ pub enum Command {
     Task(task::Options),
     #[command(about = "Discover a declaration and its behavior through a bounded agent profile.")]
     Explore(explore::Options),
+    #[command(about = "Reveal a Merkle-committed semantic view within a strict response budget.")]
+    Disclose(disclose::Options),
     #[command(about = "Find declaration handles by literal name without loading file maps.")]
     Find(find::Options),
     #[command(about = "Find several exact declaration names in one revision-bound query.")]
@@ -1173,6 +1179,7 @@ impl<'a> Project<'a> {
             Command::Batch(options) => self.batch(options),
             Command::Task(options) => self.task(options),
             Command::Explore(options) => self.explore(options),
+            Command::Disclose(options) => self.disclose(options),
             Command::Find(options) => self.find(options),
             Command::Select(options) => self.select(options),
             Command::Map {

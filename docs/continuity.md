@@ -361,7 +361,7 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step. It reduces
-42 calls to 29 and measured context from 15,458 to 13,385 tokens. This 2,073-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,377 tokens. This 2,081-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed
@@ -1294,3 +1294,37 @@ before spending quota on another autonomous cohort.
 Keep portable skill references selective and executable against the distributed binary.
 PRs 7 through 14 merged as GitHub PRs 267, 269, 270, 271, 272, 273, 275 and 276.
 [PLAN.md](../PLAN.md) is the authoritative active delivery plan.
+
+## Merkle-committed progressive disclosure
+
+PR 21 is in review as [PR 284](https://github.com/e6qu/fun-refactor/pull/284). It adds
+`project disclose FULL_HANDLE` as the selective project-reading route. The initial response carries
+only target identity, one combined commitment, a semantic-IR hole and an exact-source hole. Semantic
+reveals expose one JSON level, inline small scalars and retain composite or large values as holes.
+Child pages and strings use cursor-bound exact actions. Source uses its own explicit UTF-8-safe page
+chain and reconstructs the declaration exactly.
+
+Compact responses accept a requested ceiling from 1,024 through 4,096; expanded responses accept up
+to 16,384. `used_upper_bound` is the compact JSON's UTF-8 byte length including the printed newline.
+It is a conservative token ceiling for byte-fallback tokenizers and is not presented as an exact
+model-vocabulary count. Revision, target, semantic basis, Merkle root, profile and limit bind the
+view. Cursors additionally bind the hole and offset. The generic retained evaluator independently
+recomputes semantic, source, combined and hole SHA-256 identities in Python.
+
+Profiled batches now admit `explore` and `disclose`. A three-stage manifest can discover the full
+handle, create its frontier and reference the semantic root hole within one constructed project
+view. During that integration, dogfooding found B855: exact project actions include the leading
+`project` token but nested batch parsing rejected it. Batch parsing now accepts both exact full
+project actions and the older immediate-subcommand form.
+
+`FrKernels.Disclosure` proves requested/profile budget bounds, admitted reveal extents and exact
+completed-frontier replacement, including explicit `u64` overflow refusal. Three strict Rust source
+anchors and 1,521 shared boundary cases connect the model to its implementation. Integration tests
+cover no-source initial/semantic reports, exact actions, independent commitments, deep hidden
+changes, stale identities, profile/limit-bound cursors, large semantic strings, Unicode/escape-heavy
+source pages and exact reconstruction. The deterministic evaluator is retained at
+`tests/agent-eval/progressive-disclosure.json`; no live Codex trial is claimed for this milestone.
+
+The complete native, WASM, strict Lean, capability, portable-skill, evaluator and prose gate passes.
+PR 284 CI also passes its default, WASM, playground and title jobs. The milestone is ready for
+review.

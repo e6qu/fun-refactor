@@ -262,8 +262,11 @@ impl Project<'_> {
         let mut resolved_requests = Vec::new();
         for request in requests {
             let arguments = resolve_arguments(&request, &reports)?;
+            let nested_arguments = arguments
+                .strip_prefix(&["project".to_owned()])
+                .unwrap_or(&arguments);
             let query = NestedQuery::try_parse_from(
-                std::iter::once("fr-project").chain(arguments.iter().map(String::as_str)),
+                std::iter::once("fr-project").chain(nested_arguments.iter().map(String::as_str)),
             )
             .map_err(|error| anyhow::anyhow!(error.to_string()))?;
             ensure!(
@@ -271,12 +274,16 @@ impl Project<'_> {
                 "project batches cannot contain another batch or task."
             );
             if let Some(profile) = profile {
-                let Command::Explore(explore) = &query.command else {
-                    bail!("agent-profile project batches admit only bounded explore requests.");
+                let requested = match &query.command {
+                    Command::Explore(options) => options.profile,
+                    Command::Disclose(options) => options.profile,
+                    _ => {
+                        bail!("agent-profile project batches admit only bounded explore or disclose requests.");
+                    }
                 };
                 ensure!(
-                    profile.admits(explore.profile),
-                    "compact agent-profile batches cannot contain expanded explore requests."
+                    profile.admits(requested),
+                    "compact agent-profile batches cannot contain expanded requests."
                 );
             }
             resolved_requests.push((request.id.clone(), arguments));
@@ -286,13 +293,24 @@ impl Project<'_> {
             let object = report
                 .as_object_mut()
                 .context("project query response must be a JSON object")?;
-            for field in ["schema", "revision", "handle_prefix", "coverage"] {
+            let disclosure = matches!(query.command, Command::Disclose(_));
+            for field in ["revision", "handle_prefix", "coverage"] {
                 ensure!(
                     object.get(field) == common.get(field),
                     "project batch request '{}' changed common field {field}.",
                     request.id
                 );
                 object.remove(field);
+            }
+            if disclosure {
+                object.remove("context_basis");
+            } else {
+                ensure!(
+                    object.get("schema") == common.get("schema"),
+                    "project batch request '{}' changed common field schema.",
+                    request.id
+                );
+                object.remove("schema");
             }
             let bytes = serde_json::to_vec(&report)?.len();
             reports.insert(request.id.clone(), report.clone());

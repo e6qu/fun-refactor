@@ -742,6 +742,7 @@ fr project map
 fr project batch --from project-queries.json --report-bytes 65536
 fr project explore parse --contains
 fr project explore parse --mode behavior --target '<HANDLE>'
+fr project disclose '<HANDLE>' --token-limit 4096
 fr project batch --from agent-queries.json --profile compact
 fr project map src --depth 4 --limit 80
 fr project map src/app.py --fields id,parent,kind,name,signature
@@ -848,6 +849,25 @@ returned argument arrays under the same root instead of reconstructing wider que
 relationships avoid building the complete call graph; use `project calls` only when dispatch
 expansion or caller/callee graph analysis is required.
 
+`project disclose` starts from one full declaration handle and returns two Merkle-committed holes:
+the complete source-free semantic IR and the exact declaration source. It does not return either
+payload initially. `semantic_shortcuts` lists bounded named/kinded nodes from the committed model so
+an agent can jump directly to a likely declaration, body pattern or expression. Run a shortcut or
+hole's exact `reveal.arguments` to expose one semantic level or a bounded
+source fragment. Composite semantic children remain holes with their own exact actions. Large child
+sets and strings return a cursor-bound continuation; source pages return the next source hole.
+
+`--token-limit` applies to the complete compact JSON line, including its trailing newline. The
+reported `used_upper_bound` counts serialized UTF-8 bytes. This is a conservative model-token upper
+bound for byte-fallback tokenizers, not an exact count for one model vocabulary. Compact disclosure
+accepts 1,024 through 4,096; `--profile expanded` explicitly raises the ceiling to 16,384. Returned
+actions bind the profile, limit, target, revision and cursor. Stale or reconstructed actions refuse.
+The semantic tree and exact source have separate roots under one combined commitment, so an
+agent can stay source-free until source is necessary. See
+[the progressive disclosure protocol](docs/progressive-disclosure.md) for verification details.
+Inside `project batch`, the disclosure bound retains its standalone meaning. The batch profile and
+`--report-bytes` separately bound the combined nested reports.
+
 `project batch` runs 1 through 16 existing read-only project subcommands against one constructed
 and finally verified snapshot. Its input is a UTF-8 JSON file of at most 64 KiB, or `-` for standard
 input:
@@ -865,8 +885,9 @@ input:
 }
 ```
 
-Each `arguments` array starts with the subcommand name and uses its ordinary options. Global CLI
-options do not belong there, and a batch cannot contain another batch or task. Request IDs are unique,
+Each `arguments` array starts with the subcommand name and uses its ordinary options. A copied exact
+continuation from another project command can instead begin with `project`. Global CLI options
+do not belong there, and a batch cannot contain another batch or task. Request IDs are unique,
 bounded ASCII identifiers. The manifest limits each request to 64 arguments and 4096 argument bytes,
 with 16384 argument bytes across the batch. `manifest_basis` hashes the normalized versioned input.
 `resolution_basis` additionally hashes the project revision and ordered IDs with resolved arguments.
