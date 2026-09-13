@@ -154,6 +154,16 @@ These arithmetic laws do not prove SHA-256 collision resistance, JSON canonicali
 behavior, semantic-reader correctness or general Rust/model correspondence. CLI and independent
 Python-oracle tests cover those implementation boundaries on selected cases.
 
+`FrKernels.DisclosedEdit` models admission of the opaque scalar capability produced by progressive
+disclosure. Admission requires a full handle, a well-formed reference, exactly one recomputed
+candidate, agreement with the current scalar and a changed replacement. Theorems recover the exact
+singleton condition and prove stale-current, unchanged and malformed-reference refusal. Rust and
+Lean agree on 144 finite admission cases. The project target policy also proves that disclosed
+editing accepts the same supported language and declaration kinds as body replacement. The expanded
+exhaustive matrix contains 1,782 cases. Hash construction, candidate enumeration,
+parsing, rendering, compiler execution and filesystem behavior remain outside these proofs and are
+covered by independent-oracle, CLI and lifecycle tests.
+
 The same project kernel anchors seventeen framework policy helpers used after syntax recognition.
 Thirty-nine theorems cover caps, middleware ranks, hook rejection, prefixes, migration, registration, body handling, cutover and dependency edits.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.

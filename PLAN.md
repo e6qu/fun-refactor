@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 701 |
+| Defects fixed | 702 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -48,7 +48,8 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rust, Go, Java, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
 - Rust declaration replacement and function insertion into files, inline modules, impls and traits.
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
-- Merkle-committed progressive semantic and source disclosure with exact actions and strict per-response bounds.
+- Merkle-committed progressive semantic and source disclosure with exact actions, strict
+  per-response bounds and opaque exact-scalar edit capabilities.
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
@@ -134,9 +135,16 @@ replaced that result.
 PR 21's generic progressive-disclosure fixture uses an independent Python implementation of the
 documented Merkle format. It verifies semantic, source, combined, root-hole, shortcut and child
 identities; follows four exact actions; reconstructs source; detects a hidden change; and refuses a
-stale action. Its complete semantic response is 5,381 bytes. The abridged initial response is 4,047
+stale action. Its complete semantic response is 5,381 bytes. The abridged initial response is 3,762
 bytes and every response stays within the requested 4,096-byte conservative token upper bound. This
 is deterministic protocol evidence without a live model or a cryptographic collision proof.
+
+PR 22's generic disclosed-edit fixture independently calculates the two opaque capabilities for
+equal integer literals and confirms that they remain distinct. It follows one capability without
+source, compiles and runs the result, refuses the stale capability, validates forward and reverse
+patches and exercises undo and redo. Three expanded disclosure responses total 13,577 bytes and stay
+below their 16,384-byte bound; the author preview is 3,968 bytes. This is deterministic workflow
+evidence, not a live-model result or a proof of the trusted parser, writer, compiler or hash.
 
 ## Product contract
 
@@ -199,12 +207,14 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 18](https://github.com/e6qu/fun-refactor/pull/281) | Reviewed Semantic Edit Plans | Merged |
 | [PR 19](https://github.com/e6qu/fun-refactor/pull/282) | Incremental Project Identity and Agent Query Latency | Merged |
 | [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
-| [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | In review |
+| [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
+| PR 22 | Disclosure-Bound Semantic Editing | In progress |
 
-The second package now applies the public semantic representation through checked, source-free
-operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
-exact scalar edits. PR 19 makes that interface practical while an agent repeatedly inspects and
-changes a large workspace. Later edit shapes remain evidence-driven.
+The second package applies the public semantic representation through checked, source-free
+operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
+PRs 19 through 21 made repeated discovery faster, bounded and progressively disclosed. PR 22 joins
+the revealed hierarchy directly to exact authoring, including repeated scalar values. Later edit
+shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -872,7 +882,7 @@ Planned checkpoints:
 
 ### PR 21. Merkle-Committed Progressive Agent Disclosure
 
-Status: in review as [PR 284](https://github.com/e6qu/fun-refactor/pull/284).
+Status: merged as [PR 284](https://github.com/e6qu/fun-refactor/pull/284).
 
 Goal: let an agent inspect and manipulate a declaration through the smallest useful semantic
 hierarchy. Commit every hidden part to one revision-bound view, reveal source only through an
@@ -924,6 +934,64 @@ Planned checkpoints:
    roadmap, continuity and defect records are current.
 6. **Complete.** The complete local repository gate and every PR 284 CI job pass on the reviewable
    implementation, verification, evaluator, skill and documentation commits.
+
+### PR 22. Disclosure-Bound Semantic Editing
+
+Status: in progress on `disclosure_bound_editing`.
+
+Goal: let an agent turn one progressively revealed scalar into an exact reviewed change without
+reading source, reconstructing a pointer or writing a semantic-intent locator. Preserve the typed
+intent compiler and complete history, check and Git lifecycle as the authority for the change.
+
+Deliverables:
+
+- Attach an opaque `frde1:` edit capability and exact preview template to every revealed scalar.
+  Emit them only where the current source-free reader and body writer can safely author.
+- Bind each capability to the project revision, full declaration handle, canonical body identity,
+  exact scalar pointer, operation, current value and typed role locator. Distinguish equal values at
+  different locations and refuse malformed, unknown, stale, ambiguous and unchanged requests.
+- Compile the selected capability through the existing semantic-intent and checked-delta path.
+  Preserve bytes outside the body and carry preview, plan-basis write, undo, redo and Git patch
+  behavior unchanged.
+- Carry the two-field `{edit,to}` request through author batches, project tasks and reviewed task
+  changes. Mirror that shape in the zero-dependency Python SDK.
+- Keep large current and replacement scalars as tagged commitments in disclosure and author
+  receipts. Add an editable-descendant count to shortcuts so an agent does not reveal unrelated
+  semantic nodes.
+- Model exact edit admission and the expanded task-target policy in Lean. Connect them to Rust with
+  strict anchors and exhaustive finite execution.
+- Retain a generic independent evaluator that calculates capability identities without calling the
+  implementation's hash path. Demonstrate ambiguity resolution, runtime behavior, patches and reversal.
+
+Verification and acceptance:
+
+1. Two equal scalars at distinct typed locations receive different capabilities. Selecting either
+   changes only that scalar and preserves every byte outside the selected function body.
+2. Capabilities admit exactly one current candidate and a changed, operation-valid replacement.
+   Malformed, unknown, stale, ambiguous and no-op requests refuse before history or source mutation.
+3. Initial disclosure and semantic navigation remain source-free and within their declared bounds.
+   Long scalars remain commitments in both capability and author receipts while staying editable.
+4. Direct, batch and task-change writes retain semantic-intent refinement, declared checks, exact
+   undo and redo, and forward and reverse Git patch identity.
+5. Lean proves the finite admission implications and task-target equivalence. Rust agrees on all
+   144 admission states and the complete 1,782-case target matrix. Hashing, parsers, writers,
+   compilers and filesystem behavior remain explicitly trusted or integration-tested boundaries.
+6. The deterministic evaluator, Python SDK, portable skill, docs, native tests, strict Lean build,
+   capability matrix and WASM/playground gates pass before review.
+
+Planned checkpoints:
+
+1. **Complete.** Implement exact disclosed-scalar identities, duplicate-value selection, direct
+   author preview/write and stale/no-op/malformed refusal.
+2. **Complete.** Carry disclosed requests through batch, task and task-change transactions with
+   checks, reversal and patch delivery.
+3. **Complete.** Add long-value commitments, editable shortcut counts and the Python request mirror.
+4. **Complete.** Prove admission and task-target policy, anchor the Rust predicates and exhaustively
+   compare the finite models.
+5. **Complete.** Retain the independent generic evaluator and refresh the progressive-disclosure
+   evidence after the response-shape extension.
+6. **In progress.** Complete prose, portable-skill and defect records; pass the full local and CI
+   gates; open the reviewable PR.
 
 ## Formal verification policy
 

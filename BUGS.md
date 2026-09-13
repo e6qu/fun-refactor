@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B856: **a hidden large scalar reappeared in its author preview.**
+  Progressive disclosure committed a long string instead of returning it inline. The first receipt
+  copied the entire current value and generated intent back into the report.
+  Large current and replacement values now remain tagged Merkle commitments in both capability and
+  author receipts. A lifecycle regression changes a long Rust string, checks that preview omits it,
+  then undoes the write exactly.
+
 - [x] B855: **a project batch rejected copied exact project continuations.**
   Project commands emit complete argument arrays beginning with `project`. Nested batch parsing
   accepted only arrays beginning with the immediate subcommand. Batches now accept both forms. A

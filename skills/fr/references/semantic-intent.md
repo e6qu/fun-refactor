@@ -60,6 +60,10 @@ diff and writer fidelity, then use the normal task-change or saved-history lifec
 project tasks and task changes use `edit-body-intent`. The shorter manifest operation is
 `edit-body-scalar` with `scalar: {"operation":"set-int","from":"1","to":"2"}`.
 
+If the unique-scalar route reports ambiguity, reveal the intended node with `project disclose` and
+use its exact capability through `edit-body-disclosed`. This preserves the typed intent compiler
+without requiring you to construct the locator. Use explicit intents for several ordered changes.
+
 A missing or ambiguous role, category or kind mismatch, stale `from`, invalid scalar, no-op, stale
 base or invalid intermediate body refuses before source and history mutation. This is a structural
 scalar edit. It does not rename bindings or prove program behavior.

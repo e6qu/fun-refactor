@@ -12,7 +12,9 @@ its impl/trait. Otherwise use
 `project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
 
 Fragments fit 64 KiB. Steps need `op` and `handle`; fragment steps add `from`.
-`edit-body-scalar` adds `scalar` with `operation`, `from` and `to`. Short IDs need top-level
+`edit-body-scalar` adds `scalar` with `operation`, `from` and `to`.
+`edit-body-disclosed` adds `disclosed` with the exact returned `edit` ID and replacement `to`; it
+always uses the full handle paired with that capability. Short IDs need top-level
 `revision`; `organize-imports` takes a file handle. Steps use original source; overlaps refuse.
 Optional postconditions cover changed files, edits, operations and paths. Fragment
 paths can be project-relative or absolute.

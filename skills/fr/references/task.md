@@ -29,6 +29,11 @@ An `edit-body-scalar` target carries
 validates its unique role match and generated intent during preview. Other authoring targets retain
 their existing fragment rules.
 
+An `edit-body-disclosed` target carries
+`"disclosed":{"edit":"frde1:<DIGEST>","to":"7"}` and the full handle returned with that
+capability. It needs no fragment or scalar object. Project task preserves the request in its author
+template; task change rebinds it to the current typed body and refuses stale or changed input.
+
 Write each required fragment outside recognized source. Replace every `<FRAGMENT:ID>` in
 `author_manifest_template` with the actual path and save the result. Follow `next`: preview the
 author batch, save it under the complete `plan_context_basis`, replace the
