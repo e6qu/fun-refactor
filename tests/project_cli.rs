@@ -126,6 +126,29 @@ fn project_batch(root: &Path, manifest: Value, report_bytes: usize) -> Value {
     )
 }
 
+fn project_profile_batch(
+    root: &Path,
+    manifest: Value,
+    report_bytes: usize,
+    profile: &str,
+) -> (bool, Value) {
+    let input = tempfile::NamedTempFile::new().unwrap();
+    fs::write(input.path(), serde_json::to_vec(&manifest).unwrap()).unwrap();
+    run(
+        root,
+        &[
+            "project",
+            "batch",
+            "--from",
+            input.path().to_str().unwrap(),
+            "--report-bytes",
+            &report_bytes.to_string(),
+            "--profile",
+            profile,
+        ],
+    )
+}
+
 fn project_task(root: &Path, manifest: Value, report_bytes: usize) -> (bool, Value) {
     let input = tempfile::NamedTempFile::new().unwrap();
     fs::write(input.path(), serde_json::to_vec(&manifest).unwrap()).unwrap();
@@ -740,6 +763,144 @@ fn project_batch_reuses_one_verified_context_for_existing_queries() {
         batch["manifest_basis"],
         project_batch(dir.path(), manifest, 1_048_576)["manifest_basis"]
     );
+}
+
+#[test]
+fn explore_starts_name_only_and_returns_exact_bounded_continuations() {
+    let dir = tempfile::tempdir().unwrap();
+    let declarations = (0..18)
+        .map(|index| format!("def behavior_{index}():\n    return {index}\n"))
+        .collect::<String>();
+    fs::write(dir.path().join("app.py"), declarations).unwrap();
+
+    let names = ok(
+        dir.path(),
+        &["project", "explore", "behavior_", "--contains"],
+    );
+    assert_eq!(names["query"], "explore");
+    assert_eq!(names["mode"], "names");
+    assert_eq!(names["profile"]["name"], "compact");
+    assert_eq!(names["profile"]["enforcement"], "server");
+    assert_eq!(names["rows"].as_array().unwrap().len(), 12);
+    assert_eq!(names["page"]["remaining"], 6);
+    assert!(names["rows"][0].get("source").is_none());
+    let next = names["rows"][0]["next"]["arguments"].as_array().unwrap();
+    assert_eq!(next[0], "project");
+    assert_eq!(next[1], "explore");
+    assert!(next.iter().any(|value| value == "--target"));
+    assert!(names["continuations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item["reason"] == "more-name-matches"));
+    assert!(names["continuations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item["reason"] == "explicit-profile-expansion"));
+}
+
+#[test]
+fn explore_behavior_binds_source_relationships_and_followups_to_one_handle() {
+    let dir = tempfile::tempdir().unwrap();
+    let body = "x".repeat(3_000);
+    fs::write(
+        dir.path().join("app.py"),
+        format!(
+            "def helper():\n    return 1\n\ndef behavior():\n    helper()\n    return '{body}'\n\ndef caller():\n    return behavior()\n"
+        ),
+    )
+    .unwrap();
+    let names = ok(dir.path(), &["project", "explore", "behavior"]);
+    let handle = names["rows"][0]["handle"].as_str().unwrap();
+    let behavior = ok(
+        dir.path(),
+        &[
+            "project", "explore", "behavior", "--mode", "behavior", "--target", handle,
+        ],
+    );
+    assert_eq!(behavior["mode"], "behavior");
+    assert_eq!(behavior["declaration"]["node"]["handle"], handle);
+    assert!(
+        behavior["declaration"]["source"]["returned_bytes"]
+            .as_u64()
+            .unwrap()
+            <= 2_048
+    );
+    assert!(behavior["relationships"]["items"].as_array().unwrap().len() <= 8);
+    assert!(behavior["continuations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item["reason"] == "more-source"));
+    assert!(serde_json::to_vec(&behavior).unwrap().len() <= 16_384);
+}
+
+#[test]
+fn agent_profile_batch_reuses_explore_results_and_refuses_widening() {
+    let dir = fixture();
+    let manifest = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [
+            {"id": "names", "arguments": ["explore", "run"]},
+            {"id": "behavior", "arguments": [
+                "explore", "run", "--mode", "behavior", "--target",
+                {"request": "names", "pointer": "/rows/0/handle"}
+            ]}
+        ]
+    });
+    let (success, batch) =
+        project_profile_batch(dir.path(), manifest.clone(), 1_048_576, "compact");
+    assert!(success, "{batch}");
+    assert_eq!(batch["agent_profile"]["name"], "compact");
+    assert_eq!(batch["report_budget"]["limit_bytes"], 16_384);
+    assert_eq!(batch["report_budget"]["requested_bytes"], 1_048_576);
+    assert!(batch["manifest_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frpqb2:"));
+    assert_eq!(batch["requests"][1]["report"]["mode"], "behavior");
+    let (success, expanded_same) =
+        project_profile_batch(dir.path(), manifest, 1_048_576, "expanded");
+    assert!(success, "{expanded_same}");
+    assert_ne!(expanded_same["manifest_basis"], batch["manifest_basis"]);
+
+    let expanded_manifest = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [{"id": "names", "arguments": [
+            "explore", "run", "--profile", "expanded"
+        ]}]
+    });
+    let (success, expanded) =
+        project_profile_batch(dir.path(), expanded_manifest, 1_048_576, "expanded");
+    assert!(success, "{expanded}");
+    assert_eq!(expanded["agent_profile"]["name"], "expanded");
+    assert_eq!(expanded["report_budget"]["limit_bytes"], 32_768);
+    assert_ne!(expanded["manifest_basis"], batch["manifest_basis"]);
+
+    let widened = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [{"id": "wide", "arguments": [
+            "explore", "run", "--profile", "expanded"
+        ]}]
+    });
+    let (success, error) = project_profile_batch(dir.path(), widened, 1_048_576, "compact");
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("cannot contain expanded"));
+
+    let unbounded = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [{"id": "map", "arguments": ["map", "--limit", "500"]}]
+    });
+    let (success, error) = project_profile_batch(dir.path(), unbounded, 1_048_576, "expanded");
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("only bounded explore"));
 }
 
 #[test]

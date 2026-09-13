@@ -89,6 +89,16 @@ fn batched_project_queries_match_separate_compact_reports() {
 }
 
 #[test]
+fn bounded_agent_discovery_coalesces_and_reuses_one_project_view() {
+    python(&["tools/agent-discovery.py", "--fr", env!("CARGO_BIN_EXE_fr")]);
+    python(&[
+        "tools/agent-discovery.py",
+        "--audit",
+        "tests/agent-eval/agent-discovery.json",
+    ]);
+}
+
+#[test]
 fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",

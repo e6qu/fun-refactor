@@ -163,6 +163,44 @@ fn resolution_reuses_identical_extracted_facts_after_a_scalar_edit() {
 }
 
 #[test]
+fn concurrent_index_builds_share_one_resolution_owner_and_result() {
+    let (_tmp, scanned) = workspace(&[
+        ("a.rs", "pub fn alpha() {}\n"),
+        ("b.rs", "pub fn beta() { alpha(); }\n"),
+    ]);
+    let cache_dir = tempfile::tempdir().unwrap();
+    let first_cache = Cache::open_at(cache_dir.path()).unwrap();
+    let second_cache = Cache::open_at(cache_dir.path()).unwrap();
+    let barrier = std::sync::Barrier::new(2);
+    let ((first, first_stats), (second, second_stats)) = std::thread::scope(|scope| {
+        let first = scope.spawn(|| {
+            barrier.wait();
+            let index = Index::build_with_cache(&scanned, Some(&first_cache)).unwrap();
+            (fingerprint(&index), first_cache.stats())
+        });
+        let second = scope.spawn(|| {
+            barrier.wait();
+            let index = Index::build_with_cache(&scanned, Some(&second_cache)).unwrap();
+            (fingerprint(&index), second_cache.stats())
+        });
+        (first.join().unwrap(), second.join().unwrap())
+    });
+    assert_eq!(first, second);
+    assert_eq!(
+        first_stats.resolution_owners + second_stats.resolution_owners,
+        1
+    );
+    assert_eq!(
+        first_stats.resolution_hits + second_stats.resolution_hits,
+        1
+    );
+    assert_eq!(
+        first_stats.resolution_timeouts + second_stats.resolution_timeouts,
+        0
+    );
+}
+
+#[test]
 fn resolution_snapshot_admission_requires_exact_length_and_bounded_targets() {
     let valid = [
         (Some(SymbolId(0)), Confidence::Exact),

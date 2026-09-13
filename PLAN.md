@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 696 |
+| Defects fixed | 700 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -160,7 +160,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Eighteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Nineteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -183,8 +183,8 @@ The first packaged roadmap is complete. Eighteen merged pull requests establishe
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
 | [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
 | [PR 18](https://github.com/e6qu/fun-refactor/pull/281) | Reviewed Semantic Edit Plans | Merged |
-| PR 19 | Incremental Project Identity and Agent Query Latency | In progress |
-| PR 20 | Bounded Agent Discovery and Concurrent Query Coalescing | Planned |
+| [PR 19](https://github.com/e6qu/fun-refactor/pull/282) | Incremental Project Identity and Agent Query Latency | Merged |
+| [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | In review |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
@@ -732,7 +732,7 @@ Planned checkpoints:
 
 ### PR 19. Incremental Project Identity and Agent Query Latency
 
-Status: in progress.
+Status: merged as [PR 282](https://github.com/e6qu/fun-refactor/pull/282).
 
 Goal: keep revision-bound project queries responsive across the repeated inspect, edit and verify
 loop that an agent performs. Preserve complete workspace identity, stale-handle refusal,
@@ -799,7 +799,7 @@ Planned checkpoints:
 
 ### PR 20. Bounded Agent Discovery and Concurrent Query Coalescing
 
-Status: planned.
+Status: in review.
 
 Goal: make the efficient project-query route hard for an agent to accidentally bypass. Bound every
 discovery response, reuse one warmed project view across a task, and coalesce concurrent cold work
@@ -837,6 +837,23 @@ Verification and acceptance:
 4. Stale handles, incomplete snapshots, changed sources and mismatched resolution material continue
    to refuse before a result or mutation is accepted.
 5. Native, WASM, strict Lean, portable-skill, documentation and deterministic replay gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Add compact and explicitly expanded `project explore` profiles with fixed row,
+   relationship, source and report ceilings. Return exact argument arrays for every available
+   continuation.
+2. **Complete.** Admit only bounded exploration inside profiled project batches, bind the selected
+   profile into its manifest identity and reuse one constructed project across referenced stages.
+3. **Complete.** Give each resolution input one filesystem-backed owner, wait for atomic
+   publication, recover stale owners and bound live-owner waits. Recheck completed snapshots after
+   taking ownership so a publication race cannot start a duplicate build.
+4. **Complete.** Model discovery budgets, mode transitions, waiting actions and owner-only snapshot
+   publication in Lean, with 3,472 shared Rust/Lean cases.
+5. **Complete.** Retain deterministic and repository dogfood evidence, update the portable skill
+   and command documentation, and fix defects exposed by the new route.
+6. **Complete.** Pass the complete native, WASM, strict Lean, capability, skill and documentation
+   gate before review.
 
 ## Formal verification policy
 

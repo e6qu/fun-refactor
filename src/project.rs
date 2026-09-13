@@ -23,6 +23,7 @@ mod contracts;
 mod digest;
 #[cfg(test)]
 mod digest_tests;
+mod explore;
 mod fast_routes;
 mod features;
 mod find;
@@ -54,6 +55,8 @@ pub enum Command {
         about = "Prepare exact project evidence and authoring transitions for one agent task."
     )]
     Task(task::Options),
+    #[command(about = "Discover a declaration and its behavior through a bounded agent profile.")]
+    Explore(explore::Options),
     #[command(about = "Find declaration handles by literal name without loading file maps.")]
     Find(find::Options),
     #[command(about = "Find several exact declaration names in one revision-bound query.")]
@@ -166,6 +169,94 @@ pub enum Command {
         #[arg(long)]
         cursor: Option<String>,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AgentProfile {
+    Compact,
+    Expanded,
+}
+
+impl AgentProfile {
+    pub fn code(self) -> usize {
+        match self {
+            Self::Compact => 0,
+            Self::Expanded => 1,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Compact => "compact",
+            Self::Expanded => "expanded",
+        }
+    }
+
+    pub fn row_limit(self) -> usize {
+        match self {
+            Self::Compact => 12,
+            Self::Expanded => 30,
+        }
+    }
+
+    pub fn relationship_limit(self) -> usize {
+        match self {
+            Self::Compact => 8,
+            Self::Expanded => 20,
+        }
+    }
+
+    pub fn source_bytes(self) -> usize {
+        match self {
+            Self::Compact => 2_048,
+            Self::Expanded => 4_096,
+        }
+    }
+
+    pub fn report_bytes(self) -> usize {
+        match self {
+            Self::Compact => 16_384,
+            Self::Expanded => 32_768,
+        }
+    }
+
+    pub fn request_limit(self) -> usize {
+        match self {
+            Self::Compact => 8,
+            Self::Expanded => 16,
+        }
+    }
+
+    pub(crate) fn admits(self, requested: Self) -> bool {
+        self == Self::Expanded || requested == Self::Compact
+    }
+}
+
+pub fn agent_discovery_budget_admitted(
+    rows: usize,
+    source_bytes: usize,
+    report_bytes: usize,
+    profile: AgentProfile,
+) -> bool {
+    agent_discovery_budget_admitted_code(rows, source_bytes, report_bytes, profile.code())
+}
+
+pub fn agent_discovery_budget_admitted_code(
+    rows: usize,
+    source_bytes: usize,
+    report_bytes: usize,
+    profile: usize,
+) -> bool {
+    match profile {
+        0 => rows <= 12 && source_bytes <= 2_048 && report_bytes <= 16_384,
+        1 => rows <= 30 && source_bytes <= 4_096 && report_bytes <= 32_768,
+        _ => false,
+    }
+}
+
+pub fn agent_discovery_transition_allowed(mode: usize, target_supplied: bool) -> bool {
+    matches!((mode, target_supplied), (0, false) | (1, true))
 }
 
 #[derive(clap::Args)]
@@ -1081,6 +1172,7 @@ impl<'a> Project<'a> {
         match command {
             Command::Batch(options) => self.batch(options),
             Command::Task(options) => self.task(options),
+            Command::Explore(options) => self.explore(options),
             Command::Find(options) => self.find(options),
             Command::Select(options) => self.select(options),
             Command::Map {

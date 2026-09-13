@@ -10,6 +10,11 @@ Save this manifest outside the source tree, substituting paths and exact names n
 fr project batch --from '<PROJECT_QUERIES>' --report-bytes 8192
 ```
 
+For agent behavior discovery, use only `explore` requests and add `--profile compact`. This admits
+eight requests, clamps the shared report budget to 16,384 bytes and refuses wider subcommands. A
+later behavior request can reference `/rows/0/handle` from a names response. Use `--profile
+expanded` only after the compact response offers that explicit continuation.
+
 Read each request status. The outer revision, handle prefix, coverage and context basis apply to
 every nested report. A nested report omits those common fields. `omitted-report-budget` means that
 complete report did not fit; use its ordinary subcommand when it is still needed.

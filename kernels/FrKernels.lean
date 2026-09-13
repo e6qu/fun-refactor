@@ -15,3 +15,4 @@ import FrKernels.Workflow
 import FrKernels.TaskChange
 import FrKernels.SemanticIntent
 import FrKernels.ProjectIdentity
+import FrKernels.AgentDiscovery

@@ -506,6 +506,23 @@ trusted or regression-tested implementation boundaries.
 The axiom audit reports no dependencies for the three revision theorems and empty-snapshot result.
 The general snapshot theorems use `propext`, with `Quot.sound` where list membership requires it.
 
+## Agent discovery and resolution coordination kernels
+
+`FrKernels.AgentDiscovery` models the compact and expanded discovery ceilings, the name-to-behavior
+mode transition, the bounded resolution-wait decision and owner-only snapshot publication. Accepted
+budgets imply their row, source-byte and report-byte limits. Behavior mode requires an exact target,
+while names mode rejects one. A stale owner selects recovery before timeout, an expired live wait
+stops waiting, and a live bounded wait continues. Publication requires both ownership and a locally
+admitted snapshot.
+
+Four source anchors and signature maps bind these decisions to `src/project.rs` and `src/cache.rs`.
+The executable comparison covers 3,472 Rust/Lean cases around both profile ceilings, invalid profile
+codes, both modes, every wait state and every publication state. The existing page-length theorems
+cover result pagination and forward progress. Filesystem exclusivity, clock behavior, process death,
+atomic rename, scheduler fairness, serialization, cryptographic identity and the Rust/Lean compiler
+relationship remain trusted or host-tested boundaries. Integration tests use independent cache
+handles and require one resolution owner, one consumer and identical resolved indexes.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

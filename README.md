@@ -48,6 +48,10 @@ The [task-change evaluation](docs/task-change-evaluation.md) compares it with th
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
+`project explore` gives agents a name-first route with server-enforced source, relationship and
+report budgets. Profiled batches reuse one project snapshot across its referenced discovery stages.
+The [bounded discovery evaluation](docs/agent-discovery-evaluation.md) records coalesced cold
+queries, exact continuations, formal boundaries and generic fixture evidence.
 `project select NAME...` retrieves several exact declarations through one revision and shared budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
