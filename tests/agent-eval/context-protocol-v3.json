@@ -63,16 +63,16 @@
       },
       "projected": {
         "context": {
-          "bytes": 37907,
-          "tokens": 11380
+          "bytes": 37895,
+          "tokens": 11382
         },
         "prompt": {
           "bytes": 4402,
           "tokens": 925
         },
         "visible_output": {
-          "bytes": 33505,
-          "tokens": 10455
+          "bytes": 33493,
+          "tokens": 10457
         },
         "requests": {
           "bytes": 5429,
@@ -80,8 +80,8 @@
         },
         "categories": {
           "skill": {
-            "bytes": 7017,
-            "tokens": 1811,
+            "bytes": 7005,
+            "tokens": 1813,
             "seconds": 0.001
           },
           "inspection": {
@@ -228,7 +228,7 @@
           "recorded_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "projected_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "recorded_visible_sha256": "785867d9c3c7900d108f65b1d690a81e6cfc4bfa222d6b1755992b76fe680ef6",
-          "projected_visible_sha256": "d995725bc43495f96647ecd09771db25e8f46ecbb9a0dc216f42a9303c6f3848"
+          "projected_visible_sha256": "44d763e620b7e206ec0a45fd86b1f85eeca4890f1bf3c03ff94b89033ed8c2f0"
         },
         {
           "event_index": 1,
@@ -447,18 +447,18 @@
       },
       "contribution": {
         "bytes": {
-          "skill_and_current_docs": 694,
+          "skill_and_current_docs": 706,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 694
+          "total": 706
         },
         "tokens": {
-          "skill_and_current_docs": 151,
+          "skill_and_current_docs": 149,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 151
+          "total": 149
         }
       }
     },
@@ -748,16 +748,16 @@
       },
       "projected": {
         "context": {
-          "bytes": 35926,
-          "tokens": 10776
+          "bytes": 35914,
+          "tokens": 10778
         },
         "prompt": {
           "bytes": 4402,
           "tokens": 925
         },
         "visible_output": {
-          "bytes": 31524,
-          "tokens": 9851
+          "bytes": 31512,
+          "tokens": 9853
         },
         "requests": {
           "bytes": 5313,
@@ -765,8 +765,8 @@
         },
         "categories": {
           "skill": {
-            "bytes": 7017,
-            "tokens": 1811,
+            "bytes": 7005,
+            "tokens": 1813,
             "seconds": 0.003
           },
           "inspection": {
@@ -913,7 +913,7 @@
           "recorded_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "projected_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "recorded_visible_sha256": "785867d9c3c7900d108f65b1d690a81e6cfc4bfa222d6b1755992b76fe680ef6",
-          "projected_visible_sha256": "d995725bc43495f96647ecd09771db25e8f46ecbb9a0dc216f42a9303c6f3848"
+          "projected_visible_sha256": "44d763e620b7e206ec0a45fd86b1f85eeca4890f1bf3c03ff94b89033ed8c2f0"
         },
         {
           "event_index": 1,
@@ -1132,18 +1132,18 @@
       },
       "contribution": {
         "bytes": {
-          "skill_and_current_docs": 694,
+          "skill_and_current_docs": 706,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 694
+          "total": 706
         },
         "tokens": {
-          "skill_and_current_docs": 151,
+          "skill_and_current_docs": 149,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 151
+          "total": 149
         }
       }
     },
@@ -1382,23 +1382,23 @@
   ],
   "summary": {
     "bytes": {
-      "fr_mean": 36916.5,
+      "fr_mean": 36904.5,
       "files_mean": 24581.5,
-      "fr_minus_files": 12335.0,
-      "fr_percent_difference": 50.18001342472998
+      "fr_minus_files": 12323.0,
+      "fr_percent_difference": 50.131196224803205
     },
     "tokens": {
-      "fr_mean": 11078.0,
+      "fr_mean": 11080.0,
       "files_mean": 6810.0,
-      "fr_minus_files": 4268.0,
-      "fr_percent_difference": 62.672540381791485
+      "fr_minus_files": 4270.0,
+      "fr_percent_difference": 62.70190895741557
     }
   },
   "measurement_files": {
     "tools/agent-context-protocol.py": "8da3c8b00853825acf5c6a4c57aeeb95d0824b92f0652eb4f61a8a20bc9701be",
     "tools/checks-policy-context.py": "b37ef3e212ee76c90cbfaf608a79e536ab8c6941f6fa0ca350c56b35170129d7",
     "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f",
-    "skills/fr/SKILL.md": "78e1ccb61e0c5a55b99204fbf91c4f015ea2be0be88d0be37faeb8b6e261bae1",
+    "skills/fr/SKILL.md": "039112a02f4332143d09b19509310f57dafdebc5c7037e11ced417b79c334abf",
     "skills/fr/references/author.md": "fc4d0855f753b46960aecb2693c04c0a0f4a8a3cebdc36c6cfb6006917f55d9d",
     "skills/fr/references/checks.md": "cbb02b7196c590d2cae243d765df19506b7030f34bf0a43a95ecd3d03d2ba34a",
     "skills/fr/references/git.md": "2c432ab7bd00c42451f197a9e9c484298fc6a565c8b0a1ae1d5a83a664ae8aa0",
@@ -1484,18 +1484,18 @@
   },
   "contributions": {
     "bytes": {
-      "skill_and_current_docs": 694.0,
+      "skill_and_current_docs": 706.0,
       "transaction_basis_v2": 0.0,
       "multi_select": 0.0,
       "plan_basis": 0.0,
-      "total": 694.0
+      "total": 706.0
     },
     "tokens": {
-      "skill_and_current_docs": 151.0,
+      "skill_and_current_docs": 149.0,
       "transaction_basis_v2": 0.0,
       "multi_select": 0.0,
       "plan_basis": 0.0,
-      "total": 151.0
+      "total": 149.0
     }
   },
   "feature_applicability": {

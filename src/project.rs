@@ -1,4 +1,4 @@
-use crate::index::{content_hash_of, Index};
+use crate::index::Index;
 use crate::model::{Confidence, SymbolId};
 use crate::parse::{Parsed, Parsers};
 use crate::scan::{scan, ScanOptions, ScanResult};
@@ -11,6 +11,8 @@ use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+
+const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-2";
 
 pub mod author;
 mod batch;
@@ -494,23 +496,31 @@ impl<'a> Project<'a> {
         let mut directories = BTreeMap::from([(PathBuf::new(), 0)]);
         let mut digest = RevisionDigest::default();
         digest.update((
+            PROJECT_REVISION_SCHEMA,
             &selected,
             env!("CARGO_PKG_VERSION"),
+            crate::cache::fact_semantics_fingerprint(),
             options.respect_ignore,
             options.max_file_bytes,
         ))?;
         timing.checkpoint("setup");
         for (path, info) in index.files() {
+            let captured = index
+                .captured_source(path)
+                .with_context(|| format!("index has no captured source for {}", path.display()))?;
             let source = crate::vfs::read_to_string(path)
                 .with_context(|| format!("reading {} for project view", path.display()))?;
-            if index.content_hash(path) != Some(content_hash_of(&source)) {
+            if source != captured {
                 bail!(
                     "{} changed during indexing; retry project query.",
                     path.display()
                 );
             }
             timing.checkpoint("source_read");
-            digest.update((path, hash(&source)?, &info.gaps))?;
+            let content_digest = index
+                .content_digest(path)
+                .with_context(|| format!("index has no content identity for {}", path.display()))?;
+            digest.update((path, info.language.name(), content_digest, &info.gaps))?;
             timing.checkpoint("source_digest");
             project.lines.insert(path.clone(), LineIndex::new(&source));
             project.sources.insert(path.clone(), source);
@@ -554,10 +564,8 @@ impl<'a> Project<'a> {
                 .collect::<Vec<_>>();
             symbols.sort_by_key(|s| (s.full_span.start, std::cmp::Reverse(s.full_span.end), s.id));
             let mut stack: Vec<(Span, usize)> = Vec::new();
-            timing.checkpoint("hierarchy");
+            timing.checkpoint("symbol_digest");
             for symbol in symbols {
-                digest.update(symbol)?;
-                timing.checkpoint("symbol_digest");
                 while stack.last().is_some_and(|(span, _)| {
                     *span == symbol.full_span || !span.contains(symbol.full_span)
                 }) {
@@ -574,11 +582,8 @@ impl<'a> Project<'a> {
                 });
                 project.symbol_nodes.insert(symbol.id, id);
                 stack.push((symbol.full_span, id));
-                timing.checkpoint("hierarchy");
             }
-        }
-        for reference in &index.references {
-            digest.update((&reference.file, reference))?;
+            timing.checkpoint("hierarchy");
         }
         timing.checkpoint("reference_digest");
         digest.update((

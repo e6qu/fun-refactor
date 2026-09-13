@@ -2,8 +2,8 @@
 //! from one built by parsing every file.
 
 use fun_refactor::cache::Cache;
-use fun_refactor::index::Index;
-use fun_refactor::model::FactGap;
+use fun_refactor::index::{resolution_snapshot_admitted, Index};
+use fun_refactor::model::{Confidence, FactGap, SymbolId};
 use fun_refactor::scan::{scan, ScanOptions, ScanResult};
 use std::path::PathBuf;
 
@@ -121,6 +121,60 @@ fn editing_a_file_invalidates_only_that_entry() {
         "the edited-away symbol must not come back from cache"
     );
     assert_eq!(index.find_symbols("renamed", None).len(), 1);
+}
+
+#[test]
+fn resolution_reuses_identical_extracted_facts_after_a_scalar_edit() {
+    let (tmp, _) = workspace(&[
+        (
+            "a.rs",
+            "pub const VALUE: i32 = 1;\npub fn alpha() -> i32 { VALUE }\n",
+        ),
+        ("b.rs", "pub fn caller() -> i32 { alpha() }\n"),
+    ]);
+    let cache_dir = tempfile::tempdir().unwrap();
+    let cache = Cache::open_at(cache_dir.path()).unwrap();
+
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    Index::build_with_cache(&scanned, Some(&cache)).unwrap();
+    assert_eq!(cache.stats().resolution_misses, 1);
+    assert_eq!(cache.stats().resolution_hits, 0);
+
+    std::fs::write(
+        tmp.path().join("a.rs"),
+        "pub const VALUE: i32 = 2;\npub fn alpha() -> i32 { VALUE }\n",
+    )
+    .unwrap();
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    let reused = Index::build_with_cache(&scanned, Some(&cache)).unwrap();
+    assert_eq!(cache.stats().resolution_hits, 1);
+
+    let rebuilt = Index::build_with_cache(&scanned, None).unwrap();
+    assert_eq!(fingerprint(&reused), fingerprint(&rebuilt));
+
+    std::fs::write(
+        tmp.path().join("a.rs"),
+        "pub const VALUE: i32 = 2;\npub fn omega() -> i32 { VALUE }\n",
+    )
+    .unwrap();
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    Index::build_with_cache(&scanned, Some(&cache)).unwrap();
+    assert_eq!(cache.stats().resolution_misses, 2);
+}
+
+#[test]
+fn resolution_snapshot_admission_requires_exact_length_and_bounded_targets() {
+    let valid = [
+        (Some(SymbolId(0)), Confidence::Exact),
+        (None, Confidence::NameOnly),
+    ];
+    assert!(resolution_snapshot_admitted(2, 1, &valid));
+    assert!(!resolution_snapshot_admitted(1, 1, &valid));
+    assert!(!resolution_snapshot_admitted(
+        1,
+        1,
+        &[(Some(SymbolId(1)), Confidence::Exact)]
+    ));
 }
 
 #[test]

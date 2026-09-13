@@ -9,13 +9,15 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 /// Bumped when [`FileFacts`] changes shape in a way old entries cannot satisfy.
-const SCHEMA_VERSION: u32 = 5;
+const SCHEMA_VERSION: u32 = 6;
 
 /// Hits and misses since this cache was opened.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CacheStats {
     pub hits: usize,
     pub misses: usize,
+    pub resolution_hits: usize,
+    pub resolution_misses: usize,
 }
 
 /// A content-addressed store of per-file facts.
@@ -24,31 +26,65 @@ pub struct Cache {
     // Indexing extracts files in parallel, so the counters are shared across threads.
     hits: AtomicUsize,
     misses: AtomicUsize,
+    resolution_hits: AtomicUsize,
+    resolution_misses: AtomicUsize,
     /// Set when the store turns out to be unusable, so we stop trying.
     disabled: AtomicBool,
+    fallback: bool,
+}
+
+#[derive(Serialize, serde::Deserialize)]
+struct ResolutionSnapshot {
+    basis: String,
+    entries_sha256: String,
+    entries: Vec<(Option<crate::model::SymbolId>, crate::model::Confidence)>,
 }
 
 impl Cache {
     /// Open the cache for the current query set, or `None` when no location is available.
     pub fn open() -> Option<Cache> {
-        Cache::open_at(&cache_root()?)
+        if let Some(explicit) = std::env::var_os("FUN_REFACTOR_CACHE") {
+            return Cache::open_at(Path::new(&explicit));
+        }
+        if let Some(cache) = default_cache_root().and_then(|root| Cache::open_at(&root)) {
+            return Some(cache);
+        }
+        for root in fallback_cache_roots() {
+            if std::fs::create_dir_all(&root).is_err() {
+                continue;
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).is_err()
+                {
+                    continue;
+                }
+            }
+            if let Some(mut cache) = Cache::open_at(&root) {
+                cache.fallback = true;
+                return Some(cache);
+            }
+        }
+        None
     }
 
     /// Open the cache under an explicit base directory.
     pub fn open_at(base: &Path) -> Option<Cache> {
         // Three things decide whether an entry is still meaningful: the schema, the queries
         // that produced the facts, and the extractor that interpreted them.
-        let root = base.join(format!(
-            "v{SCHEMA_VERSION}-{}-{}",
-            query_fingerprint(),
-            env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT")
-        ));
+        let root = base.join(fact_semantics_fingerprint());
         std::fs::create_dir_all(&root).ok()?;
+        // Probe now so `open` can fall back before the first cache write.
+        tempfile::NamedTempFile::new_in(&root).ok()?;
         Some(Cache {
             root,
             hits: AtomicUsize::new(0),
             misses: AtomicUsize::new(0),
+            resolution_hits: AtomicUsize::new(0),
+            resolution_misses: AtomicUsize::new(0),
             disabled: AtomicBool::new(false),
+            fallback: false,
         })
     }
 
@@ -134,10 +170,29 @@ impl Cache {
         if self.disabled.load(Ordering::Relaxed) {
             return None;
         }
-        let bytes = std::fs::read(self.entry_path(key)).ok()?;
-        match postcard::from_bytes(&bytes) {
-            Ok(entries) => Some(entries),
+        let bytes = match std::fs::read(self.entry_path(key)) {
+            Ok(bytes) => bytes,
             Err(_) => {
+                self.resolution_misses.fetch_add(1, Ordering::Relaxed);
+                return None;
+            }
+        };
+        match postcard::from_bytes::<ResolutionSnapshot>(&bytes) {
+            Ok(snapshot)
+                if snapshot.basis == key
+                    && serialized_digest(&snapshot.entries).as_deref()
+                        == Some(snapshot.entries_sha256.as_str()) =>
+            {
+                self.resolution_hits.fetch_add(1, Ordering::Relaxed);
+                Some(snapshot.entries)
+            }
+            Err(_) => {
+                self.resolution_misses.fetch_add(1, Ordering::Relaxed);
+                let _ = std::fs::remove_file(self.entry_path(key));
+                None
+            }
+            Ok(_) => {
+                self.resolution_misses.fetch_add(1, Ordering::Relaxed);
                 let _ = std::fs::remove_file(self.entry_path(key));
                 None
             }
@@ -153,7 +208,15 @@ impl Cache {
         if self.disabled.load(Ordering::Relaxed) {
             return;
         }
-        let Ok(bytes) = postcard::to_allocvec(entries) else {
+        let Some(entries_sha256) = serialized_digest(entries) else {
+            return;
+        };
+        let snapshot = ResolutionSnapshot {
+            basis: key.to_owned(),
+            entries_sha256,
+            entries: entries.to_vec(),
+        };
+        let Ok(bytes) = postcard::to_allocvec(&snapshot) else {
             return;
         };
         let path = self.entry_path(key);
@@ -214,11 +277,17 @@ impl Cache {
         CacheStats {
             hits: self.hits.load(Ordering::Relaxed),
             misses: self.misses.load(Ordering::Relaxed),
+            resolution_hits: self.resolution_hits.load(Ordering::Relaxed),
+            resolution_misses: self.resolution_misses.load(Ordering::Relaxed),
         }
     }
 
     pub fn location(&self) -> &Path {
         &self.root
+    }
+
+    pub fn is_fallback(&self) -> bool {
+        self.fallback
     }
 
     /// Delete every entry for the current query set.
@@ -248,11 +317,14 @@ impl Cache {
     }
 }
 
+pub(crate) fn serialized_digest<T: Serialize + ?Sized>(value: &T) -> Option<String> {
+    let bytes = postcard::to_allocvec(value).ok()?;
+    let digest = Sha256::digest(bytes);
+    Some(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
 /// Where cache entries live.
-fn cache_root() -> Option<PathBuf> {
-    if let Some(explicit) = std::env::var_os("FUN_REFACTOR_CACHE") {
-        return Some(PathBuf::from(explicit));
-    }
+fn default_cache_root() -> Option<PathBuf> {
     if let Some(xdg) = std::env::var_os("XDG_CACHE_HOME") {
         return Some(PathBuf::from(xdg).join("fun-refactor"));
     }
@@ -261,6 +333,31 @@ fn cache_root() -> Option<PathBuf> {
         return Some(PathBuf::from(home).join("Library/Caches/fun-refactor"));
     }
     std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".cache/fun-refactor"))
+}
+
+fn fallback_cache_roots() -> Vec<PathBuf> {
+    let identity = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USER"))
+        .unwrap_or_default();
+    let digest = Sha256::digest(identity.to_string_lossy().as_bytes());
+    let suffix = digest
+        .iter()
+        .take(8)
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let runtimes = std::env::var_os("XDG_RUNTIME_DIR")
+        .into_iter()
+        .chain(std::env::var_os("TMPDIR"))
+        .map(PathBuf::from)
+        .chain(std::iter::once(std::env::temp_dir()));
+    let mut roots = Vec::new();
+    for runtime in runtimes {
+        let root = runtime.join(format!("fun-refactor-cache-{suffix}"));
+        if !roots.contains(&root) {
+            roots.push(root);
+        }
+    }
+    roots
 }
 
 /// A fingerprint of every query file, so editing one invalidates its entries.
@@ -274,6 +371,14 @@ fn query_fingerprint() -> String {
     }
     let digest = hasher.finalize();
     digest.iter().take(8).map(|b| format!("{b:02x}")).collect()
+}
+
+pub(crate) fn fact_semantics_fingerprint() -> String {
+    format!(
+        "v{SCHEMA_VERSION}-{}-{}",
+        query_fingerprint(),
+        env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT")
+    )
 }
 
 #[cfg(test)]
@@ -385,6 +490,37 @@ mod tests {
 
         cache.clear().unwrap();
         assert!(cache.get(&key, Path::new("a.rs")).is_none());
+    }
+
+    #[test]
+    fn resolution_snapshots_bind_their_basis_and_entry_digest() {
+        let (_dir, cache) = scratch();
+        let key = "resolved-v2-workspace";
+        let entries = vec![(
+            Some(crate::model::SymbolId(0)),
+            crate::model::Confidence::Exact,
+        )];
+        cache.put_resolutions(key, &entries);
+        assert_eq!(cache.get_resolutions(key), Some(entries.clone()));
+
+        let wrong_basis = ResolutionSnapshot {
+            basis: "another-workspace".to_owned(),
+            entries_sha256: serialized_digest(&entries).unwrap(),
+            entries: entries.clone(),
+        };
+        std::fs::write(
+            cache.entry_path(key),
+            postcard::to_allocvec(&wrong_basis).unwrap(),
+        )
+        .unwrap();
+        assert!(cache.get_resolutions(key).is_none());
+
+        cache.put_resolutions(key, &entries);
+        let mut bytes = std::fs::read(cache.entry_path(key)).unwrap();
+        let last = bytes.last_mut().unwrap();
+        *last ^= 1;
+        std::fs::write(cache.entry_path(key), bytes).unwrap();
+        assert!(cache.get_resolutions(key).is_none());
     }
 
     #[test]

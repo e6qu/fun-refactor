@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 691 |
+| Defects fixed | 696 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -57,7 +57,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Twenty-six passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
+- Twenty-eight passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
@@ -70,8 +70,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,404 context tokens. This is 2,054 below the observed `fr` arm
-and 1,804 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+reduces that trace to 29 calls and 13,385 context tokens. This is 2,073 below the observed `fr` arm
+and 1,785 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
 fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -182,11 +182,14 @@ The first packaged roadmap is complete. Eighteen merged pull requests establishe
 | [PR 15](https://github.com/e6qu/fun-refactor/pull/277) | Agent IR Contract and Python SDK | Merged |
 | [PR 16](https://github.com/e6qu/fun-refactor/pull/278) | Checked Semantic Delta Authoring | Merged |
 | [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
-| PR 18 | Reviewed Semantic Edit Plans | Ready for review |
+| [PR 18](https://github.com/e6qu/fun-refactor/pull/281) | Reviewed Semantic Edit Plans | Merged |
+| PR 19 | Incremental Project Identity and Agent Query Latency | In progress |
+| PR 20 | Bounded Agent Discovery and Concurrent Query Coalescing | Planned |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
-exact scalar edits. Later shapes remain evidence-driven.
+exact scalar edits. PR 19 makes that interface practical while an agent repeatedly inspects and
+changes a large workspace. Later edit shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -198,7 +201,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,100 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,290-token or 63.0% `fr` premium.
+- The current checksum-bound projection uses 11,080 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,270-token or 62.7% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -672,7 +675,7 @@ Planned checkpoints:
 
 ### PR 18. Reviewed Semantic Edit Plans
 
-Status: complete; ready for review.
+Status: merged as [PR 281](https://github.com/e6qu/fun-refactor/pull/281).
 
 Goal: let an agent discover and apply one exact scalar semantic edit without guessing a file path,
 constructing a JSON manifest or reading source. Preserve the reviewed semantic-intent contract as
@@ -726,6 +729,114 @@ Planned checkpoints:
    corrected fresh Luna-low pair passes both arms without source reads. The direct route removes the
    query and payload, with lower total, non-cached input and output in this one pair.
 6. **Complete.** The complete native, browser, documentation, capability and Lean gate passes.
+
+### PR 19. Incremental Project Identity and Agent Query Latency
+
+Status: in progress.
+
+Goal: keep revision-bound project queries responsive across the repeated inspect, edit and verify
+loop that an agent performs. Preserve complete workspace identity, stale-handle refusal,
+coverage and deterministic output while avoiding work whose inputs are already known unchanged.
+
+The initial dogfood profile queried one exact declaration in this repository. A populated fact and
+resolution cache still spent 10.56 seconds in the debug build. Reference serialization took 7.85
+seconds, symbol serialization took 0.93 seconds and the second source hash took 0.72 seconds.
+Changing only the development profiler invalidated the workspace resolution snapshot and made the
+next call spend 66.05 seconds rebuilding resolution before another 9.64-second project construction.
+After ignore rules exclude generated evidence, the profile contains 957 indexed files and 435,556 references.
+These are single-host diagnostic measurements, not release latency claims.
+
+Deliverables:
+
+- Define a versioned project-revision material contract from selected scope, scan policy, captured
+  manifests, source identities, extraction semantics and reported gaps. Revision construction must
+  avoid serializing derived symbols and references when those inputs already determine them.
+- Compute cryptographic content identities once during parallel indexing and reuse them for
+  workspace cache keys, project revisions and source-race guards. Remove the current 64-bit cache-key
+  collision boundary without weakening exact stale-handle refusal.
+- Reuse cached resolution after edits whose extracted resolution inputs are unchanged. Make cache
+  admission explicit, deterministic and fail closed when file order, fact shape, candidate sets or
+  target identities differ.
+- Give long JSON project calls bounded machine-readable progress for fact extraction and reference
+  resolution. Successful stdout remains the same report contract.
+- Make cache placement work in restricted agent environments through an explicit, inspectable
+  fallback that does not add project files or silently disable reuse.
+- Repair and extend the development profiler so its public command line is executable and reports
+  the files and languages responsible for reference cost. Retain before/after cold, warm and
+  post-edit measurements with byte-identical query results.
+- Add documented ignore rules for immutable evaluation transcripts and generated site payloads.
+  Retain their replay and build use outside the code index.
+- Model revision-material sufficiency, ordered identity changes and cache-admission guards in Lean.
+  Anchor the critical Rust predicates and compare bounded generated cases with independent oracles.
+
+Verification and acceptance:
+
+1. Any captured source, manifest, scan-policy, extraction-semantic or reported-gap change alters the
+   project revision; unchanged material produces the same revision regardless of cache state.
+2. A source edit cannot reuse a resolution snapshot unless the complete resolution projection and
+   stable target mapping still match. Corrupt, partial, reordered and stale snapshots refuse reuse.
+3. Cached and uncached reports remain byte-identical. Old handles and context bases refuse after
+   every revision-relevant change, including changes that preserve file length.
+4. The repeated exact-declaration dogfood query completes without source reads by the caller and
+   materially reduces warm and post-scalar-edit latency on this repository.
+5. Progress records are valid standalone JSON lines on stderr, monotonic within each phase and absent
+   from stdout. Short calls may complete without emitting progress.
+6. Native, Python tooling, documentation, portable-skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the revision material, cryptographic content identity, cache-admission and
+   progress contracts; retain the initial dogfood profile and fix its broken invocation.
+2. **Complete.** Implement shared content identities and the versioned project revision without
+   derived-fact serialization; prove and test revision sensitivity.
+3. **Complete.** Add conservative incremental resolution reuse, an integrity envelope and
+   adversarial snapshot tests.
+4. **Complete.** Add private restricted-environment cache fallback, ordered phase progress and
+   portable-skill guidance.
+5. **Complete.** Retain deterministic cold, warm and post-edit comparisons on a generic fixture and
+   dogfood the same exact-declaration query on this repository.
+6. **Complete.** Pass the complete repository gate and a fresh Luna-low dogfood trial before review.
+
+### PR 20. Bounded Agent Discovery and Concurrent Query Coalescing
+
+Status: planned.
+
+Goal: make the efficient project-query route hard for an agent to accidentally bypass. Bound every
+discovery response, reuse one warmed project view across a task, and coalesce concurrent cold work
+whose complete inputs match.
+
+The PR 19 Luna-low dogfood run found the correct Rust and Lean boundary, but the first attempt used
+239,321 input tokens. It issued independent cold queries in parallel, widened limits to 100 and read
+far more structure than the task required. A second attempt repeated exact queries, requested a
+500-row map and broad source bodies, so it was stopped before completion. These runs establish
+functional discoverability and an efficiency failure. They do not establish context savings.
+
+Deliverables:
+
+- Add one task-scoped query session or equivalent batch surface. It captures one revision and serves
+  bounded follow-up selections without rebuilding the project.
+- Coalesce concurrent cache misses for identical resolution inputs across processes, with bounded
+  waiting, stale-owner recovery and no partial snapshot admission.
+- Put server-enforced row and source-byte budgets on agent discovery profiles. Report truncation and
+  the exact continuation action in the same machine-readable response.
+- Provide a compact behavior-discovery route that starts with one name-only search. It can expand to
+  an exact declaration, relationships and only the needed source.
+- Retain prescribed and fresh-agent evidence that separates correctness, context, calls, latency and
+  cache state. Failed and interrupted trials remain part of the result.
+- Model lock ownership, completed-snapshot publication and bounded pagination transitions in Lean;
+  connect critical predicates to Rust with anchors and shared cases.
+
+Verification and acceptance:
+
+1. Parallel identical cold queries perform one resolution build and return byte-identical reports;
+   killed owners cannot permanently block later work.
+2. Agent-profile limits stay within their reviewed ceiling unless an explicit mode change records
+   the wider value in the response.
+3. A fresh Luna-low behavior task finishes through the documented route without direct file reads,
+   broad maps or repeated cold queries. Retain its complete context.
+4. Stale handles, incomplete snapshots, changed sources and mismatched resolution material continue
+   to refuse before a result or mutation is accepted.
+5. Native, WASM, strict Lean, portable-skill, documentation and deterministic replay gates pass.
 
 ## Formal verification policy
 

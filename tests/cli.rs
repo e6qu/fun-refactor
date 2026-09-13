@@ -72,6 +72,29 @@ fn workspace() -> Workspace {
 }
 
 #[test]
+fn cache_uses_a_reported_runtime_fallback_when_the_default_is_unwritable() {
+    let temp = tempfile::tempdir().unwrap();
+    let blocked_home = temp.path().join("not-a-directory");
+    std::fs::write(&blocked_home, "blocked").unwrap();
+    let runtime = temp.path().join("runtime");
+    std::fs::create_dir(&runtime).unwrap();
+
+    let output = Command::new(FR)
+        .args(["--json", "cache"])
+        .env_remove("FUN_REFACTOR_CACHE")
+        .env_remove("XDG_CACHE_HOME")
+        .env_remove("XDG_RUNTIME_DIR")
+        .env("HOME", &blocked_home)
+        .env("TMPDIR", &runtime)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["fallback"], true);
+    assert!(Path::new(report["location"].as_str().unwrap()).starts_with(&runtime));
+}
+
+#[test]
 fn a_path_filter_actually_narrows_the_report() {
     // The regression this file exists for.
     let ws = workspace();

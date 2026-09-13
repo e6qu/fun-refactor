@@ -158,15 +158,17 @@ impl CallGraph {
     #[cfg(feature = "cli")]
     pub fn build_cached(index: &Index, cache: &crate::cache::Cache) -> Self {
         crate::capabilities::record_workspace(crate::capabilities::Capability::CallGraph, index);
-        let key = index.workspace_cache_key("call-graph-v1");
-        if let Some(snapshot) = cache.get_analysis::<CallGraphSnapshot>(&key) {
-            if let Some(graph) = Self::from_snapshot(index, snapshot) {
-                return graph;
+        if let Some(key) = index.workspace_cache_key("call-graph-v1") {
+            if let Some(snapshot) = cache.get_analysis::<CallGraphSnapshot>(&key) {
+                if let Some(graph) = Self::from_snapshot(index, snapshot) {
+                    return graph;
+                }
             }
+            let graph = Self::build(index);
+            cache.put_analysis(&key, &graph.snapshot());
+            return graph;
         }
-        let graph = Self::build(index);
-        cache.put_analysis(&key, &graph.snapshot());
-        graph
+        Self::build(index)
     }
 
     /// [`CallGraph::build`], answered once per index.

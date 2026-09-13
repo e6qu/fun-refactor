@@ -5,6 +5,7 @@ import FrKernels.Author
 import FrKernels.Adoption
 import FrKernels.Checks
 import FrKernels.SemanticIntent
+import FrKernels.ProjectIdentity
 
 open FrKernels.Project
 
@@ -127,6 +128,14 @@ def main (args : List String) : IO Unit := do
         for childrenSourceFree in [false, true] do
           IO.println (FrKernels.Author.semanticNodeSourceFree
             hasSourceField unsupportedKind childrenSourceFree)
+  else if args == ["resolution-snapshots"] then
+    let entries : List (FrKernels.ProjectIdentity.ResolutionEntry) :=
+      [⟨none, 0⟩, ⟨some 0, 1⟩, ⟨some 1, 2⟩, ⟨some 2, 3⟩]
+    for referenceCount in frameworkSamples do
+      for symbolCount in frameworkSamples do
+        for width in List.range (entries.length + 1) do
+          IO.println (FrKernels.ProjectIdentity.resolutionSnapshotAdmitted
+            referenceCount symbolCount (entries.take width))
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

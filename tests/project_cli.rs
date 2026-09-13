@@ -26,6 +26,23 @@ fn ok(root: &Path, args: &[&str]) -> Value {
     report
 }
 
+fn ok_cached(root: &Path, cache: &Path, args: &[&str]) -> Value {
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "-C"])
+        .arg(root)
+        .args(args)
+        .env("FUN_REFACTOR_CACHE", cache)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{args:?}: {}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
 fn fixture() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir(dir.path().join("src")).unwrap();
@@ -1755,6 +1772,34 @@ fn a_query_refuses_source_and_inventory_changes_before_emitting_its_report() {
     fs::write(root.join("src/lib.py"), "def helper(): pass\n").unwrap();
     assert!(project.verify(&root).is_err());
     assert!(Project::new(&root, &index, &scanned, &options).is_err());
+}
+
+#[test]
+fn project_revision_is_cache_independent_and_tracks_same_length_source_changes() {
+    let dir = fixture();
+    let cache = tempfile::tempdir().unwrap();
+    let args = ["project", "find", "run", "--signature"];
+    let uncached = ok(dir.path(), &args);
+    let populated = ok_cached(dir.path(), cache.path(), &args);
+    let warm = ok_cached(dir.path(), cache.path(), &args);
+    assert_eq!(populated, uncached);
+    assert_eq!(warm, uncached);
+
+    put(dir.path(), "src/value.py", "VALUE = 1\n");
+    let before = ok_cached(
+        dir.path(),
+        cache.path(),
+        &["project", "map", "--depth", "8", "--fields", "handle,name"],
+    );
+    let old_handle = handle(&before, "run");
+    put(dir.path(), "src/value.py", "VALUE = 2\n");
+    let after = ok_cached(
+        dir.path(),
+        cache.path(),
+        &["project", "map", "--depth", "8", "--fields", "handle,name"],
+    );
+    assert_ne!(before["revision"], after["revision"]);
+    assert!(!run(dir.path(), &["project", "show", &old_handle]).0);
 }
 
 #[test]

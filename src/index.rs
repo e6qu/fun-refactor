@@ -65,6 +65,12 @@ pub struct Index {
     pub skipped: Vec<(PathBuf, String)>,
     /// Hash of each file's text as this index read it.
     content_hashes: BTreeMap<PathBuf, u64>,
+    #[cfg(feature = "cli")]
+    content_digests: BTreeMap<PathBuf, String>,
+    #[cfg(feature = "cli")]
+    sources: BTreeMap<PathBuf, String>,
+    #[cfg(feature = "cli")]
+    resolution_digests: BTreeMap<PathBuf, String>,
     /// Symbol ids by name, rebuilt when resolution runs.
     name_buckets: HashMap<String, Vec<SymbolId>>,
     /// Files by their stem, rebuilt with the name buckets.
@@ -81,6 +87,35 @@ pub fn content_hash_of(text: &str) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     text.hash(&mut hasher);
     hasher.finish()
+}
+
+/// Whether the current index may safely apply a cached resolution vector.
+pub fn resolution_snapshot_admitted(
+    reference_count: usize,
+    symbol_count: usize,
+    entries: &[(Option<SymbolId>, Confidence)],
+) -> bool {
+    entries.len() == reference_count
+        && entries.iter().all(|(target, _)| {
+            target
+                .map(|target| (target.0 as usize) < symbol_count)
+                .unwrap_or(true)
+        })
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IndexingPhase {
+    Facts,
+    Resolution,
+}
+
+impl IndexingPhase {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Facts => "facts",
+            Self::Resolution => "resolution",
+        }
+    }
 }
 
 /// Extract every file's facts, in parallel where the build has threads.
@@ -161,7 +196,7 @@ impl Index {
     pub fn build_with_cache_reporting(
         scan_result: &ScanResult,
         cache: Option<&crate::cache::Cache>,
-        progress: Option<&(dyn Fn(usize, usize) + Sync)>,
+        progress: Option<&(dyn Fn(IndexingPhase, usize, usize) + Sync)>,
     ) -> Result<Self> {
         use rayon::prelude::*;
 
@@ -175,7 +210,7 @@ impl Index {
         // Extraction is per-file and shares nothing, so it parallelises cleanly.
         let total = scan_result.files.len();
         let done = std::sync::atomic::AtomicUsize::new(0);
-        type Extracted = (usize, FileFacts, Option<u64>);
+        type Extracted = (usize, FileFacts, Option<(u64, String, String)>);
         let extracted: Vec<Result<Option<Extracted>>> = scan_result
             .files
             .par_iter()
@@ -192,14 +227,18 @@ impl Index {
                             )))
                         }
                     };
-                    let hash = Some(content_hash_of(&source));
+                    let quick_hash = content_hash_of(&source);
+                    let content_digest = crate::cache::Cache::key(file.language, &source);
 
                     // A cached entry carries its own gaps, so a hit skips parsing entirely
                     // instead of reparsing to ask.
                     if let Some(cache) = cache {
-                        let key = crate::cache::Cache::key(file.language, &source);
-                        if let Some(facts) = cache.get(&key, &file.path) {
-                            return Ok(Some((position, facts, hash)));
+                        if let Some(facts) = cache.get(&content_digest, &file.path) {
+                            return Ok(Some((
+                                position,
+                                facts,
+                                Some((quick_hash, content_digest, source)),
+                            )));
                         }
                     }
 
@@ -220,14 +259,17 @@ impl Index {
                     })?;
 
                     if let Some(cache) = cache {
-                        let key = crate::cache::Cache::key(file.language, &source);
-                        cache.put(&key, &facts);
+                        cache.put(&content_digest, &facts);
                     }
-                    Ok(Some((position, facts, hash)))
+                    Ok(Some((
+                        position,
+                        facts,
+                        Some((quick_hash, content_digest, source)),
+                    )))
                 })();
                 if let Some(report) = progress {
                     let counted = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-                    report(counted, total);
+                    report(IndexingPhase::Facts, counted, total);
                 }
                 outcome
             })
@@ -241,24 +283,26 @@ impl Index {
         }
         ordered.sort_by_key(|(position, _, _)| *position);
 
-        for (position, facts, hash) in ordered {
+        for (position, facts, identity) in ordered {
             let file = &scan_result.files[position];
             if let Some(reason) = facts.unreadable.clone() {
                 index.skipped.push((file.path.clone(), reason));
                 continue;
             }
-            if let Some(hash) = hash {
+            if let Some((hash, digest, source)) = identity {
                 index.content_hashes.insert(file.path.clone(), hash);
+                index.content_digests.insert(file.path.clone(), digest);
+                index.sources.insert(file.path.clone(), source);
             }
             index.add_file(facts, file.language);
         }
 
         // Resolution is a pure function of the merged facts and costs most of a warm command.
-        let workspace_key = cache.map(|_| index.workspace_cache_key("resolved"));
+        let workspace_key = cache.and_then(|_| index.resolution_cache_key("resolved-v2"));
         let cached = workspace_key.as_ref().and_then(|key| {
-            cache?
-                .get_resolutions(key)
-                .filter(|r| r.len() == index.references.len())
+            cache?.get_resolutions(key).filter(|entries| {
+                resolution_snapshot_admitted(index.references.len(), index.symbols.len(), entries)
+            })
         });
         match cached {
             Some(resolutions) => {
@@ -271,7 +315,7 @@ impl Index {
                 }
             }
             None => {
-                index.resolve();
+                index.resolve_with_progress(progress);
                 if let (Some(cache), Some(key)) = (cache, workspace_key.as_ref()) {
                     let snapshot: Vec<(Option<SymbolId>, Confidence)> = index
                         .references
@@ -299,10 +343,16 @@ impl Index {
     pub fn build_from_sources(sources: &[(PathBuf, Language, String)]) -> Result<Self> {
         let extracted = extract_all(sources)?;
         let mut index = Self::build_from_facts(&extracted);
-        for (path, _, source) in sources {
+        for (path, _language, source) in sources {
             index
                 .content_hashes
                 .insert(path.clone(), content_hash_of(source));
+            #[cfg(feature = "cli")]
+            index
+                .content_digests
+                .insert(path.clone(), crate::cache::Cache::key(*_language, source));
+            #[cfg(feature = "cli")]
+            index.sources.insert(path.clone(), source.clone());
         }
         Ok(index)
     }
@@ -320,6 +370,10 @@ impl Index {
     /// Merge one file's facts, remapping file-local ids into the global namespace.
     pub fn add_file(&mut self, facts: FileFacts, language: Language) {
         crate::capabilities::record(crate::capabilities::Capability::Symbols, language);
+        #[cfg(feature = "cli")]
+        if let Some(digest) = crate::cache::serialized_digest(&facts) {
+            self.resolution_digests.insert(facts.path.clone(), digest);
+        }
         let base = self.symbols.len() as u32;
         let remap = |local: SymbolId| SymbolId(local.0 + base);
 
@@ -364,27 +418,67 @@ impl Index {
     }
 
     #[cfg(feature = "cli")]
-    pub(crate) fn workspace_cache_key(&self, kind: &str) -> String {
+    pub(crate) fn workspace_cache_key(&self, kind: &str) -> Option<String> {
         use sha2::{Digest, Sha256};
 
         let mut hasher = Sha256::new();
         for (path, info) in &self.files {
-            hasher.update(path.to_string_lossy().as_bytes());
-            hasher.update([0]);
+            update_path_identity(&mut hasher, path);
             hasher.update(info.language.name().as_bytes());
             hasher.update([0]);
-            let hash = self.content_hashes.get(path).copied().unwrap_or(0);
-            hasher.update(hash.to_le_bytes());
+            let digest = self.content_digests.get(path)?;
+            hasher.update(digest.as_bytes());
             hasher.update([1]);
         }
         let digest = hasher.finalize();
         let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
-        format!("{kind}-{hex}")
+        Some(format!("{kind}-{hex}"))
+    }
+
+    #[cfg(feature = "cli")]
+    fn resolution_cache_key(&self, kind: &str) -> Option<String> {
+        use sha2::{Digest, Sha256};
+
+        let mut hasher = Sha256::new();
+        for (path, info) in &self.files {
+            update_path_identity(&mut hasher, path);
+            hasher.update(info.language.name().as_bytes());
+            hasher.update([0]);
+            hasher.update(self.resolution_digests.get(path)?.as_bytes());
+            hasher.update([1]);
+        }
+        let digest = hasher.finalize();
+        let hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+        Some(format!("{kind}-{hex}"))
+    }
+
+    #[cfg(feature = "cli")]
+    pub(crate) fn content_digest(&self, path: &Path) -> Option<&str> {
+        self.content_digests.get(path).map(String::as_str)
+    }
+
+    #[cfg(feature = "cli")]
+    pub(crate) fn captured_source(&self, path: &Path) -> Option<&str> {
+        self.sources.get(path).map(String::as_str)
     }
 
     /// Record the text hash a caller built this index from.
     pub fn note_content_hash(&mut self, path: PathBuf, hash: u64) {
-        self.content_hashes.insert(path, hash);
+        self.content_hashes.insert(path.clone(), hash);
+        #[cfg(feature = "cli")]
+        {
+            self.content_digests.remove(&path);
+            self.sources.remove(&path);
+        }
+    }
+
+    #[cfg(feature = "cli")]
+    pub(crate) fn note_content(&mut self, path: PathBuf, language: Language, source: &str) {
+        self.content_hashes
+            .insert(path.clone(), content_hash_of(source));
+        self.content_digests
+            .insert(path.clone(), crate::cache::Cache::key(language, source));
+        self.sources.insert(path, source.to_owned());
     }
 
     pub fn files(&self) -> impl Iterator<Item = (&PathBuf, &FileInfo)> {
@@ -475,6 +569,13 @@ impl Index {
     }
 
     fn resolve(&mut self) {
+        self.resolve_with_progress(None);
+    }
+
+    fn resolve_with_progress(
+        &mut self,
+        progress: Option<&(dyn Fn(IndexingPhase, usize, usize) + Sync)>,
+    ) {
         self.rebuild_name_buckets();
         // Resolve against an immutable view first, then write the answers back:
         // resolution reads the whole index, so it cannot hold a mutable borrow.
@@ -488,11 +589,19 @@ impl Index {
             }
 
             let mut out = Vec::with_capacity(self.references.len());
+            let total = self.references.len();
+            let mut done: usize = 0;
             for (path, info) in &self.files {
                 for ref_idx in &info.references {
                     let reference = &self.references[*ref_idx];
                     let (target, confidence) = self.resolve_one(reference, path, info, &by_name);
                     out.push((*ref_idx, target, confidence));
+                    done += 1;
+                    if done.is_multiple_of(1024) || done == total {
+                        if let Some(report) = progress {
+                            report(IndexingPhase::Resolution, done, total);
+                        }
+                    }
                 }
             }
             out
@@ -1797,6 +1906,30 @@ impl Index {
     }
 }
 
+#[cfg(feature = "cli")]
+fn update_path_identity(hasher: &mut sha2::Sha256, path: &Path) {
+    use sha2::Digest;
+
+    #[cfg(unix)]
+    let bytes = {
+        use std::os::unix::ffi::OsStrExt;
+        path.as_os_str().as_bytes().to_vec()
+    };
+    #[cfg(windows)]
+    let bytes = {
+        use std::os::windows::ffi::OsStrExt;
+        path.as_os_str()
+            .encode_wide()
+            .flat_map(u16::to_le_bytes)
+            .collect::<Vec<_>>()
+    };
+    #[cfg(not(any(unix, windows)))]
+    let bytes = path.to_string_lossy().as_bytes().to_vec();
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
+    hasher.update([0]);
+}
+
 #[derive(Debug, Clone)]
 pub struct IndexStats {
     pub files: usize,
@@ -1828,6 +1961,25 @@ mod tests {
 
     /// Build an index from in-memory sources written to a temp workspace.
     use crate::testing::indexed as index_of;
+
+    #[cfg(all(feature = "cli", unix))]
+    #[test]
+    fn cache_path_identity_preserves_non_utf8_bytes() {
+        use sha2::Digest;
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let left = PathBuf::from(OsString::from_vec(vec![b'a', 0x80]));
+        let right = PathBuf::from(OsString::from_vec(vec![b'a', 0x81]));
+        assert_eq!(left.to_string_lossy(), right.to_string_lossy());
+
+        let identity = |path: &Path| {
+            let mut digest = sha2::Sha256::new();
+            update_path_identity(&mut digest, path);
+            digest.finalize().to_vec()
+        };
+        assert_ne!(identity(&left), identity(&right));
+    }
 
     #[test]
     fn resolves_a_local_call_exactly() {

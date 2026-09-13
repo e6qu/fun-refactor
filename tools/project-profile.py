@@ -24,7 +24,7 @@ PHASES = {"root", "scan", "cache_open", "index", "project", "query", "verify", "
 def profile(binary, root, cache, args, disabled):
     env = os.environ.copy()
     env["FUN_REFACTOR_CACHE"] = str(cache)
-    argv = [str(binary), "-C", str(root)] + (["--no-cache"] if disabled else []) + args[1:]
+    argv = [str(binary), "-C", str(root)] + (["--no-cache"] if disabled else []) + args
     started = time.perf_counter_ns()
     process = subprocess.run(argv, cwd=root, env=env, capture_output=True, timeout=180)
     seconds = (time.perf_counter_ns() - started) / 1_000_000_000
