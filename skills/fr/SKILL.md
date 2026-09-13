@@ -13,9 +13,10 @@ fr project map --depth 2 --limit 12
 Pass full `find` handles to `project select`. Read `coverage`, omissions, pages and selection
 statuses. Missing or clipped rows do not prove absence. Retain full bases; stale identities refuse.
 
-For multi-view work, read [Task](references/task.md).
-For behavior-based discovery, read [Explore](references/explore.md) first.
-
-Load only the needed route: [Semantic](references/semantic.md), [Semantic intent](references/semantic-intent.md), [Semantic change](references/semantic-change.md), [Explore](references/explore.md), [Author](references/author.md), [Change](references/change.md), [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md), [Git](references/git.md), or [Lean](references/lean.md).
+Load only the needed route: [Task](references/task.md), [Explore](references/explore.md),
+[Disclosure](references/disclosure.md), [Semantic](references/semantic.md), [Semantic intent](references/semantic-intent.md),
+[Semantic change](references/semantic-change.md), [Author](references/author.md), [Change](references/change.md),
+[Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md),
+[Git](references/git.md), or [Lean](references/lean.md).
 
 Authoring uses revision-bound handles; refactors use names or positions. Mutations preview by default. Prefer saved transactions for coordinated changes, then apply them. Preserve refusals, gaps, and uncertainty as evidence limits.

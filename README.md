@@ -52,6 +52,10 @@ The portable skill starts targeted edits with authoring guidance and loads explo
 report budgets. Profiled batches reuse one project snapshot across its referenced discovery stages.
 The [bounded discovery evaluation](docs/agent-discovery-evaluation.md) records coalesced cold
 queries, exact continuations, formal boundaries and generic fixture evidence.
+`project disclose` returns a Merkle-committed semantic skeleton and reveals only selected IR levels
+or explicitly requested source under a conservative per-response token bound. The
+[progressive disclosure protocol](docs/progressive-disclosure.md) specifies its commitments,
+continuations, verification boundary and retained independent-oracle evidence.
 `project select NAME...` retrieves several exact declarations through one revision and shared budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.

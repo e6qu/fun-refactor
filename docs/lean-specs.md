@@ -144,6 +144,16 @@ The model does not establish filesystem containment or package-manager workspace
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
 
+`FrKernels.Disclosure` models progressive-response admission, reveal extents and completed frontier
+replacement. It proves that accepted responses stay below the requested token upper bound and the
+fixed 4,096/16,384 profile ceiling. Unknown profiles and reveal kinds refuse. Admitted offsets
+remain within their committed extent. One completed reveal removes one hole before adding its
+composite children. The executable comparison covers 1,521 Rust/Lean boundary cases, including
+`u64::MAX` overflow boundaries.
+These arithmetic laws do not prove SHA-256 collision resistance, JSON canonicalization, tokenizer
+behavior, semantic-reader correctness or general Rust/model correspondence. CLI and independent
+Python-oracle tests cover those implementation boundaries on selected cases.
+
 The same project kernel anchors seventeen framework policy helpers used after syntax recognition.
 Thirty-nine theorems cover caps, middleware ranks, hook rejection, prefixes, migration, registration, body handling, cutover and dependency edits.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.
