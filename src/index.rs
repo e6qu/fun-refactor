@@ -106,6 +106,7 @@ pub fn resolution_snapshot_admitted(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IndexingPhase {
     Facts,
+    ResolutionWait,
     Resolution,
 }
 
@@ -113,6 +114,7 @@ impl IndexingPhase {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Facts => "facts",
+            Self::ResolutionWait => "resolution-wait",
             Self::Resolution => "resolution",
         }
     }
@@ -299,13 +301,26 @@ impl Index {
 
         // Resolution is a pure function of the merged facts and costs most of a warm command.
         let workspace_key = cache.and_then(|_| index.resolution_cache_key("resolved-v2"));
-        let cached = workspace_key.as_ref().and_then(|key| {
-            cache?.get_resolutions(key).filter(|entries| {
-                resolution_snapshot_admitted(index.references.len(), index.symbols.len(), entries)
-            })
+        let wait_progress = |done, total| {
+            if let Some(report) = progress {
+                report(IndexingPhase::ResolutionWait, done, total);
+            }
+        };
+        let resolution_access = workspace_key.as_ref().and_then(|key| {
+            Some(cache?.acquire_resolutions(
+                key,
+                |entries| {
+                    resolution_snapshot_admitted(
+                        index.references.len(),
+                        index.symbols.len(),
+                        entries,
+                    )
+                },
+                Some(&wait_progress),
+            ))
         });
-        match cached {
-            Some(resolutions) => {
+        match resolution_access {
+            Some(crate::cache::ResolutionAccess::Ready(resolutions)) => {
                 index.rebuild_name_buckets();
                 for (reference, (target, confidence)) in
                     index.references.iter_mut().zip(resolutions)
@@ -314,7 +329,7 @@ impl Index {
                     reference.confidence = confidence;
                 }
             }
-            None => {
+            Some(crate::cache::ResolutionAccess::Owner(_lease)) => {
                 index.resolve_with_progress(progress);
                 if let (Some(cache), Some(key)) = (cache, workspace_key.as_ref()) {
                     let snapshot: Vec<(Option<SymbolId>, Confidence)> = index
@@ -322,8 +337,20 @@ impl Index {
                         .iter()
                         .map(|r| (r.target, r.confidence))
                         .collect();
-                    cache.put_resolutions(key, &snapshot);
+                    if crate::cache::resolution_snapshot_publishable(
+                        true,
+                        resolution_snapshot_admitted(
+                            index.references.len(),
+                            index.symbols.len(),
+                            &snapshot,
+                        ),
+                    ) {
+                        cache.put_resolutions(key, &snapshot);
+                    }
                 }
+            }
+            Some(crate::cache::ResolutionAccess::TimedOut) | None => {
+                index.resolve_with_progress(progress);
             }
         }
         Ok(index)

@@ -6018,9 +6018,16 @@ fn build_index_from_scan(
         let stats = cache.stats();
         let (hits, misses) = (stats.hits, stats.misses);
         let (resolution_hits, resolution_misses) = (stats.resolution_hits, stats.resolution_misses);
+        let (resolution_owners, resolution_waits, resolution_timeouts) = (
+            stats.resolution_owners,
+            stats.resolution_waits,
+            stats.resolution_timeouts,
+        );
         tracing::debug!(
             "cache: {hits} fact hit(s), {misses} fact miss(es), \
-             {resolution_hits} resolution hit(s), {resolution_misses} resolution miss(es)"
+             {resolution_hits} resolution hit(s), {resolution_misses} resolution miss(es), \
+             {resolution_owners} resolution owner(s), {resolution_waits} wait(s), \
+             {resolution_timeouts} timeout(s)"
         );
     }
     warn_partial_index(cli, &index);
