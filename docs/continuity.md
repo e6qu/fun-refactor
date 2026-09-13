@@ -1326,4 +1326,5 @@ source pages and exact reconstruction. The deterministic evaluator is retained a
 `tests/agent-eval/progressive-disclosure.json`; no live Codex trial is claimed for this milestone.
 
 The complete native, WASM, strict Lean, capability, portable-skill, evaluator and prose gate passes.
-Three reviewable commits are pushed. PR 284 CI remains the final milestone checkpoint.
+PR 284 CI also passes its default, WASM, playground and title jobs. The milestone is ready for
+review.

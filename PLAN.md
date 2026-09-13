@@ -922,8 +922,8 @@ Planned checkpoints:
    add shared Rust/Lean boundary execution.
 5. **Complete.** Adversarial CLI coverage, independent-oracle evaluation, portable skill, protocol,
    roadmap, continuity and defect records are current.
-6. **In progress.** The complete repository gate passes and reviewable commits are in PR 284. Monitor
-   its CI before completing the checkpoint.
+6. **Complete.** The complete local repository gate and every PR 284 CI job pass on the reviewable
+   implementation, verification, evaluator, skill and documentation commits.
 
 ## Formal verification policy
 
