@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.19.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.18.0...fun-refactor-v0.19.0) (2026-09-13)
+
+
+### Features
+
+* **agent:** add reviewed semantic edit plans ([#281](https://github.com/e6qu/fun-refactor/issues/281)) ([7e4981c](https://github.com/e6qu/fun-refactor/commit/7e4981cd5658f47033ef8af5d1e5fb42ae0dd967))
+* **agent:** add reviewed semantic intent operations ([#280](https://github.com/e6qu/fun-refactor/issues/280)) ([bd6ffb9](https://github.com/e6qu/fun-refactor/commit/bd6ffb9b4c55353c6ce3e75c0850670c8432dbb3))
+* **agent:** author checked semantic deltas ([#278](https://github.com/e6qu/fun-refactor/issues/278)) ([63d25df](https://github.com/e6qu/fun-refactor/commit/63d25df1f6b07d721ea8e4aac4eb55fa434b7755))
+* **project:** add Merkle-committed progressive disclosure ([#284](https://github.com/e6qu/fun-refactor/issues/284)) ([0f5e726](https://github.com/e6qu/fun-refactor/commit/0f5e726230174525dc00cb4e7b85808b0abfbfa1))
+* **project:** bound agent discovery and coalesce queries ([#283](https://github.com/e6qu/fun-refactor/issues/283)) ([4a2584f](https://github.com/e6qu/fun-refactor/commit/4a2584f1e420142daf33dd1da5a5591c6769d8fa))
+
+
+### Performance
+
+* **project:** reuse stable workspace identity ([#282](https://github.com/e6qu/fun-refactor/issues/282)) ([f371abc](https://github.com/e6qu/fun-refactor/commit/f371abc49a1e52f263502f5aca99cbc6f097d177))
+
 ## [0.18.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.17.0...fun-refactor-v0.18.0) (2026-09-12)
 
 
