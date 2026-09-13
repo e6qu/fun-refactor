@@ -184,7 +184,7 @@ The first packaged roadmap is complete. Nineteen merged pull requests establishe
 | [PR 17](https://github.com/e6qu/fun-refactor/pull/280) | Reviewed Semantic Intent Operations | Merged |
 | [PR 18](https://github.com/e6qu/fun-refactor/pull/281) | Reviewed Semantic Edit Plans | Merged |
 | [PR 19](https://github.com/e6qu/fun-refactor/pull/282) | Incremental Project Identity and Agent Query Latency | Merged |
-| PR 20 | Bounded Agent Discovery and Concurrent Query Coalescing | In progress |
+| [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | In review |
 
 The second package now applies the public semantic representation through checked, source-free
 operations. PR 18 removes the remaining path-discovery and payload-construction round trips for
@@ -799,7 +799,7 @@ Planned checkpoints:
 
 ### PR 20. Bounded Agent Discovery and Concurrent Query Coalescing
 
-Status: ready for review.
+Status: in review.
 
 Goal: make the efficient project-query route hard for an agent to accidentally bypass. Bound every
 discovery response, reuse one warmed project view across a task, and coalesce concurrent cold work
