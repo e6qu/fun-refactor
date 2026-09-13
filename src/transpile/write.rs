@@ -8831,7 +8831,10 @@ fn ts_type(ty: &Type) -> String {
         Type::List(inner) => format!("{}[]", ts_type(inner)),
         Type::Set(inner) => format!("Set<{}>", ts_type(inner)),
         Type::Map(k, v) => format!("Record<{}, {}>", ts_type(k), ts_type(v)),
-        Type::Optional(inner) => format!("{} | null", ts_type(inner)),
+        Type::Optional(inner) => match inner.as_ref() {
+            Type::Fn { .. } => format!("({}) | null", ts_type(inner)),
+            _ => format!("{} | null", ts_type(inner)),
+        },
         Type::Fn { params, returns } => {
             let named = params
                 .iter()

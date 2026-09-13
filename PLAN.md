@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 703 |
+| Defects fixed | 704 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -994,6 +994,8 @@ Planned checkpoints:
    playground, strict Lean, capability, Python and documentation gate passes locally.
 7. **Complete.** Rebase onto release 0.19.0 and make retained context evidence stable across
    first party version-only lockfile changes while preserving third party dependency identities.
+8. **Complete.** Repair optional callback precedence and qualified callback parameters found by
+   the post-release deep audit. A default regression and the complete repository round trip pass.
 
 ## Formal verification policy
 

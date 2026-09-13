@@ -1374,3 +1374,9 @@ and a basis-bound write whose Rust result compiles. The largest skill route is 7
 hashing a canonical dependency lock basis. First party version-only changes no longer invalidate
 the reports; registry versions, sources and checksums remain bound. No live-agent savings claim is
 made for this deterministic milestone.
+
+The post-release deep audit exposed B858 while this PR was open. Rust qualified callback parameters
+lost their path at a colon, and TypeScript optional callbacks crossed back as callbacks with optional
+results. TypeScript now groups the callback inside its nullable union. Both readers preserve the
+grouping and the Rust reader no longer treats path separators as parameter labels. The focused
+default regression and the formerly failing complete repository round trip pass.

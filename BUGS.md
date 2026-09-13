@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B858: **an optional callback changed into a callback with an optional result.**
+
+  The TypeScript writer omitted parentheses around an optional function type. Its reader also
+  treated Rust path separators as callable parameter labels. The writer now groups optional
+  callbacks, and the readers preserve both callback precedence and qualified Rust parameter types.
+  A default regression and the complete repository round trip cover both directions.
+
 - [x] B857: **a release-only workspace version bump invalidated retained evaluation evidence.**
 
   Four context audits hashed `Cargo.lock` bytes, so the release automation changed their basis even

@@ -1628,7 +1628,11 @@ mod rust {
             .find_map(|word| bare.strip_prefix(word))
             .filter(|rest| rest.trim_start().starts_with('('))?;
         let (inside, rest) = super::parenthesised(after.trim_start())?;
-        let params = super::parameter_types(&inside, ty_text);
+        let params = super::comma_parts(&inside)
+            .iter()
+            .filter(|p| !p.is_empty())
+            .map(|p| ty_text(p))
+            .collect();
         // `Fn(A)` with nothing after it returns nothing.
         let returns = match rest.trim().strip_prefix("->") {
             Some(answer) => ty_text(answer),
@@ -10868,8 +10872,11 @@ mod typescript {
         if let Some(t) = super::scalar(trimmed) {
             return t;
         }
-        // `(n: number) => number`, TypeScript's function type.
+        // Parentheses distinguish an optional callback from a callback with an optional result.
         if let Some((inside, rest)) = super::parenthesised(trimmed) {
+            if rest.is_empty() {
+                return ty_text(&inside);
+            }
             if let Some(answer) = rest.strip_prefix("=>") {
                 return Type::Fn {
                     params: super::parameter_types(&inside, ty_text),
@@ -12419,6 +12426,7 @@ fn parenthesised(text: &str) -> Option<(String, String)> {
     for (at, c) in text.char_indices() {
         match c {
             '(' | '[' | '<' | '{' => depth += 1,
+            '>' if at > 0 && matches!(text.as_bytes()[at - 1], b'=' | b'-') => {}
             ')' | ']' | '>' | '}' => {
                 depth -= 1;
                 if depth == 0 {

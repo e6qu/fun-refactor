@@ -57,6 +57,40 @@ fn a_signature_survives_the_crossing() {
 }
 
 #[test]
+fn qualified_and_optional_callback_types_survive_typescript() {
+    let source = "\
+pub fn install(
+    admitted: impl Fn(&[(Option<crate::model::SymbolId>, crate::model::Confidence)]) -> bool,
+    progress: Option<&dyn Fn(usize, usize)>,
+) {}
+";
+    let (typescript, fidelity) = translate(&[("a.rs", source)], "a.rs", Language::TypeScript);
+    assert_eq!(fidelity.signatures_complete, 1, "got:\n{typescript}");
+    assert!(
+        typescript.contains(
+            "admitted: (a0: [crate.model.SymbolId | null, crate.model.Confidence][]) => boolean"
+        ),
+        "qualified paths must remain callback parameter types:\n{typescript}"
+    );
+    assert!(
+        typescript.contains("progress: ((a0: number, a1: number) => void) | null"),
+        "the union must contain the callback rather than its result:\n{typescript}"
+    );
+
+    let (rust, _) = translate(&[("a.ts", typescript.as_str())], "a.ts", Language::Rust);
+    assert!(
+        rust.contains(
+            "admitted: impl Fn(Vec<(Option<crate::model::SymbolId>, crate::model::Confidence)>) -> bool"
+        ),
+        "got:\n{rust}"
+    );
+    assert!(
+        rust.contains("progress: Option<impl Fn(f64, f64) -> ()>"),
+        "got:\n{rust}"
+    );
+}
+
+#[test]
 fn a_record_is_written_the_way_the_target_writes_records() {
     // Idiom, not transliteration: a dataclass in Python, a struct in Go, an interface in
     // TypeScript, each being that language's named product.
