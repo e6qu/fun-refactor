@@ -40,6 +40,8 @@ accepts one statement at its bound `before` or `append` position, including an e
 `delete-statement` accepts no value. The existing semantic-change validator remains the execution
 authority for node categories, source freedom, pointer and index bounds, result size and strict IR
 shape. `semantic_shortcuts[].editable_ir` lets an agent skip irrelevant subtrees.
+Structural descriptors are returned only with the explicit expanded profile; compact responses
+retain their counts without letting the larger descriptor arrays crowd out scalar inspection.
 
 Capabilities are available for bodies that the Rust, Go, Java, TypeScript or TSX writer can render.
 An unsupported reader or writer emits no capability. Preview is read-only. Review the complete diff

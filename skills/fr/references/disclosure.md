@@ -28,12 +28,14 @@ Preview and inspect the complete diff before the bound write. A large scalar app
 unknown, malformed and no-op capabilities refuse before mutation. The same request is
 `{"edit":"frde1:...","to":"..."}` under a batch/task `disclosed` field.
 
-An `ir_edits` entry selects one structural operation without exposing its hidden path or index.
+Use `--profile expanded --token-limit 16384` before following `editable_ir`; compact reveals omit
+structural descriptors so scalar inspection stays within its smaller envelope. An `ir_edits` entry
+selects one structural operation without exposing its hidden path or index.
 Use `accepts` to construct the smallest typed node with the Python SDK or the category named by its
 `schema_action`, write that node as one JSON value, and run `preview_template.arguments` exactly:
 
 ```sh
-fr author edit-body-disclosed-ir <HANDLE> --edit <EDIT_ID> --from node.json
+fr author edit-body-disclosed-ir <HANDLE> --edit <IR_EDIT_ID> --from ../node.json
 fr author edit-body-disclosed-ir <HANDLE> --edit <DELETE_EDIT_ID>
 ```
 

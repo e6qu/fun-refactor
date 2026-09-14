@@ -28,7 +28,9 @@ Authorable typed nodes and statement-list positions carry `fr-disclosed-ir-edit-
 `ir_edits`. A descriptor exposes the operation, placement, accepted category, current commitment,
 schema action and exact preview template. It withholds the internal path and index because the
 opaque capability already commits to both. Replacement and insertion accept one typed IR node;
-deletion omits it. See [disclosure-bound semantic editing](disclosed-editing.md#structural-capabilities).
+deletion omits it. Compact reveals omit these larger descriptors while retaining `editable_ir`
+counts; request the expanded profile before following a structural shortcut. See
+[disclosure-bound semantic editing](disclosed-editing.md#structural-capabilities).
 
 The complete response is bounded by `--token-limit`. `used_upper_bound` counts the compact JSON's
 UTF-8 bytes plus the trailing newline printed by `fr`. For byte-fallback tokenizers, token count

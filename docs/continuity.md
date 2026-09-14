@@ -222,8 +222,8 @@ with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
-selection identity matches. Calls fall from four to one. Median counted context falls from 1,746 to
-1,514 tokens (13.3%), and bytes fall from 6,407 to 4,758 (25.7%). The 446-byte task manifest is
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,802 to
+1,514 tokens (16.0%), and bytes fall from 6,662 to 4,758 (28.6%). The 446-byte task manifest is
 counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
@@ -319,10 +319,10 @@ first response's `context_basis`; the batch includes its 794-byte manifest in co
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
 Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
 the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
-is 0.413 versus 0.052 seconds with the fact cache disabled. It is 0.050 versus 0.008 seconds after
+is 1.803 versus 0.231 seconds with the fact cache disabled. It is 0.183 versus 0.029 seconds after
 each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
-representatives. Byte counts and report identities retain the real values. The release binary digest is
-`3f68f6e2425ca1bcf523095a2793401313f84b43eca6a51ac22d7e2f380afd5d`.
+representatives. Byte counts and report identities retain the real values. The measured binary digest is
+`ebe3f9230a9ed880b15095a004ab37326a0608f94ef9ee0c058a9d37ed71580a`.
 The audit recomputes every measurement-source digest, paired report identity and summary statistic.
 OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.
 
@@ -361,7 +361,7 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step. It reduces
-42 calls to 29 and measured context from 15,458 to 13,380 tokens. This 2,078-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,414 tokens. This 2,044-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed

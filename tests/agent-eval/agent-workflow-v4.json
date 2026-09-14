@@ -3,7 +3,7 @@
   "passed": true,
   "binary": {
     "path": "target/debug/fr",
-    "sha256": "bb05cbda11486669995029da1aa2f895bdcb8d0971503b0fa1ec8a94fa3ac532"
+    "sha256": "ebe3f9230a9ed880b15095a004ab37326a0608f94ef9ee0c058a9d37ed71580a"
   },
   "frozen_trace": {
     "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
@@ -29,21 +29,21 @@
   "prescribed": {
     "calls": 29,
     "prompt_bytes": 7472,
-    "visible_output_bytes": 35577,
+    "visible_output_bytes": 35698,
     "tool_request_bytes": 4626,
     "prompt_tokens": 1564,
-    "visible_output_tokens": 11816,
-    "context_tokens": 13380,
+    "visible_output_tokens": 11850,
+    "context_tokens": 13414,
     "tool_request_tokens": 1640
   },
   "difference": {
     "calls": -13,
     "prompt_bytes": 1193,
-    "visible_output_bytes": -7394,
+    "visible_output_bytes": -7273,
     "tool_request_bytes": -1854,
     "prompt_tokens": 240,
-    "visible_output_tokens": -2318,
-    "context_tokens": -2078,
+    "visible_output_tokens": -2284,
+    "context_tokens": -2044,
     "tool_request_tokens": -642
   },
   "removed_calls": [
@@ -108,7 +108,7 @@
   "measurement_files": {
     "tools/agent-workflow-v4.py": "b5a247873352a94ddc1560a0189a8eae1cd647b006b8f5b6f357c09b8a4039cf",
     "skills/fr/SKILL.md": "1e0cbac5d6dc95514febda68219672ce42648ac5344bb797db6d735041846560",
-    "skills/fr/references/author.md": "77cf9f1f6c1bc8bdb35664047dcffe5813a8a78920cbe5b0a1ca1dfc2e4f7f21",
+    "skills/fr/references/author.md": "9bed324d220b5e766086c951431dd63aa752f462e97e7c55564862a01c4798a0",
     "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f"
   },
   "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with semantically validated live output from this binary. Opaque live revision and context identities use fixed high-entropy representatives of the same byte lengths so token counts reproduce across runs. It uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path."

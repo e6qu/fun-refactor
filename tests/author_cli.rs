@@ -1229,6 +1229,92 @@ fn disclosed_ir_capabilities_refuse_bad_shapes_types_noops_and_stale_source() {
 }
 
 #[test]
+fn disclosed_ir_replacement_crosses_every_supported_body_language() {
+    for (file, source) in [
+        ("app.rs", "fn calc() -> i32 { 1 }\n"),
+        ("app.go", "package sample\nfunc calc() int { return 1 }\n"),
+        (
+            "App.java",
+            "final class App { static int calc() { return 1; } }\n",
+        ),
+        ("app.ts", "function calc(): number { return 1; }\n"),
+        ("app.tsx", "export function calc(): number { return 1; }\n"),
+    ] {
+        let (_temp, root, _input) = fixture_file(file, source, b"");
+        let (handle, edits) = disclosed_ir_edits(&root, "calc");
+        let edit = edits
+            .iter()
+            .find(|edit| edit["operation"] == "replace" && edit["accepts"] == "expression")
+            .unwrap_or_else(|| panic!("{file}: {edits:?}"));
+        let node = root.parent().unwrap().join("node.json");
+        fs::write(&node, r#"{"kind":"int","value":"7"}"#).unwrap();
+        let arguments = [
+            "author",
+            "edit-body-disclosed-ir",
+            &handle,
+            "--edit",
+            edit["id"].as_str().unwrap(),
+            "--from",
+            "../node.json",
+            "--write",
+        ];
+        let written = ok(&root, &arguments);
+        let changed = fs::read_to_string(root.join(file)).unwrap();
+        assert_ne!(changed, source, "{file}");
+        assert!(changed.contains('7'), "{file}: {changed}");
+        let transaction = written["transaction"].as_u64().unwrap().to_string();
+        ok(&root, &["history", "undo", &transaction, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+    }
+}
+
+#[test]
+fn disclosed_ir_descriptors_and_receipts_commit_large_nodes() {
+    let old = "o".repeat(256);
+    let source = format!("fn payload() -> String {{ \"{old}\".to_string() }}\n");
+    let (_temp, root, _input) = fixture_file("app.rs", &source, b"");
+    let (handle, edits) = disclosed_ir_edits(&root, "payload");
+    let edit = edits
+        .iter()
+        .find(|edit| edit["operation"] == "replace" && edit["accepts"] == "expression")
+        .unwrap();
+    assert!(edit.get("current_commitment").is_some());
+    assert!(!serde_json::to_string(edit).unwrap().contains(&old));
+
+    let replacement = "n".repeat(256);
+    let node = root.parent().unwrap().join("large-node.json");
+    fs::write(
+        &node,
+        serde_json::to_vec(&serde_json::json!({"kind":"str","value":replacement})).unwrap(),
+    )
+    .unwrap();
+    let preview = ok(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed-ir",
+            &handle,
+            "--edit",
+            edit["id"].as_str().unwrap(),
+            "--from",
+            "../large-node.json",
+        ],
+    );
+    let receipt = &preview["disclosed_ir_edit"];
+    assert_eq!(receipt["value_included"], false);
+    assert!(receipt.get("value").is_none());
+    assert!(
+        receipt["value_commitment"]["serialized_bytes"]
+            .as_u64()
+            .unwrap()
+            > 128
+    );
+    assert!(!serde_json::to_string(receipt)
+        .unwrap()
+        .contains(&replacement));
+}
+
+#[test]
 fn disclosed_scalar_capabilities_refuse_stale_tampered_unchanged_and_unsupported_edits() {
     let source = "fn calc(value: i32) -> i32 { value + 1 }\n";
     let (_temp, root, _input) = fixture_file("app.rs", source, b"");

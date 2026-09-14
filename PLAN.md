@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 706 |
+| Defects fixed | 707 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -72,8 +72,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,380 context tokens. This is 2,078 below the observed `fr` arm
-and 1,780 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+reduces that trace to 29 calls and 13,414 context tokens. This is 2,044 below the observed `fr` arm
+and 1,814 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
 fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -96,8 +96,8 @@ The PR 9 controlled broad-query fixture compares eight separate project calls, a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
 the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
 calls fall from eight to one. The current local rerun records median subprocess time falling from
-0.413 to 0.052 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
-0.050 to 0.008 seconds. Token counts use
+1.803 to 0.231 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
+0.183 to 0.029 seconds. Token counts use
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
@@ -110,8 +110,8 @@ in all three repetitions. This fixed sequence supports an adoption trial and mak
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
 revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
-median counted context falls from 1,746 to 1,514 tokens, a 13.3% reduction. Serialized context falls
-from 6,407 to 4,758 bytes, a 25.7% reduction. Calls fall from four to one. Both arms stop before
+median counted context falls from 1,802 to 1,514 tokens, a 16.0% reduction. Serialized context falls
+from 6,662 to 4,758 bytes, a 28.6% reduction. Calls fall from four to one. Both arms stop before
 fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
@@ -227,7 +227,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,075 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,265-token or 62.6% `fr` premium.
+- The current checksum-bound projection uses 11,109 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,299-token or 63.1% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.

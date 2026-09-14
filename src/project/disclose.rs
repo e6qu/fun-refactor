@@ -342,7 +342,10 @@ fn edit_descriptor(view: &View, pointer: &str) -> Result<Option<Value>> {
     Ok(Some(descriptor))
 }
 
-fn ir_edit_descriptors(view: &View, pointer: &str) -> Result<Vec<Value>> {
+fn ir_edit_descriptors(view: &View, profile: AgentProfile, pointer: &str) -> Result<Vec<Value>> {
+    if profile == AgentProfile::Compact {
+        return Ok(Vec::new());
+    }
     view.ir_edits
         .iter()
         .filter(|edit| edit.pointer == pointer)
@@ -740,7 +743,7 @@ impl Project<'_> {
                 ]);
                 let mut shortcuts = semantic_shortcuts(&view, options)?;
                 report["semantic_shortcuts"] = json!(shortcuts);
-                report["instructions"] = json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary.");
+                report["instructions"] = json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Structural IR descriptors require the expanded profile. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary.");
                 report["shortcut_budget"] = json!({
                     "limit": options.profile.row_limit(),
                     "returned": shortcuts.len(),
@@ -944,7 +947,7 @@ impl Project<'_> {
                     row["edit"] = edit;
                 }
             }
-            let child_ir_edits = ir_edit_descriptors(view, &child_pointer)?;
+            let child_ir_edits = ir_edit_descriptors(view, options.profile, &child_pointer)?;
             if !child_ir_edits.is_empty() {
                 row["ir_edits"] = json!(child_ir_edits);
             }
@@ -962,7 +965,7 @@ impl Project<'_> {
                 "children": rows,
                 "page": {"total": children.len(), "before": start, "returned": end - start, "remaining": children.len() - end, "next": next}
             });
-            let node_ir_edits = ir_edit_descriptors(view, pointer)?;
+            let node_ir_edits = ir_edit_descriptors(view, options.profile, pointer)?;
             if !node_ir_edits.is_empty() {
                 report["revealed"]["ir_edits"] = json!(node_ir_edits);
             }
@@ -1004,7 +1007,7 @@ impl Project<'_> {
             report["status"] = json!("revealed");
             report["revealed"] = json!({"id": wanted, "domain": "semantic-ir", "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(node)?, "children": [], "page": {"total": 0, "before": 0, "returned": 0, "remaining": 0, "next": null}});
             report["supersedes"] = json!(wanted);
-            let node_ir_edits = ir_edit_descriptors(view, pointer)?;
+            let node_ir_edits = ir_edit_descriptors(view, options.profile, pointer)?;
             if !node_ir_edits.is_empty() {
                 report["revealed"]["ir_edits"] = json!(node_ir_edits);
             }
