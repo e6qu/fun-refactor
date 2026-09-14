@@ -9226,6 +9226,8 @@ fn style_model_links_css_and_tailwind_literals_and_marks_dynamic_classes() {
         .iter()
         .find(|row| row["kind"] == "css-class-definition" && row["class"]["name"] == "card")
         .unwrap();
+    assert_eq!(card["edit"]["schema"], "fr-surface-edit-1");
+    assert_eq!(card["edit"]["operation"], "rename-css-class");
     let use_card = items
         .iter()
         .find(|row| row["kind"] == "class-use" && row["class_use"]["name"] == "card")
@@ -9245,6 +9247,7 @@ fn style_model_links_css_and_tailwind_literals_and_marks_dynamic_classes() {
             row["evidence"]["basis"],
             "tailwind-literal-utility-candidate"
         );
+        assert_eq!(row["edit"]["operation"], "replace-class-token");
     }
     assert!(items.iter().any(|row| {
         row["kind"] == "style-gap" && row["evidence"]["basis"] == "dynamic-class-attribute"
@@ -9292,6 +9295,7 @@ fn diagram_model_nests_mermaid_graphs_under_markdown_headings() {
         .iter()
         .find(|row| row["kind"] == "markdown-heading" && row["heading"]["title"] == "Details")
         .unwrap();
+    assert_eq!(details["edit"]["operation"], "rename-markdown-heading");
     let diagrams = items
         .iter()
         .filter(|row| row["kind"] == "mermaid-diagram")
@@ -9314,6 +9318,11 @@ fn diagram_model_nests_mermaid_graphs_under_markdown_headings() {
     assert_eq!(edge["edge"]["to"], "B");
     assert!(edge["edge"]["from_id"].as_str().is_some());
     assert!(edge["edge"]["to_id"].as_str().is_some());
+    let node = items
+        .iter()
+        .find(|row| row["kind"] == "mermaid-node" && row["node"]["name"] == "A")
+        .unwrap();
+    assert_eq!(node["edit"]["operation"], "rename-mermaid-node");
     assert!(items
         .iter()
         .all(|row| row["source"]["handle"].as_str().is_some()));

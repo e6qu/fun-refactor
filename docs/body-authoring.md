@@ -1,7 +1,7 @@
 # Bounded function authoring
 
 `fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
-It supports Rust, Go, Java, Python, TypeScript and TSX.
+It supports Rust, Go, Java, Python, JavaScript, TypeScript and TSX.
 It retains the signature, outer attributes, documentation and every byte outside that block.
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 

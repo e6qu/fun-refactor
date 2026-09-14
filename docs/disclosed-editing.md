@@ -43,7 +43,7 @@ shape. `semantic_shortcuts[].editable_ir` lets an agent skip irrelevant subtrees
 Structural descriptors are returned only with the explicit expanded profile; compact responses
 retain their counts without letting the larger descriptor arrays crowd out scalar inspection.
 
-Capabilities are available for bodies that the Rust, Go, Java, Python, TypeScript or TSX writer can render.
+Capabilities are available for bodies that the Rust, Go, Java, Python, JavaScript, TypeScript or TSX writer can render.
 An unsupported reader or writer emits no capability. Preview is read-only. Review the complete diff
 and receipt, then use the normal `--write --plan-basis '<PLAN_CONTEXT_BASIS>'` transition. The
 resulting transaction supports checked apply, undo, redo and forward or reverse Git patch export.

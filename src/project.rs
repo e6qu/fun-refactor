@@ -57,6 +57,8 @@ pub mod task_change;
 mod technologies;
 pub use technologies::{technology_evidence_emitted, technology_evidence_omitted};
 mod styles;
+mod surface_edit;
+pub use surface_edit::surface_value_size_allowed;
 mod tests;
 pub use task::task_author_target_candidate;
 

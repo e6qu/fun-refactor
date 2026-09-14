@@ -1372,6 +1372,63 @@ fn semantic_body_admission_matches_lean_exhaustively() {
 }
 
 #[test]
+fn surface_edit_admission_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("surface-edit-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let counts = [0, 1, 2, 63, 64, 65, 128, 512, 65536];
+    for reference_format in [false, true] {
+        for candidate_count in counts {
+            for current_matches in [false, true] {
+                for value_valid in [false, true] {
+                    for different in [false, true] {
+                        for collision_free in [false, true] {
+                            assert_eq!(
+                                actual.next(),
+                                Some(fun_refactor::project::author::surface_edit_admitted(
+                                    reference_format,
+                                    candidate_count,
+                                    current_matches,
+                                    value_valid,
+                                    different,
+                                    collision_free,
+                                ))
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+}
+
+#[test]
+fn surface_value_size_policy_matches_lean_at_boundaries() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("surface-value-sizes")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let samples = [0, 1, 2, 255, 256, 257, 65536];
+    assert_eq!(
+        actual.collect::<Vec<_>>(),
+        samples
+            .into_iter()
+            .map(fun_refactor::project::surface_value_size_allowed)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn semantic_change_admission_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

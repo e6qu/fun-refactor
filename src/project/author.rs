@@ -29,7 +29,7 @@ pub enum Command {
     #[command(about = "Plan one unique scalar semantic intent without scanning a project.")]
     PlanSemanticIntent(super::semantic_intent::PlanOptions),
     #[command(
-        about = "Replace one Rust, Go, Java, Python, TypeScript or TSX function body, retaining surrounding source."
+        about = "Replace one Rust, Go, Java, Python, JavaScript, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
     #[command(about = "Replace one supported function body from source-free semantic IR JSON.")]
@@ -44,6 +44,8 @@ pub enum Command {
     EditBodyDisclosed(EditBodyDisclosedOptions),
     #[command(about = "Apply one exact typed IR capability returned by project disclosure.")]
     EditBodyDisclosedIr(EditBodyDisclosedIrOptions),
+    #[command(about = "Apply one exact style, Markdown or Mermaid edit capability.")]
+    EditSurface(EditSurfaceOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -95,6 +97,11 @@ pub fn guide() -> Value {
                 "targets": "Rust file, module, impl or trait"},
             {"op": "organize-imports", "requires": ["handle"],
                 "targets": "supported source file"}
+        ],
+        "direct_operations": [
+            {"op": "edit-surface", "requires": ["edit", "to"],
+                "input-schema": "fr-surface-edit-1",
+                "targets": "exact CSS class, host class token, Markdown heading or Mermaid node"}
         ],
         "manifest": {
             "revision": "optional; required when any handle is a short ID",
@@ -294,6 +301,25 @@ pub struct EditBodyDisclosedIrOptions {
 }
 
 #[derive(Args)]
+pub struct EditSurfaceOptions {
+    #[arg(help = "Opaque edit ID returned by project styles or diagrams.")]
+    pub edit: String,
+    #[arg(long, help = "Requested replacement name or token, at most 256 bytes.")]
+    pub to: String,
+    #[arg(
+        long,
+        default_value_t = 4096,
+        help = "Maximum UTF-8 diff bytes, from 0 through 65536."
+    )]
+    pub diff_bytes: usize,
+    #[arg(
+        long,
+        help = "Record and apply the edit after checking the source revision."
+    )]
+    pub write: bool,
+}
+
+#[derive(Args)]
 pub struct ValidateSemanticOptions {
     #[arg(
         long,
@@ -344,6 +370,22 @@ pub fn disclosed_ir_edit_admitted(
         && request_shape
         && value_matches
         && different
+}
+
+pub fn surface_edit_admitted(
+    reference_format: bool,
+    candidate_count: usize,
+    current_matches: bool,
+    value_valid: bool,
+    different: bool,
+    collision_free: bool,
+) -> bool {
+    reference_format
+        && candidate_count == 1
+        && current_matches
+        && value_valid
+        && different
+        && collision_free
 }
 
 impl Plan {
@@ -425,7 +467,7 @@ impl BodySyntax {
                 indented_suite: true,
             }),
             _ => anyhow::bail!(
-                "body replacement supports Rust, Go, Java, Python, TypeScript and TSX; select a supported function."
+                "body replacement supports Rust, Go, Java, Python, JavaScript, TypeScript and TSX; select a supported function."
             ),
         }
     }
@@ -702,6 +744,81 @@ fn function_fragment<'tree>(
 }
 
 impl Project<'_> {
+    pub fn edit_surface(&self, options: &EditSurfaceOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let reference_format = options.edit.len() == 38
+            && options.edit.starts_with("frse1:")
+            && options.edit[6..]
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte));
+        let candidates = super::surface_edit::candidates(self)?;
+        let matches = candidates
+            .iter()
+            .filter(|candidate| candidate.id == options.edit)
+            .collect::<Vec<_>>();
+        let candidate_count = matches.len();
+        let candidate = matches.first().copied();
+        let current_matches = candidate.is_some_and(|candidate| {
+            let source = &self.sources[&candidate.file];
+            candidate
+                .spans
+                .iter()
+                .all(|span| span.text(source) == candidate.value)
+        });
+        let value_valid = candidate
+            .is_some_and(|candidate| super::surface_edit::value_valid(candidate.kind, &options.to));
+        let different = candidate.is_some_and(|candidate| candidate.value != options.to);
+        let collision_free = candidate.is_some_and(|candidate| {
+            super::surface_edit::collision_free(candidate, &options.to, &candidates)
+        });
+        ensure!(
+            surface_edit_admitted(
+                reference_format,
+                candidate_count,
+                current_matches,
+                value_valid,
+                different,
+                collision_free,
+            ),
+            "surface edit is malformed, stale, unknown or ambiguous."
+        );
+        let candidate = candidate.unwrap();
+        let source = &self.sources[&candidate.file];
+        let mut previous_end = 0usize;
+        for span in &candidate.spans {
+            ensure!(
+                span.start >= previous_end && span.end <= source.len(),
+                "surface edit occurrences overlap or leave the captured source."
+            );
+            previous_end = span.end;
+        }
+        let mut edits = EditSet::new();
+        for span in &candidate.spans {
+            edits.add(
+                &candidate.file,
+                Edit::new(*span, &options.to, "Replace the selected surface token."),
+            );
+        }
+        let mut report = self.envelope("edit-surface");
+        report["schema"] = json!("fr-surface-author-1");
+        report["edit"] = json!(candidate.id);
+        report["operation"] = json!(candidate.kind.operation());
+        report["path"] = bounded_text(&candidate.path.to_string_lossy(), 512);
+        report["occurrences"] = json!(candidate.spans.len());
+        report["before"] =
+            json!({"bytes": candidate.value.len(), "sha256": digest(&candidate.value)});
+        report["after"] = json!({"bytes": options.to.len(), "sha256": digest(&options.to)});
+        report["changed"] = json!(true);
+        report["validation"] = json!("token-policy-and-reparse-strict");
+        report["preservation"] = json!("bytes outside the selected token occurrences");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan { edits, report })
+    }
+
     pub fn author_batch(&self, options: &BatchOptions) -> Result<Plan> {
         let manifest: BatchManifest =
             serde_json::from_str(&fragment(&self.root.join(&options.from))?)

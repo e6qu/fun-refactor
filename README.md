@@ -24,7 +24,7 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
 The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. The [v2](docs/agent-context-v2-evaluation.md), [v3](docs/agent-context-v3-evaluation.md), and [prescribed v4 workflow](docs/agent-workflow-v4-evaluation.md) evaluations report fixed-workflow reductions, exact change boundaries and the latest passing comparison.
 The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
-[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, Python, TypeScript and TSX implementation changes through project handles and source-history transactions.
+[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, Python, JavaScript, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Semantic project data](docs/semantic-model.md) lets agents inspect source-free typed IR and author
 supported bodies, checked deltas and role-based scalar intents through the same transactions.
 Reviewed semantic edit plans resolve one exact declaration and scalar below a workspace path.
@@ -376,6 +376,9 @@ It returns source-free, content-addressed evidence with bounded counts and follo
 candidates only with package evidence. `fr project diagrams` retains Markdown heading hierarchy
 and embedded Mermaid node/edge graphs. Both reports preserve source handles and explicit gaps; see
 the [cross-stack surface model](docs/cross-stack-surfaces.md).
+Editable rows return opaque revision-bound capabilities for exact CSS definitions, literal class
+tokens, Markdown headings and Mermaid nodes. `fr author edit-surface` previews and records those
+changes through the same undo, redo and Git patch history as function authoring.
 `fr project disclose HANDLE --view project` commits these reports and application facts as four
 independently revealable Merkle branches.
 Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.

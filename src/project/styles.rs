@@ -184,6 +184,7 @@ impl Project<'_> {
 
     pub(super) fn styles(&self, options: &RelationshipOptions) -> Result<Value> {
         let selected = self.relationship_selection(options)?;
+        let edit_candidates = super::surface_edit::candidates(self)?;
         let mut definitions = Vec::new();
         let mut host_attributes = Vec::new();
         let mut files = BTreeSet::new();
@@ -244,7 +245,7 @@ impl Project<'_> {
                 .entry(definition.name.clone())
                 .or_default()
                 .push(id.clone());
-            rows.push(json!({
+            let mut row = json!({
                 "kind": "css-class-definition", "id": id,
                 "parent": file_ids[&definition.path],
                 "source": self.file_source(&definition.path, definition.line),
@@ -252,7 +253,17 @@ impl Project<'_> {
                 "evidence": {"basis": "css-class-selector", "validation": ["captured-source", "bounded-selector-reader", "project-revision"]},
                 "gaps": ["The selector reader does not evaluate nesting, cascade, specificity or generated CSS."],
                 "class": {"name": bounded_text(&definition.name, 256)},
-            }));
+            });
+            if let Some(edit) = super::surface_edit::capability(
+                &edit_candidates,
+                super::surface_edit::Kind::CssClass,
+                &definition.path,
+                definition.line,
+                &definition.name,
+            ) {
+                row["edit"] = edit;
+            }
+            rows.push(row);
         }
         let mut literal_uses = 0usize;
         let mut literal_uses_omitted = 0usize;
@@ -278,7 +289,7 @@ impl Project<'_> {
                                 _ => ("unresolved", "unknown", "literal-class-use", json!(["No captured CSS definition or Tailwind package evidence resolves this literal class."])),
                             };
                             let detail = json!([path, line, name]);
-                            rows.push(json!({
+                            let mut row = json!({
                                 "kind": "class-use", "id": format!("frsu1:{}", &hash((&self.revision, &detail))?[..32]),
                                 "parent": file_ids[&path], "source": self.file_source(&path, line),
                                 "status": status, "confidence": confidence,
@@ -286,7 +297,17 @@ impl Project<'_> {
                                 "gaps": gaps,
                                 "class_use": {"name": bounded_text(&name, 256), "definition_ids": targets,
                                     "tailwind_context": tailwind},
-                            }));
+                            });
+                            if let Some(edit) = super::surface_edit::capability(
+                                &edit_candidates,
+                                super::surface_edit::Kind::ClassToken,
+                                &path,
+                                line,
+                                &name,
+                            ) {
+                                row["edit"] = edit;
+                            }
+                            rows.push(row);
                         }
                         if omitted > 0 {
                             let reason =

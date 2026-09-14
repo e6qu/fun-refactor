@@ -131,6 +131,18 @@ def main (args : List String) : IO Unit := do
         for sourceFree in [false, true] do
           for bounded in [false, true] do
             IO.println (FrKernels.Author.semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded)
+  else if args == ["surface-edit-admission"] then
+    for referenceFormat in [false, true] do
+      for candidateCount in frameworkSamples do
+        for currentMatches in [false, true] do
+          for valueValid in [false, true] do
+            for different in [false, true] do
+              for collisionFree in [false, true] do
+                IO.println (FrKernels.Author.surfaceEditAdmitted referenceFormat candidateCount
+                  currentMatches valueValid different collisionFree)
+  else if args == ["surface-value-sizes"] then
+    for bytes in [0, 1, 2, 255, 256, 257, 65536] do
+      IO.println (surfaceValueSizeAllowed bytes)
   else if args == ["semantic-change-admission"] then
     for schemaMatches in [false, true] do
       for baseWellFormed in [false, true] do

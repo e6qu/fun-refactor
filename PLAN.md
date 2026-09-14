@@ -45,7 +45,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds within documented subsets.
 - Revision-bound migration plans for one-file Next.js/FastAPI route features, with endpoint agreement, explicit dispositions and reversible source-history writes.
 - Local recipes, expectations, workspace previews and canonical formatting.
-- Rust, Go, Java, Python, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
+- Rust, Go, Java, Python, JavaScript, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
 - Rust declaration replacement and function insertion into files, inline modules, impls and traits.
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
 - Merkle-committed progressive semantic and source disclosure with exact actions, strict
@@ -1346,12 +1346,15 @@ Planned checkpoints:
 4. **Complete.** Join every new object type to progressive disclosure and the Python SDK. The
    project view commits technology, application, style and document/diagram domains beneath one
    Merkle root, exposes bounded exact actions and reuses the schema-independent Python object pack.
-5. **In progress.** Expand checked semantic authoring across the requested host structures. Python
+5. **Complete.** Expand checked semantic authoring across the requested host structures. Python
    functions, methods and decorated async FastAPI handlers now use relative-suite parsing, exact
-   body splices, typed semantic edits, progressive capabilities, history and Git patches.
+   body splices, typed semantic edits, progressive capabilities, history and Git patches. Opaque
+   surface capabilities add exact CSS definition, literal class token, Markdown heading and
+   diagram-scoped Mermaid node edits with the same reversible lifecycle.
 6. **In progress.** Add Lean policies, exhaustive correspondence and the complete repository gates.
    Inventory evidence partitioning, standalone React admission, style resolution and generic
-   surface omission bounds are anchored and executable.
+   surface omission bounds are anchored and executable. Surface-edit admission now additionally
+   requires a well-formed capability, one current candidate, a valid changed value and no collision.
 
 ## Formal verification policy
 

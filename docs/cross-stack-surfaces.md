@@ -32,3 +32,28 @@ initial response contains no source and always catalogs the branches. Each retur
 the response ceiling, profile, target and revision. Individual facts keep exact source handles.
 The generic Python Merkle pack and lazy restore functions can persist any completely revealed
 branch by `object_digest` without learning a separate surface schema.
+
+## Exact surface edits
+
+Editable rows include a revision-bound `fr-surface-edit-1` capability. Its preview arguments call
+`fr author edit-surface EDIT --to VALUE`; the ID commits the project revision, surface kind, file,
+exact byte spans, current value and local scope. The command reconstructs the candidates from the
+current project, requires exactly one ID match, checks every current occurrence, validates the new
+token, previews the exact diff and uses ordinary source history for write, undo, redo and Git patch
+delivery. Progressive project disclosure carries the same capability inside its style and document
+objects.
+
+Four exact operations are available:
+
+- a simple unescaped CSS class definition can receive a new CSS identifier;
+- one direct HTML, JSX or TSX class token can receive another bounded literal token, including a
+  Tailwind utility;
+- an ATX Markdown heading can receive bounded trimmed text; and
+- a Mermaid node can receive a new identifier, updating every captured occurrence of that logical
+  node inside one fence while refusing a collision with a peer node.
+
+The operation preserves every byte outside the selected occurrence spans and reparses the complete
+host file. Escaped CSS selectors, computed class construction, Setext headings, Mermaid labels and
+unmodeled Mermaid statements expose no edit capability. Class-definition and class-use edits are
+separate exact operations; coordinating a project-wide style rename still requires the caller to
+review all affected rows.

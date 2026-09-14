@@ -203,6 +203,7 @@ fn mermaid_node_id(revision: &str, diagram: &str, name: &str) -> Result<String> 
 impl Project<'_> {
     pub(super) fn diagrams(&self, options: &RelationshipOptions) -> Result<Value> {
         let selected = self.relationship_selection(options)?;
+        let edit_candidates = super::surface_edit::candidates(self)?;
         let mut rows = Vec::new();
         let mut document_count = 0usize;
         let mut heading_count = 0usize;
@@ -251,12 +252,22 @@ impl Project<'_> {
                         &heading.title
                     ))?[..32]
                 );
-                rows.push(json!({
+                let mut row = json!({
                     "kind": "markdown-heading", "id": id, "parent": parent,
                     "source": self.file_source(relative, heading.line), "status": "observed", "confidence": "syntax-only",
                     "evidence": {"basis": "markdown-atx-heading", "validation": ["captured-source", "bounded-markdown-reader", "project-revision"]},
                     "gaps": [], "heading": {"level": heading.level, "title": bounded_text(&heading.title, 256)},
-                }));
+                });
+                if let Some(edit) = super::surface_edit::capability(
+                    &edit_candidates,
+                    super::surface_edit::Kind::MarkdownHeading,
+                    relative,
+                    heading.line,
+                    &heading.title,
+                ) {
+                    row["edit"] = edit;
+                }
+                rows.push(row);
                 heading_count += 1;
                 heading_stack.push((heading.level, id.clone()));
                 heading_ids.push((heading.line, id));
@@ -338,13 +349,23 @@ impl Project<'_> {
                     .filter(|(name, _)| retained_nodes.contains(*name))
                 {
                     node_count += 1;
-                    rows.push(json!({
+                    let mut row = json!({
                         "kind": "mermaid-node", "id": id, "parent": diagram_id,
                         "source": self.file_source(relative, *line), "status": "candidate", "confidence": "name-only",
                         "evidence": {"basis": "mermaid-node-identifier", "validation": ["captured-source", "project-revision"]},
                         "gaps": ["Identifier extraction does not preserve or validate the rendered label and shape."],
                         "node": {"name": bounded_text(name, 256)},
-                    }));
+                    });
+                    if let Some(edit) = super::surface_edit::capability(
+                        &edit_candidates,
+                        super::surface_edit::Kind::MermaidNode,
+                        relative,
+                        *line,
+                        name,
+                    ) {
+                        row["edit"] = edit;
+                    }
+                    rows.push(row);
                 }
                 let total_edges = edges.len();
                 let retained_edges = edges

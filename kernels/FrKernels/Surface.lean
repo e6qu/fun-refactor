@@ -1,5 +1,19 @@
 namespace FrKernels.Surface
 
+-- fr:spec src/project/surface_edit.rs::surface_value_size_allowed @ 129077e026079fce8a86c3b86a4eab9736c519177533f39ddbcaa570b5286cdd
+-- fr:signature bytes: usize => bytes: Nat; return: bool => return: Bool
+def surfaceValueSizeAllowed (bytes : Nat) : Bool :=
+  decide (1 ≤ bytes ∧ bytes ≤ 256)
+
+theorem surface_value_size_allowed_iff (bytes : Nat) :
+    surfaceValueSizeAllowed bytes = true ↔ 1 ≤ bytes ∧ bytes ≤ 256 := by
+  simp [surfaceValueSizeAllowed]
+
+theorem accepted_surface_values_are_nonempty (bytes : Nat)
+    (accepted : surfaceValueSizeAllowed bytes = true) :
+    0 < bytes := by
+  exact (surface_value_size_allowed_iff bytes).mp accepted |>.1
+
 -- fr:spec src/project/surface_kernel.rs::style_literal_resolution @ f539b658f8f946f9eb431da2a3625f2d99ed865dbebda195946624c786d08bc9
 -- fr:signature definition_count: usize => definitionCount: Nat; tailwind_context: bool => tailwindContext: Bool; return: usize => return: Nat
 def styleLiteralResolution (definitionCount : Nat) (tailwindContext : Bool) : Nat :=

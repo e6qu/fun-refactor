@@ -601,7 +601,7 @@ before mutation. Small values and the generated intent appear in the receipt. La
 tagged commitments so preview does not repeat hidden content. See
 [disclosure-bound editing](docs/disclosed-editing.md).
 
-Replace a Rust, Go, Java, Python, TypeScript or TSX function body while preserving surrounding bytes, including its signature, decorators and attributes.
+Replace a Rust, Go, Java, Python, JavaScript, TypeScript or TSX function body while preserving surrounding bytes, including its signature, decorators and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.
 Initializers can contain parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions around the function.
 Arrow targets accept a complete block or expression and can move between those forms. Other function forms require blocks.
@@ -804,6 +804,7 @@ fr project styles web --limit 40
 fr project styles '<DIRECTORY_HANDLE>' --cursor '<NEXT>'
 fr project diagrams docs --limit 40
 fr project diagrams '<FILE_HANDLE>' --cursor '<NEXT>'
+fr author edit-surface 'frse1:<DIGEST>' --to replacement
 fr project contracts src --limit 40
 fr project contracts '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project features src --limit 40
@@ -864,6 +865,14 @@ cascade, specificity, generated utility or runtime output semantics.
 node and edge beneath it. It recognizes common Mermaid diagram headers and bounded node/edge
 operators without returning labels or message text. Unknown kinds, unclosed fences, unmodeled lines
 and per-diagram overflow remain explicit gaps. It does not execute Mermaid or validate rendering.
+
+Editable `styles` and `diagrams` rows carry an opaque `fr-surface-edit-1` capability.
+`author edit-surface` changes one simple CSS definition, one direct HTML/JSX/TSX class token, one
+ATX Markdown heading, or every captured occurrence of one Mermaid node inside a single fence. The
+capability binds the revision, kind, path, exact spans, current value and local scope. Invalid
+tokens, stale IDs, no-ops and Mermaid name collisions refuse before persistence. Preview, reviewed
+write, undo, redo and Git patch export use the normal source-history lifecycle. See
+[cross-stack surfaces](docs/cross-stack-surfaces.md#exact-surface-edits).
 
 `show` returns a bounded signature and node metadata before any source body.
 Its `position` gives the name’s 1-based line and column for existing refactoring targets.

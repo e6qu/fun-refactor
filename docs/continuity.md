@@ -1537,3 +1537,16 @@ multiline async FastAPI fixture checks decorator preservation, nested suite inde
 redo and forward patch identity. Parser correctness, Python execution and semantic writer behavior
 remain tested trust boundaries; the existing Lean author predicate continues to prove that semantic
 admission requires a supported target, source-free input, the exact schema and bounded content.
+
+The same checkpoint adds `fr-surface-edit-1` capabilities to editable style and diagram facts.
+`author edit-surface` reconstructs an opaque ID against the current revision, verifies its exact
+occurrence spans and token policy, and enters the ordinary source-history lifecycle. Supported
+operations cover simple CSS definitions, direct HTML/JSX/TSX and Tailwind class tokens, ATX heading
+text, and all captured uses of one Mermaid node inside one diagram. Four lifecycle cases verify
+preview, write, undo, redo and patch identity; adversarial cases refuse no-ops, stale IDs and
+diagram-local name collisions before creating history.
+
+`FrKernels.Author.surfaceEditAdmitted` proves that acceptance requires a well-formed reference,
+exactly one candidate, current source agreement, a valid changed value and collision freedom. Rust
+and Lean agree on all 288 generated boundary states. Hashing, candidate enumeration, host parsers
+and filesystem commits remain named tested boundaries.

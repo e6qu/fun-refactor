@@ -56,6 +56,9 @@ Use `project technologies` to distinguish host languages and frameworks before c
 Use `project styles` for CSS definitions and direct HTML/JSX class relationships, and `project diagrams`
 for Markdown heading and embedded Mermaid graph hierarchy. Follow their source handles only when the
 high-level fact or explicit gap is insufficient.
+When a returned row has `edit.schema = fr-surface-edit-1`, use its exact preview arguments and
+replace only `<VALUE>`. Review the diff before repeating with `--write`; retain the transaction for
+undo, redo and patch export. Rows without an edit capability are read-only boundaries.
 When several cross-stack domains may matter, obtain a full map handle and start with
 `project disclose HANDLE --view project`. Read the four-entry catalog, reveal the narrow domain, and
 reuse its object digest with the Python Merkle object-store helpers when persistence is useful.
