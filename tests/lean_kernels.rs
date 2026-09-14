@@ -143,6 +143,64 @@ fn formal_plan_admission_matches_lean_for_every_boolean_case() {
     );
 }
 
+#[test]
+fn technology_evidence_partition_matches_lean_across_the_limit() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("technology-coverage")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let expected = (0..130)
+        .flat_map(|total| {
+            [0, 1, 2, 3, 4, 31, 32, 33, 64, usize::MAX]
+                .into_iter()
+                .flat_map(move |limit| {
+                    [
+                        fun_refactor::project::technology_evidence_emitted(total, limit),
+                        fun_refactor::project::technology_evidence_omitted(total, limit),
+                    ]
+                })
+        })
+        .map(|value| value.to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(actual.lines().collect::<Vec<_>>(), expected);
+}
+
+#[test]
+fn style_resolution_and_surface_bounds_match_lean() {
+    use fun_refactor::surface_kernel::{
+        style_literal_resolution, surface_items_emitted, surface_items_omitted,
+    };
+
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("surface-coverage")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let samples = [0, 1, 2, 63, 64, 65, 128, 512, 65536];
+    let mut expected = Vec::new();
+    for definition_count in samples {
+        for tailwind_context in [false, true] {
+            expected.push(style_literal_resolution(definition_count, tailwind_context).to_string());
+        }
+    }
+    for total in samples {
+        for limit in samples {
+            expected.push(surface_items_emitted(total, limit).to_string());
+            expected.push(surface_items_omitted(total, limit).to_string());
+        }
+    }
+    assert_eq!(actual.lines().collect::<Vec<_>>(), expected);
+}
+
 fn edits_for(source: &str) -> Vec<(usize, usize, &'static str)> {
     let mut edits = Vec::new();
     for start in 0..=source.len() {
@@ -1314,6 +1372,63 @@ fn semantic_body_admission_matches_lean_exhaustively() {
 }
 
 #[test]
+fn surface_edit_admission_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("surface-edit-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let counts = [0, 1, 2, 63, 64, 65, 128, 512, 65536];
+    for reference_format in [false, true] {
+        for candidate_count in counts {
+            for current_matches in [false, true] {
+                for value_valid in [false, true] {
+                    for different in [false, true] {
+                        for collision_free in [false, true] {
+                            assert_eq!(
+                                actual.next(),
+                                Some(fun_refactor::project::author::surface_edit_admitted(
+                                    reference_format,
+                                    candidate_count,
+                                    current_matches,
+                                    value_valid,
+                                    different,
+                                    collision_free,
+                                ))
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+}
+
+#[test]
+fn surface_value_size_policy_matches_lean_at_boundaries() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("surface-value-sizes")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let samples = [0, 1, 2, 255, 256, 257, 65536];
+    assert_eq!(
+        actual.collect::<Vec<_>>(),
+        samples
+            .into_iter()
+            .map(fun_refactor::project::surface_value_size_allowed)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn semantic_change_admission_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
@@ -1795,6 +1910,7 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         migration_cutover_automatic, migration_dependency_edit_automatic, migration_disposition,
         migration_schema_agreement, nextjs_body_validation_automatic,
         nextjs_registration_automatic, service_redaction_flags, service_target_kind,
+        standalone_react_admitted,
     };
 
     build_kernel();
@@ -1825,6 +1941,26 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     for client in [false, true] {
         for runtime_hooks in [0, 1, 2, 65536] {
             expected.push(component_hooks_compatible(client, runtime_hooks).to_string());
+        }
+    }
+    for react_dependency in [false, true] {
+        for next_dependency in [false, true] {
+            for jsx_file in [false, true] {
+                for syntax_valid in [false, true] {
+                    for component_found in [false, true] {
+                        expected.push(
+                            standalone_react_admitted(
+                                react_dependency,
+                                next_dependency,
+                                jsx_file,
+                                syntax_valid,
+                                component_found,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
         }
     }
     for nextjs in [false, true] {

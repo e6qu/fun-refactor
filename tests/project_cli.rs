@@ -298,6 +298,89 @@ fn progressive_evidence_reveals_code_map_traces_impact_and_value_endpoints_witho
 }
 
 #[test]
+fn progressive_project_view_catalogs_cross_stack_merkle_domains_without_source() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "package.json",
+        r#"{"dependencies":{"express":"5","react":"19","tailwindcss":"4"}}"#,
+    );
+    put(
+        root,
+        "server.js",
+        "import express from 'express'; const app = express(); app.get('/health', health); function health() { return 'PRIVATE_API'; }\n",
+    );
+    put(
+        root,
+        "App.tsx",
+        "export function App() { return <main className=\"card p-4\">PRIVATE_UI</main>; }\n",
+    );
+    put(root, "style.css", ".card { color: red; }\n");
+    put(
+        root,
+        "index.html",
+        "<main class=\"card\">PRIVATE_HTML</main>\n",
+    );
+    put(
+        root,
+        "architecture.md",
+        "# Architecture\n\n```mermaid\nflowchart LR\nA[PRIVATE_LABEL] --> B\n```\n",
+    );
+    let mapped = ok(
+        root,
+        &["project", "map", ".", "--depth", "0", "--fields", "handle"],
+    );
+    let handle = mapped["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        root,
+        &[
+            "project",
+            "disclose",
+            handle,
+            "--view",
+            "project",
+            "--profile",
+            "expanded",
+            "--token-limit",
+            "16384",
+        ],
+    );
+    assert_disclosure_budget(&initial);
+    assert_eq!(initial["view"], "project");
+    assert_eq!(initial["frontier"].as_array().unwrap().len(), 1);
+    assert_eq!(initial["frontier"][0]["domain"], "cross-stack-project");
+    assert_eq!(
+        initial["project_catalog"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| row["domain"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "technologies",
+            "applications",
+            "styles",
+            "documents_and_diagrams"
+        ]
+    );
+    assert!(!initial.to_string().contains("PRIVATE_"));
+    let shortcuts = initial["project_shortcuts"].as_array().unwrap();
+    assert_eq!(shortcuts.len(), 4);
+    for shortcut in shortcuts {
+        assert!(shortcut["object_digest"].as_str().is_some());
+        let revealed = ok_owned(root, &exact_arguments(&shortcut["reveal"]["arguments"]));
+        assert_disclosure_budget(&revealed);
+        assert_eq!(revealed["revealed"]["domain"], "cross-stack-project");
+        assert!(revealed["revealed"]["object_digest"].as_str().is_some());
+        assert!(!revealed.to_string().contains("PRIVATE_"));
+    }
+    let stale_action = exact_arguments(&shortcuts[0]["reveal"]["arguments"]);
+    put(root, "style.css", ".card { color: blue; }\n");
+    assert!(!run_owned(root, &stale_action).0);
+}
+
+#[test]
 fn progressive_disclosure_keeps_source_bearing_bodies_readable_without_offering_edits() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(
@@ -6007,7 +6090,7 @@ fn framework_feature_lifecycle_facts_are_bounded_with_an_explicit_gap() {
 }
 
 #[test]
-fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes() {
+fn framework_features_preserve_schema_ambiguity_and_model_express_routes() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     put(
@@ -6036,16 +6119,133 @@ fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes
             .count(),
         2
     );
-    assert_eq!(view["analysis"]["unsupported_framework_routes"], 1);
+    assert_eq!(view["analysis"]["unsupported_framework_routes"], 0);
     assert!(items.iter().any(|fact| {
-        fact["kind"] == "framework-gap"
-            && fact["gap"]["framework"] == "express"
-            && fact["gap"]["reason"]
-                .as_str()
-                .is_some_and(|reason| reason.contains("does not model express"))
+        fact["kind"] == "application" && fact["application"]["framework"] == "express"
     }));
     assert!(items.iter().any(|fact| fact["kind"] == "schema-gap"));
     assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
+fn framework_features_model_express_and_standalone_react_application_trees() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "service/package.json",
+        r#"{"name":"service","scripts":{"start":"node server.js"},"dependencies":{"express":"5"}}"#,
+    );
+    put(
+        root,
+        "service/server.js",
+        concat!(
+            "import express from 'express';\n",
+            "const app = express();\n",
+            "function health(request, response) { return response.json({secret: 'PRIVATE_API'}); }\n",
+            "app.get('/health', health);\n",
+        ),
+    );
+    put(
+        root,
+        "web/package.json",
+        r#"{"name":"web","dependencies":{"react":"19"}}"#,
+    );
+    put(
+        root,
+        "web/src/App.tsx",
+        concat!(
+            "import { useState } from 'react';\n",
+            "import { Button } from './Button';\n",
+            "export default function App() {\n",
+            "  const [count, setCount] = useState(0);\n",
+            "  return <Button className=\"p-4\" onClick={() => setCount(count + 1)} />;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "web/src/Button.tsx",
+        "export function Button({ onClick }: Props) { return <button onClick={onClick}>PRIVATE_UI</button>; }\n",
+    );
+    put(
+        root,
+        "unowned/View.tsx",
+        "export function View() { return <main>not a package</main>; }\n",
+    );
+
+    let report = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(report["analysis"]["applications"], 2, "{report}");
+    assert_eq!(report["analysis"]["features"], 2, "{report}");
+    assert_eq!(report["analysis"]["routes"], 1, "{report}");
+    assert_eq!(report["analysis"]["components"], 2, "{report}");
+    assert_eq!(report["analysis"]["unsupported_framework_routes"], 0);
+    assert_eq!(
+        report["analysis"]["readers"],
+        serde_json::json!(["nextjs-app", "react", "fastapi", "express"])
+    );
+    assert!(!report.to_string().contains("PRIVATE_"));
+
+    let items = report["items"].as_array().unwrap();
+    let express = items
+        .iter()
+        .find(|fact| fact["kind"] == "application" && fact["application"]["framework"] == "express")
+        .unwrap();
+    assert_eq!(express["application"]["root"], "service");
+    assert_eq!(express["evidence"]["basis"], "express-package-root");
+    assert!(express["source"]["handle"].as_str().is_some());
+    let express_feature = items
+        .iter()
+        .find(|fact| fact["kind"] == "feature" && fact["parent"] == express["id"])
+        .unwrap();
+    assert_eq!(express_feature["feature"]["route_path"], "/health");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "route"
+            && fact["parent"] == express_feature["id"]
+            && fact["route"]["method"] == "GET"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "package"
+            && fact["parent"] == express["id"]
+            && fact["package"]["manifest"] == "service/package.json"
+    }));
+
+    let react = items
+        .iter()
+        .find(|fact| fact["kind"] == "application" && fact["application"]["framework"] == "react")
+        .unwrap();
+    assert_eq!(react["application"]["root"], "web");
+    assert_eq!(react["evidence"]["basis"], "react-package-root");
+    let react_feature = items
+        .iter()
+        .find(|fact| fact["kind"] == "feature" && fact["parent"] == react["id"])
+        .unwrap();
+    assert_eq!(
+        react_feature["evidence"]["basis"],
+        "react-entry-component-file"
+    );
+    assert_eq!(react_feature["feature"]["entry_path"], "web/src/App.tsx");
+    assert_eq!(react_feature["feature"]["route_path"], Value::Null);
+    for name in ["App", "Button"] {
+        let component = items
+            .iter()
+            .find(|fact| {
+                fact["kind"] == "component"
+                    && fact["parent"] == react_feature["id"]
+                    && fact["component"]["name"] == name
+            })
+            .unwrap();
+        assert_eq!(
+            component["component"]["rendering_boundary"],
+            "client-default"
+        );
+        assert!(component["source"]["handle"].as_str().is_some());
+    }
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["render"]["target"] == "Button"
+            && fact["status"] == "resolved"
+    }));
 }
 
 #[test]
@@ -8858,4 +9058,272 @@ fn parent_workspace_members_stay_snapshot_bound_and_page_without_widening_scope(
     assert_eq!(project.report(&command).unwrap(), captured);
     assert!(project.verify(&root).is_err());
     assert!(!run(&root, &["project", "workspaces", "--cursor", cursor]).0);
+}
+
+#[test]
+fn technology_inventory_distinguishes_the_complete_requested_polyglot_stack() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"express":"5.1.0","next":"16.0.0","react":"19.2.0","tailwindcss":"4.1.0"}}"#,
+    );
+    put(
+        root,
+        "web/server.js",
+        "import express from 'express';\nconst app = express();\napp.get('/health', health);\n",
+    );
+    put(
+        root,
+        "web/app/page.tsx",
+        "import React from 'react';\nexport default function Page() { return <main className=\"p-4\">Hi</main>; }\n",
+    );
+    put(root, "web/lib.ts", "export const answer: number = 42;\n");
+    put(root, "main.go", "package main\nfunc main() {}\n");
+    put(
+        root,
+        "api.py",
+        "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/health')\ndef health(): return {'ok': True}\n",
+    );
+    put(root, "index.html", "<main class=\"p-4\">Hi</main>\n");
+    put(
+        root,
+        "style.css",
+        "@import \"tailwindcss\";\n.card { color: red; }\n",
+    );
+    put(
+        root,
+        "README.md",
+        "# System\n\n```mermaid\nflowchart LR\n  Browser --> API\n```\n",
+    );
+    for index in 0..33 {
+        put(
+            root,
+            &format!("web/generated/{index}.js"),
+            &format!("export const item{index} = {index};\n"),
+        );
+    }
+
+    let report = ok(root, &["project", "technologies", "--evidence-limit", "32"]);
+    assert_eq!(report["technology_schema"], "fr-project-technologies-1");
+    assert_eq!(report["analysis"]["surface_count"], 13);
+    assert_eq!(report["analysis"]["detected"], 13);
+    let rows = report["items"].as_array().unwrap();
+    let ids = rows
+        .iter()
+        .map(|row| row["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(ids.len(), 13);
+    for id in [
+        "javascript",
+        "typescript",
+        "react",
+        "nextjs",
+        "go",
+        "python",
+        "python-fastapi",
+        "html",
+        "css",
+        "tailwind-css",
+        "expressjs",
+        "markdown",
+        "markdown-mermaid",
+    ] {
+        let row = rows.iter().find(|row| row["id"] == id).unwrap();
+        assert_eq!(row["status"], "detected", "{id}: {row}");
+        assert!(row["evidence_count"].as_u64().unwrap() > 0);
+    }
+    let javascript = rows.iter().find(|row| row["id"] == "javascript").unwrap();
+    assert_eq!(javascript["evidence"].as_array().unwrap().len(), 32);
+    assert!(javascript["evidence_omitted"].as_u64().unwrap() > 0);
+    assert!(!report.to_string().contains("flowchart LR"));
+    assert!(!report.to_string().contains("return <main"));
+
+    let compact = ok(root, &["project", "technologies"]);
+    assert_eq!(compact["analysis"]["evidence_limit_per_surface"], 4);
+    assert_eq!(
+        compact["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["id"] == "javascript")
+            .unwrap()["evidence"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
+    assert!(!run(root, &["project", "technologies", "--evidence-limit", "0"]).0);
+
+    let first = ok(root, &["project", "technologies", "--limit", "4"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let second = ok(
+        root,
+        &[
+            "project",
+            "technologies",
+            "--limit",
+            "4",
+            "--cursor",
+            cursor,
+        ],
+    );
+    assert_eq!(first["items"].as_array().unwrap().len(), 4);
+    assert_eq!(second["items"].as_array().unwrap().len(), 4);
+    put(root, "web/lib.ts", "export const answer: number = 43;\n");
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "technologies",
+                "--limit",
+                "4",
+                "--cursor",
+                cursor
+            ]
+        )
+        .0
+    );
+}
+
+#[test]
+fn style_model_links_css_and_tailwind_literals_and_marks_dynamic_classes() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"react":"19","tailwindcss":"4"}}"#,
+    );
+    put(
+        root,
+        "web/site.css",
+        "@import \"tailwindcss\";\n.card { color: red; }\n.shared:hover { color: blue; }\n",
+    );
+    put(
+        root,
+        "web/index.html",
+        "<main class=\"card p-4 missing\">PRIVATE_HTML</main>\n",
+    );
+    put(
+        root,
+        "web/App.tsx",
+        "const className = 'PRIVATE_VARIABLE';\nexport function App() { const mode = 'PRIVATE_DYNAMIC'; return <><main className=\"shared p-2\"/><aside className = {'px-2'}/><nav className={mode}/></>; }\n",
+    );
+
+    let report = ok(root, &["project", "styles", "--limit", "500"]);
+    assert_eq!(report["style_schema"], "fr-project-styles-1");
+    assert_eq!(report["analysis"]["css_class_definitions"], 2, "{report}");
+    assert_eq!(report["analysis"]["literal_class_uses"], 6, "{report}");
+    assert_eq!(report["analysis"]["literal_class_uses_omitted"], 0);
+    assert_eq!(report["analysis"]["dynamic_class_gaps"], 1, "{report}");
+    assert_eq!(report["analysis"]["tailwind_contexts"], 1, "{report}");
+    assert!(!report.to_string().contains("PRIVATE_"));
+    let items = report["items"].as_array().unwrap();
+    let card = items
+        .iter()
+        .find(|row| row["kind"] == "css-class-definition" && row["class"]["name"] == "card")
+        .unwrap();
+    assert_eq!(card["edit"]["schema"], "fr-surface-edit-1");
+    assert_eq!(card["edit"]["operation"], "rename-css-class");
+    let use_card = items
+        .iter()
+        .find(|row| row["kind"] == "class-use" && row["class_use"]["name"] == "card")
+        .unwrap();
+    assert_eq!(use_card["status"], "resolved");
+    assert_eq!(
+        use_card["class_use"]["definition_ids"],
+        serde_json::json!([card["id"].clone()])
+    );
+    for utility in ["p-4", "missing", "p-2", "px-2"] {
+        let row = items
+            .iter()
+            .find(|row| row["kind"] == "class-use" && row["class_use"]["name"] == utility)
+            .unwrap();
+        assert_eq!(row["status"], "candidate");
+        assert_eq!(
+            row["evidence"]["basis"],
+            "tailwind-literal-utility-candidate"
+        );
+        assert_eq!(row["edit"]["operation"], "replace-class-token");
+    }
+    assert!(items.iter().any(|row| {
+        row["kind"] == "style-gap" && row["evidence"]["basis"] == "dynamic-class-attribute"
+    }));
+    assert!(items
+        .iter()
+        .filter(|row| row["kind"] != "tailwind-context")
+        .all(|row| { row["source"]["handle"].as_str().is_some() }));
+}
+
+#[test]
+fn diagram_model_nests_mermaid_graphs_under_markdown_headings() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "architecture.md",
+        concat!(
+            "# Architecture\n\n",
+            "## Details\n\n",
+            "```mermaid\n",
+            "flowchart LR\n",
+            "A[PRIVATE_LABEL] --> B\n",
+            "style A fill:#fff\n",
+            "```\n\n",
+            "~~~mermaid\n",
+            "sequenceDiagram\n",
+            "participant Client\n",
+            "Client->>API: PRIVATE_MESSAGE\n",
+            "~~~\n",
+        ),
+    );
+
+    let report = ok(root, &["project", "diagrams", "--limit", "500"]);
+    assert_eq!(report["diagram_schema"], "fr-project-diagrams-1");
+    assert_eq!(report["analysis"]["documents"], 1, "{report}");
+    assert_eq!(report["analysis"]["headings"], 2, "{report}");
+    assert_eq!(report["analysis"]["diagrams"], 2, "{report}");
+    assert_eq!(report["analysis"]["nodes"], 4, "{report}");
+    assert_eq!(report["analysis"]["edges"], 2, "{report}");
+    assert_eq!(report["analysis"]["gaps"], 1, "{report}");
+    assert!(!report.to_string().contains("PRIVATE_"));
+    let items = report["items"].as_array().unwrap();
+    let details = items
+        .iter()
+        .find(|row| row["kind"] == "markdown-heading" && row["heading"]["title"] == "Details")
+        .unwrap();
+    assert_eq!(details["edit"]["operation"], "rename-markdown-heading");
+    let diagrams = items
+        .iter()
+        .filter(|row| row["kind"] == "mermaid-diagram")
+        .collect::<Vec<_>>();
+    assert_eq!(diagrams.len(), 2);
+    assert!(diagrams
+        .iter()
+        .all(|diagram| diagram["parent"] == details["id"]));
+    for diagram in diagrams {
+        let diagram_id = &diagram["id"];
+        assert!(items.iter().any(|row| {
+            matches!(row["kind"].as_str(), Some("mermaid-node" | "mermaid-edge"))
+                && row["parent"] == *diagram_id
+        }));
+    }
+    let edge = items
+        .iter()
+        .find(|row| row["kind"] == "mermaid-edge" && row["edge"]["from"] == "A")
+        .unwrap();
+    assert_eq!(edge["edge"]["to"], "B");
+    assert!(edge["edge"]["from_id"].as_str().is_some());
+    assert!(edge["edge"]["to_id"].as_str().is_some());
+    let node = items
+        .iter()
+        .find(|row| row["kind"] == "mermaid-node" && row["node"]["name"] == "A")
+        .unwrap();
+    assert_eq!(node["edit"]["operation"], "rename-mermaid-node");
+    assert!(items
+        .iter()
+        .all(|row| row["source"]["handle"].as_str().is_some()));
 }

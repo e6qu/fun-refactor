@@ -198,10 +198,19 @@ impl Project<'_> {
         rows: &mut Vec<Value>,
         counts: &mut BoundaryCounts,
     ) -> Result<()> {
-        if application.framework != "nextjs-app" {
+        if !matches!(application.framework.as_str(), "nextjs-app" | "react") {
             return Ok(());
         }
-        let client_files = self.effective_client_files(feature)?;
+        let client_files = if application.framework == "react" {
+            feature.frontend_files.clone()
+        } else {
+            self.effective_client_files(feature)?
+        };
+        let component_basis = if application.framework == "react" {
+            "react-function-component"
+        } else {
+            "nextjs-react-function-component"
+        };
         for gap in &feature.frontend_gaps {
             counts.component_gaps += 1;
             let detail = json!({"reason": gap.reason});
@@ -216,7 +225,7 @@ impl Project<'_> {
                 Some(&feature.id),
                 self.file_source(&gap.path, gap.line),
                 FactEvidence::new(
-                    json!("nextjs-relative-component-import"),
+                    json!("react-relative-component-import"),
                     json!("gap"),
                     Value::Null,
                     json!([gap.reason]),
@@ -252,7 +261,7 @@ impl Project<'_> {
             let parsed = Parsers::new().parse(Language::Tsx, source)?;
             if parsed.has_errors() {
                 counts.component_gaps += 1;
-                let reason = "The Next.js component file contains syntax errors.";
+                let reason = "The React component file contains syntax errors.";
                 let detail = json!({"reason": reason});
                 rows.push(fact(
                     "framework-gap",
@@ -260,7 +269,7 @@ impl Project<'_> {
                     Some(&feature.id),
                     self.file_source(path, 1),
                     FactEvidence::new(
-                        json!("nextjs-react-component"),
+                        json!(component_basis),
                         json!("gap"),
                         Value::Null,
                         json!([reason]),
@@ -278,8 +287,7 @@ impl Project<'_> {
                 .collect::<Vec<_>>();
             if components.is_empty() {
                 counts.component_gaps += 1;
-                let reason =
-                    "The Next.js component file has no supported direct function component.";
+                let reason = "The React component file has no supported direct function component.";
                 let detail = json!({"reason": reason});
                 rows.push(fact(
                     "framework-gap",
@@ -287,7 +295,7 @@ impl Project<'_> {
                     Some(&feature.id),
                     self.file_source(path, 1),
                     FactEvidence::new(
-                        json!("nextjs-react-component"),
+                        json!(component_basis),
                         json!("gap"),
                         Value::Null,
                         json!([reason]),
@@ -312,8 +320,10 @@ impl Project<'_> {
                         Some("layout.tsx" | "layout.jsx") => "layout",
                         _ => "imported-component",
                     },
-                    "declared_boundary": if component.client { "client" } else { "server-default" },
-                    "rendering_boundary": if component.client { "client" }
+                    "declared_boundary": if application.framework == "react" { "client-default" }
+                        else if component.client { "client" } else { "server-default" },
+                    "rendering_boundary": if application.framework == "react" { "client-default" }
+                        else if component.client { "client" }
                         else if effective_client { "client-transitive-candidate" }
                         else { "server-default" },
                     "properties": component.props.len(),
@@ -336,7 +346,7 @@ impl Project<'_> {
                     Some(&feature.id),
                     self.file_source(path, component.line),
                     FactEvidence::new(
-                        json!("nextjs-react-function-component"),
+                        json!(component_basis),
                         json!(if resolved { "candidate" } else { "unresolved" }),
                         json!(if resolved { "name-only" } else { "unknown" }),
                         if resolved && effective_client && !component.client {

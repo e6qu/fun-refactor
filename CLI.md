@@ -601,13 +601,15 @@ before mutation. Small values and the generated intent appear in the receipt. La
 tagged commitments so preview does not repeat hidden content. See
 [disclosure-bound editing](docs/disclosed-editing.md).
 
-Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
+Replace a Rust, Go, Java, Python, JavaScript, TypeScript or TSX function body while preserving surrounding bytes, including its signature, decorators and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.
 Initializers can contain parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions around the function.
 Arrow targets accept a complete block or expression and can move between those forms. Other function forms require blocks.
 Calls, conditionals and comma expressions around a function initializer remain unsupported.
 Go supports named functions, `init` declarations and receiver methods; interface specifications and variables containing function literals refuse.
 Java supports methods, constructors and default interface methods with bodies. Abstract and bodyless interface methods refuse.
+Python supports synchronous and asynchronous functions, decorated framework handlers and methods.
+Its fragment is a relative suite without the enclosing `def`. The command preserves nested indentation when it splices the suite into its destination.
 Use a current project handle; this command accepts structural identities directly.
 The input is a regular UTF-8 file containing one complete body, at most 64 KiB. The old body must also fit 64 KiB.
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.
@@ -780,6 +782,7 @@ fr project explore parse --mode behavior --target '<HANDLE>'
 fr project disclose '<HANDLE>' --token-limit 4096
 fr project disclose '<HANDLE>' --view evidence --depth 3 --token-limit 4096
 fr project disclose '<HANDLE>' --view evidence --proofs --profile expanded --token-limit 16384
+fr project disclose '<PROJECT_HANDLE>' --view project --profile expanded --token-limit 16384
 fr project batch --from agent-queries.json --profile compact
 fr project map src --depth 4 --limit 80
 fr project map src/app.py --fields id,parent,kind,name,signature
@@ -796,6 +799,13 @@ fr project calls --cursor '<NEXT>'
 fr project implementations '<ID>' --revision '<REVISION>'
 fr project routes src --limit 40
 fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
+fr project technologies . --limit 40 --evidence-limit 4
+fr project technologies '<DIRECTORY_HANDLE>' --cursor '<NEXT>'
+fr project styles web --limit 40
+fr project styles '<DIRECTORY_HANDLE>' --cursor '<NEXT>'
+fr project diagrams docs --limit 40
+fr project diagrams '<FILE_HANDLE>' --cursor '<NEXT>'
+fr author edit-surface 'frse1:<DIGEST>' --to replacement
 fr project contracts src --limit 40
 fr project contracts '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project features src --limit 40
@@ -840,6 +850,30 @@ Maps default to 80 rows; other pages default to 40.
 Reuse the same query and fields with a cursor. The page size may change.
 Changed source, manifest content, inventory, scan options or query scope invalidates the corresponding handle or cursor.
 A short ID without its revision cannot identify a symbol for `show`.
+
+`technologies` always states all thirteen web-stack surfaces, including surfaces absent from the
+selected scope. Detected rows contain no source text. Each evidence row carries its path, basis,
+content address and exact map or show action. `--evidence-limit` defaults to four and accepts one
+through thirty-two rows per surface. Its value participates in cursor identity.
+
+`styles` reports CSS class definitions and direct literal `class` or `className` tokens in HTML,
+JSX and TSX. A unique name match resolves to its definition ID. A literal without a captured CSS
+definition becomes a Tailwind candidate only beneath a package that declares Tailwind CSS.
+Computed attributes and per-attribute token overflow are explicit gaps. The report does not claim
+cascade, specificity, generated utility or runtime output semantics.
+
+`diagrams` preserves Markdown documents and ATX heading hierarchy, then nests each Mermaid fence,
+node and edge beneath it. It recognizes common Mermaid diagram headers and bounded node/edge
+operators without returning labels or message text. Unknown kinds, unclosed fences, unmodeled lines
+and per-diagram overflow remain explicit gaps. It does not execute Mermaid or validate rendering.
+
+Editable `styles` and `diagrams` rows carry an opaque `fr-surface-edit-1` capability.
+`author edit-surface` changes one simple CSS definition or one direct HTML/JSX/TSX class token.
+It can also change an ATX Markdown heading or every captured occurrence of one Mermaid node inside a single fence. The
+capability binds the revision, kind, path, exact spans, current value and local scope. Invalid
+tokens, stale IDs, no-ops and Mermaid name collisions refuse before persistence. Preview, reviewed
+write, undo, redo and Git patch export use the normal source-history lifecycle. See
+[cross-stack surfaces](docs/cross-stack-surfaces.md#exact-surface-edits).
 
 `show` returns a bounded signature and node metadata before any source body.
 Its `position` gives the name’s 1-based line and column for existing refactoring targets.
@@ -907,6 +941,11 @@ agent can stay source-free until source is necessary. See
 impact candidates, and local value origins and uses. Each subtree has a stable `object_digest`
 suited to local or remote object-storage keys. Ordinary agent responses omit inclusion paths;
 `--proofs` adds them for evaluators and cache audits and may require the expanded limit.
+`--view project` accepts a full directory, file or declaration handle. It commits four source-free
+domains: technologies, applications, styles and documents/diagrams. A declaration scopes those
+domains to its containing file. The initial catalog always names all four; exact shortcut and root
+actions progressively reveal their versioned flat-report objects. Source stays behind handles held
+by individual facts rather than becoming part of this project-wide frontier.
 Authorable revealed scalars include an opaque exact-edit capability and preview action; see
 [disclosure-bound editing](docs/disclosed-editing.md).
 Inside `project batch`, the disclosure bound retains its standalone meaning. The batch profile and

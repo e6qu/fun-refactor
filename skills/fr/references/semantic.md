@@ -59,5 +59,5 @@ Run `fr author validate-semantic --from FILE --canonical`, then preview
 `fr author replace-body-semantic HANDLE --from FILE`. Review the rendered diff and writer
 fidelity. Save or apply it through the same plan, history and checked-workflow route as other author
 operations. Author batches, project tasks and task changes use operation `replace-body-semantic`.
-The route supports Rust, Go, Java, TypeScript and TSX function-body targets. A refusal means the IR
+The route supports Rust, Go, Java, Python, JavaScript, TypeScript and TSX function-body targets. A refusal means the IR
 cannot be lowered inside one body under the current contract; inspect the reported boundary.

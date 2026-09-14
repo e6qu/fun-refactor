@@ -1,7 +1,7 @@
 # Bounded function authoring
 
 `fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
-It supports Rust, Go, Java, TypeScript and TSX.
+It supports Rust, Go, Java, Python, JavaScript, TypeScript and TSX.
 It retains the signature, outer attributes, documentation and every byte outside that block.
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 
@@ -27,7 +27,8 @@ Source, manifest and inventory changes invalidate handles; obtain a new map afte
 
 ## Input and supported scope
 
-The input file contains exactly one complete block in the target language, including braces.
+The input file contains exactly one complete block in a brace-delimited target language, including braces.
+For Python it contains one nonempty relative suite without a `def` header: the first statement starts at column zero and nested lines retain their relative indentation.
 For a TypeScript or TSX arrow target, it can instead contain one complete expression.
 An arrow can move between expression and block bodies. Declarations, methods and function expressions continue to require blocks.
 For Rust:
@@ -57,6 +58,9 @@ The fragment contains one brace-delimited block, validated as a method body insi
 The operation retains annotations, modifiers, type parameters, parameters, throws clauses, constructor headers and every byte outside the braces.
 Abstract methods and bodyless interface declarations refuse. Initializer blocks and lambda expressions remain outside the indexed target set.
 Imports, overload selection, checked exceptions, type correctness and behavior require separate compiler checks.
+Python targets include synchronous and asynchronous functions, methods and decorated handlers such as FastAPI routes.
+The operation retains decorators, the complete function header and indentation before the first body token. It validates the relative suite inside a temporary function, adapts continuation lines to the destination indentation, and reparses the complete destination file.
+The suite may contain nested statements; tabs in the destination indentation are retained. A fragment cannot be empty because Python requires a statement such as `pass`.
 TypeScript and TSX targets include named function declarations, generators, class and object methods, accessors and constructors.
 They also include variable or class-field initializers containing arrows, ordinary function expressions or generator expressions.
 The function can sit inside nested parentheses, `as`, `satisfies`, postfix non-null `!` assertions and TypeScript angle-bracket assertions.

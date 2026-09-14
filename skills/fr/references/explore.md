@@ -10,6 +10,9 @@ fr project show '<HANDLE>' --source --bytes 256
 fr project calls '<HANDLE>' --direction incoming --limit 8
 fr project tests app.py --limit 8
 fr project features --limit 12
+fr project technologies --limit 13
+fr project styles --limit 12
+fr project diagrams --limit 12
 fr project gaps --limit 8
 ```
 
@@ -46,7 +49,6 @@ Call results preserve confidence and unresolved or dispatch-candidate rows; cand
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages`, `dependencies`, `links` and `workspaces` for manifest declarations and local relationships when package boundaries matter.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
-Use `project features [--feature ID]` for a bounded Next.js or FastAPI hierarchy. Treat middleware,
-providers, render targets and test associations as syntax candidates that need source inspection.
-Service targets redact credentials, queries and fragments. Reports retain explicit runtime and resolution gaps.
+Use [Surfaces](surfaces.md) for framework, style and embedded-diagram discovery, exact surface edits,
+or the cross-stack Merkle view.
 These commands do not establish complete dependency resolution or framework semantics.

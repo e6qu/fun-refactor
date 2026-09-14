@@ -10,16 +10,16 @@ the Rust suite exhausts all 48 shared Boolean inputs. General implementation/mod
 remains an explicit obligation. Its complete native, Python, documentation, capability, strict Lean
 and WASM gates pass locally.
 
-PR 26, proposed as GitHub PR 291, adds the Agent Proof Companion. `spec proof-task` packages one
+PR 26 merged as GitHub PR 291 and adds the Agent Proof Companion. `spec proof-task` packages one
 exact goal with empty tactic templates. `spec proof-check` runs agent-written tactics through the pinned Lean
 checker without mutation and returns bounded diagnostics or a content-bound receipt. `spec prove`
 now requires the same Lean check before history can record a proof. Python validates task and
 receipt identities. Lean proves the seven-condition admission policy, and Rust compares all 128
 inputs with the executable kernel.
-The active branch is `agent_proof_scaffolds`. Its complete default and WASM repository gates pass
-locally, including the Python mirror, strict Lean checks and end-to-end proof workflow.
+Its complete default and WASM repository gates pass, including the Python mirror, strict Lean checks
+and end-to-end proof workflow.
 
-PR 27 is proposed as [GitHub PR 292](https://github.com/e6qu/fun-refactor/pull/292). It adds a bounded
+PR 27 merged as [GitHub PR 292](https://github.com/e6qu/fun-refactor/pull/292). It adds a bounded
 property task with the current model signature and typed proposition grammar. The agent provides the
 proposition IR and proof tactics; `fr` validates, renders, elaborates and preserves them through the
 checked reversible workflow. Rust and Python enforce the same strict tree limits and exact types.
@@ -27,6 +27,16 @@ Lean proves the finite admission policies, and Rust compares all 398 new shared 
 end-to-end test covers a multi-input property, invalid agent trees, checked proof attempts, apply,
 verify, undo, redo and source drift. The complete native, Python, documentation, strict Lean and
 WASM gates pass locally.
+
+The active PR 28 adds explicit agent-facing coverage for JavaScript, TypeScript, React, Next.js,
+Go, Python, FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid. Its first
+checkpoint adds a revision-bound technology taxonomy and source-free evidence inventory. The
+second adds Express package/route applications and standalone React package/entry-component
+features, including bounded import expansion and proof-backed standalone admission. The third adds
+source-free CSS/Tailwind relationships and Markdown/Mermaid hierarchies with proof-backed resolution
+and omission policies. The fourth places all of these beside application facts in a four-domain
+cross-stack Merkle view that accepts project handles and reuses the generic Python object pack.
+Later checkpoints extend checked-authoring models.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
@@ -1511,3 +1521,51 @@ tests, 311 capability cells, prose checks and a 60-job Lean build. The WASM gate
 tests, browser history and cumulative patches, host APIs and the minimal browser feature set. The
 deep gate covers 14 whole-repository command agreements, external runtime conformance, all
 translation round trips and 74 Rust/Lean tests with both repository-wide edit audits enabled.
+
+## Cross-stack authoring continuation
+
+PR 28 checkpoint 5 extends the existing source-free function IR to Python instead of introducing a
+framework-specific body model. Raw Python replacements are relative suites; the parser validates
+them inside a temporary function and the splice adapts continuation lines to the exact destination
+indentation. Semantic replacement removes the writer's temporary base indentation before using the
+same path. Synchronous functions, async functions, methods and decorated FastAPI handlers therefore
+share the established preview, batch, task, undo, redo and Git patch lifecycle.
+
+The shared supported-language tests now include Python for complete semantic bodies, checked deltas,
+semantic intents, direct scalar plans and progressively disclosed scalar capabilities. A separate
+multiline async FastAPI fixture checks decorator preservation, nested suite indentation, exact undo,
+redo and forward patch identity. Parser correctness, Python execution and semantic writer behavior
+remain tested trust boundaries; the existing Lean author predicate continues to prove that semantic
+admission requires a supported target, source-free input, the exact schema and bounded content.
+
+The same checkpoint adds `fr-surface-edit-1` capabilities to editable style and diagram facts.
+`author edit-surface` reconstructs an opaque ID against the current revision, verifies its exact
+occurrence spans and token policy, and enters the ordinary source-history lifecycle. Supported
+operations cover simple CSS definitions, direct HTML/JSX/TSX and Tailwind class tokens, ATX heading
+text, and all captured uses of one Mermaid node inside one diagram. Four lifecycle cases verify
+preview, write, undo, redo and patch identity; adversarial cases refuse no-ops, stale IDs and
+diagram-local name collisions before creating history.
+
+`FrKernels.Author.surfaceEditAdmitted` proves that acceptance requires a well-formed reference,
+exactly one candidate, current source agreement, a valid changed value and collision freedom. Rust
+and Lean agree on all 288 generated boundary states. Hashing, candidate enumeration, host parsers
+and filesystem commits remain named tested boundaries.
+
+The cross-stack coverage milestone is complete. Technology inventory, standalone React and Express
+feature trees, CSS/Tailwind relationships, Markdown/Mermaid hierarchy, the project Merkle view,
+Python suite authoring and exact surface edits now cover every requested surface through bounded
+agent-facing structures. JavaScript participates explicitly in every shared semantic authoring
+matrix rather than inheriting TypeScript's test result.
+
+Lean also covers inventory partitioning, React admission, style resolution, surface omission,
+surface-value bounds and exact edit admission. Strict checking reports every anchor and signature
+fresh with zero obligations and zero debts. The correspondence suite passes 77 tests with two
+repository-wide audits reserved for the deep gate. The browser lane passes 436 library tests and
+11 browser API/history tests.
+
+The final native pass completed every all-target test before the prose ratchet found two passive
+phrases and two long sentences. Their repair also exposed invalid scoped commands in the portable
+skill. The new `surfaces.md` route keeps every reference below 4 KiB and every composed route below
+7 KiB; all 51 executable examples pass. Five retained deterministic context reports now bind the
+current binary, implementation and skill hashes. The full acceptance harness passes 15 tests with
+its one environment-dependent replay ignored.

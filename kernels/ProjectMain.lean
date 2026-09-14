@@ -11,8 +11,11 @@ import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
 import FrKernels.DisclosedIrEdit
 import FrKernels.FormalPlan
+import FrKernels.Technology
+import FrKernels.Surface
 
 open FrKernels.Project
+open FrKernels.Surface
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
@@ -92,6 +95,11 @@ def main (args : List String) : IO Unit := do
       for leftType in [0:5] do
         for rightType in [0:5] do
           IO.println (FrKernels.FormalPlan.agentRelationAdmitted relation leftType rightType)
+  else if args == ["technology-coverage"] then
+    for total in [0:130] do
+      for limit in [0, 1, 2, 3, 4, 31, 32, 33, 64, 18446744073709551615] do
+        IO.println (FrKernels.Technology.evidenceEmitted total limit)
+        IO.println (FrKernels.Technology.evidenceOmitted total limit)
   else if args == ["plan-basis"] then
     for complete in [false, true] do
       for supplied in [false, true] do
@@ -123,6 +131,18 @@ def main (args : List String) : IO Unit := do
         for sourceFree in [false, true] do
           for bounded in [false, true] do
             IO.println (FrKernels.Author.semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded)
+  else if args == ["surface-edit-admission"] then
+    for referenceFormat in [false, true] do
+      for candidateCount in frameworkSamples do
+        for currentMatches in [false, true] do
+          for valueValid in [false, true] do
+            for different in [false, true] do
+              for collisionFree in [false, true] do
+                IO.println (FrKernels.Author.surfaceEditAdmitted referenceFormat candidateCount
+                  currentMatches valueValid different collisionFree)
+  else if args == ["surface-value-sizes"] then
+    for bytes in [0, 1, 2, 255, 256, 257, 65536] do
+      IO.println (surfaceValueSizeAllowed bytes)
   else if args == ["semantic-change-admission"] then
     for schemaMatches in [false, true] do
       for baseWellFormed in [false, true] do
@@ -240,6 +260,14 @@ def main (args : List String) : IO Unit := do
                 for different in [false, true] do
                   IO.println (FrKernels.DisclosedIrEdit.admitted fullHandle referenceFormat
                     candidateCount currentMatches requestShape valueMatches different)
+  else if args == ["surface-coverage"] then
+    for definitionCount in frameworkSamples do
+      for tailwindContext in [false, true] do
+        IO.println (styleLiteralResolution definitionCount tailwindContext)
+    for total in frameworkSamples do
+      for limit in frameworkSamples do
+        IO.println (itemsEmitted total limit)
+        IO.println (itemsOmitted total limit)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do
@@ -251,6 +279,13 @@ def main (args : List String) : IO Unit := do
     for client in [false, true] do
       for runtimeHooks in [0, 1, 2, 65536] do
         IO.println (componentHooksCompatible client runtimeHooks)
+    for reactDependency in [false, true] do
+      for nextDependency in [false, true] do
+        for jsxFile in [false, true] do
+          for syntaxValid in [false, true] do
+            for componentFound in [false, true] do
+              IO.println (standaloneReactAdmitted reactDependency nextDependency jsxFile
+                syntaxValid componentFound)
     for nextjs in [false, true] do
       for publicName in [false, true] do
         IO.println (configurationVisibility nextjs publicName)

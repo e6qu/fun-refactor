@@ -21,6 +21,7 @@ mod components;
 mod configuration;
 mod context;
 mod contracts;
+mod diagrams;
 mod digest;
 #[cfg(test)]
 mod digest_tests;
@@ -36,6 +37,7 @@ mod fast_routes;
 mod features;
 mod find;
 pub use crate::framework_kernel;
+pub use crate::surface_kernel;
 mod links;
 mod manifests;
 pub mod migration;
@@ -52,6 +54,11 @@ pub use semantic::semantic_section_fits;
 mod service_calls;
 mod task;
 pub mod task_change;
+mod technologies;
+pub use technologies::{technology_evidence_emitted, technology_evidence_omitted};
+mod styles;
+mod surface_edit;
+pub use surface_edit::surface_value_size_allowed;
 mod tests;
 pub use task::task_author_target_candidate;
 
@@ -121,6 +128,14 @@ pub enum Command {
     },
     #[command(about = "Page through route and page centered application feature hierarchies.")]
     Features(FeatureOptions),
+    #[command(
+        about = "Inventory agent-facing languages, frameworks and embedded project surfaces."
+    )]
+    Technologies(technologies::Options),
+    #[command(about = "Page through CSS definitions and HTML/JSX class relationships.")]
+    Styles(RelationshipOptions),
+    #[command(about = "Page through Markdown headings and embedded Mermaid graph structures.")]
+    Diagrams(RelationshipOptions),
     #[command(about = "Page through declared schema fields and local type-reference candidates.")]
     Schemas(RelationshipOptions),
     #[command(about = "Inspect source-free semantic IR for a file or declaration.")]
@@ -1211,6 +1226,9 @@ impl<'a> Project<'a> {
             Command::Routes(selection) => self.routes(selection, false, false),
             Command::Contracts { selection, types } => self.routes(selection, true, *types),
             Command::Features(options) => self.features(options),
+            Command::Technologies(options) => self.technologies(options),
+            Command::Styles(selection) => self.styles(selection),
+            Command::Diagrams(selection) => self.diagrams(selection),
             Command::Schemas(selection) => self.schemas(selection),
             Command::Semantic(options) => self.semantic(options),
             Command::Configuration(selection) => self.configuration(selection),

@@ -29,7 +29,7 @@ pub enum Command {
     #[command(about = "Plan one unique scalar semantic intent without scanning a project.")]
     PlanSemanticIntent(super::semantic_intent::PlanOptions),
     #[command(
-        about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
+        about = "Replace one Rust, Go, Java, Python, JavaScript, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
     #[command(about = "Replace one supported function body from source-free semantic IR JSON.")]
@@ -44,6 +44,8 @@ pub enum Command {
     EditBodyDisclosed(EditBodyDisclosedOptions),
     #[command(about = "Apply one exact typed IR capability returned by project disclosure.")]
     EditBodyDisclosedIr(EditBodyDisclosedIrOptions),
+    #[command(about = "Apply one exact style, Markdown or Mermaid edit capability.")]
+    EditSurface(EditSurfaceOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -95,6 +97,11 @@ pub fn guide() -> Value {
                 "targets": "Rust file, module, impl or trait"},
             {"op": "organize-imports", "requires": ["handle"],
                 "targets": "supported source file"}
+        ],
+        "direct_operations": [
+            {"op": "edit-surface", "requires": ["edit", "to"],
+                "input-schema": "fr-surface-edit-1",
+                "targets": "exact CSS class, host class token, Markdown heading or Mermaid node"}
         ],
         "manifest": {
             "revision": "optional; required when any handle is a short ID",
@@ -294,6 +301,25 @@ pub struct EditBodyDisclosedIrOptions {
 }
 
 #[derive(Args)]
+pub struct EditSurfaceOptions {
+    #[arg(help = "Opaque edit ID returned by project styles or diagrams.")]
+    pub edit: String,
+    #[arg(long, help = "Requested replacement name or token, at most 256 bytes.")]
+    pub to: String,
+    #[arg(
+        long,
+        default_value_t = 4096,
+        help = "Maximum UTF-8 diff bytes, from 0 through 65536."
+    )]
+    pub diff_bytes: usize,
+    #[arg(
+        long,
+        help = "Record and apply the edit after checking the source revision."
+    )]
+    pub write: bool,
+}
+
+#[derive(Args)]
 pub struct ValidateSemanticOptions {
     #[arg(
         long,
@@ -346,6 +372,22 @@ pub fn disclosed_ir_edit_admitted(
         && different
 }
 
+pub fn surface_edit_admitted(
+    reference_format: bool,
+    candidate_count: usize,
+    current_matches: bool,
+    value_valid: bool,
+    different: bool,
+    collision_free: bool,
+) -> bool {
+    reference_format
+        && candidate_count == 1
+        && current_matches
+        && value_valid
+        && different
+        && collision_free
+}
+
 impl Plan {
     pub fn set_diff(&mut self, diff: &str, budget: usize) {
         self.report["diff"] = bounded_text(diff, budget);
@@ -364,6 +406,7 @@ struct BodySyntax {
     nested_item: bool,
     targets: &'static [&'static str],
     bindings: &'static [&'static str],
+    indented_suite: bool,
 }
 
 impl BodySyntax {
@@ -377,6 +420,7 @@ impl BodySyntax {
                 nested_item: false,
                 targets: &["function_item"],
                 bindings: &[],
+                indented_suite: false,
             }),
             Language::Go => Ok(Self {
                 prefix: "func __fr_body__() ",
@@ -386,6 +430,7 @@ impl BodySyntax {
                 nested_item: false,
                 targets: &["function_declaration", "method_declaration"],
                 bindings: &[],
+                indented_suite: false,
             }),
             Language::TypeScript | Language::Tsx => Ok(Self {
                 prefix: "function __fr_body__() ",
@@ -399,6 +444,7 @@ impl BodySyntax {
                     "method_definition",
                 ],
                 bindings: &["variable_declarator", "public_field_definition"],
+                indented_suite: false,
             }),
             Language::Java => Ok(Self {
                 prefix: "class __FrBody__ { void __fr_body__() ",
@@ -408,9 +454,20 @@ impl BodySyntax {
                 nested_item: true,
                 targets: &["method_declaration", "constructor_declaration"],
                 bindings: &[],
+                indented_suite: false,
+            }),
+            Language::Python => Ok(Self {
+                prefix: "def __fr_body__():\n    ",
+                suffix: "",
+                item: "function_definition",
+                blocks: &["block"],
+                nested_item: false,
+                targets: &["function_definition"],
+                bindings: &[],
+                indented_suite: true,
             }),
             _ => anyhow::bail!(
-                "body replacement supports Rust, Go, Java, TypeScript and TSX; select a supported function."
+                "body replacement supports Rust, Go, Java, Python, JavaScript, TypeScript and TSX; select a supported function."
             ),
         }
     }
@@ -434,6 +491,13 @@ impl BodySyntax {
 
     fn block_span(&self, body: tree_sitter::Node<'_>) -> Result<Span> {
         ensure!(self.is_block(body), "selected function needs a block body.");
+        if self.indented_suite {
+            ensure!(
+                body.end_byte() > body.start_byte() && !body.is_missing(),
+                "selected function needs a nonempty suite."
+            );
+            return Ok(Span::from(body));
+        }
         let mut cursor = body.walk();
         let mut braces = body
             .children(&mut cursor)
@@ -485,7 +549,12 @@ fn replacement(
 ) -> Result<(String, &'static str)> {
     let text = fragment(path)?;
     let prefix = syntax.prefix;
-    let wrapped = format!("{prefix}{text}{}", syntax.suffix);
+    let parsed_text = if syntax.indented_suite {
+        text.replace('\n', "\n    ")
+    } else {
+        text.clone()
+    };
+    let wrapped = format!("{prefix}{parsed_text}{}", syntax.suffix);
     let parsed = Parsers::new().parse(language, &wrapped)?;
     if let Some(item) = syntax.wrapped_item(&parsed) {
         if let Some(body) = item.child_by_field_name("body") {
@@ -494,9 +563,16 @@ fn replacement(
                     && parsed.root().named_child_count() == 1
                     && item.kind() == syntax.item
                     && span.start == prefix.len()
-                    && span.end == prefix.len() + text.len()
+                    && span.end == prefix.len() + parsed_text.len()
                 {
-                    return Ok((text, "block"));
+                    return Ok((
+                        text,
+                        if syntax.indented_suite {
+                            "suite"
+                        } else {
+                            "block"
+                        },
+                    ));
                 }
             }
         }
@@ -532,6 +608,42 @@ fn replacement(
     } else {
         "replacement must contain exactly one complete block in the selected language."
     })
+}
+
+fn line_indent(source: &str, offset: usize) -> &str {
+    let start = source[..offset]
+        .rfind('\n')
+        .map_or(0, |newline| newline + 1);
+    &source[start..offset]
+}
+
+fn indent_relative_suite(text: &str, indent: &str) -> String {
+    let mut lines = text.split('\n');
+    let mut output = lines.next().unwrap_or_default().to_owned();
+    for line in lines {
+        output.push('\n');
+        if !line.is_empty() {
+            output.push_str(indent);
+            output.push_str(line);
+        }
+    }
+    output
+}
+
+fn relative_python_suite(text: &str) -> Result<String> {
+    let mut lines = text.split('\n');
+    let mut output = lines.next().unwrap_or_default().to_owned();
+    for line in lines {
+        output.push('\n');
+        if line.is_empty() {
+            continue;
+        }
+        let relative = line
+            .strip_prefix("    ")
+            .context("Python semantic writer emitted an invalid suite indentation.")?;
+        output.push_str(relative);
+    }
+    Ok(output)
 }
 
 pub fn validate_semantic(root: &Path, options: &ValidateSemanticOptions) -> Result<Value> {
@@ -632,6 +744,81 @@ fn function_fragment<'tree>(
 }
 
 impl Project<'_> {
+    pub fn edit_surface(&self, options: &EditSurfaceOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let reference_format = options.edit.len() == 38
+            && options.edit.starts_with("frse1:")
+            && options.edit[6..]
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte));
+        let candidates = super::surface_edit::candidates(self)?;
+        let matches = candidates
+            .iter()
+            .filter(|candidate| candidate.id == options.edit)
+            .collect::<Vec<_>>();
+        let candidate_count = matches.len();
+        let candidate = matches.first().copied();
+        let current_matches = candidate.is_some_and(|candidate| {
+            let source = &self.sources[&candidate.file];
+            candidate
+                .spans
+                .iter()
+                .all(|span| span.text(source) == candidate.value)
+        });
+        let value_valid = candidate
+            .is_some_and(|candidate| super::surface_edit::value_valid(candidate.kind, &options.to));
+        let different = candidate.is_some_and(|candidate| candidate.value != options.to);
+        let collision_free = candidate.is_some_and(|candidate| {
+            super::surface_edit::collision_free(candidate, &options.to, &candidates)
+        });
+        ensure!(
+            surface_edit_admitted(
+                reference_format,
+                candidate_count,
+                current_matches,
+                value_valid,
+                different,
+                collision_free,
+            ),
+            "surface edit is malformed, stale, unknown or ambiguous."
+        );
+        let candidate = candidate.unwrap();
+        let source = &self.sources[&candidate.file];
+        let mut previous_end = 0usize;
+        for span in &candidate.spans {
+            ensure!(
+                span.start >= previous_end && span.end <= source.len(),
+                "surface edit occurrences overlap or leave the captured source."
+            );
+            previous_end = span.end;
+        }
+        let mut edits = EditSet::new();
+        for span in &candidate.spans {
+            edits.add(
+                &candidate.file,
+                Edit::new(*span, &options.to, "Replace the selected surface token."),
+            );
+        }
+        let mut report = self.envelope("edit-surface");
+        report["schema"] = json!("fr-surface-author-1");
+        report["edit"] = json!(candidate.id);
+        report["operation"] = json!(candidate.kind.operation());
+        report["path"] = bounded_text(&candidate.path.to_string_lossy(), 512);
+        report["occurrences"] = json!(candidate.spans.len());
+        report["before"] =
+            json!({"bytes": candidate.value.len(), "sha256": digest(&candidate.value)});
+        report["after"] = json!({"bytes": options.to.len(), "sha256": digest(&options.to)});
+        report["changed"] = json!(true);
+        report["validation"] = json!("token-policy-and-reparse-strict");
+        report["preservation"] = json!("bytes outside the selected token occurrences");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan { edits, report })
+    }
+
     pub fn author_batch(&self, options: &BatchOptions) -> Result<Plan> {
         let manifest: BatchManifest =
             serde_json::from_str(&fragment(&self.root.join(&options.from))?)
@@ -1310,19 +1497,29 @@ impl Project<'_> {
             && function.kind() == "arrow_function"
             && !syntax.is_block(body);
         let (span, before_kind) = if syntax.is_block(body) {
-            (syntax.block_span(body)?, "block")
+            (
+                syntax.block_span(body)?,
+                if syntax.indented_suite {
+                    "suite"
+                } else {
+                    "block"
+                },
+            )
         } else if expression_arrow {
             (Span::from(body), "expression")
         } else {
             anyhow::bail!("selected function needs a block body or an expression-bodied arrow.");
         };
         let before = &source[span.start..span.end];
-        let (after, after_kind) = replacement(
+        let (mut after, after_kind) = replacement(
             &self.root.join(&options.from),
             language,
             &syntax,
             function.kind() == "arrow_function",
         )?;
+        if syntax.indented_suite {
+            after = indent_relative_suite(&after, line_indent(source, span.start));
+        }
         ensure!(
             super::body_replacement_budget(before.len(), after.len()),
             "old and new bodies must each fit 1 through 65536 bytes."
@@ -1430,8 +1627,13 @@ impl Project<'_> {
         );
         let body_span = syntax.block_span(bodies[0])?;
         let rendered_body = body_span.text(&rendered).to_owned();
+        let replacement_body = if syntax.indented_suite {
+            relative_python_suite(&rendered_body)?
+        } else {
+            rendered_body.clone()
+        };
         let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
-        temporary.write_all(rendered_body.as_bytes())?;
+        temporary.write_all(replacement_body.as_bytes())?;
         temporary.flush()?;
         let mut plan = self.replace_body(&ReplaceBodyOptions {
             handle: options.handle.clone(),

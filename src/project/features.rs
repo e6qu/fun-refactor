@@ -5,7 +5,7 @@ use super::{bounded_text, hash, links, FeatureOptions, Project, RelationshipOpti
 use crate::analysis::stitch;
 use crate::lang::Language;
 use crate::parse::Parsers;
-use crate::project::components;
+use crate::project::{components, framework_kernel};
 use anyhow::{bail, Result};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -29,6 +29,7 @@ const COMPONENT_FILE_GAP_LIMIT: usize = 128;
 struct Feature {
     id: String,
     url: Value,
+    identity_basis: &'static str,
     source: Value,
     routes: Vec<Value>,
     frontend_files: BTreeSet<PathBuf>,
@@ -339,6 +340,32 @@ fn reference_candidates(items: &[Value]) -> BTreeMap<String, Vec<Value>> {
 }
 
 impl Project<'_> {
+    fn nearest_npm_manifest(&self, relative: &Path) -> Option<PathBuf> {
+        relative
+            .parent()
+            .into_iter()
+            .flat_map(Path::ancestors)
+            .map(|directory| directory.join("package.json"))
+            .find(|manifest| {
+                self.manifests
+                    .snapshots
+                    .contains_key(&self.root.join(manifest))
+            })
+    }
+
+    fn npm_dependency(&self, manifest: &Path, dependency: &str) -> bool {
+        self.manifests
+            .documents
+            .get(manifest)
+            .is_some_and(|document| {
+                ["dependencies", "devDependencies"].iter().any(|section| {
+                    document[*section][dependency]
+                        .as_str()
+                        .is_some_and(|version| !version.trim().is_empty())
+                })
+            })
+    }
+
     fn expand_frontend_files(&self, application_root: &Value, feature: &mut Feature) -> Result<()> {
         let package_root = value_text(application_root)
             .filter(|root| *root != ".")
@@ -479,6 +506,28 @@ impl Project<'_> {
                     (root, "nextjs-package-root", manifest)
                 }
                 "fastapi" => (route["path"].clone(), "fastapi-route-file", None),
+                "express" => {
+                    let relative = route["path"].as_str().map(Path::new);
+                    let manifest = relative.and_then(|path| self.nearest_npm_manifest(path));
+                    let directory =
+                        manifest
+                            .as_deref()
+                            .and_then(Path::parent)
+                            .unwrap_or_else(|| {
+                                relative.and_then(Path::parent).unwrap_or(Path::new(""))
+                            });
+                    let root = if directory.as_os_str().is_empty() {
+                        json!(".")
+                    } else {
+                        bounded_text(&directory.to_string_lossy(), 512)
+                    };
+                    let basis = if manifest.is_some() {
+                        "express-package-root"
+                    } else {
+                        "express-route-file"
+                    };
+                    (root, basis, manifest)
+                }
                 _ => continue,
             };
             let app_key = key(&json!([framework, root]));
@@ -502,6 +551,7 @@ impl Project<'_> {
                 .or_insert_with(|| Feature {
                     id: feature_id,
                     url: route["url"].clone(),
+                    identity_basis: "exact-route-path",
                     source: source(route),
                     routes: Vec::new(),
                     frontend_files: BTreeSet::new(),
@@ -516,16 +566,7 @@ impl Project<'_> {
                 continue;
             }
             let relative = file.strip_prefix(&self.root)?;
-            let manifest = relative
-                .parent()
-                .into_iter()
-                .flat_map(Path::ancestors)
-                .map(|directory| directory.join("package.json"))
-                .find(|manifest| {
-                    self.manifests
-                        .snapshots
-                        .contains_key(&self.root.join(manifest))
-                });
+            let manifest = self.nearest_npm_manifest(relative);
             let directory = manifest
                 .as_deref()
                 .and_then(Path::parent)
@@ -541,15 +582,12 @@ impl Project<'_> {
                     continue;
                 }
             };
-            if let Some(document) = manifest
+            if manifest
                 .as_ref()
                 .and_then(|manifest| self.manifests.documents.get(manifest))
+                .is_some()
             {
-                let next = ["dependencies", "devDependencies"].iter().any(|section| {
-                    document[*section]["next"]
-                        .as_str()
-                        .is_some_and(|version| !version.trim().is_empty())
-                });
+                let next = self.npm_dependency(manifest.as_ref().unwrap(), "next");
                 if !next {
                     frontend_gaps.push((
                         relative.to_path_buf(),
@@ -594,6 +632,7 @@ impl Project<'_> {
                 .or_insert_with(|| Feature {
                     id: feature_id,
                     url: json!(url),
+                    identity_basis: "nextjs-page-path",
                     source: self.file_source(relative, 1),
                     routes: Vec::new(),
                     frontend_files: BTreeSet::new(),
@@ -603,8 +642,104 @@ impl Project<'_> {
                 .frontend_files
                 .insert(relative.to_path_buf());
         }
+        let mut react_packages: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
+        for file in self.sources.keys() {
+            if !self.scope_file(selected, file) {
+                continue;
+            }
+            let relative = file.strip_prefix(&self.root)?;
+            let jsx_file = matches!(
+                relative.extension().and_then(|value| value.to_str()),
+                Some("jsx" | "tsx")
+            );
+            if !jsx_file {
+                continue;
+            }
+            let Some(manifest) = self.nearest_npm_manifest(relative) else {
+                continue;
+            };
+            let source = &self.sources[file];
+            let parsed = Parsers::new().parse(Language::Tsx, source)?;
+            if !framework_kernel::standalone_react_admitted(
+                self.npm_dependency(&manifest, "react"),
+                self.npm_dependency(&manifest, "next"),
+                jsx_file,
+                !parsed.has_errors(),
+                !components::read(&parsed, source).is_empty(),
+            ) {
+                continue;
+            }
+            react_packages
+                .entry(manifest)
+                .or_default()
+                .insert(relative.to_path_buf());
+        }
+        for (manifest, component_files) in react_packages {
+            let mut imported = BTreeSet::new();
+            for path in &component_files {
+                let source = &self.sources[&self.root.join(path)];
+                let parsed = Parsers::new().parse(Language::Tsx, source)?;
+                for import in components::imports(&parsed, source) {
+                    if !import.source.starts_with('.') {
+                        continue;
+                    }
+                    let candidates = components::import_candidates(
+                        path,
+                        &import.source,
+                        &self.sources,
+                        &self.root,
+                    );
+                    if candidates.len() == 1 && component_files.contains(&candidates[0]) {
+                        imported.insert(candidates[0].clone());
+                    }
+                }
+            }
+            let mut entries = component_files
+                .difference(&imported)
+                .cloned()
+                .collect::<Vec<_>>();
+            if entries.is_empty() {
+                entries.extend(component_files.iter().cloned());
+            }
+            let directory = manifest.parent().unwrap_or(Path::new(""));
+            let root = if directory.as_os_str().is_empty() {
+                json!(".")
+            } else {
+                bounded_text(&directory.to_string_lossy(), 512)
+            };
+            let app_key = key(&json!(["react", root]));
+            let app_id = format!("frfa1:{}", &hash((&self.revision, &app_key))?[..32]);
+            let app = applications.entry(app_key).or_insert_with(|| Application {
+                id: app_id,
+                framework: "react".to_owned(),
+                root: root.clone(),
+                source: self.file_source(&manifest, 1),
+                basis: "react-package-root",
+                manifest: Some(manifest.clone()),
+                features: BTreeMap::new(),
+            });
+            for entry in entries {
+                let feature_key = key(&json!(entry));
+                let feature_id = format!(
+                    "frff1:{}",
+                    &hash((&self.revision, &app.id, &feature_key))?[..32]
+                );
+                let mut frontend_files = BTreeSet::new();
+                frontend_files.insert(entry.clone());
+                app.features.entry(feature_key).or_insert_with(|| Feature {
+                    id: feature_id,
+                    url: json!(entry),
+                    identity_basis: "react-entry-component-file",
+                    source: self.file_source(&entry, 1),
+                    routes: Vec::new(),
+                    frontend_files,
+                    frontend_gaps: Vec::new(),
+                    frontend_gaps_omitted: 0,
+                });
+            }
+        }
         for application in applications.values_mut() {
-            if application.framework != "nextjs-app" {
+            if !matches!(application.framework.as_str(), "nextjs-app" | "react") {
                 continue;
             }
             let application_root = application.root.clone();
@@ -1038,10 +1173,12 @@ impl Project<'_> {
                     json!(application.basis),
                     json!("candidate"),
                     Value::Null,
-                    if application.framework == "nextjs-app" {
-                        json!(["Runtime Next.js configuration and package resolution remain unchecked."])
-                    } else {
-                        json!(["The reader joins constructor prefixes into route paths. Include-router and mounted prefixes, application factories and runtime registration remain unchecked."])
+                    match application.framework.as_str() {
+                        "nextjs-app" => json!(["Runtime Next.js configuration and package resolution remain unchecked."]),
+                        "fastapi" => json!(["The reader joins constructor prefixes into route paths. Include-router and mounted prefixes, application factories and runtime registration remain unchecked."]),
+                        "express" => json!(["Static route registration does not prove middleware order, mounted-router prefixes, application factories or runtime registration."]),
+                        "react" => json!(["The package and component graph do not prove the runtime entry point, router ownership, rendering or bundler configuration."]),
+                        _ => json!(["Runtime application identity remains unchecked."]),
                     },
                 ),
                 "application",
@@ -1064,16 +1201,22 @@ impl Project<'_> {
                     Some(&application.id),
                     feature.source.clone(),
                     FactEvidence::new(
-                        json!("exact-route-path"),
+                        json!(feature.identity_basis),
                         json!("candidate"),
                         Value::Null,
                         json!([
-                            "Business feature identity is approximated by an exact shared route path."
+                            if application.framework == "react" {
+                                "Feature identity is approximated by a root component file in the captured relative-import graph."
+                            } else {
+                                "Business feature identity is approximated by an exact shared route path."
+                            }
                         ]),
                     ),
                     "feature",
                     json!({
-                        "route_path": feature.url,
+                        "identity": feature.url,
+                        "route_path": if application.framework == "react" { Value::Null } else { feature.url.clone() },
+                        "entry_path": if application.framework == "react" { feature.url.clone() } else { Value::Null },
                         "route_count": feature.routes.len(),
                         "component_file_count": feature.frontend_files.len(),
                     }),
@@ -1354,7 +1497,7 @@ impl Project<'_> {
         }
         for route in items.iter().filter(|row| row["kind"] == "route") {
             let framework = route["framework_candidate"].as_str().unwrap_or("unknown");
-            if matches!(framework, "nextjs-app" | "fastapi") {
+            if matches!(framework, "nextjs-app" | "fastapi" | "express") {
                 continue;
             }
             unsupported_framework_routes += 1;
@@ -1483,7 +1626,7 @@ impl Project<'_> {
             "schema_expansion_limit": SCHEMA_EXPANSION_LIMIT,
             "schema_expansions_omitted": schema_omitted,
             "unsupported_framework_routes": unsupported_framework_routes,
-            "readers": ["nextjs-app", "fastapi"],
+            "readers": ["nextjs-app", "react", "fastapi", "express"],
             "feature_selection": options.feature,
             "certainty": "Applications and features are candidates. Backend and component facts retain their source reader evidence.",
             "limitations": [
@@ -1493,7 +1636,7 @@ impl Project<'_> {
                 "Lifecycle hooks preserve supported declarations; execution, resource effects and runtime selection remain unchecked.",
                 "Runtime configuration preserves environment declaration and accessor evidence; values, precedence and deployment identity remain unchecked.",
                 "Outbound HTTP calls preserve sanitized literal targets; receiver identity, request options, response use and runtime reachability remain unchecked.",
-                "Next.js React function components preserve bounded props, state, effects, events, styles and render edges; runtime rendering remains unchecked.",
+                "Next.js and standalone React function components preserve bounded props, state, effects, events, styles and render edges; runtime rendering remains unchecked.",
                 "Schema expansion follows bounded same-file type-name candidates and preserves ambiguity."
             ],
         });

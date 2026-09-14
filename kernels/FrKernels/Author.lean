@@ -206,6 +206,49 @@ theorem semantic_body_requires_supported_target
     targetSupported = true := by
   exact (semantic_body_admitted_iff schemaMatches targetSupported sourceFree bounded).mp accepted |>.2.1
 
+-- fr:spec src/project/author.rs::surface_edit_admitted @ 3562519a1675691d9446a3ed3e971f56ce5c792d661e3b2a2cd8dbbe93f08d24
+-- fr:signature reference_format: bool => referenceFormat: Bool; candidate_count: usize => candidateCount: Nat; current_matches: bool => currentMatches: Bool; value_valid: bool => valueValid: Bool; different: bool => different: Bool; collision_free: bool => collisionFree: Bool; return: bool => return: Bool
+def surfaceEditAdmitted
+    (referenceFormat : Bool)
+    (candidateCount : Nat)
+    (currentMatches : Bool)
+    (valueValid : Bool)
+    (different : Bool)
+    (collisionFree : Bool) : Bool :=
+  referenceFormat && decide (candidateCount = 1) && currentMatches && valueValid && different &&
+    collisionFree
+
+theorem surface_edit_admitted_iff
+    (referenceFormat : Bool)
+    (candidateCount : Nat)
+    (currentMatches valueValid different collisionFree : Bool) :
+    surfaceEditAdmitted referenceFormat candidateCount currentMatches valueValid different
+        collisionFree = true ↔
+      referenceFormat = true ∧ candidateCount = 1 ∧ currentMatches = true ∧ valueValid = true ∧
+        different = true ∧ collisionFree = true := by
+  simp [surfaceEditAdmitted, and_assoc]
+
+theorem surface_edit_requires_exact_candidate
+    (referenceFormat : Bool)
+    (candidateCount : Nat)
+    (currentMatches valueValid different collisionFree : Bool)
+    (accepted : surfaceEditAdmitted referenceFormat candidateCount currentMatches valueValid
+      different collisionFree = true) :
+    candidateCount = 1 := by
+  exact (surface_edit_admitted_iff referenceFormat candidateCount currentMatches valueValid different
+    collisionFree).mp accepted |>.2.1
+
+theorem surface_edit_requires_current_and_collision_free
+    (referenceFormat : Bool)
+    (candidateCount : Nat)
+    (currentMatches valueValid different collisionFree : Bool)
+    (accepted : surfaceEditAdmitted referenceFormat candidateCount currentMatches valueValid
+      different collisionFree = true) :
+    currentMatches = true ∧ collisionFree = true := by
+  have facts := (surface_edit_admitted_iff referenceFormat candidateCount currentMatches valueValid
+    different collisionFree).mp accepted
+  exact ⟨facts.2.2.1, facts.2.2.2.2.2⟩
+
 -- fr:spec src/project/semantic_change.rs::semantic_change_admitted @ dcc9951d19dcb195d5ab7acc76d705d4bc14e60c9d0a0c0dd033ad75620b0672
 -- fr:signature schema_matches: bool => schemaMatches: Bool; base_well_formed: bool => baseWellFormed: Bool; base_matches: bool => baseMatches: Bool; source_free: bool => sourceFree: Bool; operation_count: usize => operationCount: Nat; return: bool => return: Bool
 def semanticChangeAdmitted

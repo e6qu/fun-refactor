@@ -25,7 +25,8 @@ Review diff and retain `plan_context_basis`. Repeat it with
 `frpb1`; `frcb1` is a project basis and cannot save a plan.
 
 Rust insertion preserves bytes and docs; only traits allow bodyless functions. Body replacement
-covers Rust, Go, Java and supported TypeScript/TSX bindings; arrows may change form.
+covers Rust, Go, Java, Python and supported JavaScript/TypeScript/TSX bindings; arrows may change form.
+Python fragments are relative suites and cover decorated synchronous or asynchronous handlers.
 For source-free body replacement and smaller checked changes, use [Semantic](semantic.md).
 
 ```rust

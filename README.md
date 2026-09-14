@@ -24,7 +24,7 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
 The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. The [v2](docs/agent-context-v2-evaluation.md), [v3](docs/agent-context-v3-evaluation.md), and [prescribed v4 workflow](docs/agent-workflow-v4-evaluation.md) evaluations report fixed-workflow reductions, exact change boundaries and the latest passing comparison.
 The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
-[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, TypeScript and TSX implementation changes through project handles and source-history transactions.
+[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, Python, JavaScript, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Semantic project data](docs/semantic-model.md) lets agents inspect source-free typed IR and author
 supported bodies, checked deltas and role-based scalar intents through the same transactions.
 Reviewed semantic edit plans resolve one exact declaration and scalar below a workspace path.
@@ -369,13 +369,25 @@ Its expansion helper has an anchored Lean model with finite convergence and exac
 Shared graph cases test Rust correspondence; Cargo interpretation remains outside the proofs.
 `fr project calls` and `implementations` page through call sites and hierarchy candidates, retaining uncertainty and coverage gaps.
 `fr project routes` adds bounded declarations and handler candidates for five pattern readers, Next.js App Router exports and direct FastAPI decorators.
+`fr project technologies` inventories JavaScript, TypeScript, React, Next.js, Go, Python,
+FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid as distinct surfaces.
+It returns source-free, content-addressed evidence with bounded counts and follow-up actions.
+`fr project styles` links CSS definitions to literal HTML/JSX class uses and marks Tailwind utility
+candidates only with package evidence. `fr project diagrams` retains Markdown heading hierarchy
+and embedded Mermaid node/edge graphs. Both reports preserve source handles and explicit gaps; see
+the [cross-stack surface model](docs/cross-stack-surfaces.md).
+Editable rows return opaque revision-bound capabilities for exact CSS definitions, literal class
+tokens, Markdown headings and Mermaid nodes. `fr author edit-surface` previews and records those
+changes through the same undo, redo and Git patch history as function authoring.
+`fr project disclose HANDLE --view project` commits these reports and application facts as four
+independently revealable Merkle branches.
 Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.
 Direct variable handlers expose initializer annotations. Nested app candidates retain captured npm dependency and package-boundary evidence.
 `fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.
 FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
 `fr project schemas` pages Python class, TypeScript interface/object-alias and Rust struct fields, with followable candidates and explicit validation gaps.
 `fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
-`fr project features` joins the bounded Next.js App Router and FastAPI facts into a parent-linked hierarchy.
+`fr project features` joins bounded Next.js App Router, standalone React, Express.js and FastAPI facts into a parent-linked hierarchy.
 It groups exact route paths inside inferred application boundaries, then links routes, handlers, contract fields, execution dependencies and same-file schema candidates.
 Next.js applications also link to captured npm packages, build scripts and declared dependency boundaries.
 Local manifest links remain distinct from dependencies that need package-manager resolution.
@@ -385,7 +397,8 @@ Lifecycle children cover Next.js instrumentation exports and FastAPI lifespan or
 Runtime configuration links environment declarations to application consumers without exposing values.
 Handler children include sanitized `fetch`, axios, requests and HTTPX service candidates; dynamic targets become gaps.
 Next.js pages also form features without API routes.
-Their React files include inherited layouts and bounded relative component imports.
+Standalone React packages form features at root component files in the captured relative-import graph.
+Their React files include inherited Next.js layouts where applicable and bounded relative component imports.
 Direct function components expose server/client boundaries, props, state, effects, other hook names, events and style shapes.
 Render edges resolve unique same-file, default-import and named-import declarations to source anchors.
 Files below a captured `use client` import path retain a client-transitive candidate marker.

@@ -14,6 +14,16 @@ pub fn component_hooks_compatible(client: bool, runtime_hooks: usize) -> bool {
     client || runtime_hooks == 0
 }
 
+pub fn standalone_react_admitted(
+    react_dependency: bool,
+    next_dependency: bool,
+    jsx_file: bool,
+    syntax_valid: bool,
+    component_found: bool,
+) -> bool {
+    react_dependency && !next_dependency && jsx_file && syntax_valid && component_found
+}
+
 pub fn configuration_visibility(nextjs: bool, public_name: bool) -> usize {
     if !nextjs {
         0
