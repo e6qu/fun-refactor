@@ -1321,7 +1321,7 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         .into());
     }
 
-    if let Some(offender) = path_attribute_user(index, &to_module.src) {
+    if let Some(offender) = path_attribute_conflict(index, &to_module.src, destination) {
         return Err(Refusal::Declined {
             detail: format!(
                 "{} contains a `#[path]` attribute, so a module's file location no longer \
@@ -1654,9 +1654,10 @@ fn declares_module(source: &str, name: &str) -> bool {
     })
 }
 
-/// The first file under `src` that uses `#[path]`, which unhooks module paths from file
-/// locations.
-fn path_attribute_user(index: &Index, src: &Path) -> Option<PathBuf> {
+/// The first `#[path]` declaration that changes the logical module represented by
+/// `destination`. An unrelated remapped module does not make every conventional module in
+/// the crate ambiguous.
+fn path_attribute_conflict(index: &Index, src: &Path, destination: &Path) -> Option<PathBuf> {
     let parsers = crate::parse::Parsers::new();
     let mut found: Option<PathBuf> = None;
     for (path, info) in index.files() {
@@ -1676,24 +1677,52 @@ fn path_attribute_user(index: &Index, src: &Path) -> Option<PathBuf> {
         let Ok(parsed) = parsers.parse(Language::Rust, &text) else {
             continue;
         };
-        if declares_a_module_path(parsed.root(), &text) {
+        if remaps_destination(parsed.root(), &text, path, destination) {
             found = Some(path.clone());
         }
     }
     found
 }
 
-/// Does any attribute in this tree set a module's file with `#[path = "…"]`?
-fn declares_a_module_path(root: tree_sitter::Node, source: &str) -> bool {
+fn remaps_destination(
+    root: tree_sitter::Node,
+    source: &str,
+    declaring_file: &Path,
+    destination: &Path,
+) -> bool {
     let mut stack = vec![root];
     while let Some(node) = stack.pop() {
         if node.kind() == "attribute_item" {
-            let text = Span::from(node).text(source);
-            let rest = text.trim_start_matches("#[").trim_start();
+            let written = Span::from(node).text(source);
+            let rest = written.trim_start_matches("#[").trim_start();
             if let Some(after) = rest.strip_prefix("path") {
-                // `path` the attribute, not `pathological` or `path::name`.
-                if after.trim_start().starts_with('=') {
-                    return true;
+                let value = after
+                    .trim_start()
+                    .strip_prefix('=')
+                    .map(str::trim)
+                    .and_then(|value| value.strip_suffix(']'))
+                    .map(str::trim)
+                    .and_then(|value| value.strip_prefix('"'))
+                    .and_then(|value| value.strip_suffix('"'));
+                let mut declaration = node.next_named_sibling();
+                while declaration.is_some_and(|next| next.kind() == "attribute_item") {
+                    declaration = declaration.and_then(|next| next.next_named_sibling());
+                }
+                if let (Some(relative), Some(declaration)) = (value, declaration) {
+                    if declaration.kind() == "mod_item" {
+                        let parent = declaring_file.parent().unwrap_or(Path::new(""));
+                        let mapped = parent.join(relative);
+                        let conventional = declaration
+                            .child_by_field_name("name")
+                            .map(|name| Span::from(name).text(source))
+                            .is_some_and(|name| {
+                                destination == parent.join(format!("{name}.rs"))
+                                    || destination == parent.join(name).join("mod.rs")
+                            });
+                        if destination == mapped || conventional {
+                            return true;
+                        }
+                    }
                 }
             }
         }

@@ -67,6 +67,14 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B862: **one remapped Rust module blocked moves between unrelated conventional modules.**
+
+  Rust move planning treated any `#[path]` declaration below the crate root as proof that no
+  destination module path could be inferred. The post-merge deep audit therefore refused a move
+  between `edit.rs` and `span.rs` because `framework_kernel` is stored under `project/`. Move
+  planning now checks whether the attribute remaps the selected destination. It still refuses the
+  mapped physical target and the displaced conventional module path.
+
 - [x] B861: **structural descriptor arrays crowded scalar inspection out of compact disclosure.**
 
   A statement can expose replacement, deletion and insertion capabilities. Attaching all three to a

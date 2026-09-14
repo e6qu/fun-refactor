@@ -21,14 +21,14 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 707 |
+| Defects fixed | 708 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
-| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and Merkle-committed progressive disclosure | Extend semantic coverage and validate context savings on broader agent tasks |
+| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and Merkle-committed progressive disclosure | Make hierarchy, traces, impact and value-flow evidence independently verifiable and progressively navigable |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-eight passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
@@ -1058,6 +1058,77 @@ Planned checkpoints:
 7. **Complete.** Close adversarial coverage, defect and continuity records. The complete default,
    WASM, strict-proof, skill and evidence gates pass locally. Hosted CI builds and exercises the
    browser playground before review.
+
+### PR 24. Proof-Carrying Project Evidence Disclosure
+
+Status: in progress.
+
+Goal: make one bounded progressive-reveal protocol the agent-facing navigation layer for semantic
+IR, project hierarchy, call traces, impact and value-flow endpoints. Every revealed fact must be
+independently checkable against the selected project snapshot without retaining all earlier pages
+or reading source.
+
+Deliverables:
+
+- Add an explicit source-free evidence view to `project disclose`. Commit declaration context,
+  bounded code-map hierarchy, incoming and outgoing call traces, impact candidates, and local
+  value-flow origins and destinations in one deterministic Merkle tree. Preserve confidence,
+  omissions and analysis boundaries as data.
+- Return a Merkle inclusion proof with every semantic or evidence reveal. Define a canonical proof
+  shape for object keys and array positions, bind it to the view root, and provide independent
+  verification in the zero-dependency Python SDK. Proofs and response metadata remain inside the
+  requested response ceiling.
+- Make shortcuts describe the evidence domains and their hidden descendant counts. Exact returned
+  actions traverse hierarchy, trace branches, source and sink endpoints, and semantic nodes without
+  reconstructing pointers or ingesting file text.
+- Keep the existing semantic view and opaque scalar/structural edit capabilities compatible. An
+  evidence view is read-only and source-free; the exact-source frontier remains an explicit last
+  resort bound to the same declaration snapshot.
+- Model proof-step admission, root reconstruction, view/domain transitions and frontier arithmetic
+  in Lean. Anchor the Rust predicates and compare exhaustive finite cases plus independent hash
+  vectors. Hash collision resistance, parser correctness and analysis completeness remain named
+  trust boundaries.
+- Run the parser and complete translation corpus across every advertised language pair. Fix every
+  reproducible parser or writer regression exposed by the audit, record unsupported constructs
+  precisely, and add round-trip or compile/runtime regressions for repaired forms.
+- Repair B862 from post-merge deep validation: a `#[path]` attribute may invalidate only the Rust
+  module it remaps, rather than every otherwise conventional move in that crate.
+- Retain a generic evaluator that verifies inclusion proofs independently, follows code-map, call,
+  impact, source and sink branches under small budgets, detects tampering and stale snapshots, and
+  compares the progressive route with direct bounded project reports.
+
+Verification and acceptance:
+
+1. A reveal can be verified from its value, inclusion proof and advertised tree root alone. A
+   changed key, index, sibling digest, direction, domain, target or snapshot fails verification.
+2. Compact evidence starts without source lines. Its hierarchy, callers, callees, impact rows,
+   value origins and destinations are source-free projections of the direct analyzers and retain
+   their confidence and explicit incomplete boundaries.
+3. Every response, proof and continuation stays within the requested compact or expanded ceiling.
+   A proof that cannot fit refuses without silently omitting authentication data.
+4. Existing semantic disclosure identities, authoring capabilities, checked changes, undo/redo and
+   Git patch behavior remain unchanged.
+5. Lean establishes the finite proof and transition laws; Rust agrees on the complete shared case
+   sets. Independent Python hashes and verifies real response proofs without calling Rust helpers.
+6. The complete parser/translation sweep has no newly carried construct or advertised pair that
+   refuses. Each repaired syntax form has a focused regression and generated output reparses.
+7. Default, deep, WASM/playground, strict Lean, capability, Python SDK, portable-skill, prose and
+   retained-evidence gates pass before review.
+
+Planned checkpoints:
+
+1. **In progress.** Repair the deep-validation Rust module-path false refusal and pin both the
+   unrelated and actually-remapped cases.
+2. Add canonical inclusion proofs to semantic reveals, independent Python verification and
+   tamper/stale/budget tests.
+3. Add the source-free project-evidence tree and progressive shortcuts for hierarchy, calls,
+   impact, origins and destinations.
+4. Formalize proof reconstruction and evidence-view transition policy; add strict anchors and
+   exhaustive Rust/Lean correspondence.
+5. Run the complete parsing and translation audits, fix concrete regressions and record remaining
+   evidence limits.
+6. Retain the independent progressive-evidence evaluator, update SDK and skill guidance, refresh
+   context evidence, and pass the full native/browser/proof/documentation gates.
 
 ## Formal verification policy
 

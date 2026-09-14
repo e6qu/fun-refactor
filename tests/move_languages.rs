@@ -365,7 +365,7 @@ fn rust_refuses_a_destination_that_is_not_declared_as_a_module() {
 }
 
 #[test]
-fn rust_refuses_when_a_path_attribute_remaps_the_module_tree() {
+fn rust_ignores_an_unrelated_path_attribute_when_moving_between_conventional_modules() {
     let ws = Workspace::new(&[
         (
             "src/lib.rs",
@@ -376,7 +376,23 @@ fn rust_refuses_when_a_path_attribute_remaps_the_module_tree() {
     ]);
     let index = ws.index();
     let id = symbol_id(&index, "shared", None);
-    let message = error(move_symbol::to_file(&index, id, &ws.path("src/store.rs")));
+    move_symbol::to_file(&index, id, &ws.path("src/store.rs"))
+        .expect("the remapped helpers module does not affect store");
+}
+
+#[test]
+fn rust_refuses_when_the_destination_module_is_remapped_by_path() {
+    let ws = Workspace::new(&[
+        (
+            "src/lib.rs",
+            "#[path = \"elsewhere/thing.rs\"]\npub mod helpers;\npub mod source;\n",
+        ),
+        ("src/source.rs", "pub fn shared() {}\n"),
+        ("src/helpers.rs", "\n"),
+    ]);
+    let index = ws.index();
+    let id = symbol_id(&index, "shared", None);
+    let message = error(move_symbol::to_file(&index, id, &ws.path("src/helpers.rs")));
     assert!(message.contains("`#[path]` attribute"), "got: {message}");
 }
 
