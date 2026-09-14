@@ -95,6 +95,10 @@ It preserves the current snapshot at every unselected path, including an unrelat
 The inverse and mixed-recovery proofs use Lean’s propositional extensionality axiom. The two stack inverse proofs use no axioms.
 The selected-namespace proofs use no axioms. The model assumes durable journal checkpoints and atomic rename.
 Filesystem, path selection and full transaction implementation correspondence remain unproved. A Git-backed CLI test supplies concrete preservation evidence.
+Its source-history retention model admits compaction only for detailed, non-pending, non-retained,
+non-planned records. Lean proves retained and planned records cannot qualify, and shared execution
+compares all sixteen boolean states with Rust. Integration tests cover basis drift, stack windows,
+summary integrity, journal shrinkage and refusal to replay a compacted record.
 
 `FrKernels.MemoryHistory` specializes the lifecycle boundary used by an in-memory WASM workspace.
 It proves that non-top and abandoned records cannot transition. Applied and undone records admit only

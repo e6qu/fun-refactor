@@ -532,6 +532,19 @@ enum Command {
 
 #[derive(Subcommand)]
 enum HistoryCommand {
+    #[command(about = "Remove old replay payloads while retaining transaction summaries.")]
+    Compact {
+        #[arg(
+            long,
+            default_value_t = 100,
+            help = "Replayable records retained on each undo/redo stack."
+        )]
+        keep: usize,
+        #[arg(long, help = "Basis returned by a compaction preview.")]
+        basis: Option<String>,
+        #[arg(long, requires = "basis")]
+        write: bool,
+    },
     #[command(about = "Export stored transaction snapshots as a Git text patch.")]
     Patch {
         id: u64,
@@ -3070,6 +3083,11 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         }
         return Ok(());
     }
+    if let Some(HistoryCommand::Compact { keep, basis, write }) = command {
+        let report = crate::history::compact(&cli.root, *keep, basis.as_deref(), *write)?;
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
     let report = match command {
         Some(HistoryCommand::Apply { id, write, no_diff }) => crate::history::act_with_context(
             &cli.root,
@@ -3114,7 +3132,9 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                 "records": records.iter().map(|r| {
                     let mut record = serde_json::json!({
                         "id": r.id, "status": r.status, "basis": r.basis, "source_revision": r.source_revision, "validation": r.validation,
-                        "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>()
+                        "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>(),
+                        "compacted": r.changes.is_empty(),
+                        "path_count": if r.changes.is_empty() { r.compacted_paths } else { r.changes.len() }
                     });
                     if let Some(required_checks) = &r.required_checks {
                         record["required_checks"] = serde_json::json!(required_checks);
@@ -3122,7 +3142,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                     if !r.check_evidence.is_empty() {
                         record["check_evidence"] = serde_json::json!(r.check_evidence);
                     }
-                    if other.is_some() {
+                    if other.is_some() && !r.changes.is_empty() {
                         record["context_basis"] =
                             serde_json::json!(crate::history::transaction_context_basis(r));
                         record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({
@@ -3131,6 +3151,8 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                             "before_kind": c.before.as_ref().map(|s| s.kind), "after_kind": c.after.as_ref().map(|s| s.kind),
                             "diff": crate::edit::unified_diff(c.before.as_ref().map_or("", |s| &s.content), c.after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())
                         })).collect::<Vec<_>>());
+                    } else if r.changes.is_empty() {
+                        record["compaction_digest"] = serde_json::json!(r.compaction_digest);
                     }
                     record
                 }).collect::<Vec<_>>() })

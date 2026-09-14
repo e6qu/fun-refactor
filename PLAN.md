@@ -27,8 +27,8 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Milestone | Status | Delivered foundation | Remaining outcome |
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
-| M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
-| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and Merkle-committed progressive disclosure | Make hierarchy, traces, impact and value-flow evidence independently verifiable and progressively navigable |
+| M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo, redo and reviewed native retention | Maintain the shared history invariant |
+| M2 compact project understanding | Complete | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and independently verifiable Merkle disclosure for code maps, traces, impact and value flow | Extend from measured agent needs |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-eight passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
@@ -53,6 +53,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
+- Basis-bound native history compaction that retains audit summaries while bounding replay payloads.
 - Bounded Git status, diff, changed-declaration and call-context views.
 - Unix staging previews and writes, durable staging undo/redo, reviewed commits and owned worktree creation, recovery, removal, resumption and archive compaction.
 - Native releases, a WASM API, and a browser playground with checked transaction undo/redo and shared Git patch downloads.
@@ -1409,8 +1410,8 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 
 - Complete dependency resolution, feature evaluation and package-manager semantics remain outside the current Cargo/npm subset.
 - Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
-- Native history needs retention and large-journal scaling. Browser history is session-only, bounded,
-  and records UTF-8 regular-file snapshots with mode `0644`; it does not provide crash recovery or persistence.
+- Native history has explicit, basis-bound replay-payload retention. Browser history remains
+  session-only and records UTF-8 regular-file snapshots with mode `0644`; it does not provide crash recovery or persistence.
 - Strict signature maps currently accept Rust source declarations only.
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
 - LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.

@@ -70,4 +70,10 @@ def main (args : List String) : IO Unit :=
         for action in List.range 3 do
           for atTop in [false, true] do
             IO.println (FrKernels.MemoryHistory.transitionAllowed status action atTop)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, memory-transitions or no arguments")
+  | ["record-compaction"] =>
+      for detailed in [false, true] do
+        for pending in [false, true] do
+          for retained in [false, true] do
+            for planned in [false, true] do
+              IO.println (recordCompactable detailed pending retained planned)
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, memory-transitions, record-compaction or no arguments")

@@ -1569,3 +1569,18 @@ skill. The new `surfaces.md` route keeps every reference below 4 KiB and every c
 7 KiB; all 51 executable examples pass. Five retained deterministic context reports now bind the
 current binary, implementation and skill hashes. The full acceptance harness passes 15 tests with
 its one environment-dependent replay ignored.
+
+## Deferred-work closure
+
+The next milestone starts by closing two validation and storage gaps. `fr history compact` previews
+and applies a basis-bound retention window for ordinary source history. It removes old replay
+payloads only after review, retains checksum-bound audit summaries and refuses planned or pending
+records. Compacted IDs cannot later replay, export a patch or receive evidence. The newest requested
+records on both active stacks remain fully reversible. A Lean-anchored predicate proves the
+eligibility boundary and agrees with Rust over all sixteen boolean inputs.
+
+The formerly manual external regex replay now has one pinned script and runs from the scheduled deep
+audit. A local run on this branch passed all five retained cohorts in 550.08 seconds after exact
+dependency bootstrap. The complete deep gate had already passed 14 whole-repository command
+agreements, both runtime conformance cases, all round trips and all 79 Lean tests including the two
+full self-audits.

@@ -22,9 +22,9 @@ jobs:
   audit:
     name: Full repository audit
     runs-on: ubuntu-latest
-    # A cold whole-repository audit has five intentionally exhaustive checks.
-    # Forty-five minutes permits that work while still failing a stalled runner.
-    timeout-minutes: 45
+    # A cold whole-repository audit includes the pinned external patch replays.
+    # One hour permits that work while still failing a stalled runner.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
 

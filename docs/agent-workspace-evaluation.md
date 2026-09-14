@@ -228,6 +228,11 @@ An opt-in integration regression runs the same workspace replay after the depend
 CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test agent_acceptance recorded_workspace_patches_pass_checks_oracles_and_exact_reversal -- --ignored
 ```
 
+`tools/check-external-replays.sh` performs the pinned unpack and dependency preparation, then runs
+that replay with Cargo offline. The scheduled deep audit invokes it after repository translation and
+Lean self-audits, so every merged revision rechecks the retained external patches. Pass `--offline`
+after `cargo fetch` has populated the dependency cache.
+
 The M4l default acceptance gate retained sixteen harness regressions and eight earlier patch replays without requiring the additional workspace dependencies.
 The M4k full native/WASM gate and strict kernel verification passed before these trials.
 This milestone adds evidence, replay coverage and documentation; production code and formal claims are unchanged.

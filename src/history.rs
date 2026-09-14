@@ -86,6 +86,10 @@ pub struct Record {
     pub source_revision: String,
     pub validation: String,
     pub changes: Vec<Change>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub compacted_paths: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compaction_digest: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub required_checks: Option<CheckRequirement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -133,6 +137,14 @@ pub struct History {
     pub applied: Vec<u64>,
     pub redo: Vec<u64>,
     pub pending: Option<Pending>,
+}
+
+fn is_zero(value: &usize) -> bool {
+    *value == 0
+}
+
+pub fn record_compactable(detailed: bool, pending: bool, retained: bool, planned: bool) -> bool {
+    detailed && !pending && !retained && !planned
 }
 
 fn regular(path: &Path) -> Result<bool> {
@@ -240,8 +252,22 @@ impl History {
         }
         let mut ids = std::collections::BTreeSet::new();
         for record in &history.records {
-            if record.id == 0 || !ids.insert(record.id) || record.basis != basis(&record.changes)? {
+            let detailed = !record.changes.is_empty();
+            if record.id == 0
+                || !ids.insert(record.id)
+                || !sha256_text(&record.basis)
+                || (detailed && record.basis != basis(&record.changes)?)
+            {
                 bail!("invalid transaction identity or basis");
+            }
+            if !((detailed && record.compacted_paths == 0 && record.compaction_digest.is_none())
+                || (!detailed
+                    && record.compacted_paths > 0
+                    && record.status != Status::Planned
+                    && record.compaction_digest.as_deref()
+                        == Some(compaction_digest(record)?.as_str())))
+            {
+                bail!("invalid transaction payload or compaction summary");
             }
             let mut paths = std::collections::BTreeSet::new();
             for change in &record.changes {
@@ -311,13 +337,17 @@ impl History {
             (&history.redo, Status::Undone),
         ] {
             for id in stack {
-                if !active.insert(id) || history.record(*id)?.status != status {
+                if !active.insert(id)
+                    || history.record(*id)?.status != status
+                    || history.record(*id)?.changes.is_empty()
+                {
                     bail!("invalid transaction stack");
                 }
             }
         }
         for record in &history.records {
-            if matches!(record.status, Status::Applied | Status::Undone)
+            if !record.changes.is_empty()
+                && matches!(record.status, Status::Applied | Status::Undone)
                 && !active.contains(&record.id)
             {
                 bail!("transaction is missing from its stack");
@@ -403,6 +433,17 @@ impl History {
             Status::Applied
         };
         self.pending = None;
+    }
+}
+
+impl Record {
+    pub(crate) fn ensure_replayable(&self) -> Result<()> {
+        ensure!(
+            !self.changes.is_empty(),
+            "transaction {} replay payload was compacted",
+            self.id
+        );
+        Ok(())
     }
 }
 
@@ -688,6 +729,8 @@ fn store_record(
         source_revision: revision,
         validation: validation.to_owned(),
         changes,
+        compacted_paths: 0,
+        compaction_digest: None,
         required_checks: required_checks.cloned(),
         check_evidence: Vec::new(),
     });
@@ -696,6 +739,118 @@ fn store_record(
         transition(history, Action::Apply, id)?;
     }
     Ok(RecordResult { id, created: true })
+}
+
+fn digest(value: &impl Serialize) -> Result<String> {
+    Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(value)?)))
+}
+
+fn compaction_digest(record: &Record) -> Result<String> {
+    digest(&(
+        record.id,
+        record.status,
+        &record.basis,
+        &record.source_revision,
+        &record.validation,
+        record.compacted_paths,
+        &record.required_checks,
+        &record.check_evidence,
+    ))
+}
+
+fn retained(stack: &[u64], keep: usize) -> std::collections::BTreeSet<u64> {
+    stack.iter().rev().take(keep).copied().collect()
+}
+
+pub fn compact(
+    root: &Path,
+    keep: usize,
+    expected_basis: Option<&str>,
+    write: bool,
+) -> Result<serde_json::Value> {
+    ensure!(
+        keep <= 10_000,
+        "source history keep count must be 0 through 10000"
+    );
+    let root = workspace(root)?;
+    let _lock = write.then(|| lock(&root)).transpose()?;
+    let mut history = History::read(&root)?;
+    history.ensure_ready()?;
+    let retained = retained(&history.applied, keep)
+        .into_iter()
+        .chain(retained(&history.redo, keep))
+        .collect::<std::collections::BTreeSet<_>>();
+    let candidates = history
+        .records
+        .iter()
+        .filter(|record| {
+            record_compactable(
+                !record.changes.is_empty(),
+                history
+                    .pending
+                    .as_ref()
+                    .is_some_and(|pending| pending.id == record.id),
+                retained.contains(&record.id),
+                record.status == Status::Planned,
+            )
+        })
+        .map(|record| record.id)
+        .collect::<std::collections::BTreeSet<_>>();
+    let paths = candidates
+        .iter()
+        .map(|id| history.record(*id).map(|record| record.changes.len()))
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .sum::<usize>();
+    let state_path = directory(&root)?.join("state.json");
+    let before_bytes = fs::metadata(&state_path)
+        .map(|metadata| metadata.len() as usize)
+        .unwrap_or(0);
+    let basis = format!(
+        "frhistorycompact1:{}",
+        digest(&(&history, keep, &candidates))?
+    );
+    if let Some(expected) = expected_basis {
+        ensure!(
+            expected == basis,
+            "stale source history compaction basis; request a new preview"
+        );
+    }
+    history.applied.retain(|id| !candidates.contains(id));
+    history.redo.retain(|id| !candidates.contains(id));
+    for record in &mut history.records {
+        if candidates.contains(&record.id) {
+            record.compacted_paths = record.changes.len();
+            record.changes.clear();
+            record.compaction_digest = Some(compaction_digest(record)?);
+        }
+    }
+    let after_bytes = serde_json::to_vec(&history)?.len();
+    let mut report = serde_json::json!({
+        "schema": 1,
+        "operation": if write { "history-compact" } else { "history-compact-preview" },
+        "basis": basis,
+        "basis_verified": expected_basis.is_some(),
+        "applied": false,
+        "keep_per_stack": keep,
+        "records_compacted": candidates.len(),
+        "paths_compacted": paths,
+        "journal_bytes_before": before_bytes,
+        "journal_bytes_after": after_bytes,
+        "can_compact": !candidates.is_empty(),
+        "undo_after": history.applied.last(),
+        "redo_after": history.redo.last(),
+        "source_bodies": "omitted",
+    });
+    if write {
+        ensure!(
+            !candidates.is_empty(),
+            "source history has no replay payloads eligible for compaction"
+        );
+        history.save()?;
+        report["applied"] = serde_json::json!(true);
+    }
+    Ok(report)
 }
 
 pub(crate) fn record_check_evidence(root: &Path, id: u64, evidence: CheckEvidence) -> Result<bool> {
@@ -739,6 +894,7 @@ fn ensure_check_evidence_target(
     checks: &[String],
 ) -> Result<()> {
     let record = history.record(id)?;
+    record.ensure_replayable()?;
     ensure!(
         record.status == Status::Applied,
         "transaction must be applied."
@@ -939,12 +1095,15 @@ pub(crate) fn transaction_context_basis(record: &Record) -> String {
 
 pub fn record_context_basis(root: &Path, id: u64) -> Result<String> {
     let history = History::read(root)?;
-    Ok(transaction_context_basis(history.record(id)?))
+    let record = history.record(id)?;
+    record.ensure_replayable()?;
+    Ok(transaction_context_basis(record))
 }
 
 fn oriented(history: &History, action: Action, id: u64) -> Result<Vec<Change>> {
-    Ok(history
-        .record(id)?
+    let record = history.record(id)?;
+    record.ensure_replayable()?;
+    Ok(record
         .changes
         .iter()
         .map(|c| {
@@ -1163,6 +1322,8 @@ mod tests {
                     kind: SnapshotKind::Regular,
                 }),
             }],
+            compacted_paths: 0,
+            compaction_digest: None,
             required_checks: None,
             check_evidence: Vec::new(),
         };

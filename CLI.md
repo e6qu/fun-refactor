@@ -1634,6 +1634,8 @@ fr history apply 1 --write
 fr history undo 1 --write
 fr history redo 1 --write
 fr history recover 1 --write        # only when an operation remains pending
+fr history compact --keep 100       # preview retention
+fr history compact --keep 100 --basis '<BASIS>' --write
 ```
 
 History uses schema 1 and numeric identities local to the workspace.
@@ -1664,7 +1666,17 @@ Its index entry remains intact, along with unrelated staged, unstaged and untrac
 
 Undo requires the latest applied ID. Redo requires the next ID on the redo stack.
 Saving a plan preserves the redo stack. Applying a new plan clears that stack and marks its old entries `abandoned`.
-Completed records keep their snapshots. There is no automatic pruning in schema 1.
+Completed records keep their snapshots until explicit compaction. `history compact --keep N`
+retains the newest `N` replayable records on each undo and redo stack, then selects every older
+applied, undone or abandoned payload. Planned and pending records are never eligible. The preview
+returns the exact candidate counts, projected journal size and a `frhistorycompact1:` basis without
+writing. A write requires that basis and refuses if the journal changed during review.
+
+Compaction removes stored source bodies and paths from selected records and removes selected active
+IDs from their stack. It retains ID, status, source and plan identities, validation, check metadata,
+path count and a checked summary digest. Compacted records remain listable and inspectable. Agents
+cannot apply, undo, redo or export them as patches, and cannot attach new check evidence. There is no
+automatic or time-based pruning in schema 1.
 The journal contains full source text, resides in a private directory and ignores its own contents in Git.
 Deleting `.fr-history` discards all saved plans and recovery data; retain it while an operation needs recovery.
 The workspace scanner excludes this directory even with `--no-ignore`.

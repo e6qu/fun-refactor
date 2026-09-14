@@ -129,4 +129,24 @@ theorem new_apply_clears_redo (id : Nat) (state : Stacks) :
     (applyNew id state).redo = [] := by
   rfl
 
+-- fr:spec src/history.rs::record_compactable @ 77d395a7de80fe07e383218cc757f26b739324b7eeb608201c27343f106fae14
+-- fr:signature detailed: bool => detailed: Bool; pending: bool => pending: Bool; retained: bool => retained: Bool; planned: bool => planned: Bool; return: bool => return: Bool
+def recordCompactable (detailed : Bool) (pending : Bool) (retained : Bool) (planned : Bool) : Bool :=
+  detailed && !pending && !retained && !planned
+
+theorem record_compaction_requires_discardable_detail
+    (detailed pending retained planned : Bool) :
+    recordCompactable detailed pending retained planned = true ↔
+      detailed = true ∧ pending = false ∧ retained = false ∧ planned = false := by
+  cases detailed <;> cases pending <;> cases retained <;> cases planned <;>
+    decide
+
+theorem retained_record_is_not_compactable (detailed pending planned : Bool) :
+    recordCompactable detailed pending true planned = false := by
+  simp [recordCompactable]
+
+theorem planned_record_is_not_compactable (detailed pending retained : Bool) :
+    recordCompactable detailed pending retained true = false := by
+  simp [recordCompactable]
+
 end FrKernels.History

@@ -1004,6 +1004,34 @@ fn browser_history_transition_policy_matches_lean_exhaustively() {
 }
 
 #[test]
+fn source_history_compaction_policy_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("record-compaction")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for detailed in [false, true] {
+        for pending in [false, true] {
+            for retained in [false, true] {
+                for planned in [false, true] {
+                    expected.push(
+                        fun_refactor::history::record_compactable(
+                            detailed, pending, retained, planned,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn owner_executable_settings_match_lean_across_permission_bits_and_u32_boundaries() {
     use fun_refactor::history::owner_executable_mode;
     build_kernel();

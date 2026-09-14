@@ -111,6 +111,101 @@ fn agent_can_save_inspect_apply_undo_redo_across_cli_processes() {
 }
 
 #[test]
+fn source_history_compaction_is_reviewed_bounded_and_keeps_auditable_summaries() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let padding = "// retained source payload\n".repeat(400);
+    let declarations = (0..5)
+        .map(|index| format!("fn helper{index}() {{}}\n"))
+        .collect::<String>();
+    fs::write(root.join("app.rs"), format!("{padding}{declarations}")).unwrap();
+
+    for index in 0..4 {
+        ok(
+            root,
+            &[
+                "rename",
+                &format!("helper{index}"),
+                &format!("renamed{index}"),
+                "--write",
+            ],
+        );
+    }
+    let journal_path = root.join(".fr-history/state.json");
+    let journal_before = fs::read(&journal_path).unwrap();
+    let preview = ok(root, &["history", "compact", "--keep", "2"]);
+    assert_eq!(preview["operation"], "history-compact-preview");
+    assert_eq!(preview["records_compacted"], 2);
+    assert_eq!(preview["paths_compacted"], 2);
+    assert_eq!(preview["undo_after"], 4);
+    assert_eq!(preview["source_bodies"], "omitted");
+    assert_eq!(fs::read(&journal_path).unwrap(), journal_before);
+
+    let stale_basis = preview["basis"].as_str().unwrap();
+    ok(root, &["rename", "helper4", "renamed4", "--write"]);
+    let (accepted, refusal) = run(
+        root,
+        &[
+            "history",
+            "compact",
+            "--keep",
+            "2",
+            "--basis",
+            stale_basis,
+            "--write",
+        ],
+    );
+    assert!(!accepted, "{refusal}");
+    assert!(refusal["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale source history compaction basis"));
+
+    let preview = ok(root, &["history", "compact", "--keep", "2"]);
+    let basis = preview["basis"].as_str().unwrap().to_owned();
+    assert_eq!(preview["records_compacted"], 3);
+    let compacted = ok(
+        root,
+        &[
+            "history", "compact", "--keep", "2", "--basis", &basis, "--write",
+        ],
+    );
+    assert_eq!(compacted["applied"], true);
+    assert_eq!(compacted["basis_verified"], true);
+    assert!(
+        compacted["journal_bytes_after"].as_u64().unwrap()
+            < compacted["journal_bytes_before"].as_u64().unwrap()
+    );
+
+    let history = ok(root, &["history"]);
+    assert_eq!(history["applied"], serde_json::json!([4, 5]));
+    assert_eq!(history["records"].as_array().unwrap().len(), 5);
+    for record in &history["records"].as_array().unwrap()[..3] {
+        assert_eq!(record["compacted"], true);
+        assert_eq!(record["path_count"], 1);
+        assert!(record["compaction_digest"].as_str().unwrap().len() == 64);
+        assert_eq!(record["paths"], serde_json::json!([]));
+    }
+    for record in &history["records"].as_array().unwrap()[3..] {
+        assert_eq!(record["compacted"], false);
+        assert_eq!(record["path_count"], 1);
+    }
+    let shown = ok(root, &["history", "show", "1"]);
+    assert!(shown["records"][0].get("changes").is_none());
+    assert!(shown["records"][0].get("context_basis").is_none());
+    let (patchable, refusal) = run(root, &["history", "patch", "1"]);
+    assert!(!patchable, "{refusal}");
+    assert!(refusal["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("replay payload was compacted"));
+
+    ok(root, &["history", "undo", "5", "--write"]);
+    ok(root, &["history", "undo", "4", "--write"]);
+    assert!(!run(root, &["history", "undo", "3", "--write"]).0);
+}
+
+#[test]
 fn source_undo_and_redo_preserve_affected_staging_and_unrelated_git_state() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

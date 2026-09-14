@@ -9,6 +9,7 @@ fr -C /project history patch 1
 fr -C /project history apply 1 --write
 fr -C /project history undo 1 --write
 fr -C /project history redo 1 --write
+fr -C /project history compact --keep 100
 ```
 
 `fr file delete` removes complete regular text files. Empty files count as deletions.
@@ -76,6 +77,9 @@ Handled write failures restore the batch's starting state when recovery succeeds
 An interrupted operation leaves a pending transaction for `fr history recover ID --write`.
 Tests interrupt apply, undo and redo after every write in two-file deletion and executable batches, including empty files and special modes, and at the replacement boundary for regular-to-symlink transitions.
 The [native history guarantees](../CLI.md#write-guarantees) and their filesystem assumptions apply here too.
+Use a reviewed [`history compact`](../CLI.md#fr-history) operation to remove old replay payloads.
+Compaction keeps transaction summaries but
+permanently gives up replay and patch export for the selected IDs.
 Writes can expose intermediate files to concurrent observers and replace file inodes.
 Snapshots omit ownership, timestamps, extended attributes and symlink permission bits; deleting files does not remove their directories.
 
@@ -91,3 +95,7 @@ Further laws establish the requested projected Git mode and preservation of the 
 Shared execution compares 8,258 setter results between Rust and Lean.
 Snapshot checks reuse the existing anchored history predicate; [the verification guide](lean-specs.md#existing-kernels) records proof assumptions and correspondence limits.
 The file planner, filesystem observation and complete transaction implementation remain outside those proofs.
+The history compaction predicate is also Lean anchored. It proves and exhaustively checks that a
+record is eligible only when it has detail, is outside the retained stack window, is not pending and
+is not planned. Journal serialization, locking, hash collision resistance and durable replacement
+remain tested trust boundaries.
