@@ -8,6 +8,7 @@ use ignore::WalkBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
@@ -1267,11 +1268,14 @@ fn check_prepared_proof(
     token_limit: usize,
 ) -> Result<ProofAttempt> {
     let package = checked_proof_package(root, &prepared.spec)?;
-    let scratch = tempfile::Builder::new()
+    let mut scratch = tempfile::Builder::new()
         .prefix("fr-proof-check-")
         .suffix(".lean")
         .tempfile()?;
-    std::fs::write(scratch.path(), &prepared.updated)?;
+    scratch
+        .as_file_mut()
+        .write_all(prepared.updated.as_bytes())?;
+    scratch.as_file_mut().flush()?;
     let output = Command::new("lake")
         .args(["env", "lean"])
         .arg(scratch.path())
