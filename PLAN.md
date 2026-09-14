@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 708 |
+| Defects fixed | 710 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -135,7 +135,7 @@ replaced that result.
 PR 21's generic progressive-disclosure fixture uses an independent Python implementation of the
 documented Merkle format. It verifies semantic, source, combined, root-hole, shortcut and child
 identities; follows four exact actions; reconstructs source; detects a hidden change; and refuses a
-stale action. Its complete semantic response is 5,381 bytes. The abridged initial response is 3,762
+stale action. Its complete semantic response is 5,381 bytes. The abridged initial response is 3,755
 bytes and every response stays within the requested 4,096-byte conservative token upper bound. This
 is deterministic protocol evidence without a live model or a cryptographic collision proof.
 
@@ -209,13 +209,15 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
 | [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
-| PR 23 | Disclosure-Bound IR Structure Editing | Ready for review |
+| [PR 23](https://github.com/e6qu/fun-refactor/pull/287) | Disclosure-Bound IR Structure Editing | Merged |
+| PR 24 | Content-Addressed Progressive Project Evidence | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
 PRs 19 through 21 made repeated discovery faster, bounded and progressively disclosed. PR 22 joins
 the revealed hierarchy directly to exact scalar authoring, including repeated values. PR 23 extends
-that capability boundary to typed node replacement and statement-list structure.
+that capability boundary to typed node replacement and statement-list structure. PR 24 applies the
+same traversal to source-free project evidence and gives every subtree a reusable object address.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -1059,14 +1061,15 @@ Planned checkpoints:
    WASM, strict-proof, skill and evidence gates pass locally. Hosted CI builds and exercises the
    browser playground before review.
 
-### PR 24. Proof-Carrying Project Evidence Disclosure
+### PR 24. Content-Addressed Progressive Project Evidence
 
 Status: in progress.
 
 Goal: make one bounded progressive-reveal protocol the agent-facing navigation layer for semantic
-IR, project hierarchy, call traces, impact and value-flow endpoints. Every revealed fact must be
-independently checkable against the selected project snapshot without retaining all earlier pages
-or reading source.
+IR, project hierarchy, call traces, impact and value-flow endpoints. Agents fetch only the relevant
+branches; clients can retain those branches in local or remote object storage by stable digest.
+Optional proofs and formal models test the content-addressing and traversal implementation without
+adding proof material to ordinary agent context.
 
 Deliverables:
 
@@ -1074,38 +1077,42 @@ Deliverables:
   bounded code-map hierarchy, incoming and outgoing call traces, impact candidates, and local
   value-flow origins and destinations in one deterministic Merkle tree. Preserve confidence,
   omissions and analysis boundaries as data.
-- Return a Merkle inclusion proof with every semantic or evidence reveal. Define a canonical proof
-  shape for object keys and array positions, bind it to the view root, and provide independent
-  verification in the zero-dependency Python SDK. Proofs and response metadata remain inside the
-  requested response ceiling.
+- Give every semantic and evidence subtree a reusable content digest. Define a canonical,
+  deduplicated object-pack shape in the zero-dependency Python SDK. A local or remote object store
+  can retain and fetch unchanged branches independently.
+- Offer Merkle inclusion paths explicitly with `--proofs` for protocol tests, cache-boundary audits
+  and independent SDK verification. Keep them out of ordinary agent responses, where roots and
+  child object digests are enough for progressive retrieval and consume much less context.
 - Make shortcuts describe the evidence domains and their hidden descendant counts. Exact returned
   actions traverse hierarchy, trace branches, source and sink endpoints, and semantic nodes without
   reconstructing pointers or ingesting file text.
-- Keep the existing semantic view and opaque scalar/structural edit capabilities compatible. An
-  evidence view is read-only and source-free; the exact-source frontier remains an explicit last
+- Keep the existing semantic view and opaque scalar/structural edit capabilities compatible. The
+  evidence view exposes no source and permits no edits. The exact-source frontier remains a last
   resort bound to the same declaration snapshot.
-- Model proof-step admission, root reconstruction, view/domain transitions and frontier arithmetic
-  in Lean. Anchor the Rust predicates and compare exhaustive finite cases plus independent hash
-  vectors. Hash collision resistance, parser correctness and analysis completeness remain named
+- Model proof-step admission, view/domain transitions and frontier arithmetic in Lean. Anchor the
+  Rust predicates and compare exhaustive finite cases plus independent hash vectors. Use these
+  checks as implementation tests; agents normally consume object addresses and exact reveal
+  actions. Hash collision resistance, parser correctness and analysis completeness remain named
   trust boundaries.
 - Run the parser and complete translation corpus across every advertised language pair. Fix every
   reproducible parser or writer regression exposed by the audit, record unsupported constructs
   precisely, and add round-trip or compile/runtime regressions for repaired forms.
-- Repair B862 from post-merge deep validation: a `#[path]` attribute may invalidate only the Rust
-  module it remaps, rather than every otherwise conventional move in that crate.
-- Retain a generic evaluator that verifies inclusion proofs independently, follows code-map, call,
-  impact, source and sink branches under small budgets, detects tampering and stale snapshots, and
-  compares the progressive route with direct bounded project reports.
+- Repair B862 from post-merge deep validation. A `#[path]` attribute may invalidate only the Rust
+  module it remaps.
+- Retain a generic evaluator that independently verifies inclusion proofs and follows every
+  evidence domain under small budgets. Detect tampering and stale snapshots. Compare the
+  progressive route with direct bounded project reports.
 
 Verification and acceptance:
 
-1. A reveal can be verified from its value, inclusion proof and advertised tree root alone. A
+1. A client can verify a fetched object from its value and content digest. It can also check an
+   opt-in reveal from its inclusion proof and advertised tree root alone. A
    changed key, index, sibling digest, direction, domain, target or snapshot fails verification.
 2. Compact evidence starts without source lines. Its hierarchy, callers, callees, impact rows,
    value origins and destinations are source-free projections of the direct analyzers and retain
    their confidence and explicit incomplete boundaries.
-3. Every response, proof and continuation stays within the requested compact or expanded ceiling.
-   A proof that cannot fit refuses without silently omitting authentication data.
+3. Every response and continuation stays within the requested compact or expanded ceiling. An
+   opt-in proof that cannot fit refuses without silently omitting authentication data.
 4. Existing semantic disclosure identities, authoring capabilities, checked changes, undo/redo and
    Git patch behavior remain unchanged.
 5. Lean establishes the finite proof and transition laws; Rust agrees on the complete shared case
@@ -1117,16 +1124,16 @@ Verification and acceptance:
 
 Planned checkpoints:
 
-1. **In progress.** Repair the deep-validation Rust module-path false refusal and pin both the
-   unrelated and actually-remapped cases.
-2. Add canonical inclusion proofs to semantic reveals, independent Python verification and
-   tamper/stale/budget tests.
-3. Add the source-free project-evidence tree and progressive shortcuts for hierarchy, calls,
-   impact, origins and destinations.
-4. Formalize proof reconstruction and evidence-view transition policy; add strict anchors and
-   exhaustive Rust/Lean correspondence.
-5. Run the complete parsing and translation audits, fix concrete regressions and record remaining
-   evidence limits.
+1. **Complete.** Repair the deep-validation Rust module-path false refusal. Pin unrelated and
+   remapped cases.
+2. **Complete.** Add content-addressed object packs and opt-in inclusion proofs. Test independent
+   Python verification, tampering, stale state and budgets.
+3. **Complete.** Add the source-free project-evidence tree. Provide progressive shortcuts for
+   hierarchy, calls, impact, origins and destinations.
+4. **Complete.** Formalize proof reconstruction and evidence-view transition policy. Add strict
+   anchors and exhaustive Rust/Lean correspondence.
+5. **In progress.** Run all parsing and translation audits. Fix concrete regressions and record
+   remaining evidence limits.
 6. Retain the independent progressive-evidence evaluator, update SDK and skill guidance, refresh
    context evidence, and pass the full native/browser/proof/documentation gates.
 

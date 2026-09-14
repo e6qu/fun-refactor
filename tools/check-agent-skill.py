@@ -383,6 +383,13 @@ def disclosure_workflow(exercise, root):
         value = exercise.example(root, path, command)
         if command[1:3] == ["project", "disclose"]:
             assert value["token_budget"]["used_upper_bound"] <= value["token_budget"]["limit"]
+            if value.get("view") == "evidence":
+                assert [row["domain"] for row in value["evidence_catalog"]] == [
+                    "code_map", "call_traces", "impact", "sources_and_sinks",
+                ]
+                assert value["commitment"]["object_schema"] == "fr-merkle-object-1"
+                assert value["evidence_shortcuts"]
+                continue
             shortcuts = [shortcut for shortcut in value["semantic_shortcuts"]
                          if shortcut["editable_scalars"] > 0]
             assert shortcuts

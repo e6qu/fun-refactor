@@ -1364,7 +1364,7 @@ for repeated integers in a generated generic Rust fixture. It confirms the prior
 refuses ambiguity, changes only one capability, compiles behavior from 5 to 11, refuses the stale
 ID, checks forward and reverse patches and exercises undo/redo behavior 5/11. It uses three
 disclosure responses totaling 13,577 bytes under the explicit expanded limit; its maximum response
-is 8,068 bytes and its preview is 3,968 bytes. The refreshed PR 21 artifact records a 3,762-byte
+is 8,068 bytes and its preview is 3,968 bytes. The refreshed PR 21 artifact records a 3,755-byte
 initial response under the 4,096-byte compact ceiling.
 
 The complete native, WASM/playground, strict Lean, capability, Python, portable-skill and prose gate
@@ -1443,3 +1443,37 @@ default gate passes 311 advertised capability cells and builds 60 Lean jobs. Str
 reports 68 fresh anchors with zero obligations or debts, and the separate WASM lane passes. Derived
 context reports were refreshed for current source and skill hashes without changing frozen agent
 transcripts. The hosted PR gate remains responsible for building and exercising the browser bundle.
+
+## Content-addressed progressive project evidence
+
+PR 24 extends `project disclose` with a read-only `--view evidence --depth N` tree. The tree joins a
+bounded code map, incoming and outgoing call traces, impact candidates, and local value origins and
+uses under one revision-bound root. Rows keep handles, hierarchy, positions, confidence, cycles,
+omissions and analysis boundaries while excluding source text. The initial compact catalog always
+names all four domains, and exact returned actions reveal only the selected branch. Exact source
+remains a separate explicit frontier for cases where structured evidence is insufficient.
+
+Every semantic and evidence subtree now has an `fr-merkle-object-1` content digest. The Python SDK
+can split complete fetched values into deduplicated object records and reconstruct a root through a
+mapping or lazy object-store callback, verifying every value against its requested digest. Ordinary
+responses carry roots and child addresses only. `--proofs` adds `fr-merkle-inclusion-1` paths for
+evaluation and cache-boundary tests; cursors bind that option, and proof material that cannot fit the
+selected response ceiling causes a refusal.
+
+The independent generic-fixture evaluator reconstructs the complete evidence tree without source,
+recomputes the object root, verifies 134 inclusion paths, rejects tampering and a stale action, and
+checks all four evidence domains. Its exhaustive audit uses 136 responses solely to verify the
+protocol; normal agents stop after the task-relevant branches. The largest response is 7,437 bytes
+under the 16,384-byte expanded ceiling. Python SDK tests cover object deduplication, lazy fetching,
+missing or malformed references and content corruption.
+
+Lean models canonical binary-tree step admission, parent-width progress and the evidence-depth
+policy in addition to the existing response and frontier laws. Rust and Lean agree over 2,418 finite
+cases. The proofs are implementation checks rather than agent-facing payloads. Hash collision
+resistance, analyzer completeness, parser correctness, object-store durability and access control
+remain outside that model and are named explicitly in the protocol documentation.
+
+Dogfooding also repaired two independent regressions. B862 scopes Rust `#[path]` move refusals to
+the destination actually remapped by the attribute. B863 folds writer-generated remainder helpers
+back into semantic remainder operators across snake-case and camel-case spellings. The complete
+repository translation and self-translation round trips now pass across every advertised language.

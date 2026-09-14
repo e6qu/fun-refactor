@@ -52,16 +52,15 @@ The portable skill starts targeted edits with authoring guidance and loads explo
 report budgets. Profiled batches reuse one project snapshot across its referenced discovery stages.
 The [bounded discovery evaluation](docs/agent-discovery-evaluation.md) records coalesced cold
 queries, exact continuations, formal boundaries and generic fixture evidence.
-`project disclose` returns a Merkle-committed semantic skeleton and reveals only selected IR levels
-or explicitly requested source under a conservative per-response token bound. The
+`project disclose` returns a Merkle-committed semantic skeleton or a source-free evidence tree for
+code maps, call traces, impact, and local value sources and sinks. It reveals only selected levels
+or explicitly requested source under a conservative per-response token bound. Stable object
+digests let clients store and deduplicate fetched subtrees; proof paths are opt-in for verification. The
 [progressive disclosure protocol](docs/progressive-disclosure.md) specifies its commitments,
 continuations, verification boundary and retained independent-oracle evidence.
 Revealed authorable scalars carry revision-bound edit capabilities. An agent can change one exact
 typed value through preview, checks, patch export, undo and redo without reading source or building
 a locator. [Disclosure-bound editing](docs/disclosed-editing.md) documents the identity and proof boundary.
-Revealed typed nodes and statement-list positions also carry structural capabilities for
-same-category replacement, statement deletion, insertion before and append, including empty lists.
-Their opaque identities let agents make hierarchical IR changes without receiving source, paths or indices.
 Revealed typed nodes and statement-list positions also carry structural capabilities for
 same-category replacement, statement deletion, insertion before and append, including empty lists.
 Their opaque identities let agents make hierarchical IR changes without receiving source, paths or indices.

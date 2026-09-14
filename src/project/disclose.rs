@@ -217,9 +217,7 @@ pub(crate) fn merkle(value: &Value) -> Result<String> {
     }
 }
 
-/// A binary content address for JSON trees stored or fetched as independent subtrees. The
-/// original semantic Merkle root remains part of the wire contract; this second root also permits
-/// opt-in logarithmic inclusion paths without returning every sibling of a wide object or array.
+/// Address a JSON tree and support logarithmic inclusion paths.
 pub fn object_merkle(value: &Value) -> Result<String> {
     match value {
         Value::Null => hash((OBJECT_SCHEMA, "null")),

@@ -757,6 +757,8 @@ fr project batch --from project-queries.json --report-bytes 65536
 fr project explore parse --contains
 fr project explore parse --mode behavior --target '<HANDLE>'
 fr project disclose '<HANDLE>' --token-limit 4096
+fr project disclose '<HANDLE>' --view evidence --depth 3 --token-limit 4096
+fr project disclose '<HANDLE>' --view evidence --proofs --profile expanded --token-limit 16384
 fr project batch --from agent-queries.json --profile compact
 fr project map src --depth 4 --limit 80
 fr project map src/app.py --fields id,parent,kind,name,signature
@@ -880,6 +882,10 @@ actions bind the profile, limit, target, revision and cursor. Stale or reconstru
 The semantic tree and exact source have separate roots under one combined commitment, so an
 agent can stay source-free until source is necessary. See
 [the progressive disclosure protocol](docs/progressive-disclosure.md) for verification details.
+`--view evidence` uses the same bounded traversal for code-map hierarchy, callers and callees,
+impact candidates, and local value origins and uses. Each subtree has a stable `object_digest`
+suited to local or remote object-storage keys. Ordinary agent responses omit inclusion paths;
+`--proofs` adds them for evaluators and cache audits and may require the expanded limit.
 Authorable revealed scalars include an opaque exact-edit capability and preview action; see
 [disclosure-bound editing](docs/disclosed-editing.md).
 Inside `project batch`, the disclosure bound retains its standalone meaning. The batch profile and
