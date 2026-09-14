@@ -3156,6 +3156,38 @@ fn worktree_removal_reversal_matches_lean_for_all_inputs() {
 }
 
 #[test]
+fn manifest_inventory_bounds_match_lean_at_machine_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("manifest-inventory")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let manifests = [0u64, 1, 1023, 1024, 1025, u32::MAX.into(), u64::MAX];
+    let declarations = [0u64, 1, 65_535, 65_536, 65_537, u32::MAX.into(), u64::MAX];
+    let mut index = 0;
+    for manifests in manifests {
+        for declarations in declarations {
+            if let (Ok(manifests), Ok(declarations)) =
+                (usize::try_from(manifests), usize::try_from(declarations))
+            {
+                assert_eq!(
+                    fun_refactor::project::manifest_inventory_allowed(manifests, declarations),
+                    actual[index]
+                );
+            }
+            index += 1;
+        }
+    }
+    assert_eq!(index, actual.len());
+}
+
+#[test]
 fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

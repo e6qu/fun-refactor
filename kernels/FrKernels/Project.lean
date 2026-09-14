@@ -589,6 +589,24 @@ theorem body_replacement_budget_is_symmetric (before after : Nat) :
     bodyReplacementBudget before after = bodyReplacementBudget after before := by
   simp [bodyReplacementBudget, and_comm, and_left_comm, and_assoc]
 
+-- fr:spec src/project.rs::manifest_inventory_allowed @ 0eb2bdb401147b1fdc49db43b3d0182e2f2570bcbd5519a798799ac51f044594
+-- fr:signature manifests: usize => manifests: Nat; declarations: usize => declarations: Nat; return: bool => return: Bool
+def manifestInventoryAllowed (manifests : Nat) (declarations : Nat) : Bool :=
+  decide (manifests ≤ 1024 ∧ declarations ≤ 65536)
+
+theorem manifest_inventory_bounds (manifests declarations : Nat)
+    (allowed : manifestInventoryAllowed manifests declarations = true) :
+    manifests ≤ 1024 ∧ declarations ≤ 65536 := by
+  simpa [manifestInventoryAllowed] using allowed
+
+theorem manifest_inventory_accepts_empty : manifestInventoryAllowed 0 0 = true := by decide
+
+theorem manifest_inventory_refuses_excess_files (declarations : Nat) :
+    manifestInventoryAllowed 1025 declarations = false := by simp [manifestInventoryAllowed]
+
+theorem manifest_inventory_refuses_excess_declarations (manifests : Nat) :
+    manifestInventoryAllowed manifests 65537 = false := by simp [manifestInventoryAllowed]
+
 -- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
 -- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat
 def handleSelectionStatus (inScope : Bool) (declaration : Bool) (isLocal : Bool)

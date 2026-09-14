@@ -364,7 +364,7 @@ Its plural `compact-removals RECORD...` form applies the same checks to an expli
 The browser records bounded in-memory transactions, supports checked one-step undo/redo and exports
 cumulative patches through the native Rust Git renderer; see [browser history](docs/browser-history.md).
 `fr project` now provides compact hierarchy maps and bounded source inspection.
-Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
+Its package and dependency pages report Cargo, npm, Go module and Python project declarations with shared revision checks.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.

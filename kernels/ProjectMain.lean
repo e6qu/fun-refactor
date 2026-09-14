@@ -529,6 +529,10 @@ def main (args : List String) : IO Unit := do
     for obligations in [0:65] do
       for ceiling in [0:65] do
         IO.println (FrKernels.Adoption.debtWithinCeiling obligations ceiling)
+  else if args == ["manifest-inventory"] then
+    for manifests in [0, 1, 1023, 1024, 1025, 4294967295, 18446744073709551615] do
+      for declarations in [0, 1, 65535, 65536, 65537, 4294967295, 18446744073709551615] do
+        IO.println (FrKernels.Project.manifestInventoryAllowed manifests declarations)
   else
     for total in samples do
       for start in samples do

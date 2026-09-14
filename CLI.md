@@ -1446,7 +1446,7 @@ Cursors bind the revision, selection, depth, resulting rows and analysis metadat
 Page and depth limits do not bound workspace indexing or graph construction.
 Empty results and call paths do not establish runtime coverage. Catalog matching and reachability remain outside the confidence and paging model proofs.
 
-`packages` pages discovered `Cargo.toml` and `package.json` manifests.
+`packages` pages discovered `Cargo.toml`, `package.json`, `go.mod` and `pyproject.toml` manifests.
 Each row reports the manifest path, its directory root, ecosystem, declared name/version and declaration count.
 Virtual Cargo workspaces have `package_declared: false`.
 These roots describe manifest locations; they do not assign source ownership or establish workspace membership.
@@ -1461,6 +1461,9 @@ They retain aliases, version requirements, paths, Git selectors, registry names 
 Feature lists become `feature_count`; unknown dependency fields become `unreported_fields` counts.
 npm rows cover dependencies, devDependencies, peerDependencies and optionalDependencies.
 Requirements stay literal, including `file:` and `workspace:` strings.
+Go rows cover `require`, `replace` and `exclude`, including indirect requirements and local replacements.
+Python rows cover PEP 621 dependencies, optional groups, dependency groups, build requirements and Poetry dependency tables.
+They also retain uv workspace member and exclusion patterns as unexpanded declarations.
 Workspace member patterns remain separate rows with `expanded: false`.
 The reader includes Cargo exclude/default-member patterns and npm array or `workspaces.packages` forms.
 Names and versions cap at 160 UTF-8 bytes; patterns, selectors and requirements cap at 512.
@@ -1472,9 +1475,11 @@ Malformed manifests and unsupported shapes in inspected fields produce paged man
 Affected dependency rows carry `declaration_status: partial` or `unsupported`.
 `coverage.manifests` counts discovered manifests, parsed records and diagnostics.
 This reader extracts selected fields; it does not validate complete package-manager schemas.
-Pagination uses the existing Lean-checked page-length kernel. Manifest extraction has no formal proof yet.
+Pagination uses the existing Lean-checked page-length kernel.
+An anchored inventory predicate caps discovery at 1,024 manifests and 65,536 declarations; Lean proves both bounds and executable cases include machine limits.
+Manifest syntax interpretation and normalized dependency names remain tested parser boundaries.
 
-`links` pages local manifest links and workspace member-pattern matches.
+`links` pages Cargo/npm local manifest links and workspace member-pattern matches.
 It accepts the same `--manifest`, `--limit` and revision-bound `--cursor` options as `dependencies`.
 Matching uses full manifest values before clipping output; labels and paths retain the existing byte limits.
 Links use only manifests in the current snapshot. They do not run package managers or read additional dependency paths.

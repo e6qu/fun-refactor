@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 715 |
+| Defects fixed | 716 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -41,7 +41,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rename, extract, inline, move, signature changes, imports, deletion and structural rewrites.
 - Cross-language references, configuration provenance and configuration-to-code traces.
 - A shared translation IR with Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean readers and writers.
-- Bounded project views for Cargo/npm packages, local dependencies, Cargo ownership, calls, tests, routes, request/response contracts and selected schemas.
+- Bounded project views for Cargo, npm, Go and Python package declarations, Cargo/npm local links, Cargo ownership, calls, tests, routes, contracts and schemas.
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds within documented subsets.
 - Revision-bound migration plans for one-file Next.js/FastAPI route features, with endpoint agreement, explicit dispositions and reversible source-history writes.
 - Local recipes, expectations, workspace previews and canonical formatting.
@@ -1421,7 +1421,7 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 
 ## Known limits and deferred choices
 
-- Complete dependency resolution, feature evaluation and package-manager semantics remain outside the current Cargo/npm subset.
+- Manifest readers cover Cargo, npm, Go modules and Python projects. Lockfile resolution, feature evaluation and complete package-manager semantics remain outside their declared subsets.
 - Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
 - Native history has explicit, basis-bound replay-payload retention. Browser history remains
   session-only and records UTF-8 regular-file snapshots with mode `0644`; it does not provide crash recovery or persistence.

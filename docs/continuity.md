@@ -1623,3 +1623,12 @@ tests cover two-edge Python dependency and caller chains, exclude unrelated capt
 source-free responses and bind cursors to the full observation. An anchored Rust/Lean predicate
 covers file, byte and depth admission at machine boundaries; the existing finite reachability laws
 cover bounded graph rounds abstractly.
+
+Manifest discovery now gives Go and Python agents the same compact package entry point used for
+Cargo and npm. The Go reader reports module identity, language version, direct and indirect
+requirements, replacements and exclusions. The Python reader combines PEP 621 requirements,
+optional and dependency groups, build requirements, Poetry tables and uv workspace patterns while
+retaining each declaration's origin. Mixed-ecosystem tests cover literal constraints, local Go
+replacement metadata, Poetry object specifications and source-free output. A source-anchored
+inventory predicate caps a snapshot at 1,024 manifests and 65,536 declarations and agrees with Lean
+at its boundaries and machine limits. Local-link resolution remains explicitly scoped to Cargo/npm.

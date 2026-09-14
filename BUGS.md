@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B870: **package views omitted Go modules and Python project metadata.**
+
+  Manifest discovery now includes `go.mod` and `pyproject.toml`. The bounded package and dependency
+  views normalize Go requirements, replacements and exclusions plus PEP 621, dependency-group,
+  build-system, Poetry and uv workspace declarations. Mixed-ecosystem tests pin the emitted fields,
+  gaps and source-free behavior. A Lean-anchored inventory limit bounds manifest and declaration counts.
+
 - [x] B869: **Git call impact required agents to guess every context file and stopped after one edge.**
 
   `git diff --calls --workspace-context --depth N` now captures bounded tracked source snapshots

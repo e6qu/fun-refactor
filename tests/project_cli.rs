@@ -2742,6 +2742,118 @@ cc = { version = "1", features = [] }
 }
 
 #[test]
+fn package_views_cover_go_modules_and_python_project_metadata() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "go.mod",
+        "module example.com/service\n\ngo 1.24\ntoolchain go1.24.3\ngodebug default=go1.24\n\nrequire (\n example.com/core v1.2.3\n example.com/indirect v0.4.0 // indirect\n)\nreplace example.com/core => ../core\nreplace example.com/remote v1.0.0 => example.com/fork v1.1.0\nexclude example.com/old v0.9.0\nretract v0.8.0\ntool example.com/tool/cmd\n",
+    );
+    put(
+        root,
+        "python/pyproject.toml",
+        concat!(
+            "[project]\n",
+            "name = \"service\"\n",
+            "version = \"1.2.0\"\n",
+            "dependencies = [\"fastapi>=0.116\", ",
+            "\"uvicorn[standard]; ",
+            "python_version >= '3.12'\"]\n",
+            "[project.optional-dependencies]\n",
+            "test = [\"pytest~=8\"]\n",
+            "[dependency-groups]\n",
+            "lint = [\"ruff==0.12\"]\n",
+            "[build-system]\n",
+            "requires = [\"hatchling>=1.27\"]\n",
+            "[tool.poetry.dependencies]\n",
+            "python = \">=3.12\"\n",
+            "httpx = { version = \"^0.28\", ",
+            "optional = true }\n",
+            "[tool.poetry.group.dev.dependencies]\n",
+            "mypy = \"^1.17\"\n",
+            "[tool.uv.workspace]\n",
+            "members = [\"packages/*\"]\n",
+        ),
+    );
+    let packages = ok(root, &["project", "packages"]);
+    assert_eq!(packages["page"]["total"], 2, "{packages}");
+    let go = packages["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["ecosystem"] == "go-modules")
+        .unwrap();
+    assert_eq!(go["name"], "example.com/service");
+    assert_eq!(go["go_version"], "1.24");
+    assert_eq!(go["toolchain"], "go1.24.3");
+    assert_eq!(go["declarations"], 8);
+    let python = packages["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["ecosystem"] == "python-project")
+        .unwrap();
+    assert_eq!(python["name"], "service");
+    assert_eq!(python["version"], "1.2.0");
+    assert_eq!(python["workspace_declared"], true);
+    assert_eq!(python["declarations"], 8);
+
+    let go_dependencies = ok(root, &["project", "dependencies", "--manifest", "go.mod"]);
+    let go_rows = go_dependencies["items"].as_array().unwrap();
+    assert!(go_rows.iter().any(|row| {
+        row["name"] == "example.com/indirect"
+            && row["requirement"] == "v0.4.0"
+            && row["indirect"] == true
+    }));
+    assert!(go_rows.iter().any(|row| {
+        row["kind"] == "dependency-replacement"
+            && row["name"] == "example.com/core"
+            && row["target"] == "../core"
+            && row["local"] == true
+    }));
+    assert!(go_rows
+        .iter()
+        .any(|row| { row["kind"] == "dependency-exclusion" && row["name"] == "example.com/old" }));
+    assert!(go_rows
+        .iter()
+        .any(|row| { row["kind"] == "tool-dependency" && row["name"] == "example.com/tool/cmd" }));
+    assert!(go_rows.iter().any(|row| {
+        row["kind"] == "build-setting" && row["name"] == "default" && row["value"] == "go1.24"
+    }));
+
+    let python_dependencies = ok(
+        root,
+        &[
+            "project",
+            "dependencies",
+            "--manifest",
+            "python/pyproject.toml",
+        ],
+    );
+    let python_rows = python_dependencies["items"].as_array().unwrap();
+    assert!(python_rows.iter().any(|row| {
+        row["name"] == "uvicorn"
+            && row["requirement"] == "uvicorn[standard]; python_version >= '3.12'"
+    }));
+    assert!(python_rows.iter().any(|row| {
+        row["name"] == "pytest"
+            && row["section"] == "project.optional-dependencies"
+            && row["group"] == "test"
+    }));
+    assert!(python_rows.iter().any(|row| {
+        row["name"] == "httpx"
+            && row["section"] == "tool.poetry.dependencies"
+            && row["requirement"].as_str().unwrap().contains("optional")
+    }));
+    assert!(python_rows.iter().any(|row| {
+        row["kind"] == "workspace-member-pattern" && row["pattern"] == "packages/*"
+    }));
+    assert_eq!(packages["coverage"]["manifests"]["gaps"], 0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
 fn manifest_pages_are_bounded_complete_and_bound_to_the_filter() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

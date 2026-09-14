@@ -47,7 +47,7 @@ Changing source, manifests, scan options or query scope can invalidate a handle 
 Maps show lexical containment, not inferred architecture.
 Call results preserve confidence and unresolved or dispatch-candidate rows; candidates do not establish runtime dispatch.
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
-Use `project packages`, `dependencies`, `links` and `workspaces` for manifest declarations and local relationships when package boundaries matter.
+Use `project packages` and `dependencies` for Cargo, npm, Go module and Python project declarations. `links` and `workspaces` add Cargo/npm local relationships.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
 Use [Surfaces](surfaces.md) for framework, style and embedded-diagram discovery, exact surface edits,
 or the cross-stack Merkle view.

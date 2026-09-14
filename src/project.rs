@@ -432,6 +432,10 @@ pub fn batch_section_fits(used: usize, next: usize, budget: usize) -> bool {
     used <= budget && next <= budget - used
 }
 
+pub fn manifest_inventory_allowed(manifests: usize, declarations: usize) -> bool {
+    manifests <= 1024 && declarations <= 65_536
+}
+
 /// Classify an exact-handle selection after resolving its revision-bound identity.
 pub fn handle_selection_status(
     in_scope: bool,
