@@ -34,6 +34,12 @@ An `edit-body-disclosed` target carries
 capability. It needs no fragment or scalar object. Project task preserves the request in its author
 template; task change rebinds it to the current typed body and refuses stale or changed input.
 
+An `edit-body-disclosed-ir` target carries
+`"disclosed_ir":{"edit":"frdi1:<DIGEST>","value":<TYPED_IR_NODE>}`. Omit `value` only for a
+delete capability. Its opaque ID fixes replacement category or statement position, so do not add a
+path or index. The Python SDK's `DisclosedIrEditRequest` emits this object from ordinary typed IR
+constructors.
+
 Write each required fragment outside recognized source. Replace every `<FRAGMENT:ID>` in
 `author_manifest_template` with the actual path and save the result. Follow `next`: preview the
 author batch, save it under the complete `plan_context_basis`, replace the

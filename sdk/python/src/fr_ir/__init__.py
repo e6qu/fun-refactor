@@ -17,6 +17,7 @@ SCHEMA = "fr-semantic-body-1"
 CHANGE_SCHEMA = "fr-semantic-change-1"
 INTENT_SCHEMA = "fr-semantic-intent-1"
 DISCLOSED_EDIT_SCHEMA = "fr-disclosed-edit-1"
+DISCLOSED_IR_EDIT_SCHEMA = "fr-disclosed-ir-edit-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -808,6 +809,36 @@ class DisclosedEditRequest:
                           separators=None if indent else (",", ":"))
 
 
+@dataclass(frozen=True)
+class DisclosedIrEditRequest:
+    """Opaque structural capability plus an optional typed IR replacement."""
+
+    edit: str
+    value: _Node | None = None
+
+    def __post_init__(self) -> None:
+        digest = self.edit.removeprefix("frdi1:") if isinstance(self.edit, str) else ""
+        if (
+            not isinstance(self.edit, str)
+            or not self.edit.startswith("frdi1:")
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise IrError("disclosed IR edit must be an exact frdi1 SHA-256 identity")
+        if self.value is not None and not isinstance(self.value, _Node):
+            raise IrError("disclosed IR edit value must be a typed IR node or None")
+
+    def to_data(self) -> dict[str, Any]:
+        data: dict[str, Any] = {"edit": self.edit}
+        if self.value is not None:
+            data["value"] = self.value.to_data()
+        return data
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
+
 def _semantic_basis(value: str | SemanticBody, description: str) -> str:
     base = value.basis() if isinstance(value, SemanticBody) else value
     valid = isinstance(base, str) and base.startswith("frsb1:") and len(base) == 70
@@ -844,7 +875,7 @@ class SemanticIntent:
 
 
 __all__ = [
-    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DisclosedEditRequest", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
+    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
     "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
     "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",

@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 705 |
+| Defects fixed | 706 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -49,7 +49,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rust declaration replacement and function insertion into files, inline modules, impls and traits.
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
 - Merkle-committed progressive semantic and source disclosure with exact actions, strict
-  per-response bounds and opaque exact-scalar edit capabilities.
+  per-response bounds and opaque scalar, typed-node and statement-position edit capabilities.
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
@@ -1049,13 +1049,13 @@ Planned checkpoints:
 
 1. **Complete.** Fix B859, found by the first self-disclosure: source-bearing bodies remain readable
    and expose no edit capabilities instead of failing typed-IR reconstruction.
-2. Implement structural target enumeration, identities, bounded descriptors and direct preview/write.
-3. Carry structural requests through author batches, project tasks and reviewed task changes.
-4. Add the Python request mirror, semantic-catalog guidance and portable skill route.
-5. Prove admission and position policies, anchor Rust and exhaustively compare the finite models.
-6. Retain the generic independent evaluator, compare explicit/capability routes and refresh affected
+2. **Complete.** Implement structural target enumeration, identities, bounded descriptors and direct preview/write.
+3. **Complete.** Carry structural requests through author batches, project tasks and reviewed task changes.
+4. **Complete.** Add the Python request mirror, semantic-catalog guidance and portable skill route.
+5. **Complete.** Prove admission and position policies, anchor Rust and exhaustively compare the finite models.
+6. **Complete.** Retain the generic independent evaluator, compare explicit/capability routes and refresh affected
    context evidence.
-7. Close adversarial coverage, defect and continuity records, then pass the complete local and CI gates.
+7. **In progress.** Close adversarial coverage, defect and continuity records, then pass the complete local and CI gates.
 
 ## Formal verification policy
 

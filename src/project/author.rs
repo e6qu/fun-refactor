@@ -334,6 +334,7 @@ pub fn disclosed_ir_edit_admitted(
     candidate_count: usize,
     current_matches: bool,
     request_shape: bool,
+    value_matches: bool,
     different: bool,
 ) -> bool {
     full_handle
@@ -341,6 +342,7 @@ pub fn disclosed_ir_edit_admitted(
         && candidate_count == 1
         && current_matches
         && request_shape
+        && value_matches
         && different
 }
 
@@ -1816,6 +1818,14 @@ impl Project<'_> {
             candidate.operation != super::semantic_change::StructuralOperation::Replace
                 || request.value.as_ref() != Some(&candidate.current)
         });
+        let value_matches = matched.first().is_some_and(|candidate| {
+            request
+                .value
+                .as_ref()
+                .map_or(!candidate.operation.value_required(), |value| {
+                    super::semantic_change::category_matches(value, candidate.category)
+                })
+        });
         ensure!(
             disclosed_ir_edit_admitted(
                 true,
@@ -1823,6 +1833,7 @@ impl Project<'_> {
                 matched.len(),
                 current_matches,
                 request_shape,
+                value_matches,
                 different,
             ),
             "disclosed IR edit is stale, unknown, ambiguous, malformed or unchanged; reveal a fresh structural edit capability."

@@ -9,6 +9,7 @@ import FrKernels.ProjectIdentity
 import FrKernels.AgentDiscovery
 import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
+import FrKernels.DisclosedIrEdit
 
 open FrKernels.Project
 
@@ -181,6 +182,16 @@ def main (args : List String) : IO Unit := do
             for different in [false, true] do
               IO.println (FrKernels.DisclosedEdit.admitted fullHandle referenceFormat
                 candidateCount currentMatches different)
+  else if args == ["disclosed-ir-edit-admission"] then
+    for fullHandle in [false, true] do
+      for referenceFormat in [false, true] do
+        for candidateCount in frameworkSamples do
+          for currentMatches in [false, true] do
+            for requestShape in [false, true] do
+              for valueMatches in [false, true] do
+                for different in [false, true] do
+                  IO.println (FrKernels.DisclosedIrEdit.admitted fullHandle referenceFormat
+                    candidateCount currentMatches requestShape valueMatches different)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

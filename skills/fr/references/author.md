@@ -12,9 +12,10 @@ its impl/trait. Source changes expire handles.
 
 Fragments fit 64 KiB. Steps need `op` and `handle`; fragment steps add `from`.
 `edit-body-scalar` adds `scalar` with `operation`, `from` and `to`.
-`edit-body-disclosed` adds `disclosed: {edit,to}` and uses its paired full handle. Short IDs need
-top-level
-`revision`; `organize-imports` takes a file handle. Steps use original source; overlaps refuse.
+`edit-body-disclosed` adds `disclosed: {edit,to}` and uses its paired full handle.
+`edit-body-disclosed-ir` adds `disclosed_ir: {edit,value?}`; typed replacement/insertion values are
+inline and deletions omit `value`. Both capability routes use their paired full handle. Short IDs
+need top-level `revision`; `organize-imports` takes a file handle. Steps use original source; overlaps refuse.
 Optional postconditions cover changed files, edits, operations and paths. Fragment
 paths can be project-relative or absolute.
 

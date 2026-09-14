@@ -18,3 +18,4 @@ import FrKernels.ProjectIdentity
 import FrKernels.AgentDiscovery
 import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
+import FrKernels.DisclosedIrEdit

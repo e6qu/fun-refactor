@@ -1,53 +1,80 @@
 # Disclosure-bound semantic editing
 
-`project disclose` attaches an opaque `frde1:` capability to each authorable scalar when that
-scalar is revealed. The capability lets an agent select one repeated value without reading source,
-guessing an RFC 6901 path or constructing a role locator.
+`project disclose` attaches opaque capabilities to authorable parts of a source-free typed body.
+An agent can select a repeated scalar, complete node or statement-list position without reading
+source, guessing an RFC 6901 path or constructing a role locator.
 
-Run the returned preview template after replacing only `<NEW_VALUE>`:
+## Scalar capabilities
+
+An authorable scalar carries a `frde1:` descriptor when revealed. Run its preview template after
+replacing only `<NEW_VALUE>`:
 
 ```sh
 fr author edit-body-disclosed '<FULL_HANDLE>' --edit 'frde1:<DIGEST>' --to 7
 ```
 
-Preview is read-only. Review the complete diff and `disclosed_edit` receipt, then use the normal
-`--write --plan-basis '<PLAN_CONTEXT_BASIS>'` transition. The resulting transaction supports
-checked apply, undo, redo and forward or reverse Git patch export.
+The eleven scalar operations are the same operations as semantic intents: integer, float, string
+and Boolean literals; name, field and keyword names; binary and unary operators; template text;
+and comments. `semantic_shortcuts[].editable_scalars` counts capabilities below each abridged node.
+A small scalar appears as `from`; large values remain tagged Merkle commitments.
 
-Capabilities are available for source-free semantic bodies that the Rust, Go, Java,
-TypeScript or TSX body writer can render. The eleven scalar operations are the same operations as
-semantic intents: integer, float, string and Boolean literals; name, field and keyword names;
-binary and unary operators; template text; and comments. An unsupported reader or writer emits no
-edit capability.
+## Structural capabilities
 
-`semantic_shortcuts[].editable_scalars` counts capabilities below each abridged node. Reveal a
-relevant shortcut with a nonzero count. A small scalar appears as `from` beside its capability. A
-large string remains paged and appears only as a tagged Merkle `from_commitment`; the capability is
-attached after the last page. Large old or replacement values remain commitments in the author
-receipt as well.
+Authorable typed nodes and statement-list positions carry `ir_edits`. Each descriptor names one
+operation and placement, the accepted IR category, a commitment to the current node or list, the
+relevant schema action and exact preview arguments. It omits the internal path and index. The opaque
+`frdi1:` ID already binds those details, so an agent only chooses a disclosed capability and supplies
+the smallest replacement node when required.
+
+```sh
+# Same-category node replacement or statement insertion:
+fr author edit-body-disclosed-ir '<FULL_HANDLE>' \
+  --edit 'frdi1:<DIGEST>' --from node.json
+
+# Statement deletion:
+fr author edit-body-disclosed-ir '<FULL_HANDLE>' --edit 'frdi1:<DIGEST>'
+```
+
+`replace` accepts one source-free node in the descriptor's `accepts` category. `insert-statement`
+accepts one statement at its bound `before` or `append` position, including an empty list.
+`delete-statement` accepts no value. The existing semantic-change validator remains the execution
+authority for node categories, source freedom, pointer and index bounds, result size and strict IR
+shape. `semantic_shortcuts[].editable_ir` lets an agent skip irrelevant subtrees.
+
+Capabilities are available for bodies that the Rust, Go, Java, TypeScript or TSX writer can render.
+An unsupported reader or writer emits no capability. Preview is read-only. Review the complete diff
+and receipt, then use the normal `--write --plan-basis '<PLAN_CONTEXT_BASIS>'` transition. The
+resulting transaction supports checked apply, undo, redo and forward or reverse Git patch export.
 
 ## Identity and refusal
 
-The lowercase SHA-256 part of an edit ID hashes this compact JSON tuple:
+A scalar ID hashes this compact JSON tuple:
 
 ```text
 ["fr-disclosed-edit-1",revision,full_handle,body_basis,
  scalar_pointer,operation,current_scalar,typed_role_locator]
 ```
 
-The current scalar and its typed locator are both bound. Two equal literals at different positions
-therefore receive different IDs. The author command recomputes every candidate from the current
-typed body and accepts only one matching capability whose current value still agrees and whose
-replacement differs. Malformed, unknown, ambiguous, stale and no-op requests refuse before history
-or source mutation. A changed project also invalidates the full declaration handle.
+A structural ID hashes:
 
-For large values, `from_commitment` and `to_commitment` use the same tagged canonical JSON tree
-format as progressive disclosure. `serialized_bytes` measures compact JSON bytes. The commitment
-does not reveal the value and does not prove program behavior.
+```text
+["fr-disclosed-ir-edit-1",revision,full_handle,body_basis,
+ address_pointer,path,index,category,operation,placement,current_merkle]
+```
 
-## Composed manifests
+The structural descriptor discloses `current_merkle` while keeping the address, semantic-change path
+and index inside the identity. Authoring reconstructs every candidate from the current typed body and
+accepts exactly one matching identity with the same current node or statement list. It also requires
+the operation's value shape, the bound node category and a real replacement. Source, declaration,
+body, node/list, operation, category or position drift therefore refuses before history creation.
 
-Author batches, project tasks and reviewed task changes use the same payload:
+For large values, descriptors and receipts use the same tagged canonical JSON tree as progressive
+disclosure. `serialized_bytes` measures compact JSON bytes. A commitment does not reveal its value
+or prove program behavior.
+
+## Composed manifests and Python
+
+Author batches, project tasks and reviewed task changes carry scalar requests unchanged:
 
 ```json
 {
@@ -57,26 +84,46 @@ Author batches, project tasks and reviewed task changes use the same payload:
 }
 ```
 
-Batch operations remain atomic and disjoint. A project task carries this object into its generated
-author template. A task change resolves it through the same semantic intent compiler, declared
-checks, reversal stages and patch delivery as other authoring operations. The Python SDK's
-`DisclosedEditRequest` emits the two-field object and validates its wire shape.
+Structural requests use the adjacent shape:
+
+```json
+{
+  "op": "edit-body-disclosed-ir",
+  "handle": "frp1:<FULL_HANDLE>",
+  "disclosed_ir": {
+    "edit": "frdi1:<DIGEST>",
+    "value": {"kind": "int", "value": "7"}
+  }
+}
+```
+
+Omit `value` for deletion. `DisclosedEditRequest` and `DisclosedIrEditRequest` in the zero-dependency
+Python SDK emit these shapes. The structural request accepts the same typed `Type`, `Stmt`, `Expr`
+and `TemplatePart` nodes as complete bodies and semantic changes, catching raw dictionaries and
+other non-IR values before serialization. Batch operations remain atomic and disjoint. Task changes
+rebind capabilities to the current body and run declared checks, reversal stages and patch delivery.
 
 ## Verification evidence
 
-`FrKernels.DisclosedEdit` proves that admission implies a full handle, a well-formed capability,
-exactly one candidate, a matching current value and a real change. It proves stale-current,
-unchanged and malformed-capability refusal. `FrKernels.Project` proves that disclosed editing has
-the same finite language and declaration-target policy as body replacement. Rust and Lean agree on
-144 admission cases and the complete 1,782-case task-target matrix.
+`FrKernels.DisclosedEdit` proves the scalar admission requirements across 144 shared Rust/Lean
+cases. `FrKernels.DisclosedIrEdit` proves exact-candidate, fresh-current, request-shape,
+same-category-value and changed-result requirements across 576 cases. The existing semantic-change
+kernel proves insertion/deletion position bounds and statement-count laws. `FrKernels.Project`
+proves both capability routes share body replacement's supported language and target policy across
+the complete 1,980-case matrix.
 
-The retained [deterministic evaluation](../tests/agent-eval/disclosed-edit.json) independently
-recomputes two identities for equal integer literals, confirms the old scalar route refuses their
-ambiguity, makes one exact source-free edit, compiles and runs the Rust fixture, checks stale
-refusal, validates forward and reverse patches, and exercises undo and redo. It uses three bounded
-disclosure responses totaling 13,577 bytes; the largest is 8,068 bytes under an explicit 16,384-byte
-expanded limit. The preview is 3,968 bytes.
+The retained [scalar evaluation](../tests/agent-eval/disclosed-edit.json) independently recomputes
+two identities for equal literals, exercises one exact edit and checks behavior, stale refusal,
+patches, undo and redo.
+
+The retained [structural evaluation](../tests/agent-eval/disclosed-ir-edit.json) independently
+recomputes all four capability identities and current Merkle roots on a generated generic fixture.
+Each capability preview equals the corresponding explicit semantic-change preview. The evaluator
+compiles behavior, rejects stale reuse, checks forward and reverse patches, exercises undo and redo,
+and confirms same-shaped empty lists at different positions receive distinct IDs. Every disclosure
+response stays below its explicit 16,384-byte ceiling.
 
 These proofs and fixtures do not prove SHA-256 collision resistance, JSON serialization, semantic
 parsing, writer correctness, compiler behavior or filesystem atomicity. Those components remain
-trusted or covered by integration and behavioral tests.
+trusted or covered by integration and behavioral tests. The evaluations are deterministic evidence;
+they do not claim live-agent quality or exact model-token accounting.

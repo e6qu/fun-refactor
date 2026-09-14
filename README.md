@@ -59,6 +59,12 @@ continuations, verification boundary and retained independent-oracle evidence.
 Revealed authorable scalars carry revision-bound edit capabilities. An agent can change one exact
 typed value through preview, checks, patch export, undo and redo without reading source or building
 a locator. [Disclosure-bound editing](docs/disclosed-editing.md) documents the identity and proof boundary.
+Revealed typed nodes and statement-list positions also carry structural capabilities for
+same-category replacement, statement deletion, insertion before and append, including empty lists.
+Their opaque identities let agents make hierarchical IR changes without receiving source, paths or indices.
+Revealed typed nodes and statement-list positions also carry structural capabilities for
+same-category replacement, statement deletion, insertion before and append, including empty lists.
+Their opaque identities let agents make hierarchical IR changes without receiving source, paths or indices.
 `project select NAME...` retrieves several exact declarations through one revision and shared budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.

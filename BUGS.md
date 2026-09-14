@@ -67,6 +67,14 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B860: **an unrelated semantic body edit turned an empty Rust branch into a panic.**
+
+  The Rust IR writer used the non-unit empty-function placeholder for every empty nested block.
+  Re-rendering a function could therefore insert `todo!()` into an `if` branch that was valid and
+  intentionally empty. Empty nested blocks now stay empty. Only an entirely empty function with a
+  non-unit result receives the compile-preserving placeholder. The structural capability evaluator
+  executes through the formerly empty branch after each edit.
+
 - [x] B859: **progressive disclosure refused a source-bearing semantic body before showing it.**
 
   Disclosure redacted unsupported IR source into commitments and then tried to deserialize that

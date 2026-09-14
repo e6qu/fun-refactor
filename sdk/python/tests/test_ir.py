@@ -12,6 +12,7 @@ from fr_ir import (
     BinaryOp,
     Change,
     DisclosedEditRequest,
+    DisclosedIrEditRequest,
     Expr,
     Intent,
     IrError,
@@ -153,6 +154,21 @@ class IrTests(unittest.TestCase):
             DisclosedEditRequest("frde1:short", "7")
         with self.assertRaisesRegex(IrError, "string CLI scalar"):
             DisclosedEditRequest("frde1:" + "a" * 64, 7)
+
+    def test_disclosed_ir_edit_request_keeps_typed_ir_adjacent_to_the_wire_shape(self):
+        identity = "frdi1:" + "b" * 64
+        replacement = DisclosedIrEditRequest(identity, Expr.Int(7))
+        self.assertEqual(replacement.to_data(), {
+            "edit": identity,
+            "value": {"kind": "int", "value": "7"},
+        })
+        deletion = DisclosedIrEditRequest(identity)
+        self.assertEqual(deletion.to_data(), {"edit": identity})
+        self.assertEqual(json.loads(replacement.to_json()), replacement.to_data())
+        with self.assertRaisesRegex(IrError, "exact frdi1"):
+            DisclosedIrEditRequest("frdi1:short", Expr.Int(7))
+        with self.assertRaisesRegex(IrError, "typed IR node"):
+            DisclosedIrEditRequest(identity, {"kind": "int", "value": "7"})
 
 
 if __name__ == "__main__":

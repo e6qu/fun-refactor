@@ -1162,7 +1162,7 @@ fn disclosed_ir_capabilities_refuse_bad_shapes_types_noops_and_stale_source() {
     assert!(wrong_category["error"]["message"]
         .as_str()
         .unwrap()
-        .contains("expression node"));
+        .contains("malformed"));
     assert!(!root.join(".fr-history").exists());
 
     let delete = edits

@@ -160,9 +160,19 @@ candidate, agreement with the current scalar and a changed replacement. Theorems
 singleton condition and prove stale-current, unchanged and malformed-reference refusal. Rust and
 Lean agree on 144 finite admission cases. The project target policy also proves that disclosed
 editing accepts the same supported language and declaration kinds as body replacement. The expanded
-exhaustive matrix contains 1,782 cases. Hash construction, candidate enumeration,
+exhaustive matrix contains 1,980 cases. Hash construction, candidate enumeration,
 parsing, rendering, compiler execution and filesystem behavior remain outside these proofs and are
 covered by independent-oracle, CLI and lifecycle tests.
+
+`FrKernels.DisclosedIrEdit` extends admission to structural capabilities. It requires a full handle,
+a well-formed identity, exactly one current candidate, a matching node/list commitment, the
+operation's optional-value shape, a value in the bound category and a real change. Seven theorems
+recover the admitted requirements and reject stale, malformed, category-crossing and unchanged
+states. Rust and Lean agree on 576 finite inputs. The existing semantic-change position kernel
+proves insert-at-end and delete-in-range rules plus their statement-count effects. The project target
+matrix includes structural disclosed editing and now compares all 1,980 combinations. Identity
+hashing, Merkle computation, structural enumeration and rendering remain covered by deterministic
+oracle, CLI and lifecycle tests rather than these finite proofs.
 
 The same project kernel anchors seventeen framework policy helpers used after syntax recognition.
 Thirty-nine theorems cover caps, middleware ranks, hook rejection, prefixes, migration, registration, body handling, cutover and dependency edits.

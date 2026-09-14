@@ -1401,3 +1401,31 @@ keeps capability volume linear in the revealed statements. Append also covers em
 capability binds the revision, full declaration handle, body basis, operation, category, exact
 path/index and current node or list commitment. The existing semantic-change validator remains the
 execution boundary and revalidates every resulting body before the body writer sees it.
+
+The first two PR 23 checkpoints are committed as `bf56bde` and `781898b`. Disclosure now enumerates
+same-category replacement, statement deletion, insertion-before and statement-list append
+capabilities. `author edit-body-disclosed-ir` accepts the opaque ID and optional bounded node file,
+then reconstructs one current candidate and delegates to `fr-semantic-change-1`. Direct regressions
+cover all four operations, empty lists, malformed shapes, wrong categories, no-ops, stale source and
+exact undo/redo. Author batches, project tasks and reviewed task changes carry the inline
+`disclosed_ir: {edit,value?}` shape; the task-change test runs checks, reversal and patch delivery.
+
+The zero-dependency Python SDK adds `DisclosedIrEditRequest`, which accepts the same typed IR nodes
+as complete bodies and deltas. `FrKernels.DisclosedIrEdit` proves full-handle, identity-shape,
+exact-one, current-match, request-shape, category-match and changed-result admission requirements.
+Rust and Lean agree on 576 finite states. Operation 9 extends the anchored task policy to 1,980
+operation/language/target cases, while the existing semantic-change proof supplies insertion and
+deletion position and statement-count laws. The package builds 60 jobs.
+
+The retained `tests/agent-eval/disclosed-ir-edit.json` report independently recomputes all four
+capability IDs and their current Merkle roots. Capability and explicit semantic-change previews are
+identical. The generic Rust fixture compiles and runs after every edit, stale reuse refuses, forward
+and reverse patches match, and undo/redo restore the expected behavior. Two same-shaped empty lists
+at different positions receive distinct IDs. Individual edit trials need four to eight bounded
+disclosure responses; every response stays below 16,384 bytes.
+
+Evaluator dogfooding found B860: the Rust IR writer inserted `todo!()` into every empty nested block
+during an unrelated body render. Empty nested blocks now remain empty; only an entirely empty
+non-unit function receives that compile-preserving placeholder. The evaluator executes through the
+formerly empty branch. PR 23 is at its final adversarial and repository-gate checkpoint; no
+live-agent context or quality claim is attached to this deterministic milestone.

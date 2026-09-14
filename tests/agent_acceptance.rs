@@ -132,6 +132,20 @@ fn disclosed_edits_select_ambiguous_scalars_and_preserve_the_reviewed_lifecycle(
 }
 
 #[test]
+fn disclosed_ir_edits_match_explicit_changes_and_preserve_the_reviewed_lifecycle() {
+    python(&[
+        "tools/disclosed-ir-edit-eval.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+    ]);
+    python(&[
+        "tools/disclosed-ir-edit-eval.py",
+        "--audit",
+        "tests/agent-eval/disclosed-ir-edit.json",
+    ]);
+}
+
+#[test]
 fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",

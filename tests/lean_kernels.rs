@@ -1090,6 +1090,49 @@ fn disclosed_edit_admission_matches_lean_exhaustively() {
 }
 
 #[test]
+fn disclosed_ir_edit_admission_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("disclosed-ir-edit-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let candidates = [0, 1, 2, 63, 64, 65, 128, 512, 65_536];
+    let mut checked = 0usize;
+    for full_handle in [false, true] {
+        for reference_format in [false, true] {
+            for candidate_count in candidates {
+                for current_matches in [false, true] {
+                    for request_shape in [false, true] {
+                        for value_matches in [false, true] {
+                            for different in [false, true] {
+                                assert_eq!(
+                                    actual.next(),
+                                    Some(fun_refactor::project::disclosed_ir_edit_admitted(
+                                        full_handle,
+                                        reference_format,
+                                        candidate_count,
+                                        current_matches,
+                                        request_shape,
+                                        value_matches,
+                                        different,
+                                    ))
+                                );
+                                checked += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(checked, 576);
+}
+
+#[test]
 fn semantic_section_budget_matches_lean_on_boundary_cases() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
