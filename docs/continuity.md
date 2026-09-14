@@ -30,8 +30,10 @@ WASM gates pass locally.
 
 The active PR 28 adds explicit agent-facing coverage for JavaScript, TypeScript, React, Next.js,
 Go, Python, FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid. Its first
-checkpoint is a revision-bound technology taxonomy and source-free evidence inventory. Later
-checkpoints extend feature, style, diagram, progressive-disclosure and checked-authoring models.
+checkpoint adds a revision-bound technology taxonomy and source-free evidence inventory. The
+second adds Express package/route applications and standalone React package/entry-component
+features, including bounded import expansion and proof-backed standalone admission. Later
+checkpoints extend style, diagram, progressive-disclosure and checked-authoring models.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.

@@ -257,6 +257,13 @@ def main (args : List String) : IO Unit := do
     for client in [false, true] do
       for runtimeHooks in [0, 1, 2, 65536] do
         IO.println (componentHooksCompatible client runtimeHooks)
+    for reactDependency in [false, true] do
+      for nextDependency in [false, true] do
+        for jsxFile in [false, true] do
+          for syntaxValid in [false, true] do
+            for componentFound in [false, true] do
+              IO.println (standaloneReactAdmitted reactDependency nextDependency jsxFile
+                syntaxValid componentFound)
     for nextjs in [false, true] do
       for publicName in [false, true] do
         IO.println (configurationVisibility nextjs publicName)

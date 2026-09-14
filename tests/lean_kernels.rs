@@ -1820,6 +1820,7 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         migration_cutover_automatic, migration_dependency_edit_automatic, migration_disposition,
         migration_schema_agreement, nextjs_body_validation_automatic,
         nextjs_registration_automatic, service_redaction_flags, service_target_kind,
+        standalone_react_admitted,
     };
 
     build_kernel();
@@ -1850,6 +1851,26 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     for client in [false, true] {
         for runtime_hooks in [0, 1, 2, 65536] {
             expected.push(component_hooks_compatible(client, runtime_hooks).to_string());
+        }
+    }
+    for react_dependency in [false, true] {
+        for next_dependency in [false, true] {
+            for jsx_file in [false, true] {
+                for syntax_valid in [false, true] {
+                    for component_found in [false, true] {
+                        expected.push(
+                            standalone_react_admitted(
+                                react_dependency,
+                                next_dependency,
+                                jsx_file,
+                                syntax_valid,
+                                component_found,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
         }
     }
     for nextjs in [false, true] {

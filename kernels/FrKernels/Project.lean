@@ -57,6 +57,30 @@ theorem client_hooks_are_compatible (runtimeHooks : Nat) :
     componentHooksCompatible true runtimeHooks = true := by
   simp [componentHooksCompatible]
 
+-- fr:spec src/project/framework_kernel.rs::standalone_react_admitted @ 88ba51d61f922e679bff56af810528aa45548146b1aa1a5b1eebe51bef3193f3
+-- fr:signature react_dependency: bool => reactDependency: Bool; next_dependency: bool => nextDependency: Bool; jsx_file: bool => jsxFile: Bool; syntax_valid: bool => syntaxValid: Bool; component_found: bool => componentFound: Bool; return: bool => return: Bool
+def standaloneReactAdmitted
+    (reactDependency : Bool)
+    (nextDependency : Bool)
+    (jsxFile : Bool)
+    (syntaxValid : Bool)
+    (componentFound : Bool) : Bool :=
+  reactDependency && !nextDependency && jsxFile && syntaxValid && componentFound
+
+theorem standalone_react_requires_all_positive_evidence
+    (reactDependency nextDependency jsxFile syntaxValid componentFound : Bool) :
+    standaloneReactAdmitted reactDependency nextDependency jsxFile syntaxValid componentFound = true ↔
+      reactDependency = true ∧ nextDependency = false ∧ jsxFile = true ∧
+        syntaxValid = true ∧ componentFound = true := by
+  cases reactDependency <;> cases nextDependency <;> cases jsxFile <;>
+    cases syntaxValid <;> cases componentFound <;> decide
+
+theorem next_packages_are_not_standalone_react
+    (reactDependency jsxFile syntaxValid componentFound : Bool) :
+    standaloneReactAdmitted reactDependency true jsxFile syntaxValid componentFound = false := by
+  cases reactDependency <;> cases jsxFile <;> cases syntaxValid <;>
+    cases componentFound <;> decide
+
 -- fr:spec src/project/framework_kernel.rs::configuration_visibility @ 537d173c9f9187b1a7ce38245dfe63887d1e24f8fc54db9b88b0bec4a59a7195
 -- fr:signature nextjs: bool => nextjs: Bool; public_name: bool => publicName: Bool; return: usize => return: Nat
 def configurationVisibility (nextjs : Bool) (publicName : Bool) : Nat :=

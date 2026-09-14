@@ -6007,7 +6007,7 @@ fn framework_feature_lifecycle_facts_are_bounded_with_an_explicit_gap() {
 }
 
 #[test]
-fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes() {
+fn framework_features_preserve_schema_ambiguity_and_model_express_routes() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     put(
@@ -6036,16 +6036,133 @@ fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes
             .count(),
         2
     );
-    assert_eq!(view["analysis"]["unsupported_framework_routes"], 1);
+    assert_eq!(view["analysis"]["unsupported_framework_routes"], 0);
     assert!(items.iter().any(|fact| {
-        fact["kind"] == "framework-gap"
-            && fact["gap"]["framework"] == "express"
-            && fact["gap"]["reason"]
-                .as_str()
-                .is_some_and(|reason| reason.contains("does not model express"))
+        fact["kind"] == "application" && fact["application"]["framework"] == "express"
     }));
     assert!(items.iter().any(|fact| fact["kind"] == "schema-gap"));
     assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
+fn framework_features_model_express_and_standalone_react_application_trees() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "service/package.json",
+        r#"{"name":"service","scripts":{"start":"node server.js"},"dependencies":{"express":"5"}}"#,
+    );
+    put(
+        root,
+        "service/server.js",
+        concat!(
+            "import express from 'express';\n",
+            "const app = express();\n",
+            "function health(request, response) { return response.json({secret: 'PRIVATE_API'}); }\n",
+            "app.get('/health', health);\n",
+        ),
+    );
+    put(
+        root,
+        "web/package.json",
+        r#"{"name":"web","dependencies":{"react":"19"}}"#,
+    );
+    put(
+        root,
+        "web/src/App.tsx",
+        concat!(
+            "import { useState } from 'react';\n",
+            "import { Button } from './Button';\n",
+            "export default function App() {\n",
+            "  const [count, setCount] = useState(0);\n",
+            "  return <Button className=\"p-4\" onClick={() => setCount(count + 1)} />;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "web/src/Button.tsx",
+        "export function Button({ onClick }: Props) { return <button onClick={onClick}>PRIVATE_UI</button>; }\n",
+    );
+    put(
+        root,
+        "unowned/View.tsx",
+        "export function View() { return <main>not a package</main>; }\n",
+    );
+
+    let report = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(report["analysis"]["applications"], 2, "{report}");
+    assert_eq!(report["analysis"]["features"], 2, "{report}");
+    assert_eq!(report["analysis"]["routes"], 1, "{report}");
+    assert_eq!(report["analysis"]["components"], 2, "{report}");
+    assert_eq!(report["analysis"]["unsupported_framework_routes"], 0);
+    assert_eq!(
+        report["analysis"]["readers"],
+        serde_json::json!(["nextjs-app", "react", "fastapi", "express"])
+    );
+    assert!(!report.to_string().contains("PRIVATE_"));
+
+    let items = report["items"].as_array().unwrap();
+    let express = items
+        .iter()
+        .find(|fact| fact["kind"] == "application" && fact["application"]["framework"] == "express")
+        .unwrap();
+    assert_eq!(express["application"]["root"], "service");
+    assert_eq!(express["evidence"]["basis"], "express-package-root");
+    assert!(express["source"]["handle"].as_str().is_some());
+    let express_feature = items
+        .iter()
+        .find(|fact| fact["kind"] == "feature" && fact["parent"] == express["id"])
+        .unwrap();
+    assert_eq!(express_feature["feature"]["route_path"], "/health");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "route"
+            && fact["parent"] == express_feature["id"]
+            && fact["route"]["method"] == "GET"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "package"
+            && fact["parent"] == express["id"]
+            && fact["package"]["manifest"] == "service/package.json"
+    }));
+
+    let react = items
+        .iter()
+        .find(|fact| fact["kind"] == "application" && fact["application"]["framework"] == "react")
+        .unwrap();
+    assert_eq!(react["application"]["root"], "web");
+    assert_eq!(react["evidence"]["basis"], "react-package-root");
+    let react_feature = items
+        .iter()
+        .find(|fact| fact["kind"] == "feature" && fact["parent"] == react["id"])
+        .unwrap();
+    assert_eq!(
+        react_feature["evidence"]["basis"],
+        "react-entry-component-file"
+    );
+    assert_eq!(react_feature["feature"]["entry_path"], "web/src/App.tsx");
+    assert_eq!(react_feature["feature"]["route_path"], Value::Null);
+    for name in ["App", "Button"] {
+        let component = items
+            .iter()
+            .find(|fact| {
+                fact["kind"] == "component"
+                    && fact["parent"] == react_feature["id"]
+                    && fact["component"]["name"] == name
+            })
+            .unwrap();
+        assert_eq!(
+            component["component"]["rendering_boundary"],
+            "client-default"
+        );
+        assert!(component["source"]["handle"].as_str().is_some());
+    }
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["render"]["target"] == "Button"
+            && fact["status"] == "resolved"
+    }));
 }
 
 #[test]

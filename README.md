@@ -378,7 +378,7 @@ Direct variable handlers expose initializer annotations. Nested app candidates r
 FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
 `fr project schemas` pages Python class, TypeScript interface/object-alias and Rust struct fields, with followable candidates and explicit validation gaps.
 `fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
-`fr project features` joins the bounded Next.js App Router and FastAPI facts into a parent-linked hierarchy.
+`fr project features` joins bounded Next.js App Router, standalone React, Express.js and FastAPI facts into a parent-linked hierarchy.
 It groups exact route paths inside inferred application boundaries, then links routes, handlers, contract fields, execution dependencies and same-file schema candidates.
 Next.js applications also link to captured npm packages, build scripts and declared dependency boundaries.
 Local manifest links remain distinct from dependencies that need package-manager resolution.
@@ -388,7 +388,8 @@ Lifecycle children cover Next.js instrumentation exports and FastAPI lifespan or
 Runtime configuration links environment declarations to application consumers without exposing values.
 Handler children include sanitized `fetch`, axios, requests and HTTPX service candidates; dynamic targets become gaps.
 Next.js pages also form features without API routes.
-Their React files include inherited layouts and bounded relative component imports.
+Standalone React packages form features at root component files in the captured relative-import graph.
+Their React files include inherited Next.js layouts where applicable and bounded relative component imports.
 Direct function components expose server/client boundaries, props, state, effects, other hook names, events and style shapes.
 Render edges resolve unique same-file, default-import and named-import declarations to source anchors.
 Files below a captured `use client` import path retain a client-transitive candidate marker.

@@ -1334,8 +1334,11 @@ Verification and acceptance:
 
 Planned checkpoints:
 
-1. **In progress.** Add the technology taxonomy, inventory, evidence bounds and polyglot fixture.
-2. **Planned.** Extend Express.js and standalone React application/feature models.
+1. **Complete.** Add the technology taxonomy, inventory, evidence bounds and polyglot fixture.
+2. **Complete.** Extend Express.js and standalone React application/feature models. Express routes
+   group under their nearest captured npm package. React packages outside Next.js form entry-rooted
+   component features with bounded relative-import expansion. A source-anchored Lean predicate
+   excludes Next.js packages and incomplete parser evidence from standalone admission.
 3. **Planned.** Add CSS/Tailwind and Markdown/Mermaid high-level relationship models.
 4. **Planned.** Join every new object type to progressive disclosure and the Python SDK.
 5. **Planned.** Expand checked semantic authoring across the requested host structures.
