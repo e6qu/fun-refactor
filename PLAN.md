@@ -1194,7 +1194,7 @@ Planned checkpoints:
 
 ### PR 26. Agent Proof Companion
 
-Status: in progress.
+Status: complete and ready for review.
 
 Goal: give an agent a small, revision-bound Lean proof task and a deterministic feedback loop. The
 agent authors every proof tactic. `fr` supplies context, empty templates, checking, diagnostics and
@@ -1232,7 +1232,9 @@ Planned checkpoints:
 1. **Complete.** Add proof task and proof check protocols with exact content identities.
 2. **Complete.** Make proof writes require Lean verification and return the checked receipt.
 3. **Complete.** Mirror the protocol in Python and formalize proof admission.
-4. **In progress.** Complete workflow tests, agent guidance, continuity and repository gates.
+4. **Complete.** Cover failed and corrected attempts, checked proof writes, regeneration, undo,
+   redo and stale refusal in the end-to-end workflow. Agent guidance and continuity are current;
+   the complete default and WASM repository gates pass locally.
 
 ## Formal verification policy
 
