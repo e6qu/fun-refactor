@@ -10,6 +10,7 @@ import FrKernels.AgentDiscovery
 import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
 import FrKernels.DisclosedIrEdit
+import FrKernels.FormalPlan
 
 open FrKernels.Project
 
@@ -54,7 +55,19 @@ def declarationOffsetLargeSamples : List String :=
    "{" ++ String.ofList (List.replicate 4096 ' ') ++ "x"]
 
 def main (args : List String) : IO Unit := do
-  if args == ["plan-basis"] then
+  if args == ["formal-plan-admission"] then
+    for sourceIsRust in [false, true] do
+      for topLevel in [false, true] do
+        for typed in [false, true] do
+          for pure in [false, true] do
+            for bodySupported in [false, true] do
+              IO.println (FrKernels.FormalPlan.candidateAdmitted sourceIsRust topLevel typed pure bodySupported)
+    for knownKind in [false, true] do
+      for oneInput in [false, true] do
+        for inputMatchesOutput in [false, true] do
+          for booleanSurface in [false, true] do
+            IO.println (FrKernels.FormalPlan.propertyAdmitted knownKind oneInput inputMatchesOutput booleanSurface)
+  else if args == ["plan-basis"] then
     for complete in [false, true] do
       for supplied in [false, true] do
         for identityMatches in [false, true] do

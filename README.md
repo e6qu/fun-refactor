@@ -66,6 +66,8 @@ same-category replacement, statement deletion, insertion before and append, incl
 Their opaque identities let agents make hierarchical IR changes without receiving source, paths or indices.
 `project select NAME...` retrieves several exact declarations through one revision and shared budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
+The [agent formalization workbench](docs/agent-formalization.md) discovers a conservative Rust
+subset, emits source-free Merkle plans, generates Lean models and discloses exact proof goals.
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
 [Release profiling](docs/project-context-evaluation.md#release-stage-profiling) identifies project construction as the largest remaining stage in the measured cached lookups.
 [Batched revision hashing](docs/project-context-evaluation.md#batched-revision-hashing) reduces allocation and hash-update overhead while checking identical reports and stale-source refusals.
@@ -180,6 +182,11 @@ fr migrate feature <ID> --to fastapi --out services/telemetry.py
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec init --write          # create a pinned, checked Lean package through history
+fr spec candidates src        # find pure Rust functions in the generated Lean subset
+fr --json spec plan src/lib.rs::allowed --property identity # source-free formal plan
+fr spec scaffold --from formal-plan.json --write # generate model and proof regions
+fr spec goals specs           # bounded, content-addressed proof-goal catalog
+fr spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --write
 fr spec scaffold src/lib.rs::allowed --write # select one Rust model obligation
 fr spec ci --max-debt 0 --write # pin correspondence, debt and Lean checks in CI
 fr spec check                 # Lean models whose source anchors still match

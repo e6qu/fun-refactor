@@ -30,6 +30,56 @@ fn build_kernel() {
     });
 }
 
+#[test]
+fn formal_plan_admission_matches_lean_for_every_boolean_case() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("formal-plan-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut expected = Vec::new();
+    for source_is_rust in [false, true] {
+        for top_level in [false, true] {
+            for typed in [false, true] {
+                for pure in [false, true] {
+                    for body_supported in [false, true] {
+                        expected.push(fun_refactor::spec::formal_candidate_admitted(
+                            source_is_rust,
+                            top_level,
+                            typed,
+                            pure,
+                            body_supported,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    for known_kind in [false, true] {
+        for one_input in [false, true] {
+            for input_matches_output in [false, true] {
+                for boolean_surface in [false, true] {
+                    expected.push(fun_refactor::spec::formal_property_admitted(
+                        known_kind,
+                        one_input,
+                        input_matches_output,
+                        boolean_surface,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(
+        actual.lines().collect::<Vec<_>>(),
+        expected
+            .iter()
+            .map(|value| if *value { "true" } else { "false" })
+            .collect::<Vec<_>>()
+    );
+}
+
 fn edits_for(source: &str) -> Vec<(usize, usize, &'static str)> {
     let mut edits = Vec::new();
     for start in 0..=source.len() {

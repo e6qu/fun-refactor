@@ -5,9 +5,9 @@ use crate::parse::Parsers;
 use crate::span::Span;
 use anyhow::{bail, Context, Result};
 use ignore::WalkBuilder;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
@@ -108,6 +108,189 @@ pub struct CorrespondenceEvidence {
     pub signature_surface: &'static str,
     pub tested_implementation_model: bool,
     pub proved_implementation_model: bool,
+}
+
+pub const FORMAL_PLAN_SCHEMA: &str = "fr-formal-plan-1";
+pub const FORMAL_GOALS_SCHEMA: &str = "fr-formal-goals-1";
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormalPlan {
+    pub schema: String,
+    pub target: FormalTarget,
+    pub kernel: FormalKernel,
+    pub properties: Vec<FormalProperty>,
+    pub correspondence: FormalCorrespondence,
+    pub assumptions: Vec<String>,
+    pub obligations: Vec<String>,
+    pub object_digest: String,
+    pub actions: FormalActions,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormalTarget {
+    pub source: PathBuf,
+    pub symbol: String,
+    pub source_hash: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormalKernel {
+    pub module: String,
+    pub model: String,
+    pub inputs: Vec<FormalBinding>,
+    pub output: FormalBinding,
+    pub semantic_ir: serde_json::Value,
+    pub lean_definition: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct FormalBinding {
+    pub name: String,
+    pub rust_type: String,
+    pub lean_type: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormalProperty {
+    pub kind: String,
+    pub name: String,
+    pub proposition: String,
+    pub proof_status: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormalCorrespondence {
+    pub source_identity: String,
+    pub signature_surface: String,
+    pub model_generation: String,
+    pub implementation_model: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormalActions {
+    pub scaffold: Vec<String>,
+    pub goals: Vec<String>,
+    pub verify: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FormalCandidates {
+    pub schema: &'static str,
+    pub candidates: Vec<FormalCandidate>,
+    pub omitted: usize,
+    pub limits: FormalLimits,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FormalCandidate {
+    pub target: String,
+    pub source_hash: String,
+    pub eligible: bool,
+    pub reason: String,
+    pub suggested_properties: Vec<&'static str>,
+    pub action: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FormalLimits {
+    pub returned: usize,
+    pub limit: usize,
+}
+
+#[derive(Debug)]
+pub struct FormalScaffoldPlan {
+    pub plan_digest: String,
+    pub source: PathBuf,
+    pub symbol: String,
+    pub model: String,
+    pub module: String,
+    pub obligations: usize,
+    pub regenerated: bool,
+    pub proof_bytes_preserved: usize,
+    pub files: Vec<ScaffoldFile>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FormalGoals {
+    pub schema: &'static str,
+    pub commitment: FormalGoalCommitment,
+    pub catalog: Vec<FormalGoalCatalog>,
+    pub omitted: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revealed: Option<FormalGoalDetail>,
+    pub token_budget: FormalGoalBudget,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FormalGoalCommitment {
+    pub object_schema: &'static str,
+    pub object_root: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FormalGoalCatalog {
+    pub id: String,
+    pub name: String,
+    pub spec: PathBuf,
+    pub line: usize,
+    pub object_digest: String,
+    pub reveal: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FormalGoalDetail {
+    pub id: String,
+    pub name: String,
+    pub spec: PathBuf,
+    pub line: usize,
+    pub theorem: String,
+    pub source_anchor: Option<String>,
+    pub signature_map: Option<String>,
+    pub proof_region: String,
+    pub object_digest: String,
+    pub prove_template: Vec<String>,
+    pub verify: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FormalGoalBudget {
+    pub limit: usize,
+    pub used_upper_bound: usize,
+    pub measurement: &'static str,
+}
+
+#[derive(Debug)]
+pub struct ProofPlan {
+    pub spec: PathBuf,
+    pub obligation: String,
+    pub original: String,
+    pub updated: String,
+}
+
+pub fn formal_candidate_admitted(
+    source_is_rust: bool,
+    top_level: bool,
+    typed: bool,
+    pure: bool,
+    body_supported: bool,
+) -> bool {
+    source_is_rust && top_level && typed && pure && body_supported
+}
+
+pub fn formal_property_admitted(
+    known_kind: bool,
+    one_input: bool,
+    input_matches_output: bool,
+    boolean_surface: bool,
+) -> bool {
+    known_kind && one_input && (input_matches_output || boolean_surface)
 }
 
 pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
@@ -350,6 +533,511 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
     })
 }
 
+pub fn formal_candidates(
+    root: &Path,
+    inputs: &[PathBuf],
+    limit: usize,
+    respect_ignore: bool,
+) -> Result<FormalCandidates> {
+    if !(1..=128).contains(&limit) {
+        bail!("formal candidate limit must be between 1 and 128.");
+    }
+    let root = root.canonicalize()?;
+    let requested = if inputs.is_empty() {
+        vec![root.clone()]
+    } else {
+        inputs
+            .iter()
+            .map(|path| {
+                if path.is_absolute() {
+                    path.clone()
+                } else {
+                    root.join(path)
+                }
+            })
+            .collect()
+    };
+    let mut rows = Vec::new();
+    for input in requested {
+        let canonical = input
+            .canonicalize()
+            .with_context(|| format!("reading candidate path {}", input.display()))?;
+        if !canonical.starts_with(&root) {
+            bail!("formal candidate path must stay inside the workspace.");
+        }
+        let walker = WalkBuilder::new(&canonical)
+            .hidden(respect_ignore)
+            .git_ignore(respect_ignore)
+            .git_global(respect_ignore)
+            .git_exclude(respect_ignore)
+            .require_git(false)
+            .build();
+        for entry in walker {
+            let entry = entry?;
+            let path = entry.path();
+            if !entry.file_type().is_some_and(|kind| kind.is_file())
+                || path.extension().is_none_or(|extension| extension != "rs")
+            {
+                continue;
+            }
+            let module = match crate::transpile::read_file(path) {
+                Ok(module) => module,
+                Err(_) => continue,
+            };
+            let relative = path.strip_prefix(&root)?.to_path_buf();
+            for item in module.items {
+                let crate::transpile::ir::Item::Function(function) = item else {
+                    continue;
+                };
+                let target = format!("{}::{}", relative.display(), function.name);
+                let hash = declaration_hash(
+                    &mut Parsers::new(),
+                    &mut Extractor::new(),
+                    path,
+                    &function.name,
+                )?;
+                let result = formal_function(&root, &target);
+                let (eligible, reason, suggested_properties) = match result {
+                    Ok(formal) => (
+                        true,
+                        "typed pure body maps to the deterministic Lean kernel subset".to_string(),
+                        suggested_properties(&formal.inputs, &formal.output),
+                    ),
+                    Err(error) => (false, error.to_string(), Vec::new()),
+                };
+                rows.push(FormalCandidate {
+                    target: target.clone(),
+                    source_hash: hash,
+                    eligible,
+                    reason,
+                    suggested_properties,
+                    action: vec!["spec".into(), "plan".into(), target],
+                });
+            }
+        }
+    }
+    rows.sort_by(|left, right| left.target.cmp(&right.target));
+    rows.dedup_by(|left, right| left.target == right.target);
+    let omitted = rows.len().saturating_sub(limit);
+    rows.truncate(limit);
+    Ok(FormalCandidates {
+        schema: "fr-formal-candidates-1",
+        limits: FormalLimits {
+            returned: rows.len(),
+            limit,
+        },
+        candidates: rows,
+        omitted,
+    })
+}
+
+pub fn formal_plan(root: &Path, target: &str, property_kinds: &[String]) -> Result<FormalPlan> {
+    if property_kinds.len() > 16 {
+        bail!("a formal plan accepts at most 16 properties.");
+    }
+    let unique = property_kinds.iter().collect::<BTreeSet<_>>();
+    if unique.len() != property_kinds.len() {
+        bail!("a formal plan cannot repeat a property kind.");
+    }
+    let root = root.canonicalize()?;
+    let formal = formal_function(&root, target)?;
+    let properties = property_kinds
+        .iter()
+        .map(|kind| formal_property(kind, &formal))
+        .collect::<Result<Vec<_>>>()?;
+    let target = FormalTarget {
+        source: formal.source,
+        symbol: formal.symbol,
+        source_hash: formal.source_hash,
+    };
+    let kernel = FormalKernel {
+        module: formal.module,
+        model: formal.model,
+        inputs: formal.inputs,
+        output: formal.output,
+        semantic_ir: formal.semantic_ir,
+        lean_definition: formal.lean_definition,
+    };
+    let correspondence = FormalCorrespondence {
+        source_identity: "sha256-anchored-declaration".into(),
+        signature_surface: "strict-rust-lean-map".into(),
+        model_generation: "deterministic-supported-semantic-ir".into(),
+        implementation_model: "generated-model-with-executable-comparison-required".into(),
+    };
+    let assumptions = vec![
+        "Rust parsing, semantic IR extraction and SHA-256 remain trusted.".into(),
+        "The supported kernel excludes effects, mutation, calls, unsafe code and partial operations."
+            .into(),
+    ];
+    let obligations = properties
+        .iter()
+        .map(|property| property.name.clone())
+        .collect();
+    let addressed = serde_json::json!({
+        "schema": FORMAL_PLAN_SCHEMA,
+        "target": &target,
+        "kernel": &kernel,
+        "properties": &properties,
+        "correspondence": &correspondence,
+        "assumptions": &assumptions,
+        "obligations": &obligations,
+    });
+    let object_digest = crate::project::object_merkle(&addressed)?;
+    Ok(FormalPlan {
+        schema: FORMAL_PLAN_SCHEMA.into(),
+        target,
+        kernel,
+        properties,
+        correspondence,
+        assumptions,
+        obligations,
+        object_digest,
+        actions: FormalActions {
+            scaffold: vec![
+                "spec".into(),
+                "scaffold".into(),
+                "--from".into(),
+                "<PLAN_FILE>".into(),
+            ],
+            goals: vec!["spec".into(), "goals".into(), "specs".into()],
+            verify: vec!["spec".into(), "verify".into(), "specs".into()],
+        },
+    })
+}
+
+pub fn scaffold_formal(
+    root: &Path,
+    plan_path: &Path,
+    requested_package: &Path,
+) -> Result<FormalScaffoldPlan> {
+    let text = crate::vfs::read_to_string(plan_path)
+        .with_context(|| format!("reading formal plan {}", plan_path.display()))?;
+    let supplied: FormalPlan = serde_json::from_str(&text)
+        .with_context(|| format!("parsing formal plan {}", plan_path.display()))?;
+    if supplied.schema != FORMAL_PLAN_SCHEMA {
+        bail!("formal plan schema must be {FORMAL_PLAN_SCHEMA}.");
+    }
+    let target = format!(
+        "{}::{}",
+        supplied.target.source.display(),
+        supplied.target.symbol
+    );
+    let kinds = supplied
+        .properties
+        .iter()
+        .map(|property| property.kind.clone())
+        .collect::<Vec<_>>();
+    let expected = formal_plan(root, &target, &kinds)?;
+    if serde_json::to_value(&supplied)? != serde_json::to_value(&expected)? {
+        bail!("formal plan does not match the current source, kernel, properties and actions.");
+    }
+    let package_plan = init(root, requested_package)?;
+    if package_plan.files.iter().any(|file| !file.existing) {
+        bail!(
+            "{} is not initialized; run `fr spec init {} --write` first.",
+            package_plan.package.display(),
+            requested_package.display()
+        );
+    }
+    let model_path = package_plan
+        .package
+        .join("FrSpecs")
+        .join(format!("{}.lean", expected.kernel.module));
+    let original = match std::fs::symlink_metadata(&model_path) {
+        Ok(metadata) if metadata.is_file() => crate::vfs::read_to_string(&model_path)?,
+        Ok(_) => bail!(
+            "existing model is not a regular file: {}.",
+            model_path.display()
+        ),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => return Err(error.into()),
+    };
+    let proofs = if original.is_empty() {
+        BTreeMap::new()
+    } else {
+        proof_regions(&original)?
+    };
+    let proof_bytes_preserved = proofs.values().map(String::len).sum();
+    let updated = render_formal_module(&expected, &proofs)?;
+    let parsed = Parsers::new().parse(crate::lang::Language::Lean, &updated)?;
+    if parsed.has_errors() {
+        bail!("generated formal kernel did not parse as Lean; no files changed.");
+    }
+    let root_path = package_plan.package.join("FrSpecs.lean");
+    let root_original = crate::vfs::read_to_string(&root_path)?;
+    let import = format!("import FrSpecs.{}", expected.kernel.module);
+    let root_updated = if root_original.lines().any(|line| line.trim() == import) {
+        root_original.clone()
+    } else {
+        format!("{import}\n{root_original}")
+    };
+    Ok(FormalScaffoldPlan {
+        plan_digest: expected.object_digest,
+        source: expected.target.source,
+        symbol: expected.target.symbol,
+        model: expected.kernel.model,
+        module: expected.kernel.module,
+        obligations: expected.properties.len(),
+        regenerated: !original.is_empty(),
+        proof_bytes_preserved,
+        files: vec![
+            ScaffoldFile {
+                path: model_path,
+                original,
+                updated,
+            },
+            ScaffoldFile {
+                path: root_path,
+                original: root_original,
+                updated: root_updated,
+            },
+        ],
+    })
+}
+
+pub fn formal_goals(
+    root: &Path,
+    inputs: &[PathBuf],
+    selected: Option<&str>,
+    limit: usize,
+    token_limit: usize,
+    respect_ignore: bool,
+) -> Result<FormalGoals> {
+    if !(1..=64).contains(&limit) {
+        bail!("formal goal limit must be between 1 and 64.");
+    }
+    if !(1_024..=16_384).contains(&token_limit) {
+        bail!("formal goal token limit must be between 1024 and 16384.");
+    }
+    let root = root.canonicalize()?;
+    let report = check(&root, inputs, respect_ignore)?;
+    let mut details = Vec::new();
+    for debt in report.debts {
+        let Some(name) = debt.name.clone() else {
+            continue;
+        };
+        let source = crate::vfs::read_to_string(&debt.spec)?;
+        let begin = format!("-- fr:proof-begin {name}");
+        let end = format!("-- fr:proof-end {name}");
+        let starts = source.match_indices(&begin).collect::<Vec<_>>();
+        let ends = source.match_indices(&end).collect::<Vec<_>>();
+        if starts.len() != 1 || ends.len() != 1 || starts[0].0 >= ends[0].0 {
+            continue;
+        }
+        let theorem = theorem_before(&source, debt.line)?;
+        let before = source
+            .lines()
+            .take(debt.line.saturating_sub(1))
+            .collect::<Vec<_>>();
+        let source_anchor = before
+            .iter()
+            .rev()
+            .find(|line| line.trim().starts_with("-- fr:spec "))
+            .map(|line| line.trim().to_string());
+        let signature_map = before
+            .iter()
+            .rev()
+            .find(|line| line.trim().starts_with("-- fr:signature "))
+            .map(|line| line.trim().to_string());
+        let spec = debt
+            .spec
+            .strip_prefix(&root)
+            .unwrap_or(&debt.spec)
+            .to_path_buf();
+        let addressed = serde_json::json!({
+            "name": name,
+            "spec": spec,
+            "line": debt.line,
+            "theorem": theorem,
+            "source_anchor": source_anchor,
+            "signature_map": signature_map,
+            "proof_region": name,
+        });
+        let id = crate::project::object_merkle(&addressed)?;
+        details.push(FormalGoalDetail {
+            id: id.clone(),
+            name: name.clone(),
+            spec: spec.clone(),
+            line: debt.line,
+            theorem,
+            source_anchor,
+            signature_map,
+            proof_region: name.clone(),
+            object_digest: id,
+            prove_template: vec![
+                "spec".into(),
+                "prove".into(),
+                format!("{}::{name}", spec.display()),
+                "--from".into(),
+                "<PROOF_FILE>".into(),
+            ],
+            verify: vec!["spec".into(), "verify".into(), spec.display().to_string()],
+        });
+    }
+    details.sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
+    let object_root = crate::project::object_merkle(&serde_json::to_value(&details)?)?;
+    let revealed = match selected {
+        Some(id) => Some(
+            details
+                .iter()
+                .find(|detail| detail.id == id)
+                .cloned()
+                .context("formal goal ID is absent or stale")?,
+        ),
+        None => None,
+    };
+    let mut catalog = details
+        .iter()
+        .take(limit)
+        .map(|detail| FormalGoalCatalog {
+            id: detail.id.clone(),
+            name: detail.name.clone(),
+            spec: detail.spec.clone(),
+            line: detail.line,
+            object_digest: detail.object_digest.clone(),
+            reveal: vec![
+                "spec".into(),
+                "goals".into(),
+                detail.spec.display().to_string(),
+                "--goal".into(),
+                detail.id.clone(),
+                "--token-limit".into(),
+                token_limit.to_string(),
+            ],
+        })
+        .collect::<Vec<_>>();
+    loop {
+        let omitted = details.len().saturating_sub(catalog.len());
+        let provisional = serde_json::json!({
+            "schema": FORMAL_GOALS_SCHEMA,
+            "commitment": {"object_schema": "fr-merkle-object-1", "object_root": object_root},
+            "catalog": catalog,
+            "omitted": omitted,
+            "revealed": revealed,
+            "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
+        });
+        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+        if upper_bound <= token_limit {
+            return Ok(FormalGoals {
+                schema: FORMAL_GOALS_SCHEMA,
+                commitment: FormalGoalCommitment {
+                    object_schema: "fr-merkle-object-1",
+                    object_root,
+                },
+                catalog,
+                omitted,
+                revealed,
+                token_budget: FormalGoalBudget {
+                    limit: token_limit,
+                    used_upper_bound: upper_bound,
+                    measurement: "serialized_utf8_bytes",
+                },
+            });
+        }
+        if revealed.is_some() || catalog.is_empty() {
+            bail!("formal goal disclosure cannot fit the selected response ceiling.");
+        }
+        catalog.pop();
+    }
+}
+
+pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
+    let root = root.canonicalize()?;
+    let (spec, obligation) = target
+        .rsplit_once("::")
+        .ok_or_else(|| anyhow::anyhow!("a proof target needs `<spec-path>::<obligation-name>`."))?;
+    if spec.is_empty()
+        || obligation.is_empty()
+        || !obligation.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.')
+        })
+    {
+        bail!("a proof target needs `<spec-path>::<obligation-name>`.");
+    }
+    let spec = PathBuf::from(spec);
+    if spec.is_absolute()
+        || spec
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
+        || spec.extension().is_none_or(|extension| extension != "lean")
+    {
+        bail!("a proof target must name a workspace-relative Lean file.");
+    }
+    let path = root.join(&spec);
+    let original = crate::vfs::read_to_string(&path)?;
+    let proof = crate::vfs::read_to_string(proof_path)?;
+    let proof = proof.trim();
+    if proof.is_empty() || proof.len() > 65_536 {
+        bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
+    }
+    if proof.starts_with("by") {
+        bail!("proof input contains tactics only; omit the leading `by`.");
+    }
+    if proof.contains("sorry") || proof.contains("fr:proof-") || proof.contains("fr:debt") {
+        bail!("proof input cannot carry debt or proof-region markers.");
+    }
+    let begin = format!("-- fr:proof-begin {obligation}");
+    let end = format!("-- fr:proof-end {obligation}");
+    let starts = original.match_indices(&begin).collect::<Vec<_>>();
+    let ends = original.match_indices(&end).collect::<Vec<_>>();
+    if starts.len() != 1 || ends.len() != 1 || starts[0].0 >= ends[0].0 {
+        bail!("formal model needs one ordered proof region for `{obligation}`.");
+    }
+    let content_start = original[starts[0].0..]
+        .find('\n')
+        .map(|offset| starts[0].0 + offset + 1)
+        .context("proof begin marker needs a following line")?;
+    let content_end = original[..ends[0].0]
+        .rfind("  -- fr:proof-end")
+        .unwrap_or(ends[0].0);
+    let rendered = proof
+        .lines()
+        .map(|line| format!("  {line}\n"))
+        .collect::<String>();
+    let mut updated = String::with_capacity(original.len() + rendered.len());
+    updated.push_str(&original[..content_start]);
+    updated.push_str(&rendered);
+    updated.push_str(&original[content_end..]);
+    let parsed = Parsers::new().parse(crate::lang::Language::Lean, &updated)?;
+    if parsed.has_errors() {
+        bail!("proof replacement does not parse as Lean; no files changed.");
+    }
+    Ok(ProofPlan {
+        spec: path,
+        obligation: obligation.into(),
+        original,
+        updated,
+    })
+}
+
+fn theorem_before(source: &str, debt_line: usize) -> Result<String> {
+    let lines = source.lines().collect::<Vec<_>>();
+    let start = (0..debt_line.saturating_sub(1))
+        .rev()
+        .find(|index| {
+            let line = lines[*index].trim_start();
+            line.starts_with("theorem ") || line.starts_with("lemma ")
+        })
+        .context("named proof debt has no preceding theorem or lemma")?;
+    let mut header = Vec::new();
+    for line in &lines[start..debt_line.saturating_sub(1)] {
+        header.push(line.trim().to_string());
+        if line.contains(":= by") || line.trim_end().ends_with(":=") {
+            break;
+        }
+    }
+    let joined = header.join(" ");
+    if !joined.contains(":=") {
+        bail!("proof goal theorem has no assignment boundary.");
+    }
+    Ok(joined
+        .trim_end_matches("by")
+        .trim_end()
+        .trim_end_matches(":=")
+        .trim()
+        .to_string())
+}
+
 pub fn ci(root: &Path, requested_package: &Path, max_debt: usize) -> Result<CiPlan> {
     let package_plan = init(root, requested_package)?;
     if package_plan.files.iter().any(|file| !file.existing) {
@@ -585,6 +1273,375 @@ fn lower_identifier(symbol: &str) -> String {
         output.insert(0, 'm');
     }
     output
+}
+
+struct FormalFunction {
+    source: PathBuf,
+    symbol: String,
+    source_hash: String,
+    module: String,
+    model: String,
+    inputs: Vec<FormalBinding>,
+    output: FormalBinding,
+    semantic_ir: serde_json::Value,
+    lean_definition: String,
+}
+
+fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
+    let (source, symbol) = target.split_once("::").ok_or_else(|| {
+        anyhow::anyhow!("a formal target needs `<source-path>::<top-level-function>`.")
+    })?;
+    if source.is_empty() || symbol.is_empty() || symbol.contains("::") {
+        bail!("a formal target needs `<source-path>::<top-level-function>`.");
+    }
+    let source = PathBuf::from(source);
+    if source.is_absolute()
+        || source
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
+        || source.extension().is_none_or(|extension| extension != "rs")
+    {
+        bail!("a formal target must name a workspace-relative Rust source.");
+    }
+    let source_path = root.join(&source);
+    let declaration = declaration_text(&source_path, symbol)?;
+    let header = declaration
+        .split_once('{')
+        .map_or(declaration.as_str(), |(header, _)| header);
+    if header
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .any(|token| token == "unsafe")
+    {
+        bail!("unsafe functions stay outside generated formal kernels.");
+    }
+    let module = crate::transpile::read_file(&source_path)?;
+    let matches = module
+        .items
+        .into_iter()
+        .filter_map(|item| match item {
+            crate::transpile::ir::Item::Function(function) if function.name == symbol => {
+                Some(function)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let [function] = matches.as_slice() else {
+        bail!(
+            "{} names {} top-level Rust functions called {symbol}.",
+            source.display(),
+            matches.len()
+        );
+    };
+    let typed = function
+        .params
+        .iter()
+        .all(|parameter| parameter.ty.is_some())
+        && function.returns.is_some();
+    let pure = !function.is_async
+        && function.receiver.is_none()
+        && function.params.iter().all(|parameter| {
+            parameter.default.is_none() && parameter.kind == crate::transpile::ir::ParamKind::Normal
+        });
+    let expression = lean_kernel_block(&function.body);
+    if !formal_candidate_admitted(
+        true,
+        function.receiver.is_none(),
+        typed,
+        pure,
+        expression.is_ok(),
+    ) {
+        if function.receiver.is_some() {
+            bail!("methods need an explicit receiver model before kernel generation.");
+        }
+        if !typed {
+            bail!("every parameter and return needs an explicit supported type.");
+        }
+        if !pure {
+            bail!("the kernel subset excludes defaults, unusual parameters and async behavior.");
+        }
+        return expression.map(|_| unreachable!());
+    }
+    let expression = expression?;
+    let signature = rust_signature(&source_path, symbol)?;
+    let mapped = signature
+        .iter()
+        .map(|part| {
+            Ok(FormalBinding {
+                name: part.name.clone(),
+                rust_type: part.ty.clone(),
+                lean_type: rust_type_to_lean(&part.ty)?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let (output, inputs) = mapped
+        .split_last()
+        .context("formal target has no return type")?;
+    if inputs.iter().any(|input| !lean_identifier(&input.name)) {
+        bail!("formal kernel parameters need simple Lean-compatible identifiers.");
+    }
+    let model = format!("{}Model", lower_identifier(symbol));
+    let parameters = inputs
+        .iter()
+        .map(|input| format!(" ({} : {})", input.name, input.lean_type))
+        .collect::<String>();
+    let lean_definition = format!(
+        "def {model}{parameters} : {} :=\n  {expression}",
+        output.lean_type
+    );
+    let source_hash = declaration_hash(
+        &mut Parsers::new(),
+        &mut Extractor::new(),
+        &source_path,
+        symbol,
+    )?;
+    Ok(FormalFunction {
+        source,
+        symbol: symbol.into(),
+        source_hash,
+        module: scaffold_module(Path::new(source_path.strip_prefix(root)?), symbol),
+        model,
+        inputs: inputs.to_vec(),
+        output: output.clone(),
+        semantic_ir: serde_json::to_value(&function.body)?,
+        lean_definition,
+    })
+}
+
+fn lean_kernel_block(statements: &[crate::transpile::ir::Stmt]) -> Result<String> {
+    use crate::transpile::ir::Stmt;
+    let statements = statements
+        .iter()
+        .filter(|statement| !matches!(statement, Stmt::Comment(_)))
+        .collect::<Vec<_>>();
+    match statements.as_slice() {
+        [Stmt::Return(Some(expression))] | [Stmt::Expr(expression)] => lean_kernel_expr(expression),
+        [Stmt::Return(None)] => Ok("()".into()),
+        [Stmt::Block(body)] => lean_kernel_block(body),
+        [Stmt::If {
+            condition,
+            then,
+            otherwise,
+        }] if !otherwise.is_empty() => Ok(format!(
+            "if {} then\n    {}\n  else\n    {}",
+            lean_kernel_expr(condition)?,
+            lean_kernel_block(then)?,
+            lean_kernel_block(otherwise)?
+        )),
+        [Stmt::Let {
+            name,
+            value: Some(value),
+            mutable: false,
+            ..
+        }, rest @ ..] if !rest.is_empty() && lean_identifier(name) => Ok(format!(
+            "let {name} := {};\n  {}",
+            lean_kernel_expr(value)?,
+            lean_kernel_block_refs(rest)?
+        )),
+        _ => bail!(
+            "the body needs pure returns, immutable lets or complete conditionals; effects and mutation remain explicit boundaries."
+        ),
+    }
+}
+
+fn lean_kernel_block_refs(statements: &[&crate::transpile::ir::Stmt]) -> Result<String> {
+    let owned = statements
+        .iter()
+        .map(|statement| (*statement).clone())
+        .collect::<Vec<_>>();
+    lean_kernel_block(&owned)
+}
+
+fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
+    use crate::transpile::ir::{BinaryOp, Expr, UnaryOp};
+    match expression {
+        Expr::Int(value)
+            if value
+                .chars()
+                .all(|character| character.is_ascii_digit() || character == '-') =>
+        {
+            Ok(value.clone())
+        }
+        Expr::Str(value) => Ok(serde_json::to_string(value)?),
+        Expr::Bool(value) => Ok(value.to_string()),
+        Expr::Name(name) if lean_identifier(name) => Ok(name.clone()),
+        Expr::Binary { op, left, right } => {
+            let operator = match op {
+                BinaryOp::Add => "+",
+                BinaryOp::Sub => "-",
+                BinaryOp::Mul => "*",
+                BinaryOp::Eq => "==",
+                BinaryOp::Ne => "!=",
+                BinaryOp::Lt => "<",
+                BinaryOp::Le => "<=",
+                BinaryOp::Gt => ">",
+                BinaryOp::Ge => ">=",
+                BinaryOp::And => "&&",
+                BinaryOp::Or => "||",
+                _ => bail!("division, remainder and xor need an explicit semantic policy."),
+            };
+            Ok(format!(
+                "({} {operator} {})",
+                lean_kernel_expr(left)?,
+                lean_kernel_expr(right)?
+            ))
+        }
+        Expr::Unary {
+            op: UnaryOp::Not,
+            operand,
+        } => Ok(format!("(!{})", lean_kernel_expr(operand)?)),
+        Expr::Unary {
+            op: UnaryOp::Neg,
+            operand,
+        } => Ok(format!("(-{})", lean_kernel_expr(operand)?)),
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => Ok(format!(
+            "if {} then {} else {}",
+            lean_kernel_expr(condition)?,
+            lean_kernel_expr(then)?,
+            lean_kernel_expr(otherwise)?
+        )),
+        Expr::Tuple(values) => values
+            .iter()
+            .map(lean_kernel_expr)
+            .collect::<Result<Vec<_>>>()
+            .map(|values| format!("({})", values.join(", "))),
+        Expr::ListLit(values) => values
+            .iter()
+            .map(lean_kernel_expr)
+            .collect::<Result<Vec<_>>>()
+            .map(|values| format!("[{}]", values.join(", "))),
+        _ => bail!("an expression uses a call, effect, partial access or unsupported kernel form."),
+    }
+}
+
+fn suggested_properties(inputs: &[FormalBinding], output: &FormalBinding) -> Vec<&'static str> {
+    let one_same = inputs.len() == 1 && inputs[0].lean_type == output.lean_type;
+    let boolean = one_same && output.lean_type == "Bool";
+    let mut properties = Vec::new();
+    if one_same {
+        properties.extend(["identity", "idempotent", "involutive"]);
+    }
+    if boolean {
+        properties.extend(["preserves-true", "preserves-false"]);
+    }
+    properties
+}
+
+fn formal_property(kind: &str, function: &FormalFunction) -> Result<FormalProperty> {
+    let known_kind = matches!(
+        kind,
+        "identity" | "idempotent" | "involutive" | "preserves-true" | "preserves-false"
+    );
+    let one_input = function.inputs.len() == 1;
+    let same = one_input && function.inputs[0].lean_type == function.output.lean_type;
+    let boolean = same && function.output.lean_type == "Bool";
+    let needs_boolean = matches!(kind, "preserves-true" | "preserves-false");
+    if !formal_property_admitted(known_kind, one_input, same, boolean)
+        || (needs_boolean && !boolean)
+    {
+        bail!("property `{kind}` does not apply to this kernel signature.");
+    }
+    let input = &function.inputs[0];
+    let model = &function.model;
+    let (suffix, proposition) = match kind {
+        "identity" => (
+            "identity",
+            format!("(x : {}) : {model} x = x", input.lean_type),
+        ),
+        "idempotent" => (
+            "idempotent",
+            format!(
+                "(x : {}) : {model} ({model} x) = {model} x",
+                input.lean_type
+            ),
+        ),
+        "involutive" => (
+            "involutive",
+            format!("(x : {}) : {model} ({model} x) = x", input.lean_type),
+        ),
+        "preserves-true" => ("preserves_true", format!(": {model} true = true")),
+        "preserves-false" => ("preserves_false", format!(": {model} false = false")),
+        _ => unreachable!(),
+    };
+    Ok(FormalProperty {
+        kind: kind.into(),
+        name: format!("{model}_{suffix}"),
+        proposition,
+        proof_status: "unproved".into(),
+    })
+}
+
+fn proof_regions(text: &str) -> Result<BTreeMap<String, String>> {
+    let mut regions = BTreeMap::new();
+    let lines = text.split_inclusive('\n').collect::<Vec<_>>();
+    let mut index = 0;
+    while index < lines.len() {
+        let Some(name) = lines[index].trim().strip_prefix("-- fr:proof-begin ") else {
+            index += 1;
+            continue;
+        };
+        if regions.contains_key(name) {
+            bail!("formal model has duplicate proof region `{name}`.");
+        }
+        let start = index + 1;
+        index = start;
+        let expected = format!("-- fr:proof-end {name}");
+        while index < lines.len() && lines[index].trim() != expected {
+            index += 1;
+        }
+        if index == lines.len() {
+            bail!("formal model has no end marker for proof `{name}`.");
+        }
+        regions.insert(name.into(), lines[start..index].concat());
+        index += 1;
+    }
+    Ok(regions)
+}
+
+fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) -> Result<String> {
+    let mapping = plan
+        .kernel
+        .inputs
+        .iter()
+        .chain(std::iter::once(&plan.kernel.output))
+        .map(|binding| {
+            format!(
+                "{}: {} => {}: {}",
+                binding.name, binding.rust_type, binding.name, binding.lean_type
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    let mut text = format!(
+        "namespace FrSpecs\n\n-- fr:generated-begin formal-kernel\n-- fr:plan {}\n-- fr:spec {}::{} @ {}\n-- fr:signature {}\n{}\n",
+        plan.object_digest,
+        plan.target.source.display(),
+        plan.target.symbol,
+        plan.target.source_hash,
+        mapping,
+        plan.kernel.lean_definition
+    );
+    for property in &plan.properties {
+        let proof = proofs
+            .get(&property.name)
+            .cloned()
+            .unwrap_or_else(|| format!("  -- fr:debt {}\n  sorry\n", property.name));
+        text.push_str(&format!(
+            "\n-- fr:property {} {}\ntheorem {} {} := by\n  -- fr:proof-begin {}\n{}  -- fr:proof-end {}\n",
+            property.kind,
+            property.proof_status,
+            property.name,
+            property.proposition,
+            property.name,
+            proof,
+            property.name
+        ));
+    }
+    text.push_str("-- fr:generated-end formal-kernel\n\n-- fr:handwritten-begin additional-models-and-proofs\n-- fr:handwritten-end additional-models-and-proofs\n\nend FrSpecs\n");
+    Ok(text)
 }
 
 fn scaffold_module(source: &Path, symbol: &str) -> String {
@@ -1175,6 +2232,22 @@ fn declaration_hash(
     path: &Path,
     wanted: &str,
 ) -> Result<String> {
+    Ok(format!(
+        "{:x}",
+        Sha256::digest(declaration_text_with(parsers, extractor, path, wanted)?.as_bytes())
+    ))
+}
+
+fn declaration_text(path: &Path, wanted: &str) -> Result<String> {
+    declaration_text_with(&mut Parsers::new(), &mut Extractor::new(), path, wanted)
+}
+
+fn declaration_text_with(
+    parsers: &mut Parsers,
+    extractor: &mut Extractor,
+    path: &Path,
+    wanted: &str,
+) -> Result<String> {
     let language = detect(path)
         .ok_or_else(|| anyhow::anyhow!("{} has no language this build reads", path.display()))?;
     let source =
@@ -1193,10 +2266,7 @@ fn declaration_hash(
             matches.len()
         );
     };
-    Ok(format!(
-        "{:x}",
-        Sha256::digest(symbol.full_span.text(&source).as_bytes())
-    ))
+    Ok(symbol.full_span.text(&source).to_string())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

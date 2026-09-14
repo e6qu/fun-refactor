@@ -1137,6 +1137,61 @@ Planned checkpoints:
 6. **Complete.** Retain the independent progressive-evidence evaluator. Update SDK and skill
    guidance, refresh context evidence, and pass all native, browser, proof and documentation gates.
 
+### PR 25. Agent Formalization Workbench
+
+Status: complete and ready for review.
+
+Goal: let an agent discover conservative formalization candidates and inspect a source-free semantic
+plan. It can create a Lean kernel and solve one exact proof goal without ingesting or rewriting whole
+source or model files. Preserve explicit evidence levels so generated syntax never becomes a claim
+of general implementation correspondence.
+
+Deliverables:
+
+- Discover top-level Rust functions whose explicit types and pure bodies fit a deterministic Lean
+  subset. Report every exclusion as a concrete boundary and return exact planning actions.
+- Emit `fr-formal-plan-1` with typed bindings, semantic IR, generated Lean, reviewed properties,
+  assumptions, obligations and separate correspondence claims. Bind every semantic field to a
+  Merkle object digest and regenerate the plan from current source before accepting it.
+- Scaffold generated definitions and named theorem regions from the plan. Preserve existing proof
+  regions and handwritten extensions across regeneration while source history keeps preview,
+  reviewed plans, undo, redo and Git patch behavior.
+- Disclose a compact goal catalog and one selected theorem context by content digest under an exact
+  serialized-byte ceiling. Return proof and verification commands without including unrelated
+  model bodies.
+- Replace one named proof region from a tactics-only file. Reject traversal, ambiguous markers,
+  placeholder/marker injection and invalid Lean syntax before preparing a transaction.
+- Mirror the formal plan shape in the zero-dependency Python SDK. Validate exact fields and the
+  independent Merkle content address before agents consume or store a plan.
+- Model candidate and property admission in Lean, anchor both Rust predicates and compare every one
+  of the 48 Boolean inputs with the Lean executable.
+
+Verification and acceptance:
+
+1. Candidate discovery admits pure typed functions and excludes an effectful function without
+   exposing source text. Unsupported syntax refuses instead of producing an approximate kernel.
+2. A saved plan scaffolds only while every source, IR, type, property, obligation and digest field
+   matches deterministic regeneration. Source drift or JSON tampering refuses before mutation.
+3. Generated Lean builds after its disclosed obligations receive valid proofs. Regeneration retains
+   those exact proof bytes; strict source anchors and signature maps remain the verification gate.
+4. Goal catalogs and selected details fit their byte ceiling, use content addresses and disclose
+   only the requested theorem context plus exact continuation actions.
+5. Proof writes change one named region and retain exact undo/redo behavior. Invalid targets,
+   duplicate regions, placeholders and malformed Lean refuse before history creation.
+6. Lean proves the finite admission policies and Rust agrees on all shared cases. Python recomputes
+   real plan addresses and rejects tampering. General Rust/model equivalence remains explicitly
+   unproved outside separately generated executable or correspondence evidence.
+7. Native, Python, documentation, portable-skill, capability, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Add conservative candidate discovery and content-addressed formal plans.
+2. **Complete.** Generate checked Lean definitions and proof-preserving named theorem regions.
+3. **Complete.** Add Merkle-addressed, budgeted goal disclosure and exact proof-region writes.
+4. **Complete.** Mirror and validate plans in Python; formalize admission and exhaust finite cases.
+5. **Complete.** Cover the complete workflow, stale refusal and history reversal in integration tests.
+6. **Complete.** Refresh agent guidance, continuity and evidence; pass the complete repository gate.
+
 ## Formal verification policy
 
 Prioritize properties whose failure silently changes code or misleads an agent.

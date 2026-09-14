@@ -15,6 +15,7 @@ from fr_ir import (
     DisclosedEditRequest,
     DisclosedIrEditRequest,
     Expr,
+    FormalPlan,
     Intent,
     IrError,
     LocatorStep,
@@ -41,6 +42,45 @@ def kinds(namespace):
 
 
 class IrTests(unittest.TestCase):
+    def test_formal_plan_mirrors_rust_shape_and_rejects_tampering(self):
+        core = {
+            "schema": "fr-formal-plan-1",
+            "target": {"source": "src/lib.rs", "symbol": "keep", "source_hash": "a" * 64},
+            "kernel": {
+                "module": "SrcLibRsKeep", "model": "keepModel",
+                "inputs": [{"name": "value", "rust_type": "bool", "lean_type": "Bool"}],
+                "output": {"name": "return", "rust_type": "bool", "lean_type": "Bool"},
+                "semantic_ir": [{"kind": "return", "value": {"kind": "name", "value": "value"}}],
+                "lean_definition": "def keepModel (value : Bool) : Bool :=\n  value",
+            },
+            "properties": [{
+                "kind": "identity", "name": "keepModel_identity",
+                "proposition": "(x : Bool) : keepModel x = x", "proof_status": "unproved",
+            }],
+            "correspondence": {
+                "source_identity": "sha256-anchored-declaration",
+                "signature_surface": "strict-rust-lean-map",
+                "model_generation": "deterministic-supported-semantic-ir",
+                "implementation_model": "generated-model-with-executable-comparison-required",
+            },
+            "assumptions": ["parser trusted"],
+            "obligations": ["keepModel_identity"],
+        }
+        data = dict(core)
+        data["object_digest"] = merkle_object_digest(core)
+        data["actions"] = {
+            "scaffold": ["spec", "scaffold", "--from", "<PLAN_FILE>"],
+            "goals": ["spec", "goals", "specs"],
+            "verify": ["spec", "verify", "specs"],
+        }
+        plan = FormalPlan.from_data(data)
+        self.assertEqual(plan.to_data(), data)
+        self.assertEqual(FormalPlan.from_json(plan.to_json()).object_digest, data["object_digest"])
+        tampered = json.loads(plan.to_json())
+        tampered["kernel"]["model"] = "changedModel"
+        with self.assertRaisesRegex(IrError, "Merkle content address"):
+            FormalPlan.from_data(tampered)
+
     def test_merkle_object_pack_deduplicates_restores_and_detects_corruption(self):
         shared = {"kind": "name", "value": "item"}
         value = {"left": shared, "right": shared, "items": [shared, 1]}
