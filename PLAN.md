@@ -1374,6 +1374,8 @@ Planned checkpoints:
 
 ### PR 29. Deferred Boundary Closure
 
+Status: proposed as [PR 295](https://github.com/e6qu/fun-refactor/pull/295).
+
 **Goal.** Close every concrete lifecycle, evaluator, context and manifest gap retained after the
 cross-stack milestone. Replace old roadmap qualifications with implemented, tested contracts.
 

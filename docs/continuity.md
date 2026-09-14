@@ -9,6 +9,8 @@ and strict Lean evidence. LSP delegation, a daemon process, embedded package sol
 runtimes are closed architecture non-goals; `fr` exposes checked inputs and external check hooks at
 those trust boundaries.
 
+PR 29 is proposed as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295).
+
 The combined-gate checkpoint refreshed the context-protocol, workflow, project-batch and task-bundle
 reports from their frozen inputs after their checksum-bound sources changed. All fifteen active
 agent-acceptance tests pass. It also repaired the byte-only audit path shared by the three measured
