@@ -71,6 +71,29 @@ fn formal_plan_admission_matches_lean_for_every_boolean_case() {
             }
         }
     }
+    for tactics_only in [false, true] {
+        for nonempty in [false, true] {
+            for within_limit in [false, true] {
+                for no_placeholders in [false, true] {
+                    for unique_region in [false, true] {
+                        for syntax_valid in [false, true] {
+                            for lean_passed in [false, true] {
+                                expected.push(fun_refactor::spec::proof_submission_admitted(
+                                    tactics_only,
+                                    nonempty,
+                                    within_limit,
+                                    no_placeholders,
+                                    unique_region,
+                                    syntax_valid,
+                                    lean_passed,
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     assert_eq!(
         actual.lines().collect::<Vec<_>>(),
         expected

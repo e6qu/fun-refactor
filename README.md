@@ -186,6 +186,8 @@ fr spec candidates src        # find pure Rust functions in the generated Lean s
 fr --json spec plan src/lib.rs::allowed --property identity # source-free formal plan
 fr spec scaffold --from formal-plan.json --write # generate model and proof regions
 fr spec goals specs           # bounded, content-addressed proof-goal catalog
+fr spec proof-task specs/FrSpecs/Model.lean::obligation # empty agent proof templates
+fr spec proof-check specs/FrSpecs/Model.lean::obligation --from proof.lean
 fr spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --write
 fr spec scaffold src/lib.rs::allowed --write # select one Rust model obligation
 fr spec ci --max-debt 0 --write # pin correspondence, debt and Lean checks in CI

@@ -68,27 +68,41 @@ theorem header, source and signature anchors, proof-region name, proof command a
 The serialized report stays within the requested byte ceiling. Clients can retain goal details by
 digest in the same object-storage pattern as project disclosure.
 
-Write tactics without reproducing the model file:
+Create a proof task without reading or reproducing the model file:
+
+```sh
+fr --json spec proof-task \
+  specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --token-limit 4096
+```
+
+`fr-proof-task-1` binds the selected goal, input contract, checker and exact actions to one content
+address. Its direct and calculation templates contain only positions for agent-written tactics.
+They do not contain a proof. The agent writes the proof file, then asks Lean to check it without a
+workspace mutation:
 
 ```sh
 printf 'rfl\n' > proof.lean
+fr --json spec proof-check \
+  specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity --from proof.lean
 fr --json spec prove specs/FrSpecs/SrcLibRsKeep.lean::keepModel_identity \
   --from proof.lean --write
 fr --json spec verify specs
 ```
 
-`spec prove` accepts tactics without the leading `by`, targets one exact named proof region, rejects
-debt and region markers in the input, reparses the updated Lean file and writes through ordinary
-history. The transaction supports `history undo`, `history redo`, plan review and Git patch export.
-`spec verify` remains the authority for strict anchors and a warnings-as-errors Lake build.
+`proof-check` returns `fr-proof-attempt-1`. A successful receipt binds the current goal, normalized
+inserted tactics and pinned Lean checker. A failed attempt returns structured diagnostics within the selected
+byte ceiling and no apply action. `spec prove` repeats that Lean check before it prepares history.
+It rejects a leading `by`, proof placeholders, debt markers and ambiguous proof regions. The
+transaction supports `history undo`, `history redo`, plan review and Git patch export. `spec verify`
+remains the authority for strict anchors and a warnings-as-errors Lake build.
 
 ## Verification boundary
 
 `FrKernels.FormalPlan` proves the Boolean admission policies and the Rust test compares every one
-of their 48 finite inputs with the Lean executable. Integration tests cover candidate exclusions,
+of their 176 finite inputs with the Lean executable. Integration tests cover candidate exclusions,
 plan addressing, plan tampering and drift, source-free output, proof preservation, bounded goal
-disclosure, exact proof replacement, undo and redo. Python independently recomputes plan addresses
-and rejects mutation.
+disclosure, failed and corrected proof attempts, exact proof replacement, undo and redo. Python
+independently recomputes plan, task and receipt addresses and rejects mutation.
 
 Lean checks the proposition over the generated Lean definition. Source anchors check declaration
 identity, signature maps check the declared type surface, and executable cases can test selected

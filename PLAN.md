@@ -1192,6 +1192,48 @@ Planned checkpoints:
 5. **Complete.** Cover the complete workflow, stale refusal and history reversal in integration tests.
 6. **Complete.** Refresh agent guidance, continuity and evidence; pass the complete repository gate.
 
+### PR 26. Agent Proof Companion
+
+Status: in progress.
+
+Goal: give an agent a small, revision-bound Lean proof task and a deterministic feedback loop. The
+agent authors every proof tactic. `fr` supplies context, empty templates, checking, diagnostics and
+the existing reversible write path.
+
+Deliverables:
+
+- Build one content-addressed proof task from an exact generated obligation. Include the theorem,
+  anchors, proof input contract, empty structural templates and exact next actions under a byte
+  ceiling.
+- Check an agent-written tactics file with the package's pinned Lean toolchain before any workspace
+  mutation. Return structured, bounded diagnostics and a receipt bound to the goal and proof bytes.
+- Require the same Lean check when `spec prove` previews, saves or applies a proof. Refuse stale
+  goals, invalid tactics and toolchain failures before history creation.
+- Mirror and validate proof tasks and receipts in the Python SDK so an agent can retain their exact
+  shapes without reading Lean files.
+- Model proof-submission admission in Lean and exhaust the shared finite policy against Rust.
+- Cover failed attempts, correction, successful application, regeneration, undo, redo and strict
+  verification in the end-to-end workflow.
+
+Verification and acceptance:
+
+1. The task contains no completed proof or source body. Templates reserve positions for tactics the
+   agent must write.
+2. A wrong proof returns bounded structured Lean diagnostics and changes no workspace file or
+   history state.
+3. A successful receipt binds the current goal digest and normalized tactics digest. Any changed
+   inserted proof or goal produces a different receipt.
+4. `spec prove` cannot prepare a change unless Lean accepts the exact updated module.
+5. Lean proves the finite admission policy and Rust agrees for every input.
+6. Native, Python, documentation, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Add proof task and proof check protocols with exact content identities.
+2. **Complete.** Make proof writes require Lean verification and return the checked receipt.
+3. **Complete.** Mirror the protocol in Python and formalize proof admission.
+4. **In progress.** Complete workflow tests, agent guidance, continuity and repository gates.
+
 ## Formal verification policy
 
 Prioritize properties whose failure silently changes code or misleads an agent.

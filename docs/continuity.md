@@ -1,6 +1,6 @@
 # Development continuity
 
-The active PR 25 adds the Agent Formalization Workbench. `spec candidates` identifies the
+PR 25 adds the Agent Formalization Workbench. `spec candidates` identifies the
 conservative pure Rust subset; `spec plan` emits a source-free `fr-formal-plan-1` object;
 `spec scaffold --from` verifies it against current source and generates Lean definitions plus named
 proof regions; `spec goals` progressively discloses content-addressed theorem context under a byte
@@ -9,6 +9,13 @@ and verifies formal plan addresses. `FrKernels.FormalPlan` proves candidate/prop
 the Rust suite exhausts all 48 shared Boolean inputs. General implementation/model equivalence
 remains an explicit obligation. The active branch is `agent_formalization_workbench`. Its complete
 native, Python, documentation, capability, strict Lean and WASM gates pass locally.
+
+The active PR 26 adds the Agent Proof Companion. `spec proof-task` packages one exact goal with
+empty tactic templates. `spec proof-check` runs agent-written tactics through the pinned Lean
+checker without mutation and returns bounded diagnostics or a content-bound receipt. `spec prove`
+now requires the same Lean check before history can record a proof. Python validates task and
+receipt identities. Lean proves the seven-condition admission policy, and Rust compares all 128
+inputs with the executable kernel.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.

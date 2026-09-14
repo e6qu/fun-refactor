@@ -21,6 +21,8 @@ DISCLOSED_IR_EDIT_SCHEMA = "fr-disclosed-ir-edit-1"
 MERKLE_PROOF_SCHEMA = "fr-merkle-inclusion-1"
 MERKLE_OBJECT_SCHEMA = "fr-merkle-object-1"
 FORMAL_PLAN_SCHEMA = "fr-formal-plan-1"
+PROOF_TASK_SCHEMA = "fr-proof-task-1"
+PROOF_ATTEMPT_SCHEMA = "fr-proof-attempt-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -1254,8 +1256,165 @@ class FormalPlan:
         Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
 
 
+def _string_vector(value: Any, description: str) -> tuple[str, ...]:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise IrError(f"{description} must be an argument-vector string list")
+    return tuple(value)
+
+
+def _byte_budget(value: Any, description: str) -> dict[str, Any]:
+    value = _exact_mapping(value, {"limit", "used_upper_bound", "measurement"}, description)
+    if (not isinstance(value["limit"], int) or isinstance(value["limit"], bool)
+            or not isinstance(value["used_upper_bound"], int)
+            or isinstance(value["used_upper_bound"], bool)
+            or not 0 <= value["used_upper_bound"] <= value["limit"]
+            or value["measurement"] != "serialized_utf8_bytes"):
+        raise IrError(f"{description} is not a valid serialized byte budget")
+    return dict(value)
+
+
+@dataclass(frozen=True)
+class ProofTask:
+    """A proof context and empty templates whose tactics an agent must author."""
+
+    goal: Mapping[str, Any]
+    contract: Mapping[str, Any]
+    templates: Sequence[Mapping[str, Any]]
+    object_digest: str
+    actions: Mapping[str, Sequence[str]]
+    token_budget: Mapping[str, Any]
+
+    @classmethod
+    def from_data(cls, value: Any) -> ProofTask:
+        value = _exact_mapping(value, {
+            "schema", "goal", "contract", "templates", "object_digest", "actions", "token_budget",
+        }, "proof task")
+        if value["schema"] != PROOF_TASK_SCHEMA:
+            raise IrError(f"proof task schema must be {PROOF_TASK_SCHEMA}")
+        goal = _exact_mapping(value["goal"], {
+            "id", "name", "spec", "line", "theorem", "source_anchor", "signature_map",
+            "proof_region", "object_digest", "prove_template", "verify",
+        }, "proof task goal")
+        for key in ("id", "name", "spec", "theorem", "proof_region", "object_digest"):
+            if not isinstance(goal[key], str) or not goal[key]:
+                raise IrError("proof task goal fields must be non-empty strings")
+        if not _is_digest(goal["id"]) or not _is_digest(goal["object_digest"]):
+            raise IrError("proof task goal identities must be lowercase SHA-256 digests")
+        if not isinstance(goal["line"], int) or isinstance(goal["line"], bool) or goal["line"] < 1:
+            raise IrError("proof task goal line must be a positive integer")
+        if not all(goal[key] is None or isinstance(goal[key], str)
+                   for key in ("source_anchor", "signature_map")):
+            raise IrError("proof task goal anchors must be strings or null")
+        _string_vector(goal["prove_template"], "proof task goal prove template")
+        _string_vector(goal["verify"], "proof task goal verify action")
+        contract = _exact_mapping(value["contract"], {
+            "author", "format", "insertion_point", "normalization", "forbidden", "checker",
+        }, "proof input contract")
+        actions = _exact_mapping(value["actions"], {"check", "apply", "verify"}, "proof task actions")
+        budget = _byte_budget(value["token_budget"], "proof task budget")
+        if contract["author"] != "agent":
+            raise IrError("proof task author must be agent")
+        if not all(isinstance(contract[key], str) and contract[key]
+                   for key in ("format", "insertion_point", "normalization", "checker")):
+            raise IrError("proof input contract fields must be non-empty strings")
+        _string_vector(contract["forbidden"], "proof input forbidden list")
+        if not isinstance(value["templates"], list):
+            raise IrError("proof templates must be a list")
+        templates = []
+        for template in value["templates"]:
+            template = _exact_mapping(template, {"kind", "lines"}, "proof template")
+            if not isinstance(template["kind"], str) or not template["kind"]:
+                raise IrError("proof template kind must be a non-empty string")
+            lines = _string_vector(template["lines"], "proof template lines")
+            if not any("agent-written" in line for line in lines):
+                raise IrError("proof template must reserve agent-written tactics")
+            templates.append({"kind": template["kind"], "lines": list(lines)})
+        checked_actions = {key: _string_vector(actions[key], f"proof task {key}") for key in actions}
+        core = {
+            "schema": value["schema"], "goal": value["goal"], "contract": value["contract"],
+            "templates": value["templates"],
+        }
+        if not _is_digest(value["object_digest"]) or merkle_object_digest(core) != value["object_digest"]:
+            raise IrError("proof task fails its Merkle content address")
+        return cls(dict(goal), dict(contract), tuple(templates), value["object_digest"],
+                   checked_actions, dict(budget))
+
+    @classmethod
+    def from_json(cls, text: str) -> ProofTask:
+        return cls.from_data(json.loads(text))
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "schema": PROOF_TASK_SCHEMA, "goal": dict(self.goal), "contract": dict(self.contract),
+            "templates": [dict(item) for item in self.templates], "object_digest": self.object_digest,
+            "actions": {key: list(value) for key, value in self.actions.items()},
+            "token_budget": dict(self.token_budget),
+        }
+
+
+@dataclass(frozen=True)
+class ProofAttempt:
+    """Lean's bounded result for exact agent-written proof bytes."""
+
+    data: Mapping[str, Any]
+
+    @classmethod
+    def from_data(cls, value: Any) -> ProofAttempt:
+        value = _exact_mapping(value, {
+            "schema", "goal_id", "proof_digest", "checker", "passed", "diagnostics",
+            "diagnostics_omitted", "receipt", "actions", "token_budget",
+        }, "proof attempt")
+        if value["schema"] != PROOF_ATTEMPT_SCHEMA:
+            raise IrError(f"proof attempt schema must be {PROOF_ATTEMPT_SCHEMA}")
+        if not _is_digest(value["goal_id"]) or not _is_digest(value["proof_digest"]):
+            raise IrError("proof attempt identities must be lowercase SHA-256 digests")
+        if not isinstance(value["checker"], str) or not isinstance(value["passed"], bool):
+            raise IrError("proof attempt checker and result are malformed")
+        if not isinstance(value["diagnostics"], list):
+            raise IrError("proof attempt diagnostics must be a list")
+        for diagnostic in value["diagnostics"]:
+            diagnostic = _exact_mapping(
+                diagnostic, {"severity", "line", "column", "message", "context"}, "proof diagnostic"
+            )
+            if diagnostic["severity"] not in ("error", "warning"):
+                raise IrError("proof diagnostic severity is invalid")
+            if not isinstance(diagnostic["message"], str):
+                raise IrError("proof diagnostic message must be a string")
+            _string_vector(diagnostic["context"], "proof diagnostic context")
+            for location in ("line", "column"):
+                item = diagnostic[location]
+                if item is not None and (not isinstance(item, int) or isinstance(item, bool) or item < 0):
+                    raise IrError("proof diagnostic locations must be non-negative integers or null")
+        omitted = value["diagnostics_omitted"]
+        if not isinstance(omitted, int) or isinstance(omitted, bool) or omitted < 0:
+            raise IrError("proof diagnostics omitted count must be a non-negative integer")
+        _byte_budget(value["token_budget"], "proof attempt budget")
+        actions = _exact_mapping(value["actions"], {"revise", "apply", "verify"}, "proof actions")
+        _string_vector(actions["revise"], "proof revise action")
+        _string_vector(actions["verify"], "proof verify action")
+        if actions["apply"] is not None:
+            _string_vector(actions["apply"], "proof apply action")
+        expected_receipt = merkle_object_digest({
+            "schema": "fr-proof-receipt-1", "goal_id": value["goal_id"],
+            "proof_digest": value["proof_digest"], "checker": value["checker"],
+        })
+        if value["passed"]:
+            if value["receipt"] != expected_receipt or actions["apply"] is None:
+                raise IrError("accepted proof attempt has an invalid receipt or no apply action")
+        elif value["receipt"] is not None or actions["apply"] is not None:
+            raise IrError("rejected proof attempt cannot have a receipt or apply action")
+        return cls(json.loads(json.dumps(value)))
+
+    @classmethod
+    def from_json(cls, text: str) -> ProofAttempt:
+        return cls.from_data(json.loads(text))
+
+    def to_data(self) -> dict[str, Any]:
+        return json.loads(json.dumps(self.data))
+
+
 __all__ = [
-    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "FORMAL_PLAN_SCHEMA", "FormalBinding", "FormalKernel", "FormalPlan", "FormalProperty", "Function", "INTENT_OPERATIONS",
+    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "FORMAL_PLAN_SCHEMA", "FormalBinding", "FormalKernel", "FormalPlan", "FormalProperty", "Function", "INTENT_OPERATIONS", "PROOF_ATTEMPT_SCHEMA", "PROOF_TASK_SCHEMA", "ProofAttempt", "ProofTask",
     "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "MERKLE_OBJECT_SCHEMA", "MERKLE_PROOF_SCHEMA", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
     "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",

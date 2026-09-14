@@ -112,6 +112,8 @@ pub struct CorrespondenceEvidence {
 
 pub const FORMAL_PLAN_SCHEMA: &str = "fr-formal-plan-1";
 pub const FORMAL_GOALS_SCHEMA: &str = "fr-formal-goals-1";
+pub const PROOF_TASK_SCHEMA: &str = "fr-proof-task-1";
+pub const PROOF_ATTEMPT_SCHEMA: &str = "fr-proof-attempt-1";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -272,6 +274,73 @@ pub struct ProofPlan {
     pub obligation: String,
     pub original: String,
     pub updated: String,
+    pub goal_id: String,
+    pub proof_digest: String,
+    pub receipt: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofTask {
+    pub schema: &'static str,
+    pub goal: FormalGoalDetail,
+    pub contract: ProofInputContract,
+    pub templates: Vec<ProofTemplate>,
+    pub object_digest: String,
+    pub actions: ProofTaskActions,
+    pub token_budget: FormalGoalBudget,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofInputContract {
+    pub author: &'static str,
+    pub format: &'static str,
+    pub insertion_point: &'static str,
+    pub normalization: &'static str,
+    pub forbidden: Vec<&'static str>,
+    pub checker: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofTemplate {
+    pub kind: &'static str,
+    pub lines: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofTaskActions {
+    pub check: Vec<String>,
+    pub apply: Vec<String>,
+    pub verify: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofAttempt {
+    pub schema: &'static str,
+    pub goal_id: String,
+    pub proof_digest: String,
+    pub checker: &'static str,
+    pub passed: bool,
+    pub diagnostics: Vec<ProofDiagnostic>,
+    pub diagnostics_omitted: usize,
+    pub receipt: Option<String>,
+    pub actions: ProofAttemptActions,
+    pub token_budget: FormalGoalBudget,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofDiagnostic {
+    pub severity: String,
+    pub line: Option<usize>,
+    pub column: Option<usize>,
+    pub message: String,
+    pub context: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofAttemptActions {
+    pub revise: Vec<String>,
+    pub apply: Option<Vec<String>>,
+    pub verify: Vec<String>,
 }
 
 pub fn formal_candidate_admitted(
@@ -291,6 +360,24 @@ pub fn formal_property_admitted(
     boolean_surface: bool,
 ) -> bool {
     known_kind && one_input && (input_matches_output || boolean_surface)
+}
+
+pub fn proof_submission_admitted(
+    tactics_only: bool,
+    nonempty: bool,
+    within_limit: bool,
+    no_placeholders: bool,
+    unique_region: bool,
+    syntax_valid: bool,
+    lean_passed: bool,
+) -> bool {
+    tactics_only
+        && nonempty
+        && within_limit
+        && no_placeholders
+        && unique_region
+        && syntax_valid
+        && lean_passed
 }
 
 pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
@@ -941,8 +1028,157 @@ pub fn formal_goals(
     }
 }
 
+pub fn proof_task(
+    root: &Path,
+    target: &str,
+    token_limit: usize,
+    respect_ignore: bool,
+) -> Result<ProofTask> {
+    if !(1_024..=16_384).contains(&token_limit) {
+        bail!("proof task token limit must be between 1024 and 16384.");
+    }
+    let root = root.canonicalize()?;
+    let (spec, obligation) = proof_target(target)?;
+    let evidence = check_strict(&root, std::slice::from_ref(&spec), respect_ignore)?;
+    if !evidence.ok() {
+        bail!("formal proof target has stale source or signature evidence.");
+    }
+    checked_proof_package(&root, &root.join(&spec))?;
+    let catalog = formal_goals(
+        &root,
+        std::slice::from_ref(&spec),
+        None,
+        64,
+        16_384,
+        respect_ignore,
+    )?;
+    let item = catalog
+        .catalog
+        .iter()
+        .find(|item| item.spec == spec && item.name == obligation)
+        .with_context(|| format!("formal proof target `{target}` is absent or already proved"))?;
+    let revealed = formal_goals(
+        &root,
+        std::slice::from_ref(&spec),
+        Some(&item.id),
+        1,
+        16_384,
+        respect_ignore,
+    )?
+    .revealed
+    .context("selected formal proof goal was not revealed")?;
+    let contract = ProofInputContract {
+        author: "agent",
+        format: "utf8-lean-tactics",
+        insertion_point: "inside-existing-by-block",
+        normalization: "trim-outer-whitespace-indent-two-spaces",
+        forbidden: vec![
+            "leading-by",
+            "sorry",
+            "admit",
+            "unsolved-placeholder",
+            "proof-region-marker",
+        ],
+        checker: LEAN_TOOLCHAIN,
+    };
+    let templates = vec![
+        ProofTemplate {
+            kind: "direct",
+            lines: vec!["<agent-written-tactics>"],
+        },
+        ProofTemplate {
+            kind: "structured-calculation",
+            lines: vec![
+                "calc",
+                "  <expression> = <expression> := by",
+                "    <agent-written-tactics>",
+            ],
+        },
+    ];
+    let core = serde_json::json!({
+        "schema": PROOF_TASK_SCHEMA,
+        "goal": &revealed,
+        "contract": &contract,
+        "templates": &templates,
+    });
+    let object_digest = crate::project::object_merkle(&core)?;
+    let actions = ProofTaskActions {
+        check: vec![
+            "spec".into(),
+            "proof-check".into(),
+            target.into(),
+            "--from".into(),
+            "<PROOF_FILE>".into(),
+        ],
+        apply: vec![
+            "spec".into(),
+            "prove".into(),
+            target.into(),
+            "--from".into(),
+            "<PROOF_FILE>".into(),
+            "--write".into(),
+        ],
+        verify: vec!["spec".into(), "verify".into(), spec.display().to_string()],
+    };
+    let provisional = serde_json::json!({
+        "schema": PROOF_TASK_SCHEMA,
+        "goal": &revealed,
+        "contract": &contract,
+        "templates": &templates,
+        "object_digest": &object_digest,
+        "actions": &actions,
+        "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
+    });
+    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+    if upper_bound > token_limit {
+        bail!("proof task cannot fit the selected response ceiling.");
+    }
+    Ok(ProofTask {
+        schema: PROOF_TASK_SCHEMA,
+        goal: revealed,
+        contract,
+        templates,
+        object_digest,
+        actions,
+        token_budget: FormalGoalBudget {
+            limit: token_limit,
+            used_upper_bound: upper_bound,
+            measurement: "serialized_utf8_bytes",
+        },
+    })
+}
+
+pub fn proof_check(
+    root: &Path,
+    target: &str,
+    proof_path: &Path,
+    token_limit: usize,
+) -> Result<ProofAttempt> {
+    if !(1_024..=16_384).contains(&token_limit) {
+        bail!("proof check token limit must be between 1024 and 16384.");
+    }
+    let root = root.canonicalize()?;
+    let prepared = prepare_proof(&root, target, proof_path)?;
+    check_prepared_proof(&root, target, proof_path, &prepared, token_limit)
+}
+
 pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
     let root = root.canonicalize()?;
+    let mut prepared = prepare_proof(&root, target, proof_path)?;
+    let attempt = check_prepared_proof(&root, target, proof_path, &prepared, 4_096)?;
+    if !attempt.passed {
+        let reason = attempt
+            .diagnostics
+            .first()
+            .map(|diagnostic| diagnostic.message.as_str())
+            .unwrap_or("Lean rejected the submitted tactics");
+        bail!("proof failed Lean verification: {reason}");
+    }
+    prepared.receipt = attempt.receipt.context("accepted proof has no receipt")?;
+    Ok(prepared)
+}
+
+fn proof_target(target: &str) -> Result<(PathBuf, String)> {
     let (spec, obligation) = target
         .rsplit_once("::")
         .ok_or_else(|| anyhow::anyhow!("a proof target needs `<spec-path>::<obligation-name>`."))?;
@@ -963,6 +1199,11 @@ pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> 
     {
         bail!("a proof target must name a workspace-relative Lean file.");
     }
+    Ok((spec, obligation.into()))
+}
+
+fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
+    let (spec, obligation) = proof_target(target)?;
     let path = root.join(&spec);
     let original = crate::vfs::read_to_string(&path)?;
     let proof = crate::vfs::read_to_string(proof_path)?;
@@ -970,11 +1211,14 @@ pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> 
     if proof.is_empty() || proof.len() > 65_536 {
         bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
     }
-    if proof.starts_with("by") {
+    if proof.split_whitespace().next() == Some("by") {
         bail!("proof input contains tactics only; omit the leading `by`.");
     }
-    if proof.contains("sorry") || proof.contains("fr:proof-") || proof.contains("fr:debt") {
-        bail!("proof input cannot carry debt or proof-region markers.");
+    if ["sorry", "admit", "?_", "fr:proof-", "fr:debt"]
+        .iter()
+        .any(|forbidden| proof.contains(forbidden))
+    {
+        bail!("proof input cannot carry placeholders, debt or proof-region markers.");
     }
     let begin = format!("-- fr:proof-begin {obligation}");
     let end = format!("-- fr:proof-end {obligation}");
@@ -1002,12 +1246,186 @@ pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> 
     if parsed.has_errors() {
         bail!("proof replacement does not parse as Lean; no files changed.");
     }
+    let task = proof_task(root, target, 16_384, true)?;
+    let proof_digest = crate::project::object_merkle(&serde_json::json!(proof))?;
     Ok(ProofPlan {
         spec: path,
-        obligation: obligation.into(),
+        obligation,
         original,
         updated,
+        goal_id: task.goal.id,
+        proof_digest,
+        receipt: String::new(),
     })
+}
+
+fn check_prepared_proof(
+    root: &Path,
+    target: &str,
+    proof_path: &Path,
+    prepared: &ProofPlan,
+    token_limit: usize,
+) -> Result<ProofAttempt> {
+    let package = checked_proof_package(root, &prepared.spec)?;
+    let scratch = tempfile::Builder::new()
+        .prefix("fr-proof-check-")
+        .suffix(".lean")
+        .tempfile()?;
+    std::fs::write(scratch.path(), &prepared.updated)?;
+    let output = Command::new("lake")
+        .args(["env", "lean"])
+        .arg(scratch.path())
+        .current_dir(&package)
+        .output()
+        .with_context(|| format!("running Lean proof check in {}", package.display()))?;
+    let passed =
+        proof_submission_admitted(true, true, true, true, true, true, output.status.success());
+    let mut raw = String::from_utf8_lossy(&output.stdout).to_string();
+    raw.push_str(&String::from_utf8_lossy(&output.stderr));
+    let mut diagnostics = if passed {
+        Vec::new()
+    } else {
+        lean_diagnostics(&raw, scratch.path(), root)
+    };
+    let all_diagnostics = diagnostics.len();
+    let receipt = passed
+        .then(|| {
+            crate::project::object_merkle(&serde_json::json!({
+                "schema": "fr-proof-receipt-1",
+                "goal_id": prepared.goal_id,
+                "proof_digest": prepared.proof_digest,
+                "checker": LEAN_TOOLCHAIN,
+            }))
+        })
+        .transpose()?;
+    let actions = ProofAttemptActions {
+        revise: vec![
+            "spec".into(),
+            "proof-check".into(),
+            target.into(),
+            "--from".into(),
+            proof_path.display().to_string(),
+        ],
+        apply: passed.then(|| {
+            vec![
+                "spec".into(),
+                "prove".into(),
+                target.into(),
+                "--from".into(),
+                proof_path.display().to_string(),
+                "--write".into(),
+            ]
+        }),
+        verify: vec![
+            "spec".into(),
+            "verify".into(),
+            prepared.spec.display().to_string(),
+        ],
+    };
+    loop {
+        let provisional = serde_json::json!({
+            "schema": PROOF_ATTEMPT_SCHEMA,
+            "goal_id": &prepared.goal_id,
+            "proof_digest": &prepared.proof_digest,
+            "checker": LEAN_TOOLCHAIN,
+            "passed": passed,
+            "diagnostics": &diagnostics,
+            "diagnostics_omitted": all_diagnostics.saturating_sub(diagnostics.len()),
+            "receipt": &receipt,
+            "actions": &actions,
+            "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
+        });
+        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+        if upper_bound <= token_limit {
+            return Ok(ProofAttempt {
+                schema: PROOF_ATTEMPT_SCHEMA,
+                goal_id: prepared.goal_id.clone(),
+                proof_digest: prepared.proof_digest.clone(),
+                checker: LEAN_TOOLCHAIN,
+                passed,
+                diagnostics_omitted: all_diagnostics.saturating_sub(diagnostics.len()),
+                diagnostics,
+                receipt,
+                actions,
+                token_budget: FormalGoalBudget {
+                    limit: token_limit,
+                    used_upper_bound: upper_bound,
+                    measurement: "serialized_utf8_bytes",
+                },
+            });
+        }
+        if diagnostics.pop().is_none() {
+            bail!("proof check report cannot fit the selected response ceiling.");
+        }
+    }
+}
+
+fn checked_proof_package(root: &Path, spec: &Path) -> Result<PathBuf> {
+    let package = lean_package(root, spec)?;
+    let toolchain_path = package.join("lean-toolchain");
+    let toolchain = crate::vfs::read_to_string(&toolchain_path)
+        .with_context(|| format!("reading pinned Lean toolchain {}", toolchain_path.display()))?;
+    if toolchain.trim() != LEAN_TOOLCHAIN {
+        bail!("proof checking requires the fr pinned Lean toolchain {LEAN_TOOLCHAIN}.");
+    }
+    Ok(package)
+}
+
+fn lean_diagnostics(output: &str, scratch: &Path, root: &Path) -> Vec<ProofDiagnostic> {
+    let normalized = output
+        .replace(&scratch.display().to_string(), "<PROOF_CHECK>")
+        .replace(&root.display().to_string(), ".");
+    let mut diagnostics: Vec<ProofDiagnostic> = Vec::new();
+    for line in normalized.lines() {
+        let marker = [(": error: ", "error"), (": warning: ", "warning")]
+            .into_iter()
+            .find_map(|(needle, severity)| {
+                line.find(needle).map(|index| (index, needle, severity))
+            });
+        if let Some((index, needle, severity)) = marker {
+            let location = &line[..index];
+            let mut parts = location.rsplitn(3, ':');
+            let column = parts.next().and_then(|part| part.parse().ok());
+            let line_number = parts.next().and_then(|part| part.parse().ok());
+            diagnostics.push(ProofDiagnostic {
+                severity: severity.into(),
+                line: line_number,
+                column,
+                message: bounded_text(&line[index + needle.len()..], 512),
+                context: Vec::new(),
+            });
+        } else if let Some(diagnostic) = diagnostics.last_mut() {
+            if !line.trim().is_empty() && diagnostic.context.len() < 8 {
+                diagnostic.context.push(bounded_text(line, 512));
+            }
+        }
+    }
+    if diagnostics.is_empty() {
+        diagnostics.push(ProofDiagnostic {
+            severity: "error".into(),
+            line: None,
+            column: None,
+            message: "Lean rejected the submitted tactics".into(),
+            context: normalized
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .take(8)
+                .map(|line| bounded_text(line, 512))
+                .collect(),
+        });
+    }
+    diagnostics
+}
+
+fn bounded_text(text: &str, limit: usize) -> String {
+    if text.len() <= limit {
+        return text.to_string();
+    }
+    let mut end = limit;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}…", &text[..end])
 }
 
 fn theorem_before(source: &str, debt_line: usize) -> Result<String> {

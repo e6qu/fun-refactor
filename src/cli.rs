@@ -692,6 +692,26 @@ enum SpecCommand {
         #[arg(long, default_value_t = 4096, value_name = "BYTES")]
         token_limit: usize,
     },
+    #[command(about = "Build a bounded proof task without supplying proof tactics.")]
+    ProofTask {
+        #[arg(help = "Target as spec-path::obligation-name.")]
+        target: String,
+        #[arg(long, default_value_t = 4096, value_name = "BYTES")]
+        token_limit: usize,
+    },
+    #[command(about = "Check agent-written tactics with Lean without changing the workspace.")]
+    ProofCheck {
+        #[arg(help = "Target as spec-path::obligation-name.")]
+        target: String,
+        #[arg(
+            long,
+            value_name = "PROOF",
+            help = "File containing tactics without the leading `by`."
+        )]
+        from: PathBuf,
+        #[arg(long, default_value_t = 4096, value_name = "BYTES")]
+        token_limit: usize,
+    },
     #[command(about = "Replace exactly one generated proof region with Lean tactics.")]
     Prove {
         #[arg(help = "Target as spec-path::obligation-name.")]
@@ -1173,6 +1193,15 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 limit,
                 token_limit,
             } => cmd_spec_goals(cli, paths, goal.as_deref(), *limit, *token_limit),
+            SpecCommand::ProofTask {
+                target,
+                token_limit,
+            } => cmd_spec_proof_task(cli, target, *token_limit),
+            SpecCommand::ProofCheck {
+                target,
+                from,
+                token_limit,
+            } => cmd_spec_proof_check(cli, target, from, *token_limit),
             SpecCommand::Prove {
                 target,
                 from,
@@ -1340,6 +1369,43 @@ fn cmd_spec_goals(
     Ok(())
 }
 
+fn cmd_spec_proof_task(cli: &Cli, target: &str, token_limit: usize) -> Result<()> {
+    let task = crate::spec::proof_task(&workspace_root(cli), target, token_limit, !cli.no_ignore)?;
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&task)?);
+    } else {
+        println!("Proof task {}", task.object_digest);
+        println!("Goal: {}", task.goal.theorem);
+        println!("Author: {}", task.contract.author);
+        println!("Use --json for templates and exact next actions.");
+    }
+    Ok(())
+}
+
+fn cmd_spec_proof_check(cli: &Cli, target: &str, from: &Path, token_limit: usize) -> Result<()> {
+    let root = workspace_root(cli);
+    let proof_path = if from.is_absolute() {
+        from.to_path_buf()
+    } else {
+        root.join(from)
+    };
+    let attempt = crate::spec::proof_check(&root, target, &proof_path, token_limit)?;
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&attempt)?);
+    } else if attempt.passed {
+        println!(
+            "Lean accepted proof {} for goal {}.",
+            attempt.proof_digest, attempt.goal_id
+        );
+    } else {
+        println!("Lean rejected proof {}.", attempt.proof_digest);
+        for diagnostic in &attempt.diagnostics {
+            println!("{}: {}", diagnostic.severity, diagnostic.message);
+        }
+    }
+    Ok(())
+}
+
 fn cmd_spec_prove(cli: &Cli, target: &str, from: &Path, write: bool) -> Result<()> {
     let root = workspace_root(cli);
     let proof_path = if from.is_absolute() {
@@ -1364,6 +1430,9 @@ fn cmd_spec_prove(cli: &Cli, target: &str, from: &Path, write: bool) -> Result<(
                 "operation": "spec_prove",
                 "spec": shown,
                 "obligation": plan.obligation,
+                "goal_id": plan.goal_id,
+                "proof_digest": plan.proof_digest,
+                "receipt": plan.receipt,
                 "diff": diff,
                 "transaction": transaction,
                 "applied": write && transaction.is_some(),

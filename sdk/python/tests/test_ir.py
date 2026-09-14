@@ -16,6 +16,8 @@ from fr_ir import (
     DisclosedIrEditRequest,
     Expr,
     FormalPlan,
+    ProofAttempt,
+    ProofTask,
     Intent,
     IrError,
     LocatorStep,
@@ -42,6 +44,68 @@ def kinds(namespace):
 
 
 class IrTests(unittest.TestCase):
+    def test_proof_task_and_attempt_bind_agent_context_and_tactics(self):
+        goal = {
+            "id": "a" * 64, "name": "keep_identity", "spec": "specs/Keep.lean", "line": 8,
+            "theorem": "theorem keep_identity (x : Bool) : keep x = x",
+            "source_anchor": "-- fr:spec src/lib.rs::keep @ " + "b" * 64,
+            "signature_map": "-- fr:signature value: bool => value: Bool",
+            "proof_region": "keep_identity", "object_digest": "a" * 64,
+            "prove_template": ["spec", "prove", "specs/Keep.lean::keep_identity"],
+            "verify": ["spec", "verify", "specs/Keep.lean"],
+        }
+        contract = {
+            "author": "agent", "format": "utf8-lean-tactics",
+            "insertion_point": "inside-existing-by-block",
+            "normalization": "trim-outer-whitespace-indent-two-spaces", "forbidden": ["sorry"],
+            "checker": "leanprover/lean4:v4.28.0",
+        }
+        templates = [{"kind": "direct", "lines": ["<agent-written-tactics>"]}]
+        task = {
+            "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
+            "templates": templates,
+            "object_digest": merkle_object_digest({
+                "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
+                "templates": templates,
+            }),
+            "actions": {
+                "check": ["spec", "proof-check"], "apply": ["spec", "prove"],
+                "verify": ["spec", "verify"],
+            },
+            "token_budget": {
+                "limit": 4096, "used_upper_bound": 1500, "measurement": "serialized_utf8_bytes",
+            },
+        }
+        parsed_task = ProofTask.from_data(task)
+        self.assertEqual(parsed_task.to_data(), task)
+        changed_task = json.loads(json.dumps(task))
+        changed_task["goal"]["theorem"] = "changed"
+        with self.assertRaisesRegex(IrError, "Merkle content address"):
+            ProofTask.from_data(changed_task)
+
+        proof_digest = merkle_object_digest("rfl")
+        receipt_core = {
+            "schema": "fr-proof-receipt-1", "goal_id": goal["id"],
+            "proof_digest": proof_digest, "checker": contract["checker"],
+        }
+        attempt = {
+            "schema": "fr-proof-attempt-1", "goal_id": goal["id"],
+            "proof_digest": proof_digest, "checker": contract["checker"], "passed": True,
+            "diagnostics": [], "diagnostics_omitted": 0,
+            "receipt": merkle_object_digest(receipt_core),
+            "actions": {
+                "revise": ["spec", "proof-check"], "apply": ["spec", "prove"],
+                "verify": ["spec", "verify"],
+            },
+            "token_budget": {
+                "limit": 4096, "used_upper_bound": 900, "measurement": "serialized_utf8_bytes",
+            },
+        }
+        self.assertEqual(ProofAttempt.from_data(attempt).to_data(), attempt)
+        attempt["receipt"] = "0" * 64
+        with self.assertRaisesRegex(IrError, "invalid receipt"):
+            ProofAttempt.from_data(attempt)
+
     def test_formal_plan_mirrors_rust_shape_and_rejects_tampering(self):
         core = {
             "schema": "fr-formal-plan-1",

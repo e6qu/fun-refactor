@@ -6,6 +6,9 @@ namespaces follow the Rust IR hierarchy and retain distinct node types at runtim
 `FormalPlan.from_json(...)` also mirrors `fr-formal-plan-1`, validates every nested field and
 independently recomputes its Merkle content address. Agents can inspect and store a plan without
 handling source text, then pass the unchanged JSON to `fr spec scaffold --from`.
+`ProofTask.from_json(...)` validates a bounded `fr-proof-task-1` context and its Merkle address.
+`ProofAttempt.from_json(...)` verifies that an accepted attempt's receipt binds the goal, normalized
+agent-written tactics and pinned checker. Neither class generates proof tactics.
 
 ```python
 from fr_ir import BinaryOp, Expr, SemanticBody, Stmt

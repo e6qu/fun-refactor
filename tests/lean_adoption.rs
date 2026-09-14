@@ -129,6 +129,101 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     let obligation = revealed["revealed"]["name"].as_str().unwrap();
     let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
+    let proof_task = run(workspace.path(), &["--json", "spec", "proof-task", &target]);
+    assert!(
+        proof_task.status.success(),
+        "{}",
+        String::from_utf8_lossy(&proof_task.stderr)
+    );
+    let proof_task: serde_json::Value = serde_json::from_slice(&proof_task.stdout).unwrap();
+    assert_eq!(proof_task["schema"], "fr-proof-task-1");
+    assert_eq!(proof_task["contract"]["author"], "agent");
+    assert!(proof_task["templates"][0]["lines"][0]
+        .as_str()
+        .unwrap()
+        .contains("agent-written"));
+    assert!(!proof_task.to_string().contains("rfl"));
+    let source_path = workspace.path().join("src/lib.rs");
+    let current_source = std::fs::read_to_string(&source_path).unwrap();
+    std::fs::write(
+        &source_path,
+        current_source.replace("{ value }", "{ !value }"),
+    )
+    .unwrap();
+    let stale_task = run(workspace.path(), &["spec", "proof-task", &target]);
+    assert!(!stale_task.status.success());
+    assert!(String::from_utf8_lossy(&stale_task.stderr).contains("stale source"));
+    std::fs::write(&source_path, current_source).unwrap();
+
+    std::fs::write(workspace.path().join("wrong-proof.lean"), "exact false\n").unwrap();
+    let before_failed_attempt = std::fs::read_to_string(&model).unwrap();
+    let failed = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            &target,
+            "--from",
+            "wrong-proof.lean",
+            "--token-limit",
+            "2048",
+        ],
+    );
+    assert!(
+        failed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&failed.stderr)
+    );
+    let failed: serde_json::Value = serde_json::from_slice(&failed.stdout).unwrap();
+    assert_eq!(failed["schema"], "fr-proof-attempt-1");
+    assert_eq!(failed["passed"], false);
+    assert!(failed["receipt"].is_null());
+    assert!(!failed["diagnostics"].as_array().unwrap().is_empty());
+    assert!(failed["token_budget"]["used_upper_bound"].as_u64().unwrap() <= 2048);
+    assert_eq!(
+        std::fs::read_to_string(&model).unwrap(),
+        before_failed_attempt
+    );
+    let rejected_write = run(
+        workspace.path(),
+        &[
+            "spec",
+            "prove",
+            &target,
+            "--from",
+            "wrong-proof.lean",
+            "--write",
+        ],
+    );
+    assert!(!rejected_write.status.success());
+    assert!(
+        String::from_utf8_lossy(&rejected_write.stderr).contains("proof failed Lean verification")
+    );
+    assert_eq!(
+        std::fs::read_to_string(&model).unwrap(),
+        before_failed_attempt
+    );
+
+    let checked = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            &target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        checked.status.success(),
+        "{}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    let checked: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert_eq!(checked["passed"], true);
+    let checked_receipt = checked["receipt"].as_str().unwrap();
     let proved = run(
         workspace.path(),
         &[
@@ -147,6 +242,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         String::from_utf8_lossy(&proved.stderr)
     );
     let proved_json: serde_json::Value = serde_json::from_slice(&proved.stdout).unwrap();
+    assert_eq!(proved_json["receipt"], checked_receipt);
     let transaction = proved_json["transaction"].as_u64().unwrap().to_string();
     let after = std::fs::read_to_string(&model).unwrap();
     assert_eq!(after.matches("-- fr:debt").count(), 1);

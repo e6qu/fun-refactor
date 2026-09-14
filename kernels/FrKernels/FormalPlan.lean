@@ -32,4 +32,23 @@ theorem property_requires_one_input (knownKind inputMatchesOutput booleanSurface
     propertyAdmitted knownKind false inputMatchesOutput booleanSurface = false := by
   simp [propertyAdmitted]
 
+-- fr:spec src/spec.rs::proof_submission_admitted @ e7fcbafdd5fe75f2aaeff0494d06d3a4f2fdef615571528dadf442b7f77de890
+-- fr:signature tactics_only: bool => tacticsOnly: Bool; nonempty: bool => nonempty: Bool; within_limit: bool => withinLimit: Bool; no_placeholders: bool => noPlaceholders: Bool; unique_region: bool => uniqueRegion: Bool; syntax_valid: bool => syntaxValid: Bool; lean_passed: bool => leanPassed: Bool; return: bool => return: Bool
+def proofSubmissionAdmitted
+    (tacticsOnly : Bool)
+    (nonempty : Bool)
+    (withinLimit : Bool)
+    (noPlaceholders : Bool)
+    (uniqueRegion : Bool)
+    (syntaxValid : Bool)
+    (leanPassed : Bool) : Bool :=
+  tacticsOnly && nonempty && withinLimit && noPlaceholders && uniqueRegion && syntaxValid && leanPassed
+
+theorem proof_submission_admitted_iff
+    (tacticsOnly nonempty withinLimit noPlaceholders uniqueRegion syntaxValid leanPassed : Bool) :
+    proofSubmissionAdmitted tacticsOnly nonempty withinLimit noPlaceholders uniqueRegion syntaxValid leanPassed = true ↔
+      tacticsOnly = true ∧ nonempty = true ∧ withinLimit = true ∧ noPlaceholders = true ∧
+        uniqueRegion = true ∧ syntaxValid = true ∧ leanPassed = true := by
+  simp [proofSubmissionAdmitted, and_assoc]
+
 end FrKernels.FormalPlan

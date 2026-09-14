@@ -67,6 +67,15 @@ def main (args : List String) : IO Unit := do
         for inputMatchesOutput in [false, true] do
           for booleanSurface in [false, true] do
             IO.println (FrKernels.FormalPlan.propertyAdmitted knownKind oneInput inputMatchesOutput booleanSurface)
+    for tacticsOnly in [false, true] do
+      for nonempty in [false, true] do
+        for withinLimit in [false, true] do
+          for noPlaceholders in [false, true] do
+            for uniqueRegion in [false, true] do
+              for syntaxValid in [false, true] do
+                for leanPassed in [false, true] do
+                  IO.println (FrKernels.FormalPlan.proofSubmissionAdmitted tacticsOnly nonempty
+                    withinLimit noPlaceholders uniqueRegion syntaxValid leanPassed)
   else if args == ["plan-basis"] then
     for complete in [false, true] do
       for supplied in [false, true] do
