@@ -3240,6 +3240,46 @@ fn manifest_inventory_bounds_match_lean_at_machine_limits() {
 }
 
 #[test]
+fn lockfile_inventory_bounds_match_lean_at_machine_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("lockfile-inventory")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let lockfiles = [0u64, 1, 1023, 1024, 1025, u32::MAX.into(), u64::MAX];
+    let evidence = [
+        0u64,
+        1,
+        262_143,
+        262_144,
+        262_145,
+        u32::MAX.into(),
+        u64::MAX,
+    ];
+    let mut index = 0;
+    for lockfiles in lockfiles {
+        for evidence in evidence {
+            if let (Ok(lockfiles), Ok(evidence)) =
+                (usize::try_from(lockfiles), usize::try_from(evidence))
+            {
+                assert_eq!(
+                    fun_refactor::project::lockfile_inventory_allowed(lockfiles, evidence),
+                    actual[index]
+                );
+            }
+            index += 1;
+        }
+    }
+    assert_eq!(index, actual.len());
+}
+
+#[test]
 fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

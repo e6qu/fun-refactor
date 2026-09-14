@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B873: **agents had to inspect lockfile text to learn captured package versions.**
+
+  `project resolutions` now normalizes supported Cargo, npm, Go and Python lock entries into a
+  bounded source-free report. Lock snapshots participate in project identity and final verification.
+  The progressive project tree carries the same evidence in its package branch. A Lean-anchored
+  policy caps lockfiles and combined evidence rows, with Rust correspondence at machine boundaries.
+
 - [x] B872: **closing the playground discarded its complete checked edit history.**
 
   The WASM API exports and restores a digest-bound session with current files, compacted basis and

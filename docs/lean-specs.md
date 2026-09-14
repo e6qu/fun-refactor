@@ -581,6 +581,11 @@ atomic rename, scheduler fairness, serialization, cryptographic identity and the
 relationship remain trusted or host-tested boundaries. Integration tests use independent cache
 handles and require one resolution owner, one consumer and identical resolved indexes.
 
+The project lockfile reader uses `lockfileInventoryAllowed` to cap captured files and the combined
+resolution and gap rows. Lean proves both bounds and rejects either first value beyond them. Rust
+and Lean agree at zero, both limits and machine-sized boundary samples. Format parsing, filesystem
+capture and checksum authenticity remain integration-tested assumptions.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

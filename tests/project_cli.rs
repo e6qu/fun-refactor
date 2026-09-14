@@ -359,6 +359,7 @@ fn progressive_project_view_catalogs_cross_stack_merkle_domains_without_source()
             .collect::<Vec<_>>(),
         [
             "technologies",
+            "packages",
             "applications",
             "styles",
             "documents_and_diagrams"
@@ -366,7 +367,7 @@ fn progressive_project_view_catalogs_cross_stack_merkle_domains_without_source()
     );
     assert!(!initial.to_string().contains("PRIVATE_"));
     let shortcuts = initial["project_shortcuts"].as_array().unwrap();
-    assert_eq!(shortcuts.len(), 4);
+    assert_eq!(shortcuts.len(), 5);
     for shortcut in shortcuts {
         assert!(shortcut["object_digest"].as_str().is_some());
         let revealed = ok_owned(root, &exact_arguments(&shortcut["reveal"]["arguments"]));
@@ -2854,6 +2855,180 @@ fn package_views_cover_go_modules_and_python_project_metadata() {
 }
 
 #[test]
+fn lockfile_resolutions_cover_supported_ecosystems_without_source_text() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[package]\nname='root'\nversion='1.0.0'\n",
+    );
+    put(
+        root,
+        "Cargo.lock",
+        "# source-only-marker\nversion = 4\n[[package]]\nname='root'\nversion='1.0.0'\n[[package]]\nname='serde'\nversion='1.0.228'\nsource='registry+https://example.invalid/index'\nchecksum='cargo-hash'\ndependencies=['serde_core']\n",
+    );
+    put(root, "web/package.json", r#"{"name":"web"}"#);
+    put(
+        root,
+        "web/package-lock.json",
+        r#"{"name":"web","lockfileVersion":3,"packages":{"":{"name":"web"},"node_modules/plain":{"version":"2.0.0","resolved":"https://example.invalid/plain.tgz","integrity":"sha512-plain","dev":true},"node_modules/@scope/pkg":{"version":"3.0.0","optional":true,"dependencies":{"leaf":"1"}},"node_modules/local":{"resolved":"packages/local","link":true}}}"#,
+    );
+    put(root, "legacy/package.json", r#"{"name":"legacy"}"#);
+    put(
+        root,
+        "legacy/npm-shrinkwrap.json",
+        r#"{"lockfileVersion":1,"dependencies":{"outer":{"version":"1.0.0","dependencies":{"inner":{"version":"1.1.0"}}}}}"#,
+    );
+    put(root, "service/go.mod", "module example.com/service\n");
+    put(
+        root,
+        "service/go.sum",
+        "example.com/mod v1.2.3 h1:module\nexample.com/mod v1.2.3/go.mod h1:gomod\ninvalid\n",
+    );
+    put(
+        root,
+        "poetry/pyproject.toml",
+        "[project]\nname='poetry-app'\n",
+    );
+    put(
+        root,
+        "poetry/poetry.lock",
+        "[[package]]\nname='httpx'\nversion='0.28.1'\nfiles=[{file='httpx.whl',hash='sha256:wheel'}]\n[package.source]\ntype='legacy'\nurl='https://example.invalid/simple'\n",
+    );
+    put(root, "uv/pyproject.toml", "[project]\nname='uv-app'\n");
+    put(
+        root,
+        "uv/uv.lock",
+        "version=1\n[[package]]\nname='fastapi'\nversion='0.116.0'\nsource={registry='https://example.invalid/simple'}\nsdist={url='https://example.invalid/fastapi.tar.gz',hash='sha256:sdist'}\nwheels=[{url='https://example.invalid/fastapi.whl',hash='sha256:wheel'}]\n",
+    );
+    put(root, "pip/pyproject.toml", "[project]\nname='pip-app'\n");
+    put(
+        root,
+        "pip/Pipfile.lock",
+        r#"{"default":{"requests":{"version":"==2.32.0","hashes":["sha256:a"],"markers":"python_version >= '3.9'"}},"develop":{"pytest":{"version":"==8.4.0"}}}"#,
+    );
+
+    let full = ok(root, &["project", "resolutions", "--limit", "500"]);
+    assert_eq!(full["page"]["total"], 13, "{full}");
+    assert_eq!(full["coverage"]["lockfiles"]["discovered"], 7);
+    assert_eq!(full["coverage"]["lockfiles"]["resolutions"], 13);
+    assert_eq!(full["coverage"]["lockfiles"]["gaps"], 1);
+    assert!(full["items"].as_array().unwrap().iter().any(|row| {
+        row["ecosystem"] == "cargo"
+            && row["name"] == "serde"
+            && row["checksum"] == "cargo-hash"
+            && row["dependencies"] == 1
+    }));
+    assert!(full["items"].as_array().unwrap().iter().any(|row| {
+        row["ecosystem"] == "npm" && row["name"] == "@scope/pkg" && row["optional"] == true
+    }));
+    assert!(full["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| { row["name"] == "local" && row["version"].is_null() && row["link"] == true }));
+    assert!(full["items"].as_array().unwrap().iter().any(|row| {
+        row["ecosystem"] == "go-modules"
+            && row["name"] == "example.com/mod"
+            && row["artifact"] == "go-mod"
+    }));
+    assert!(full["items"].as_array().unwrap().iter().any(|row| {
+        row["name"] == "fastapi"
+            && row["source"]["registry"] == "https://example.invalid/simple"
+            && row["checksum"] == "sha256:sdist"
+            && row["artifacts"] == 1
+    }));
+    assert!(full["items"].as_array().unwrap().iter().any(|row| {
+        row["name"] == "requests" && row["group"] == "default" && row["hashes"] == 1
+    }));
+    assert!(!full.to_string().contains("source-only-marker"));
+
+    let cargo = ok(
+        root,
+        &["project", "resolutions", "--manifest", "Cargo.toml"],
+    );
+    assert_eq!(cargo["page"]["total"], 2);
+    let cargo_file = ok(&root.join("Cargo.toml"), &["project", "resolutions"]);
+    assert_eq!(cargo_file["page"]["total"], 2);
+    let go = ok(
+        root,
+        &["project", "resolutions", "--lockfile", "service/go.sum"],
+    );
+    assert_eq!(go["page"]["total"], 2);
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "resolutions",
+                "--manifest",
+                "Cargo.toml",
+                "--lockfile",
+                "Cargo.lock",
+            ],
+        )
+        .0
+    );
+
+    let mut page = ok(root, &["project", "resolutions", "--limit", "1"]);
+    let mut rows = Vec::new();
+    loop {
+        rows.extend(page["items"].as_array().unwrap().clone());
+        let Some(cursor) = page["page"]["next"].as_str() else {
+            break;
+        };
+        page = ok(
+            root,
+            &["project", "resolutions", "--limit", "3", "--cursor", cursor],
+        );
+    }
+    assert_eq!(rows, *full["items"].as_array().unwrap());
+}
+
+#[test]
+fn lockfile_gaps_filters_and_revision_identity_are_checked() {
+    let dir = fixture();
+    let root = dir.path();
+    put(root, "Cargo.toml", "[package]\nname='app'\nversion='1'\n");
+    put(
+        root,
+        "Cargo.lock",
+        "[[package]]\nname='a'\nversion='1'\n[[package]]\nname='b'\nversion='1'\n",
+    );
+    put(root, "bad/uv.lock", "[[package]\n");
+    put(root, "bad/package-lock.json", "[]");
+    put(root, "bad/go.sum", "bad line\n");
+    let first = ok(root, &["project", "resolutions", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let gaps = ok(root, &["project", "gaps", "--limit", "500"]);
+    assert!(gaps["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| { row["scope"] == "lockfile" && row["reason"] == "invalid TOML syntax" }));
+    assert!(gaps["items"].as_array().unwrap().iter().any(|row| {
+        row["scope"] == "lockfile" && row["reason"] == "lockfile must be a JSON object"
+    }));
+    put(
+        root,
+        "Cargo.lock",
+        "[[package]]\nname='a'\nversion='2'\n[[package]]\nname='b'\nversion='1'\n",
+    );
+    assert!(!run(root, &["project", "resolutions", "--cursor", cursor]).0);
+    assert!(
+        !run(
+            root,
+            &["project", "resolutions", "--lockfile", "missing.lock"],
+        )
+        .0
+    );
+    let changed = ok(root, &["project", "resolutions"]);
+    assert_eq!(changed["items"][0]["version"], "2");
+    assert_ne!(first["revision"], changed["revision"]);
+}
+
+#[test]
 fn manifest_pages_are_bounded_complete_and_bound_to_the_filter() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
@@ -3100,6 +3275,8 @@ fn project_verification_refuses_manifest_content_and_inventory_races() {
     let root = dir.path().canonicalize().unwrap();
     let source = "[package]\nname = 'original'\n";
     put(&root, "Cargo.toml", source);
+    let lock = "[[package]]\nname='original'\nversion='1'\n";
+    put(&root, "Cargo.lock", lock);
     let options = ScanOptions::default();
     let scanned = scan(&root, &options).unwrap();
     let index = Index::build_with_cache(&scanned, None).unwrap();
@@ -3108,6 +3285,14 @@ fn project_verification_refuses_manifest_content_and_inventory_races() {
     put(&root, "Cargo.toml", "[package]\nname = 'modified'\n");
     assert!(project.verify(&root).is_err());
     put(&root, "Cargo.toml", source);
+    project.verify(&root).unwrap();
+    put(
+        &root,
+        "Cargo.lock",
+        "[[package]]\nname='changed'\nversion='1'\n",
+    );
+    assert!(project.verify(&root).is_err());
+    put(&root, "Cargo.lock", lock);
     project.verify(&root).unwrap();
     fs::rename(root.join("Cargo.toml"), root.join("other.toml")).unwrap();
     assert!(project.verify(&root).is_err());

@@ -15,8 +15,9 @@ four domains under the compact ceiling. Follow an available shortcut or reveal t
 obtain exact actions for the other branches.
 
 Use `--view project` with a full directory, file or declaration handle for the cross-stack model.
-Its four stable domains are `technologies`, `applications`, `styles` and
-`documents_and_diagrams`. A declaration selects its containing file. The initial
+Its five stable domains are `technologies`, `packages`, `applications`, `styles` and
+`documents_and_diagrams`. The package branch contains bounded manifest declarations, captured
+lock resolutions and their explicit gaps. A declaration selects its containing file. The initial
 `project_catalog` names every domain and the bounded shortcuts reveal individual content-addressed
 branches. The project view has no whole-source frontier; its facts retain narrow source handles for
 cases where the structured evidence or an explicit gap is insufficient.

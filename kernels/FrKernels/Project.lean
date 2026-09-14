@@ -607,6 +607,24 @@ theorem manifest_inventory_refuses_excess_files (declarations : Nat) :
 theorem manifest_inventory_refuses_excess_declarations (manifests : Nat) :
     manifestInventoryAllowed manifests 65537 = false := by simp [manifestInventoryAllowed]
 
+-- fr:spec src/project.rs::lockfile_inventory_allowed @ d523f3cce3a9c92ab127000a293fdfe57a8639ef31352774164cb137986124c4
+-- fr:signature lockfiles: usize => lockfiles: Nat; evidence: usize => evidence: Nat; return: bool => return: Bool
+def lockfileInventoryAllowed (lockfiles : Nat) (evidence : Nat) : Bool :=
+  decide (lockfiles ≤ 1024 ∧ evidence ≤ 262144)
+
+theorem lockfile_inventory_bounds (lockfiles evidence : Nat)
+    (allowed : lockfileInventoryAllowed lockfiles evidence = true) :
+    lockfiles ≤ 1024 ∧ evidence ≤ 262144 := by
+  simpa [lockfileInventoryAllowed] using allowed
+
+theorem lockfile_inventory_accepts_empty : lockfileInventoryAllowed 0 0 = true := by decide
+
+theorem lockfile_inventory_refuses_excess_files (evidence : Nat) :
+    lockfileInventoryAllowed 1025 evidence = false := by simp [lockfileInventoryAllowed]
+
+theorem lockfile_inventory_refuses_excess_rows (lockfiles : Nat) :
+    lockfileInventoryAllowed lockfiles 262145 = false := by simp [lockfileInventoryAllowed]
+
 -- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
 -- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat
 def handleSelectionStatus (inScope : Bool) (declaration : Bool) (isLocal : Bool)

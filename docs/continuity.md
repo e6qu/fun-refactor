@@ -1649,3 +1649,14 @@ The production build now tolerates two targeted legacy diagnostics from the upst
 allocator under Clang 23; wasi-sdk 34 builds all grammars and the 88-capability and patch suites pass.
 Lean anchors restoration and compaction admission, proves their finite bounds and agrees with Rust
 over Boolean and machine-size boundary cases.
+
+The next deferred-boundary checkpoint removes the need to read lockfile text. `project resolutions`
+captures Cargo, npm, Go, Poetry, uv and Pipenv entries under the project revision. It exposes bounded
+versions, origins, integrity metadata and explicit gaps, with manifest or lockfile filters and exact
+pagination. Lock changes invalidate handles, cursors and progressive actions. The cross-stack Merkle
+model now has a fifth package branch containing manifest declarations and captured resolutions.
+
+`FrKernels.Project.lockfileInventoryAllowed` caps 1,024 lockfiles and 262,144 combined evidence
+rows. Lean proves both bounds and Rust agrees at zero, adjacent limits and machine-sized samples.
+The model does not claim package solving or checksum authenticity; parsers and captured bytes remain
+integration-tested boundaries.

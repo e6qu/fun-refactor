@@ -366,6 +366,10 @@ cumulative patches through the native Rust Git renderer. The playground restores
 checkpoints across reloads; see [browser history](docs/browser-history.md).
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo, npm, Go module and Python project declarations with shared revision checks.
+`fr project resolutions` pages through captured Cargo, npm, Go and Python lock entries without
+returning lockfile text. Filters select one manifest or lockfile, and every cursor binds the exact
+lock snapshot. The report includes versions, available origins and integrity fields with explicit
+format gaps. It reads `Cargo.lock`, npm lockfiles, `go.sum`, Poetry, uv and Pipenv locks.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.
@@ -385,7 +389,7 @@ the [cross-stack surface model](docs/cross-stack-surfaces.md).
 Editable rows return opaque revision-bound capabilities for exact CSS definitions, literal class
 tokens, Markdown headings and Mermaid nodes. `fr author edit-surface` previews and records those
 changes through the same undo, redo and Git patch history as function authoring.
-`fr project disclose HANDLE --view project` commits these reports and application facts as four
+`fr project disclose HANDLE --view project` commits these reports and application facts as five
 independently revealable Merkle branches.
 Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.
 Direct variable handlers expose initializer annotations. Nested app candidates retain captured npm dependency and package-boundary evidence.
