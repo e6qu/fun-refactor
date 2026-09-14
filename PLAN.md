@@ -1139,7 +1139,7 @@ Planned checkpoints:
 
 ### PR 25. Agent Formalization Workbench
 
-Status: implementation and focused verification complete; full repository gate pending.
+Status: complete and ready for review.
 
 Goal: let an agent discover conservative formalization candidates and inspect a source-free semantic
 plan. It can create a Lean kernel and solve one exact proof goal without ingesting or rewriting whole
@@ -1190,7 +1190,7 @@ Planned checkpoints:
 3. **Complete.** Add Merkle-addressed, budgeted goal disclosure and exact proof-region writes.
 4. **Complete.** Mirror and validate plans in Python; formalize admission and exhaust finite cases.
 5. **Complete.** Cover the complete workflow, stale refusal and history reversal in integration tests.
-6. **In progress.** Refresh agent guidance, continuity and evidence; pass the complete repository gate.
+6. **Complete.** Refresh agent guidance, continuity and evidence; pass the complete repository gate.
 
 ## Formal verification policy
 

@@ -7,8 +7,8 @@ proof regions; `spec goals` progressively discloses content-addressed theorem co
 ceiling; and `spec prove` writes tactics through ordinary reversible history. The Python SDK mirrors
 and verifies formal plan addresses. `FrKernels.FormalPlan` proves candidate/property admission and
 the Rust suite exhausts all 48 shared Boolean inputs. General implementation/model equivalence
-remains an explicit obligation. The active branch is `agent_formalization_workbench`; focused Rust,
-Python and Lean tests pass, while the complete repository gate remains the final checkpoint.
+remains an explicit obligation. The active branch is `agent_formalization_workbench`. Its complete
+native, Python, documentation, capability, strict Lean and WASM gates pass locally.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
