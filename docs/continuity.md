@@ -1330,7 +1330,7 @@ PR 284 CI also passed its default, WASM, playground and title jobs before merge.
 
 ## Disclosure-bound semantic editing
 
-PR 22 is in review as [PR 285](https://github.com/e6qu/fun-refactor/pull/285). It continues the
+PR 22 merged as [PR 285](https://github.com/e6qu/fun-refactor/pull/285). It continues the
 progressive hierarchy into exact source-free authoring. Every scalar that the
 current semantic reader and body writer can author receives an opaque `frde1:` capability when it is
 revealed. Its ID binds the revision, full declaration handle, canonical body basis, scalar pointer,
@@ -1380,3 +1380,9 @@ lost their path at a colon, and TypeScript optional callbacks crossed back as ca
 results. TypeScript now groups the callback inside its nullable union. Both readers preserve the
 grouping and the Rust reader no longer treats path separators as parameter labels. The focused
 default regression and the formerly failing complete repository round trip pass.
+
+The first post-merge structural-authoring dogfood found B859. A source-bearing body had a valid
+read-only semantic view and an unavailable authoring identity. Disclosure redacted its unsupported
+source into commitments, then tried to deserialize that public shape as private typed IR while
+enumerating scalar edits. It now consults the existing body-identity status first. Such bodies keep
+their bounded semantic and source frontiers and offer zero edit capabilities.

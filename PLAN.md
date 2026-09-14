@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 704 |
+| Defects fixed | 705 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -208,7 +208,7 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 19](https://github.com/e6qu/fun-refactor/pull/282) | Incremental Project Identity and Agent Query Latency | Merged |
 | [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
-| PR 22 | Disclosure-Bound Semantic Editing | In progress |
+| [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -937,7 +937,7 @@ Planned checkpoints:
 
 ### PR 22. Disclosure-Bound Semantic Editing
 
-Status: in review as [PR 285](https://github.com/e6qu/fun-refactor/pull/285).
+Status: merged as [PR 285](https://github.com/e6qu/fun-refactor/pull/285).
 
 Goal: let an agent turn one progressively revealed scalar into an exact reviewed change without
 reading source, reconstructing a pointer or writing a semantic-intent locator. Preserve the typed

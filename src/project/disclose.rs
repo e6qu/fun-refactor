@@ -526,10 +526,11 @@ impl Project<'_> {
         let semantic_root = merkle(&model)?;
         let mut edits = Vec::new();
         let node = &self.nodes[id];
-        if node
-            .symbol
-            .and_then(|symbol| self.index.symbol(symbol))
-            .is_some_and(|symbol| super::author::semantic_body_authorable(symbol.language))
+        if semantic["body_identity"]["status"] == "available"
+            && node
+                .symbol
+                .and_then(|symbol| self.index.symbol(symbol))
+                .is_some_and(|symbol| super::author::semantic_body_authorable(symbol.language))
         {
             if let Some(body) = model.pointer("/items/0/value/body") {
                 let candidate = super::semantic_change::SemanticBody {

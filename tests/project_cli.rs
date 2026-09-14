@@ -172,6 +172,37 @@ fn progressive_disclosure_starts_source_free_and_follows_exact_semantic_and_sour
 }
 
 #[test]
+fn progressive_disclosure_keeps_source_bearing_bodies_readable_without_offering_edits() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("app.rs"),
+        "fn partial() { crate::service::run(); }\n",
+    )
+    .unwrap();
+    let found = ok(dir.path(), &["project", "find", "partial"]);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        dir.path(),
+        &["project", "disclose", handle, "--token-limit", "4096"],
+    );
+    assert_disclosure_budget(&initial);
+    assert_eq!(initial["status"], "frontier");
+    assert!(initial["semantic_shortcuts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|row| row["editable_scalars"] == 0));
+    assert!(!initial.to_string().contains("crate::service::run"));
+
+    let semantic = ok_owned(
+        dir.path(),
+        &exact_arguments(&initial["frontier"][0]["reveal"]["arguments"]),
+    );
+    assert_disclosure_budget(&semantic);
+    assert_eq!(semantic["revealed"]["domain"], "semantic-ir");
+}
+
+#[test]
 fn progressive_source_reveals_are_utf8_safe_bounded_and_reconstruct_exactly() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir(dir.path().join("src")).unwrap();

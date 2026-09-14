@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B859: **progressive disclosure refused a source-bearing semantic body before showing it.**
+
+  Disclosure redacted unsupported IR source into commitments and then tried to deserialize that
+  public representation as the private typed IR. The redacted fields are intentionally not part of
+  the authoring type. Disclosure now uses the existing body-identity status before constructing edit
+  capabilities. Source-bearing bodies remain progressively inspectable and expose no edits.
+
 - [x] B858: **an optional callback changed into a callback with an optional result.**
 
   The TypeScript writer omitted parentheses around an optional function type. Its reader also
