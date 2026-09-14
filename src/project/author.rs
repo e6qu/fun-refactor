@@ -171,6 +171,8 @@ pub(super) struct BatchStep {
     pub(super) scalar: Option<super::semantic_intent::ScalarRequest>,
     #[serde(default)]
     pub(super) disclosed: Option<super::disclose::EditRequest>,
+    #[serde(default)]
+    pub(super) disclosed_ir: Option<super::disclose::IrEditRequest>,
 }
 
 #[derive(Clone, Copy, Deserialize)]
@@ -182,6 +184,7 @@ pub(super) enum BatchOperation {
     EditBodyIntent,
     EditBodyScalar,
     EditBodyDisclosed,
+    EditBodyDisclosedIr,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -664,14 +667,19 @@ impl Project<'_> {
             let plan = match step.op {
                 BatchOperation::OrganizeImports => {
                     ensure!(
-                        step.from.is_none() && step.scalar.is_none() && step.disclosed.is_none(),
+                        step.from.is_none()
+                            && step.scalar.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
                         "organize-imports does not accept fragment, scalar or disclosed input."
                     );
                     self.organize_imports(&step.handle, revision.as_deref())
                 }
                 BatchOperation::EditBodyScalar => {
                     ensure!(
-                        step.from.is_none() && step.disclosed.is_none(),
+                        step.from.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
                         "edit-body-scalar accepts only scalar input."
                     );
                     let scalar = step
@@ -690,7 +698,7 @@ impl Project<'_> {
                 }
                 BatchOperation::EditBodyDisclosed => {
                     ensure!(
-                        step.from.is_none() && step.scalar.is_none(),
+                        step.from.is_none() && step.scalar.is_none() && step.disclosed_ir.is_none(),
                         "edit-body-disclosed accepts only disclosed input."
                     );
                     let disclosed = step
@@ -704,9 +712,22 @@ impl Project<'_> {
                         write: false,
                     })
                 }
+                BatchOperation::EditBodyDisclosedIr => {
+                    ensure!(
+                        step.from.is_none() && step.scalar.is_none() && step.disclosed.is_none(),
+                        "edit-body-disclosed-ir accepts only disclosed_ir input."
+                    );
+                    let disclosed_ir = step
+                        .disclosed_ir
+                        .as_ref()
+                        .context("edit-body-disclosed-ir requires a disclosed_ir request.")?;
+                    self.edit_body_disclosed_ir_request(&step.handle, disclosed_ir, diff_bytes)
+                }
                 operation => {
                     ensure!(
-                        step.scalar.is_none() && step.disclosed.is_none(),
+                        step.scalar.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
                         "fragment authoring operations do not accept scalar or disclosed input."
                     );
                     let operation_options = ReplaceBodyOptions {
@@ -729,6 +750,7 @@ impl Project<'_> {
                         BatchOperation::EditBodyIntent => self.edit_body_intent(&operation_options),
                         BatchOperation::EditBodyScalar => unreachable!(),
                         BatchOperation::EditBodyDisclosed => unreachable!(),
+                        BatchOperation::EditBodyDisclosedIr => unreachable!(),
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -756,7 +778,8 @@ impl Project<'_> {
                 | BatchOperation::EditBodySemantic
                 | BatchOperation::EditBodyIntent
                 | BatchOperation::EditBodyScalar
-                | BatchOperation::EditBodyDisclosed => "body",
+                | BatchOperation::EditBodyDisclosed
+                | BatchOperation::EditBodyDisclosedIr => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -800,6 +823,7 @@ impl Project<'_> {
                 "semantic_intent",
                 "semantic_edit_plan",
                 "disclosed_edit",
+                "disclosed_ir_edit",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();

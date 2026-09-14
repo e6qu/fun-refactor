@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use std::collections::{BTreeSet, VecDeque};
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
@@ -299,6 +300,88 @@ fn use_disclosed_scalar(root: &Path) {
     manifest["targets"][0]["disclosed"] = json!({
         "edit":selected["id"],
         "to":"to_uppercase"
+    });
+    fs::write(manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+}
+
+fn use_disclosed_ir(root: &Path) {
+    let found = report(fr(root, &["project", "find", "render"]), 0);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = report(
+        fr(
+            root,
+            &[
+                "project",
+                "disclose",
+                handle,
+                "--token-limit",
+                "16384",
+                "--profile",
+                "expanded",
+            ],
+        ),
+        0,
+    );
+    let mut pending = initial["semantic_shortcuts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|shortcut| {
+            shortcut["editable_ir"]
+                .as_u64()
+                .is_some_and(|count| count > 0)
+        })
+        .map(|shortcut| exact_arguments(&shortcut["reveal"]["arguments"]))
+        .collect::<VecDeque<_>>();
+    let mut seen = BTreeSet::new();
+    let mut selected = None;
+    while let Some(arguments) = pending.pop_front() {
+        if !seen.insert(arguments.join("\0")) {
+            continue;
+        }
+        let revealed = report(fr_owned(root, &arguments), 0);
+        let nodes = std::iter::once(&revealed["revealed"]).chain(
+            revealed["revealed"]["children"]
+                .as_array()
+                .into_iter()
+                .flatten(),
+        );
+        for node in nodes {
+            for edit in node["ir_edits"].as_array().into_iter().flatten() {
+                if edit["operation"] == "replace" && edit["accepts"] == "expression" {
+                    selected = Some(edit.clone());
+                    break;
+                }
+            }
+            if let Some(arguments) = node
+                .get("hole")
+                .and_then(|hole| hole.get("reveal"))
+                .and_then(|reveal| reveal.get("arguments"))
+            {
+                pending.push_back(exact_arguments(arguments));
+            }
+        }
+        if selected.is_some() {
+            break;
+        }
+        if let Some(arguments) = revealed
+            .get("continuation")
+            .and_then(|continuation| continuation.get("arguments"))
+        {
+            pending.push_back(exact_arguments(arguments));
+        }
+    }
+    let selected = selected.expect("render exposes an authorable expression");
+    let manifest_path = root.join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["targets"][0]["op"] = json!("edit-body-disclosed-ir");
+    manifest["targets"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("from");
+    manifest["targets"][0]["disclosed_ir"] = json!({
+        "edit":selected["id"],
+        "value":{"kind":"str","value":"changed"}
     });
     fs::write(manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
 }
@@ -621,6 +704,47 @@ fn reviewed_disclosed_edit_runs_checks_reversal_and_patch_delivery() {
         fs::read_to_string(root.path().join("artifacts/change.patch"))
             .unwrap()
             .contains("to_uppercase(value)")
+    );
+}
+
+#[test]
+fn reviewed_disclosed_ir_edit_runs_checks_reversal_and_patch_delivery() {
+    let root = fixture("true");
+    use_disclosed_ir(root.path());
+    let preview = preview(root.path());
+    assert_eq!(preview["ready"], true);
+    assert_eq!(
+        preview["author"]["steps"][0]["operation"],
+        "edit-body-disclosed-ir"
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["disclosed_ir_edit"]["exact_target"],
+        true
+    );
+    assert!(!root.path().join(".fr-history").exists());
+
+    let completed = report(
+        fr(
+            root.path(),
+            &[
+                "task-change",
+                "--from",
+                ".fr/task-change.json",
+                "--write",
+                "--basis",
+                preview["task_change_basis"].as_str().unwrap(),
+            ],
+        ),
+        0,
+    );
+    assert_eq!(completed["passed"], true);
+    assert!(fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("changed"));
+    assert!(
+        fs::read_to_string(root.path().join("artifacts/change.patch"))
+            .unwrap()
+            .contains("changed")
     );
 }
 

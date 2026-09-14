@@ -62,6 +62,8 @@ struct Target {
     scalar: Option<super::semantic_intent::ScalarRequest>,
     #[serde(default)]
     disclosed: Option<super::disclose::EditRequest>,
+    #[serde(default)]
+    disclosed_ir: Option<super::disclose::IrEditRequest>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -111,6 +113,7 @@ fn batch_operation(operation: task::AuthorOperation) -> author::BatchOperation {
         task::AuthorOperation::EditBodyIntent => author::BatchOperation::EditBodyIntent,
         task::AuthorOperation::EditBodyScalar => author::BatchOperation::EditBodyScalar,
         task::AuthorOperation::EditBodyDisclosed => author::BatchOperation::EditBodyDisclosed,
+        task::AuthorOperation::EditBodyDisclosedIr => author::BatchOperation::EditBodyDisclosedIr,
         task::AuthorOperation::ReplaceDeclaration => author::BatchOperation::ReplaceDeclaration,
         task::AuthorOperation::InsertDeclaration => author::BatchOperation::InsertDeclaration,
         task::AuthorOperation::OrganizeImports => author::BatchOperation::OrganizeImports,
@@ -160,10 +163,23 @@ impl Project<'_> {
                 "task-change target '{}' has an invalid disclosed choice.",
                 target.id
             );
+            ensure!(
+                matches!(target.op, task::AuthorOperation::EditBodyDisclosedIr)
+                    == target.disclosed_ir.is_some(),
+                "task-change target '{}' has an invalid disclosed_ir choice.",
+                target.id
+            );
             if let Some(disclosed) = &target.disclosed {
                 ensure!(
                     super::disclose::edit_id_well_formed(&disclosed.edit),
                     "task-change target '{}' requires an exact returned edit ID.",
+                    target.id
+                );
+            }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                ensure!(
+                    super::disclose::ir_edit_id_well_formed(&disclosed_ir.edit),
+                    "task-change target '{}' requires an exact returned IR edit ID.",
                     target.id
                 );
             }
@@ -181,6 +197,7 @@ impl Project<'_> {
                     op: target.op,
                     scalar: target.scalar.clone(),
                     disclosed: target.disclosed.clone(),
+                    disclosed_ir: target.disclosed_ir.clone(),
                 })
                 .collect(),
             checks: manifest.checks.clone(),
@@ -211,6 +228,7 @@ impl Project<'_> {
                     from: target.from.clone(),
                     scalar: target.scalar.clone(),
                     disclosed: target.disclosed.clone(),
+                    disclosed_ir: target.disclosed_ir.clone(),
                 })
             })
             .collect::<Result<Vec<_>>>()?;

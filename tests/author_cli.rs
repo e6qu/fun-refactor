@@ -3640,6 +3640,46 @@ fn batch_carries_disclosed_scalar_capabilities_through_one_transaction() {
         .contains("+ 1 + 9"));
 }
 
+#[test]
+fn batch_carries_a_disclosed_ir_capability_through_one_transaction() {
+    let source = "fn calc() -> i32 { 1 }\n";
+    let (_temp, root, _) = fixture(source, b"{}");
+    let (handle, edits) = disclosed_ir_edits(&root, "calc");
+    let edit = edits
+        .iter()
+        .find(|edit| edit["operation"] == "replace" && edit["accepts"] == "expression")
+        .unwrap();
+    let input = batch_manifest(
+        &root,
+        vec![serde_json::json!({
+            "op":"edit-body-disclosed-ir",
+            "handle":handle,
+            "disclosed_ir":{
+                "edit":edit["id"],
+                "value":{"kind":"int","value":"7"}
+            }
+        })],
+        None,
+    );
+    let (success, preview) = batch(&root, &input, &[]);
+    assert!(success, "{preview}");
+    assert_eq!(preview["steps"][0]["operation"], "edit-body-disclosed-ir");
+    assert_eq!(
+        preview["steps"][0]["disclosed_ir_edit"]["exact_target"],
+        true
+    );
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+
+    let (success, written) = batch(&root, &input, &["--write"]);
+    assert!(success, "{written}");
+    let changed = fs::read_to_string(root.join("app.rs")).unwrap();
+    assert_ne!(changed, source);
+    assert!(changed.contains('7'));
+    let transaction = written["transaction"].as_u64().unwrap().to_string();
+    ok(&root, &["history", "undo", &transaction, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+}
+
 fn batch(root: &Path, input: &Path, flags: &[&str]) -> (bool, Value) {
     let mut args = vec!["author", "batch", "--from", input.to_str().unwrap()];
     args.extend(flags);
