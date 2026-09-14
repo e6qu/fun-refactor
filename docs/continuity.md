@@ -10,16 +10,16 @@ the Rust suite exhausts all 48 shared Boolean inputs. General implementation/mod
 remains an explicit obligation. Its complete native, Python, documentation, capability, strict Lean
 and WASM gates pass locally.
 
-PR 26, proposed as GitHub PR 291, adds the Agent Proof Companion. `spec proof-task` packages one
+PR 26 merged as GitHub PR 291 and adds the Agent Proof Companion. `spec proof-task` packages one
 exact goal with empty tactic templates. `spec proof-check` runs agent-written tactics through the pinned Lean
 checker without mutation and returns bounded diagnostics or a content-bound receipt. `spec prove`
 now requires the same Lean check before history can record a proof. Python validates task and
 receipt identities. Lean proves the seven-condition admission policy, and Rust compares all 128
 inputs with the executable kernel.
-The active branch is `agent_proof_scaffolds`. Its complete default and WASM repository gates pass
-locally, including the Python mirror, strict Lean checks and end-to-end proof workflow.
+Its complete default and WASM repository gates pass, including the Python mirror, strict Lean checks
+and end-to-end proof workflow.
 
-PR 27 is proposed as [GitHub PR 292](https://github.com/e6qu/fun-refactor/pull/292). It adds a bounded
+PR 27 merged as [GitHub PR 292](https://github.com/e6qu/fun-refactor/pull/292). It adds a bounded
 property task with the current model signature and typed proposition grammar. The agent provides the
 proposition IR and proof tactics; `fr` validates, renders, elaborates and preserves them through the
 checked reversible workflow. Rust and Python enforce the same strict tree limits and exact types.
@@ -27,6 +27,11 @@ Lean proves the finite admission policies, and Rust compares all 398 new shared 
 end-to-end test covers a multi-input property, invalid agent trees, checked proof attempts, apply,
 verify, undo, redo and source drift. The complete native, Python, documentation, strict Lean and
 WASM gates pass locally.
+
+The active PR 28 adds explicit agent-facing coverage for JavaScript, TypeScript, React, Next.js,
+Go, Python, FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid. Its first
+checkpoint is a revision-bound technology taxonomy and source-free evidence inventory. Later
+checkpoints extend feature, style, diagram, progressive-disclosure and checked-authoring models.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.

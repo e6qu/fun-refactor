@@ -143,6 +143,31 @@ fn formal_plan_admission_matches_lean_for_every_boolean_case() {
     );
 }
 
+#[test]
+fn technology_evidence_partition_matches_lean_across_the_limit() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("technology-coverage")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let expected = (0..130)
+        .flat_map(|total| {
+            [0, 1, 2, 3, 4, 31, 32, 33, 64, usize::MAX]
+                .into_iter()
+                .flat_map(move |limit| {
+                    [
+                        fun_refactor::project::technology_evidence_emitted(total, limit),
+                        fun_refactor::project::technology_evidence_omitted(total, limit),
+                    ]
+                })
+        })
+        .map(|value| value.to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(actual.lines().collect::<Vec<_>>(), expected);
+}
+
 fn edits_for(source: &str) -> Vec<(usize, usize, &'static str)> {
     let mut edits = Vec::new();
     for start in 0..=source.len() {

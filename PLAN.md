@@ -1194,7 +1194,7 @@ Planned checkpoints:
 
 ### PR 26. Agent Proof Companion
 
-Status: proposed as [PR 291](https://github.com/e6qu/fun-refactor/pull/291).
+Status: merged as [PR 291](https://github.com/e6qu/fun-refactor/pull/291).
 
 Goal: give an agent a small, revision-bound Lean proof task and a deterministic feedback loop. The
 agent authors every proof tactic. `fr` supplies context, empty templates, checking, diagnostics and
@@ -1238,7 +1238,7 @@ Planned checkpoints:
 
 ### PR 27. Agent-Authored Formal Properties
 
-Status: proposed as [PR 292](https://github.com/e6qu/fun-refactor/pull/292).
+Status: merged as [PR 292](https://github.com/e6qu/fun-refactor/pull/292).
 
 Goal: let an agent state a project-specific property over a generated Lean model without reading or
 editing the generated module. The agent authors both the proposition IR and every proof tactic.
@@ -1280,6 +1280,66 @@ Planned checkpoints:
 3. **Complete.** Add the Python mirror and Lean admission/type models.
 4. **Complete.** Cover the full lifecycle and refusal matrix. The agent guidance and continuity
    are current, and the complete default and WASM repository gates pass locally.
+
+### PR 28. Cross-Stack Agent Coverage
+
+Status: in progress.
+
+Goal: give agents one bounded high-level project model for the requested web and service stack.
+It covers JavaScript, TypeScript, React, Next.js, Go, Python, FastAPI, HTML, CSS, Tailwind CSS,
+Express.js, Markdown and Mermaid diagrams embedded in Markdown. Each surface must have an explicit
+tested identity instead of hiding behind a parser language or an unrelated framework.
+
+Deliverables:
+
+- Add a revision-bound technology inventory that distinguishes language, dialect, framework,
+  styling and embedded-diagram surfaces. Report bounded source-free evidence, counts, omissions and
+  exact follow-up actions for every requested surface.
+- Extend application and feature hierarchies to standalone React and Express.js projects while
+  retaining the existing Next.js and FastAPI models. Preserve route, component, package,
+  configuration, lifecycle and service-call gaps instead of inferring runtime behavior.
+- Add a high-level style model for CSS and Tailwind utility use across HTML, JSX and TSX. Connect
+  definitions, literal uses, configuration evidence and unresolved dynamic class construction.
+- Parse fenced Mermaid blocks inside Markdown into bounded diagram, node and edge structures while
+  preserving the Markdown document hierarchy and exact source locations.
+- Carry technology, application, style and diagram objects through content-addressed progressive
+  disclosure. Provide narrow next actions and enforce per-response byte and row ceilings.
+- Expand source-free semantic authoring for JavaScript and Python functions. Route React, Next.js,
+  Express.js and FastAPI handlers through their underlying typed function models. Add checked
+  structural edits for HTML, CSS/Tailwind and Markdown/Mermaid nodes where their syntax gives an
+  exact boundary.
+- Model inventory admission, evidence limits, style-token locality and Mermaid graph bounds in Lean.
+  Compare finite policies and generated cases with Rust, and keep parser correctness as an explicit
+  tested boundary.
+- Exercise one generic polyglot fixture containing every requested surface. Check map, trace,
+  progressive reveal, safe edits, syntax, undo, redo and Git patch identity without fixture-specific
+  framework rules.
+
+Verification and acceptance:
+
+1. Every requested surface has its own stable public identifier and source-free evidence. No row
+   aliases JavaScript to TypeScript, React to TSX or a framework to its host language.
+2. Counts and omissions cover the selected revision exactly. Changed source, manifests, selection,
+   profiles or cursors refuse as stale.
+3. Express.js, Next.js and FastAPI routes join application features with their exact handlers.
+   React components remain usable with or without Next.js.
+4. CSS and Tailwind class relationships retain literal evidence and label computed forms as gaps.
+   Mermaid nodes and edges remain nested under the Markdown fence that declared them.
+5. Progressive objects reconstruct from their content addresses. Narrow reveals never require an
+   agent to ingest the complete project or source file.
+6. Every write parses in its host grammar, changes only its selected structure and retains checked
+   history, undo, redo and Git patch delivery.
+7. Lean proves the bounded policies. Native, Python, documentation, portable-skill, capability,
+   strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **In progress.** Add the technology taxonomy, inventory, evidence bounds and polyglot fixture.
+2. **Planned.** Extend Express.js and standalone React application/feature models.
+3. **Planned.** Add CSS/Tailwind and Markdown/Mermaid high-level relationship models.
+4. **Planned.** Join every new object type to progressive disclosure and the Python SDK.
+5. **Planned.** Expand checked semantic authoring across the requested host structures.
+6. **Planned.** Add Lean policies, exhaustive correspondence and the complete repository gates.
 
 ## Formal verification policy
 

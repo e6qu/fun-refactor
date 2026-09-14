@@ -11,6 +11,7 @@ import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
 import FrKernels.DisclosedIrEdit
 import FrKernels.FormalPlan
+import FrKernels.Technology
 
 open FrKernels.Project
 
@@ -92,6 +93,11 @@ def main (args : List String) : IO Unit := do
       for leftType in [0:5] do
         for rightType in [0:5] do
           IO.println (FrKernels.FormalPlan.agentRelationAdmitted relation leftType rightType)
+  else if args == ["technology-coverage"] then
+    for total in [0:130] do
+      for limit in [0, 1, 2, 3, 4, 31, 32, 33, 64, 18446744073709551615] do
+        IO.println (FrKernels.Technology.evidenceEmitted total limit)
+        IO.println (FrKernels.Technology.evidenceOmitted total limit)
   else if args == ["plan-basis"] then
     for complete in [false, true] do
       for supplied in [false, true] do

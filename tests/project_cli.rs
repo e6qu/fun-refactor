@@ -8859,3 +8859,131 @@ fn parent_workspace_members_stay_snapshot_bound_and_page_without_widening_scope(
     assert!(project.verify(&root).is_err());
     assert!(!run(&root, &["project", "workspaces", "--cursor", cursor]).0);
 }
+
+#[test]
+fn technology_inventory_distinguishes_the_complete_requested_polyglot_stack() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"express":"5.1.0","next":"16.0.0","react":"19.2.0","tailwindcss":"4.1.0"}}"#,
+    );
+    put(
+        root,
+        "web/server.js",
+        "import express from 'express';\nconst app = express();\napp.get('/health', health);\n",
+    );
+    put(
+        root,
+        "web/app/page.tsx",
+        "import React from 'react';\nexport default function Page() { return <main className=\"p-4\">Hi</main>; }\n",
+    );
+    put(root, "web/lib.ts", "export const answer: number = 42;\n");
+    put(root, "main.go", "package main\nfunc main() {}\n");
+    put(
+        root,
+        "api.py",
+        "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/health')\ndef health(): return {'ok': True}\n",
+    );
+    put(root, "index.html", "<main class=\"p-4\">Hi</main>\n");
+    put(
+        root,
+        "style.css",
+        "@import \"tailwindcss\";\n.card { color: red; }\n",
+    );
+    put(
+        root,
+        "README.md",
+        "# System\n\n```mermaid\nflowchart LR\n  Browser --> API\n```\n",
+    );
+    for index in 0..33 {
+        put(
+            root,
+            &format!("web/generated/{index}.js"),
+            &format!("export const item{index} = {index};\n"),
+        );
+    }
+
+    let report = ok(root, &["project", "technologies", "--evidence-limit", "32"]);
+    assert_eq!(report["technology_schema"], "fr-project-technologies-1");
+    assert_eq!(report["analysis"]["surface_count"], 13);
+    assert_eq!(report["analysis"]["detected"], 13);
+    let rows = report["items"].as_array().unwrap();
+    let ids = rows
+        .iter()
+        .map(|row| row["id"].as_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(ids.len(), 13);
+    for id in [
+        "javascript",
+        "typescript",
+        "react",
+        "nextjs",
+        "go",
+        "python",
+        "python-fastapi",
+        "html",
+        "css",
+        "tailwind-css",
+        "expressjs",
+        "markdown",
+        "markdown-mermaid",
+    ] {
+        let row = rows.iter().find(|row| row["id"] == id).unwrap();
+        assert_eq!(row["status"], "detected", "{id}: {row}");
+        assert!(row["evidence_count"].as_u64().unwrap() > 0);
+    }
+    let javascript = rows.iter().find(|row| row["id"] == "javascript").unwrap();
+    assert_eq!(javascript["evidence"].as_array().unwrap().len(), 32);
+    assert!(javascript["evidence_omitted"].as_u64().unwrap() > 0);
+    assert!(!report.to_string().contains("flowchart LR"));
+    assert!(!report.to_string().contains("return <main"));
+
+    let compact = ok(root, &["project", "technologies"]);
+    assert_eq!(compact["analysis"]["evidence_limit_per_surface"], 4);
+    assert_eq!(
+        compact["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["id"] == "javascript")
+            .unwrap()["evidence"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
+    assert!(!run(root, &["project", "technologies", "--evidence-limit", "0"]).0);
+
+    let first = ok(root, &["project", "technologies", "--limit", "4"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let second = ok(
+        root,
+        &[
+            "project",
+            "technologies",
+            "--limit",
+            "4",
+            "--cursor",
+            cursor,
+        ],
+    );
+    assert_eq!(first["items"].as_array().unwrap().len(), 4);
+    assert_eq!(second["items"].as_array().unwrap().len(), 4);
+    put(root, "web/lib.ts", "export const answer: number = 43;\n");
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "technologies",
+                "--limit",
+                "4",
+                "--cursor",
+                cursor
+            ]
+        )
+        .0
+    );
+}

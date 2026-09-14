@@ -20,3 +20,4 @@ import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
 import FrKernels.DisclosedIrEdit
 import FrKernels.FormalPlan
+import FrKernels.Technology

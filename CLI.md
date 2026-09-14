@@ -796,6 +796,8 @@ fr project calls --cursor '<NEXT>'
 fr project implementations '<ID>' --revision '<REVISION>'
 fr project routes src --limit 40
 fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
+fr project technologies . --limit 40 --evidence-limit 4
+fr project technologies '<DIRECTORY_HANDLE>' --cursor '<NEXT>'
 fr project contracts src --limit 40
 fr project contracts '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project features src --limit 40
@@ -840,6 +842,11 @@ Maps default to 80 rows; other pages default to 40.
 Reuse the same query and fields with a cursor. The page size may change.
 Changed source, manifest content, inventory, scan options or query scope invalidates the corresponding handle or cursor.
 A short ID without its revision cannot identify a symbol for `show`.
+
+`technologies` always states all thirteen web-stack surfaces, including surfaces absent from the
+selected scope. Detected rows contain no source text. Each evidence row carries its path, basis,
+content address and exact map or show action. `--evidence-limit` defaults to four and accepts one
+through thirty-two rows per surface. Its value participates in cursor identity.
 
 `show` returns a bounded signature and node metadata before any source body.
 Its `position` gives the name’s 1-based line and column for existing refactoring targets.
