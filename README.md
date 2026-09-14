@@ -377,6 +377,10 @@ versions remain bounded and keep ambiguity when a lock contains several versions
 graph. It handles defaults, cycles, implicit optional-dependency features, `dep:`, strong and weak
 dependency-feature requests, and dependency-declared features without invoking Cargo. Default
 Progressive project disclosure also stores activation evidence beneath its packages branch.
+`fr project verify-artifact` checks caller-selected bytes against a captured lock entry without a
+network request. It supports Cargo and Python SHA-256, npm SRI SHA-256/384/512, and Go `h1` tree
+hashes over an extracted module directory. Reports expose computed digests and status without
+returning artifact contents.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.

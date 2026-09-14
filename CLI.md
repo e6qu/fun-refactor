@@ -823,6 +823,8 @@ fr project resolutions --manifest Cargo.toml --limit 40
 fr project resolutions --lockfile Cargo.lock --limit 40
 fr project package-features --manifest Cargo.toml --activate api,serde --limit 40
 fr project package-features --manifest Cargo.toml --no-default-features
+fr project verify-artifact --lockfile Cargo.lock --name serde --version 1.0.228 --artifact serde.crate
+fr project verify-artifact --lockfile go.sum --name example.test/mod --version v1.2.3 --artifact module-dir --go-prefix example.test/mod@v1.2.3
 fr project links --manifest Cargo.toml --limit 40
 fr project links --cursor '<NEXT>'
 fr project workspaces --limit 40
@@ -860,6 +862,14 @@ dependency features, `dep:name`, `name/feature`, `name?/feature`, dependency-dec
 cycles and default-feature selection. Rows distinguish local features from dependency requests and
 retain counts when member lists exceed sixteen entries. Target predicates, resolver-version effects,
 build scripts, version selection and compilation remain outside this static activation report.
+
+`verify-artifact` hashes at most 512 MiB of caller-selected bytes. Cargo and Python hexadecimal
+SHA-256 checksums and npm SRI SHA-256/384/512 values use regular files. Go `h1` checksums use the
+Go tree-hash algorithm over an extracted directory. `--go-prefix` supplies its canonical logical
+root. Lock entries ending in `/go.mod` select only that file. Reports distinguish absent lock entries,
+missing checksums, unsupported algorithms, mismatches and verified content. They never return file
+contents. A verified result proves equality with captured lock metadata; it does not authenticate
+the repository or lockfile author.
 
 `technologies` always states all thirteen web-stack surfaces, including surfaces absent from the
 selected scope. Detected rows contain no source text. Each evidence row carries its path, basis,

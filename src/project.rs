@@ -184,6 +184,8 @@ pub enum Command {
     },
     #[command(about = "Evaluate bounded Cargo manifest feature activation.")]
     PackageFeatures(package_features::Options),
+    #[command(about = "Verify artifact bytes against captured lockfile checksums.")]
+    VerifyArtifact(lockfiles::ArtifactOptions),
     #[command(about = "Page through local manifest links and workspace pattern matches.")]
     Links {
         #[arg(long, help = "Select a manifest path relative to the project root.")]
@@ -475,6 +477,22 @@ pub fn package_feature_dependency_request(
     dependency_active: bool,
 ) -> bool {
     source_active && dependency_known && (!weak || dependency_active)
+}
+
+pub fn artifact_verification_status(
+    expectation_present: bool,
+    algorithm_supported: bool,
+    digest_equal: bool,
+) -> usize {
+    if !expectation_present {
+        0
+    } else if !algorithm_supported {
+        1
+    } else if !digest_equal {
+        2
+    } else {
+        3
+    }
 }
 
 /// Classify an exact-handle selection after resolving its revision-bound identity.
@@ -1291,7 +1309,7 @@ impl<'a> Project<'a> {
         let mut result = self.envelope("resolutions");
         result["items"] = json!(&rows[start..end]);
         result["page"] = page;
-        result["scope"] = json!("Versions and integrity fields captured from supported lockfile entries; dependency solving and artifact verification are not attempted.");
+        result["scope"] = json!("Versions and integrity fields captured from supported lockfile entries. Use project verify-artifact to compare supplied bytes; dependency solving is not attempted.");
         Ok(result)
     }
 
@@ -1327,6 +1345,38 @@ impl<'a> Project<'a> {
         result["page"] = page;
         result["activation"] = evaluation.summary;
         Ok(result)
+    }
+
+    fn verify_artifact(&self, options: &lockfiles::ArtifactOptions) -> Result<Value> {
+        let lockfile = self
+            .selected_lockfile(Some(&options.lockfile))?
+            .expect("a lockfile option was supplied");
+        let artifact_input = if options.artifact.is_absolute() {
+            options.artifact.clone()
+        } else {
+            self.root.join(&options.artifact)
+        };
+        let metadata = std::fs::symlink_metadata(&artifact_input)
+            .context("artifact path cannot be inspected")?;
+        anyhow::ensure!(
+            !metadata.file_type().is_symlink()
+                && (metadata.file_type().is_file() || metadata.file_type().is_dir()),
+            "artifact path must be a regular file or directory and cannot be a symlink."
+        );
+        let artifact = artifact_input
+            .canonicalize()
+            .context("artifact path cannot be resolved")?;
+        let verification = self
+            .lockfiles
+            .verify_artifact(&lockfile, options, &artifact)?;
+        let mut report = self.envelope("verify-artifact");
+        report["artifact_verification_schema"] = verification["schema"].clone();
+        for (field, value) in verification.as_object().expect("verification is an object") {
+            if field != "schema" {
+                report[field] = value.clone();
+            }
+        }
+        Ok(report)
     }
 
     fn links(&self, manifest: Option<&Path>, limit: usize, cursor: Option<&str>) -> Result<Value> {
@@ -1424,6 +1474,7 @@ impl<'a> Project<'a> {
                 cursor.as_deref(),
             ),
             Command::PackageFeatures(options) => self.package_features(options),
+            Command::VerifyArtifact(options) => self.verify_artifact(options),
             Command::Links {
                 manifest,
                 limit,

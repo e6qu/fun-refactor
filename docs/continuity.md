@@ -1688,3 +1688,11 @@ separate evidence. The default selection is committed inside the progressive pro
 branch. Feature and direct-member inventories each stop at 65,536, with a source-anchored Lean
 predicate and machine-boundary correspondence. Target predicates, resolver versions and build
 scripts remain explicit unchecked fields rather than implied runtime claims.
+
+Offline artifact verification now connects supplied bytes to captured Cargo, npm, Go and Python
+checksums. Regular files support hexadecimal SHA-256 and SRI SHA-256/384/512. Extracted Go module
+directories use the `h1` tree hash with an explicit logical prefix, including the distinct `/go.mod`
+case. Inputs stop at 512 MiB, directory walks stop at 65,536 files and reports return digests rather
+than contents. The result separates absent entries, missing evidence, unsupported algorithms,
+mismatches and verified bytes. Lean models all eight status inputs; it does not claim cryptographic
+correctness or lockfile provenance.

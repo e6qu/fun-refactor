@@ -558,6 +558,11 @@ def main (args : List String) : IO Unit := do
         for weak in [false, true] do
           for dependencyActive in [false, true] do
             IO.println (packageFeatureDependencyRequest sourceActive dependencyKnown weak dependencyActive)
+  else if args == ["artifact-verification-status"] then
+    for expectationPresent in [false, true] do
+      for algorithmSupported in [false, true] do
+        for digestEqual in [false, true] do
+          IO.println (artifactVerificationStatus expectationPresent algorithmSupported digestEqual)
   else
     for total in samples do
       for start in samples do

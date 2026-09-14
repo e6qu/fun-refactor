@@ -3403,6 +3403,34 @@ fn package_feature_dependency_requests_match_lean_for_every_boolean_state() {
 }
 
 #[test]
+fn artifact_verification_statuses_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("artifact-verification-status")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<usize>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for expectation_present in [false, true] {
+        for algorithm_supported in [false, true] {
+            for digest_equal in [false, true] {
+                expected.push(fun_refactor::project::artifact_verification_status(
+                    expectation_present,
+                    algorithm_supported,
+                    digest_equal,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

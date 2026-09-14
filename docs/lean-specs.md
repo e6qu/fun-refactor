@@ -600,6 +600,11 @@ strong requests and weak requests. `packageFeatureDependencyRequest` separately 
 request needs an active source and known dependency, while a weak request additionally needs the
 dependency to be active. Rust and Lean agree on all sixteen states.
 
+Artifact comparison uses `artifactVerificationStatus` to keep absent evidence, unsupported
+algorithms, digest mismatches and verified bytes distinct. Lean proves the status bound and that
+success requires all three positive inputs. Rust and Lean agree on all eight states. SHA-2 and Go
+tree-hash implementations remain cryptographic-library and integration-tested assumptions.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

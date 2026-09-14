@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B877: **captured checksums gave agents no way to verify artifact bytes**. The offline
+  `project verify-artifact` command now checks Cargo, npm, Go and Python evidence. It bounds file
+  and directory reads, returns no contents and separates missing evidence, unsupported algorithms,
+  mismatches and verified bytes.
+
 - [x] B876: **agents could see Cargo feature counts but not the activation graph**. The bounded
   `project package-features` view now evaluates defaults, explicit roots and cycles. It also covers
   implicit optional features and strong or weak dependency requests. Dependency declaration rows

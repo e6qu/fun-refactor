@@ -699,6 +699,26 @@ theorem package_feature_weak_request_requires_active_dependency
     packageFeatureDependencyRequest sourceActive dependencyKnown true false = false := by
   cases sourceActive <;> cases dependencyKnown <;> decide
 
+-- fr:spec src/project.rs::artifact_verification_status @ 9725f2d04474ea7c00489e35bc35b01fe23737eab32f50a99157f9c9e43ae4a5
+-- fr:signature expectation_present: bool => expectationPresent: Bool; algorithm_supported: bool => algorithmSupported: Bool; digest_equal: bool => digestEqual: Bool; return: usize => return: Nat
+def artifactVerificationStatus
+    (expectationPresent : Bool) (algorithmSupported : Bool) (digestEqual : Bool) : Nat :=
+  if !expectationPresent then 0
+  else if !algorithmSupported then 1
+  else if !digestEqual then 2
+  else 3
+
+theorem artifact_verification_status_bounded
+    (expectationPresent algorithmSupported digestEqual : Bool) :
+    artifactVerificationStatus expectationPresent algorithmSupported digestEqual ≤ 3 := by
+  cases expectationPresent <;> cases algorithmSupported <;> cases digestEqual <;> decide
+
+theorem artifact_verification_succeeds_iff
+    (expectationPresent algorithmSupported digestEqual : Bool) :
+    artifactVerificationStatus expectationPresent algorithmSupported digestEqual = 3 ↔
+      expectationPresent = true ∧ algorithmSupported = true ∧ digestEqual = true := by
+  cases expectationPresent <;> cases algorithmSupported <;> cases digestEqual <;> decide
+
 -- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
 -- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat
 def handleSelectionStatus (inScope : Bool) (declaration : Bool) (isLocal : Bool)

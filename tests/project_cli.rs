@@ -3310,6 +3310,230 @@ cycle-b = ["cycle-a"]
 }
 
 #[test]
+fn artifact_verification_checks_cargo_npm_python_and_go_bytes_offline() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let sha256 = "51bc0fc1f19104fa6e89ce50be9aa1f57c3346c1ca51ab49f5f00e14ce8f8076";
+    let sha512 =
+        "ohyL1hIuncIUMj64INK9MFM5mDW2Lh+L/qr2lOl2zDwnfvx+CXLoyoZ2P7AJrNy+xwU6YMehGnDixttLWE/CVw==";
+    put(
+        root,
+        "Cargo.toml",
+        "[package]\nname='root'\nversion='0.1.0'\n",
+    );
+    put(
+        root,
+        "Cargo.lock",
+        &format!("[[package]]\nname='cargo-pkg'\nversion='1.2.3'\nchecksum='{sha256}'\n[[package]]\nname='unsupported'\nversion='1.0.0'\nchecksum='md5-deadbeef'\n[[package]]\nname='no-checksum'\nversion='1.0.0'\n"),
+    );
+    put(
+        root,
+        "package.json",
+        "{\"name\":\"root\",\"version\":\"1.0.0\"}\n",
+    );
+    put(
+        root,
+        "package-lock.json",
+        &format!(
+            r#"{{"lockfileVersion":3,"packages":{{"":{{"name":"root","version":"1.0.0"}},"node_modules/npm-pkg":{{"name":"npm-pkg","version":"2.0.0","integrity":"sha512-{sha512}"}}}}}}"#
+        ),
+    );
+    put(
+        root,
+        "python/pyproject.toml",
+        "[project]\nname='python-root'\nversion='1.0.0'\n",
+    );
+    put(root, "python/poetry.lock", &format!("[[package]]\nname='python-pkg'\nversion='3.0.0'\nfiles=[{{file='demo.whl',hash='sha256:{sha256}'}}]\n"));
+    put(root, "go/go.mod", "module example.test/root\n\ngo 1.23\n");
+    put(
+        root,
+        "go/go.sum",
+        "example.test/mod v1.2.3/go.mod h1:9oV7iLYvCYZ+0VROz13INImUh87pN5KrVRSbYdhvEOw=\nexample.test/mod v1.2.4 h1:qQk5T1uFZ/EJWIMmyA2Qr7gwAheloLRw5pt0RRJA2SA=\n",
+    );
+    put(root, "artifact.bin", "hello artifact\n");
+    put(root, "demo.whl", "hello artifact\n");
+    put(
+        root,
+        "module/go.mod",
+        "module example.test/mod\n\ngo 1.23\n",
+    );
+    put(root, "module/data.txt", "hello artifact\n");
+
+    for arguments in [
+        vec![
+            "--lockfile",
+            "Cargo.lock",
+            "--name",
+            "cargo-pkg",
+            "--version",
+            "1.2.3",
+            "--artifact",
+            "artifact.bin",
+        ],
+        vec![
+            "--lockfile",
+            "package-lock.json",
+            "--name",
+            "npm-pkg",
+            "--version",
+            "2.0.0",
+            "--artifact",
+            "artifact.bin",
+        ],
+        vec![
+            "--lockfile",
+            "python/poetry.lock",
+            "--name",
+            "python_pkg",
+            "--version",
+            "3.0.0",
+            "--artifact",
+            "demo.whl",
+        ],
+        vec![
+            "--lockfile",
+            "go/go.sum",
+            "--name",
+            "example.test/mod",
+            "--version",
+            "v1.2.3",
+            "--artifact",
+            "module",
+            "--go-prefix",
+            "example.test/mod@v1.2.3",
+        ],
+        vec![
+            "--lockfile",
+            "go/go.sum",
+            "--name",
+            "example.test/mod",
+            "--version",
+            "v1.2.4",
+            "--artifact",
+            "module",
+            "--go-prefix",
+            "example.test/mod@v1.2.4",
+        ],
+    ] {
+        let mut command = vec!["project", "verify-artifact"];
+        command.extend(arguments);
+        let report = ok(root, &command);
+        assert_eq!(report["status"], "verified", "{command:?}: {report}");
+        assert_eq!(report["matched_count"], 1);
+        assert!(!report.to_string().contains("hello artifact"));
+    }
+
+    put(root, "artifact.bin", "changed artifact\n");
+    let mismatch = ok(
+        root,
+        &[
+            "project",
+            "verify-artifact",
+            "--lockfile",
+            "Cargo.lock",
+            "--name",
+            "cargo-pkg",
+            "--version",
+            "1.2.3",
+            "--artifact",
+            "artifact.bin",
+        ],
+    );
+    assert_eq!(mismatch["status"], "mismatch");
+    let missing = ok(
+        root,
+        &[
+            "project",
+            "verify-artifact",
+            "--lockfile",
+            "Cargo.lock",
+            "--name",
+            "absent",
+            "--version",
+            "1",
+            "--artifact",
+            "artifact.bin",
+        ],
+    );
+    assert_eq!(missing["status"], "lock-entry-not-found");
+    let unsupported = ok(
+        root,
+        &[
+            "project",
+            "verify-artifact",
+            "--lockfile",
+            "Cargo.lock",
+            "--name",
+            "unsupported",
+            "--version",
+            "1.0.0",
+            "--artifact",
+            "artifact.bin",
+        ],
+    );
+    assert_eq!(unsupported["status"], "unsupported-checksum");
+    let absent = ok(
+        root,
+        &[
+            "project",
+            "verify-artifact",
+            "--lockfile",
+            "Cargo.lock",
+            "--name",
+            "no-checksum",
+            "--version",
+            "1.0.0",
+            "--artifact",
+            "artifact.bin",
+        ],
+    );
+    assert_eq!(absent["status"], "checksum-not-recorded");
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "verify-artifact",
+                "--lockfile",
+                "go/go.sum",
+                "--name",
+                "example.test/mod",
+                "--version",
+                "v1.2.4",
+                "--artifact",
+                "module",
+                "--go-prefix",
+                "../unsafe"
+            ]
+        )
+        .0
+    );
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(root.join("artifact.bin"), root.join("artifact-link")).unwrap();
+        assert!(
+            !run(
+                root,
+                &[
+                    "project",
+                    "verify-artifact",
+                    "--lockfile",
+                    "Cargo.lock",
+                    "--name",
+                    "cargo-pkg",
+                    "--version",
+                    "1.2.3",
+                    "--artifact",
+                    "artifact-link"
+                ]
+            )
+            .0
+        );
+    }
+}
+
+#[test]
 fn manifest_pages_are_bounded_complete_and_bound_to_the_filter() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

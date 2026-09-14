@@ -1418,6 +1418,9 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
     roots, cycles, implicit optional dependencies, strong and weak dependency feature requests and
     dependency-declared features. Put default activation evidence in progressive project disclosure;
     Lean and Rust agree on both graph ceilings and all strong/weak request admission states.
+13. **Complete.** Verify caller-selected artifacts offline against captured Cargo, npm, Go and
+    Python checksums. Bound files, directories and returned evidence; distinguish missing,
+    unsupported, mismatched and verified states. Lean and Rust agree on every status input.
 
 ## Formal verification policy
 
@@ -1471,7 +1474,8 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 - Manifest readers cover Cargo, npm, Go modules and Python projects. Lock readers expose observed
   versions and integrity fields from Cargo, npm, Go, Poetry, uv and Pipenv files. Cargo manifest
   `fr` evaluates feature activation with explicit target/resolver limits. Package-manager version
-  solving and artifact verification remain outside these syntactic subsets.
+  solving remains outside these syntactic subsets. Offline artifact verification compares supplied
+  bytes with captured SHA-2, SRI or Go tree-hash evidence without authenticating the lockfile author.
 - Framework readers recognize selected static patterns. Their feature hierarchy joins packages,
   components, configuration, middleware, execution dependencies and local HTTP route candidates.
   Runtime execution remains outside static evidence and stays explicit in every affected fact.

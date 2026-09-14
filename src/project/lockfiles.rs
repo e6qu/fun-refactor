@@ -1,10 +1,13 @@
 use super::bounded_text;
 use crate::scan::ScanOptions;
 use anyhow::{ensure, Result};
+use clap::Args;
 use ignore::WalkBuilder;
 use serde::Serialize;
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256, Sha384, Sha512};
 use std::collections::BTreeMap;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -73,7 +76,39 @@ pub(super) struct Resolution {
     pub lockfile: PathBuf,
     ecosystem: Ecosystem,
     name: String,
+    version: Option<String>,
+    checksums: Vec<ArtifactChecksum>,
     pub row: Value,
+}
+
+#[derive(Clone)]
+struct ArtifactChecksum {
+    locator: Option<String>,
+    value: String,
+    content: &'static str,
+}
+
+#[derive(Args)]
+pub struct ArtifactOptions {
+    #[arg(
+        long,
+        help = "Select a discovered lockfile relative to the project root."
+    )]
+    pub lockfile: PathBuf,
+    #[arg(long)]
+    pub name: String,
+    #[arg(long)]
+    pub version: String,
+    #[arg(
+        long,
+        help = "Hash this artifact file or extracted Go module directory."
+    )]
+    pub artifact: PathBuf,
+    #[arg(
+        long,
+        help = "Logical module@version prefix for an extracted Go module directory."
+    )]
+    pub go_prefix: Option<String>,
 }
 
 pub(super) fn discover(
@@ -174,7 +209,373 @@ fn text(value: Option<&Value>, limit: usize) -> Value {
         .map_or(Value::Null, |value| bounded_text(value, limit))
 }
 
+fn checksum(
+    locator: Option<&str>,
+    value: Option<&Value>,
+    content: &'static str,
+) -> Vec<ArtifactChecksum> {
+    value
+        .and_then(Value::as_str)
+        .map_or_else(Vec::new, |value| {
+            vec![ArtifactChecksum {
+                locator: locator.map(str::to_owned),
+                value: value.to_owned(),
+                content,
+            }]
+        })
+}
+
+fn python_checksums(package: &Value) -> Vec<ArtifactChecksum> {
+    let mut result = checksum(
+        package
+            .pointer("/sdist/url")
+            .and_then(Value::as_str)
+            .and_then(|url| url.rsplit('/').next()),
+        package.pointer("/sdist/hash"),
+        "file",
+    );
+    for value in [package.get("files"), package.get("wheels")]
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_array)
+        .flatten()
+    {
+        let locator = value
+            .get("file")
+            .or_else(|| value.get("url"))
+            .and_then(Value::as_str)
+            .and_then(|value| value.rsplit('/').next());
+        result.extend(checksum(locator, value.get("hash"), "file"));
+    }
+    result
+}
+
+fn hexadecimal(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let bits = u32::from(chunk[0]) << 16
+            | u32::from(*chunk.get(1).unwrap_or(&0)) << 8
+            | u32::from(*chunk.get(2).unwrap_or(&0));
+        result.push(ALPHABET[((bits >> 18) & 63) as usize] as char);
+        result.push(ALPHABET[((bits >> 12) & 63) as usize] as char);
+        result.push(if chunk.len() > 1 {
+            ALPHABET[((bits >> 6) & 63) as usize] as char
+        } else {
+            '='
+        });
+        result.push(if chunk.len() > 2 {
+            ALPHABET[(bits & 63) as usize] as char
+        } else {
+            '='
+        });
+    }
+    result
+}
+
+fn read_digest<D: Digest + Default>(path: &Path, total: &mut u64) -> Result<Vec<u8>> {
+    let metadata = std::fs::symlink_metadata(path)?;
+    ensure!(
+        metadata.file_type().is_file(),
+        "artifact entry is not a regular file."
+    );
+    ensure!(
+        metadata.len() <= 536_870_912,
+        "artifact file exceeds 512 MiB."
+    );
+    *total = total
+        .checked_add(metadata.len())
+        .ok_or_else(|| anyhow::anyhow!("artifact byte count overflowed."))?;
+    ensure!(*total <= 536_870_912, "artifact input exceeds 512 MiB.");
+    let mut file = std::fs::File::open(path)?;
+    let mut digest = D::default();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        digest.update(&buffer[..count]);
+    }
+    Ok(digest.finalize().to_vec())
+}
+
+fn go_tree_digest(root: &Path, prefix: &str, go_mod_only: bool) -> Result<(Vec<u8>, usize, u64)> {
+    ensure!(
+        !prefix.is_empty() && prefix.len() <= 512,
+        "--go-prefix must contain 1 through 512 bytes."
+    );
+    ensure!(
+        !prefix.starts_with('/')
+            && !prefix.contains('\\')
+            && !prefix
+                .split('/')
+                .any(|part| part.is_empty() || part == "." || part == ".."),
+        "--go-prefix must be a safe slash-separated relative path."
+    );
+    let metadata = std::fs::symlink_metadata(root)?;
+    ensure!(
+        metadata.file_type().is_dir(),
+        "Go checksum verification requires an extracted module directory."
+    );
+    let mut files = Vec::new();
+    for entry in walkdir::WalkDir::new(root).follow_links(false) {
+        let entry = entry?;
+        if entry.path() == root {
+            continue;
+        }
+        ensure!(
+            !entry.file_type().is_symlink(),
+            "artifact directories cannot contain symlinks."
+        );
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let relative = entry.path().strip_prefix(root)?;
+        if go_mod_only && relative != Path::new("go.mod") {
+            continue;
+        }
+        let relative = relative
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("artifact directory contains a non-UTF-8 path."))?;
+        ensure!(
+            !relative.contains(['\\', '\n', '\r']),
+            "artifact directory contains a path unsupported by the Go checksum format."
+        );
+        let logical = format!("{prefix}/{relative}");
+        files.push((logical, entry.into_path()));
+        ensure!(
+            files.len() <= 65_536,
+            "artifact directory exceeds 65536 files."
+        );
+    }
+    ensure!(
+        !files.is_empty(),
+        "artifact directory contains no selected regular files."
+    );
+    files.sort_by(|left, right| left.0.cmp(&right.0));
+    let mut total = 0u64;
+    let mut listing = Sha256::new();
+    for (logical, path) in &files {
+        let digest = read_digest::<Sha256>(path, &mut total)?;
+        listing.update(format!("{}  {logical}\n", hexadecimal(&digest)).as_bytes());
+    }
+    Ok((listing.finalize().to_vec(), files.len(), total))
+}
+
+fn expected_parts(value: &str) -> impl Iterator<Item = (&str, &str, &'static str)> {
+    value.split_whitespace().filter_map(|part| {
+        let part = part.split('?').next().unwrap_or(part);
+        if let Some(digest) = part.strip_prefix("h1:") {
+            Some(("h1", digest, "base64"))
+        } else if let Some((algorithm, digest)) = part.split_once('-') {
+            Some((algorithm, digest, "base64"))
+        } else if let Some((algorithm, digest)) = part.split_once(':') {
+            Some((algorithm, digest, "hex"))
+        } else if part.len() == 64 && part.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            Some(("sha256", part, "hex"))
+        } else {
+            None
+        }
+    })
+}
+
+fn file_digests(path: &Path) -> Result<(BTreeMap<&'static str, Vec<u8>>, u64)> {
+    let metadata = std::fs::symlink_metadata(path)?;
+    ensure!(
+        metadata.file_type().is_file(),
+        "artifact is not a regular file."
+    );
+    ensure!(
+        metadata.len() <= 536_870_912,
+        "artifact file exceeds 512 MiB."
+    );
+    let mut file = std::fs::File::open(path)?;
+    let mut sha256 = Sha256::new();
+    let mut sha384 = Sha384::new();
+    let mut sha512 = Sha512::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        sha256.update(&buffer[..count]);
+        sha384.update(&buffer[..count]);
+        sha512.update(&buffer[..count]);
+    }
+    Ok((
+        BTreeMap::from([
+            ("sha256", sha256.finalize().to_vec()),
+            ("sha384", sha384.finalize().to_vec()),
+            ("sha512", sha512.finalize().to_vec()),
+        ]),
+        metadata.len(),
+    ))
+}
+
 impl Lockfiles {
+    pub fn verify_artifact(
+        &self,
+        lockfile: &Path,
+        options: &ArtifactOptions,
+        artifact: &Path,
+    ) -> Result<Value> {
+        ensure!(
+            !options.name.is_empty() && options.name.len() <= 160,
+            "package name must contain 1 through 160 bytes."
+        );
+        ensure!(
+            !options.version.is_empty() && options.version.len() <= 160,
+            "package version must contain 1 through 160 bytes."
+        );
+        let candidates = self
+            .resolutions
+            .iter()
+            .filter(|candidate| {
+                candidate.lockfile == lockfile
+                    && candidate.version.as_deref() == Some(options.version.as_str())
+                    && package_name_equal(candidate.ecosystem, &candidate.name, &options.name)
+            })
+            .collect::<Vec<_>>();
+        let artifact_name = artifact.file_name().and_then(|name| name.to_str());
+        let mut expectations = candidates
+            .iter()
+            .flat_map(|candidate| candidate.checksums.iter())
+            .collect::<Vec<_>>();
+        if expectations
+            .iter()
+            .any(|expected| expected.locator.as_deref() == artifact_name)
+        {
+            expectations.retain(|expected| {
+                expected.locator.as_deref() == artifact_name || expected.locator.is_none()
+            });
+        }
+        let needs_go = expectations
+            .iter()
+            .any(|expected| expected.content.starts_with("go-"));
+        let metadata = std::fs::symlink_metadata(artifact)?;
+        ensure!(
+            !metadata.file_type().is_symlink(),
+            "artifact path cannot be a symlink."
+        );
+        ensure!(
+            metadata.file_type().is_dir() == needs_go,
+            if needs_go {
+                "Go checksum verification requires an extracted module directory."
+            } else {
+                "package checksum verification requires a regular artifact file."
+            }
+        );
+        let (file_hashes, artifact_bytes) = if needs_go {
+            (BTreeMap::new(), 0)
+        } else {
+            file_digests(artifact)?
+        };
+        let mut go_hashes = BTreeMap::new();
+        let mut go_files = 0usize;
+        let mut go_bytes = 0u64;
+        if needs_go {
+            let prefix = options.go_prefix.as_deref().ok_or_else(|| {
+                anyhow::anyhow!("--go-prefix is required for Go checksum verification.")
+            })?;
+            for (content, only_go_mod) in [("go-module", false), ("go-mod", true)] {
+                if expectations
+                    .iter()
+                    .any(|expected| expected.content == content)
+                {
+                    let (digest, files, bytes) = go_tree_digest(artifact, prefix, only_go_mod)?;
+                    go_hashes.insert(content, digest);
+                    go_files = go_files.max(files);
+                    go_bytes = go_bytes.max(bytes);
+                }
+            }
+        }
+        let mut rows = Vec::new();
+        let mut checked = 0usize;
+        let mut matched = 0usize;
+        let mut unsupported = 0usize;
+        for expected in &expectations {
+            let mut parsed_any = false;
+            for (algorithm, wanted, encoding) in expected_parts(&expected.value) {
+                parsed_any = true;
+                let actual = if algorithm == "h1" {
+                    go_hashes.get(expected.content)
+                } else {
+                    file_hashes.get(algorithm)
+                };
+                let status = super::artifact_verification_status(true, actual.is_some(), false);
+                let Some(actual) = actual else {
+                    unsupported += 1;
+                    if rows.len() < 64 {
+                        rows.push(json!({"algorithm": bounded_text(algorithm, 32), "encoding": encoding,
+                            "locator": expected.locator.as_deref().map(|value| bounded_text(value, 512)),
+                            "content": expected.content, "status": if status == 1 { "unsupported-algorithm" } else { "invalid" }}));
+                    }
+                    continue;
+                };
+                checked += 1;
+                let actual_text = if encoding == "hex" {
+                    hexadecimal(actual)
+                } else {
+                    base64(actual)
+                };
+                let equal = if encoding == "hex" {
+                    actual_text.eq_ignore_ascii_case(wanted)
+                } else {
+                    actual_text.trim_end_matches('=') == wanted.trim_end_matches('=')
+                };
+                let status = super::artifact_verification_status(true, true, equal);
+                if equal {
+                    matched += 1;
+                }
+                if rows.len() < 64 {
+                    rows.push(json!({"algorithm": algorithm, "encoding": encoding,
+                        "locator": expected.locator.as_deref().map(|value| bounded_text(value, 512)),
+                        "content": expected.content, "status": if status == 3 { "matched" } else { "mismatched" },
+                        "actual": bounded_text(&actual_text, 512)}));
+                }
+            }
+            if !parsed_any {
+                unsupported += 1;
+                if rows.len() < 64 {
+                    rows.push(json!({
+                        "locator": expected.locator.as_deref().map(|value| bounded_text(value, 512)),
+                        "content": expected.content,
+                        "status": "unrecognized-checksum"
+                    }));
+                }
+            }
+        }
+        let status = if candidates.is_empty() {
+            "lock-entry-not-found"
+        } else if expectations.is_empty() {
+            "checksum-not-recorded"
+        } else if matched > 0 {
+            "verified"
+        } else if checked > 0 {
+            "mismatch"
+        } else {
+            "unsupported-checksum"
+        };
+        Ok(json!({
+            "schema": "fr-artifact-verification-1", "status": status,
+            "lockfile": bounded_text(&lockfile.to_string_lossy(), 512),
+            "package": {"name": bounded_text(&options.name, 160), "version": bounded_text(&options.version, 160)},
+            "artifact": bounded_text(&options.artifact.to_string_lossy(), 512),
+            "candidate_count": candidates.len(), "expectation_count": expectations.len(),
+            "checked_count": checked, "matched_count": matched, "unsupported_count": unsupported,
+            "checks": rows, "checks_omitted": checked.saturating_add(unsupported).saturating_sub(64),
+            "artifact_bytes": if needs_go { go_bytes } else { artifact_bytes },
+            "artifact_files": if needs_go { go_files } else { 1 },
+            "basis": "captured-lockfile-checksum-and-observed-artifact-bytes"
+        }))
+    }
+
     pub fn applicable(&self, root: &Path, manifest: &Path) -> Option<PathBuf> {
         let ecosystem = Ecosystem::of_manifest(manifest)?;
         let directory = manifest.parent().unwrap_or(Path::new(""));
@@ -319,6 +720,7 @@ impl Lockfiles {
         manifest: Option<&Path>,
         ecosystem: Ecosystem,
         name: &str,
+        artifact: (Option<&str>, Vec<ArtifactChecksum>),
         mut row: Value,
     ) {
         if self.resolutions.len() + self.gaps.len() >= 262_144 {
@@ -335,6 +737,8 @@ impl Lockfiles {
             lockfile: lockfile.to_path_buf(),
             ecosystem,
             name: name.to_owned(),
+            version: artifact.0.map(str::to_owned),
+            checksums: artifact.1,
             row,
         });
     }
@@ -363,11 +767,17 @@ impl Lockfiles {
             } else {
                 Ecosystem::Python
             };
+            let checksums = if cargo {
+                checksum(None, package.get("checksum"), "file")
+            } else {
+                python_checksums(package)
+            };
             self.row(
                 lockfile,
                 manifest,
                 ecosystem,
                 name,
+                (Some(version), checksums),
                 json!({
                     "name": bounded_text(name, 160),
                     "version": bounded_text(version, 160),
@@ -463,6 +873,7 @@ impl Lockfiles {
             manifest,
             Ecosystem::Npm,
             name,
+            (version, checksum(None, package.get("integrity"), "file")),
             json!({
                 "name": bounded_text(name, 160),
                 "version": version.map_or(Value::Null, |value| bounded_text(value, 160)),
@@ -495,6 +906,18 @@ impl Lockfiles {
                 manifest,
                 Ecosystem::Go,
                 fields[0],
+                (
+                    Some(version),
+                    checksum(
+                        None,
+                        Some(&json!(fields[2])),
+                        if artifact == "module" {
+                            "go-module"
+                        } else {
+                            "go-mod"
+                        },
+                    ),
+                ),
                 json!({
                     "name": bounded_text(fields[0], 160),
                     "version": bounded_text(version, 160),
@@ -524,6 +947,12 @@ impl Lockfiles {
                     manifest,
                     Ecosystem::Python,
                     name,
+                    (
+                        Some(version.trim_start_matches('=')),
+                        package.get("hashes").and_then(Value::as_array).map_or_else(Vec::new, |hashes| {
+                            hashes.iter().flat_map(|value| checksum(None, Some(value), "file")).collect()
+                        }),
+                    ),
                     json!({
                         "name": bounded_text(name, 160),
                         "version": bounded_text(version.trim_start_matches('='), 160),

@@ -41,7 +41,6 @@ For another slice, pass the returned `next_offset` with `--offset`; this preserv
 For another result page, reuse the same query and fields with `--cursor` and the returned `page.next`.
 Changing source, manifests, scan options or query scope can invalidate a handle or cursor. Restart the relevant map or query after a stale response.
 
-Maps show lexical containment, not inferred architecture.
 Call results preserve confidence and unresolved or dispatch-candidate rows; candidates do not establish runtime dispatch.
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages` and `dependencies` for Cargo, npm, Go module and Python project declarations.
@@ -51,8 +50,9 @@ Dependency rows already join the nearest ancestor lock and preserve all bounded 
 Cargo's `package` field, npm aliases and normalized Python names participate in that match.
 Use `project package-features --manifest Cargo.toml` for Cargo feature and dependency activation.
 The progressive project's `packages` branch addresses the default selection.
+Use `project verify-artifact` to compare local bytes with captured checksums. Go directories need `--go-prefix`.
 `links` and `workspaces` add Cargo/npm local relationships.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
 Use [Surfaces](surfaces.md) for framework, style and embedded-diagram discovery, exact surface edits,
 or the cross-stack Merkle view.
-Lock evidence does not establish solver completeness, artifact authenticity or framework semantics.
+Lock evidence does not authenticate its repository or model framework behavior.
