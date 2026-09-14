@@ -3,6 +3,10 @@
 This zero-dependency package constructs source-free `fr-semantic-body-1` payloads. Its four
 namespaces follow the Rust IR hierarchy and retain distinct node types at runtime.
 
+`FormalPlan.from_json(...)` also mirrors `fr-formal-plan-1`, validates every nested field and
+independently recomputes its Merkle content address. Agents can inspect and store a plan without
+handling source text, then pass the unchanged JSON to `fr spec scaffold --from`.
+
 ```python
 from fr_ir import BinaryOp, Expr, SemanticBody, Stmt
 

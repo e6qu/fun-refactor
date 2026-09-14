@@ -2,6 +2,201 @@ use std::process::Command;
 
 const FR: &str = env!("CARGO_BIN_EXE_fr");
 
+fn run(workspace: &std::path::Path, args: &[&str]) -> std::process::Output {
+    Command::new(FR)
+        .arg("-C")
+        .arg(workspace)
+        .args(args)
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
+    let workspace = tempfile::tempdir().unwrap();
+    std::fs::write(workspace.path().join("Cargo.toml"), "[workspace]\n").unwrap();
+    std::fs::create_dir_all(workspace.path().join("src")).unwrap();
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn keep(value: bool) -> bool { value }\n\
+         pub fn invert(value: bool) -> bool { !value }\n\
+         pub fn effect(value: bool) -> bool { println!(\"x\"); value }\n\
+         pub unsafe fn danger(value: bool) -> bool { value }\n",
+    )
+    .unwrap();
+
+    let init = run(workspace.path(), &["spec", "init", "--write"]);
+    assert!(
+        init.status.success(),
+        "{}",
+        String::from_utf8_lossy(&init.stderr)
+    );
+
+    let candidates = run(
+        workspace.path(),
+        &["--json", "spec", "candidates", "src/lib.rs"],
+    );
+    assert!(
+        candidates.status.success(),
+        "{}",
+        String::from_utf8_lossy(&candidates.stderr)
+    );
+    let candidates: serde_json::Value = serde_json::from_slice(&candidates.stdout).unwrap();
+    let rows = candidates["candidates"].as_array().unwrap();
+    assert_eq!(rows.len(), 4);
+    assert_eq!(rows.iter().filter(|row| row["eligible"] == true).count(), 2);
+    assert!(rows
+        .iter()
+        .any(|row| row["target"] == "src/lib.rs::effect" && row["eligible"] == false));
+    assert!(rows.iter().any(|row| row["target"] == "src/lib.rs::danger"
+        && row["eligible"] == false
+        && row["reason"].as_str().unwrap().contains("unsafe")));
+
+    let planned = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "plan",
+            "src/lib.rs::keep",
+            "--property",
+            "identity",
+            "--property",
+            "idempotent",
+        ],
+    );
+    assert!(
+        planned.status.success(),
+        "{}",
+        String::from_utf8_lossy(&planned.stderr)
+    );
+    let plan: serde_json::Value = serde_json::from_slice(&planned.stdout).unwrap();
+    assert_eq!(plan["schema"], "fr-formal-plan-1");
+    assert_eq!(plan["kernel"]["semantic_ir"][0]["kind"], "return");
+    assert!(!String::from_utf8_lossy(&planned.stdout).contains("pub fn keep"));
+    let plan_path = workspace.path().join("formal-plan.json");
+    std::fs::write(&plan_path, &planned.stdout).unwrap();
+
+    let scaffold = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "scaffold",
+            "--from",
+            "formal-plan.json",
+            "--write",
+        ],
+    );
+    assert!(
+        scaffold.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scaffold.stderr)
+    );
+    let model = workspace.path().join("specs/FrSpecs/SrcLibRsKeep.lean");
+    let generated = std::fs::read_to_string(&model).unwrap();
+    assert!(generated.contains("def keepModel (value : Bool) : Bool :=\n  value"));
+    assert_eq!(generated.matches("-- fr:debt").count(), 2);
+
+    let goals = run(workspace.path(), &["--json", "spec", "goals", "specs"]);
+    assert!(
+        goals.status.success(),
+        "{}",
+        String::from_utf8_lossy(&goals.stderr)
+    );
+    let goals: serde_json::Value = serde_json::from_slice(&goals.stdout).unwrap();
+    assert_eq!(goals["schema"], "fr-formal-goals-1");
+    assert_eq!(goals["catalog"].as_array().unwrap().len(), 2);
+    assert!(goals["revealed"].is_null());
+    assert!(goals["token_budget"]["used_upper_bound"].as_u64().unwrap() <= 4096);
+    let goal = goals["catalog"][0]["id"].as_str().unwrap();
+    let revealed = run(
+        workspace.path(),
+        &["--json", "spec", "goals", "specs", "--goal", goal],
+    );
+    assert!(
+        revealed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&revealed.stderr)
+    );
+    let revealed: serde_json::Value = serde_json::from_slice(&revealed.stdout).unwrap();
+    assert_eq!(revealed["revealed"]["id"], goal);
+    assert!(revealed["revealed"]["theorem"]
+        .as_str()
+        .unwrap()
+        .starts_with("theorem "));
+
+    std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
+    let obligation = revealed["revealed"]["name"].as_str().unwrap();
+    let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
+    let proved = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "prove",
+            &target,
+            "--from",
+            "proof.lean",
+            "--write",
+        ],
+    );
+    assert!(
+        proved.status.success(),
+        "{}",
+        String::from_utf8_lossy(&proved.stderr)
+    );
+    let proved_json: serde_json::Value = serde_json::from_slice(&proved.stdout).unwrap();
+    let transaction = proved_json["transaction"].as_u64().unwrap().to_string();
+    let after = std::fs::read_to_string(&model).unwrap();
+    assert_eq!(after.matches("-- fr:debt").count(), 1);
+    assert!(after.contains("  rfl\n"));
+    assert!(run(
+        workspace.path(),
+        &["history", "undo", &transaction, "--write"]
+    )
+    .status
+    .success());
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), generated);
+    assert!(run(
+        workspace.path(),
+        &["history", "redo", &transaction, "--write"]
+    )
+    .status
+    .success());
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), after);
+
+    let remaining = run(workspace.path(), &["--json", "spec", "goals", "specs"]);
+    let remaining: serde_json::Value = serde_json::from_slice(&remaining.stdout).unwrap();
+    let obligation = remaining["catalog"][0]["name"].as_str().unwrap();
+    let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
+    assert!(run(
+        workspace.path(),
+        &["spec", "prove", &target, "--from", "proof.lean", "--write"]
+    )
+    .status
+    .success());
+    let verified = run(workspace.path(), &["spec", "verify", "specs"]);
+    assert!(
+        verified.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&verified.stdout),
+        String::from_utf8_lossy(&verified.stderr)
+    );
+
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn keep(value: bool) -> bool { !value }\n",
+    )
+    .unwrap();
+    let stale = run(
+        workspace.path(),
+        &["spec", "scaffold", "--from", "formal-plan.json", "--write"],
+    );
+    assert!(!stale.status.success());
+    assert!(String::from_utf8_lossy(&stale.stderr).contains("does not match the current source"));
+}
+
 #[test]
 fn initialized_package_is_a_checked_lake_target() {
     let workspace = tempfile::tempdir().unwrap();

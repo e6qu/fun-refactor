@@ -20,6 +20,7 @@ DISCLOSED_EDIT_SCHEMA = "fr-disclosed-edit-1"
 DISCLOSED_IR_EDIT_SCHEMA = "fr-disclosed-ir-edit-1"
 MERKLE_PROOF_SCHEMA = "fr-merkle-inclusion-1"
 MERKLE_OBJECT_SCHEMA = "fr-merkle-object-1"
+FORMAL_PLAN_SCHEMA = "fr-formal-plan-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -1083,8 +1084,178 @@ class SemanticIntent:
         Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
 
 
+def _exact_mapping(value: Any, keys: set[str], description: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping) or set(value) != keys:
+        raise IrError(f"{description} must contain exactly {sorted(keys)}")
+    return value
+
+
+@dataclass(frozen=True)
+class FormalBinding:
+    """One Rust-to-Lean name and type mapping in a formal plan."""
+
+    name: str
+    rust_type: str
+    lean_type: str
+
+    @classmethod
+    def from_data(cls, value: Any) -> FormalBinding:
+        value = _exact_mapping(value, {"name", "rust_type", "lean_type"}, "formal binding")
+        if not all(isinstance(value[key], str) and value[key] for key in value):
+            raise IrError("formal binding fields must be non-empty strings")
+        return cls(value["name"], value["rust_type"], value["lean_type"])
+
+    def to_data(self) -> dict[str, str]:
+        return {"name": self.name, "rust_type": self.rust_type, "lean_type": self.lean_type}
+
+
+@dataclass(frozen=True)
+class FormalProperty:
+    kind: str
+    name: str
+    proposition: str
+    proof_status: str = "unproved"
+
+    @classmethod
+    def from_data(cls, value: Any) -> FormalProperty:
+        value = _exact_mapping(
+            value, {"kind", "name", "proposition", "proof_status"}, "formal property"
+        )
+        if not all(isinstance(value[key], str) and value[key] for key in value):
+            raise IrError("formal property fields must be non-empty strings")
+        return cls(value["kind"], value["name"], value["proposition"], value["proof_status"])
+
+    def to_data(self) -> dict[str, str]:
+        return {
+            "kind": self.kind,
+            "name": self.name,
+            "proposition": self.proposition,
+            "proof_status": self.proof_status,
+        }
+
+
+@dataclass(frozen=True)
+class FormalKernel:
+    module: str
+    model: str
+    inputs: Sequence[FormalBinding]
+    output: FormalBinding
+    semantic_ir: Any
+    lean_definition: str
+
+    @classmethod
+    def from_data(cls, value: Any) -> FormalKernel:
+        value = _exact_mapping(
+            value,
+            {"module", "model", "inputs", "output", "semantic_ir", "lean_definition"},
+            "formal kernel",
+        )
+        if not isinstance(value["inputs"], list):
+            raise IrError("formal kernel inputs must be a list")
+        if not all(isinstance(value[key], str) and value[key]
+                   for key in ("module", "model", "lean_definition")):
+            raise IrError("formal kernel names and definition must be non-empty strings")
+        return cls(
+            value["module"], value["model"],
+            tuple(FormalBinding.from_data(item) for item in value["inputs"]),
+            FormalBinding.from_data(value["output"]), value["semantic_ir"],
+            value["lean_definition"],
+        )
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "module": self.module,
+            "model": self.model,
+            "inputs": [item.to_data() for item in self.inputs],
+            "output": self.output.to_data(),
+            "semantic_ir": self.semantic_ir,
+            "lean_definition": self.lean_definition,
+        }
+
+
+@dataclass(frozen=True)
+class FormalPlan:
+    """Validated Python mirror of ``fr-formal-plan-1``."""
+
+    target: Mapping[str, str]
+    kernel: FormalKernel
+    properties: Sequence[FormalProperty]
+    correspondence: Mapping[str, str]
+    assumptions: Sequence[str]
+    obligations: Sequence[str]
+    actions: Mapping[str, Sequence[str]]
+    object_digest: str
+
+    @classmethod
+    def from_data(cls, value: Any) -> FormalPlan:
+        keys = {
+            "schema", "target", "kernel", "properties", "correspondence",
+            "assumptions", "obligations", "object_digest", "actions",
+        }
+        value = _exact_mapping(value, keys, "formal plan")
+        if value["schema"] != FORMAL_PLAN_SCHEMA:
+            raise IrError(f"formal plan schema must be {FORMAL_PLAN_SCHEMA}")
+        target = _exact_mapping(value["target"], {"source", "symbol", "source_hash"}, "formal target")
+        correspondence = _exact_mapping(
+            value["correspondence"],
+            {"source_identity", "signature_surface", "model_generation", "implementation_model"},
+            "formal correspondence",
+        )
+        actions = _exact_mapping(value["actions"], {"scaffold", "goals", "verify"}, "formal actions")
+        if not all(isinstance(target[key], str) and target[key] for key in target):
+            raise IrError("formal target fields must be non-empty strings")
+        if not all(isinstance(correspondence[key], str) and correspondence[key]
+                   for key in correspondence):
+            raise IrError("formal correspondence fields must be non-empty strings")
+        for field in ("properties", "assumptions", "obligations"):
+            if not isinstance(value[field], list):
+                raise IrError(f"formal plan {field} must be a list")
+        if not all(isinstance(item, str) for field in ("assumptions", "obligations")
+                   for item in value[field]):
+            raise IrError("formal assumptions and obligations must contain strings")
+        if not all(isinstance(actions[key], list)
+                   and all(isinstance(part, str) for part in actions[key]) for key in actions):
+            raise IrError("formal actions must contain argument-vector string lists")
+        core = {key: value[key] for key in (
+            "schema", "target", "kernel", "properties", "correspondence",
+            "assumptions", "obligations",
+        )}
+        if not _is_digest(value["object_digest"]) or merkle_object_digest(core) != value["object_digest"]:
+            raise IrError("formal plan fails its Merkle content address")
+        return cls(
+            dict(target), FormalKernel.from_data(value["kernel"]),
+            tuple(FormalProperty.from_data(item) for item in value["properties"]),
+            dict(correspondence), tuple(value["assumptions"]), tuple(value["obligations"]),
+            {key: tuple(actions[key]) for key in actions}, value["object_digest"],
+        )
+
+    @classmethod
+    def from_json(cls, text: str) -> FormalPlan:
+        return cls.from_data(json.loads(text))
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "schema": FORMAL_PLAN_SCHEMA,
+            "target": dict(self.target),
+            "kernel": self.kernel.to_data(),
+            "properties": [item.to_data() for item in self.properties],
+            "correspondence": dict(self.correspondence),
+            "assumptions": list(self.assumptions),
+            "obligations": list(self.obligations),
+            "object_digest": self.object_digest,
+            "actions": {key: list(value) for key, value in self.actions.items()},
+        }
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
+    def write(self, path: str | Path, *, indent: int | None = 2) -> None:
+        Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
+
+
 __all__ = [
-    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
+    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "FORMAL_PLAN_SCHEMA", "FormalBinding", "FormalKernel", "FormalPlan", "FormalProperty", "Function", "INTENT_OPERATIONS",
     "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "MERKLE_OBJECT_SCHEMA", "MERKLE_PROOF_SCHEMA", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
     "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",

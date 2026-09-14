@@ -452,7 +452,15 @@ may write.
 
 ```
 fr spec init [PATH] [--write]
+
+fr spec candidates [PATH...] [--limit COUNT]
+fr spec plan SOURCE::SYMBOL [--property KIND]...
 fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
+fr spec scaffold --from PLAN [--package PATH] [--write]
+
+fr spec goals [PATH...] [--goal DIGEST] [--limit COUNT] [--token-limit BYTES]
+fr spec prove SPEC::OBLIGATION --from PROOF [--write]
+
 fr spec ci [--package PATH] [--max-debt COUNT] [--write]
 
 fr spec check [PATH...]
@@ -461,6 +469,12 @@ fr spec sync [PATH...] [--write]
 fr spec verify [PATH...]
 fr spec evidence [PATH...]
 ```
+
+`candidates`, `plan`, `goals` and `prove` form the agent workbench described in
+[docs/agent-formalization.md](docs/agent-formalization.md). Plans are source-free and
+content-addressed. Formal scaffolding refuses stale or modified plans. Goal catalogs and selected
+details fit their declared serialized-byte ceiling. Proof writes replace one named generated
+region and participate in source history, undo, redo and patch export.
 
 `init` plans a minimal Lake package at `specs/`, or at the selected workspace-relative
 path. It pins the supported Lean toolchain and creates `lakefile.toml` plus the

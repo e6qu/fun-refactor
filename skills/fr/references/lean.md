@@ -1,15 +1,19 @@
 # Check Lean evidence without overstating it
 
-Ordinary `fr` use does not require Lean. `spec verify` requires Lean/Lake and an owning package whose checked targets include the selected model.
-Start an unconfigured project with `fr --json spec init`, review the three-file package diff, then use `fr --json spec init --write` or `--save-plan`.
-Initialization pins the supported toolchain and records the checked package through source history. Broader source-language scaffolding remains roadmap work.
+Ordinary use does not require Lean. `spec verify` requires Lean/Lake and an owning checked package.
+Preview `fr --json spec init`, then apply with `--write` or save with `--save-plan`.
 
-For a Rust function with supported primitive, reference, tuple, `Option`, `Result`, `Vec` or `Box` types, preview `fr --json spec scaffold src/lib.rs::allowed`.
-The write creates a full anchor, strict signature map and checked module with one visible handwritten `sorry`. Replace it with reviewed model semantics and add the property before expecting `spec verify` to pass.
-After source drift, rerun the same scaffold command. It previews changes to the marked generated region and preserves the marked handwritten region byte for byte. Review any signature change and repair the preserved model or proofs before writing.
-Keep each remaining `sorry` directly below a stable `-- fr:debt NAME` marker. Run `fr --json spec check specs --strict --max-debt N` with the reviewed ceiling. Lower the ceiling when a proof lands so later debt growth fails.
-Preview `fr --json spec ci --max-debt N`, then write or save its source transaction. The generated GitHub workflow pins this `fr` release, strict correspondence, the debt ceiling and a warnings-as-errors Lake build.
-Finish with `fr --json spec evidence specs`. Report checked model properties, declared assumptions, trusted components and remaining obligations. Its axiom analysis covers declared syntax only. Keep both implementation/model correspondence fields false unless separate tests or a proof support them.
+For supported pure functions, run `fr --json spec candidates src`, save
+`fr --json spec plan TARGET --property KIND`, and apply it with
+`fr --json spec scaffold --from PLAN --write`. Review each property. Use `spec goals specs`, reveal
+one returned digest, put tactics without `by` in a file, and use its `spec prove` and `spec verify`
+actions. `docs/agent-formalization.md` defines the subset and evidence boundary.
+
+Manual scaffolding remains available as `fr --json spec scaffold src/lib.rs::allowed`. It creates an
+anchor, signature map and visible `sorry`; replace its model and add reviewed properties. On source
+drift, rerun it and review the generated-region diff; the handwritten region is preserved. Keep debt
+below `-- fr:debt NAME`, ratchet `spec check specs --strict --max-debt N`, generate CI with
+`spec ci --max-debt N`, and report assumptions and obligations with `spec evidence specs`.
 
 For an existing Rust declaration in `src/lib.rs`:
 
@@ -27,7 +31,7 @@ def allowed (ok : Bool) : Bool := ok
 theorem accepts_true : allowed true = true := by rfl
 ```
 
-The zero hash deliberately starts stale. Inspect `actual`, the source declaration, model, types and claimed property before accepting a new identity.
+The zero hash starts stale. Inspect the source, model, types and property before accepting an identity.
 
 ```sh
 fr --json spec check specs --strict
@@ -36,13 +40,10 @@ fr --json spec sync specs --write
 fr --json spec verify specs
 ```
 
-The first command refuses this initial stale anchor. That is useful drift evidence, not a reason to suppress checks.
-`sync` previews hash changes; `--write` records them through source history. It does not repair model definitions, signatures or proofs.
-After a source change, first decide whether the claim or model needs updating. Renew hashes only after that review.
-An explicit signature map must agree with both declarations; strict signature checking currently supports Rust source only.
-Verify requires those checks to pass before running `lake build --wfail` for each selected package.
-Lake may write build artifacts; a successful run must actually include the selected model in its build targets.
-A zero `sorry` count alone is not evidence that every relevant property has a proof.
+`sync` only renews reviewed hashes; it does not repair models, signatures or proofs. Explicit maps
+must match both declarations and currently support Rust sources. Verify checks them before each
+`lake build --wfail`. Ensure the selected model belongs to a target; zero `sorry` does not imply
+property completeness.
 
 Keep four claims separate in the final evidence:
 
