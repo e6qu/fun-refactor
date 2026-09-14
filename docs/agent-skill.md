@@ -146,7 +146,7 @@ measures the combined prescribed path separately.
 M4o subsequently combines lookup and source inspection under one page budget.
 The [controlled source-lookup comparison](project-context-evaluation.md#bounded-source-during-name-lookup) measures that command composition separately from these skill-reading costs.
 
-## Remaining roadmap
+## State at the M4o checkpoint
 
 M4a provides the introductory handoff and executable command examples.
 Body replacement supports Rust, Go, Java, Python, JavaScript, TypeScript and TSX declarations and methods, plus JavaScript/TypeScript/TSX function bindings. Python includes decorated synchronous and asynchronous handlers.
@@ -161,6 +161,7 @@ The fragment stays verbatim; bodyless functions are trait-only, while free funct
 It accepts leading outer documentation comments, so agents can satisfy a project's missing-docs lint without changing crate policy.
 Authoring batches combine up to 32 disjoint operations from one revision, with shared coverage and one history transaction.
 Declared project-check selection now has a configuration digest and bounded execution reports.
-Broader real-agent evaluation, context optimization and further authoring operations remain open.
-M5 still owns automated Lean package initialization and model scaffolding.
-The skill does not claim complete framework migration, worktree undo/redo or general implementation verification.
+Later roadmap PRs added real-agent cohorts, compact context protocols, structural authoring,
+automated Lean scaffolding, worktree undo/redo and bounded framework migration. See `PLAN.md` and
+`skills/fr/SKILL.md` for the current contract. General implementation verification remains a formal
+trust boundary rather than a completed theorem.

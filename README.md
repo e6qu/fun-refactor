@@ -319,7 +319,8 @@ Supported operations still report input-specific limitations and confidence.
 [PLAN.md](PLAN.md) is the active roadmap for agents: compact project understanding,
 reversible changes, Git patches, reusable Lean verification and hierarchical framework migration.
 The original implementation stages are complete. The new milestones remain active.
-LSP delegation stays outside the default engine; daemon/watch mode awaits a measured need.
+The standalone engine excludes LSP delegation and daemon/watch state. Persistent cache, bounded
+request batching and concurrent-build coalescing cover the measured repeated-query workloads.
 
 The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
 The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.

@@ -1,5 +1,14 @@
 # Development continuity
 
+The active deferred-boundary closure branch implements every concrete item recorded under PR 29 in
+`PLAN.md`. It includes native and browser history retention, evaluator replay guards, cross-language
+signature checks, reversible worktree removal, transitive Git impact, Go/Python manifests, lockfile
+evidence, service-route links, dependency-to-lock joins, Cargo feature activation and offline
+artifact verification. The latest checkpoints have complete project, Clippy, portable-skill, prose
+and strict Lean evidence. LSP delegation, a daemon process, embedded package solvers and framework
+runtimes are closed architecture non-goals; `fr` exposes checked inputs and external check hooks at
+those trust boundaries.
+
 PR 25, proposed as GitHub PR 290, adds the Agent Formalization Workbench. `spec candidates`
 identifies the conservative pure Rust subset; `spec plan` emits a source-free `fr-formal-plan-1` object;
 `spec scaffold --from` verifies it against current source and generates Lean definitions plus named
@@ -28,7 +37,7 @@ end-to-end test covers a multi-input property, invalid agent trees, checked proo
 verify, undo, redo and source drift. The complete native, Python, documentation, strict Lean and
 WASM gates pass locally.
 
-The active PR 28 adds explicit agent-facing coverage for JavaScript, TypeScript, React, Next.js,
+PR 28, merged as GitHub PR 293, adds explicit agent-facing coverage for JavaScript, TypeScript, React, Next.js,
 Go, Python, FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid. Its first
 checkpoint adds a revision-bound technology taxonomy and source-free evidence inventory. The
 second adds Express package/route applications and standalone React package/entry-component
@@ -36,7 +45,7 @@ features, including bounded import expansion and proof-backed standalone admissi
 source-free CSS/Tailwind relationships and Markdown/Mermaid hierarchies with proof-backed resolution
 and omission policies. The fourth places all of these beside application facts in a four-domain
 cross-stack Merkle view that accepts project handles and reuses the generic Python object pack.
-Later checkpoints extend checked-authoring models.
+Later checkpoints extended the checked-authoring models described in `PLAN.md`.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.

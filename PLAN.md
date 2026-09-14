@@ -1421,6 +1421,9 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 13. **Complete.** Verify caller-selected artifacts offline against captured Cargo, npm, Go and
     Python checksums. Bound files, directories and returned evidence; distinguish missing,
     unsupported, mismatched and verified states. Lean and Rust agree on every status input.
+14. **Complete.** Audit source markers and active documentation. Classify external solvers,
+    runtimes, LSP delegation and daemon state as explicit architecture boundaries instead of
+    carrying them as deferred roadmap promises.
 
 ## Formal verification policy
 
@@ -1473,20 +1476,24 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 
 - Manifest readers cover Cargo, npm, Go modules and Python projects. Lock readers expose observed
   versions and integrity fields from Cargo, npm, Go, Poetry, uv and Pipenv files. Cargo manifest
-  `fr` evaluates feature activation with explicit target/resolver limits. Package-manager version
-  solving remains outside these syntactic subsets. Offline artifact verification compares supplied
-  bytes with captured SHA-2, SRI or Go tree-hash evidence without authenticating the lockfile author.
+  `fr` evaluates Cargo manifest feature activation with explicit target/resolver limits. Package-manager version
+  solving would duplicate environment-dependent package managers, so it is an explicit non-goal.
+  Offline verification compares supplied bytes with captured SHA-2, SRI or Go tree-hash evidence.
+  It does not authenticate the lockfile author.
 - Framework readers recognize selected static patterns. Their feature hierarchy joins packages,
   components, configuration, middleware, execution dependencies and local HTTP route candidates.
-  Runtime execution remains outside static evidence and stays explicit in every affected fact.
+  Static facts never claim runtime execution. Reviewed external checks supply runtime evidence when
+  a project needs it.
 - Native and browser history both have bounded replay retention. Browser checkpoints bind the
   current UTF-8 regular files, transaction graph and cumulative patch basis across page reloads.
   Browser snapshots project mode `0644`; executable files and symlinks require the native tool.
 - Strict signature maps cover all readable code languages. Non-Rust maps use canonical shared-IR
   types; markup, stylesheets, configuration and Markdown have no function signature surface.
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
-- LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.
-- Daemon/watch mode remains deferred until cache and repeated-query measurements justify it.
+- The standalone architecture excludes LSP delegation. Language-specific parser gaps become explicit
+  evidence or checked external commands rather than an ambient server dependency.
+- The cache, request batching and concurrent-build coalescing satisfy the measured repeated-query
+  workloads. A daemon/watch process is a closed non-goal unless a new benchmark overturns that result.
 - Feature migration currently covers one route source file across Next.js App Router and FastAPI. Generated Next.js validation covers one direct body model built from primitive, optional, list, string-keyed map, tuple and acyclic local-record shapes. Explicit FastAPI registration checks one application file and its direct routes. Explicit cutover checks resolved external source references and keeps deletion reversible. Reviewed work includes framework coercion, aliases, custom validators, field constraints, strict and extra-field settings, composed-router conflicts, runtime imports and external callers. Projects provide the commands and assertions selected for transaction evidence.
 
 ## Further reading
