@@ -1139,7 +1139,7 @@ Planned checkpoints:
 
 ### PR 25. Agent Formalization Workbench
 
-Status: complete and ready for review.
+Status: proposed as [PR 290](https://github.com/e6qu/fun-refactor/pull/290).
 
 Goal: let an agent discover conservative formalization candidates and inspect a source-free semantic
 plan. It can create a Lean kernel and solve one exact proof goal without ingesting or rewriting whole
@@ -1194,7 +1194,7 @@ Planned checkpoints:
 
 ### PR 26. Agent Proof Companion
 
-Status: complete and ready for review.
+Status: proposed as [PR 291](https://github.com/e6qu/fun-refactor/pull/291).
 
 Goal: give an agent a small, revision-bound Lean proof task and a deterministic feedback loop. The
 agent authors every proof tactic. `fr` supplies context, empty templates, checking, diagnostics and

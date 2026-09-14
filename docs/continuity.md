@@ -1,7 +1,7 @@
 # Development continuity
 
-PR 25, proposed as GitHub PR 290, adds the Agent Formalization Workbench. `spec candidates` identifies the
-conservative pure Rust subset; `spec plan` emits a source-free `fr-formal-plan-1` object;
+PR 25, proposed as GitHub PR 290, adds the Agent Formalization Workbench. `spec candidates`
+identifies the conservative pure Rust subset; `spec plan` emits a source-free `fr-formal-plan-1` object;
 `spec scaffold --from` verifies it against current source and generates Lean definitions plus named
 proof regions; `spec goals` progressively discloses content-addressed theorem context under a byte
 ceiling; and `spec prove` writes tactics through ordinary reversible history. The Python SDK mirrors
@@ -10,8 +10,8 @@ the Rust suite exhausts all 48 shared Boolean inputs. General implementation/mod
 remains an explicit obligation. Its complete native, Python, documentation, capability, strict Lean
 and WASM gates pass locally.
 
-The active PR 26 adds the Agent Proof Companion. `spec proof-task` packages one exact goal with
-empty tactic templates. `spec proof-check` runs agent-written tactics through the pinned Lean
+PR 26, proposed as GitHub PR 291, adds the Agent Proof Companion. `spec proof-task` packages one
+exact goal with empty tactic templates. `spec proof-check` runs agent-written tactics through the pinned Lean
 checker without mutation and returns bounded diagnostics or a content-bound receipt. `spec prove`
 now requires the same Lean check before history can record a proof. Python validates task and
 receipt identities. Lean proves the seven-condition admission policy, and Rust compares all 128
