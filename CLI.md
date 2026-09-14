@@ -454,7 +454,8 @@ may write.
 fr spec init [PATH] [--write]
 
 fr spec candidates [PATH...] [--limit COUNT]
-fr spec plan SOURCE::SYMBOL [--property KIND]...
+fr spec property-task SOURCE::SYMBOL [--token-limit BYTES]
+fr spec plan SOURCE::SYMBOL [--property KIND]... [--property-from FILE]...
 fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
 fr spec scaffold --from PLAN [--package PATH] [--write]
 
@@ -473,12 +474,14 @@ fr spec verify [PATH...]
 fr spec evidence [PATH...]
 ```
 
-`candidates`, `plan`, `goals`, `proof-task`, `proof-check` and `prove` form the agent workbench described in
+`candidates`, `property-task`, `plan`, `goals`, `proof-task`, `proof-check` and `prove` form the agent workbench described in
 [docs/agent-formalization.md](docs/agent-formalization.md). Plans are source-free and
-content-addressed. Formal scaffolding refuses stale or modified plans. Goal catalogs and selected
-details fit their declared serialized-byte ceiling. Proof writes replace one named generated
-region and participate in source history, undo, redo and patch export. The agent authors the tactics;
-`fr` provides empty structural templates and runs Lean before it prepares the write.
+content-addressed. A property task discloses the model signature and bounded proposition grammar;
+the agent authors a strict property IR and supplies it with `--property-from`. Formal scaffolding
+refuses stale or modified plans and requires Lean to elaborate the exact generated module. Goal
+catalogs and selected details fit their declared serialized-byte ceiling. Proof writes replace one
+named generated region and participate in source history, undo, redo and patch export. The agent
+authors the property and tactics; `fr` validates and renders them without inventing either.
 
 `init` plans a minimal Lake package at `specs/`, or at the selected workspace-relative
 path. It pins the supported Lean toolchain and creates `lakefile.toml` plus the

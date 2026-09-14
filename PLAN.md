@@ -1236,6 +1236,51 @@ Planned checkpoints:
    redo and stale refusal in the end-to-end workflow. Agent guidance and continuity are current;
    the complete default and WASM repository gates pass locally.
 
+### PR 27. Agent-Authored Formal Properties
+
+Status: proposed as [PR 292](https://github.com/e6qu/fun-refactor/pull/292).
+
+Goal: let an agent state a project-specific property over a generated Lean model without reading or
+editing the generated module. The agent authors both the proposition IR and every proof tactic.
+`fr` supplies a revision-bound task, validates the typed proposition, renders a theorem scaffold and
+connects it to the existing checked proof workflow.
+
+Deliverables:
+
+- Disclose a bounded, content-addressed property task containing the model signature, admitted
+  proposition grammar, empty source-free templates and exact next actions.
+- Accept a strict `fr-formal-property-1` tree authored by the agent. Bind it to the current task,
+  validate identifiers, variables, model arguments, types, node/depth ceilings and theorem-name
+  collisions before creating a formal plan.
+- Render only the validated theorem statement and an empty proof region. Use the initialized pinned
+  Lean package to elaborate the complete generated module before any scaffold write.
+- Preserve agent-authored property trees across deterministic plan regeneration. Make source or
+  property-task drift refuse before history creation.
+- Mirror constructors, validation and Merkle identity in the zero-dependency Python SDK.
+- Model property admission and the abstract term/proposition type rules in Lean, then compare the
+  shared finite cases with Rust.
+- Exercise a multi-input property through task creation, plan creation, scaffolding, failed and
+  corrected proof attempts, apply, verify, undo, redo and stale-source refusal.
+
+Verification and acceptance:
+
+1. The property task contains no source body, completed theorem or proof tactics.
+2. The plan contains exactly the agent-authored proposition tree and its deterministically rendered
+   Lean theorem. Changed task identity, names, types, variables, arity or tree limits refuse.
+3. Scaffold preview and write require successful Lean elaboration of the exact generated module.
+4. The proof companion still accepts only agent-written tactics and changes one named region.
+5. Python independently recomputes task and plan identities. Lean proves the finite admission and
+   abstract typing policies; Rust agrees for every shared input.
+6. Native, Python, documentation, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Define the property task and typed agent property protocol.
+2. **Complete.** Integrate custom properties into plans, scaffolding and Lean elaboration.
+3. **Complete.** Add the Python mirror and Lean admission/type models.
+4. **Complete.** Cover the full lifecycle and refusal matrix. The agent guidance and continuity
+   are current, and the complete default and WASM repository gates pass locally.
+
 ## Formal verification policy
 
 Prioritize properties whose failure silently changes code or misleads an agent.
