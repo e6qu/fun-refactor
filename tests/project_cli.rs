@@ -6281,6 +6281,86 @@ fn framework_feature_package_facts_bound_build_settings_and_dependencies() {
 }
 
 #[test]
+fn framework_features_link_local_service_calls_to_route_candidates() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"next":"16","axios":"1"}}"#,
+    );
+    put(
+        root,
+        "web/app/api/proxy/route.ts",
+        "import axios from 'axios'; export async function GET() { return axios.get('/users'); }\n",
+    );
+    put(
+        root,
+        "api/app.py",
+        "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/users')\ndef users(): return []\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let rows = view["items"].as_array().unwrap();
+    let users = rows
+        .iter()
+        .find(|row| row["kind"] == "route" && row["route"]["url"] == "/users")
+        .unwrap();
+    let dependency = rows
+        .iter()
+        .find(|row| {
+            row["kind"] == "service-dependency" && row["service_dependency"]["target"] == "/users"
+        })
+        .unwrap();
+    assert_eq!(
+        dependency["service_dependency"]["route_resolution"],
+        "unique-candidate"
+    );
+    assert_eq!(dependency["service_dependency"]["route_candidate_count"], 1);
+    assert_eq!(
+        dependency["service_dependency"]["target_routes"][0],
+        users["id"]
+    );
+    assert_eq!(view["analysis"]["service_route_candidates"], 1);
+    assert_eq!(view["analysis"]["service_route_candidates_omitted"], 0);
+
+    let legacy = (0..16)
+        .map(|index| {
+            format!(
+                "app.get('/users', function users{index}(request, response) {{ response.json([]); }});\n"
+            )
+        })
+        .collect::<String>();
+    put(root, "legacy.ts", &legacy);
+    let ambiguous = ok(root, &["project", "features", "--limit", "500"]);
+    let dependency = ambiguous["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| {
+            row["kind"] == "service-dependency" && row["service_dependency"]["target"] == "/users"
+        })
+        .unwrap();
+    assert_eq!(
+        dependency["service_dependency"]["route_resolution"],
+        "ambiguous"
+    );
+    assert_eq!(
+        dependency["service_dependency"]["route_candidate_count"],
+        17
+    );
+    assert_eq!(
+        dependency["service_dependency"]["target_routes"]
+            .as_array()
+            .unwrap()
+            .len(),
+        16
+    );
+    assert_eq!(dependency["service_dependency"]["target_routes_omitted"], 1);
+    assert_eq!(ambiguous["analysis"]["service_route_candidates_omitted"], 1);
+}
+
+#[test]
 fn framework_feature_middleware_facts_are_bounded_with_an_explicit_gap() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

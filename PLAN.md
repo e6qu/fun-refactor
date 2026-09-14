@@ -1408,6 +1408,9 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 9. **Complete.** Capture supported Cargo, npm, Go and Python lock entries as revision-bound,
    source-free resolution evidence. The fifth progressive project branch exposes the same bounded
    facts. Lean and Rust agree on file and combined evidence limits.
+10. **Complete.** Link root-relative HTTP dependencies across inferred applications through exact
+    paths and compatible methods. Feature rows expose bounded route IDs, ambiguity and omissions.
+    Lean proves the candidate admission rule over every Boolean state.
 
 ## Formal verification policy
 
@@ -1461,7 +1464,9 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 - Manifest readers cover Cargo, npm, Go modules and Python projects. Lock readers expose observed
   versions and integrity fields from Cargo, npm, Go, Poetry, uv and Pipenv files. Package-manager
   solving, feature evaluation and artifact verification remain outside these syntactic subsets.
-- Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
+- Framework readers recognize selected static patterns. Their feature hierarchy joins packages,
+  components, configuration, middleware, execution dependencies and local HTTP route candidates.
+  Runtime execution remains outside static evidence and stays explicit in every affected fact.
 - Native and browser history both have bounded replay retention. Browser checkpoints bind the
   current UTF-8 regular files, transaction graph and cumulative patch basis across page reloads.
   Browser snapshots project mode `0644`; executable files and symlinks require the native tool.

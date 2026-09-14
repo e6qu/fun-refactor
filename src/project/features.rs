@@ -24,6 +24,7 @@ const COMPONENT_FACT_LIMIT: usize = 128;
 const COMPONENT_DETAIL_FACT_LIMIT: usize = 512;
 const COMPONENT_FILE_LIMIT: usize = 64;
 const COMPONENT_FILE_GAP_LIMIT: usize = 128;
+const SERVICE_ROUTE_CANDIDATE_LIMIT: usize = 16;
 
 #[derive(Clone)]
 struct Feature {
@@ -104,6 +105,8 @@ struct BoundaryCounts {
     configuration_consumers_omitted: usize,
     service_dependencies: usize,
     service_gaps: usize,
+    service_route_candidates: usize,
+    service_route_candidates_omitted: usize,
     components: usize,
     component_details: usize,
     component_properties: usize,
@@ -1131,6 +1134,18 @@ impl Project<'_> {
             .values()
             .flat_map(|app| app.features.values().map(|feature| feature.id.clone()))
             .collect();
+        let mut route_endpoints = Vec::new();
+        for application in applications.values() {
+            for feature in application.features.values() {
+                for route in &feature.routes {
+                    route_endpoints.push((
+                        route_id(&self.revision, &feature.id, route)?,
+                        route["url"].as_str().map(str::to_owned),
+                        route["method"].as_str().map(str::to_owned),
+                    ));
+                }
+            }
+        }
         if let Some(feature) = &options.feature {
             if !available.contains(feature) {
                 bail!("feature ID is absent from this project revision and selected scope.");
@@ -1414,6 +1429,28 @@ impl Project<'_> {
                             Some("route-service-dependency") => {
                                 boundary_counts.service_dependencies += 1;
                                 let id = child_id("frfsd1", &self.revision, &route_id, child)?;
+                                let target = child["target"].as_str();
+                                let method = child["method"].as_str();
+                                let local = child["target_kind"] == "local-http";
+                                let candidates = route_endpoints
+                                    .iter()
+                                    .filter(|(_, route_url, route_method)| {
+                                        framework_kernel::service_route_candidate(
+                                            local,
+                                            target.is_some() && target == route_url.as_deref(),
+                                            method.is_some(),
+                                            method.is_some() && method == route_method.as_deref(),
+                                        )
+                                    })
+                                    .map(|(id, _, _)| id)
+                                    .collect::<Vec<_>>();
+                                let candidate_count = candidates.len();
+                                boundary_counts.service_route_candidates += candidate_count;
+                                boundary_counts.service_route_candidates_omitted +=
+                                    framework_kernel::framework_omitted(
+                                        candidate_count,
+                                        SERVICE_ROUTE_CANDIDATE_LIMIT,
+                                    );
                                 rows.push(fact(
                                     "service-dependency",
                                     id,
@@ -1437,6 +1474,10 @@ impl Project<'_> {
                                         "target_kind": child["target_kind"],
                                         "query_or_fragment_omitted": child["query_or_fragment_omitted"],
                                         "credentials_omitted": child["credentials_omitted"],
+                                        "route_resolution": if !local { "not-local" } else if candidate_count == 0 { "unresolved" } else if candidate_count == 1 { "unique-candidate" } else { "ambiguous" },
+                                        "route_candidate_count": candidate_count,
+                                        "target_routes": candidates.into_iter().take(framework_kernel::framework_emitted(candidate_count, SERVICE_ROUTE_CANDIDATE_LIMIT)).collect::<Vec<_>>(),
+                                        "target_routes_omitted": framework_kernel::framework_omitted(candidate_count, SERVICE_ROUTE_CANDIDATE_LIMIT),
                                     }),
                                 ));
                             }
@@ -1663,6 +1704,10 @@ impl Project<'_> {
             json!(boundary_counts.configuration_consumers_omitted);
         analysis["service_dependencies"] = json!(boundary_counts.service_dependencies);
         analysis["service_gaps"] = json!(boundary_counts.service_gaps);
+        analysis["service_route_candidates"] = json!(boundary_counts.service_route_candidates);
+        analysis["service_route_candidate_limit"] = json!(SERVICE_ROUTE_CANDIDATE_LIMIT);
+        analysis["service_route_candidates_omitted"] =
+            json!(boundary_counts.service_route_candidates_omitted);
         analysis["components"] = json!(boundary_counts.components);
         analysis["component_details"] = json!(boundary_counts.component_details);
         analysis["component_properties"] = json!(boundary_counts.component_properties);

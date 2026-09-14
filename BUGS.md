@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B874: **application service dependencies stopped at sanitized URL strings.**
+
+  Root-relative HTTP calls now link to bounded same-path route candidates across inferred
+  applications. Known methods must match, while unknown methods retain every path candidate.
+  Reports distinguish unique, ambiguous, unresolved and nonlocal targets. Lean proves the local,
+  path and method admission rule and agrees with Rust over all Boolean states.
+
 - [x] B873: **agents had to inspect lockfile text to learn captured package versions.**
 
   `project resolutions` now normalizes supported Cargo, npm, Go and Python lock entries into a

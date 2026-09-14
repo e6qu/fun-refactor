@@ -406,6 +406,9 @@ FastAPI `Depends` and `Security` parameter markers become route execution depend
 Lifecycle children cover Next.js instrumentation exports and FastAPI lifespan or event declarations.
 Runtime configuration links environment declarations to application consumers without exposing values.
 Handler children include sanitized `fetch`, axios, requests and HTTPX service candidates; dynamic targets become gaps.
+Root-relative service targets link to every same-path route candidate in the selected project.
+Known HTTP methods narrow the candidates; unknown methods retain all path matches. Each link exposes
+its route IDs and omission count, so an agent can traverse application dependencies without source.
 Next.js pages also form features without API routes.
 Standalone React packages form features at root component files in the captured relative-import graph.
 Their React files include inherited Next.js layouts where applicable and bounded relative component imports.
@@ -428,7 +431,7 @@ Pinned FastAPI and Next.js fixtures register generated routes and execute real f
 The [feature migration contract](docs/feature-migration.md) states destination rules, coexistence behavior and current runtime limits.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Package aliases, framework runtime behavior and complete dependency graphs remain roadmap work.
+Package aliases and framework runtime execution remain outside the static evidence model.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.

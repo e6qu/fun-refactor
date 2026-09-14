@@ -42,11 +42,14 @@ Dynamic or invalid prefixes suppress affected route facts and produce explicit g
 FastAPI dependencies retain application, route or parameter scope.
 Middleware facts retain declaration order and the reverse request order.
 Lifecycle, configuration and sanitized outbound HTTP facts remain attached to their source anchors.
+Root-relative HTTP facts also carry bounded route candidates from every inferred application in the
+selected project scope. Exact paths are required. A known method must also match; an unknown method
+keeps every path match. Unique and ambiguous candidates remain labeled as static evidence.
 
 ## Evidence boundary
 
 The readers validate captured syntax and project revision identity.
-They do not import a framework, start a server, resolve a package graph or prove runtime reachability.
+They do not import a framework, start a server or prove runtime reachability.
 Application facts state those gaps.
 FastAPI include-router and mounted prefixes can change a final runtime path, so the current application fact names them as unresolved.
 Next.js rewrites, `basePath`, package resolution, bundling and runtime configuration also remain unresolved.
@@ -54,6 +57,8 @@ Next.js rewrites, `basePath`, package resolution, bundling and runtime configura
 The framework policy helpers have anchored Lean models.
 Their theorems cover output caps, middleware ranks, hook compatibility, standalone React admission,
 configuration visibility, service classification, redaction flags and FastAPI prefix validity.
+The service-route predicate proves that every emitted link has a local target and equal path.
+It also proves the known-method equality rule.
 The shared executable comparison includes all Boolean combinations for standalone React admission.
 Parser recognition, route concatenation, import-edge construction and report assembly retain fixture evidence only.
 

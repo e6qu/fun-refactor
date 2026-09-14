@@ -14,6 +14,7 @@ only `<VALUE>`. Review the diff before repeating with `--write`; retain the tran
 and patch export. Rows without that capability are read-only boundaries.
 
 When several domains may matter, obtain a full map handle and start with
-`project disclose HANDLE --view project`. Read its four-entry catalog, reveal the narrow domain, and
+`project disclose HANDLE --view project`. Read its five-entry catalog, reveal the narrow domain, and
 reuse its object digest with the Python Merkle object-store helpers when persistence is useful.
-Service targets redact credentials, queries and fragments. Reports retain runtime and resolution gaps.
+Service targets redact credentials, queries and fragments. Root-relative targets contain bounded
+same-path route candidates. Treat unique candidates as static links rather than runtime dispatch.

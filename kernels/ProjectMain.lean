@@ -515,6 +515,12 @@ def main (args : List String) : IO Unit := do
       paths := paths ++ words
     for path in paths do
       IO.println (pathConfidence path)
+  else if args == ["service-route-candidate"] then
+    for localTarget in [false, true] do
+      for pathEqual in [false, true] do
+        for methodKnown in [false, true] do
+          for methodEqual in [false, true] do
+            IO.println (serviceRouteCandidate localTarget pathEqual methodKnown methodEqual)
   else if args == ["patterns"] then
     let alphabet := ["a", "b", "*", "λ", "", "a/b"]
     let mut paths : List (List String) := [[]]

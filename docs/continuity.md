@@ -1660,3 +1660,13 @@ model now has a fifth package branch containing manifest declarations and captur
 rows. Lean proves both bounds and Rust agrees at zero, adjacent limits and machine-sized samples.
 The model does not claim package solving or checksum authenticity; parsers and captured bytes remain
 integration-tested boundaries.
+
+The following checkpoint joins local service facts across inferred applications. A root-relative
+HTTP target now carries every exact-path route candidate in the selected project. Known methods must
+match; unknown methods preserve all path candidates. Rows distinguish unique, ambiguous, unresolved
+and nonlocal results, cap returned route IDs at sixteen and count omissions. This gives agents a
+source-free application dependency edge while keeping runtime dispatch claims out of the report.
+
+`FrKernels.Project.serviceRouteCandidate` proves that an emitted candidate requires a local target
+and equal path. It accepts either an unknown method or an equal known method. Rust and Lean agree on
+all sixteen Boolean states; cross-framework fixtures cover unique and ambiguous route sets.

@@ -107,6 +107,26 @@ theorem absolute_service_target_wins (rootRelative : Bool) :
     serviceTargetKind true rootRelative = 2 := by
   cases rootRelative <;> rfl
 
+-- fr:spec src/project/framework_kernel.rs::service_route_candidate @ 5a894135affd5798e095e8908b1d88806f3f624e9316fdd00b7dc4f45d42b207
+-- fr:signature local_target: bool => localTarget: Bool; path_equal: bool => pathEqual: Bool; method_known: bool => methodKnown: Bool; method_equal: bool => methodEqual: Bool; return: bool => return: Bool
+def serviceRouteCandidate (localTarget : Bool) (pathEqual : Bool)
+    (methodKnown : Bool) (methodEqual : Bool) : Bool :=
+  localTarget && pathEqual && (!methodKnown || methodEqual)
+
+theorem service_route_candidate_requires_local_equal_path
+    (localTarget pathEqual methodKnown methodEqual : Bool)
+    (accepted : serviceRouteCandidate localTarget pathEqual methodKnown methodEqual = true) :
+    localTarget = true ∧ pathEqual = true := by
+  cases localTarget <;> cases pathEqual <;> simp [serviceRouteCandidate] at accepted ⊢
+
+theorem service_route_unknown_method_accepts_local_path (methodEqual : Bool) :
+    serviceRouteCandidate true true false methodEqual = true := by
+  cases methodEqual <;> decide
+
+theorem service_route_known_method_requires_equality (methodEqual : Bool) :
+    serviceRouteCandidate true true true methodEqual = methodEqual := by
+  cases methodEqual <;> decide
+
 -- fr:spec src/project/framework_kernel.rs::service_redaction_flags @ ab640c3628e3562292ae80a5bb5e809068215aa9a001eb1542ba4a72abaa99cd
 -- fr:signature query_or_fragment: bool => queryOrFragment: Bool; credentials: bool => credentials: Bool; return: usize => return: Nat
 def serviceRedactionFlags (queryOrFragment : Bool) (credentials : Bool) : Nat :=

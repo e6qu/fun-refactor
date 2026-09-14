@@ -3280,6 +3280,39 @@ fn lockfile_inventory_bounds_match_lean_at_machine_limits() {
 }
 
 #[test]
+fn service_route_candidates_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("service-route-candidate")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for local_target in [false, true] {
+        for path_equal in [false, true] {
+            for method_known in [false, true] {
+                for method_equal in [false, true] {
+                    expected.push(
+                        fun_refactor::project::framework_kernel::service_route_candidate(
+                            local_target,
+                            path_equal,
+                            method_known,
+                            method_equal,
+                        ),
+                    );
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
