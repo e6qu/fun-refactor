@@ -1238,7 +1238,7 @@ Planned checkpoints:
 
 ### PR 27. Agent-Authored Formal Properties
 
-Status: complete locally on `agent_authored_properties`.
+Status: proposed as [PR 292](https://github.com/e6qu/fun-refactor/pull/292).
 
 Goal: let an agent state a project-specific property over a generated Lean model without reading or
 editing the generated module. The agent authors both the proposition IR and every proof tactic.
