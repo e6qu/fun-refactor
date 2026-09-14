@@ -11,6 +11,7 @@ from fr_ir import (
     TYPE_KINDS,
     BinaryOp,
     Change,
+    DisclosedEditRequest,
     Expr,
     Intent,
     IrError,
@@ -143,6 +144,15 @@ class IrTests(unittest.TestCase):
         self.assertEqual(json.loads(request.to_json()), request.to_data())
         with self.assertRaisesRegex(IrError, "must change"):
             ScalarRequest("set-int", "1", "1")
+
+    def test_disclosed_edit_request_mirrors_the_opaque_manifest_shape(self):
+        request = DisclosedEditRequest("frde1:" + "a" * 64, "7")
+        self.assertEqual(request.to_data(), {"edit": "frde1:" + "a" * 64, "to": "7"})
+        self.assertEqual(json.loads(request.to_json()), request.to_data())
+        with self.assertRaisesRegex(IrError, "exact frde1"):
+            DisclosedEditRequest("frde1:short", "7")
+        with self.assertRaisesRegex(IrError, "string CLI scalar"):
+            DisclosedEditRequest("frde1:" + "a" * 64, 7)
 
 
 if __name__ == "__main__":

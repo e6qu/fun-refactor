@@ -56,6 +56,9 @@ queries, exact continuations, formal boundaries and generic fixture evidence.
 or explicitly requested source under a conservative per-response token bound. The
 [progressive disclosure protocol](docs/progressive-disclosure.md) specifies its commitments,
 continuations, verification boundary and retained independent-oracle evidence.
+Revealed authorable scalars carry revision-bound edit capabilities. An agent can change one exact
+typed value through preview, checks, patch export, undo and redo without reading source or building
+a locator. [Disclosure-bound editing](docs/disclosed-editing.md) documents the identity and proof boundary.
 `project select NAME...` retrieves several exact declarations through one revision and shared budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.

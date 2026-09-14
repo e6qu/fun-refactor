@@ -67,6 +67,27 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B858: **an optional callback changed into a callback with an optional result.**
+
+  The TypeScript writer omitted parentheses around an optional function type. Its reader also
+  treated Rust path separators as callable parameter labels. The writer now groups optional
+  callbacks, and the readers preserve both callback precedence and qualified Rust parameter types.
+  A default regression and the complete repository round trip cover both directions.
+
+- [x] B857: **a release-only workspace version bump invalidated retained evaluation evidence.**
+
+  Four context audits hashed `Cargo.lock` bytes, so the release automation changed their basis even
+  though it left the resolved dependency graph intact. Evidence now canonicalizes versions of
+  source-free workspace packages while retaining registry versions, sources and checksums.
+  A regression proves release versions leave the basis intact. It also proves registry changes alter it.
+
+- [x] B856: **a hidden large scalar reappeared in its author preview.**
+  Progressive disclosure committed a long string instead of returning it inline. The first receipt
+  copied the entire current value and generated intent back into the report.
+  Large current and replacement values now remain tagged Merkle commitments in both capability and
+  author receipts. A lifecycle regression changes a long Rust string, checks that preview omits it,
+  then undoes the write exactly.
+
 - [x] B855: **a project batch rejected copied exact project continuations.**
   Project commands emit complete argument arrays beginning with `project`. Nested batch parsing
   accepted only arrays beginning with the immediate subcommand. Batches now accept both forms. A

@@ -219,6 +219,20 @@ project tasks and task changes use `edit-body-scalar` with a `scalar` object con
 when a scalar is ambiguous. `fr author plan-semantic-intent --body BODY` exposes the same planner
 without scanning a project.
 
+Progressive disclosure removes that remaining ambiguity without exposing source or asking the agent
+to construct a locator. A revealed scalar includes an opaque `frde1:` capability and an exact
+preview template:
+
+```sh
+fr author edit-body-disclosed '<HANDLE>' --edit 'frde1:<DIGEST>' --to 7
+```
+
+The capability binds the revision, declaration, body identity, scalar pointer, operation, current
+value and typed role locator. The author recomputes all of them, then generates and checks the same
+semantic intent used by this section. Author batches, project tasks and task changes carry
+`disclosed: {edit,to}`. Large scalar values stay committed rather than repeated in capability and
+author receipts. See [disclosure-bound editing](disclosed-editing.md).
+
 ```json
 {
   "schema": "fr-semantic-intent-1",
@@ -242,8 +256,8 @@ requires equal canonical results. `fr author edit-body-intent HANDLE --from INTE
 result through the existing writer, byte-preserving body splice and history lifecycle. Author
 batches, project tasks and reviewed task changes use `edit-body-intent`.
 
-The Python SDK mirrors `Role`, `NodeCategory`, `LocatorStep`, `Intent`, `SemanticIntent` and the
-three-field `ScalarRequest` used by task manifests. Direct
+The Python SDK mirrors `Role`, `NodeCategory`, `LocatorStep`, `Intent`, `SemanticIntent`, the
+three-field `ScalarRequest` and the two-field `DisclosedEditRequest` used by task manifests. Direct
 JSON is the measured choice for a one-off scalar edit. Python provides earlier type and scalar checks
 when several operations or reusable producer logic justify it. The deterministic four-route result
 is documented in [semantic intent evaluation](semantic-intent-evaluation.md).

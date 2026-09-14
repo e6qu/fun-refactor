@@ -10,6 +10,11 @@ fn python(args: &[&str]) {
 }
 
 #[test]
+fn retained_evidence_ignores_only_first_party_release_versions() {
+    python(&["tools/evidence_basis.py"]);
+}
+
+#[test]
 fn acceptance_grading_requires_correct_behavior_and_ordered_evidence() {
     python(&["tools/agent_eval/test_harness.py"]);
 }
@@ -109,6 +114,20 @@ fn progressive_disclosure_follows_bounded_actions_and_verifies_merkle_commitment
         "tools/progressive-disclosure.py",
         "--audit",
         "tests/agent-eval/progressive-disclosure.json",
+    ]);
+}
+
+#[test]
+fn disclosed_edits_select_ambiguous_scalars_and_preserve_the_reviewed_lifecycle() {
+    python(&[
+        "tools/disclosed-edit-eval.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+    ]);
+    python(&[
+        "tools/disclosed-edit-eval.py",
+        "--audit",
+        "tests/agent-eval/disclosed-edit.json",
     ]);
 }
 

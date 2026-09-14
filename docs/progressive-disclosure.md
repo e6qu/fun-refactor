@@ -6,15 +6,23 @@ One hole commits to the source-free semantic model; the other commits to the exa
 source. Every hole carries the exact argument array that reveals it.
 
 The initial `semantic_shortcuts` are a bounded abridged outline of named or kinded nodes in the
-committed model. Each shortcut has its semantic address, high-level labels, opaque hole and exact
-action. They let an agent skip container-only root levels. The semantic root remains available for
-complete ordered discovery; the shortcut budget reports how to obtain additional nodes.
+committed model. Each shortcut has its semantic address, high-level labels, opaque hole, exact
+action and an `editable_scalars` descendant count. The count lets an agent skip nodes that cannot
+produce a semantic edit capability. The semantic root remains available for complete ordered
+discovery; the shortcut budget reports how to obtain additional nodes.
 
 Semantic reveals expose one JSON level. Small scalar children are inline. Composite and large
 children remain independently addressed holes, so an agent can follow only the body, statement or
 expression relevant to its task. A response that cannot fit all children returns a continuation
 bound to the same view, hole, profile, limit and next offset. Source remains a separate explicit
 domain. Revealing it returns UTF-8-safe fragments and a next hole until the declaration is complete.
+
+An authorable scalar carries a `fr-disclosed-edit-1` descriptor when revealed. Its exact preview
+template needs only a replacement value. Equal values at different typed locations receive distinct
+IDs, and the author command rebinds an ID to the current revision, handle, semantic body, scalar and
+role locator. Large strings expose only a commitment with their serialized size. See
+[disclosure-bound editing](disclosed-editing.md) for identity, refusal, composition and lifecycle
+details.
 
 The complete response is bounded by `--token-limit`. `used_upper_bound` counts the compact JSON's
 UTF-8 bytes plus the trailing newline printed by `fr`. For byte-fallback tokenizers, token count
@@ -50,7 +58,8 @@ recompute a parent after collecting all of that parent's child pages.
 SHA-256 collision resistance, the Rust SHA implementation, JSON serialization, parser correctness
 and the source-free IR reader remain trusted. Lean proves the numeric response ceilings, admitted
 offset boundary and complete-frontier replacement laws. Strict source anchors and 1,521 shared
-Rust/Lean cases connect those models to the implementation. CLI tests cover exact actions, stale
+Rust/Lean cases connect those models to the implementation. The editing extension adds 144 admission
+cases and expands the task-target comparison to 1,782 cases. CLI tests cover exact actions, stale
 identities, UTF-8 paging and exact source reconstruction. The retained
 [evaluation](../tests/agent-eval/progressive-disclosure.json) uses a separate Python Merkle oracle
 against a generated generic project; it is deterministic agent-style evidence, not a live-agent or

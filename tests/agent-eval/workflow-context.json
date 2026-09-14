@@ -1,8 +1,8 @@
 {
   "schema": "fr-workflow-context-1",
   "passed": true,
-  "binary_sha256": "c240dcbcc8a3b698ae441a574bcdd5b815233516f378e951bdd977cedb6d07f0",
-  "source_commit": "7c4e97e2ad701ba939a2127d64ef797683e7c893",
+  "binary_sha256": "a4c1897cbad3029158f032f8945f7e9836ab4494e5dec810afc03d3485ab12c8",
+  "source_commit": "3bbf1059b2260e1a4046b3576c5e397d8522dcc8",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
@@ -10,12 +10,13 @@
     "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
   },
   "measurement_files": {
-    "tools/workflow-context.py": "7c45107b9a74d31d8b85f401ec5643c18b989580daf9b7d441277461c623da99",
+    "tools/workflow-context.py": "bdd5f6906975a867047e8f1eaf6aea69d06b328be392e57e8c8df9a191baa8d3",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f",
     "src/workflow.rs": "58913a43576638e910c33d37e5fc3c5b88b1ebc31deb6d7ecaf6b2cf16a759a3",
     "src/history.rs": "eb7bc3a682c1fa28b70f53e7a6688cb8541377cdc5b6971ba97fde1d549173bb",
     "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
-    "Cargo.lock": "e0ebe6c17c240b3e25444cf4af7dd00338ffbcf6d24741bdcb472dd172f9b009"
+    "Cargo.lock": "4093af80a7d389783e783c3e8c5342d4197e13df91b5f38b4b3dce7efb9b506c"
   },
   "fixture": {
     "app.py": "def before(value: int) -> int:\n    return value + 1\n",
@@ -58,14 +59,14 @@
       "calls": 7,
       "median_context_bytes": 6368,
       "median_context_tokens": 2047,
-      "median_seconds": 0.328734499955317
+      "median_seconds": 0.2799804589012638
     },
     "workflow": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 5556,
       "median_context_tokens": 1880,
-      "median_seconds": 0.30904866696801037
+      "median_seconds": 0.2497540419572033
     }
   },
   "runs": [
@@ -89,7 +90,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.28494974900968373,
+      "seconds": 0.2799804589012638,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -115,7 +116,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.3021705829887651,
+      "seconds": 0.2625677920295857,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -141,7 +142,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.30904866696801037,
+      "seconds": 0.2497540419572033,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -167,7 +168,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.328734499955317,
+      "seconds": 0.27713091706391424,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -193,7 +194,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.3500186649907846,
+      "seconds": 0.30749649892095476,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -219,7 +220,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.32154675101628527,
+      "seconds": 0.2309704580111429,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",

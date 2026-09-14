@@ -545,6 +545,8 @@ fr author plan-semantic-intent --body /tmp/body.json --operation set-int --from 
 
 fr author edit-body-scalar '<HANDLE>' --operation set-int --from 1 --to 7
 
+fr author edit-body-disclosed '<HANDLE>' --edit 'frde1:<DIGEST>' --to 7
+
 fr author replace-body '<HANDLE>' --from /tmp/body.txt
 
 fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan --plan-basis '<PLAN_BASIS>'
@@ -568,6 +570,15 @@ returns a checked `fr-semantic-edit-plan-1` report containing the generated
 `fr-semantic-intent-1`. `author edit-body-scalar` performs the same selection against a current
 function handle and uses the normal preview, plan-basis, write and history lifecycle. Both commands
 refuse zero or multiple matches, invalid scalar encodings and no-ops.
+
+`author edit-body-disclosed` consumes one opaque scalar capability returned beside a progressively
+revealed semantic value. The ID binds the current revision, full handle, canonical body, exact
+scalar pointer, operation, current value and typed role locator. Equal values at different positions
+therefore remain distinguishable. The command accepts only a full handle and an exact lowercase
+SHA-256-shaped `frde1:` ID; stale, unknown, ambiguous, malformed and unchanged requests refuse
+before mutation. Small values and the generated intent appear in the receipt. Large values remain
+tagged commitments so preview does not repeat hidden content. See
+[disclosure-bound editing](docs/disclosed-editing.md).
 
 Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.
@@ -604,6 +615,8 @@ Imports, macro expansion and full name resolution remain unchecked. Saved plans,
 
 `fr author batch --from MANIFEST` combines 1 through 32 disjoint authoring operations into one preview and source-history transaction.
 The JSON manifest contains `operations` entries with `op` and `handle`; fragment operations also require `from`.
+`edit-body-scalar` uses `scalar: {operation,from,to}`. `edit-body-disclosed` uses
+`disclosed: {edit,to}` and requires the full handle paired with that capability.
 An optional shared `revision` permits short IDs.
 An `organize-imports` entry uses a file handle and omits `from`. It removes and sorts imports through the existing conservative import planner.
 Operations use the original revision and existing language restrictions. Relative fragment paths resolve from the workspace root.
@@ -643,7 +656,8 @@ declared checks, reversal and patch delivery under one reviewed basis. Its manif
 ```
 
 The query, target and fragment rules match `project task` and `author batch`. Fragment operations
-require `from`; `organize-imports` forbids it. The command requires at least one declared check and
+require `from`; `edit-body-scalar` requires `scalar`; `edit-body-disclosed` requires `disclosed`;
+`organize-imports` forbids all three inputs. The command requires at least one declared check and
 one real source change. The manifest and each fragment can contain at most 65,536 bytes.
 
 Preview writes no source, history, check output or patch. It resolves every reference from one
@@ -851,8 +865,9 @@ expansion or caller/callee graph analysis is required.
 
 `project disclose` starts from one full declaration handle and returns two Merkle-committed holes:
 the complete source-free semantic IR and the exact declaration source. It does not return either
-payload initially. `semantic_shortcuts` lists bounded named/kinded nodes from the committed model so
-an agent can jump directly to a likely declaration, body pattern or expression. Run a shortcut or
+payload initially. `semantic_shortcuts` lists bounded named/kinded nodes and their authorable scalar
+descendant counts from the committed model. An agent can jump directly to a likely declaration,
+body pattern or expression. Run a shortcut or
 hole's exact `reveal.arguments` to expose one semantic level or a bounded
 source fragment. Composite semantic children remain holes with their own exact actions. Large child
 sets and strings return a cursor-bound continuation; source pages return the next source hole.
@@ -865,6 +880,8 @@ actions bind the profile, limit, target, revision and cursor. Stale or reconstru
 The semantic tree and exact source have separate roots under one combined commitment, so an
 agent can stay source-free until source is necessary. See
 [the progressive disclosure protocol](docs/progressive-disclosure.md) for verification details.
+Authorable revealed scalars include an opaque exact-edit capability and preview action; see
+[disclosure-bound editing](docs/disclosed-editing.md).
 Inside `project batch`, the disclosure bound retains its standalone meaning. The batch profile and
 `--report-bytes` separately bound the combined nested reports.
 
@@ -936,8 +953,10 @@ targets from full literal handles or string references into returned query repor
 }
 ```
 
-Target IDs are unique bounded ASCII identifiers. Each target operation is `replace-body`,
-`replace-declaration`, `insert-declaration` or `organize-imports`. A target reference names any
+Target IDs are unique bounded ASCII identifiers. Target operations are `replace-body`,
+`replace-body-semantic`, `edit-body-semantic`, `edit-body-intent`, `edit-body-scalar`,
+`edit-body-disclosed`, `replace-declaration`, `insert-declaration` and `organize-imports`.
+Scalar operations carry their corresponding `scalar` or `disclosed` object. A target reference names any
 query in the manifest and uses a 1 through 512 byte JSON pointer. Unlike query-to-query references,
 the referenced query report must fit the output budget because the task contract exposes the
 evidence from which it selected the handle. Literal targets must be full handles from the current

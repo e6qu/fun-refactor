@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-change-context-1",
   "passed": true,
-  "binary_sha256": "be400f2e7386425b18482aa85546e20a5db04d947aa5448f19f9d3e6ad68ad96",
-  "source_commit": "f93aa77fd167b2979a8f902a959214c9bf6818be",
+  "binary_sha256": "a4c1897cbad3029158f032f8945f7e9836ab4494e5dec810afc03d3485ab12c8",
+  "source_commit": "3bbf1059b2260e1a4046b3576c5e397d8522dcc8",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
@@ -10,15 +10,16 @@
     "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
   },
   "measurement_files": {
-    "tools/task-change-context.py": "614d9b8cc3777ffa3d2f8ed3ecedb824607b2e7e73ca798d961880572f98b433",
+    "tools/task-change-context.py": "60ad9aa36b8a1d48460584443f7247d23b8291183b1946700639180f5d9ef982",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f",
-    "src/project/task_change.rs": "8d5a809b9b675b4e21a733d2146a22388ece39dccf94aba659db0d8e28c9fb87",
-    "src/project/task.rs": "2e8a5f2c54e3c756250eda956743d18def5afd521afa642f36a9537ad00c00fb",
-    "src/project/author.rs": "3cbee46a35798885a096a21a60f1622540b3573d61cbba5baabaa0cedcad64f0",
+    "src/project/task_change.rs": "77021ebfe202f796e3f583fe5cd3c114a2909f749db2539545f0f6c948a8ce97",
+    "src/project/task.rs": "2bec6515fb1ad3162f80162157c7b96e234d11fd95a0fe4de2f308c4ef238988",
+    "src/project/author.rs": "716506199c290e4bad6bf80630dd8ca0792c5c4ab23511abcf2b8ce486763ab0",
     "src/workflow.rs": "58913a43576638e910c33d37e5fc3c5b88b1ebc31deb6d7ecaf6b2cf16a759a3",
     "src/history.rs": "eb7bc3a682c1fa28b70f53e7a6688cb8541377cdc5b6971ba97fde1d549173bb",
     "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
-    "Cargo.lock": "e0ebe6c17c240b3e25444cf4af7dd00338ffbcf6d24741bdcb472dd172f9b009"
+    "Cargo.lock": "4093af80a7d389783e783c3e8c5342d4197e13df91b5f38b4b3dce7efb9b506c"
   },
   "fixture": {
     "src/lib.rs": "pub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",
@@ -66,14 +67,14 @@
       "calls": 5,
       "median_context_bytes": 13690,
       "median_context_tokens": 4627,
-      "median_seconds": 0.5327909169718623
+      "median_seconds": 0.5849912069388665
     },
     "task_change": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 11288,
       "median_context_tokens": 3740,
-      "median_seconds": 0.44169404200511053
+      "median_seconds": 0.46166866598650813
     }
   },
   "runs": [
@@ -82,7 +83,7 @@
       "arm": "composed",
       "calls": 5,
       "stdout": {
-        "bytes": 11994,
+        "bytes": 11995,
         "tokens": 4086
       },
       "requests": {
@@ -94,10 +95,10 @@
         "tokens": 382
       },
       "context": {
-        "bytes": 13690,
+        "bytes": 13691,
         "tokens": 4627
       },
-      "seconds": 0.5443853759788908,
+      "seconds": 0.9171035010367632,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -124,7 +125,7 @@
         "bytes": 11288,
         "tokens": 3740
       },
-      "seconds": 0.44480220903642476,
+      "seconds": 0.46166866598650813,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -151,7 +152,7 @@
         "bytes": 11288,
         "tokens": 3740
       },
-      "seconds": 0.44169404200511053,
+      "seconds": 0.472669875016436,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -178,7 +179,7 @@
         "bytes": 13690,
         "tokens": 4627
       },
-      "seconds": 0.5327909169718623,
+      "seconds": 0.5849912069388665,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -205,7 +206,7 @@
         "bytes": 13690,
         "tokens": 4627
       },
-      "seconds": 0.5295309579814784,
+      "seconds": 0.5309688749839552,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -232,7 +233,7 @@
         "bytes": 11288,
         "tokens": 3740
       },
-      "seconds": 0.40809391599032097,
+      "seconds": 0.4563191250199452,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",

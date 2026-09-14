@@ -222,8 +222,8 @@ with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
-selection identity matches. Calls fall from four to one. Median counted context falls from 1,696 to
-1,514 tokens (10.7%), and bytes fall from 6,191 to 4,758 (23.1%). The 446-byte task manifest is
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,746 to
+1,514 tokens (13.3%), and bytes fall from 6,407 to 4,758 (25.7%). The 446-byte task manifest is
 counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
@@ -361,7 +361,7 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step. It reduces
-42 calls to 29 and measured context from 15,458 to 13,377 tokens. This 2,081-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,380 tokens. This 2,078-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed
@@ -1273,7 +1273,7 @@ owner-only admitted publication. Four strict anchors and signature maps connect 
 Rust. The executable suite compares 3,472 cases. Filesystem and scheduler behavior remain host-tested
 rather than proved.
 
-## Next steps
+## Continuing agent-evaluation policy
 
 The agreed real-agent baseline is local `codex exec` with `gpt-5.6-luna`, `low` reasoning and the default service tier.
 Routine CI keeps deterministic replay and does not consume agent quota; real-agent smoke pairs and cohorts are explicit authenticated runs.
@@ -1297,7 +1297,7 @@ PRs 7 through 14 merged as GitHub PRs 267, 269, 270, 271, 272, 273, 275 and 276.
 
 ## Merkle-committed progressive disclosure
 
-PR 21 is in review as [PR 284](https://github.com/e6qu/fun-refactor/pull/284). It adds
+PR 21 merged as [PR 284](https://github.com/e6qu/fun-refactor/pull/284). It adds
 `project disclose FULL_HANDLE` as the selective project-reading route. The initial response carries
 only target identity, one combined commitment, a semantic-IR hole and an exact-source hole. Semantic
 reveals expose one JSON level, inline small scalars and retain composite or large values as holes.
@@ -1326,5 +1326,57 @@ source pages and exact reconstruction. The deterministic evaluator is retained a
 `tests/agent-eval/progressive-disclosure.json`; no live Codex trial is claimed for this milestone.
 
 The complete native, WASM, strict Lean, capability, portable-skill, evaluator and prose gate passes.
-PR 284 CI also passes its default, WASM, playground and title jobs. The milestone is ready for
-review.
+PR 284 CI also passed its default, WASM, playground and title jobs before merge.
+
+## Disclosure-bound semantic editing
+
+PR 22 is in review as [PR 285](https://github.com/e6qu/fun-refactor/pull/285). It continues the
+progressive hierarchy into exact source-free authoring. Every scalar that the
+current semantic reader and body writer can author receives an opaque `frde1:` capability when it is
+revealed. Its ID binds the revision, full declaration handle, canonical body basis, scalar pointer,
+operation, current value and typed role locator. Equal values at different positions have different
+capabilities. `author edit-body-disclosed` recomputes those facts and refuses a malformed, unknown,
+stale, ambiguous or unchanged request before mutation.
+
+The command generates the existing `fr-semantic-intent-1`, checks direct interpretation against its
+compiled delta, renders through the semantic body writer and uses the normal source-history plan.
+Author batches, project tasks and task changes carry `disclosed: {edit,to}`. The checked task-change
+regression covers declared checks, reversal and patch delivery. Direct and batch regressions cover
+preview, write, undo and redo in Rust, Go, Java and TypeScript. The Python SDK mirrors the two-field
+request.
+
+Disclosure shortcuts now report `editable_scalars`, so a caller can ignore structural and type
+nodes without edit capabilities. Long strings remain tagged Merkle commitments in both disclosure
+and author receipts. This fixes B856, where the first receipt repeated a value that disclosure had
+kept hidden. A regression completes the paged string, changes it through its capability and proves
+that preview omits the old value before exact undo.
+
+`FrKernels.DisclosedEdit` proves the full-handle, reference-shape, exact-one, current-match and
+changed-value admission conjunction, including stale, unchanged and malformed refusal. Rust agrees
+on 144 states. The project kernel proves that operation 8 shares body replacement's finite language
+and target policy; all 1,782 operation/language/target cases agree. Strict source anchors are fresh
+and the Lean package builds with 58 jobs. Hashing, candidate enumeration, Serde, readers, writers,
+compilers and filesystem behavior remain independent-oracle, integration-tested or trusted
+boundaries rather than implementation proofs.
+
+The retained `tests/agent-eval/disclosed-edit.json` evaluator independently calculates the two IDs
+for repeated integers in a generated generic Rust fixture. It confirms the prior scalar route
+refuses ambiguity, changes only one capability, compiles behavior from 5 to 11, refuses the stale
+ID, checks forward and reverse patches and exercises undo/redo behavior 5/11. It uses three
+disclosure responses totaling 13,577 bytes under the explicit expanded limit; its maximum response
+is 8,068 bytes and its preview is 3,968 bytes. The refreshed PR 21 artifact records a 3,762-byte
+initial response under the 4,096-byte compact ceiling.
+
+The complete native, WASM/playground, strict Lean, capability, Python, portable-skill and prose gate
+passes. The skill checker executes all 49 shell examples, including capability discovery, preview
+and a basis-bound write whose Rust result compiles. The largest skill route is 7,088 bytes under its
+7,168-byte ceiling. After release 0.19.0 moved the synthetic merge basis, context evidence began
+hashing a canonical dependency lock basis. First party version-only changes no longer invalidate
+the reports; registry versions, sources and checksums remain bound. No live-agent savings claim is
+made for this deterministic milestone.
+
+The post-release deep audit exposed B858 while this PR was open. Rust qualified callback parameters
+lost their path at a colon, and TypeScript optional callbacks crossed back as callbacks with optional
+results. TypeScript now groups the callback inside its nullable union. Both readers preserve the
+grouping and the Rust reader no longer treats path separators as parameter labels. The focused
+default regression and the formerly failing complete repository round trip pass.

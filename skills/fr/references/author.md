@@ -8,11 +8,12 @@ Use `fr author guide` for machine-readable operations, limits and transitions.
 For several declarations, use one `project select NAME... --source`; duplicate names
 across files return together. Use `project find NAME --in FILE --source` for one declaration;
 `root` is its file handle. A module/trait row selects that container; a direct method selects
-its impl/trait. Otherwise use
-`project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
+its impl/trait. Source changes expire handles.
 
 Fragments fit 64 KiB. Steps need `op` and `handle`; fragment steps add `from`.
-`edit-body-scalar` adds `scalar` with `operation`, `from` and `to`. Short IDs need top-level
+`edit-body-scalar` adds `scalar` with `operation`, `from` and `to`.
+`edit-body-disclosed` adds `disclosed: {edit,to}` and uses its paired full handle. Short IDs need
+top-level
 `revision`; `organize-imports` takes a file handle. Steps use original source; overlaps refuse.
 Optional postconditions cover changed files, edits, operations and paths. Fragment
 paths can be project-relative or absolute.
@@ -22,8 +23,8 @@ Review the complete diff and retain `plan_context_basis`. Repeat it with
 `transaction_context_basis` compacts forward application. `plan_context_basis` starts with
 `frpb1`; `frcb1` is a project basis and cannot save a plan.
 
-Rust insertion preserves bytes and doc comments; only traits allow bodyless functions. Body
-replacement covers Rust, Go, Java, and supported TypeScript/TSX bindings; arrows may change form.
+Rust insertion preserves bytes and docs; only traits allow bodyless functions. Body replacement
+covers Rust, Go, Java and supported TypeScript/TSX bindings; arrows may change form.
 For source-free body replacement and smaller checked changes, use [Semantic](semantic.md).
 
 ```rust

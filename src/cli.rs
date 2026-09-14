@@ -2411,6 +2411,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         | Command::ReplaceDeclaration(options)
         | Command::InsertDeclaration(options) => (options.write, options.diff_bytes),
         Command::EditBodyScalar(options) => (options.write, options.diff_bytes),
+        Command::EditBodyDisclosed(options) => (options.write, options.diff_bytes),
         Command::Batch(options) => (options.write, options.diff_bytes),
     };
     anyhow::ensure!(
@@ -2435,6 +2436,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             Command::EditBodySemantic(options) => project.edit_body_semantic(options)?,
             Command::EditBodyIntent(options) => project.edit_body_intent(options)?,
             Command::EditBodyScalar(options) => project.edit_body_scalar(options)?,
+            Command::EditBodyDisclosed(options) => project.edit_body_disclosed(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
             Command::InsertDeclaration(options) => project.insert_declaration(options)?,
             Command::Batch(options) => project.author_batch(options)?,

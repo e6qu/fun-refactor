@@ -1034,7 +1034,7 @@ fn project_task_authoring_targets_match_lean_exhaustively() {
     let actual = String::from_utf8(output.stdout).unwrap();
     let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
     let mut checked = 0usize;
-    for operation in 0..8 {
+    for operation in 0..9 {
         for language in 0..22 {
             for target in 0..9 {
                 assert_eq!(
@@ -1049,7 +1049,44 @@ fn project_task_authoring_targets_match_lean_exhaustively() {
         }
     }
     assert!(actual.next().is_none());
-    assert_eq!(checked, 1_584);
+    assert_eq!(checked, 1_782);
+}
+
+#[test]
+fn disclosed_edit_admission_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("disclosed-edit-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let candidates = [0, 1, 2, 63, 64, 65, 128, 512, 65_536];
+    let mut checked = 0usize;
+    for full_handle in [false, true] {
+        for reference_format in [false, true] {
+            for candidate_count in candidates {
+                for current_matches in [false, true] {
+                    for different in [false, true] {
+                        assert_eq!(
+                            actual.next(),
+                            Some(fun_refactor::project::disclosed_edit_admitted(
+                                full_handle,
+                                reference_format,
+                                candidate_count,
+                                current_matches,
+                                different,
+                            ))
+                        );
+                        checked += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(checked, 144);
 }
 
 #[test]
