@@ -149,7 +149,7 @@ The [controlled source-lookup comparison](project-context-evaluation.md#bounded-
 ## Remaining roadmap
 
 M4a provides the introductory handoff and executable command examples.
-Body replacement supports Rust, Go, Java, TypeScript and TSX declarations and methods, plus TypeScript/TSX function bindings.
+Body replacement supports Rust, Go, Java, Python, TypeScript and TSX declarations and methods, plus TypeScript/TSX function bindings. Python includes decorated synchronous and asynchronous handlers.
 Go supports named functions and receiver methods, including generic headers; interface specifications and variables containing function literals refuse.
 Java supports methods, constructors and default interface methods with bodies. Abstract and bodyless interface methods refuse.
 Supported TypeScript/TSX bindings can wrap the function in parentheses and type-only assertions. Arrows accept expression or block bodies and can move between them.

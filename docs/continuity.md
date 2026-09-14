@@ -1521,3 +1521,19 @@ tests, 311 capability cells, prose checks and a 60-job Lean build. The WASM gate
 tests, browser history and cumulative patches, host APIs and the minimal browser feature set. The
 deep gate covers 14 whole-repository command agreements, external runtime conformance, all
 translation round trips and 74 Rust/Lean tests with both repository-wide edit audits enabled.
+
+## Cross-stack authoring continuation
+
+PR 28 checkpoint 5 extends the existing source-free function IR to Python instead of introducing a
+framework-specific body model. Raw Python replacements are relative suites; the parser validates
+them inside a temporary function and the splice adapts continuation lines to the exact destination
+indentation. Semantic replacement removes the writer's temporary base indentation before using the
+same path. Synchronous functions, async functions, methods and decorated FastAPI handlers therefore
+share the established preview, batch, task, undo, redo and Git patch lifecycle.
+
+The shared supported-language tests now include Python for complete semantic bodies, checked deltas,
+semantic intents, direct scalar plans and progressively disclosed scalar capabilities. A separate
+multiline async FastAPI fixture checks decorator preservation, nested suite indentation, exact undo,
+redo and forward patch identity. Parser correctness, Python execution and semantic writer behavior
+remain tested trust boundaries; the existing Lean author predicate continues to prove that semantic
+admission requires a supported target, source-free input, the exact schema and bounded content.

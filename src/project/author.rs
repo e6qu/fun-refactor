@@ -29,7 +29,7 @@ pub enum Command {
     #[command(about = "Plan one unique scalar semantic intent without scanning a project.")]
     PlanSemanticIntent(super::semantic_intent::PlanOptions),
     #[command(
-        about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
+        about = "Replace one Rust, Go, Java, Python, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
     #[command(about = "Replace one supported function body from source-free semantic IR JSON.")]
@@ -364,6 +364,7 @@ struct BodySyntax {
     nested_item: bool,
     targets: &'static [&'static str],
     bindings: &'static [&'static str],
+    indented_suite: bool,
 }
 
 impl BodySyntax {
@@ -377,6 +378,7 @@ impl BodySyntax {
                 nested_item: false,
                 targets: &["function_item"],
                 bindings: &[],
+                indented_suite: false,
             }),
             Language::Go => Ok(Self {
                 prefix: "func __fr_body__() ",
@@ -386,6 +388,7 @@ impl BodySyntax {
                 nested_item: false,
                 targets: &["function_declaration", "method_declaration"],
                 bindings: &[],
+                indented_suite: false,
             }),
             Language::TypeScript | Language::Tsx => Ok(Self {
                 prefix: "function __fr_body__() ",
@@ -399,6 +402,7 @@ impl BodySyntax {
                     "method_definition",
                 ],
                 bindings: &["variable_declarator", "public_field_definition"],
+                indented_suite: false,
             }),
             Language::Java => Ok(Self {
                 prefix: "class __FrBody__ { void __fr_body__() ",
@@ -408,9 +412,20 @@ impl BodySyntax {
                 nested_item: true,
                 targets: &["method_declaration", "constructor_declaration"],
                 bindings: &[],
+                indented_suite: false,
+            }),
+            Language::Python => Ok(Self {
+                prefix: "def __fr_body__():\n    ",
+                suffix: "",
+                item: "function_definition",
+                blocks: &["block"],
+                nested_item: false,
+                targets: &["function_definition"],
+                bindings: &[],
+                indented_suite: true,
             }),
             _ => anyhow::bail!(
-                "body replacement supports Rust, Go, Java, TypeScript and TSX; select a supported function."
+                "body replacement supports Rust, Go, Java, Python, TypeScript and TSX; select a supported function."
             ),
         }
     }
@@ -434,6 +449,13 @@ impl BodySyntax {
 
     fn block_span(&self, body: tree_sitter::Node<'_>) -> Result<Span> {
         ensure!(self.is_block(body), "selected function needs a block body.");
+        if self.indented_suite {
+            ensure!(
+                body.end_byte() > body.start_byte() && !body.is_missing(),
+                "selected function needs a nonempty suite."
+            );
+            return Ok(Span::from(body));
+        }
         let mut cursor = body.walk();
         let mut braces = body
             .children(&mut cursor)
@@ -485,7 +507,12 @@ fn replacement(
 ) -> Result<(String, &'static str)> {
     let text = fragment(path)?;
     let prefix = syntax.prefix;
-    let wrapped = format!("{prefix}{text}{}", syntax.suffix);
+    let parsed_text = if syntax.indented_suite {
+        text.replace('\n', "\n    ")
+    } else {
+        text.clone()
+    };
+    let wrapped = format!("{prefix}{parsed_text}{}", syntax.suffix);
     let parsed = Parsers::new().parse(language, &wrapped)?;
     if let Some(item) = syntax.wrapped_item(&parsed) {
         if let Some(body) = item.child_by_field_name("body") {
@@ -494,9 +521,16 @@ fn replacement(
                     && parsed.root().named_child_count() == 1
                     && item.kind() == syntax.item
                     && span.start == prefix.len()
-                    && span.end == prefix.len() + text.len()
+                    && span.end == prefix.len() + parsed_text.len()
                 {
-                    return Ok((text, "block"));
+                    return Ok((
+                        text,
+                        if syntax.indented_suite {
+                            "suite"
+                        } else {
+                            "block"
+                        },
+                    ));
                 }
             }
         }
@@ -532,6 +566,42 @@ fn replacement(
     } else {
         "replacement must contain exactly one complete block in the selected language."
     })
+}
+
+fn line_indent(source: &str, offset: usize) -> &str {
+    let start = source[..offset]
+        .rfind('\n')
+        .map_or(0, |newline| newline + 1);
+    &source[start..offset]
+}
+
+fn indent_relative_suite(text: &str, indent: &str) -> String {
+    let mut lines = text.split('\n');
+    let mut output = lines.next().unwrap_or_default().to_owned();
+    for line in lines {
+        output.push('\n');
+        if !line.is_empty() {
+            output.push_str(indent);
+            output.push_str(line);
+        }
+    }
+    output
+}
+
+fn relative_python_suite(text: &str) -> Result<String> {
+    let mut lines = text.split('\n');
+    let mut output = lines.next().unwrap_or_default().to_owned();
+    for line in lines {
+        output.push('\n');
+        if line.is_empty() {
+            continue;
+        }
+        let relative = line
+            .strip_prefix("    ")
+            .context("Python semantic writer emitted an invalid suite indentation.")?;
+        output.push_str(relative);
+    }
+    Ok(output)
 }
 
 pub fn validate_semantic(root: &Path, options: &ValidateSemanticOptions) -> Result<Value> {
@@ -1310,19 +1380,29 @@ impl Project<'_> {
             && function.kind() == "arrow_function"
             && !syntax.is_block(body);
         let (span, before_kind) = if syntax.is_block(body) {
-            (syntax.block_span(body)?, "block")
+            (
+                syntax.block_span(body)?,
+                if syntax.indented_suite {
+                    "suite"
+                } else {
+                    "block"
+                },
+            )
         } else if expression_arrow {
             (Span::from(body), "expression")
         } else {
             anyhow::bail!("selected function needs a block body or an expression-bodied arrow.");
         };
         let before = &source[span.start..span.end];
-        let (after, after_kind) = replacement(
+        let (mut after, after_kind) = replacement(
             &self.root.join(&options.from),
             language,
             &syntax,
             function.kind() == "arrow_function",
         )?;
+        if syntax.indented_suite {
+            after = indent_relative_suite(&after, line_indent(source, span.start));
+        }
         ensure!(
             super::body_replacement_budget(before.len(), after.len()),
             "old and new bodies must each fit 1 through 65536 bytes."
@@ -1430,8 +1510,13 @@ impl Project<'_> {
         );
         let body_span = syntax.block_span(bodies[0])?;
         let rendered_body = body_span.text(&rendered).to_owned();
+        let replacement_body = if syntax.indented_suite {
+            relative_python_suite(&rendered_body)?
+        } else {
+            rendered_body.clone()
+        };
         let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
-        temporary.write_all(rendered_body.as_bytes())?;
+        temporary.write_all(replacement_body.as_bytes())?;
         temporary.flush()?;
         let mut plan = self.replace_body(&ReplaceBodyOptions {
             handle: options.handle.clone(),

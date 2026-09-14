@@ -601,13 +601,14 @@ before mutation. Small values and the generated intent appear in the receipt. La
 tagged commitments so preview does not repeat hidden content. See
 [disclosure-bound editing](docs/disclosed-editing.md).
 
-Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
+Replace a Rust, Go, Java, Python, TypeScript or TSX function body while preserving surrounding bytes, including its signature, decorators and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.
 Initializers can contain parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions around the function.
 Arrow targets accept a complete block or expression and can move between those forms. Other function forms require blocks.
 Calls, conditionals and comma expressions around a function initializer remain unsupported.
 Go supports named functions, `init` declarations and receiver methods; interface specifications and variables containing function literals refuse.
 Java supports methods, constructors and default interface methods with bodies. Abstract and bodyless interface methods refuse.
+Python supports synchronous and asynchronous functions, decorated framework handlers and methods. Its fragment is a relative suite without the enclosing `def`; nested indentation is preserved when the suite is spliced into its destination.
 Use a current project handle; this command accepts structural identities directly.
 The input is a regular UTF-8 file containing one complete body, at most 64 KiB. The old body must also fit 64 KiB.
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.

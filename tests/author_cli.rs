@@ -667,6 +667,11 @@ fn semantic_body_authoring_renders_one_typed_body_across_supported_languages() {
             "function calc(value: number): number { return value + 1; }\n",
             "value * 2",
         ),
+        (
+            "app.py",
+            "def calc(value: int) -> int:\n    return value + 1\n",
+            "value * 2",
+        ),
     ];
     let semantic = serde_json::json!({
         "schema": "fr-semantic-body-1",
@@ -728,6 +733,11 @@ fn semantic_delta_authoring_changes_one_expression_across_supported_languages() 
         (
             "app.ts",
             "function calc(value: number): number { return value + 1; }\n",
+            "value * 2",
+        ),
+        (
+            "app.py",
+            "def calc(value: int) -> int:\n    return value + 1\n",
             "value * 2",
         ),
     ];
@@ -805,6 +815,11 @@ fn semantic_intent_authoring_changes_scalars_across_supported_languages() {
         (
             "app.ts",
             "function calc(value: number): number { return value + 1; }\n",
+            "value * 2",
+        ),
+        (
+            "app.py",
+            "def calc(value: int) -> int:\n    return value + 1\n",
             "value * 2",
         ),
     ];
@@ -910,6 +925,10 @@ fn direct_scalar_authoring_plans_one_exact_target_across_supported_languages() {
             "app.ts",
             "function calc(value: number): number { return value + 1; }\n",
         ),
+        (
+            "app.py",
+            "def calc(value: int) -> int:\n    return value + 1\n",
+        ),
     ];
     for (file, source) in cases {
         let (_temp, root, _input) = fixture_file(file, source, b"");
@@ -996,6 +1015,10 @@ fn disclosed_scalar_capabilities_edit_one_ambiguous_target_across_supported_lang
             "app.ts",
             "function calc(value: number): number { return value + 1 + 1; }\n",
         ),
+        (
+            "app.py",
+            "def calc(value: int) -> int:\n    return value + 1 + 1\n",
+        ),
     ];
     for (file, source) in cases {
         let (_temp, root, _input) = fixture_file(file, source, b"");
@@ -1037,6 +1060,52 @@ fn disclosed_scalar_capabilities_edit_one_ambiguous_target_across_supported_lang
             .unwrap()
             .contains("+ 7 + 1"));
     }
+}
+
+#[test]
+fn python_fastapi_suite_replacement_preserves_decorator_and_supports_history() {
+    let source = concat!(
+        "from fastapi import FastAPI\n\n",
+        "app = FastAPI()\n\n",
+        "@app.get(\"/items/{item_id}\")\n",
+        "async def read_item(item_id: int) -> dict:\n",
+        "    if item_id < 0:\n",
+        "        return {\"error\": \"negative\"}\n",
+        "    return {\"item_id\": item_id}\n",
+    );
+    let replacement = concat!(
+        "if item_id < 0:\n",
+        "    return {\"error\": \"invalid\"}\n",
+        "return {\"item_id\": item_id * 2}\n",
+    );
+    let (_temp, root, input) = fixture_file("app.py", source, replacement.as_bytes());
+    let (handle, _) = selection(&root, "read_item");
+    let report = ok(
+        &root,
+        &[
+            "author",
+            "replace-body",
+            &handle,
+            "--from",
+            input.to_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(report["body"]["before_kind"], "suite");
+    assert_eq!(report["body"]["after_kind"], "suite");
+    assert_eq!(report["preservation"], "bytes outside the selected body");
+    let changed = fs::read_to_string(root.join("app.py")).unwrap();
+    assert!(changed.contains("@app.get(\"/items/{item_id}\")\nasync def read_item"));
+    assert!(changed.contains("    if item_id < 0:\n        return {\"error\": \"invalid\"}\n    return {\"item_id\": item_id * 2}"));
+    let transaction = report["transaction"].as_u64().unwrap().to_string();
+    ok(&root, &["history", "undo", &transaction, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.py")).unwrap(), source);
+    assert_eq!(
+        ok(&root, &["history", "patch", &transaction, "--check"])["matches_patch_basis"],
+        true
+    );
+    ok(&root, &["history", "redo", &transaction, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.py")).unwrap(), changed);
 }
 
 #[test]

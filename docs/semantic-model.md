@@ -143,7 +143,7 @@ body replacement. It reports the smaller delta input, larger receipt output and 
 lifecycle result.
 
 The operation selects the existing function model, replaces its IR body and renders one function
-through the writer for the target language. It currently supports the same Rust, Go, Java,
+through the writer for the target language. It currently supports the same Rust, Go, Java, Python,
 TypeScript and TSX targets as source body replacement. Rendering must carry no source verbatim and
 produce exactly one outer function. The existing authoring path then validates the complete body,
 splices only its body span and reparses the unchanged destination context.
