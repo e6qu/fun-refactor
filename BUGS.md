@@ -70,9 +70,9 @@ shows the patch additive. What remains below is a limit of the available source 
 - [x] B861: **structural descriptor arrays crowded scalar inspection out of compact disclosure.**
 
   A statement can expose replacement, deletion and insertion capabilities. Attaching all three to a
-  compact child row left no room for that child under the 4,096-byte ceiling, so an existing scalar
-  skill route refused instead of progressing. Compact responses now retain `editable_ir` counts and
-  reserve structural descriptors for the explicit expanded profile. The packaged skill executes
+  compact child row left no room for that child under the 4,096-byte ceiling. An existing scalar
+  skill route therefore refused instead of progressing. Compact responses now retain `editable_ir`
+  counts and reserve structural descriptors for the explicit expanded profile. The packaged skill executes
   both scalar and structural capability previews within their documented route budgets.
 
 - [x] B860: **an unrelated semantic body edit turned an empty Rust branch into a panic.**

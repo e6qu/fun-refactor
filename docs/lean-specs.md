@@ -164,11 +164,11 @@ exhaustive matrix contains 1,980 cases. Hash construction, candidate enumeration
 parsing, rendering, compiler execution and filesystem behavior remain outside these proofs and are
 covered by independent-oracle, CLI and lifecycle tests.
 
-`FrKernels.DisclosedIrEdit` extends admission to structural capabilities. It requires a full handle,
-a well-formed identity, exactly one current candidate, a matching node/list commitment, the
-operation's optional-value shape, a value in the bound category and a real change. Seven theorems
-recover the admitted requirements and reject stale, malformed, category-crossing and unchanged
-states. Rust and Lean agree on 576 finite inputs. The existing semantic-change position kernel
+`FrKernels.DisclosedIrEdit` extends admission to structural capabilities. Its inputs require a full
+handle, a well-formed identity, exactly one current candidate and a matching node or list commitment.
+It also checks the operation's optional-value shape, the bound value category and a real change.
+Seven theorems recover the admitted requirements and reject stale, malformed, category-crossing and
+unchanged states. Rust and Lean agree on 576 finite inputs. The existing semantic-change position kernel
 proves insert-at-end and delete-in-range rules plus their statement-count effects. The project target
 matrix includes structural disclosed editing and now compares all 1,980 combinations. Identity
 hashing, Merkle computation, structural enumeration and rendering remain covered by deterministic

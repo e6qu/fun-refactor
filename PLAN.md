@@ -209,7 +209,7 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
 | [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
-| PR 23 | Disclosure-Bound IR Structure Editing | In progress |
+| PR 23 | Disclosure-Bound IR Structure Editing | Ready for review |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1000,7 +1000,7 @@ Planned checkpoints:
 
 ### PR 23. Disclosure-Bound IR Structure Editing
 
-Status: in progress.
+Status: ready for review.
 
 Goal: let an agent replace a typed semantic node or change statement-list structure from a
 progressively revealed IR region. The route avoids reconstructing a JSON pointer or reading source.
@@ -1055,7 +1055,9 @@ Planned checkpoints:
 5. **Complete.** Prove admission and position policies, anchor Rust and exhaustively compare the finite models.
 6. **Complete.** Retain the generic independent evaluator, compare explicit/capability routes and refresh affected
    context evidence.
-7. **In progress.** Close adversarial coverage, defect and continuity records, then pass the complete local and CI gates.
+7. **Complete.** Close adversarial coverage, defect and continuity records. The complete default,
+   WASM, strict-proof, skill and evidence gates pass locally. Hosted CI builds and exercises the
+   browser playground before review.
 
 ## Formal verification policy
 

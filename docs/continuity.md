@@ -1429,3 +1429,17 @@ during an unrelated body render. Empty nested blocks now remain empty; only an e
 non-unit function receives that compile-preserving placeholder. The evaluator executes through the
 formerly empty branch. PR 23 is at its final adversarial and repository-gate checkpoint; no
 live-agent context or quality claim is attached to this deterministic milestone.
+
+The final adversarial pass exercises replacement in Rust, Go, Java, TypeScript and TSX. It also
+checks that descriptors and receipts commit a 256-byte typed node without returning its value.
+Dogfooding found B861: structural descriptor arrays displaced scalar rows from compact disclosure.
+Compact mode now preserves structural counts, while explicit expanded disclosure returns the full
+capabilities. The portable skill discovers fresh IDs and previews both structural command shapes.
+
+PR 23 is ready for review. The packaged skill executes 51 shell examples; its largest route is
+7,164 bytes under the 7,168-byte ceiling. The independent structural evaluator still verifies all
+four operations, Merkle identities, compiled behavior, stale refusal, patches and undo/redo. The
+default gate passes 311 advertised capability cells and builds 60 Lean jobs. Strict proof checking
+reports 68 fresh anchors with zero obligations or debts, and the separate WASM lane passes. Derived
+context reports were refreshed for current source and skill hashes without changing frozen agent
+transcripts. The hosted PR gate remains responsible for building and exercising the browser bundle.
