@@ -453,6 +453,14 @@ pub fn lockfile_inventory_allowed(lockfiles: usize, evidence: usize) -> bool {
     lockfiles <= 1024 && evidence <= 262_144
 }
 
+pub fn dependency_resolution_candidate(
+    lockfile_applies: bool,
+    ecosystem_equal: bool,
+    name_equal: bool,
+) -> bool {
+    lockfile_applies && ecosystem_equal && name_equal
+}
+
 /// Classify an exact-handle selection after resolving its revision-bound identity.
 pub fn handle_selection_status(
     in_scope: bool,
@@ -1171,8 +1179,27 @@ impl<'a> Project<'a> {
             .manifests
             .declarations
             .iter()
-            .filter(|(path, _)| selected.as_ref().is_none_or(|selected| path == selected))
-            .map(|(_, row)| row)
+            .filter(|declaration| {
+                selected
+                    .as_ref()
+                    .is_none_or(|selected| &declaration.manifest == selected)
+            })
+            .map(|declaration| {
+                let mut row = declaration.row.clone();
+                if let Some(resolution) = self.lockfiles.declaration_resolution(
+                    &self.root,
+                    &declaration.manifest,
+                    declaration.identity.as_deref(),
+                    &row,
+                ) {
+                    if let (Some(row), Some(resolution)) =
+                        (row.as_object_mut(), resolution.as_object())
+                    {
+                        row.extend(resolution.clone());
+                    }
+                }
+                row
+            })
             .collect();
         let key = format!(
             "frpc1:{}",
@@ -1182,7 +1209,7 @@ impl<'a> Project<'a> {
         let mut result = self.envelope("dependencies");
         result["items"] = json!(&rows[start..end]);
         result["page"] = page;
-        result["scope"] = json!("Declared constraints and patterns; no lockfile resolution, pattern expansion or inheritance.");
+        result["scope"] = json!("Declared constraints and patterns joined to captured nearest-lock candidates; no package solving, pattern expansion or feature activation.");
         Ok(result)
     }
 
@@ -1217,19 +1244,23 @@ impl<'a> Project<'a> {
         }
         let selected_manifest = self.selected_manifest(manifest)?;
         let selected_lockfile = self.selected_lockfile(lockfile)?;
+        let manifest_lockfile = selected_manifest
+            .as_deref()
+            .and_then(|manifest| self.lockfiles.applicable(&self.root, manifest));
         let rows = self
             .lockfiles
             .resolutions
             .iter()
-            .filter(|(row_lockfile, row_manifest, _)| {
-                selected_manifest
-                    .as_ref()
-                    .is_none_or(|selected| row_manifest.as_ref() == Some(selected))
-                    && selected_lockfile
+            .filter(|candidate| {
+                selected_manifest.as_ref().is_none_or(|_| {
+                    manifest_lockfile
                         .as_ref()
-                        .is_none_or(|selected| row_lockfile == selected)
+                        .is_some_and(|selected| &candidate.lockfile == selected)
+                }) && selected_lockfile
+                    .as_ref()
+                    .is_none_or(|selected| &candidate.lockfile == selected)
             })
-            .map(|(_, _, row)| row)
+            .map(|candidate| &candidate.row)
             .collect::<Vec<_>>();
         let key = format!(
             "frpc1:{}",

@@ -935,8 +935,10 @@ impl Project<'_> {
             .manifests
             .declarations
             .iter()
-            .filter(|(path, row)| path == manifest && row["kind"] == "dependency")
-            .map(|(_, row)| row)
+            .filter(|declaration| {
+                &declaration.manifest == manifest && declaration.row["kind"] == "dependency"
+            })
+            .map(|declaration| &declaration.row)
             .collect();
         dependencies.sort_by_cached_key(|row| row.to_string());
         let omitted = dependencies.len().saturating_sub(DEPENDENCY_FACT_LIMIT);

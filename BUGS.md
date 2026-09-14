@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B875: **captured lock entries were disconnected from dependency declarations.**
+
+  Dependency pages now select the nearest ancestor lock from the same ecosystem and return bounded
+  matching versions. Cargo renamed packages, npm aliases and normalized Python names resolve to
+  their locked identities. Multiple installed versions remain candidates. Lean proves that a match
+  requires lock ownership, ecosystem equality and name equality.
+
 - [x] B874: **application service dependencies stopped at sanitized URL strings.**
 
   Root-relative HTTP calls now link to bounded same-path route candidates across inferred

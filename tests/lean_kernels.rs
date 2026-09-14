@@ -3313,6 +3313,34 @@ fn service_route_candidates_match_lean_for_every_boolean_state() {
 }
 
 #[test]
+fn dependency_resolution_candidates_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("dependency-resolution-candidate")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for lockfile_applies in [false, true] {
+        for ecosystem_equal in [false, true] {
+            for name_equal in [false, true] {
+                expected.push(fun_refactor::project::dependency_resolution_candidate(
+                    lockfile_applies,
+                    ecosystem_equal,
+                    name_equal,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

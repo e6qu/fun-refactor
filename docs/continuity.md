@@ -1670,3 +1670,13 @@ source-free application dependency edge while keeping runtime dispatch claims ou
 `FrKernels.Project.serviceRouteCandidate` proves that an emitted candidate requires a local target
 and equal path. It accepts either an unknown method or an equal known method. Rust and Lean agree on
 all sixteen Boolean states; cross-framework fixtures cover unique and ambiguous route sets.
+
+Dependency declarations now select the nearest ancestor lockfile of their own ecosystem. Cargo
+renames use the `package` identity, npm `npm:` aliases use the target package and Python names use
+case and punctuation normalization. Each declaration returns up to sixteen observed package and
+artifact candidates, the complete count and exact omissions. Workspace child manifests therefore
+reuse their owning root lock without reading it or invoking a package manager.
+
+`FrKernels.Project.dependencyResolutionCandidate` requires applicable lock ownership, equal
+ecosystems and equal normalized names. Lean proves the conjunction and its name-mismatch refusal.
+Rust agrees over all eight Boolean states; mixed fixtures cover all four ecosystems and aliases.

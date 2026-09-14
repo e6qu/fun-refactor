@@ -2654,7 +2654,7 @@ fn put(root: &Path, path: &str, text: &str) {
 }
 
 #[test]
-fn package_views_preserve_cargo_and_npm_declarations_without_resolving_them() {
+fn package_views_preserve_cargo_and_npm_declarations_and_report_missing_locks() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     put(
@@ -2725,7 +2725,7 @@ cc = { version = "1", features = [] }
     for item in items {
         assert_eq!(item["basis"], "manifest-declaration");
         if item["kind"] == "dependency" {
-            assert_eq!(item["resolution"], "not-attempted");
+            assert_eq!(item["resolution"], "lockfile-not-observed");
             assert!(item.get("resolved_target").is_none());
         }
     }
@@ -3026,6 +3026,108 @@ fn lockfile_gaps_filters_and_revision_identity_are_checked() {
     let changed = ok(root, &["project", "resolutions"]);
     assert_eq!(changed["items"][0]["version"], "2");
     assert_ne!(first["revision"], changed["revision"]);
+}
+
+#[test]
+fn dependency_views_join_aliases_and_nearest_ancestor_locks() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "Cargo.toml", "[workspace]\nmembers=['child']\n");
+    put(
+        root,
+        "Cargo.lock",
+        "[[package]]\nname='serde'\nversion='1.0.228'\n",
+    );
+    put(
+        root,
+        "child/Cargo.toml",
+        "[package]\nname='child'\nversion='1'\n[dependencies]\nwire={package='serde',version='1'}\n",
+    );
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"ui":"npm:@scope/pkg@^3"}}"#,
+    );
+    put(
+        root,
+        "web/package-lock.json",
+        r#"{"lockfileVersion":3,"packages":{"node_modules/@scope/pkg":{"version":"3.2.1"}}}"#,
+    );
+    put(
+        root,
+        "python/pyproject.toml",
+        "[project]\nname='python-app'\ndependencies=['typing_extensions>=4']\n",
+    );
+    put(
+        root,
+        "python/uv.lock",
+        "[[package]]\nname='typing-extensions'\nversion='4.15.0'\n",
+    );
+    put(
+        root,
+        "service/go.mod",
+        "module example.com/service\nrequire example.com/core v1.2.3\n",
+    );
+    put(
+        root,
+        "service/go.sum",
+        "example.com/core v1.2.3 h1:module\n",
+    );
+
+    for (manifest, declared, resolved, version) in [
+        ("child/Cargo.toml", "wire", "serde", "1.0.228"),
+        ("web/package.json", "ui", "@scope/pkg", "3.2.1"),
+        (
+            "python/pyproject.toml",
+            "typing_extensions",
+            "typing_extensions",
+            "4.15.0",
+        ),
+        (
+            "service/go.mod",
+            "example.com/core",
+            "example.com/core",
+            "v1.2.3",
+        ),
+    ] {
+        let report = ok(root, &["project", "dependencies", "--manifest", manifest]);
+        let row = report["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["name"] == declared)
+            .unwrap();
+        assert_eq!(row["resolution"], "captured-lockfile-candidates", "{row}");
+        assert_eq!(row["resolved_name"], resolved, "{row}");
+        assert_eq!(row["locked_candidate_count"], 1, "{row}");
+        assert_eq!(row["locked_candidates"][0]["version"], version, "{row}");
+    }
+    let child = ok(
+        root,
+        &["project", "resolutions", "--manifest", "child/Cargo.toml"],
+    );
+    assert_eq!(child["page"]["total"], 1);
+    assert_eq!(child["items"][0]["lockfile"], "Cargo.lock");
+
+    let long_name = "a".repeat(180);
+    put(
+        root,
+        "long/package.json",
+        &format!(r#"{{"dependencies":{{"alias":"npm:{long_name}@^1"}}}}"#),
+    );
+    put(
+        root,
+        "long/package-lock.json",
+        &format!(
+            r#"{{"lockfileVersion":3,"packages":{{"node_modules/{long_name}":{{"version":"1.4.0"}}}}}}"#
+        ),
+    );
+    let long = ok(
+        root,
+        &["project", "dependencies", "--manifest", "long/package.json"],
+    );
+    assert_eq!(long["items"][0]["locked_candidate_count"], 1);
+    assert_eq!(long["items"][0]["resolved_name"]["omitted_bytes"], 20);
 }
 
 #[test]

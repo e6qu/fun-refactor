@@ -586,6 +586,12 @@ resolution and gap rows. Lean proves both bounds and rejects either first value 
 and Lean agree at zero, both limits and machine-sized boundary samples. Format parsing, filesystem
 capture and checksum authenticity remain integration-tested assumptions.
 
+Dependency-to-lock joins use `dependencyResolutionCandidate`: a candidate is admitted exactly when
+the selected lock applies to the manifest and both ecosystem and full package identity agree. Lean
+proves that conjunction and refuses a mismatched identity; Rust and Lean agree on all eight Boolean
+states. Lock ownership, Cargo and npm alias interpretation, and Python name normalization remain
+parser-level rules covered by cross-ecosystem integration tests.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

@@ -46,9 +46,15 @@ pub(super) enum Snapshot {
 pub(super) struct Manifests {
     pub snapshots: BTreeMap<PathBuf, Snapshot>,
     pub packages: Vec<Value>,
-    pub declarations: Vec<(PathBuf, Value)>,
+    pub declarations: Vec<Declaration>,
     pub gaps: Vec<Value>,
     pub documents: BTreeMap<PathBuf, Value>,
+}
+
+pub(super) struct Declaration {
+    pub manifest: PathBuf,
+    pub identity: Option<String>,
+    pub row: Value,
 }
 
 pub(super) fn discover(
@@ -210,10 +216,18 @@ impl Manifests {
         );
     }
 
-    fn declaration(&mut self, manifest: &Path, mut row: Value) {
+    fn declaration(&mut self, manifest: &Path, row: Value) {
+        self.declaration_named(manifest, None, row);
+    }
+
+    fn declaration_named(&mut self, manifest: &Path, identity: Option<&str>, mut row: Value) {
         row["manifest"] = bounded_text(&manifest.to_string_lossy(), 512);
         row["basis"] = json!("manifest-declaration");
-        self.declarations.push((manifest.to_path_buf(), row));
+        self.declarations.push(Declaration {
+            manifest: manifest.to_path_buf(),
+            identity: identity.map(str::to_owned),
+            row,
+        });
     }
 
     fn dependency_row(
@@ -224,8 +238,9 @@ impl Manifests {
         section: &str,
         scope: &str,
     ) {
-        self.declaration(
+        self.declaration_named(
             manifest,
+            Some(name),
             json!({"kind":"dependency","name":bounded_text(name,160),
                 "requirement":bounded_text(requirement,512),"section":section,"scope":scope,
                 "target_condition":null,"resolution":"not-attempted"}),
@@ -265,7 +280,7 @@ impl Manifests {
         let before = self.declarations.len();
         self.dependency_row(manifest, name, requirement, section, "package");
         if let Some(group) = group {
-            self.declarations[before].1["group"] = bounded_text(group, 160);
+            self.declarations[before].row["group"] = bounded_text(group, 160);
         }
     }
 
@@ -366,7 +381,7 @@ impl Manifests {
                             "tool.poetry.group.dependencies",
                             "package",
                         );
-                        self.declarations[position].1["group"] = bounded_text(group, 160);
+                        self.declarations[position].row["group"] = bounded_text(group, 160);
                     }
                 }
             }
@@ -439,7 +454,7 @@ impl Manifests {
                     if fields.len() >= 2 {
                         let position = self.declarations.len();
                         self.dependency_row(manifest, fields[0], fields[1], "require", "package");
-                        self.declarations[position].1["indirect"] =
+                        self.declarations[position].row["indirect"] =
                             json!(raw.contains("// indirect"));
                     } else {
                         self.gap(manifest, "require has an unsupported shape.");
@@ -624,7 +639,7 @@ impl Manifests {
                 if self.gaps.len() > gaps_before && row.get("declaration_status").is_none() {
                     row["declaration_status"] = json!("partial");
                 }
-                self.declaration(manifest, row);
+                self.declaration_named(manifest, Some(name), row);
             }
         }
     }

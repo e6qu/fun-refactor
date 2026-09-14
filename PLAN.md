@@ -1411,6 +1411,9 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 10. **Complete.** Link root-relative HTTP dependencies across inferred applications through exact
     paths and compatible methods. Feature rows expose bounded route IDs, ambiguity and omissions.
     Lean proves the candidate admission rule over every Boolean state.
+11. **Complete.** Join dependency declarations to their nearest captured ecosystem lock. Resolve
+    Cargo and npm aliases plus normalized Python names while retaining every bounded version
+    candidate. Lean proves the three required identity conditions.
 
 ## Formal verification policy
 

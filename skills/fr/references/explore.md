@@ -50,6 +50,8 @@ Test associations are candidates for selecting checks, not proof of complete cov
 Use `project packages` and `dependencies` for Cargo, npm, Go module and Python project declarations.
 Use `project resolutions` for source-free captured lock entries. Filter with `--manifest` or
 `--lockfile`; the result reports observed versions and integrity metadata without running a solver.
+Dependency rows already join the nearest ancestor lock and preserve all bounded version candidates.
+Cargo's `package` field, npm aliases and normalized Python names participate in that match.
 `links` and `workspaces` add Cargo/npm local relationships.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
 Use [Surfaces](surfaces.md) for framework, style and embedded-diagram discovery, exact surface edits,

@@ -43,6 +43,16 @@ impl Ecosystem {
             Self::Python => "pyproject.toml",
         }
     }
+
+    fn of_manifest(path: &Path) -> Option<Self> {
+        match path.file_name()?.to_str()? {
+            "Cargo.toml" => Some(Self::Cargo),
+            "package.json" => Some(Self::Npm),
+            "go.mod" => Some(Self::Go),
+            "pyproject.toml" => Some(Self::Python),
+            _ => None,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Serialize)]
@@ -54,9 +64,16 @@ pub(super) enum Snapshot {
 #[derive(Default)]
 pub(super) struct Lockfiles {
     pub snapshots: BTreeMap<PathBuf, Snapshot>,
-    pub resolutions: Vec<(PathBuf, Option<PathBuf>, Value)>,
+    pub resolutions: Vec<Resolution>,
     pub gaps: Vec<Value>,
     overflowed: bool,
+}
+
+pub(super) struct Resolution {
+    pub lockfile: PathBuf,
+    ecosystem: Ecosystem,
+    name: String,
+    pub row: Value,
 }
 
 pub(super) fn discover(
@@ -158,6 +175,82 @@ fn text(value: Option<&Value>, limit: usize) -> Value {
 }
 
 impl Lockfiles {
+    pub fn applicable(&self, root: &Path, manifest: &Path) -> Option<PathBuf> {
+        let ecosystem = Ecosystem::of_manifest(manifest)?;
+        let directory = manifest.parent().unwrap_or(Path::new(""));
+        self.snapshots
+            .keys()
+            .filter_map(|path| path.strip_prefix(root).ok())
+            .filter(|path| Ecosystem::of(path) == Some(ecosystem))
+            .filter(|path| {
+                path.parent()
+                    .is_some_and(|parent| directory.starts_with(parent))
+            })
+            .max_by_key(|path| path.components().count())
+            .map(Path::to_path_buf)
+    }
+
+    pub fn declaration_resolution(
+        &self,
+        root: &Path,
+        manifest: &Path,
+        identity: Option<&str>,
+        declaration: &Value,
+    ) -> Option<Value> {
+        if declaration.get("kind") != Some(&json!("dependency")) {
+            return None;
+        }
+        let ecosystem = Ecosystem::of_manifest(manifest)?;
+        let declared = identity?;
+        let resolved = match ecosystem {
+            Ecosystem::Cargo => declaration
+                .get("package")
+                .and_then(Value::as_str)
+                .unwrap_or(declared),
+            Ecosystem::Npm => declaration
+                .get("requirement")
+                .and_then(Value::as_str)
+                .and_then(npm_alias)
+                .unwrap_or(declared),
+            Ecosystem::Go | Ecosystem::Python => declared,
+        };
+        let lockfile = self.applicable(root, manifest);
+        let candidates = lockfile
+            .as_ref()
+            .map(|lockfile| {
+                self.resolutions
+                    .iter()
+                    .filter(|candidate| {
+                        super::dependency_resolution_candidate(
+                            candidate.lockfile == *lockfile,
+                            candidate.ecosystem == ecosystem,
+                            package_name_equal(ecosystem, &candidate.name, resolved),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let count = candidates.len();
+        let summaries = candidates
+            .iter()
+            .take(16)
+            .map(|candidate| {
+                json!({
+                    "version": candidate.row.get("version").cloned().unwrap_or(Value::Null),
+                    "artifact": candidate.row.get("artifact").cloned().unwrap_or(Value::Null),
+                })
+            })
+            .collect::<Vec<_>>();
+        Some(json!({
+            "resolution": if lockfile.is_none() { "lockfile-not-observed" } else if count == 0 { "no-lockfile-candidate" } else { "captured-lockfile-candidates" },
+            "resolved_name": bounded_text(resolved, 160),
+            "lockfile": lockfile.as_ref().map(|path| bounded_text(&path.to_string_lossy(), 512)),
+            "locked_candidates": summaries,
+            "locked_candidate_count": count,
+            "locked_candidates_omitted": count.saturating_sub(16),
+        }))
+    }
+
     pub fn new(
         selected: &Path,
         root: &Path,
@@ -225,6 +318,7 @@ impl Lockfiles {
         lockfile: &Path,
         manifest: Option<&Path>,
         ecosystem: Ecosystem,
+        name: &str,
         mut row: Value,
     ) {
         if self.resolutions.len() + self.gaps.len() >= 262_144 {
@@ -237,8 +331,12 @@ impl Lockfiles {
         });
         row["ecosystem"] = json!(ecosystem.name());
         row["basis"] = json!("captured-lockfile-entry");
-        self.resolutions
-            .push((lockfile.to_path_buf(), manifest.map(Path::to_path_buf), row));
+        self.resolutions.push(Resolution {
+            lockfile: lockfile.to_path_buf(),
+            ecosystem,
+            name: name.to_owned(),
+            row,
+        });
     }
 
     fn read_toml(&mut self, lockfile: &Path, manifest: Option<&Path>, source: &str, cargo: bool) {
@@ -269,6 +367,7 @@ impl Lockfiles {
                 lockfile,
                 manifest,
                 ecosystem,
+                name,
                 json!({
                     "name": bounded_text(name, 160),
                     "version": bounded_text(version, 160),
@@ -363,6 +462,7 @@ impl Lockfiles {
             lockfile,
             manifest,
             Ecosystem::Npm,
+            name,
             json!({
                 "name": bounded_text(name, 160),
                 "version": version.map_or(Value::Null, |value| bounded_text(value, 160)),
@@ -394,6 +494,7 @@ impl Lockfiles {
                 lockfile,
                 manifest,
                 Ecosystem::Go,
+                fields[0],
                 json!({
                     "name": bounded_text(fields[0], 160),
                     "version": bounded_text(version, 160),
@@ -422,6 +523,7 @@ impl Lockfiles {
                     lockfile,
                     manifest,
                     Ecosystem::Python,
+                    name,
                     json!({
                         "name": bounded_text(name, 160),
                         "version": bounded_text(version.trim_start_matches('='), 160),
@@ -449,6 +551,42 @@ fn npm_name(location: &str) -> Option<&str> {
     } else {
         tail.split('/').next()
     }
+}
+
+fn npm_alias(requirement: &str) -> Option<&str> {
+    let alias = requirement.strip_prefix("npm:")?;
+    if alias.starts_with('@') {
+        let package_end = alias.find('/')? + 1;
+        alias[package_end..]
+            .find('@')
+            .map_or(Some(alias), |offset| Some(&alias[..package_end + offset]))
+    } else {
+        Some(alias.split_once('@').map_or(alias, |(name, _)| name))
+    }
+}
+
+fn package_name_equal(ecosystem: Ecosystem, left: &str, right: &str) -> bool {
+    if ecosystem != Ecosystem::Python {
+        return left == right;
+    }
+    python_name(left) == python_name(right)
+}
+
+fn python_name(value: &str) -> String {
+    let mut result = String::new();
+    let mut separator = false;
+    for character in value.chars() {
+        if matches!(character, '-' | '_' | '.') {
+            if !separator {
+                result.push('-');
+                separator = true;
+            }
+        } else {
+            result.extend(character.to_lowercase());
+            separator = false;
+        }
+    }
+    result
 }
 
 fn origin(value: Option<&Value>) -> Value {

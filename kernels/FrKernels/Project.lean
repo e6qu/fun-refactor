@@ -645,6 +645,23 @@ theorem lockfile_inventory_refuses_excess_files (evidence : Nat) :
 theorem lockfile_inventory_refuses_excess_rows (lockfiles : Nat) :
     lockfileInventoryAllowed lockfiles 262145 = false := by simp [lockfileInventoryAllowed]
 
+-- fr:spec src/project.rs::dependency_resolution_candidate @ 7a3cb3a0d92308994b75bfc2862a4a548c3b5164267b4946e7cda2d03bf9d4dc
+-- fr:signature lockfile_applies: bool => lockfileApplies: Bool; ecosystem_equal: bool => ecosystemEqual: Bool; name_equal: bool => nameEqual: Bool; return: bool => return: Bool
+def dependencyResolutionCandidate
+    (lockfileApplies : Bool) (ecosystemEqual : Bool) (nameEqual : Bool) : Bool :=
+  lockfileApplies && ecosystemEqual && nameEqual
+
+theorem dependency_resolution_requires_every_identity
+    (lockfileApplies ecosystemEqual nameEqual : Bool) :
+    dependencyResolutionCandidate lockfileApplies ecosystemEqual nameEqual = true ↔
+      lockfileApplies = true ∧ ecosystemEqual = true ∧ nameEqual = true := by
+  cases lockfileApplies <;> cases ecosystemEqual <;> cases nameEqual <;> decide
+
+theorem dependency_resolution_refuses_mismatched_name
+    (lockfileApplies ecosystemEqual : Bool) :
+    dependencyResolutionCandidate lockfileApplies ecosystemEqual false = false := by
+  cases lockfileApplies <;> cases ecosystemEqual <;> decide
+
 -- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
 -- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat
 def handleSelectionStatus (inScope : Bool) (declaration : Bool) (isLocal : Bool)

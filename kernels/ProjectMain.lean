@@ -543,6 +543,11 @@ def main (args : List String) : IO Unit := do
     for lockfiles in [0, 1, 1023, 1024, 1025, 4294967295, 18446744073709551615] do
       for evidence in [0, 1, 262143, 262144, 262145, 4294967295, 18446744073709551615] do
         IO.println (FrKernels.Project.lockfileInventoryAllowed lockfiles evidence)
+  else if args == ["dependency-resolution-candidate"] then
+    for lockfileApplies in [false, true] do
+      for ecosystemEqual in [false, true] do
+        for nameEqual in [false, true] do
+          IO.println (dependencyResolutionCandidate lockfileApplies ecosystemEqual nameEqual)
   else
     for total in samples do
       for start in samples do

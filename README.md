@@ -370,6 +370,9 @@ Its package and dependency pages report Cargo, npm, Go module and Python project
 returning lockfile text. Filters select one manifest or lockfile, and every cursor binds the exact
 lock snapshot. The report includes versions, available origins and integrity fields with explicit
 format gaps. It reads `Cargo.lock`, npm lockfiles, `go.sum`, Poetry, uv and Pipenv locks.
+Dependency rows select the nearest ancestor lock of the same ecosystem. Cargo and npm aliases map
+to their resolved package names, and Python names use normalized punctuation and case. Candidate
+versions remain bounded and keep ambiguity when a lock contains several versions.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.
@@ -431,7 +434,7 @@ Pinned FastAPI and Next.js fixtures register generated routes and execute real f
 The [feature migration contract](docs/feature-migration.md) states destination rules, coexistence behavior and current runtime limits.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Package aliases and framework runtime execution remain outside the static evidence model.
+Framework runtime execution remains outside the static evidence model.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.
