@@ -209,12 +209,13 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
 | [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
+| PR 23 | Disclosure-Bound IR Structure Editing | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
 PRs 19 through 21 made repeated discovery faster, bounded and progressively disclosed. PR 22 joins
-the revealed hierarchy directly to exact authoring, including repeated scalar values. Later edit
-shapes remain evidence-driven.
+the revealed hierarchy directly to exact scalar authoring, including repeated values. PR 23 extends
+that capability boundary to typed node replacement and statement-list structure.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -996,6 +997,65 @@ Planned checkpoints:
    first party version-only lockfile changes while preserving third party dependency identities.
 8. **Complete.** Repair optional callback precedence and qualified callback parameters found by
    the post-release deep audit. A default regression and the complete repository round trip pass.
+
+### PR 23. Disclosure-Bound IR Structure Editing
+
+Status: in progress.
+
+Goal: let an agent replace a typed semantic node or change statement-list structure from a
+progressively revealed IR region. The route avoids reconstructing a JSON pointer or reading source.
+Keep the existing checked semantic-change engine, body writer, transaction history and Git
+lifecycle as the authority for every source edit.
+
+Deliverables:
+
+- Attach opaque `frdi1:` capabilities to authorable typed nodes and statement-list positions.
+  Support same-category node replacement, statement deletion, insertion before an existing
+  statement and append to any statement list, including an empty one.
+- Bind every capability to the project revision, full declaration handle, canonical body basis,
+  operation, typed category, exact path/index and current semantic Merkle commitment. Refuse
+  malformed, unknown, stale, ambiguous, mismatched, oversized and no-op requests before mutation.
+- Accept only `{edit,value?}` at the capability boundary. Direct CLI reads an optional bounded IR
+  node file; author batches, project tasks and reviewed task changes carry the same inline shape.
+- Mirror the request in the zero-dependency Python SDK and point agents to the existing semantic
+  catalog and constructors for the required node category.
+- Preserve progressive disclosure's source-free reports and explicit response budgets. Report
+  structural-edit counts on shortcuts and keep large current or replacement nodes as commitments.
+- Retain a generic deterministic evaluator that derives capability identities independently and
+  exercises all four edit shapes. Compile behavior and validate stale refusal, patches, undo and
+  redo. Compare its route with an explicit semantic-change manifest before making a context claim.
+- Model capability admission, request shape, operation/category policy and statement-position
+  boundaries in Lean. Add strict Rust anchors and exhaustive shared finite cases.
+
+Verification and acceptance:
+
+1. Two same-shaped nodes at different locations receive distinct capabilities. One selected
+   capability changes only its target and preserves every byte outside the selected function body.
+2. Replace accepts exactly one source-free node in the bound category. Delete accepts no value.
+   Insert accepts one source-free statement at its bound position; empty-list append works.
+3. A changed body, node/list commitment, operation, category, position, declaration or revision
+   invalidates the capability before history creation. Malformed and unchanged requests refuse.
+4. Direct, batch and task-change writes retain semantic-change validation, declared checks, exact
+   undo and redo, and forward and reverse Git patch identity across supported body languages.
+5. Every disclosure response remains within its requested token ceiling. Structural descriptors
+   contain no source or hidden node value, and committed large values do not reappear in receipts.
+6. Lean proves the finite admission and operation implications. Rust agrees on every shared Boolean,
+   category, operation and statement-boundary case; hashing, parsers, writers, compilers and
+   filesystems remain explicit trusted or integration-tested boundaries.
+7. The deterministic evaluator, Python SDK, portable skill, docs, native tests, strict Lean build,
+   capability matrix and WASM/playground gates pass before review.
+
+Planned checkpoints:
+
+1. **Complete.** Fix B859, found by the first self-disclosure: source-bearing bodies remain readable
+   and expose no edit capabilities instead of failing typed-IR reconstruction.
+2. Implement structural target enumeration, identities, bounded descriptors and direct preview/write.
+3. Carry structural requests through author batches, project tasks and reviewed task changes.
+4. Add the Python request mirror, semantic-catalog guidance and portable skill route.
+5. Prove admission and position policies, anchor Rust and exhaustively compare the finite models.
+6. Retain the generic independent evaluator, compare explicit/capability routes and refresh affected
+   context evidence.
+7. Close adversarial coverage, defect and continuity records, then pass the complete local and CI gates.
 
 ## Formal verification policy
 

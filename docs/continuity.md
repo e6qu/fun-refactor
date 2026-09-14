@@ -1386,3 +1386,18 @@ read-only semantic view and an unavailable authoring identity. Disclosure redact
 source into commitments, then tried to deserialize that public shape as private typed IR while
 enumerating scalar edits. It now consults the existing body-identity status first. Such bodies keep
 their bounded semantic and source frontiers and offer zero edit capabilities.
+
+## Disclosure-bound IR structure editing
+
+PR 23 begins from the boundary left by scalar capabilities. An agent can already build arbitrary
+typed IR through `fr-semantic-change-1` or the Python SDK, but it must reconstruct the target pointer
+and operation envelope. The new `frdi1:` capability binds that information to the progressively
+revealed node or statement-list position. The request carries only the opaque identity and an
+optional typed IR value.
+
+The initial operation set is same-category node replacement, statement deletion, insertion before
+an existing statement and append to a statement list. Before plus append covers every position and
+keeps capability volume linear in the revealed statements. Append also covers empty lists. The
+capability binds the revision, full declaration handle, body basis, operation, category, exact
+path/index and current node or list commitment. The existing semantic-change validator remains the
+execution boundary and revalidates every resulting body before the body writer sees it.
