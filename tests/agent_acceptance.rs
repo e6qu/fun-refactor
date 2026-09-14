@@ -118,6 +118,20 @@ fn progressive_disclosure_follows_bounded_actions_and_verifies_merkle_commitment
 }
 
 #[test]
+fn progressive_project_evidence_reconstructs_from_content_addresses_and_verifies_proofs() {
+    python(&[
+        "tools/progressive-evidence.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+    ]);
+    python(&[
+        "tools/progressive-evidence.py",
+        "--audit",
+        "tests/agent-eval/progressive-evidence.json",
+    ]);
+}
+
+#[test]
 fn disclosed_edits_select_ambiguous_scalars_and_preserve_the_reviewed_lifecycle() {
     python(&[
         "tools/disclosed-edit-eval.py",

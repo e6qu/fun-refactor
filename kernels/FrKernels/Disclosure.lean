@@ -70,4 +70,54 @@ theorem reveal_replaces_exactly_one_hole (present : 0 < hidden)
 theorem empty_frontier_cannot_be_revealed : frontierAfter 0 children = none := by
   simp [frontierAfter]
 
+-- fr:spec src/project/disclose.rs::disclosure_proof_step_allowed @ 8ad28700d7ebba6e17bf15f50fcbc1f84932ef2318efd982e7c322ee7fb2127c
+-- fr:signature width: usize => width: Nat; index: usize => index: Nat; side: usize => side: Nat; return: bool => return: Bool
+def proofStepAllowed (width : Nat) (index : Nat) (side : Nat) : Bool :=
+  decide (1 < width ∧ index < width ∧
+    ((side = 0 ∧ index % 2 = 1) ∨
+     (side = 1 ∧ index % 2 = 0 ∧ index + 1 < width) ∨
+     (side = 2 ∧ index % 2 = 0 ∧ index + 1 = width)))
+
+theorem admitted_proof_step_selects_an_existing_entry
+    (accepted : proofStepAllowed width index side = true) : index < width := by
+  have facts : 1 < width ∧ index < width ∧
+      ((side = 0 ∧ index % 2 = 1) ∨
+       (side = 1 ∧ index % 2 = 0 ∧ index + 1 < width) ∨
+       (side = 2 ∧ index % 2 = 0 ∧ index + 1 = width)) := by
+    simpa [proofStepAllowed] using accepted
+  exact facts.2.1
+
+theorem admitted_proof_step_has_a_canonical_side
+    (accepted : proofStepAllowed width index side = true) : side < 3 := by
+  simp only [proofStepAllowed, decide_eq_true_eq] at accepted
+  rcases accepted.2.2 with left | right
+  · omega
+  · rcases right with middle | promoted <;> omega
+
+-- fr:spec src/project/disclose.rs::disclosure_proof_parent @ 2e5249f738cd3936eafcd9d4c788b0e3eb18d18d06187b63594d3320e7b5386c
+-- fr:signature width: usize => width: Nat; index: usize => index: Nat; return: Option<(usize,usize)> => return: Option (Nat × Nat)
+def proofParent (width : Nat) (index : Nat) : Option (Nat × Nat) :=
+  if 1 < width ∧ index < width then some (width / 2 + width % 2, index / 2) else none
+
+theorem admitted_proof_parent_halves_the_position
+    (accepted : proofParent width index = some parent) : parent.2 = index / 2 := by
+  simp only [proofParent] at accepted
+  split at accepted
+  · cases accepted
+    rfl
+  · contradiction
+
+-- fr:spec src/project/disclose.rs::disclosure_view_admitted @ acf1eae98abf13266e19aca313c43378239be354451ae3dd8accae4ff9c13c21
+-- fr:signature view: usize => view: Nat; depth: usize => depth: Nat; return: bool => return: Bool
+def viewAdmitted (view : Nat) (depth : Nat) : Bool :=
+  decide (view = 0 ∨ (view = 1 ∧ depth ≤ 8))
+
+theorem evidence_view_bounds_analysis_depth
+    (accepted : viewAdmitted 1 depth = true) : depth ≤ 8 := by
+  simpa [viewAdmitted] using accepted
+
+theorem unknown_view_is_refused (invalid : 2 ≤ view) : viewAdmitted view depth = false := by
+  simp only [viewAdmitted, decide_eq_false_iff_not]
+  omega
+
 end FrKernels.Disclosure

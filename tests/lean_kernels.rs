@@ -1518,7 +1518,8 @@ fn agent_discovery_and_resolution_coordination_match_lean() {
 #[test]
 fn progressive_disclosure_admission_and_frontiers_match_lean() {
     use fun_refactor::project::{
-        disclosure_budget_admitted, disclosure_frontier_after, disclosure_transition_allowed,
+        disclosure_budget_admitted, disclosure_frontier_after, disclosure_proof_parent,
+        disclosure_proof_step_allowed, disclosure_transition_allowed, disclosure_view_admitted,
     };
 
     build_kernel();
@@ -1582,7 +1583,40 @@ fn progressive_disclosure_admission_and_frontiers_match_lean() {
             checked += 1;
         }
     }
-    assert_eq!(checked, 1_521);
+    for side in 0..4 {
+        for width in samples {
+            for index in samples {
+                assert_eq!(
+                    actual.next().map(|line| line.parse::<bool>().unwrap()),
+                    Some(disclosure_proof_step_allowed(width, index, side))
+                );
+                checked += 1;
+            }
+        }
+    }
+    for width in samples {
+        for index in samples {
+            let lean = actual.next().unwrap();
+            let rust = disclosure_proof_parent(width, index);
+            assert_eq!(
+                lean,
+                rust.map_or("none".to_owned(), |(next_width, next_index)| {
+                    format!("(some ({next_width}, {next_index}))")
+                })
+            );
+            checked += 1;
+        }
+    }
+    for view in 0..4 {
+        for depth in samples {
+            assert_eq!(
+                actual.next().map(|line| line.parse::<bool>().unwrap()),
+                Some(disclosure_view_admitted(view, depth))
+            );
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 2_418);
     assert!(actual.next().is_none());
 }
 

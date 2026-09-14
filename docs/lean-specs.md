@@ -148,11 +148,15 @@ The model does not prove parser correctness, snapshot-hash collision resistance 
 replacement. It proves that accepted responses stay below the requested token upper bound and the
 fixed 4,096/16,384 profile ceiling. Unknown profiles and reveal kinds refuse. Admitted offsets
 remain within their committed extent. One completed reveal removes one hole before adding its
-composite children. The executable comparison covers 1,521 Rust/Lean boundary cases, including
-`u64::MAX` overflow boundaries.
+composite children. It also proves that admitted binary-Merkle steps select an existing entry and a
+canonical left, right or promotion side. Accepted parents halve the entry position. Evidence views
+bound analysis depth to eight. The executable comparison covers 2,418 Rust/Lean boundary cases,
+including `u64::MAX` overflow boundaries.
 These arithmetic laws do not prove SHA-256 collision resistance, JSON canonicalization, tokenizer
 behavior, semantic-reader correctness or general Rust/model correspondence. CLI and independent
-Python-oracle tests cover those implementation boundaries on selected cases.
+Python-oracle tests cover those implementation boundaries on selected cases. Proof paths are an
+opt-in evaluator and cache-audit mechanism; ordinary agent disclosure carries content addresses
+without proof payloads.
 
 `FrKernels.DisclosedEdit` models admission of the opaque scalar capability produced by progressive
 disclosure. Admission requires a full handle, a well-formed reference, exactly one recomputed

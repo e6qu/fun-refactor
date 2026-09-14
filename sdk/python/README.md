@@ -98,3 +98,22 @@ operation = {"op": "edit-body-disclosed-ir", "handle": handle,
 
 The opaque identity determines the operation, position, and accepted node category. Rust checks
 that the optional value shape agrees with that capability and with the current Merkle commitment.
+
+Disclosure trees can be stored by content address:
+
+```python
+from fr_ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
+
+pack = merkle_object_pack(project_evidence)
+for digest, record in pack["objects"].items():
+    object_store.put(digest, record)
+
+restored = restore_merkle_object(pack["root"], object_store.get)
+assert merkle_object_digest(restored) == pack["root"]
+```
+
+The callback fetches only objects reachable from that root and each digest at most once, so a client
+can retain or evict branches independently. Equal subtrees deduplicate automatically.
+`verify_disclosure_commitment` checks an advertised object digest against an opt-in
+`project disclose --proofs` path;
+`verify_disclosure_proof` hashes a complete fetched value before checking the same path.

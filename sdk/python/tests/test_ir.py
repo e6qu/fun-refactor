@@ -1,4 +1,5 @@
 import inspect
+import hashlib
 import json
 import re
 import unittest
@@ -26,6 +27,11 @@ from fr_ir import (
     Stmt,
     TemplatePart,
     Type,
+    merkle_object_digest,
+    merkle_object_pack,
+    restore_merkle_object,
+    verify_disclosure_commitment,
+    verify_disclosure_proof,
 )
 
 
@@ -35,6 +41,78 @@ def kinds(namespace):
 
 
 class IrTests(unittest.TestCase):
+    def test_merkle_object_pack_deduplicates_restores_and_detects_corruption(self):
+        shared = {"kind": "name", "value": "item"}
+        value = {"left": shared, "right": shared, "items": [shared, 1]}
+        pack = merkle_object_pack(value)
+        self.assertEqual(pack["root"], merkle_object_digest(value))
+        self.assertEqual(restore_merkle_object(pack["root"], pack["objects"]), value)
+        fetched = []
+        self.assertEqual(
+            restore_merkle_object(
+                pack["root"], lambda digest: fetched.append(digest) or pack["objects"].get(digest)
+            ),
+            value,
+        )
+        self.assertEqual(len(fetched), len(set(fetched)))
+        self.assertLess(len(pack["objects"]), 1 + 3 * len(shared) + len(value["items"]))
+        broken = json.loads(json.dumps(pack["objects"]))
+        scalar = next(key for key, record in broken.items()
+                      if record["kind"] == "scalar" and record["value"] == "item")
+        broken[scalar]["value"] = "changed"
+        with self.assertRaisesRegex(IrError, "content verification"):
+            restore_merkle_object(pack["root"], broken)
+        with self.assertRaisesRegex(IrError, "lowercase SHA-256"):
+            restore_merkle_object("not-a-digest", pack["objects"])
+        with self.assertRaisesRegex(IrError, "absent or malformed"):
+            restore_merkle_object("f" * 64, pack["objects"])
+        cycle = "0" * 64
+        with self.assertRaisesRegex(IrError, "contains a cycle"):
+            restore_merkle_object(cycle, {
+                cycle: {
+                    "schema": "fr-merkle-object-1",
+                    "kind": "array",
+                    "children": [cycle],
+                }
+            })
+
+    def test_disclosure_proofs_reconstruct_the_root_and_reject_tampering(self):
+        leaf = {"name": "run", "kind": "function"}
+        sibling = merkle_object_digest([1, True, None])
+        entry = hashlib.sha256(json.dumps(
+            ["fr-merkle-object-1", "object-entry", 0, "left", sibling],
+            separators=(",", ":"),
+        ).encode()).hexdigest()
+        leaf_digest = merkle_object_digest(leaf)
+        right = hashlib.sha256(json.dumps(
+            ["fr-merkle-object-1", "object-entry", 1, "right", leaf_digest],
+            separators=(",", ":"),
+        ).encode()).hexdigest()
+        pair = hashlib.sha256(json.dumps(
+            ["fr-merkle-object-1", "pair", entry, right], separators=(",", ":")
+        ).encode()).hexdigest()
+        root = hashlib.sha256(json.dumps(
+            ["fr-merkle-object-1", "object", 2, pair], separators=(",", ":")
+        ).encode()).hexdigest()
+        proof = {
+            "schema": "fr-merkle-inclusion-1",
+            "algorithm": "sha256-tagged-binary-json-tree",
+            "leaf": leaf_digest,
+            "root": root,
+            "path": [{
+                "container": "object", "key": "right", "index": 1, "length": 2,
+                "branch": [{"side": "left", "digest": entry}],
+            }],
+        }
+        self.assertTrue(verify_disclosure_proof(leaf, proof))
+        self.assertTrue(verify_disclosure_commitment(leaf_digest, proof))
+        self.assertFalse(verify_disclosure_proof({"name": "changed", "kind": "function"}, proof))
+        tampered = json.loads(json.dumps(proof))
+        tampered["path"][0]["branch"][0]["digest"] = "0" * 64
+        self.assertFalse(verify_disclosure_proof(leaf, tampered))
+        tampered["path"][0]["branch"][0]["digest"] = "z" * 64
+        self.assertFalse(verify_disclosure_proof(leaf, tampered))
+
     def test_example_matches_adjacent_tag_shape(self):
         body = SemanticBody([
             Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))

@@ -67,6 +67,29 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B863: **a generated remainder helper returned as a new public function after translation.**
+
+  Rust integer remainder needs a helper when written as Python because the languages disagree for
+  mixed-sign operands. Reading that generated Python back preserved the call and helper declaration
+  as ordinary user code. The normalizer now recognizes writer-owned remainder helpers across their
+  snake-case and camel-case spellings, restores the `rem` or `floor-rem` IR operator and removes the
+  generated declaration. The focused Python-to-Rust regression and complete repository round trip
+  cover the repaired boundary.
+
+- [x] B864: **the portable-skill checker crashed on an evidence disclosure example.**
+
+  The checker assumed that every `project disclose` response contained semantic edit shortcuts.
+  Evidence responses carry a domain catalog and evidence shortcuts instead. The checker now
+  validates all four evidence domains, the object schema and at least one evidence shortcut.
+
+- [x] B862: **one remapped Rust module blocked moves between unrelated conventional modules.**
+
+  Rust move planning treated any `#[path]` declaration below the crate root as proof that no
+  destination module path could be inferred. The post-merge deep audit therefore refused a move
+  between `edit.rs` and `span.rs` because `framework_kernel` lives under `project/`. Move
+  planning now checks whether the attribute remaps the selected destination. It still refuses the
+  mapped physical target and the displaced conventional module path.
+
 - [x] B861: **structural descriptor arrays crowded scalar inspection out of compact disclosure.**
 
   A statement can expose replacement, deletion and insertion capabilities. Attaching all three to a

@@ -6,13 +6,20 @@ Start with the full handle returned by `project explore` or `project find`:
 fr project disclose <HANDLE> --token-limit 4096
 ```
 
+```sh
+fr project disclose <HANDLE> --view evidence --depth 3 --token-limit 4096
+```
+
+This source-free view catalogs `code_map`, `call_traces`, `impact` and `sources_and_sinks`. Follow
+an exact shortcut or root action. `object_digest` is a stable storage key; the Python SDK packs and
+lazily restores objects. Use `--proofs` only for cache or protocol tests.
+
 The first response contains semantic and source holes without either payload. Prefer a relevant
 `semantic_shortcuts` action whose `editable_scalars` count is nonzero for a scalar change or whose
 `editable_ir` count is nonzero for a typed-node or statement-list change. Run `reveal.arguments`
 exactly; do not reconstruct the handle, cursor, profile or limit.
-Each reveal exposes one IR level. Small scalars are inline and composite children remain holes with
-their own exact actions. Follow only the child whose `summary`, key and semantic address match the
-task. If `continuation` is present, run its exact arguments to finish that child page.
+Each reveal exposes one IR level. Follow the child whose summary, key and semantic address match the
+task. Run exact continuation arguments to finish a child page.
 
 An editable scalar includes `edit` with an opaque ID and exact `preview_template.arguments`.
 Replace only `<NEW_VALUE>` and run that array after `fr`:
@@ -22,8 +29,8 @@ fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE>
 fr author edit-body-disclosed <HANDLE> --edit <EDIT_ID> --to <NEW_VALUE> --write --plan-basis <PLAN_CONTEXT_BASIS>
 ```
 
-Equal values can have different IDs. Copy the ID associated with the intended semantic address.
-Preview and inspect the complete diff before the bound write. A large scalar appears as
+Equal values can have different IDs; use the one at the intended semantic address. Inspect the
+complete preview before the bound write. A large scalar appears as
 `from_commitment`; finish its page chain to obtain the edit without repeating its value. Stale,
 unknown, malformed and no-op capabilities refuse before mutation. The same request is
 `{"edit":"frde1:...","to":"..."}` under a batch/task `disclosed` field.
@@ -39,10 +46,9 @@ fr author edit-body-disclosed-ir <HANDLE> --edit <IR_EDIT_ID> --from ../node.jso
 fr author edit-body-disclosed-ir <HANDLE> --edit <DELETE_EDIT_ID>
 ```
 
-Replacement accepts the bound category. Insert-before and append accept a statement. Delete takes
-no value. Batch and task manifests carry `disclosed_ir: {edit,value?}`. The ID binds the revision,
-body, operation, category, exact position and current Merkle commitment; reveal a fresh capability
-after any source change.
+Replacement accepts the bound category; insert and append accept a statement; delete takes no
+value. Batch and task manifests carry `disclosed_ir: {edit,value?}`. Reveal a fresh capability after
+any source change.
 
 Use the `exact-source` hole only when semantic structure cannot support the edit or review. Source
 pages place their continuation hole in `frontier`; follow its exact action until the frontier is

@@ -25,8 +25,11 @@ mod digest;
 #[cfg(test)]
 mod digest_tests;
 mod disclose;
+mod evidence;
 pub use disclose::{
-    disclosure_budget_admitted, disclosure_frontier_after, disclosure_transition_allowed,
+    disclosure_budget_admitted, disclosure_frontier_after, disclosure_proof_parent,
+    disclosure_proof_step_allowed, disclosure_transition_allowed, disclosure_view_admitted,
+    object_merkle,
 };
 mod explore;
 mod fast_routes;
@@ -62,7 +65,7 @@ pub enum Command {
     Task(task::Options),
     #[command(about = "Discover a declaration and its behavior through a bounded agent profile.")]
     Explore(explore::Options),
-    #[command(about = "Reveal a Merkle-committed semantic view within a strict response budget.")]
+    #[command(about = "Reveal semantic IR or project evidence within a strict response budget.")]
     Disclose(disclose::Options),
     #[command(about = "Find declaration handles by literal name without loading file maps.")]
     Find(find::Options),

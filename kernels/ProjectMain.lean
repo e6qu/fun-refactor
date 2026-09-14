@@ -174,6 +174,16 @@ def main (args : List String) : IO Unit := do
     for hidden in disclosureSamples do
       for children in disclosureSamples do
         IO.println (FrKernels.Disclosure.frontierAfter hidden children)
+    for side in [0:4] do
+      for width in disclosureSamples do
+        for index in disclosureSamples do
+          IO.println (FrKernels.Disclosure.proofStepAllowed width index side)
+    for width in disclosureSamples do
+      for index in disclosureSamples do
+        IO.println (FrKernels.Disclosure.proofParent width index)
+    for view in [0:4] do
+      for depth in disclosureSamples do
+        IO.println (FrKernels.Disclosure.viewAdmitted view depth)
   else if args == ["disclosed-edit-admission"] then
     for fullHandle in [false, true] do
       for referenceFormat in [false, true] do

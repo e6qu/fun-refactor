@@ -1818,16 +1818,37 @@ fn rewrite_error_reads(body: &mut [Stmt], err: &str) {
 
 // ---------------------------------------------------------- our own furniture
 
+fn lowering_helper_name(name: &str) -> String {
+    name.chars()
+        .filter(|character| character.is_ascii_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
 /// The helpers this tool's writers emit, folded back out on the way in.
 fn strip_lowering_helpers(module: &mut Module) {
-    let ours = |name: &str| matches!(name, "frShow" | "frPrint" | "frFormat");
+    let ours = |name: &str| {
+        matches!(
+            lowering_helper_name(name).as_str(),
+            "frshow" | "frprint" | "frformat" | "frtruncrem" | "frfloorrem" | "frrem" | "frtrunc"
+        )
+    };
     // The definition may not even have parsed as a function: Zig's `comptime format` parameter
     // reads as no function at all.
     module.items.retain(|item| match item {
         Item::Function(f) => !ours(&f.name),
-        Item::Unsupported(u) => !["frShow", "frPrint", "frFormat"]
-            .iter()
-            .any(|name| u.source.trim_start().starts_with(&format!("fn {name}("))),
+        Item::Unsupported(u) => ![
+            "frShow",
+            "frPrint",
+            "frFormat",
+            "fr_trunc_rem",
+            "fr_floor_rem",
+            "frFloorRem",
+            "frRem",
+            "frTrunc",
+        ]
+        .iter()
+        .any(|name| u.source.trim_start().starts_with(&format!("fn {name}("))),
         _ => true,
     });
     fn fix(e: &mut Expr) {
@@ -1889,6 +1910,23 @@ fn strip_lowering_helpers(module: &mut Module) {
                     *e = match printing {
                         true => print_call(vec![value]),
                         false => value,
+                    };
+                }
+                Expr::Name(n)
+                    if matches!(lowering_helper_name(n).as_str(), "frtruncrem" | "frrem")
+                        && args.len() == 2 =>
+                {
+                    *e = Expr::Binary {
+                        op: BinaryOp::Rem,
+                        left: Box::new(args.remove(0)),
+                        right: Box::new(args.remove(0)),
+                    };
+                }
+                Expr::Name(n) if lowering_helper_name(n) == "frfloorrem" && args.len() == 2 => {
+                    *e = Expr::Binary {
+                        op: BinaryOp::FloorRem,
+                        left: Box::new(args.remove(0)),
+                        right: Box::new(args.remove(0)),
                     };
                 }
                 _ => {}
