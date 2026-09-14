@@ -538,6 +538,8 @@ def step(session, request):
         verify_prepared_evaluator(config)
         events_path = session / "events.jsonl"
         events = [json.loads(line) for line in events_path.read_text().splitlines()] if events_path.is_file() else []
+        if redundant_success(events, request):
+            raise ValueError("This exact request already succeeded; reuse its retained response")
         if source_mutation_requested(request) and not state_checked(
             events, config["original"], required_checks(config["task"])
         ):
@@ -662,6 +664,25 @@ def current_state_checked(events, state, required):
     if not mutations:
         return False
     return state_checked(events[mutations[-1] + 1:], state, required)
+
+
+def redundant_success(events, request):
+    """Return whether an exact request succeeded and none of its inputs changed afterward."""
+    for index in range(len(events) - 1, -1, -1):
+        event = events[index]
+        if event["request"] != request:
+            continue
+        payload = json.loads(event["visible"])
+        succeeded = payload.get("exit_code", 0) == 0 and "error" not in payload
+        if not succeeded:
+            return False
+        later = events[index + 1:]
+        inputs_changed = any(
+            entry["before"] != entry["after"] or entry["request"].get("tool") == "write"
+            for entry in later
+        )
+        return not inputs_changed
+    return False
 
 
 def coordinated_batch(events):

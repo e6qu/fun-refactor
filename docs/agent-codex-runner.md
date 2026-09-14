@@ -44,4 +44,11 @@ read-only binary for the pair, fingerprints the evaluator at preparation, and re
 workflow field with the expected shape. This cohort remains failed evidence and supports no
 acceptance or comparative-efficiency claim.
 
+The [second diagnostic pair](../tests/agent-eval/results/2026-09-14-deferred-diagnostic-2/manifest.json)
+confirmed the isolation fix. Both arms passed project and receiver oracles, exact reversal, ordered
+checks and index preservation. The file arm passed acceptance. The `fr` arm repeated one unchanged,
+successful batch preview, so the strict single-execution predicate rejected it. Instrumented steps
+now refuse an exact successful request until a source mutation or rewritten artifact changes its
+inputs, telling the agent to reuse the retained response.
+
 The command shape follows the official [Codex non-interactive command reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli#codex-exec) and [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference). `--ignore-user-config` still uses the operator's Codex home for authentication. Model availability and quota remain account-dependent; a failed launch stays part of the attempted trial record.

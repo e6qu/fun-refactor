@@ -1,0 +1,7 @@
+Implemented and validated:
+
+- Added documented `escape_len(pattern: &str) -> usize` to both crates.
+- Added allocation-free UTF-8 byte length calculation.
+- Updated escaping to preallocate sufficient capacity.
+- Preserved existing APIs, results, append behavior, and no-default-feature builds.
+- Completed checks, patch export/reapply, sentinel preservation, and receiver verification.

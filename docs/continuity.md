@@ -1320,6 +1320,9 @@ reference, while a concurrent Cargo build changed the shared debug executable an
 arm after its changed-state oracle passed. The harness now copies one read-only executable into each
 prepared experiment, fingerprints evaluator sources, shows an exact workflow manifest and returns
 field-specific manifest errors. Reruns belong in a separate cohort; the diagnostic remains immutable.
+The next isolated pair confirmed that correction and both arms passed the behavior and replay gates.
+Its `fr` arm still repeated one successful batch preview, so paired acceptance remained false. The
+instrument now refuses unchanged exact replays and directs the agent to its retained response.
 Routine CI keeps deterministic replay and does not consume agent quota; real-agent smoke pairs and cohorts are explicit authenticated runs.
 Each fresh trial must ignore user configuration, retain Codex JSONL events and record the CLI catalog entry and complete model settings.
 A small Terra or Sol calibration is reserved for milestones where Luna failures could otherwise conflate model capability with workflow usability.

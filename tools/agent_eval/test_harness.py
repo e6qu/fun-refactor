@@ -262,6 +262,25 @@ class AgentWorkflowV4Evidence(unittest.TestCase):
                 (result["passed"], result["context_tokens"], result["tool_calls"]), values
             )
 
+    def test_second_diagnostic_retains_behavior_success_and_protocol_failure(self):
+        evidence = TOOLS.parent / "tests/agent-eval/results/2026-09-14-deferred-diagnostic-2"
+        manifest = json.loads((evidence / "manifest.json").read_text())
+        self.assertFalse(manifest["acceptance"]["passed"])
+        self.assertEqual(manifest["implementation_commit"],
+                         "88d69ed5152890ab8ba0dbb07a227f6be5e1edd5")
+        for relative, sha256 in manifest["files"].items():
+            self.assertEqual(harness.digest(harness.within(evidence, relative).read_bytes()), sha256)
+        expected = {"fr": (False, 18358, 35), "files": (True, 11604, 21)}
+        for arm, values in expected.items():
+            result = json.loads(
+                (evidence / f"regex-escape-len-{arm}/result.json").read_text()
+            )
+            self.assertEqual(
+                (result["passed"], result["context_tokens"], result["tool_calls"]), values
+            )
+            self.assertTrue(result["oracle"]["passed"])
+            self.assertTrue(result["receiver_oracle"]["passed"])
+
 
 class ProjectBatchAgentEvidence(unittest.TestCase):
     def test_token_counts_canonicalize_opaque_identity_spellings(self):
@@ -449,6 +468,29 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
                     "evaluator_files": {"tools/agent-eval.py": "b" * 64},
                 })
         harness.verify_prepared_evaluator({})
+
+    def test_redundant_success_refuses_only_unchanged_exact_replays(self):
+        request = {"tool": "fr", "args": ["author", "batch", "--from", "plan.json"]}
+
+        def event(selected=request, exit_code=0, changed=False):
+            return {
+                "request": selected,
+                "visible": json.dumps({"exit_code": exit_code, "result": {}}),
+                "before": {"source": "old"},
+                "after": {"source": "new" if changed else "old"},
+            }
+
+        self.assertTrue(harness.redundant_success([event()], request))
+        self.assertFalse(harness.redundant_success([event(exit_code=1)], request))
+        self.assertFalse(harness.redundant_success(
+            [event(), event({"tool": "write", "path": "plan.json", "text": "new"})], request
+        ))
+        self.assertFalse(harness.redundant_success(
+            [event(), event({"tool": "sentinel"}, changed=True)], request
+        ))
+        self.assertFalse(harness.redundant_success(
+            [event()], {"tool": "fr", "args": ["author", "guide"]}
+        ))
 
     def test_new_task_preserves_old_scopes_and_has_complete_pairs(self):
         task = harness.regex_escape_len.TASK
