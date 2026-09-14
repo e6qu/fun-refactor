@@ -1584,3 +1584,10 @@ audit. A local run on this branch passed all five retained cohorts in 550.08 sec
 dependency bootstrap. The complete deep gate had already passed 14 whole-repository command
 agreements, both runtime conformance cases, all round trips and all 79 Lean tests including the two
 full self-audits.
+
+Strict source correspondence now extends beyond Rust. JavaScript, TypeScript, TSX, Go, Java,
+Python, Zig, Bash and Lean declarations expose their parameter names and shared-IR types to
+`fr spec check --strict`; untyped positions remain explicit as `unknown`. The check prefers an exact
+qualified method before any unqualified fallback and refuses ambiguous IR matches. Rust keeps its
+source-spelled type maps, while generated model scaffolding keeps its existing conservative Rust
+body subset.

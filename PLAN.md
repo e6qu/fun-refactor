@@ -1412,7 +1412,8 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 - Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
 - Native history has explicit, basis-bound replay-payload retention. Browser history remains
   session-only and records UTF-8 regular-file snapshots with mode `0644`; it does not provide crash recovery or persistence.
-- Strict signature maps currently accept Rust source declarations only.
+- Strict signature maps cover all readable code languages. Non-Rust maps use canonical shared-IR
+  types; markup, stylesheets, configuration and Markdown have no function signature surface.
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
 - LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.
 - Daemon/watch mode remains deferred until cache and repeated-query measurements justify it.

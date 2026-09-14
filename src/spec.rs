@@ -1877,7 +1877,7 @@ pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result
         ],
         correspondence: CorrespondenceEvidence {
             source_identity: "Declaration bytes match each recorded SHA-256 anchor.",
-            signature_surface: "Explicit maps match parsed Rust and Lean signatures.",
+            signature_surface: "Explicit maps match parsed source and Lean signatures.",
             tested_implementation_model: false,
             proved_implementation_model: false,
         },
@@ -3082,6 +3082,8 @@ fn check_with(
                 }
             };
             let mut report = report;
+            let signature_required = require_signatures
+                && detect(&report.source).is_some_and(crate::transpile::can_be_read);
             match signature_mapping(&text, line) {
                 Ok(Some(mapping)) => match mapped_signature(&report, &text, line, &mapping) {
                     Ok(()) => {
@@ -3097,7 +3099,7 @@ fn check_with(
                         })
                     }
                 },
-                Ok(None) if require_signatures => {
+                Ok(None) if signature_required => {
                     report.signature = Some(SignatureReport {
                         status: Status::Missing,
                         detail: Some(
@@ -3410,17 +3412,85 @@ fn mapped_signature(
     anchor_line: usize,
     mapping: &[(SignaturePart, SignaturePart)],
 ) -> Result<()> {
-    let source = rust_signature(&anchor.source, &anchor.symbol)?;
+    let source = source_signature(&anchor.source, &anchor.symbol)?;
     let model = lean_signature(spec, anchor_line)?;
     let expected_source = mapping.iter().map(|(source, _)| source).collect::<Vec<_>>();
     let expected_model = mapping.iter().map(|(_, model)| model).collect::<Vec<_>>();
     if source.iter().collect::<Vec<_>>() != expected_source {
-        bail!("the Rust signature no longer matches its explicit map");
+        bail!("the source signature no longer matches its explicit map");
     }
     if model.iter().collect::<Vec<_>>() != expected_model {
         bail!("the Lean declaration no longer matches its explicit map");
     }
     Ok(())
+}
+
+fn source_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
+    let language = detect(path)
+        .ok_or_else(|| anyhow::anyhow!("{} has no language this build reads", path.display()))?;
+    if language == crate::lang::Language::Rust {
+        return rust_signature(path, wanted);
+    }
+    if !crate::transpile::can_be_read(language) {
+        bail!("explicit signature maps require a readable imperative source declaration");
+    }
+    let module = crate::transpile::read_file(path)?;
+    let mut exact = Vec::new();
+    let mut fallback = Vec::new();
+    let bare = wanted.rsplit("::").next().unwrap_or(wanted);
+    for item in &module.items {
+        match item {
+            crate::transpile::ir::Item::Function(function) => {
+                let qualified = function.receiver.as_ref().map_or_else(
+                    || function.name.clone(),
+                    |owner| format!("{owner}::{}", function.name),
+                );
+                if qualified == wanted {
+                    exact.push(function);
+                } else if function.name.trim_start_matches('_') == bare {
+                    fallback.push(function);
+                }
+            }
+            crate::transpile::ir::Item::Record(record) => {
+                for function in &record.methods {
+                    if format!("{}::{}", record.name, function.name) == wanted {
+                        exact.push(function);
+                    } else if function.name.trim_start_matches('_') == bare {
+                        fallback.push(function);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let matches = if exact.is_empty() { fallback } else { exact };
+    let [function] = matches.as_slice() else {
+        bail!(
+            "{} names {} readable functions called {wanted}",
+            path.display(),
+            matches.len()
+        );
+    };
+    let mut parts = function
+        .params
+        .iter()
+        .filter(|parameter| parameter.kind != crate::transpile::ir::ParamKind::Marker)
+        .map(|parameter| SignaturePart {
+            name: parameter.name.clone(),
+            ty: parameter
+                .ty
+                .as_ref()
+                .map_or_else(|| "unknown".to_string(), ToString::to_string),
+        })
+        .collect::<Vec<_>>();
+    parts.push(SignaturePart {
+        name: "return".to_string(),
+        ty: function
+            .returns
+            .as_ref()
+            .map_or_else(|| "unknown".to_string(), ToString::to_string),
+    });
+    Ok(parts)
 }
 
 fn rust_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
@@ -3621,8 +3691,8 @@ fn debts_in(spec: &Path, text: &str) -> Vec<DebtReport> {
 mod tests {
     use super::{
         anchors_in, check, check_strict, ci, debts_in, declaration_hash, init, lean_package,
-        obligations_in, render_agent_proposition, scaffold, sync, AgentProposition, AgentTerm,
-        FormalBinding, FormalFunction, Status,
+        obligations_in, render_agent_proposition, scaffold, source_signature, sync,
+        AgentProposition, AgentTerm, FormalBinding, FormalFunction, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
@@ -3819,6 +3889,119 @@ mod tests {
             Status::Stale
         );
         assert!(!stale.ok());
+    }
+
+    #[test]
+    fn strict_signature_maps_use_shared_ir_types_for_every_non_rust_code_reader() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let fixtures = [
+            (
+                "code.py",
+                "current",
+                "def current(source: str, offset: int) -> str:\n    return source\n",
+                [("source", "string"), ("offset", "int"), ("return", "string")].as_slice(),
+            ),
+            (
+                "code.ts",
+                "current",
+                "export function current(source: string, offset: number): string { return source; }\n",
+                [("source", "string"), ("offset", "float"), ("return", "string")].as_slice(),
+            ),
+            (
+                "code.tsx",
+                "current",
+                "export function current(source: string, offset: number): string { return source; }\n",
+                [("source", "string"), ("offset", "float"), ("return", "string")].as_slice(),
+            ),
+            (
+                "code.js",
+                "current",
+                "export function current(source, offset) { return source; }\n",
+                [
+                    ("source", "unknown"),
+                    ("offset", "unknown"),
+                    ("return", "unknown"),
+                ]
+                .as_slice(),
+            ),
+            (
+                "code.go",
+                "current",
+                "package code\nfunc current(source string, offset int) string { return source }\n",
+                [("source", "string"), ("offset", "int"), ("return", "string")].as_slice(),
+            ),
+            (
+                "Code.java",
+                "Code::current",
+                "class Code { static String current(String source, long offset) { return source; } }\n",
+                [("source", "string"), ("offset", "int"), ("return", "string")].as_slice(),
+            ),
+            (
+                "code.zig",
+                "current",
+                "pub fn current(source: []const u8, offset: i64) []const u8 { return source; }\n",
+                [("source", "string"), ("offset", "int"), ("return", "string")].as_slice(),
+            ),
+            (
+                "code.sh",
+                "current",
+                "current() { local source=\"$1\"; printf \"%s\" \"$source\"; }\n",
+                [("a1", "unknown"), ("return", "unknown")].as_slice(),
+            ),
+            (
+                "code.lean",
+                "current",
+                "def current (source : String) (offset : Int) : String := source\n",
+                [("source", "string"), ("offset", "int"), ("return", "string")].as_slice(),
+            ),
+        ];
+        for (name, symbol, source, expected) in fixtures {
+            let path = root.join(name);
+            fs::write(&path, source).unwrap();
+            let actual = source_signature(&path, symbol).unwrap();
+            assert_eq!(
+                actual
+                    .iter()
+                    .map(|part| (part.name.as_str(), part.ty.as_str()))
+                    .collect::<Vec<_>>(),
+                expected,
+                "{name}::{symbol}"
+            );
+        }
+    }
+
+    #[test]
+    fn strict_check_accepts_and_then_detects_a_python_signature_change() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("specs")).unwrap();
+        let code = root.join("src/code.py");
+        fs::write(
+            &code,
+            "def current(source: str, offset: int) -> str:\n    return source\n",
+        )
+        .unwrap();
+        let hash =
+            declaration_hash(&mut Parsers::new(), &mut Extractor::new(), &code, "current").unwrap();
+        let spec = root.join("specs/code.lean");
+        let document = |source_type: &str| {
+            format!(
+                "-- fr:spec src/code.py::current @ {}\n-- fr:signature source: {source_type} => source: String; offset: int => offset: Int; return: string => return: String\ndef current (source : String) (offset : Int) : String := source\n",
+                &hash[..8]
+            )
+        };
+        fs::write(&spec, document("string")).unwrap();
+        assert!(check_strict(root, &[PathBuf::from("specs")], true)
+            .unwrap()
+            .ok());
+        fs::write(&spec, document("int")).unwrap();
+        let stale = check_strict(root, &[PathBuf::from("specs")], true).unwrap();
+        assert_eq!(
+            stale.anchors[0].signature.as_ref().unwrap().status,
+            Status::Stale
+        );
     }
 
     #[test]

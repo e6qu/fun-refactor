@@ -17,13 +17,15 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
 | `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence and remaining obligations |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
-| `fr spec check --strict` | Require an explicit signature map beside every source anchor |
+| `fr spec check --strict` | Require an explicit signature map beside every source anchor from a readable code language |
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
 | `kernels/` | Executable edit, position, history, checks, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
 
-Strict signature maps currently require Rust source declarations.
+Strict signature maps cover Rust plus the shared IR readers for JavaScript, TypeScript, TSX, Go,
+Java, Python, Zig, Bash and Lean. Rust maps retain source type spelling. Other readers expose their
+language-independent IR types such as `string`, `int`, `float`, `list<T>` and `unknown`.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
 A changed source signature remains visible after hash synchronization.
 The complete agent-oriented route and its correspondence limits are documented in the
@@ -76,6 +78,9 @@ A theorem about a Lean model alone does not prove the Rust implementation refine
 Translation into Lean does not supply that proof either.
 Implementation correspondence needs its own argument or a justified verified generation path.
 Keep assumptions, accepted axioms and trusted components visible in any verification report.
+Markup, stylesheets, configuration and Markdown have no function signature surface in this check;
+their declarations can still use source anchors. Generated kernel planning and scaffolding retain
+their conservative Rust subset because those commands also translate executable function bodies.
 
 ## Existing kernels
 
