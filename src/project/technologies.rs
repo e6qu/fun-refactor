@@ -20,13 +20,13 @@ pub fn technology_evidence_omitted(total: usize, limit: usize) -> usize {
 #[derive(clap::Args)]
 pub struct Options {
     #[command(flatten)]
-    selection: RelationshipOptions,
+    pub(super) selection: RelationshipOptions,
     #[arg(
         long,
         default_value_t = 4,
         help = "Evidence rows retained per technology, from 1 through 32."
     )]
-    evidence_limit: usize,
+    pub(super) evidence_limit: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize)]

@@ -43,6 +43,8 @@ pub mod scan;
 pub mod span;
 #[cfg(feature = "cli")]
 pub mod spec;
+#[path = "project/surface_kernel.rs"]
+pub mod surface_kernel;
 #[cfg(test)]
 pub mod testing;
 pub mod transaction_kernel;

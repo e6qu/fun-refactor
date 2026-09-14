@@ -12,8 +12,10 @@ import FrKernels.DisclosedEdit
 import FrKernels.DisclosedIrEdit
 import FrKernels.FormalPlan
 import FrKernels.Technology
+import FrKernels.Surface
 
 open FrKernels.Project
+open FrKernels.Surface
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
@@ -246,6 +248,14 @@ def main (args : List String) : IO Unit := do
                 for different in [false, true] do
                   IO.println (FrKernels.DisclosedIrEdit.admitted fullHandle referenceFormat
                     candidateCount currentMatches requestShape valueMatches different)
+  else if args == ["surface-coverage"] then
+    for definitionCount in frameworkSamples do
+      for tailwindContext in [false, true] do
+        IO.println (styleLiteralResolution definitionCount tailwindContext)
+    for total in frameworkSamples do
+      for limit in frameworkSamples do
+        IO.println (itemsEmitted total limit)
+        IO.println (itemsOmitted total limit)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

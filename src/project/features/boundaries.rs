@@ -169,7 +169,7 @@ fn next_lifecycles(
 }
 
 impl Project<'_> {
-    pub(super) fn file_source(&self, relative: &Path, line: usize) -> Value {
+    pub(crate) fn file_source(&self, relative: &Path, line: usize) -> Value {
         let handle = self
             .nodes
             .iter()

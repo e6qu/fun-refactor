@@ -372,6 +372,12 @@ Shared graph cases test Rust correspondence; Cargo interpretation remains outsid
 `fr project technologies` inventories JavaScript, TypeScript, React, Next.js, Go, Python,
 FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid as distinct surfaces.
 It returns source-free, content-addressed evidence with bounded counts and follow-up actions.
+`fr project styles` links CSS definitions to literal HTML/JSX class uses and marks Tailwind utility
+candidates only with package evidence. `fr project diagrams` retains Markdown heading hierarchy
+and embedded Mermaid node/edge graphs. Both reports preserve source handles and explicit gaps; see
+the [cross-stack surface model](docs/cross-stack-surfaces.md).
+`fr project disclose HANDLE --view project` commits these reports and application facts as four
+independently revealable Merkle branches.
 Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.
 Direct variable handlers expose initializer annotations. Nested app candidates retain captured npm dependency and package-boundary evidence.
 `fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.

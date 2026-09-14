@@ -14,6 +14,13 @@ boundaries; they are not a whole-program security-taint claim. `evidence_catalog
 four domains under the compact ceiling. Follow an available shortcut or reveal the tree root to
 obtain exact actions for the other branches.
 
+Use `--view project` with a full directory, file or declaration handle for the cross-stack model.
+Its four stable domains are `technologies`, `applications`, `styles` and
+`documents_and_diagrams`. A declaration selects its containing file. The initial
+`project_catalog` names every domain and the bounded shortcuts reveal individual content-addressed
+branches. The project view has no whole-source frontier; its facts retain narrow source handles for
+cases where the structured evidence or an explicit gap is insufficient.
+
 The initial `semantic_shortcuts` are a bounded abridged outline of named or kinded nodes in the
 committed model. Each shortcut has its semantic address, high-level labels, opaque hole, exact
 action and `editable_scalars` and `editable_ir` descendant counts. The counts let an agent skip
@@ -84,6 +91,10 @@ The Python SDK's `merkle_object_pack` splits a complete JSON value into deduplic
 record at most once and verifies every reconstructed value. A caller can persist, share or evict
 individual branches without rewriting the root object. Storage location, retention, authorization
 and transport remain the embedding application's policy.
+
+The same generic Python pack/restore API accepts a complete cross-stack project value. It has no
+schema-specific conversion layer: the Python object tree must preserve the Rust JSON shape and root
+digest exactly.
 
 The binary object tree hashes scalar values directly. Array leaves bind their numeric position and
 child digest. Object leaves bind their sorted position, key and child digest. Adjacent leaves hash

@@ -10,6 +10,10 @@ fr project show '<HANDLE>' --source --bytes 256
 fr project calls '<HANDLE>' --direction incoming --limit 8
 fr project tests app.py --limit 8
 fr project features --limit 12
+fr project technologies --limit 13
+fr project styles web --limit 12
+fr project diagrams docs --limit 12
+fr project disclose '<PROJECT_HANDLE>' --view project --token-limit 4096
 fr project gaps --limit 8
 ```
 
@@ -46,7 +50,14 @@ Call results preserve confidence and unresolved or dispatch-candidate rows; cand
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages`, `dependencies`, `links` and `workspaces` for manifest declarations and local relationships when package boundaries matter.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
-Use `project features [--feature ID]` for a bounded Next.js or FastAPI hierarchy. Treat middleware,
+Use `project features [--feature ID]` for a bounded Next.js, standalone React, Express.js or FastAPI hierarchy. Treat middleware,
 providers, render targets and test associations as syntax candidates that need source inspection.
+Use `project technologies` to distinguish host languages and frameworks before choosing a reader.
+Use `project styles` for CSS definitions and direct HTML/JSX class relationships, and `project diagrams`
+for Markdown heading and embedded Mermaid graph hierarchy. Follow their source handles only when the
+high-level fact or explicit gap is insufficient.
+When several cross-stack domains may matter, obtain a full map handle and start with
+`project disclose HANDLE --view project`. Read the four-entry catalog, reveal the narrow domain, and
+reuse its object digest with the Python Merkle object-store helpers when persistence is useful.
 Service targets redact credentials, queries and fragments. Reports retain explicit runtime and resolution gaps.
 These commands do not establish complete dependency resolution or framework semantics.

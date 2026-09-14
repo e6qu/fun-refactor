@@ -21,3 +21,4 @@ import FrKernels.DisclosedEdit
 import FrKernels.DisclosedIrEdit
 import FrKernels.FormalPlan
 import FrKernels.Technology
+import FrKernels.Surface

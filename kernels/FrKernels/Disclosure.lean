@@ -107,16 +107,20 @@ theorem admitted_proof_parent_halves_the_position
     rfl
   · contradiction
 
--- fr:spec src/project/disclose.rs::disclosure_view_admitted @ acf1eae98abf13266e19aca313c43378239be354451ae3dd8accae4ff9c13c21
+-- fr:spec src/project/disclose.rs::disclosure_view_admitted @ d776ce3bce558261102e236f8d6f3eb348fc3f718554c486de203dc6f64b26cf
 -- fr:signature view: usize => view: Nat; depth: usize => depth: Nat; return: bool => return: Bool
 def viewAdmitted (view : Nat) (depth : Nat) : Bool :=
-  decide (view = 0 ∨ (view = 1 ∧ depth ≤ 8))
+  decide (view = 0 ∨ ((view = 1 ∨ view = 2) ∧ depth ≤ 8))
 
 theorem evidence_view_bounds_analysis_depth
     (accepted : viewAdmitted 1 depth = true) : depth ≤ 8 := by
   simpa [viewAdmitted] using accepted
 
-theorem unknown_view_is_refused (invalid : 2 ≤ view) : viewAdmitted view depth = false := by
+theorem project_view_bounds_analysis_depth
+    (accepted : viewAdmitted 2 depth = true) : depth ≤ 8 := by
+  simpa [viewAdmitted] using accepted
+
+theorem unknown_view_is_refused (invalid : 3 ≤ view) : viewAdmitted view depth = false := by
   simp only [viewAdmitted, decide_eq_false_iff_not]
   omega
 

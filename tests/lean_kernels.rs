@@ -168,6 +168,39 @@ fn technology_evidence_partition_matches_lean_across_the_limit() {
     assert_eq!(actual.lines().collect::<Vec<_>>(), expected);
 }
 
+#[test]
+fn style_resolution_and_surface_bounds_match_lean() {
+    use fun_refactor::surface_kernel::{
+        style_literal_resolution, surface_items_emitted, surface_items_omitted,
+    };
+
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("surface-coverage")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let samples = [0, 1, 2, 63, 64, 65, 128, 512, 65536];
+    let mut expected = Vec::new();
+    for definition_count in samples {
+        for tailwind_context in [false, true] {
+            expected.push(style_literal_resolution(definition_count, tailwind_context).to_string());
+        }
+    }
+    for total in samples {
+        for limit in samples {
+            expected.push(surface_items_emitted(total, limit).to_string());
+            expected.push(surface_items_omitted(total, limit).to_string());
+        }
+    }
+    assert_eq!(actual.lines().collect::<Vec<_>>(), expected);
+}
+
 fn edits_for(source: &str) -> Vec<(usize, usize, &'static str)> {
     let mut edits = Vec::new();
     for start in 0..=source.len() {

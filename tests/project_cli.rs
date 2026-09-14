@@ -298,6 +298,89 @@ fn progressive_evidence_reveals_code_map_traces_impact_and_value_endpoints_witho
 }
 
 #[test]
+fn progressive_project_view_catalogs_cross_stack_merkle_domains_without_source() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "package.json",
+        r#"{"dependencies":{"express":"5","react":"19","tailwindcss":"4"}}"#,
+    );
+    put(
+        root,
+        "server.js",
+        "import express from 'express'; const app = express(); app.get('/health', health); function health() { return 'PRIVATE_API'; }\n",
+    );
+    put(
+        root,
+        "App.tsx",
+        "export function App() { return <main className=\"card p-4\">PRIVATE_UI</main>; }\n",
+    );
+    put(root, "style.css", ".card { color: red; }\n");
+    put(
+        root,
+        "index.html",
+        "<main class=\"card\">PRIVATE_HTML</main>\n",
+    );
+    put(
+        root,
+        "architecture.md",
+        "# Architecture\n\n```mermaid\nflowchart LR\nA[PRIVATE_LABEL] --> B\n```\n",
+    );
+    let mapped = ok(
+        root,
+        &["project", "map", ".", "--depth", "0", "--fields", "handle"],
+    );
+    let handle = mapped["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        root,
+        &[
+            "project",
+            "disclose",
+            handle,
+            "--view",
+            "project",
+            "--profile",
+            "expanded",
+            "--token-limit",
+            "16384",
+        ],
+    );
+    assert_disclosure_budget(&initial);
+    assert_eq!(initial["view"], "project");
+    assert_eq!(initial["frontier"].as_array().unwrap().len(), 1);
+    assert_eq!(initial["frontier"][0]["domain"], "cross-stack-project");
+    assert_eq!(
+        initial["project_catalog"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| row["domain"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "technologies",
+            "applications",
+            "styles",
+            "documents_and_diagrams"
+        ]
+    );
+    assert!(!initial.to_string().contains("PRIVATE_"));
+    let shortcuts = initial["project_shortcuts"].as_array().unwrap();
+    assert_eq!(shortcuts.len(), 4);
+    for shortcut in shortcuts {
+        assert!(shortcut["object_digest"].as_str().is_some());
+        let revealed = ok_owned(root, &exact_arguments(&shortcut["reveal"]["arguments"]));
+        assert_disclosure_budget(&revealed);
+        assert_eq!(revealed["revealed"]["domain"], "cross-stack-project");
+        assert!(revealed["revealed"]["object_digest"].as_str().is_some());
+        assert!(!revealed.to_string().contains("PRIVATE_"));
+    }
+    let stale_action = exact_arguments(&shortcuts[0]["reveal"]["arguments"]);
+    put(root, "style.css", ".card { color: blue; }\n");
+    assert!(!run_owned(root, &stale_action).0);
+}
+
+#[test]
 fn progressive_disclosure_keeps_source_bearing_bodies_readable_without_offering_edits() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(
@@ -9103,4 +9186,135 @@ fn technology_inventory_distinguishes_the_complete_requested_polyglot_stack() {
         )
         .0
     );
+}
+
+#[test]
+fn style_model_links_css_and_tailwind_literals_and_marks_dynamic_classes() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"react":"19","tailwindcss":"4"}}"#,
+    );
+    put(
+        root,
+        "web/site.css",
+        "@import \"tailwindcss\";\n.card { color: red; }\n.shared:hover { color: blue; }\n",
+    );
+    put(
+        root,
+        "web/index.html",
+        "<main class=\"card p-4 missing\">PRIVATE_HTML</main>\n",
+    );
+    put(
+        root,
+        "web/App.tsx",
+        "const className = 'PRIVATE_VARIABLE';\nexport function App() { const mode = 'PRIVATE_DYNAMIC'; return <><main className=\"shared p-2\"/><aside className = {'px-2'}/><nav className={mode}/></>; }\n",
+    );
+
+    let report = ok(root, &["project", "styles", "--limit", "500"]);
+    assert_eq!(report["style_schema"], "fr-project-styles-1");
+    assert_eq!(report["analysis"]["css_class_definitions"], 2, "{report}");
+    assert_eq!(report["analysis"]["literal_class_uses"], 6, "{report}");
+    assert_eq!(report["analysis"]["literal_class_uses_omitted"], 0);
+    assert_eq!(report["analysis"]["dynamic_class_gaps"], 1, "{report}");
+    assert_eq!(report["analysis"]["tailwind_contexts"], 1, "{report}");
+    assert!(!report.to_string().contains("PRIVATE_"));
+    let items = report["items"].as_array().unwrap();
+    let card = items
+        .iter()
+        .find(|row| row["kind"] == "css-class-definition" && row["class"]["name"] == "card")
+        .unwrap();
+    let use_card = items
+        .iter()
+        .find(|row| row["kind"] == "class-use" && row["class_use"]["name"] == "card")
+        .unwrap();
+    assert_eq!(use_card["status"], "resolved");
+    assert_eq!(
+        use_card["class_use"]["definition_ids"],
+        serde_json::json!([card["id"].clone()])
+    );
+    for utility in ["p-4", "missing", "p-2", "px-2"] {
+        let row = items
+            .iter()
+            .find(|row| row["kind"] == "class-use" && row["class_use"]["name"] == utility)
+            .unwrap();
+        assert_eq!(row["status"], "candidate");
+        assert_eq!(
+            row["evidence"]["basis"],
+            "tailwind-literal-utility-candidate"
+        );
+    }
+    assert!(items.iter().any(|row| {
+        row["kind"] == "style-gap" && row["evidence"]["basis"] == "dynamic-class-attribute"
+    }));
+    assert!(items
+        .iter()
+        .filter(|row| row["kind"] != "tailwind-context")
+        .all(|row| { row["source"]["handle"].as_str().is_some() }));
+}
+
+#[test]
+fn diagram_model_nests_mermaid_graphs_under_markdown_headings() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "architecture.md",
+        concat!(
+            "# Architecture\n\n",
+            "## Details\n\n",
+            "```mermaid\n",
+            "flowchart LR\n",
+            "A[PRIVATE_LABEL] --> B\n",
+            "style A fill:#fff\n",
+            "```\n\n",
+            "~~~mermaid\n",
+            "sequenceDiagram\n",
+            "participant Client\n",
+            "Client->>API: PRIVATE_MESSAGE\n",
+            "~~~\n",
+        ),
+    );
+
+    let report = ok(root, &["project", "diagrams", "--limit", "500"]);
+    assert_eq!(report["diagram_schema"], "fr-project-diagrams-1");
+    assert_eq!(report["analysis"]["documents"], 1, "{report}");
+    assert_eq!(report["analysis"]["headings"], 2, "{report}");
+    assert_eq!(report["analysis"]["diagrams"], 2, "{report}");
+    assert_eq!(report["analysis"]["nodes"], 4, "{report}");
+    assert_eq!(report["analysis"]["edges"], 2, "{report}");
+    assert_eq!(report["analysis"]["gaps"], 1, "{report}");
+    assert!(!report.to_string().contains("PRIVATE_"));
+    let items = report["items"].as_array().unwrap();
+    let details = items
+        .iter()
+        .find(|row| row["kind"] == "markdown-heading" && row["heading"]["title"] == "Details")
+        .unwrap();
+    let diagrams = items
+        .iter()
+        .filter(|row| row["kind"] == "mermaid-diagram")
+        .collect::<Vec<_>>();
+    assert_eq!(diagrams.len(), 2);
+    assert!(diagrams
+        .iter()
+        .all(|diagram| diagram["parent"] == details["id"]));
+    for diagram in diagrams {
+        let diagram_id = &diagram["id"];
+        assert!(items.iter().any(|row| {
+            matches!(row["kind"].as_str(), Some("mermaid-node" | "mermaid-edge"))
+                && row["parent"] == *diagram_id
+        }));
+    }
+    let edge = items
+        .iter()
+        .find(|row| row["kind"] == "mermaid-edge" && row["edge"]["from"] == "A")
+        .unwrap();
+    assert_eq!(edge["edge"]["to"], "B");
+    assert!(edge["edge"]["from_id"].as_str().is_some());
+    assert!(edge["edge"]["to_id"].as_str().is_some());
+    assert!(items
+        .iter()
+        .all(|row| row["source"]["handle"].as_str().is_some()));
 }

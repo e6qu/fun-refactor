@@ -60,7 +60,9 @@ pub(crate) fn scalar_is_inline(value: &Value) -> Result<bool> {
 
 #[derive(Args)]
 pub struct Options {
-    #[arg(help = "Full revision-bound declaration handle.")]
+    #[arg(
+        help = "Full revision-bound project handle; semantic and evidence views require a declaration."
+    )]
     target: String,
     #[arg(
         long,
@@ -85,7 +87,7 @@ pub struct Options {
         long,
         value_enum,
         default_value = "semantic",
-        help = "Reveal authorable semantic IR or source-free project evidence."
+        help = "Reveal semantic IR, analysis evidence or cross-stack project objects."
     )]
     view: DisclosureView,
     #[arg(
@@ -106,6 +108,7 @@ pub struct Options {
 enum DisclosureView {
     Semantic,
     Evidence,
+    Project,
 }
 
 pub fn disclosure_budget_admitted(
@@ -149,7 +152,7 @@ pub fn disclosure_proof_parent(width: usize, index: usize) -> Option<(usize, usi
 }
 
 pub fn disclosure_view_admitted(view: usize, depth: usize) -> bool {
-    view == 0 || (view == 1 && depth <= 8)
+    view == 0 || ((view == 1 || view == 2) && depth <= 8)
 }
 
 #[derive(Clone)]
@@ -554,6 +557,50 @@ fn evidence_catalog(view: &View) -> Result<Vec<Value>> {
         .collect())
 }
 
+const PROJECT_DOMAINS: [&str; 4] = [
+    "technologies",
+    "applications",
+    "styles",
+    "documents_and_diagrams",
+];
+
+fn project_shortcuts(view: &View, options: &Options) -> Result<Vec<Value>> {
+    let object = view
+        .model
+        .as_object()
+        .context("cross-stack project root is not an object")?;
+    PROJECT_DOMAINS
+        .into_iter()
+        .filter_map(|name| object.get(name).map(|value| (name, value)))
+        .take(options.profile.row_limit())
+        .map(|(name, value)| {
+            let pointer = pointer_child("/model", name);
+            let digest = merkle(value)?;
+            let id = hole_id(&view.basis, &pointer, &digest)?;
+            Ok(json!({
+                "domain": name,
+                "address": format!("{}#{pointer}", view.semantic_basis),
+                "value_kind": value_kind(value),
+                "object_digest": object_merkle(value)?,
+                "hole": id,
+                "reveal": {"arguments": arguments(options, &id, None)}
+            }))
+        })
+        .collect()
+}
+
+fn project_catalog(view: &View) -> Result<Vec<Value>> {
+    let object = view
+        .model
+        .as_object()
+        .context("cross-stack project root is not an object")?;
+    PROJECT_DOMAINS
+        .into_iter()
+        .filter_map(|name| object.get(name).map(|value| (name, value)))
+        .map(|(name, value)| Ok(json!({"domain": name, "object_digest": object_merkle(value)?})))
+        .collect()
+}
+
 fn hole_id(basis: &str, pointer: &str, digest: &str) -> Result<String> {
     Ok(format!("frh1:{}", hash((SCHEMA, basis, pointer, digest))?))
 }
@@ -688,10 +735,17 @@ fn arguments(options: &Options, hole: &str, cursor: Option<&str>) -> Vec<String>
     if options.profile == AgentProfile::Expanded {
         args.extend(["--profile".into(), "expanded".into()]);
     }
-    if options.view == DisclosureView::Evidence {
+    if matches!(
+        options.view,
+        DisclosureView::Evidence | DisclosureView::Project
+    ) {
         args.extend([
             "--view".into(),
-            "evidence".into(),
+            match options.view {
+                DisclosureView::Evidence => "evidence".into(),
+                DisclosureView::Project => "project".into(),
+                DisclosureView::Semantic => unreachable!(),
+            },
             "--depth".into(),
             options.depth.to_string(),
         ]);
@@ -709,6 +763,7 @@ fn tree_domain(view: &View) -> &'static str {
     match view.kind {
         DisclosureView::Semantic => "semantic-ir",
         DisclosureView::Evidence => "project-evidence",
+        DisclosureView::Project => "cross-stack-project",
     }
 }
 
@@ -908,16 +963,65 @@ fn base(project: &Project<'_>, view: &View, options: &Options) -> Result<Value> 
 }
 
 impl Project<'_> {
+    fn cross_stack_project_model(&self, selected: usize) -> Result<Value> {
+        let mut scope = selected;
+        while self.nodes[scope].symbol.is_some() {
+            scope = self.nodes[scope]
+                .parent
+                .context("selected declaration has no containing file")?;
+        }
+        let target = self.handle(scope);
+        let relationship = || super::RelationshipOptions {
+            target: target.clone(),
+            revision: None,
+            limit: 500,
+            cursor: None,
+        };
+        let technologies = self.technologies(&super::technologies::Options {
+            selection: relationship(),
+            evidence_limit: 4,
+        })?;
+        let applications = self.features(&super::FeatureOptions {
+            selection: relationship(),
+            feature: None,
+        })?;
+        let styles = self.styles(&relationship())?;
+        let diagrams = self.diagrams(&relationship())?;
+        Ok(json!({
+            "schema": "fr-cross-stack-project-1",
+            "scope": {"target": target, "selected": self.handle(selected)},
+            "technologies": {
+                "schema": technologies["technology_schema"],
+                "items": technologies["items"], "page": technologies["page"],
+                "analysis": technologies["analysis"]
+            },
+            "applications": {
+                "items": applications["items"], "page": applications["page"],
+                "analysis": applications["analysis"]
+            },
+            "styles": {
+                "schema": styles["style_schema"], "items": styles["items"],
+                "page": styles["page"], "analysis": styles["analysis"]
+            },
+            "documents_and_diagrams": {
+                "schema": diagrams["diagram_schema"], "items": diagrams["items"],
+                "page": diagrams["page"], "analysis": diagrams["analysis"]
+            }
+        }))
+    }
+
     fn disclosure_view(&self, options: &Options) -> Result<View> {
         ensure!(
             options.target.starts_with("frp1:"),
             "project disclose requires a full revision-bound declaration handle."
         );
         let id = self.resolve_handle(&options.target)?;
-        ensure!(
-            self.nodes[id].symbol.is_some(),
-            "project disclose requires a declaration handle."
-        );
+        if options.view != DisclosureView::Project {
+            ensure!(
+                self.nodes[id].symbol.is_some(),
+                "semantic and evidence disclosure require a declaration handle."
+            );
+        }
         let semantic = if options.view == DisclosureView::Semantic {
             let semantic = self.semantic(&super::semantic::Options {
                 target: options.target.clone(),
@@ -950,7 +1054,7 @@ impl Project<'_> {
                     .context("semantic response omitted its basis")?
                     .to_owned(),
             ),
-            None => {
+            None if options.view == DisclosureView::Evidence => {
                 let model = self.evidence_model(id, options.depth)?;
                 let basis = format!(
                     "frpe1:{}",
@@ -959,6 +1063,19 @@ impl Project<'_> {
                         &self.revision,
                         &options.target,
                         options.depth,
+                        object_merkle(&model)?
+                    ))?
+                );
+                (model, basis)
+            }
+            None => {
+                let model = self.cross_stack_project_model(id)?;
+                let basis = format!(
+                    "frpx1:{}",
+                    hash((
+                        "fr-cross-stack-project-1",
+                        &self.revision,
+                        &options.target,
                         object_merkle(&model)?
                     ))?
                 );
@@ -1033,8 +1150,12 @@ impl Project<'_> {
                 }
             }
         }
-        let (source, span) = self.source(id)?;
-        let source = source[span.start..span.end].to_owned();
+        let source = if options.view == DisclosureView::Project {
+            String::new()
+        } else {
+            let (source, span) = self.source(id)?;
+            source[span.start..span.end].to_owned()
+        };
         let source_root = hash((TREE_SCHEMA, "source", source.as_bytes()))?;
         let root = hash((
             TREE_SCHEMA,
@@ -1065,6 +1186,16 @@ impl Project<'_> {
                 options.view,
                 options.depth,
             ))?,
+            DisclosureView::Project => hash((
+                SCHEMA,
+                &self.revision,
+                &options.target,
+                &semantic_basis,
+                &root,
+                options.profile,
+                options.token_limit,
+                options.view,
+            ))?,
         };
         let basis = format!("frdv1:{basis_digest}");
         Ok(View {
@@ -1094,25 +1225,34 @@ impl Project<'_> {
             None => {
                 ensure!(options.cursor.is_none(), "--cursor requires --reveal.");
                 report["status"] = json!("frontier");
-                report["frontier"] = json!([
-                    semantic_hole(&view, options, "/model", &view.model)?,
-                    source_hole(&view, options, 0, None)?
-                ]);
+                report["frontier"] = if options.view == DisclosureView::Project {
+                    json!([semantic_hole(&view, options, "/model", &view.model)?])
+                } else {
+                    json!([
+                        semantic_hole(&view, options, "/model", &view.model)?,
+                        source_hole(&view, options, 0, None)?
+                    ])
+                };
                 let mut shortcuts = match options.view {
                     DisclosureView::Semantic => semantic_shortcuts(&view, options)?,
                     DisclosureView::Evidence => evidence_shortcuts(&view, options)?,
+                    DisclosureView::Project => project_shortcuts(&view, options)?,
                 };
                 let shortcut_field = match options.view {
                     DisclosureView::Semantic => "semantic_shortcuts",
                     DisclosureView::Evidence => "evidence_shortcuts",
+                    DisclosureView::Project => "project_shortcuts",
                 };
                 report[shortcut_field] = json!(shortcuts);
                 if options.view == DisclosureView::Evidence {
                     report["evidence_catalog"] = json!(evidence_catalog(&view)?);
+                } else if options.view == DisclosureView::Project {
+                    report["project_catalog"] = json!(project_catalog(&view)?);
                 }
                 report["instructions"] = match options.view {
                     DisclosureView::Semantic => json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Structural IR descriptors require the expanded profile. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary."),
                     DisclosureView::Evidence => json!("Prefer a relevant evidence_shortcuts action for code_map, call_traces, impact or sources_and_sinks. Object digests address reusable Merkle subtrees. Follow exact returned actions and reveal exact source only when structured evidence is insufficient; request --proofs only when independently verifying a subtree."),
+                    DisclosureView::Project => json!("Prefer a relevant project_shortcuts action for technologies, applications, styles or documents_and_diagrams. Follow exact returned actions and reveal exact source only when a high-level fact or explicit gap is insufficient."),
                 };
                 report["shortcut_budget"] = json!({
                     "limit": options.profile.row_limit(),

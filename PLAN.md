@@ -1339,10 +1339,17 @@ Planned checkpoints:
    group under their nearest captured npm package. React packages outside Next.js form entry-rooted
    component features with bounded relative-import expansion. A source-anchored Lean predicate
    excludes Next.js packages and incomplete parser evidence from standalone admission.
-3. **Planned.** Add CSS/Tailwind and Markdown/Mermaid high-level relationship models.
-4. **Planned.** Join every new object type to progressive disclosure and the Python SDK.
+3. **Complete.** Add CSS/Tailwind and Markdown/Mermaid high-level relationship models. CSS names
+   link to literal HTML/JSX uses; Tailwind candidates require package evidence and computed classes
+   remain gaps. Markdown headings own Mermaid fences, whose bounded nodes and edges retain exact
+   source handles without labels or messages.
+4. **Complete.** Join every new object type to progressive disclosure and the Python SDK. The
+   project view commits technology, application, style and document/diagram domains beneath one
+   Merkle root, exposes bounded exact actions and reuses the schema-independent Python object pack.
 5. **Planned.** Expand checked semantic authoring across the requested host structures.
-6. **Planned.** Add Lean policies, exhaustive correspondence and the complete repository gates.
+6. **In progress.** Add Lean policies, exhaustive correspondence and the complete repository gates.
+   Inventory evidence partitioning, standalone React admission, style resolution and generic
+   surface omission bounds are anchored and executable.
 
 ## Formal verification policy
 

@@ -780,6 +780,7 @@ fr project explore parse --mode behavior --target '<HANDLE>'
 fr project disclose '<HANDLE>' --token-limit 4096
 fr project disclose '<HANDLE>' --view evidence --depth 3 --token-limit 4096
 fr project disclose '<HANDLE>' --view evidence --proofs --profile expanded --token-limit 16384
+fr project disclose '<PROJECT_HANDLE>' --view project --profile expanded --token-limit 16384
 fr project batch --from agent-queries.json --profile compact
 fr project map src --depth 4 --limit 80
 fr project map src/app.py --fields id,parent,kind,name,signature
@@ -798,6 +799,10 @@ fr project routes src --limit 40
 fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project technologies . --limit 40 --evidence-limit 4
 fr project technologies '<DIRECTORY_HANDLE>' --cursor '<NEXT>'
+fr project styles web --limit 40
+fr project styles '<DIRECTORY_HANDLE>' --cursor '<NEXT>'
+fr project diagrams docs --limit 40
+fr project diagrams '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project contracts src --limit 40
 fr project contracts '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project features src --limit 40
@@ -847,6 +852,17 @@ A short ID without its revision cannot identify a symbol for `show`.
 selected scope. Detected rows contain no source text. Each evidence row carries its path, basis,
 content address and exact map or show action. `--evidence-limit` defaults to four and accepts one
 through thirty-two rows per surface. Its value participates in cursor identity.
+
+`styles` reports CSS class definitions and direct literal `class` or `className` tokens in HTML,
+JSX and TSX. A unique name match resolves to its definition ID. A literal without a captured CSS
+definition becomes a Tailwind candidate only beneath a package that declares Tailwind CSS.
+Computed attributes and per-attribute token overflow are explicit gaps. The report does not claim
+cascade, specificity, generated utility or runtime output semantics.
+
+`diagrams` preserves Markdown documents and ATX heading hierarchy, then nests each Mermaid fence,
+node and edge beneath it. It recognizes common Mermaid diagram headers and bounded node/edge
+operators without returning labels or message text. Unknown kinds, unclosed fences, unmodeled lines
+and per-diagram overflow remain explicit gaps. It does not execute Mermaid or validate rendering.
 
 `show` returns a bounded signature and node metadata before any source body.
 Its `position` gives the name’s 1-based line and column for existing refactoring targets.
@@ -914,6 +930,11 @@ agent can stay source-free until source is necessary. See
 impact candidates, and local value origins and uses. Each subtree has a stable `object_digest`
 suited to local or remote object-storage keys. Ordinary agent responses omit inclusion paths;
 `--proofs` adds them for evaluators and cache audits and may require the expanded limit.
+`--view project` accepts a full directory, file or declaration handle. It commits four source-free
+domains: technologies, applications, styles and documents/diagrams. A declaration scopes those
+domains to its containing file. The initial catalog always names all four; exact shortcut and root
+actions progressively reveal their versioned flat-report objects. Source stays behind handles held
+by individual facts rather than becoming part of this project-wide frontier.
 Authorable revealed scalars include an opaque exact-edit capability and preview action; see
 [disclosure-bound editing](docs/disclosed-editing.md).
 Inside `project batch`, the disclosure bound retains its standalone meaning. The batch profile and

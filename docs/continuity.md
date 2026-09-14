@@ -32,8 +32,11 @@ The active PR 28 adds explicit agent-facing coverage for JavaScript, TypeScript,
 Go, Python, FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid. Its first
 checkpoint adds a revision-bound technology taxonomy and source-free evidence inventory. The
 second adds Express package/route applications and standalone React package/entry-component
-features, including bounded import expansion and proof-backed standalone admission. Later
-checkpoints extend style, diagram, progressive-disclosure and checked-authoring models.
+features, including bounded import expansion and proof-backed standalone admission. The third adds
+source-free CSS/Tailwind relationships and Markdown/Mermaid hierarchies with proof-backed resolution
+and omission policies. The fourth places all of these beside application facts in a four-domain
+cross-stack Merkle view that accepts project handles and reuses the generic Python object pack.
+Later checkpoints extend checked-authoring models.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
