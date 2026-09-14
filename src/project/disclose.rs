@@ -138,8 +138,8 @@ pub fn disclosure_proof_step_allowed(width: usize, index: usize, side: usize) ->
         && index < width
         && match side {
             0 => index % 2 == 1,
-            1 => index % 2 == 0 && index + 1 < width,
-            2 => index % 2 == 0 && index + 1 == width,
+            1 => index.is_multiple_of(2) && index + 1 < width,
+            2 => index.is_multiple_of(2) && index + 1 == width,
             _ => false,
         }
 }
@@ -231,12 +231,7 @@ pub fn object_merkle(value: &Value) -> Result<String> {
                 .iter()
                 .enumerate()
                 .map(|(index, value)| {
-                    Ok(hash((
-                        OBJECT_SCHEMA,
-                        "array-entry",
-                        index,
-                        object_merkle(value)?,
-                    ))?)
+                    hash((OBJECT_SCHEMA, "array-entry", index, object_merkle(value)?))
                 })
                 .collect::<Result<Vec<_>>>()?;
             hash((OBJECT_SCHEMA, "array", values.len(), binary_root(leaves)?))
@@ -248,13 +243,13 @@ pub fn object_merkle(value: &Value) -> Result<String> {
                 .iter()
                 .enumerate()
                 .map(|(index, (key, value))| {
-                    Ok(hash((
+                    hash((
                         OBJECT_SCHEMA,
                         "object-entry",
                         index,
                         key,
                         object_merkle(value)?,
-                    ))?)
+                    ))
                 })
                 .collect::<Result<Vec<_>>>()?;
             hash((

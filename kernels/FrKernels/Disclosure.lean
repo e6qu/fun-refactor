@@ -70,7 +70,7 @@ theorem reveal_replaces_exactly_one_hole (present : 0 < hidden)
 theorem empty_frontier_cannot_be_revealed : frontierAfter 0 children = none := by
   simp [frontierAfter]
 
--- fr:spec src/project/disclose.rs::disclosure_proof_step_allowed @ 8dac20e9716e2f19b56ef9cd1737a8e771bc88e66e52b5c9b92271f312f73ea8
+-- fr:spec src/project/disclose.rs::disclosure_proof_step_allowed @ 8ad28700d7ebba6e17bf15f50fcbc1f84932ef2318efd982e7c322ee7fb2127c
 -- fr:signature width: usize => width: Nat; index: usize => index: Nat; side: usize => side: Nat; return: bool => return: Bool
 def proofStepAllowed (width : Nat) (index : Nat) (side : Nat) : Bool :=
   decide (1 < width ∧ index < width ∧
