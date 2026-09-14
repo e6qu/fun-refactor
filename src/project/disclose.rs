@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 const SCHEMA: &str = "fr-progressive-disclosure-1";
 const TREE_SCHEMA: &str = "fr-semantic-merkle-1";
 pub(crate) const EDIT_SCHEMA: &str = "fr-disclosed-edit-1";
+pub(crate) const IR_EDIT_SCHEMA: &str = "fr-disclosed-ir-edit-1";
 const INLINE_SCALAR_BYTES: usize = 128;
 const MIN_TOKEN_LIMIT: usize = 1_024;
 
@@ -17,8 +18,24 @@ pub(crate) struct EditRequest {
     pub(crate) to: String,
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct IrEditRequest {
+    pub(crate) edit: String,
+    pub(crate) value: Option<Value>,
+}
+
 pub(crate) fn edit_id_well_formed(value: &str) -> bool {
     value.strip_prefix("frde1:").is_some_and(|digest| {
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    })
+}
+
+pub(crate) fn ir_edit_id_well_formed(value: &str) -> bool {
+    value.strip_prefix("frdi1:").is_some_and(|digest| {
         digest.len() == 64
             && digest
                 .bytes()
@@ -100,6 +117,7 @@ struct View {
     basis: String,
     source: String,
     edits: Vec<DisclosedEdit>,
+    ir_edits: Vec<DisclosedIrEdit>,
 }
 
 #[derive(Clone)]
@@ -108,6 +126,13 @@ struct DisclosedEdit {
     pointer: String,
     operation: String,
     from: Value,
+}
+
+#[derive(Clone)]
+struct DisclosedIrEdit {
+    id: String,
+    pointer: String,
+    target: super::semantic_change::BodyStructuralTarget,
 }
 
 struct ChildReveal<'a> {
@@ -123,7 +148,7 @@ struct StringReveal<'a> {
     start: usize,
 }
 
-fn merkle(value: &Value) -> Result<String> {
+pub(crate) fn merkle(value: &Value) -> Result<String> {
     match value {
         Value::Null => hash((TREE_SCHEMA, "null")),
         Value::Bool(value) => hash((TREE_SCHEMA, "bool", value)),
@@ -198,11 +223,19 @@ fn semantic_shortcuts(view: &View, options: &Options) -> Result<Vec<Value>> {
                             edit.pointer == pointer || edit.pointer.starts_with(&descendant)
                         })
                         .count();
+                    let editable_ir = view
+                        .ir_edits
+                        .iter()
+                        .filter(|edit| {
+                            edit.pointer == pointer || edit.pointer.starts_with(&descendant)
+                        })
+                        .count();
                     out.push(json!({
                         "address": format!("{}#{pointer}", view.semantic_basis),
                         "kind": object.get("kind").and_then(Value::as_str).map(|value| bounded_text(value, 80)),
                         "name": object.get("name").and_then(Value::as_str).map(|value| bounded_text(value, 160)),
                         "editable_scalars": editable_scalars,
+                        "editable_ir": editable_ir,
                         "hole": id,
                         "reveal": {"arguments": arguments(options, &id, None)}
                     }));
@@ -261,6 +294,30 @@ pub(crate) fn disclosed_edit_id(
     ))
 }
 
+pub(crate) fn disclosed_ir_edit_id(
+    revision: &str,
+    target: &str,
+    body_basis: &str,
+    structural: &super::semantic_change::BodyStructuralTarget,
+) -> Result<String> {
+    Ok(format!(
+        "frdi1:{}",
+        hash((
+            IR_EDIT_SCHEMA,
+            revision,
+            target,
+            body_basis,
+            &structural.address_pointer,
+            &structural.path,
+            structural.index,
+            structural.category,
+            structural.operation,
+            structural.placement,
+            merkle(&structural.current)?
+        ))?
+    ))
+}
+
 fn edit_descriptor(view: &View, pointer: &str) -> Result<Option<Value>> {
     let Some(edit) = view.edits.iter().find(|edit| edit.pointer == pointer) else {
         return Ok(None);
@@ -283,6 +340,47 @@ fn edit_descriptor(view: &View, pointer: &str) -> Result<Option<Value>> {
         descriptor["from_commitment"] = scalar_commitment(&edit.from)?;
     }
     Ok(Some(descriptor))
+}
+
+fn ir_edit_descriptors(view: &View, pointer: &str) -> Result<Vec<Value>> {
+    view.ir_edits
+        .iter()
+        .filter(|edit| edit.pointer == pointer)
+        .map(|edit| {
+            let mut arguments = vec![
+                "author",
+                "edit-body-disclosed-ir",
+                &view.target,
+                "--edit",
+                &edit.id,
+            ];
+            if edit.target.operation.value_required() {
+                arguments.extend(["--from", "<IR_NODE_JSON>"]);
+            }
+            let mut descriptor = json!({
+                "schema": IR_EDIT_SCHEMA,
+                "id": edit.id,
+                "operation": edit.target.operation.name(),
+                "placement": edit.target.placement,
+                "accepts": edit.target.category,
+                "current_commitment": scalar_commitment(&edit.target.current)?,
+                "preview_template": {
+                    "arguments": arguments,
+                    "replace": if edit.target.operation.value_required() {
+                        json!("<IR_NODE_JSON>")
+                    } else {
+                        Value::Null
+                    }
+                }
+            });
+            if edit.target.operation.value_required() {
+                descriptor["schema_action"] = json!({
+                    "arguments": ["author", "semantic-schema", edit.target.category.name()]
+                });
+            }
+            Ok(descriptor)
+        })
+        .collect()
 }
 
 fn arguments(options: &Options, hole: &str, cursor: Option<&str>) -> Vec<String> {
@@ -525,6 +623,7 @@ impl Project<'_> {
             .to_owned();
         let semantic_root = merkle(&model)?;
         let mut edits = Vec::new();
+        let mut ir_edits = Vec::new();
         let node = &self.nodes[id];
         if semantic["body_identity"]["status"] == "available"
             && node
@@ -565,6 +664,25 @@ impl Project<'_> {
                             from: scalar.from,
                         });
                     }
+                    for structural in super::semantic_change::body_structural_targets(&candidate)? {
+                        let pointer = format!("/model/items/0/value{}", structural.address_pointer);
+                        ensure!(
+                            model
+                                .pointer(pointer.trim_start_matches("/model"))
+                                .is_some(),
+                            "disclosed structural edit does not match its semantic address."
+                        );
+                        ir_edits.push(DisclosedIrEdit {
+                            id: disclosed_ir_edit_id(
+                                &self.revision,
+                                &options.target,
+                                &body_basis,
+                                &structural,
+                            )?,
+                            pointer,
+                            target: structural,
+                        });
+                    }
                 }
             }
         }
@@ -601,6 +719,7 @@ impl Project<'_> {
             basis,
             source,
             edits,
+            ir_edits,
         })
     }
 
@@ -621,7 +740,7 @@ impl Project<'_> {
                 ]);
                 let mut shortcuts = semantic_shortcuts(&view, options)?;
                 report["semantic_shortcuts"] = json!(shortcuts);
-                report["instructions"] = json!("Prefer a relevant semantic_shortcuts action. An editable_scalars count identifies authorable descendants without revealing them. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary.");
+                report["instructions"] = json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary.");
                 report["shortcut_budget"] = json!({
                     "limit": options.profile.row_limit(),
                     "returned": shortcuts.len(),
@@ -825,6 +944,10 @@ impl Project<'_> {
                     row["edit"] = edit;
                 }
             }
+            let child_ir_edits = ir_edit_descriptors(view, &child_pointer)?;
+            if !child_ir_edits.is_empty() {
+                row["ir_edits"] = json!(child_ir_edits);
+            }
             rows.push(row);
             let end = start + rows.len();
             let next = (end < children.len())
@@ -839,6 +962,10 @@ impl Project<'_> {
                 "children": rows,
                 "page": {"total": children.len(), "before": start, "returned": end - start, "remaining": children.len() - end, "next": next}
             });
+            let node_ir_edits = ir_edit_descriptors(view, pointer)?;
+            if !node_ir_edits.is_empty() {
+                report["revealed"]["ir_edits"] = json!(node_ir_edits);
+            }
             if let Some(next) = next.as_deref() {
                 report["continuation"] = json!({
                     "reason": "more-children",
@@ -877,6 +1004,10 @@ impl Project<'_> {
             report["status"] = json!("revealed");
             report["revealed"] = json!({"id": wanted, "domain": "semantic-ir", "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(node)?, "children": [], "page": {"total": 0, "before": 0, "returned": 0, "remaining": 0, "next": null}});
             report["supersedes"] = json!(wanted);
+            let node_ir_edits = ir_edit_descriptors(view, pointer)?;
+            if !node_ir_edits.is_empty() {
+                report["revealed"]["ir_edits"] = json!(node_ir_edits);
+            }
             ensure!(
                 disclosure_frontier_after(1, 0) == Some(0),
                 "invalid empty-node frontier transition."

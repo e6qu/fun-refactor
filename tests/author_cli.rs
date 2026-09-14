@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::collections::{BTreeMap, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -90,6 +91,71 @@ fn disclosed_edits(root: &Path, name: &str, operation: &str) -> (String, Vec<Val
     (handle, edits)
 }
 
+fn disclosed_ir_edits(root: &Path, name: &str) -> (String, Vec<Value>) {
+    let found = ok(root, &["project", "find", name]);
+    let handle = found["rows"][0][0].as_str().unwrap().to_owned();
+    let initial = ok(
+        root,
+        &[
+            "project",
+            "disclose",
+            &handle,
+            "--token-limit",
+            "16384",
+            "--profile",
+            "expanded",
+        ],
+    );
+    let mut pending = initial["semantic_shortcuts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|shortcut| {
+            shortcut["editable_ir"]
+                .as_u64()
+                .is_some_and(|count| count > 0)
+        })
+        .map(|shortcut| exact_arguments(&shortcut["reveal"]["arguments"]))
+        .collect::<VecDeque<_>>();
+    let mut edits = BTreeMap::new();
+    let mut seen = std::collections::BTreeSet::new();
+    while let Some(arguments) = pending.pop_front() {
+        let key = arguments.join("\0");
+        if !seen.insert(key) {
+            continue;
+        }
+        let report = ok_owned(root, &arguments);
+        if let Some(rows) = report["revealed"]["ir_edits"].as_array() {
+            for edit in rows {
+                edits.insert(edit["id"].as_str().unwrap().to_owned(), edit.clone());
+            }
+        }
+        if let Some(children) = report["revealed"]["children"].as_array() {
+            for child in children {
+                if let Some(rows) = child["ir_edits"].as_array() {
+                    for edit in rows {
+                        edits.insert(edit["id"].as_str().unwrap().to_owned(), edit.clone());
+                    }
+                }
+                if let Some(arguments) = child
+                    .get("hole")
+                    .and_then(|hole| hole.get("reveal"))
+                    .and_then(|reveal| reveal.get("arguments"))
+                {
+                    pending.push_back(exact_arguments(arguments));
+                }
+            }
+        }
+        if let Some(arguments) = report
+            .get("continuation")
+            .and_then(|continuation| continuation.get("arguments"))
+        {
+            pending.push_back(exact_arguments(arguments));
+        }
+    }
+    (handle, edits.into_values().collect())
+}
+
 #[test]
 fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     let dir = tempfile::tempdir().unwrap();
@@ -97,14 +163,15 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["schema"], "fr-author-guide-1");
     assert_eq!(guide["limits"]["operations"]["maximum"], 32);
     assert_eq!(guide["limits"]["manifest_bytes"], 65536);
-    assert_eq!(guide["operations"].as_array().unwrap().len(), 9);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 10);
     assert_eq!(guide["operations"][0]["op"], "replace-body");
     assert_eq!(guide["operations"][1]["op"], "replace-body-semantic");
     assert_eq!(guide["operations"][2]["op"], "edit-body-semantic");
     assert_eq!(guide["operations"][3]["op"], "edit-body-intent");
     assert_eq!(guide["operations"][4]["op"], "edit-body-scalar");
     assert_eq!(guide["operations"][5]["op"], "edit-body-disclosed");
-    assert_eq!(guide["operations"][8]["op"], "organize-imports");
+    assert_eq!(guide["operations"][6]["op"], "edit-body-disclosed-ir");
+    assert_eq!(guide["operations"][9]["op"], "organize-imports");
     let steps = guide["workflow"]
         .as_array()
         .unwrap()
@@ -970,6 +1037,195 @@ fn disclosed_scalar_capabilities_edit_one_ambiguous_target_across_supported_lang
             .unwrap()
             .contains("+ 7 + 1"));
     }
+}
+
+#[test]
+fn disclosed_ir_capabilities_replace_delete_insert_and_append_with_history() {
+    let source = "fn calc(value: i32) -> i32 { if value > 0 { } let answer = 1; answer }\n";
+    for (operation, placement, empty, replacement) in [
+        (
+            "replace",
+            "replace",
+            false,
+            Some(serde_json::json!({"kind":"int","value":"7"})),
+        ),
+        ("delete-statement", "delete", false, None),
+        (
+            "insert-statement",
+            "before",
+            false,
+            Some(serde_json::json!({"kind":"comment","value":"before"})),
+        ),
+        (
+            "insert-statement",
+            "append",
+            true,
+            Some(serde_json::json!({"kind":"comment","value":"empty"})),
+        ),
+    ] {
+        let (_temp, root, _input) = fixture_file("app.rs", source, b"");
+        let (handle, edits) = disclosed_ir_edits(&root, "calc");
+        let edit = edits
+            .iter()
+            .find(|edit| {
+                edit["operation"] == operation
+                    && edit["placement"] == placement
+                    && (operation != "replace" || edit["accepts"] == "expression")
+                    && (!empty || edit["current_commitment"]["serialized_bytes"] == 2)
+            })
+            .unwrap_or_else(|| panic!("missing {operation}/{placement}: {edits:?}"));
+        assert_eq!(edit["schema"], "fr-disclosed-ir-edit-1");
+        assert!(edit.get("path").is_none());
+        assert!(edit.get("index").is_none());
+        assert_eq!(
+            edit["current_commitment"]["algorithm"],
+            "sha256-tagged-canonical-json-tree"
+        );
+        let node = root.parent().unwrap().join("node.json");
+        if let Some(replacement) = &replacement {
+            fs::write(&node, serde_json::to_vec(replacement).unwrap()).unwrap();
+        }
+        let mut arguments = vec![
+            "author".to_owned(),
+            "edit-body-disclosed-ir".to_owned(),
+            handle.clone(),
+            "--edit".to_owned(),
+            edit["id"].as_str().unwrap().to_owned(),
+        ];
+        if replacement.is_some() {
+            arguments.extend(["--from".to_owned(), "../node.json".to_owned()]);
+        }
+        let preview = ok_owned(&root, &arguments);
+        assert_eq!(preview["query"], "edit-body-disclosed-ir");
+        assert_eq!(preview["disclosed_ir_edit"]["exact_target"], true);
+        assert_eq!(preview["disclosed_ir_edit"]["operation"], operation);
+        assert_eq!(
+            preview["disclosed_ir_edit"]["current_commitment"],
+            edit["current_commitment"]
+        );
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+
+        arguments.push("--write".to_owned());
+        let written = ok_owned(&root, &arguments);
+        let changed = fs::read_to_string(root.join("app.rs")).unwrap();
+        assert_ne!(changed, source);
+        let transaction = written["transaction"].as_u64().unwrap().to_string();
+        ok(&root, &["history", "undo", &transaction, "--write"]);
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        ok(&root, &["history", "redo", &transaction, "--write"]);
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), changed);
+    }
+}
+
+#[test]
+fn disclosed_ir_capabilities_refuse_bad_shapes_types_noops_and_stale_source() {
+    let source = "fn calc() -> i32 { 1 }\n";
+    let (_temp, root, _input) = fixture_file("app.rs", source, b"");
+    let (handle, edits) = disclosed_ir_edits(&root, "calc");
+    let replace = edits
+        .iter()
+        .find(|edit| edit["operation"] == "replace" && edit["accepts"] == "expression")
+        .unwrap();
+    let replace_id = replace["id"].as_str().unwrap();
+    let (success, missing) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed-ir",
+            &handle,
+            "--edit",
+            replace_id,
+        ],
+    );
+    assert!(!success, "{missing}");
+    assert!(missing["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("malformed"));
+
+    let node = root.parent().unwrap().join("node.json");
+    fs::write(&node, r#"{"kind":"continue"}"#).unwrap();
+    let (success, wrong_category) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed-ir",
+            &handle,
+            "--edit",
+            replace_id,
+            "--from",
+            "../node.json",
+            "--write",
+        ],
+    );
+    assert!(!success, "{wrong_category}");
+    assert!(wrong_category["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("expression node"));
+    assert!(!root.join(".fr-history").exists());
+
+    let delete = edits
+        .iter()
+        .find(|edit| edit["operation"] == "delete-statement")
+        .unwrap();
+    let (success, extra) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed-ir",
+            &handle,
+            "--edit",
+            delete["id"].as_str().unwrap(),
+            "--from",
+            "../node.json",
+        ],
+    );
+    assert!(!success, "{extra}");
+    assert!(extra["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("malformed"));
+
+    fs::write(&node, r#"{"kind":"int","value":"1"}"#).unwrap();
+    let (success, unchanged) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed-ir",
+            &handle,
+            "--edit",
+            replace_id,
+            "--from",
+            "../node.json",
+        ],
+    );
+    assert!(!success, "{unchanged}");
+    assert!(unchanged["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("unchanged"));
+
+    fs::write(root.join("app.rs"), source.replace('1', "2")).unwrap();
+    let (success, stale) = run(
+        &root,
+        &[
+            "author",
+            "edit-body-disclosed-ir",
+            &handle,
+            "--edit",
+            replace_id,
+            "--from",
+            "../node.json",
+            "--write",
+        ],
+    );
+    assert!(!success, "{stale}");
+    assert!(stale["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale"));
+    assert!(!root.join(".fr-history").exists());
 }
 
 #[test]
