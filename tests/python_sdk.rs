@@ -39,6 +39,81 @@ fn python_sdk_unit_tests_pass_without_dependencies() {
 }
 
 #[test]
+fn python_authors_a_property_from_the_rust_task_shape() {
+    let workspace = tempfile::tempdir().unwrap();
+    fs::create_dir_all(workspace.path().join("src")).unwrap();
+    fs::write(workspace.path().join("Cargo.toml"), "[workspace]\n").unwrap();
+    fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn both(left: bool, right: bool) -> bool { left && right }\n",
+    )
+    .unwrap();
+    let task = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "-C"])
+        .arg(workspace.path())
+        .args(["spec", "property-task", "src/lib.rs::both"])
+        .output()
+        .unwrap();
+    assert!(task.status.success());
+    let task_path = workspace.path().join("task.json");
+    let property_path = workspace.path().join("property.json");
+    fs::write(&task_path, task.stdout).unwrap();
+    let script = r#"# => agent property SDK fixture
+import json, sys
+from fr_ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
+task = PropertyTask.from_data(json.load(open(sys.argv[1], encoding='utf-8')))
+x, y = Term.variable('x'), Term.variable('y')
+property_ = task.property(
+    'commutative',
+    [{'name': 'x', 'lean_type': 'Bool'}, {'name': 'y', 'lean_type': 'Bool'}],
+    Prop.equals(Term.model(x, y), Term.model(y, x)),
+)
+open(sys.argv[2], 'w', encoding='utf-8').write(property_.to_json(indent=2) + '\n')
+"#;
+    let authored = python()
+        .args(["-c", script])
+        .arg(&task_path)
+        .arg(&property_path)
+        .output()
+        .unwrap();
+    assert!(
+        authored.status.success(),
+        "{}",
+        String::from_utf8_lossy(&authored.stderr)
+    );
+    let plan = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "-C"])
+        .arg(workspace.path())
+        .args(["spec", "plan", "src/lib.rs::both", "--property-from"])
+        .arg(&property_path)
+        .output()
+        .unwrap();
+    assert!(
+        plan.status.success(),
+        "{}",
+        String::from_utf8_lossy(&plan.stderr)
+    );
+    let plan_path = workspace.path().join("plan.json");
+    fs::write(&plan_path, &plan.stdout).unwrap();
+    let validated = python()
+        .args([
+            "-c",
+            "# => validate generated plan\nimport sys; from fr_ir import FormalPlan; FormalPlan.from_json(open(sys.argv[1], encoding='utf-8').read())",
+        ])
+        .arg(&plan_path)
+        .output()
+        .unwrap();
+    assert!(
+        validated.status.success(),
+        "{}",
+        String::from_utf8_lossy(&validated.stderr)
+    );
+    let plan: Value = serde_json::from_slice(&plan.stdout).unwrap();
+    assert_eq!(plan["properties"][0]["kind"], "agent");
+    assert_eq!(plan["properties"][0]["agent_spec"]["name"], "commutative");
+}
+
+#[test]
 fn python_and_rust_publish_the_same_semantic_catalog() {
     let script = "# => catalog fixture\nimport json; from fr_ir import *; print(json.dumps([TYPE_KINDS, STATEMENT_KINDS, EXPRESSION_KINDS, TEMPLATE_KINDS, [x.value for x in BinaryOp], [x.value for x in UnaryOp], ROLE_NAMES, INTENT_OPERATIONS]))";
     let output = python().args(["-c", script]).output().unwrap();

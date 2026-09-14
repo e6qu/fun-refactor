@@ -11,6 +11,7 @@ from enum import Enum
 import hashlib
 import json
 from pathlib import Path
+import re
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 SCHEMA = "fr-semantic-body-1"
@@ -23,6 +24,8 @@ MERKLE_OBJECT_SCHEMA = "fr-merkle-object-1"
 FORMAL_PLAN_SCHEMA = "fr-formal-plan-1"
 PROOF_TASK_SCHEMA = "fr-proof-task-1"
 PROOF_ATTEMPT_SCHEMA = "fr-proof-attempt-1"
+PROPERTY_TASK_SCHEMA = "fr-property-task-1"
+AGENT_PROPERTY_SCHEMA = "fr-formal-property-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -993,6 +996,9 @@ class ScalarRequest:
         return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
                           separators=None if indent else (",", ":"))
 
+    def write(self, path: str | Path, *, indent: int | None = 2) -> None:
+        Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
+
 
 @dataclass(frozen=True)
 class DisclosedEditRequest:
@@ -1013,7 +1019,7 @@ class DisclosedEditRequest:
         if not isinstance(self.to, str):
             raise IrError("disclosed edit replacement must be a string CLI scalar")
 
-    def to_data(self) -> dict[str, str]:
+    def to_data(self) -> dict[str, Any]:
         return {"edit": self.edit, "to": self.to}
 
     def to_json(self, *, indent: int | None = None) -> str:
@@ -1111,29 +1117,399 @@ class FormalBinding:
         return {"name": self.name, "rust_type": self.rust_type, "lean_type": self.lean_type}
 
 
+class PropertyTerm:
+    """Source-free constructors for the agent property term IR."""
+
+    @staticmethod
+    def variable(name: str) -> dict[str, Any]:
+        return {"kind": "variable", "name": name}
+
+    @staticmethod
+    def model(*arguments: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "model", "arguments": [dict(item) for item in arguments]}
+
+    @staticmethod
+    def boolean(value: bool) -> dict[str, Any]:
+        return {"kind": "boolean", "value": value}
+
+    @staticmethod
+    def integer(value: int, lean_type: str) -> dict[str, Any]:
+        return {"kind": "integer", "value": value, "lean_type": lean_type}
+
+    @staticmethod
+    def unary(operator: str, operand: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "unary", "operator": operator, "operand": dict(operand)}
+
+    @staticmethod
+    def binary(operator: str, left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "binary", "operator": operator, "left": dict(left), "right": dict(right)}
+
+    @staticmethod
+    def if_(condition: Mapping[str, Any], then: Mapping[str, Any], otherwise: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "if", "condition": dict(condition), "then": dict(then), "otherwise": dict(otherwise)}
+
+
+class PropertyProposition:
+    """Source-free constructors for the agent proposition IR."""
+
+    @staticmethod
+    def relation(kind: str, left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": kind, "left": dict(left), "right": dict(right)}
+
+    @staticmethod
+    def equals(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return PropertyProposition.relation("equals", left, right)
+
+    @staticmethod
+    def not_equals(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return PropertyProposition.relation("not-equals", left, right)
+
+    @staticmethod
+    def less_than(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return PropertyProposition.relation("less-than", left, right)
+
+    @staticmethod
+    def less_or_equal(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return PropertyProposition.relation("less-or-equal", left, right)
+
+    @staticmethod
+    def greater_than(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return PropertyProposition.relation("greater-than", left, right)
+
+    @staticmethod
+    def greater_or_equal(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        return PropertyProposition.relation("greater-or-equal", left, right)
+
+    @staticmethod
+    def holds(term: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "holds", "term": dict(term)}
+
+    @staticmethod
+    def not_(proposition: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "not", "proposition": dict(proposition)}
+
+    @staticmethod
+    def all_of(*propositions: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "and", "propositions": [dict(item) for item in propositions]}
+
+    @staticmethod
+    def any_of(*propositions: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "or", "propositions": [dict(item) for item in propositions]}
+
+    @staticmethod
+    def implies(premise: Mapping[str, Any], conclusion: Mapping[str, Any]) -> dict[str, Any]:
+        return {"kind": "implies", "premise": dict(premise), "conclusion": dict(conclusion)}
+
+
+_LEAN_AGENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_LEAN_RESERVED = {
+    "axiom", "by", "def", "else", "end", "false", "if", "in", "let", "match",
+    "namespace", "then", "theorem", "true",
+}
+
+
+def _agent_name(value: Any, description: str) -> str:
+    if not isinstance(value, str) or not _LEAN_AGENT_NAME.fullmatch(value) or value in _LEAN_RESERVED:
+        raise IrError(f"{description} must be a safe Lean identifier")
+    return value
+
+
+def _property_node(counter: list[int], depth: int) -> None:
+    counter[0] += 1
+    if counter[0] > 64:
+        raise IrError("agent property exceeds the 64-node ceiling")
+    if depth > 16:
+        raise IrError("agent property exceeds the 16-level depth ceiling")
+
+
+def _property_term_type(
+    value: Any,
+    kernel: Mapping[str, Any],
+    parameters: Mapping[str, str],
+    counter: list[int],
+    depth: int,
+) -> str:
+    _property_node(counter, depth)
+    if not isinstance(value, Mapping) or not isinstance(value.get("kind"), str):
+        raise IrError("agent property term must be a tagged object")
+    kind = value["kind"]
+    if kind == "variable":
+        value = _exact_mapping(value, {"kind", "name"}, "property variable")
+        name = value["name"]
+        if name not in parameters:
+            raise IrError(f"agent property variable {name!r} is not a parameter")
+        return parameters[name]
+    if kind == "model":
+        value = _exact_mapping(value, {"kind", "arguments"}, "property model call")
+        if not isinstance(value["arguments"], list) or len(value["arguments"]) != len(kernel["inputs"]):
+            raise IrError("agent property model call has the wrong arity")
+        for argument, expected in zip(value["arguments"], kernel["inputs"]):
+            if _property_term_type(argument, kernel, parameters, counter, depth + 1) != expected["lean_type"]:
+                raise IrError("agent property model argument type does not match its input")
+        return kernel["output"]["lean_type"]
+    if kind == "boolean":
+        value = _exact_mapping(value, {"kind", "value"}, "property Boolean")
+        if not isinstance(value["value"], bool):
+            raise IrError("agent property Boolean must contain a bool")
+        return "Bool"
+    if kind == "integer":
+        value = _exact_mapping(value, {"kind", "value", "lean_type"}, "property integer")
+        number, lean_type = value["value"], value["lean_type"]
+        if (not isinstance(number, int) or isinstance(number, bool) or lean_type not in ("Int", "Nat")
+                or (lean_type == "Nat" and number < 0)):
+            raise IrError("agent property integer literal is invalid")
+        return lean_type
+    if kind == "unary":
+        value = _exact_mapping(value, {"kind", "operator", "operand"}, "property unary term")
+        operand = _property_term_type(value["operand"], kernel, parameters, counter, depth + 1)
+        if (value["operator"], operand) not in (("not", "Bool"), ("negate", "Int")):
+            raise IrError("agent property unary operator does not accept its operand type")
+        return operand
+    if kind == "binary":
+        value = _exact_mapping(value, {"kind", "operator", "left", "right"}, "property binary term")
+        left = _property_term_type(value["left"], kernel, parameters, counter, depth + 1)
+        right = _property_term_type(value["right"], kernel, parameters, counter, depth + 1)
+        if left != right:
+            raise IrError("agent property binary operands must have the same type")
+        admitted = ((value["operator"] in ("add", "subtract", "multiply") and left in ("Int", "Nat"))
+                    or (value["operator"] in ("and", "or") and left == "Bool"))
+        if not admitted:
+            raise IrError("agent property binary operator does not accept its operand type")
+        return left
+    if kind == "if":
+        value = _exact_mapping(value, {"kind", "condition", "then", "otherwise"}, "property if term")
+        if _property_term_type(value["condition"], kernel, parameters, counter, depth + 1) != "Bool":
+            raise IrError("agent property if condition must be Bool")
+        then_type = _property_term_type(value["then"], kernel, parameters, counter, depth + 1)
+        other_type = _property_term_type(value["otherwise"], kernel, parameters, counter, depth + 1)
+        if then_type != other_type:
+            raise IrError("agent property if branches must have the same type")
+        return then_type
+    raise IrError(f"unsupported agent property term kind {kind!r}")
+
+
+def _validate_property_proposition(
+    value: Any,
+    kernel: Mapping[str, Any],
+    parameters: Mapping[str, str],
+    counter: list[int],
+    depth: int,
+) -> None:
+    _property_node(counter, depth)
+    if not isinstance(value, Mapping) or not isinstance(value.get("kind"), str):
+        raise IrError("agent proposition must be a tagged object")
+    kind = value["kind"]
+    relations = {
+        "equals", "not-equals", "less-than", "less-or-equal", "greater-than", "greater-or-equal",
+    }
+    if kind in relations:
+        value = _exact_mapping(value, {"kind", "left", "right"}, "property relation")
+        left = _property_term_type(value["left"], kernel, parameters, counter, depth + 1)
+        right = _property_term_type(value["right"], kernel, parameters, counter, depth + 1)
+        if left != right or (kind not in ("equals", "not-equals") and left not in ("Int", "Nat")):
+            raise IrError("agent property relation does not accept its operand types")
+        return
+    if kind == "holds":
+        value = _exact_mapping(value, {"kind", "term"}, "property holds")
+        if _property_term_type(value["term"], kernel, parameters, counter, depth + 1) != "Bool":
+            raise IrError("agent property holds requires a Bool term")
+        return
+    if kind == "not":
+        value = _exact_mapping(value, {"kind", "proposition"}, "property negation")
+        _validate_property_proposition(value["proposition"], kernel, parameters, counter, depth + 1)
+        return
+    if kind in ("and", "or"):
+        value = _exact_mapping(value, {"kind", "propositions"}, "property connective")
+        parts = value["propositions"]
+        if not isinstance(parts, list) or not 2 <= len(parts) <= 8:
+            raise IrError("agent property conjunctions and disjunctions require 2 to 8 children")
+        for part in parts:
+            _validate_property_proposition(part, kernel, parameters, counter, depth + 1)
+        return
+    if kind == "implies":
+        value = _exact_mapping(value, {"kind", "premise", "conclusion"}, "property implication")
+        _validate_property_proposition(value["premise"], kernel, parameters, counter, depth + 1)
+        _validate_property_proposition(value["conclusion"], kernel, parameters, counter, depth + 1)
+        return
+    raise IrError(f"unsupported agent proposition kind {kind!r}")
+
+
+@dataclass(frozen=True)
+class AgentProperty:
+    """One agent-authored property bound to a disclosed property task."""
+
+    data: Mapping[str, Any]
+
+    @classmethod
+    def from_data(cls, value: Any, task: PropertyTask | None = None) -> AgentProperty:
+        value = _exact_mapping(
+            value, {"schema", "task_digest", "name", "parameters", "proposition"}, "agent property"
+        )
+        if value["schema"] != AGENT_PROPERTY_SCHEMA or not _is_digest(value["task_digest"]):
+            raise IrError("agent property schema or task digest is invalid")
+        _agent_name(value["name"], "agent property name")
+        if not isinstance(value["parameters"], list) or len(value["parameters"]) > 8:
+            raise IrError("agent property accepts at most 8 parameters")
+        parameters: dict[str, str] = {}
+        for parameter in value["parameters"]:
+            parameter = _exact_mapping(parameter, {"name", "lean_type"}, "agent property parameter")
+            name = _agent_name(parameter["name"], "agent property parameter name")
+            if not isinstance(parameter["lean_type"], str) or not parameter["lean_type"]:
+                raise IrError("agent property parameter type must be a non-empty string")
+            if name in parameters:
+                raise IrError("agent property parameter names must be unique")
+            parameters[name] = parameter["lean_type"]
+        if task is not None:
+            if value["task_digest"] != task.object_digest:
+                raise IrError("agent property task identity is stale or belongs to another model")
+            allowed = {item["lean_type"] for item in task.kernel["inputs"]}
+            allowed.add(task.kernel["output"]["lean_type"])
+            if not set(parameters.values()) <= allowed:
+                raise IrError("agent property parameter type is outside the disclosed kernel signature")
+            _validate_property_proposition(value["proposition"], task.kernel, parameters, [0], 1)
+        return cls(json.loads(json.dumps(value)))
+
+    @classmethod
+    def from_json(cls, text: str, task: PropertyTask | None = None) -> AgentProperty:
+        try:
+            return cls.from_data(json.loads(text), task)
+        except json.JSONDecodeError as error:
+            raise IrError(f"invalid agent property JSON: {error.msg}") from error
+
+    def to_data(self) -> dict[str, Any]:
+        return json.loads(json.dumps(self.data))
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
+    def write(self, path: str | Path, *, indent: int | None = 2) -> None:
+        Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
+
+
+@dataclass(frozen=True)
+class PropertyTask:
+    """A revision-bound signature and grammar for an agent-authored property."""
+
+    target: Mapping[str, Any]
+    kernel: Mapping[str, Any]
+    contract: Mapping[str, Any]
+    templates: Sequence[Mapping[str, Any]]
+    object_digest: str
+    actions: Mapping[str, Sequence[str]]
+    token_budget: Mapping[str, Any]
+
+    @classmethod
+    def from_data(cls, value: Any) -> PropertyTask:
+        value = _exact_mapping(value, {
+            "schema", "target", "kernel", "contract", "templates", "object_digest", "actions",
+            "token_budget",
+        }, "property task")
+        if value["schema"] != PROPERTY_TASK_SCHEMA:
+            raise IrError(f"property task schema must be {PROPERTY_TASK_SCHEMA}")
+        target = _exact_mapping(value["target"], {"source", "symbol", "source_hash"}, "property target")
+        kernel = _exact_mapping(value["kernel"], {"model", "inputs", "output"}, "property kernel")
+        contract = _exact_mapping(value["contract"], {
+            "author", "format", "proof_author", "allowed_terms", "allowed_propositions",
+            "allowed_unary_operators", "allowed_binary_operators", "max_parameters", "max_nodes",
+            "max_depth",
+        }, "property contract")
+        actions = _exact_mapping(value["actions"], {"plan", "scaffold"}, "property actions")
+        if (not all(isinstance(target[key], str) and target[key] for key in target)
+                or not _is_digest(target["source_hash"])):
+            raise IrError("property task target is malformed")
+        if (not isinstance(kernel["model"], str) or not kernel["model"]
+                or not isinstance(kernel["inputs"], list)):
+            raise IrError("property task kernel is malformed")
+        inputs = [FormalBinding.from_data(item).to_data() for item in kernel["inputs"]]
+        output = FormalBinding.from_data(kernel["output"]).to_data()
+        checked_kernel = {"model": kernel["model"], "inputs": inputs, "output": output}
+        if contract["author"] != "agent" or contract["proof_author"] != "agent":
+            raise IrError("property and proof authors must be agent")
+        if contract["format"] != AGENT_PROPERTY_SCHEMA:
+            raise IrError("property task format is invalid")
+        for field in (
+            "allowed_terms", "allowed_propositions", "allowed_unary_operators", "allowed_binary_operators",
+        ):
+            _string_vector(contract[field], f"property contract {field}")
+        if (contract["max_parameters"], contract["max_nodes"], contract["max_depth"]) != (8, 64, 16):
+            raise IrError("property task ceilings are unsupported")
+        if not isinstance(value["templates"], list):
+            raise IrError("property task templates must be a list")
+        templates = []
+        for template in value["templates"]:
+            template = _exact_mapping(template, {"kind", "value"}, "property template")
+            if not isinstance(template["kind"], str) or not isinstance(template["value"], Mapping):
+                raise IrError("property template is malformed")
+            templates.append(json.loads(json.dumps(template)))
+        checked_actions = {key: _string_vector(actions[key], f"property task {key}") for key in actions}
+        budget = _byte_budget(value["token_budget"], "property task budget")
+        core = {
+            "schema": value["schema"], "target": value["target"], "kernel": value["kernel"],
+            "contract": value["contract"], "templates": value["templates"],
+        }
+        if not _is_digest(value["object_digest"]) or merkle_object_digest(core) != value["object_digest"]:
+            raise IrError("property task fails its Merkle content address")
+        return cls(dict(target), checked_kernel, dict(contract), tuple(templates), value["object_digest"],
+                   checked_actions, dict(budget))
+
+    def property(
+        self,
+        name: str,
+        parameters: Sequence[Mapping[str, str]],
+        proposition: Mapping[str, Any],
+    ) -> AgentProperty:
+        return AgentProperty.from_data({
+            "schema": AGENT_PROPERTY_SCHEMA,
+            "task_digest": self.object_digest,
+            "name": name,
+            "parameters": [dict(item) for item in parameters],
+            "proposition": dict(proposition),
+        }, self)
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "schema": PROPERTY_TASK_SCHEMA, "target": dict(self.target), "kernel": dict(self.kernel),
+            "contract": dict(self.contract), "templates": [dict(item) for item in self.templates],
+            "object_digest": self.object_digest,
+            "actions": {key: list(value) for key, value in self.actions.items()},
+            "token_budget": dict(self.token_budget),
+        }
+
+
 @dataclass(frozen=True)
 class FormalProperty:
     kind: str
     name: str
     proposition: str
     proof_status: str = "unproved"
+    agent_spec: AgentProperty | None = None
 
     @classmethod
     def from_data(cls, value: Any) -> FormalProperty:
-        value = _exact_mapping(
-            value, {"kind", "name", "proposition", "proof_status"}, "formal property"
-        )
-        if not all(isinstance(value[key], str) and value[key] for key in value):
+        keys = set(value) if isinstance(value, Mapping) else set()
+        expected = {"kind", "name", "proposition", "proof_status"}
+        if keys not in (expected, expected | {"agent_spec"}):
+            raise IrError("formal property has missing or unknown fields")
+        if not all(isinstance(value[key], str) and value[key] for key in expected):
             raise IrError("formal property fields must be non-empty strings")
-        return cls(value["kind"], value["name"], value["proposition"], value["proof_status"])
+        agent_spec = AgentProperty.from_data(value["agent_spec"]) if "agent_spec" in value else None
+        if (value["kind"] == "agent") != (agent_spec is not None):
+            raise IrError("formal agent property must retain its authored specification")
+        return cls(
+            value["kind"], value["name"], value["proposition"], value["proof_status"], agent_spec
+        )
 
-    def to_data(self) -> dict[str, str]:
-        return {
+    def to_data(self) -> dict[str, Any]:
+        value = {
             "kind": self.kind,
             "name": self.name,
             "proposition": self.proposition,
             "proof_status": self.proof_status,
         }
+        if self.agent_spec is not None:
+            value["agent_spec"] = self.agent_spec.to_data()
+        return value
 
 
 @dataclass(frozen=True)
@@ -1224,9 +1600,18 @@ class FormalPlan:
         )}
         if not _is_digest(value["object_digest"]) or merkle_object_digest(core) != value["object_digest"]:
             raise IrError("formal plan fails its Merkle content address")
+        kernel = FormalKernel.from_data(value["kernel"])
+        properties = tuple(FormalProperty.from_data(item) for item in value["properties"])
+        for property_ in properties:
+            if property_.agent_spec is None:
+                continue
+            spec = property_.agent_spec.to_data()
+            parameters = {item["name"]: item["lean_type"] for item in spec["parameters"]}
+            _validate_property_proposition(
+                spec["proposition"], kernel.to_data(), parameters, [0], 1
+            )
         return cls(
-            dict(target), FormalKernel.from_data(value["kernel"]),
-            tuple(FormalProperty.from_data(item) for item in value["properties"]),
+            dict(target), kernel, properties,
             dict(correspondence), tuple(value["assumptions"]), tuple(value["obligations"]),
             {key: tuple(actions[key]) for key in actions}, value["object_digest"],
         )
@@ -1414,7 +1799,7 @@ class ProofAttempt:
 
 
 __all__ = [
-    "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "FORMAL_PLAN_SCHEMA", "FormalBinding", "FormalKernel", "FormalPlan", "FormalProperty", "Function", "INTENT_OPERATIONS", "PROOF_ATTEMPT_SCHEMA", "PROOF_TASK_SCHEMA", "ProofAttempt", "ProofTask",
+    "AGENT_PROPERTY_SCHEMA", "AgentProperty", "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "FORMAL_PLAN_SCHEMA", "FormalBinding", "FormalKernel", "FormalPlan", "FormalProperty", "Function", "INTENT_OPERATIONS", "PROOF_ATTEMPT_SCHEMA", "PROOF_TASK_SCHEMA", "PROPERTY_TASK_SCHEMA", "ProofAttempt", "ProofTask", "PropertyProposition", "PropertyTask", "PropertyTerm",
     "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "MERKLE_OBJECT_SCHEMA", "MERKLE_PROOF_SCHEMA", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
     "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",

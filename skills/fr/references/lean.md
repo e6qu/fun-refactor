@@ -10,6 +10,13 @@ one returned digest, then request its `spec proof-task`. The task contains empty
 tactics without `by` yourself. Run `spec proof-check` until Lean accepts them, then use `spec prove`
 and `spec verify`. `docs/agent-formalization.md` defines the subset and evidence boundary.
 
+For a property outside the built-in shapes, request `fr --json spec property-task TARGET`. Use its
+model signature, grammar and object digest to author `fr-formal-property-1`, preferably with the
+Python `PropertyTask`, `PropertyTerm` and `PropertyProposition` mirrors. Pass it to `spec plan TARGET
+--property-from FILE`. Do not put Lean text or proof tactics in the property tree. `fr` validates
+the tree and makes Lean elaborate the generated theorem before scaffolding; you still write every
+proof tactic through the proof-task loop.
+
 Manual scaffolding remains available as `fr --json spec scaffold src/lib.rs::allowed`. It creates an
 anchor, signature map and visible `sorry`; replace its model and add reviewed properties. On source
 drift, rerun it and review the generated-region diff; the handwritten region is preserved. Keep debt

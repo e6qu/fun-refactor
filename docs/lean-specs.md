@@ -11,9 +11,9 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
 | `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
 | `fr spec scaffold` | Select a Rust function and create an anchored, strictly mapped model obligation in that target |
-| `fr spec candidates` / `plan` | Discover the conservative generated-kernel subset and emit a source-free, Merkle-addressed formal plan |
+| `fr spec candidates` / `property-task` / `plan` | Discover the conservative generated-kernel subset and emit source-free, Merkle-addressed built-in or agent-authored property plans |
 | `fr spec scaffold --from` | Revalidate a plan against current source and generate proof-preserving definitions and theorem regions |
-| `fr spec goals` / `prove` | Progressively disclose one content-addressed goal and edit its exact proof region through history |
+| `fr spec goals` / `proof-task` / `proof-check` / `prove` | Progressively disclose one content-addressed goal, check agent tactics and edit its exact proof region through history |
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
 | `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence and remaining obligations |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |

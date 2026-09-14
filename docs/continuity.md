@@ -19,6 +19,14 @@ inputs with the executable kernel.
 The active branch is `agent_proof_scaffolds`. Its complete default and WASM repository gates pass
 locally, including the Python mirror, strict Lean checks and end-to-end proof workflow.
 
+PR 27 is complete locally on `agent_authored_properties`. It adds a bounded property task with the
+current model signature and typed proposition grammar. The agent provides the proposition IR and
+proof tactics; `fr` validates, renders, elaborates and preserves them through the checked reversible
+workflow. Rust and Python enforce the same strict tree limits and exact types. Lean proves the
+finite admission policies, and Rust compares all 398 new shared cases. The end-to-end test covers a
+multi-input property, invalid agent trees, checked proof attempts, apply, verify, undo, redo and
+source drift. The complete native, Python, documentation, strict Lean and WASM gates pass locally.
+
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 PR 2, Generalized Structural Authoring, merged as GitHub PR 262.

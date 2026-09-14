@@ -655,6 +655,19 @@ enum SpecCommand {
         target: String,
         #[arg(long = "property", value_name = "KIND")]
         properties: Vec<String>,
+        #[arg(
+            long = "property-from",
+            value_name = "FILE",
+            help = "Agent-authored fr-formal-property-1 file; repeatable."
+        )]
+        property_files: Vec<PathBuf>,
+    },
+    #[command(about = "Build a bounded task for an agent-authored formal property.")]
+    PropertyTask {
+        #[arg(help = "Target as path::symbol.")]
+        target: String,
+        #[arg(long, default_value_t = 4096, value_name = "BYTES")]
+        token_limit: usize,
     },
     #[command(about = "Initialize a checked Lean package.")]
     Init {
@@ -1175,7 +1188,15 @@ fn dispatch(cli: &Cli) -> Result<()> {
         },
         Command::Spec { command } => match command {
             SpecCommand::Candidates { paths, limit } => cmd_spec_candidates(cli, paths, *limit),
-            SpecCommand::Plan { target, properties } => cmd_spec_plan(cli, target, properties),
+            SpecCommand::Plan {
+                target,
+                properties,
+                property_files,
+            } => cmd_spec_plan(cli, target, properties, property_files),
+            SpecCommand::PropertyTask {
+                target,
+                token_limit,
+            } => cmd_spec_property_task(cli, target, *token_limit),
             SpecCommand::Init { path, write } => cmd_spec_init(cli, path, *write),
             SpecCommand::Scaffold {
                 target,
@@ -1318,8 +1339,18 @@ fn cmd_spec_candidates(cli: &Cli, paths: &[PathBuf], limit: usize) -> Result<()>
     Ok(())
 }
 
-fn cmd_spec_plan(cli: &Cli, target: &str, properties: &[String]) -> Result<()> {
-    let plan = crate::spec::formal_plan(&workspace_root(cli), target, properties)?;
+fn cmd_spec_plan(
+    cli: &Cli,
+    target: &str,
+    properties: &[String],
+    property_files: &[PathBuf],
+) -> Result<()> {
+    let plan = crate::spec::formal_plan_with_agent_properties(
+        &workspace_root(cli),
+        target,
+        properties,
+        property_files,
+    )?;
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&plan)?);
     } else {
@@ -1332,6 +1363,23 @@ fn cmd_spec_plan(cli: &Cli, target: &str, properties: &[String]) -> Result<()> {
             plan.obligations.len()
         );
         println!("Use --json to save the complete source-free plan.");
+    }
+    Ok(())
+}
+
+fn cmd_spec_property_task(cli: &Cli, target: &str, token_limit: usize) -> Result<()> {
+    let task = crate::spec::property_task(&workspace_root(cli), target, token_limit)?;
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&task)?);
+    } else {
+        println!(
+            "Property task {} binds {}::{} to model {}.",
+            task.object_digest,
+            task.target.source.display(),
+            task.target.symbol,
+            task.kernel.model
+        );
+        println!("The agent must author the property file and every proof tactic.");
     }
     Ok(())
 }
