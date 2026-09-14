@@ -1,0 +1,7 @@
+Implemented and validated:
+
+- Added documented `escape_len` APIs to `regex` and `regex-syntax`.
+- Updated escaping capacity reservation to avoid extra allocations.
+- Preserved existing APIs and escaping behavior.
+- Verified default and no-default-feature builds.
+- Completed undo/redo and receiver validation successfully.

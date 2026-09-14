@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 710 |
+| Defects fixed | 713 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo, redo and reviewed native retention | Maintain the shared history invariant |
 | M2 compact project understanding | Complete | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and independently verifiable Merkle disclosure for code maps, traces, impact and value flow | Extend from measured agent needs |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-eight passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and thirty passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -60,7 +60,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Twenty-eight passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
+- Thirty passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
@@ -147,6 +147,13 @@ patches and exercises undo and redo. Three expanded disclosure responses total 1
 below their 16,384-byte bound; the author preview is 3,968 bytes. This is deterministic workflow
 evidence, not a live-model result or a proof of the trusted parser, writer, compiler or hash.
 
+The latest paired evaluation runs Codex CLI 0.154.0 with Luna at low effort against a frozen binary
+and evaluator. Both arms pass the complete coordinated regex task, including 1,060 project and
+receiver oracle cases, exact undo/redo, ordered checks and index preservation. The `fr` arm uses
+17,711 measured context tokens and 42 calls; files use 11,182 tokens and 17 calls. This single pair
+confirms workflow adoption after two retained diagnostic cohorts. Its 58.4% context premium remains
+an optimization target and does not establish a population result.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -211,7 +218,11 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
 | [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
 | [PR 23](https://github.com/e6qu/fun-refactor/pull/287) | Disclosure-Bound IR Structure Editing | Merged |
-| PR 24 | Content-Addressed Progressive Project Evidence | Ready for review |
+| [PR 24](https://github.com/e6qu/fun-refactor/pull/288) | Content-Addressed Progressive Project Evidence | Merged |
+| [PR 25](https://github.com/e6qu/fun-refactor/pull/290) | Agent Formalization Workbench | Merged |
+| [PR 26](https://github.com/e6qu/fun-refactor/pull/291) | Agent Proof Companion | Merged |
+| [PR 27](https://github.com/e6qu/fun-refactor/pull/292) | Agent-Authored Formal Properties | Merged |
+| [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -356,8 +367,9 @@ Planned checkpoints:
 4. **Complete.** Add the portable workflow route and executable examples within its current byte budgets.
 5. **Complete.** Retain a controlled call, context and state-equivalence measurement. Its measured
    reduction warrants one fresh Luna-low adoption trial.
-6. **Deferred.** The deterministic evaluator and low-cost Luna configuration are ready. No fresh
-   external pair was launched, so PR 10 makes only the controlled workflow claim above.
+6. **Complete.** A fresh frozen Luna-low pair passes the coordinated workflow, project and receiver
+   oracles, exact reversal and index-preservation gates. Two preceding failed diagnostics remain
+   retained and identify the evaluator fixes that made the accepted rerun valid.
 
 ### PR 11. Browser Transaction History
 
@@ -1003,7 +1015,7 @@ Planned checkpoints:
 
 ### PR 23. Disclosure-Bound IR Structure Editing
 
-Status: ready for review.
+Status: merged as [PR 287](https://github.com/e6qu/fun-refactor/pull/287).
 
 Goal: let an agent replace a typed semantic node or change statement-list structure from a
 progressively revealed IR region. The route avoids reconstructing a JSON pointer or reading source.
@@ -1064,7 +1076,7 @@ Planned checkpoints:
 
 ### PR 24. Content-Addressed Progressive Project Evidence
 
-Status: ready for review.
+Status: merged as [PR 288](https://github.com/e6qu/fun-refactor/pull/288).
 
 Goal: make one bounded progressive-reveal protocol the agent-facing navigation layer for semantic
 IR, project hierarchy, call traces, impact and value-flow endpoints. Agents fetch only the relevant
@@ -1140,7 +1152,7 @@ Planned checkpoints:
 
 ### PR 25. Agent Formalization Workbench
 
-Status: proposed as [PR 290](https://github.com/e6qu/fun-refactor/pull/290).
+Status: merged as [PR 290](https://github.com/e6qu/fun-refactor/pull/290).
 
 Goal: let an agent discover conservative formalization candidates and inspect a source-free semantic
 plan. It can create a Lean kernel and solve one exact proof goal without ingesting or rewriting whole
@@ -1284,7 +1296,7 @@ Planned checkpoints:
 
 ### PR 28. Cross-Stack Agent Coverage
 
-Status: in progress.
+Status: merged as [PR 293](https://github.com/e6qu/fun-refactor/pull/293).
 
 Goal: give agents one bounded high-level project model for the requested web and service stack.
 It covers JavaScript, TypeScript, React, Next.js, Go, Python, FastAPI, HTML, CSS, Tailwind CSS,

@@ -281,6 +281,28 @@ class AgentWorkflowV4Evidence(unittest.TestCase):
             self.assertTrue(result["oracle"]["passed"])
             self.assertTrue(result["receiver_oracle"]["passed"])
 
+    def test_deferred_work_rerun_retains_a_complete_passing_pair(self):
+        evidence = TOOLS.parent / "tests/agent-eval/results/2026-09-14-deferred-final"
+        manifest = json.loads((evidence / "manifest.json").read_text())
+        self.assertTrue(manifest["acceptance"]["passed"])
+        self.assertEqual(manifest["implementation_commit"],
+                         "5839cded0226501294781f4a501e31e543b0f9f1")
+        for relative, sha256 in manifest["files"].items():
+            self.assertEqual(harness.digest(harness.within(evidence, relative).read_bytes()), sha256)
+        expected = {"fr": (True, 17711, 42), "files": (True, 11182, 17)}
+        for arm, values in expected.items():
+            result = json.loads(
+                (evidence / f"regex-escape-len-{arm}/result.json").read_text()
+            )
+            self.assertEqual(
+                (result["passed"], result["context_tokens"], result["tool_calls"]), values
+            )
+            for field in (
+                "undo_exact", "redo_exact", "workflow_ordered", "index_unchanged",
+                "receiver_index_unchanged", "receiver_matches",
+            ):
+                self.assertTrue(result[field])
+
 
 class ProjectBatchAgentEvidence(unittest.TestCase):
     def test_token_counts_canonicalize_opaque_identity_spellings(self):

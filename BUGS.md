@@ -67,6 +67,27 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B867: **an agent could repeat a successful unchanged evaluator request.**
+
+  The prompt prohibited repeated successful workflow steps, but the instrument ran an identical
+  second batch preview and rejected the score only afterward. It now refuses the repeated request
+  before execution and points to the retained response. A source mutation or rewritten artifact
+  admits a new attempt because its inputs changed.
+
+- [x] B866: **the workflow skill confused input and output schema identities.**
+
+  It described a schema-one input without showing JSON. A low-effort agent supplied the output
+  report string `fr-workflow-1` instead of integer `1`, then received one generic error for every
+  possible mismatch. The reference now includes an exact manifest and the evaluator identifies
+  each invalid field with the expected shape.
+
+- [x] B865: **fresh agent trials shared a mutable Cargo output.**
+
+  Preparation recorded `target/debug/fr` by path and digest. A later local build replaced that path
+  during a trial, stopping valid final checks. Preparation now copies one read-only executable for
+  the whole pair and records evaluator-source fingerprints. Steps and scoring refuse evaluator
+  drift explicitly.
+
 - [x] B863: **a generated remainder helper returned as a new public function after translation.**
 
   Rust integer remainder needs a helper when written as Python because the languages disagree for

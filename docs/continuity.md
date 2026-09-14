@@ -1323,6 +1323,11 @@ field-specific manifest errors. Reruns belong in a separate cohort; the diagnost
 The next isolated pair confirmed that correction and both arms passed the behavior and replay gates.
 Its `fr` arm still repeated one successful batch preview, so paired acceptance remained false. The
 instrument now refuses unchanged exact replays and directs the agent to its retained response.
+The third fresh pair passes every acceptance gate. The `fr` arm uses the coordinated saved batch and
+workflow in 42 calls and 17,711 measured context tokens. Files use 17 calls and 11,182 tokens. Both
+patches pass 1,060 independent project and receiver cases, exact undo/redo, ordered checks and index
+preservation. The accepted cohort and both diagnostics remain checksum-bound under
+`tests/agent-eval/results/2026-09-14-deferred-*`.
 Routine CI keeps deterministic replay and does not consume agent quota; real-agent smoke pairs and cohorts are explicit authenticated runs.
 Each fresh trial must ignore user configuration, retain Codex JSONL events and record the CLI catalog entry and complete model settings.
 A small Terra or Sol calibration is reserved for milestones where Luna failures could otherwise conflate model capability with workflow usability.

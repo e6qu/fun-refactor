@@ -1,0 +1,7 @@
+Implemented and validated:
+
+- Added documented `escape_len(pattern: &str) -> usize` to `regex` and `regex-syntax`.
+- Updated `regex-syntax::escape` to preallocate exact capacity.
+- Preserved existing escaping and append behavior.
+- Verified default and no-default-feature builds.
+- Completed patch export, reversal/reapplication, sentinel preservation, and receiver verification.

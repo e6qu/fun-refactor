@@ -51,4 +51,10 @@ successful batch preview, so the strict single-execution predicate rejected it. 
 now refuse an exact successful request until a source mutation or rewritten artifact changes its
 inputs, telling the agent to reuse the retained response.
 
+The [accepted rerun](../tests/agent-eval/results/2026-09-14-deferred-final/manifest.json) binds the
+same model settings to commit `5839cde`. Both arms pass the coordinated task, all project and
+receiver oracle cases, exact reversal, ordered checks and index preservation. The `fr` arm uses
+17,711 measured context tokens and 42 calls. The file arm uses 11,182 tokens and 17 calls. This one
+pair confirms adoption of the corrected protocol and leaves broader context efficiency open.
+
 The command shape follows the official [Codex non-interactive command reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli#codex-exec) and [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference). `--ignore-user-config` still uses the operator's Codex home for authentication. Model availability and quota remain account-dependent; a failed launch stays part of the attempted trial record.
