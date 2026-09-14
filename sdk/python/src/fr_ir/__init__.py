@@ -11,13 +11,15 @@ from enum import Enum
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 SCHEMA = "fr-semantic-body-1"
 CHANGE_SCHEMA = "fr-semantic-change-1"
 INTENT_SCHEMA = "fr-semantic-intent-1"
 DISCLOSED_EDIT_SCHEMA = "fr-disclosed-edit-1"
 DISCLOSED_IR_EDIT_SCHEMA = "fr-disclosed-ir-edit-1"
+MERKLE_PROOF_SCHEMA = "fr-merkle-inclusion-1"
+MERKLE_OBJECT_SCHEMA = "fr-merkle-object-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -28,6 +30,213 @@ TEMPLATE_KINDS = ("text", "expr")
 
 class IrError(ValueError):
     """The requested value does not belong to the semantic IR contract."""
+
+
+def _tagged_hash(*parts: Any) -> str:
+    encoded = json.dumps(parts, ensure_ascii=False, separators=(",", ":"),
+                         allow_nan=False).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _is_digest(value: Any) -> bool:
+    return (isinstance(value, str) and len(value) == 64
+            and all(character in "0123456789abcdef" for character in value))
+
+
+def _object_binary_root(level: Sequence[str]) -> str:
+    current = list(level)
+    if not current:
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "empty")
+    while len(current) > 1:
+        following = []
+        for position in range(0, len(current), 2):
+            if position + 1 == len(current):
+                following.append(current[position])
+            else:
+                following.append(_tagged_hash(
+                    MERKLE_OBJECT_SCHEMA, "pair", current[position], current[position + 1]
+                ))
+        current = following
+    return current[0]
+
+
+def merkle_object_digest(value: Any) -> str:
+    """Return the content address for one JSON value."""
+    if value is None:
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "null")
+    if isinstance(value, bool):
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "bool", value)
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and (value != value or value in (float("inf"), float("-inf"))):
+            raise IrError("Merkle numbers must be finite JSON numbers")
+        written = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "number", written)
+    if isinstance(value, str):
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "string", value)
+    if isinstance(value, list):
+        entries = [
+            _tagged_hash(MERKLE_OBJECT_SCHEMA, "array-entry", index,
+                         merkle_object_digest(child))
+            for index, child in enumerate(value)
+        ]
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "array", len(value),
+                            _object_binary_root(entries))
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise IrError("Merkle object keys must be strings")
+        entries = [
+            _tagged_hash(MERKLE_OBJECT_SCHEMA, "object-entry", index, key,
+                         merkle_object_digest(value[key]))
+            for index, key in enumerate(sorted(value))
+        ]
+        return _tagged_hash(MERKLE_OBJECT_SCHEMA, "object", len(value),
+                            _object_binary_root(entries))
+    raise IrError(f"{type(value).__name__} is not a JSON value")
+
+
+def merkle_object_pack(value: Any) -> dict[str, Any]:
+    """Split a JSON tree into deduplicated objects suitable for object storage."""
+    objects: dict[str, Any] = {}
+
+    def visit(node: Any) -> str:
+        digest = merkle_object_digest(node)
+        if digest in objects:
+            return digest
+        if isinstance(node, list):
+            record = {
+                "schema": MERKLE_OBJECT_SCHEMA,
+                "kind": "array",
+                "children": [visit(child) for child in node],
+            }
+        elif isinstance(node, dict):
+            record = {
+                "schema": MERKLE_OBJECT_SCHEMA,
+                "kind": "object",
+                "entries": [[key, visit(node[key])] for key in sorted(node)],
+            }
+        else:
+            record = {"schema": MERKLE_OBJECT_SCHEMA, "kind": "scalar", "value": node}
+        objects[digest] = record
+        return digest
+
+    root = visit(value)
+    return {
+        "schema": "fr-merkle-object-pack-1",
+        "algorithm": "sha256-tagged-binary-json-tree",
+        "root": root,
+        "objects": objects,
+    }
+
+
+def restore_merkle_object(
+    root: str,
+    objects: Mapping[str, Any] | Callable[[str], Any],
+) -> Any:
+    """Fetch, restore and verify a JSON tree rooted at one content digest."""
+    active: set[str] = set()
+    cache: dict[str, Any] = {}
+
+    def fetch(digest: str) -> Any:
+        if digest in cache:
+            return cache[digest]
+        record = objects(digest) if callable(objects) else objects.get(digest)
+        cache[digest] = record
+        return record
+
+    def restore(digest: str) -> Any:
+        if not _is_digest(digest):
+            raise IrError("Merkle object references must be lowercase SHA-256 digests")
+        if digest in active:
+            raise IrError("Merkle object graph contains a cycle")
+        record = fetch(digest)
+        if not isinstance(record, Mapping) or record.get("schema") != MERKLE_OBJECT_SCHEMA:
+            raise IrError(f"Merkle object {digest} is absent or malformed")
+        active.add(digest)
+        kind = record.get("kind")
+        if kind == "scalar" and set(record) == {"schema", "kind", "value"}:
+            value = record["value"]
+        elif kind == "array" and isinstance(record.get("children"), list):
+            value = [restore(child) for child in record["children"]]
+        elif kind == "object" and isinstance(record.get("entries"), list):
+            entries = record["entries"]
+            if not all(isinstance(entry, list) and len(entry) == 2
+                       and isinstance(entry[0], str) and isinstance(entry[1], str)
+                       for entry in entries):
+                raise IrError(f"Merkle object {digest} has malformed entries")
+            keys = [entry[0] for entry in entries]
+            if keys != sorted(set(keys)):
+                raise IrError(f"Merkle object {digest} keys are not canonical")
+            value = {key: restore(child) for key, child in entries}
+        else:
+            raise IrError(f"Merkle object {digest} has an unsupported shape")
+        active.remove(digest)
+        if merkle_object_digest(value) != digest:
+            raise IrError(f"Merkle object {digest} fails content verification")
+        return value
+
+    return restore(root)
+
+
+def verify_disclosure_commitment(digest: str, proof: Mapping[str, Any]) -> bool:
+    """Verify a revealed subtree commitment against its disclosure root."""
+    if (
+        not isinstance(proof, Mapping)
+        or proof.get("schema") != MERKLE_PROOF_SCHEMA
+        or proof.get("algorithm") != "sha256-tagged-binary-json-tree"
+        or not isinstance(proof.get("path"), list)
+    ):
+        return False
+    current = digest
+    if not _is_digest(current) or not _is_digest(proof.get("root")):
+        return False
+    if proof.get("leaf") != current:
+        return False
+    for step in proof["path"]:
+        if not isinstance(step, Mapping) or step.get("container") not in ("array", "object"):
+            return False
+        index, length, branch = step.get("index"), step.get("length"), step.get("branch")
+        if (
+            isinstance(index, bool) or not isinstance(index, int)
+            or isinstance(length, bool) or not isinstance(length, int)
+            or not 0 <= index < length
+            or not isinstance(branch, list)
+        ):
+            return False
+        if step["container"] == "array":
+            entry = _tagged_hash(MERKLE_OBJECT_SCHEMA, "array-entry", index, current)
+        else:
+            key = step.get("key")
+            if not isinstance(key, str):
+                return False
+            entry = _tagged_hash(MERKLE_OBJECT_SCHEMA, "object-entry", index, key, current)
+        position, width = index, length
+        for sibling in branch:
+            if not isinstance(sibling, Mapping) or width <= 1:
+                return False
+            expected = "left" if position % 2 else ("right" if position + 1 < width else "promote")
+            if sibling.get("side") != expected:
+                return False
+            if expected == "promote":
+                if set(sibling) != {"side"}:
+                    return False
+            else:
+                digest = sibling.get("digest")
+                if not _is_digest(digest):
+                    return False
+                entry = (_tagged_hash(MERKLE_OBJECT_SCHEMA, "pair", digest, entry)
+                         if expected == "left" else
+                         _tagged_hash(MERKLE_OBJECT_SCHEMA, "pair", entry, digest))
+            position //= 2
+            width = (width + 1) // 2
+        if width != 1:
+            return False
+        current = _tagged_hash(MERKLE_OBJECT_SCHEMA, step["container"], length, entry)
+    return proof["root"] == current
+
+
+def verify_disclosure_proof(value: Any, proof: Mapping[str, Any]) -> bool:
+    """Hash one complete revealed JSON value and verify its disclosure proof."""
+    return verify_disclosure_commitment(merkle_object_digest(value), proof)
 
 
 class BinaryOp(str, Enum):
@@ -876,8 +1085,8 @@ class SemanticIntent:
 
 __all__ = [
     "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "Function", "INTENT_OPERATIONS",
-    "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
+    "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "MERKLE_OBJECT_SCHEMA", "MERKLE_PROOF_SCHEMA", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
     "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",
-    "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode", "UnaryOp", "VariantArm",
+    "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode", "UnaryOp", "VariantArm", "merkle_object_digest", "merkle_object_pack", "restore_merkle_object", "verify_disclosure_commitment", "verify_disclosure_proof",
 ]

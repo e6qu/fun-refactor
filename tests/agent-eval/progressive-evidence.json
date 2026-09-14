@@ -1,0 +1,27 @@
+{
+  "schema": "fr-progressive-evidence-eval-1",
+  "passed": true,
+  "tool_sha256": "1cce574519f1728f10489282ceb81ddfc33093553a90d2a861f5bede8a1d326f",
+  "oracle": {
+    "complete_tree_reconstructed": true,
+    "root_recomputed": true,
+    "proofs_verified": 134,
+    "tampering_rejected": true,
+    "stale_action_refused": true,
+    "source_free": true,
+    "domains": [
+      "code-map",
+      "call-traces",
+      "impact",
+      "sources-and-sinks"
+    ]
+  },
+  "budget": {
+    "compact_limit": 4096,
+    "expanded_limit": 16384,
+    "responses": 136,
+    "maximum_response_bytes": 7437,
+    "total_response_bytes": 716195
+  },
+  "scope": "Generated generic Python fixture; independent binary-Merkle reconstruction and source-free static evidence checks. Parser, analyzer completeness, SHA-256 collision resistance and runtime behavior remain trusted or separately tested."
+}

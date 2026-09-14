@@ -6,6 +6,8 @@ use serde_json::{json, Value};
 
 const SCHEMA: &str = "fr-progressive-disclosure-1";
 const TREE_SCHEMA: &str = "fr-semantic-merkle-1";
+const OBJECT_SCHEMA: &str = "fr-merkle-object-1";
+const PROOF_SCHEMA: &str = "fr-merkle-inclusion-1";
 pub(crate) const EDIT_SCHEMA: &str = "fr-disclosed-edit-1";
 pub(crate) const IR_EDIT_SCHEMA: &str = "fr-disclosed-ir-edit-1";
 const INLINE_SCALAR_BYTES: usize = 128;
@@ -79,6 +81,31 @@ pub struct Options {
     token_limit: usize,
     #[arg(long, value_enum, default_value = "compact")]
     pub(super) profile: AgentProfile,
+    #[arg(
+        long,
+        value_enum,
+        default_value = "semantic",
+        help = "Reveal authorable semantic IR or source-free project evidence."
+    )]
+    view: DisclosureView,
+    #[arg(
+        long,
+        default_value_t = 3,
+        help = "Hierarchy, call-trace and value-flow depth for the evidence view (0..8)."
+    )]
+    depth: usize,
+    #[arg(
+        long,
+        help = "Include standalone Merkle paths for verification and protocol testing."
+    )]
+    proofs: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum DisclosureView {
+    Semantic,
+    Evidence,
 }
 
 pub fn disclosure_budget_admitted(
@@ -106,16 +133,37 @@ pub fn disclosure_frontier_after(hidden: u64, children: u64) -> Option<u64> {
     hidden.checked_sub(1)?.checked_add(children)
 }
 
+pub fn disclosure_proof_step_allowed(width: usize, index: usize, side: usize) -> bool {
+    width > 1
+        && index < width
+        && match side {
+            0 => index % 2 == 1,
+            1 => index % 2 == 0 && index + 1 < width,
+            2 => index % 2 == 0 && index + 1 == width,
+            _ => false,
+        }
+}
+
+pub fn disclosure_proof_parent(width: usize, index: usize) -> Option<(usize, usize)> {
+    (width > 1 && index < width).then_some((width / 2 + width % 2, index / 2))
+}
+
+pub fn disclosure_view_admitted(view: usize, depth: usize) -> bool {
+    view == 0 || (view == 1 && depth <= 8)
+}
+
 #[derive(Clone)]
 struct View {
     target: String,
     semantic_basis: String,
     model: Value,
     semantic_root: String,
+    object_root: String,
     source_root: String,
     root: String,
     basis: String,
     source: String,
+    kind: DisclosureView,
     edits: Vec<DisclosedEdit>,
     ir_edits: Vec<DisclosedIrEdit>,
 }
@@ -167,6 +215,204 @@ pub(crate) fn merkle(value: &Value) -> Result<String> {
             hash((TREE_SCHEMA, "object", children))
         }
     }
+}
+
+/// A binary content address for JSON trees stored or fetched as independent subtrees. The
+/// original semantic Merkle root remains part of the wire contract; this second root also permits
+/// opt-in logarithmic inclusion paths without returning every sibling of a wide object or array.
+pub fn object_merkle(value: &Value) -> Result<String> {
+    match value {
+        Value::Null => hash((OBJECT_SCHEMA, "null")),
+        Value::Bool(value) => hash((OBJECT_SCHEMA, "bool", value)),
+        Value::Number(value) => hash((OBJECT_SCHEMA, "number", value.to_string())),
+        Value::String(value) => hash((OBJECT_SCHEMA, "string", value)),
+        Value::Array(values) => {
+            let leaves = values
+                .iter()
+                .enumerate()
+                .map(|(index, value)| {
+                    Ok(hash((
+                        OBJECT_SCHEMA,
+                        "array-entry",
+                        index,
+                        object_merkle(value)?,
+                    ))?)
+                })
+                .collect::<Result<Vec<_>>>()?;
+            hash((OBJECT_SCHEMA, "array", values.len(), binary_root(leaves)?))
+        }
+        Value::Object(object) => {
+            let mut children = object.iter().collect::<Vec<_>>();
+            children.sort_unstable_by(|left, right| left.0.cmp(right.0));
+            let leaves = children
+                .iter()
+                .enumerate()
+                .map(|(index, (key, value))| {
+                    Ok(hash((
+                        OBJECT_SCHEMA,
+                        "object-entry",
+                        index,
+                        key,
+                        object_merkle(value)?,
+                    ))?)
+                })
+                .collect::<Result<Vec<_>>>()?;
+            hash((
+                OBJECT_SCHEMA,
+                "object",
+                children.len(),
+                binary_root(leaves)?,
+            ))
+        }
+    }
+}
+
+fn binary_root(mut level: Vec<String>) -> Result<String> {
+    if level.is_empty() {
+        return hash((OBJECT_SCHEMA, "empty"));
+    }
+    while level.len() > 1 {
+        let mut next = Vec::with_capacity(level.len().div_ceil(2));
+        for pair in level.chunks(2) {
+            next.push(match pair {
+                [left, right] => hash((OBJECT_SCHEMA, "pair", left, right))?,
+                [only] => only.clone(),
+                _ => unreachable!(),
+            });
+        }
+        level = next;
+    }
+    Ok(level.pop().unwrap())
+}
+
+fn binary_branch(mut level: Vec<String>, mut index: usize) -> Result<Vec<Value>> {
+    let mut branch = Vec::new();
+    while level.len() > 1 {
+        let side = if index % 2 == 1 {
+            0
+        } else if index + 1 < level.len() {
+            1
+        } else {
+            2
+        };
+        ensure!(
+            disclosure_proof_step_allowed(level.len(), index, side),
+            "invalid Merkle proof branch position."
+        );
+        if side == 0 {
+            branch.push(json!({"side": "left", "digest": level[index - 1]}));
+        } else if side == 1 {
+            branch.push(json!({"side": "right", "digest": level[index + 1]}));
+        } else {
+            branch.push(json!({"side": "promote"}));
+        }
+        let parent = disclosure_proof_parent(level.len(), index)
+            .context("Merkle proof branch has no parent")?;
+        let mut next = Vec::with_capacity(level.len().div_ceil(2));
+        for pair in level.chunks(2) {
+            next.push(match pair {
+                [left, right] => hash((OBJECT_SCHEMA, "pair", left, right))?,
+                [only] => only.clone(),
+                _ => unreachable!(),
+            });
+        }
+        level = next;
+        ensure!(
+            parent == (level.len(), index / 2),
+            "Merkle proof parent disagrees with the constructed tree."
+        );
+        index = parent.1;
+    }
+    Ok(branch)
+}
+
+fn inclusion_proof(value: &Value, wanted: &str, pointer: &str) -> Result<Option<Vec<Value>>> {
+    if pointer == wanted {
+        return Ok(Some(Vec::new()));
+    }
+    match value {
+        Value::Array(values) => {
+            let digests = values
+                .iter()
+                .map(object_merkle)
+                .collect::<Result<Vec<_>>>()?;
+            for (index, child) in values.iter().enumerate() {
+                let child_pointer = pointer_child(pointer, &index.to_string());
+                if let Some(mut path) = inclusion_proof(child, wanted, &child_pointer)? {
+                    let leaves = digests
+                        .iter()
+                        .enumerate()
+                        .map(|(position, digest)| {
+                            hash((OBJECT_SCHEMA, "array-entry", position, digest))
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    path.push(json!({
+                        "container": "array", "index": index, "length": values.len(),
+                        "branch": binary_branch(leaves, index)?
+                    }));
+                    return Ok(Some(path));
+                }
+            }
+        }
+        Value::Object(object) => {
+            let mut children = object.iter().collect::<Vec<_>>();
+            children.sort_unstable_by(|left, right| left.0.cmp(right.0));
+            let digests = children
+                .iter()
+                .map(|(_, value)| object_merkle(value))
+                .collect::<Result<Vec<_>>>()?;
+            for (index, (key, child)) in children.iter().enumerate() {
+                let child_pointer = pointer_child(pointer, key);
+                if let Some(mut path) = inclusion_proof(child, wanted, &child_pointer)? {
+                    let leaves = children
+                        .iter()
+                        .enumerate()
+                        .map(|(position, (key, _))| {
+                            hash((
+                                OBJECT_SCHEMA,
+                                "object-entry",
+                                position,
+                                key,
+                                &digests[position],
+                            ))
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    path.push(json!({
+                        "container": "object", "key": key, "index": index,
+                        "length": children.len(), "branch": binary_branch(leaves, index)?
+                    }));
+                    return Ok(Some(path));
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(None)
+}
+
+fn proof(view: &View, pointer: &str, value: &Value) -> Result<Value> {
+    let path = inclusion_proof(&view.model, pointer, "/model")?
+        .context("revealed semantic pointer is outside its committed proof tree")?;
+    Ok(json!({
+        "schema": PROOF_SCHEMA,
+        "algorithm": "sha256-tagged-binary-json-tree",
+        "leaf": object_merkle(value)?,
+        "root": view.object_root,
+        "path": path
+    }))
+}
+
+fn attach_proof(
+    report: &mut Value,
+    options: &Options,
+    view: &View,
+    pointer: &str,
+    value: &Value,
+) -> Result<()> {
+    if options.proofs {
+        report["revealed"]["proof"] = proof(view, pointer, value)?;
+    }
+    Ok(())
 }
 
 fn pointer_child(pointer: &str, key: &str) -> String {
@@ -263,6 +509,56 @@ fn semantic_shortcuts(view: &View, options: &Options) -> Result<Vec<Value>> {
     let mut rows = Vec::new();
     collect(view, options, &view.model, "/model", &mut rows)?;
     Ok(rows)
+}
+
+fn evidence_shortcuts(view: &View, options: &Options) -> Result<Vec<Value>> {
+    fn descendants(value: &Value) -> usize {
+        match value {
+            Value::Array(values) => values.len() + values.iter().map(descendants).sum::<usize>(),
+            Value::Object(object) => object.len() + object.values().map(descendants).sum::<usize>(),
+            _ => 0,
+        }
+    }
+    let object = view
+        .model
+        .as_object()
+        .context("project evidence root is not an object")?;
+    ["code_map", "call_traces", "impact", "sources_and_sinks"]
+        .into_iter()
+        .filter_map(|name| object.get(name).map(|value| (name, value)))
+        .map(|(name, value)| {
+            let pointer = pointer_child("/model", name);
+            let digest = merkle(value)?;
+            let id = hole_id(&view.basis, &pointer, &digest)?;
+            Ok(json!({
+                "domain": name,
+                "address": format!("{}#{pointer}", view.semantic_basis),
+                "value_kind": value_kind(value),
+                "hidden_descendants": descendants(value),
+                "hole": id,
+                "reveal": {"arguments": arguments(options, &id, None)}
+            }))
+        })
+        .collect()
+}
+
+fn evidence_catalog(view: &View) -> Result<Vec<Value>> {
+    fn descendants(value: &Value) -> usize {
+        match value {
+            Value::Array(values) => values.len() + values.iter().map(descendants).sum::<usize>(),
+            Value::Object(object) => object.len() + object.values().map(descendants).sum::<usize>(),
+            _ => 0,
+        }
+    }
+    let object = view
+        .model
+        .as_object()
+        .context("project evidence root is not an object")?;
+    Ok(["code_map", "call_traces", "impact", "sources_and_sinks"]
+        .into_iter()
+        .filter_map(|name| object.get(name).map(|value| (name, value)))
+        .map(|(name, value)| json!({"domain": name, "hidden_descendants": descendants(value)}))
+        .collect())
 }
 
 fn hole_id(basis: &str, pointer: &str, digest: &str) -> Result<String> {
@@ -399,10 +695,28 @@ fn arguments(options: &Options, hole: &str, cursor: Option<&str>) -> Vec<String>
     if options.profile == AgentProfile::Expanded {
         args.extend(["--profile".into(), "expanded".into()]);
     }
+    if options.view == DisclosureView::Evidence {
+        args.extend([
+            "--view".into(),
+            "evidence".into(),
+            "--depth".into(),
+            options.depth.to_string(),
+        ]);
+    }
+    if options.proofs {
+        args.push("--proofs".into());
+    }
     if let Some(cursor) = cursor {
         args.extend(["--cursor".into(), cursor.into()]);
     }
     args
+}
+
+fn tree_domain(view: &View) -> &'static str {
+    match view.kind {
+        DisclosureView::Semantic => "semantic-ir",
+        DisclosureView::Evidence => "project-evidence",
+    }
 }
 
 fn semantic_hole(view: &View, options: &Options, pointer: &str, value: &Value) -> Result<Value> {
@@ -410,9 +724,10 @@ fn semantic_hole(view: &View, options: &Options, pointer: &str, value: &Value) -
     let id = hole_id(&view.basis, pointer, &digest)?;
     Ok(json!({
         "id": id,
-        "domain": "semantic-ir",
+        "domain": tree_domain(view),
         "address": format!("{}#{pointer}", view.semantic_basis),
         "digest": digest,
+        "object_digest": object_merkle(value)?,
         "value_kind": value_kind(value),
         "summary": summary(value),
         "subtree_bytes": serde_json::to_vec(value)?.len(),
@@ -446,6 +761,7 @@ fn cursor(view: &View, options: &Options, hole: &str, offset: usize) -> Result<S
             hole,
             options.profile,
             options.token_limit,
+            options.proofs,
             offset
         ))?
     ))
@@ -471,6 +787,7 @@ fn cursor_offset(view: &View, options: &Options, hole: &str) -> Result<usize> {
                     hole,
                     options.profile,
                     options.token_limit,
+                    options.proofs,
                     offset
                 ))?
             ),
@@ -564,12 +881,13 @@ fn fits(report: &mut Value, options: &Options) -> Result<bool> {
     ))
 }
 
-fn base(project: &Project<'_>, view: &View, profile: AgentProfile) -> Result<Value> {
+fn base(project: &Project<'_>, view: &View, options: &Options) -> Result<Value> {
     let id = project.resolve_handle(&view.target)?;
     let node = &project.nodes[id];
     let mut report = project.envelope("disclose");
     report["schema"] = json!(SCHEMA);
-    report["profile"] = json!(profile);
+    report["profile"] = json!(options.profile);
+    report["view"] = json!(view.kind);
     report["target"] = json!({
         "handle": view.target,
         "name": node.name,
@@ -581,10 +899,17 @@ fn base(project: &Project<'_>, view: &View, profile: AgentProfile) -> Result<Val
         "schema": TREE_SCHEMA,
         "root": view.root,
         "semantic_root": view.semantic_root,
+        "tree_root": view.semantic_root,
+        "object_root": view.object_root,
+        "object_schema": OBJECT_SCHEMA,
         "source_root": view.source_root,
         "semantic_basis": view.semantic_basis,
-        "algorithm": "sha256-tagged-canonical-json-tree"
+        "algorithm": "sha256-tagged-canonical-json-tree",
+        "object_algorithm": "sha256-tagged-binary-json-tree"
     });
+    if options.proofs {
+        report["commitment"]["proof_schema"] = json!(PROOF_SCHEMA);
+    }
     project.response_context(None)?.apply(&mut report)?;
     Ok(report)
 }
@@ -600,35 +925,61 @@ impl Project<'_> {
             self.nodes[id].symbol.is_some(),
             "project disclose requires a declaration handle."
         );
-        let semantic = self.semantic(&super::semantic::Options {
-            target: options.target.clone(),
-            revision: None,
-            declaration: None,
-            body: true,
-            pointers: false,
-            locators: false,
-            locators_only: false,
-            locator_op: None,
-            locator_from: None,
-            intent_to: None,
-            nodes: 4096,
-            unsupported_source: false,
-            minimal: false,
-        })?;
-        ensure!(
-            semantic["status"] == "returned",
-            "complete semantic IR exceeds the disclosure analysis bound."
-        );
-        let model = semantic["model"].clone();
-        let semantic_basis = semantic["semantic_basis"]
-            .as_str()
-            .context("semantic response omitted its basis")?
-            .to_owned();
+        let semantic = if options.view == DisclosureView::Semantic {
+            let semantic = self.semantic(&super::semantic::Options {
+                target: options.target.clone(),
+                revision: None,
+                declaration: None,
+                body: true,
+                pointers: false,
+                locators: false,
+                locators_only: false,
+                locator_op: None,
+                locator_from: None,
+                intent_to: None,
+                nodes: 4096,
+                unsupported_source: false,
+                minimal: false,
+            })?;
+            ensure!(
+                semantic["status"] == "returned",
+                "complete semantic IR exceeds the disclosure analysis bound."
+            );
+            Some(semantic)
+        } else {
+            None
+        };
+        let (model, semantic_basis) = match semantic.as_ref() {
+            Some(semantic) => (
+                semantic["model"].clone(),
+                semantic["semantic_basis"]
+                    .as_str()
+                    .context("semantic response omitted its basis")?
+                    .to_owned(),
+            ),
+            None => {
+                let model = self.evidence_model(id, options.depth)?;
+                let basis = format!(
+                    "frpe1:{}",
+                    hash((
+                        "fr-project-evidence-1",
+                        &self.revision,
+                        &options.target,
+                        options.depth,
+                        object_merkle(&model)?
+                    ))?
+                );
+                (model, basis)
+            }
+        };
         let semantic_root = merkle(&model)?;
+        let object_root = object_merkle(&model)?;
         let mut edits = Vec::new();
         let mut ir_edits = Vec::new();
         let node = &self.nodes[id];
-        if semantic["body_identity"]["status"] == "available"
+        if semantic
+            .as_ref()
+            .is_some_and(|semantic| semantic["body_identity"]["status"] == "available")
             && node
                 .symbol
                 .and_then(|symbol| self.index.symbol(symbol))
@@ -700,27 +1051,40 @@ impl Project<'_> {
             &semantic_root,
             &source_root,
         ))?;
-        let basis = format!(
-            "frdv1:{}",
-            hash((
+        let basis_digest = match options.view {
+            DisclosureView::Semantic => hash((
                 SCHEMA,
                 &self.revision,
                 &options.target,
                 &semantic_basis,
                 &root,
                 options.profile,
-                options.token_limit
-            ))?
-        );
+                options.token_limit,
+            ))?,
+            DisclosureView::Evidence => hash((
+                SCHEMA,
+                &self.revision,
+                &options.target,
+                &semantic_basis,
+                &root,
+                options.profile,
+                options.token_limit,
+                options.view,
+                options.depth,
+            ))?,
+        };
+        let basis = format!("frdv1:{basis_digest}");
         Ok(View {
             target: options.target.clone(),
             semantic_basis,
             model,
             semantic_root,
+            object_root,
             source_root,
             root,
             basis,
             source,
+            kind: options.view,
             edits,
             ir_edits,
         })
@@ -732,7 +1096,7 @@ impl Project<'_> {
             "token limit must be 1024..4096 for compact or 1024..16384 for expanded disclosure."
         );
         let view = self.disclosure_view(options)?;
-        let mut report = base(self, &view, options.profile)?;
+        let mut report = base(self, &view, options)?;
         match options.reveal.as_deref() {
             None => {
                 ensure!(options.cursor.is_none(), "--cursor requires --reveal.");
@@ -741,9 +1105,22 @@ impl Project<'_> {
                     semantic_hole(&view, options, "/model", &view.model)?,
                     source_hole(&view, options, 0, None)?
                 ]);
-                let mut shortcuts = semantic_shortcuts(&view, options)?;
-                report["semantic_shortcuts"] = json!(shortcuts);
-                report["instructions"] = json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Structural IR descriptors require the expanded profile. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary.");
+                let mut shortcuts = match options.view {
+                    DisclosureView::Semantic => semantic_shortcuts(&view, options)?,
+                    DisclosureView::Evidence => evidence_shortcuts(&view, options)?,
+                };
+                let shortcut_field = match options.view {
+                    DisclosureView::Semantic => "semantic_shortcuts",
+                    DisclosureView::Evidence => "evidence_shortcuts",
+                };
+                report[shortcut_field] = json!(shortcuts);
+                if options.view == DisclosureView::Evidence {
+                    report["evidence_catalog"] = json!(evidence_catalog(&view)?);
+                }
+                report["instructions"] = match options.view {
+                    DisclosureView::Semantic => json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Structural IR descriptors require the expanded profile. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary."),
+                    DisclosureView::Evidence => json!("Prefer a relevant evidence_shortcuts action for code_map, call_traces, impact or sources_and_sinks. Object digests address reusable Merkle subtrees. Follow exact returned actions and reveal exact source only when structured evidence is insufficient; request --proofs only when independently verifying a subtree."),
+                };
                 report["shortcut_budget"] = json!({
                     "limit": options.profile.row_limit(),
                     "returned": shortcuts.len(),
@@ -751,7 +1128,7 @@ impl Project<'_> {
                 });
                 while !fits(&mut report, options)? && !shortcuts.is_empty() {
                     shortcuts.pop();
-                    report["semantic_shortcuts"] = json!(shortcuts);
+                    report[shortcut_field] = json!(shortcuts);
                     report["shortcut_budget"]["returned"] = json!(shortcuts.len());
                 }
                 ensure!(fits(&mut report, options)?, "the initial disclosure envelope does not fit this token limit; raise --token-limit or reuse --context-basis.");
@@ -895,7 +1272,8 @@ impl Project<'_> {
                 ensure!(start == 0, "semantic scalar cursor is beyond its value.");
                 let mut report = base;
                 report["status"] = json!("revealed");
-                report["revealed"] = json!({"id": wanted, "domain": "semantic-ir", "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(value)?, "value": value});
+                report["revealed"] = json!({"id": wanted, "domain": tree_domain(view), "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(value)?, "object_digest": object_merkle(value)?, "value": value});
+                attach_proof(&mut report, options, view, &pointer, value)?;
                 report["supersedes"] = json!(wanted);
                 report["frontier"] = json!([]);
                 ensure!(
@@ -938,7 +1316,7 @@ impl Project<'_> {
             let inline =
                 !matches!(value, Value::Array(_) | Value::Object(_)) && scalar_is_inline(value)?;
             let mut row = if inline {
-                json!({"key": key, "digest": child_digest, "value": value})
+                json!({"key": key, "digest": child_digest, "object_digest": object_merkle(value)?, "value": value})
             } else {
                 json!({"key": key, "hole": semantic_hole(view, options, &child_pointer, value)?})
             };
@@ -959,12 +1337,14 @@ impl Project<'_> {
             let mut report = base.clone();
             report["status"] = json!("revealed");
             report["revealed"] = json!({
-                "id": wanted, "domain": "semantic-ir", "address": format!("{}#{pointer}", view.semantic_basis),
+                "id": wanted, "domain": tree_domain(view), "address": format!("{}#{pointer}", view.semantic_basis),
                 "digest": merkle(node)?,
+                "object_digest": object_merkle(node)?,
                 "value_kind": value_kind(node),
                 "children": rows,
                 "page": {"total": children.len(), "before": start, "returned": end - start, "remaining": children.len() - end, "next": next}
             });
+            attach_proof(&mut report, options, view, pointer, node)?;
             let node_ir_edits = ir_edit_descriptors(view, options.profile, pointer)?;
             if !node_ir_edits.is_empty() {
                 report["revealed"]["ir_edits"] = json!(node_ir_edits);
@@ -1005,7 +1385,8 @@ impl Project<'_> {
         if children.is_empty() {
             let mut report = base;
             report["status"] = json!("revealed");
-            report["revealed"] = json!({"id": wanted, "domain": "semantic-ir", "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(node)?, "children": [], "page": {"total": 0, "before": 0, "returned": 0, "remaining": 0, "next": null}});
+            report["revealed"] = json!({"id": wanted, "domain": tree_domain(view), "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(node)?, "object_digest": object_merkle(node)?, "children": [], "page": {"total": 0, "before": 0, "returned": 0, "remaining": 0, "next": null}});
+            attach_proof(&mut report, options, view, pointer, node)?;
             report["supersedes"] = json!(wanted);
             let node_ir_edits = ir_edit_descriptors(view, options.profile, pointer)?;
             if !node_ir_edits.is_empty() {
@@ -1061,7 +1442,8 @@ impl Project<'_> {
                 .transpose()?;
             let mut report = base.clone();
             report["status"] = json!("revealed");
-            report["revealed"] = json!({"id": wanted, "domain": "semantic-ir", "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(&json!(text))?, "value_fragment": &text[start..end], "offset": start, "returned_bytes": length, "total_bytes": text.len(), "next": next});
+            report["revealed"] = json!({"id": wanted, "domain": tree_domain(view), "address": format!("{}#{pointer}", view.semantic_basis), "digest": merkle(&json!(text))?, "object_digest": object_merkle(&json!(text))?, "value_fragment": &text[start..end], "offset": start, "returned_bytes": length, "total_bytes": text.len(), "next": next});
+            attach_proof(&mut report, options, view, pointer, &json!(text))?;
             if let Some(next) = next.as_deref() {
                 report["continuation"] = json!({
                     "reason": "more-string-bytes",

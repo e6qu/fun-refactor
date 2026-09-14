@@ -239,6 +239,65 @@ fn progressive_disclosure_starts_source_free_and_follows_exact_semantic_and_sour
 }
 
 #[test]
+fn progressive_evidence_reveals_code_map_traces_impact_and_value_endpoints_without_source() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("app.py"),
+        "def source(value):\n    copy = value\n    return copy\n\ndef caller():\n    return source('secret')\n",
+    )
+    .unwrap();
+    let found = ok(dir.path(), &["project", "find", "source"]);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        dir.path(),
+        &[
+            "project",
+            "disclose",
+            handle,
+            "--view",
+            "evidence",
+            "--depth",
+            "3",
+            "--token-limit",
+            "4096",
+        ],
+    );
+    assert_disclosure_budget(&initial);
+    assert_eq!(initial["view"], "evidence");
+    assert_eq!(initial["frontier"][0]["domain"], "project-evidence");
+    assert_eq!(initial["commitment"]["object_schema"], "fr-merkle-object-1");
+    assert_eq!(
+        initial["commitment"]["object_root"],
+        initial["frontier"][0]["object_digest"]
+    );
+    assert_eq!(
+        initial["evidence_catalog"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| row["domain"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["code_map", "call_traces", "impact", "sources_and_sinks"]
+    );
+    assert!(!initial.to_string().contains("copy = value"));
+    assert!(!initial.to_string().contains("'secret'"));
+
+    assert!(!initial["evidence_shortcuts"].as_array().unwrap().is_empty());
+    for shortcut in initial["evidence_shortcuts"].as_array().unwrap() {
+        let report = ok_owned(
+            dir.path(),
+            &exact_arguments(&shortcut["reveal"]["arguments"]),
+        );
+        assert_disclosure_budget(&report);
+        assert_eq!(report["revealed"]["domain"], "project-evidence");
+        assert!(report["revealed"].get("proof").is_none());
+        assert!(report["revealed"]["object_digest"].is_string());
+        assert!(!report.to_string().contains("copy = value"));
+        assert!(!report.to_string().contains("'secret'"));
+    }
+}
+
+#[test]
 fn progressive_disclosure_keeps_source_bearing_bodies_readable_without_offering_edits() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(
