@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.19.0...fun-refactor-v0.20.0) (2026-09-14)
+
+
+### Features
+
+* **agent:** bind semantic edits to disclosure ([#285](https://github.com/e6qu/fun-refactor/issues/285)) ([3f1efc2](https://github.com/e6qu/fun-refactor/commit/3f1efc2e40d74559bd6bd2469eb505172e2631c4))
+
 ## [0.19.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.18.0...fun-refactor-v0.19.0) (2026-09-13)
 
 
