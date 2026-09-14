@@ -1556,8 +1556,11 @@ Missing definitions, unsupported overrides, nonlocal definitions and unresolved 
 Version compatibility and feature evaluation remain unchecked.
 These rules follow the [Cargo inheritance reference](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace).
 
-Default-member selection, member patterns with parent traversal, broader globs and npm workspace ownership remain pending.
-The membership closure has regression tests and Cargo metadata comparisons, but no formal proof yet.
+Default-member selection affects Cargo command defaults rather than workspace ownership. Member
+patterns with parent traversal, recursive package-manager globs and npm workspace ownership are
+outside this bounded static view. Use reviewed package-manager checks when those semantics matter.
+The supported membership closure has regression tests, Cargo metadata comparisons and a finite
+Lean reachability model; package-manager interpretation remains a tested integration boundary.
 
 #### `fr project find NAME`
 

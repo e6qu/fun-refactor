@@ -9,6 +9,17 @@ and strict Lean evidence. LSP delegation, a daemon process, embedded package sol
 runtimes are closed architecture non-goals; `fr` exposes checked inputs and external check hooks at
 those trust boundaries.
 
+The combined-gate checkpoint refreshed the context-protocol, workflow, project-batch and task-bundle
+reports from their frozen inputs after their checksum-bound sources changed. All fifteen active
+agent-acceptance tests pass. It also repaired the byte-only audit path shared by the three measured
+batch reports: absent optional token counts are now checked as absent instead of being sorted as
+numbers. B878 records the regression and both tokenized retained reports and byte-only one-repetition
+reports pass their independent auditors.
+
+The deep-gate checkpoint also repaired external replay setup. Each run now unpacks the pinned regex
+workspace into its own temporary root and cleans that root on every exit, so an interrupted Cargo
+fetch cannot block retries. B879 records the defect.
+
 PR 25, proposed as GitHub PR 290, adds the Agent Formalization Workbench. `spec candidates`
 identifies the conservative pure Rust subset; `spec plan` emits a source-free `fr-formal-plan-1` object;
 `spec scaffold --from` verifies it against current source and generates Lean definitions plus named
@@ -208,8 +219,8 @@ SHA-256, parsers, writers, filesystem behavior and Python remain tested or trust
 
 The deterministic four-route report is `tests/agent-eval/semantic-intent.json`. Complete-body,
 pointer-delta, direct-intent and Python-intent routes produce equal behavior, source, body, patch,
-undo and redo evidence. Filtered direct intent uses 8,678 measured bytes, versus 8,609 for the
-complete body and 10,357 for the pointer delta. Python intent uses 9,149 after counting its producer.
+undo and redo evidence. Filtered direct intent uses 8,592 measured bytes, versus 8,523 for the
+complete body and 10,271 for the pointer delta. Python intent uses 9,063 after counting its producer.
 
 The fresh Luna-low comparison is retained under
 `tests/agent-eval/results/2026-09-12-semantic-intent`. Both isolated arms avoid source reads, produce
@@ -239,8 +250,8 @@ Rust exhaustively agrees on 144 admission states and 1,584 task-target states.
 
 The deterministic evaluation applies both routes through behavior, patches, undo and redo. Their
 canonical intent, compiled change, semantic body and final source identities agree. The direct route
-uses two authoring commands and 4,244 counted bytes. The explicit route uses three commands and 5,387
-bytes. The reduction is 21.2% on this fixture.
+uses two authoring commands and 4,201 counted bytes. The explicit route uses three commands and 5,344
+bytes. The reduction is 21.4% on this fixture.
 
 The first fresh Luna-low pair produced correct code but exposed misleading skill order: the direct
 agent ran an unnecessary standalone query. Its digest-bound trace remains as diagnostic evidence.

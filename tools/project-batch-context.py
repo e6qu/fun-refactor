@@ -232,7 +232,9 @@ def audit(path):
             summary = report["summary"][policy][arm]
             assert summary["samples"] == len(selected) and summary["calls"] == selected[0]["calls"]
             assert summary["median_context_bytes"] == statistics.median(run["context"]["bytes"] for run in selected)
-            assert summary["median_context_tokens"] == statistics.median(run["context"]["tokens"] for run in selected)
+            token_counts = [run["context"]["tokens"] for run in selected]
+            expected_tokens = statistics.median(token_counts) if report["tokenizer"] else None
+            assert summary["median_context_tokens"] == expected_tokens
             assert summary["median_seconds"] == statistics.median(run["seconds"] for run in selected)
     return report
 

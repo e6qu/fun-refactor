@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 716 |
+| Defects fixed | 725 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo, redo and reviewed native retention | Maintain the shared history invariant |
 | M2 compact project understanding | Complete | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and independently verifiable Merkle disclosure for code maps, traces, impact and value flow | Extend from measured agent needs |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and thirty passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
+| M4 agent workflow | Complete | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and thirty passing autonomous trials | Maintain the bounded protocol and rerun cohorts after material workflow changes |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -767,7 +767,7 @@ Planned checkpoints:
 2. **Complete.** Implement workspace-scoped declaration resolution and project-independent planning.
 3. **Complete.** Add direct authoring plus batch, task and task-change integration.
 4. **Complete.** Add Python builders, Lean models, anchors and exhaustive correspondence.
-5. **Complete.** The deterministic comparison saves one command and 21.2% of counted bytes. The
+5. **Complete.** The deterministic comparison saves one command and 21.4% of counted bytes. The
    corrected fresh Luna-low pair passes both arms without source reads. The direct route removes the
    query and payload, with lower total, non-cached input and output in this one pair.
 6. **Complete.** The complete native, browser, documentation, capability and Lean gate passes.
@@ -1424,6 +1424,11 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 14. **Complete.** Audit source markers and active documentation. Classify external solvers,
     runtimes, LSP delegation and daemon state as explicit architecture boundaries instead of
     carrying them as deferred roadmap promises.
+15. **Complete.** Refresh every derived agent report and source fingerprint affected by the
+    combined branch. Tokenized retained evidence and documented byte-only audits both pass; the
+    latter no longer crash when token fields are intentionally absent.
+16. **Complete.** Make the external replay gate retry-safe with a unique owned scratch directory.
+    Interrupted dependency fetches no longer poison every later deep verification attempt.
 
 ## Formal verification policy
 
@@ -1480,6 +1485,11 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
   solving would duplicate environment-dependent package managers, so it is an explicit non-goal.
   Offline verification compares supplied bytes with captured SHA-2, SRI or Go tree-hash evidence.
   It does not authenticate the lockfile author.
+- Cargo workspace ownership covers literal and single-level wildcard members, exclusions, explicit
+  workspace pointers, inherited local dependencies and transitive automatic membership. Cargo
+  command default selection, parent-traversing or recursive package-manager globs and npm workspace
+  ownership stay outside this bounded static model. Reviewed package-manager commands provide that
+  evidence when a project requires it.
 - Framework readers recognize selected static patterns. Their feature hierarchy joins packages,
   components, configuration, middleware, execution dependencies and local HTTP route candidates.
   Static facts never claim runtime execution. Reviewed external checks supply runtime evidence when

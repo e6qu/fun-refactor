@@ -45,7 +45,7 @@ The [controlled workflow evaluation](docs/workflow-evaluation.md) measures the c
 the equivalent seven-call manual lifecycle and checks exact final-state equivalence.
 `fr task-change --from MANIFEST` joins task discovery, concrete authoring and checked delivery under one review basis.
 The [task-change evaluation](docs/task-change-evaluation.md) compares it with the composed five-call route.
-[Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
+[Development continuity](docs/continuity.md) records completed milestones, evidence and the current implementation handoff.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
 `project explore` gives agents a name-first route with server-enforced source, relationship and
@@ -318,7 +318,8 @@ Supported operations still report input-specific limitations and confidence.
 
 [PLAN.md](PLAN.md) is the active roadmap for agents: compact project understanding,
 reversible changes, Git patches, reusable Lean verification and hierarchical framework migration.
-The original implementation stages are complete. The new milestones remain active.
+Every scheduled milestone and deferred-boundary checkpoint is complete. New scope starts from
+measured agent needs or a newly reproduced defect.
 The standalone engine excludes LSP delegation and daemon/watch state. Persistent cache, bounded
 request batching and concurrent-build coalescing cover the measured repeated-query workloads.
 

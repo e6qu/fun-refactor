@@ -67,6 +67,16 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B879: **an interrupted external replay made every retry fail before verification**. The
+  replay script unpacked into one fixed temporary directory and never removed it. It now owns a
+  unique scratch directory for each run and removes that directory on success or failure.
+
+- [x] B878: **byte-only context-report audits crashed on their documented output**. Three report
+  generators deliberately store null token counts when `--tokens` is absent, but their auditors
+  still passed those nulls to `statistics.median`. The auditors now validate null token summaries
+  directly in byte-only mode. The retained tokenized reports were also regenerated after the
+  combined branch changed their checksum-bound evaluator and project sources.
+
 - [x] B877: **captured checksums gave agents no way to verify artifact bytes**. The offline
   `project verify-artifact` command now checks Cargo, npm, Go and Python evidence. It bounds file
   and directory reads, returns no contents and separates missing evidence, unsupported algorithms,

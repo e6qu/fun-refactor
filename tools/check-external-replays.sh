@@ -3,7 +3,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-dependency_root="${TMPDIR:-/tmp}/fr-regex-deps"
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/fr-regex-deps.XXXXXX")"
+trap 'rm -rf "$scratch"' EXIT
+dependency_root="$scratch/workspace"
 python3 tools/regex-workspace-check.py unpack "$dependency_root"
 
 if [ "${1:-}" != "--offline" ]; then

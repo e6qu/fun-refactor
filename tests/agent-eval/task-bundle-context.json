@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-bundle-context-1",
   "passed": true,
-  "binary_sha256": "ebe3f9230a9ed880b15095a004ab37326a0608f94ef9ee0c058a9d37ed71580a",
-  "source_commit": "dc3754ff574424899c5439b5e1fe2f95678c40c6",
+  "binary_sha256": "0a981e7d590dc1819cf4d1ff129750fde81bf9db6d450b45d84e47a1cd11b58e",
+  "source_commit": "9e93def3d2a95906c0383b8a1993f6d1fdedb097",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
@@ -10,9 +10,9 @@
     "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
   },
   "measurement_files": {
-    "tools/task-bundle-context.py": "fe882c29b4dbf9229d5a135ed0d937740504464c3992e5a83ffc8dca93975d25",
+    "tools/task-bundle-context.py": "c89c48eef7b5d3f8bb9c2feec4e838a944633c683041365093010b02048df580",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
-    "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f",
+    "tools/agent-eval.py": "ae6c7414af559e4f23ab7a375e5b3bf3c5c2e50233449b3ee1f7434d1d9e081a",
     "src/project/task.rs": "d99f35813e2dcab0f2b47821389ee798d9868db2f0764b795dc83514818b2143",
     "src/project/batch.rs": "b0eb93abab0794d904192718749f94739d5646abbcb17a292d02cff089524ae7",
     "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
@@ -103,16 +103,16 @@
     "separate": {
       "samples": 3,
       "calls": 4,
-      "median_context_bytes": 6662,
-      "median_context_tokens": 1802,
-      "median_seconds": 0.1292016248917207
+      "median_context_bytes": 6803,
+      "median_context_tokens": 1836,
+      "median_seconds": 0.1469813339645043
     },
     "task": {
       "samples": 3,
       "calls": 1,
-      "median_context_bytes": 4758,
-      "median_context_tokens": 1514,
-      "median_seconds": 0.05965350003680214
+      "median_context_bytes": 4715,
+      "median_context_tokens": 1504,
+      "median_seconds": 0.06716600002255291
     }
   },
   "runs": [
@@ -120,10 +120,10 @@
       "repetition": 1,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "a70f57d2caeb857c8579400440a18c278c6004457d38a5690502ff70a00fcb34",
+      "semantic_sha256": "1a1a33294003649e68b5b534804ff993f4568e65825cc38d8785afc8c1aa6c9d",
       "stdout": {
-        "bytes": 6345,
-        "tokens": 1694
+        "bytes": 6486,
+        "tokens": 1728
       },
       "requests": {
         "bytes": 317,
@@ -134,19 +134,19 @@
         "tokens": 0
       },
       "context": {
-        "bytes": 6662,
-        "tokens": 1802
+        "bytes": 6803,
+        "tokens": 1836
       },
-      "seconds": 0.1306799579760991
+      "seconds": 0.1469813339645043
     },
     {
       "repetition": 1,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "a70f57d2caeb857c8579400440a18c278c6004457d38a5690502ff70a00fcb34",
+      "semantic_sha256": "1a1a33294003649e68b5b534804ff993f4568e65825cc38d8785afc8c1aa6c9d",
       "stdout": {
-        "bytes": 4219,
-        "tokens": 1363
+        "bytes": 4176,
+        "tokens": 1353
       },
       "requests": {
         "bytes": 93,
@@ -157,19 +157,19 @@
         "tokens": 121
       },
       "context": {
-        "bytes": 4758,
-        "tokens": 1514
+        "bytes": 4715,
+        "tokens": 1504
       },
-      "seconds": 0.05969541595550254
+      "seconds": 0.06716600002255291
     },
     {
       "repetition": 2,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "a70f57d2caeb857c8579400440a18c278c6004457d38a5690502ff70a00fcb34",
+      "semantic_sha256": "1a1a33294003649e68b5b534804ff993f4568e65825cc38d8785afc8c1aa6c9d",
       "stdout": {
-        "bytes": 4219,
-        "tokens": 1363
+        "bytes": 4176,
+        "tokens": 1353
       },
       "requests": {
         "bytes": 93,
@@ -180,19 +180,19 @@
         "tokens": 121
       },
       "context": {
-        "bytes": 4758,
-        "tokens": 1514
+        "bytes": 4715,
+        "tokens": 1504
       },
-      "seconds": 0.05965350003680214
+      "seconds": 0.06250320799881592
     },
     {
       "repetition": 2,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "a70f57d2caeb857c8579400440a18c278c6004457d38a5690502ff70a00fcb34",
+      "semantic_sha256": "1a1a33294003649e68b5b534804ff993f4568e65825cc38d8785afc8c1aa6c9d",
       "stdout": {
-        "bytes": 6345,
-        "tokens": 1694
+        "bytes": 6486,
+        "tokens": 1728
       },
       "requests": {
         "bytes": 317,
@@ -203,19 +203,19 @@
         "tokens": 0
       },
       "context": {
-        "bytes": 6662,
-        "tokens": 1802
+        "bytes": 6803,
+        "tokens": 1836
       },
-      "seconds": 0.1292016248917207
+      "seconds": 0.13584791804896668
     },
     {
       "repetition": 3,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "a70f57d2caeb857c8579400440a18c278c6004457d38a5690502ff70a00fcb34",
+      "semantic_sha256": "1a1a33294003649e68b5b534804ff993f4568e65825cc38d8785afc8c1aa6c9d",
       "stdout": {
-        "bytes": 6345,
-        "tokens": 1694
+        "bytes": 6486,
+        "tokens": 1728
       },
       "requests": {
         "bytes": 317,
@@ -226,19 +226,19 @@
         "tokens": 0
       },
       "context": {
-        "bytes": 6662,
-        "tokens": 1802
+        "bytes": 6803,
+        "tokens": 1836
       },
-      "seconds": 0.12918337510200217
+      "seconds": 0.18357020808616653
     },
     {
       "repetition": 3,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "a70f57d2caeb857c8579400440a18c278c6004457d38a5690502ff70a00fcb34",
+      "semantic_sha256": "1a1a33294003649e68b5b534804ff993f4568e65825cc38d8785afc8c1aa6c9d",
       "stdout": {
-        "bytes": 4219,
-        "tokens": 1363
+        "bytes": 4176,
+        "tokens": 1353
       },
       "requests": {
         "bytes": 93,
@@ -249,10 +249,10 @@
         "tokens": 121
       },
       "context": {
-        "bytes": 4758,
-        "tokens": 1514
+        "bytes": 4715,
+        "tokens": 1504
       },
-      "seconds": 0.0591883750166744
+      "seconds": 0.07618804200319573
     }
   ],
   "source_unchanged": true,

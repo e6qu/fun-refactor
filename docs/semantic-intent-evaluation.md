@@ -13,9 +13,9 @@ check forward and reverse patches, and restore and reapply exact bytes through u
 | Semantic query | 2,066 bytes | 3,250 bytes | 1,479 bytes | 1,479 bytes |
 | Payload | 1,081 bytes | 245 bytes | 425 bytes | 361 bytes |
 | Python producer | 0 bytes | 0 bytes | 0 bytes | 535 bytes |
-| Preview | 2,338 bytes | 3,038 bytes | 2,914 bytes | 2,914 bytes |
-| Write | 2,435 bytes | 3,135 bytes | 3,011 bytes | 3,011 bytes |
-| Measured total | 8,609 bytes | 10,357 bytes | 8,678 bytes | 9,149 bytes |
+| Preview | 2,295 bytes | 2,995 bytes | 2,951 bytes | 2,951 bytes |
+| Write | 2,392 bytes | 3,092 bytes | 3,048 bytes | 3,048 bytes |
+| Measured total | 8,523 bytes | 10,271 bytes | 8,592 bytes | 9,063 bytes |
 | Behavior, patch, undo and redo | pass | pass | pass | pass |
 
 The filtered locator-only query plus direct intent uses 39.5% fewer query-and-payload bytes than the

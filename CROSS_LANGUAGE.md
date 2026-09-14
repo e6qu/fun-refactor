@@ -74,11 +74,12 @@ FastAPI endpoints can become a Next.js route tree.
 OpenAPI documents can generate skeletons for either target.
 [API_CONTRACTS.md](API_CONTRACTS.md) describes the current contract surface and limits.
 
-The [active roadmap](PLAN.md) adds a project and framework model alongside the code IR.
-It will connect packages, services, route groups and frontend component trees to source symbols.
-An agent will select a feature, inspect a feasibility report and apply a checked migration plan.
-Authentication, middleware, state, effects and dependency boundaries need explicit adapter semantics.
-Whole-project and frontend-framework migration remain planned work.
+The [roadmap](PLAN.md) delivers project and framework models alongside the code IR.
+They connect packages, services, route groups and frontend component trees to source symbols under
+explicit limits. An agent can select a supported feature, inspect a feasibility report and apply a
+checked migration plan. Authentication, middleware, state, effects and dependency boundaries
+require explicit adapter evidence. Whole-project and arbitrary frontend-framework migration sit
+outside the current bounded transformation contract.
 
 ## Related documents
 

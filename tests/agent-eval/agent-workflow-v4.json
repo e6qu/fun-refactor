@@ -3,7 +3,7 @@
   "passed": true,
   "binary": {
     "path": "target/debug/fr",
-    "sha256": "fff504a96beaeea613e1d5ca2488647a87ff55ed6217126a1baacd589d13bd50"
+    "sha256": "0a981e7d590dc1819cf4d1ff129750fde81bf9db6d450b45d84e47a1cd11b58e"
   },
   "frozen_trace": {
     "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
@@ -29,21 +29,21 @@
   "prescribed": {
     "calls": 29,
     "prompt_bytes": 7472,
-    "visible_output_bytes": 35716,
+    "visible_output_bytes": 35601,
     "tool_request_bytes": 4626,
     "prompt_tokens": 1564,
-    "visible_output_tokens": 11860,
-    "context_tokens": 13424,
+    "visible_output_tokens": 11847,
+    "context_tokens": 13411,
     "tool_request_tokens": 1640
   },
   "difference": {
     "calls": -13,
     "prompt_bytes": 1193,
-    "visible_output_bytes": -7255,
+    "visible_output_bytes": -7370,
     "tool_request_bytes": -1854,
     "prompt_tokens": 240,
-    "visible_output_tokens": -2274,
-    "context_tokens": -2034,
+    "visible_output_tokens": -2287,
+    "context_tokens": -2047,
     "tool_request_tokens": -642
   },
   "removed_calls": [
