@@ -2853,7 +2853,11 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         params.join(", ")
     ));
     out.open();
-    rust_block(out, &f.body, f.returns.as_ref());
+    if f.body.is_empty() && !matches!(f.returns, None | Some(Type::Unit)) {
+        out.line("todo!()");
+    } else {
+        rust_block(out, &f.body, f.returns.as_ref());
+    }
     // The success path a body falls off the end of still has to be said.
     if throws && !matches!(f.body.last(), Some(Stmt::Return(_)) | Some(Stmt::Throw(_))) {
         out.line("Ok(())");
@@ -2938,7 +2942,6 @@ fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<
 
 fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     if body.is_empty() {
-        out.line("todo!()");
         return;
     }
     let mut at = 0usize;

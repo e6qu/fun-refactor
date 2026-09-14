@@ -233,6 +233,12 @@ semantic intent used by this section. Author batches, project tasks and task cha
 `disclosed: {edit,to}`. Large scalar values stay committed rather than repeated in capability and
 author receipts. See [disclosure-bound editing](disclosed-editing.md).
 
+For a complete-node or statement-list change, reveal an `ir_edits` descriptor with a nonzero
+`editable_ir` shortcut count. Its `frdi1:` identity binds the hidden path/index, operation,
+category and current Merkle commitment. `edit-body-disclosed-ir` accepts a typed node file for
+same-category replacement or statement insertion and no file for statement deletion. Batch, task
+and task-change manifests carry the same inline `disclosed_ir: {edit,value?}` request.
+
 ```json
 {
   "schema": "fr-semantic-intent-1",
@@ -257,7 +263,8 @@ result through the existing writer, byte-preserving body splice and history life
 batches, project tasks and reviewed task changes use `edit-body-intent`.
 
 The Python SDK mirrors `Role`, `NodeCategory`, `LocatorStep`, `Intent`, `SemanticIntent`, the
-three-field `ScalarRequest` and the two-field `DisclosedEditRequest` used by task manifests. Direct
+three-field `ScalarRequest`, two-field `DisclosedEditRequest` and typed-node
+`DisclosedIrEditRequest` used by task manifests. Direct
 JSON is the measured choice for a one-off scalar edit. Python provides earlier type and scalar checks
 when several operations or reusable producer logic justify it. The deterministic four-route result
 is documented in [semantic intent evaluation](semantic-intent-evaluation.md).

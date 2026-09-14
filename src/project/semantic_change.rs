@@ -62,6 +62,39 @@ pub(super) struct ValidatedBody {
     pub(super) nodes: usize,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum StructuralOperation {
+    Replace,
+    DeleteStatement,
+    InsertStatement,
+}
+
+impl StructuralOperation {
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Self::Replace => "replace",
+            Self::DeleteStatement => "delete-statement",
+            Self::InsertStatement => "insert-statement",
+        }
+    }
+
+    pub(crate) fn value_required(self) -> bool {
+        !matches!(self, Self::DeleteStatement)
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct BodyStructuralTarget {
+    pub(crate) address_pointer: String,
+    pub(crate) path: String,
+    pub(crate) index: Option<usize>,
+    pub(crate) category: NodeCategory,
+    pub(crate) operation: StructuralOperation,
+    pub(crate) placement: &'static str,
+    pub(crate) current: Value,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ChangeManifest {
@@ -273,6 +306,105 @@ pub(super) fn body_pointers(body: &SemanticBody) -> Result<Vec<Value>> {
     }
     visit(&root, &root, "", &mut pointers)?;
     Ok(pointers)
+}
+
+fn statement_list_at(root: &Value, path: &str) -> bool {
+    let mut witness = root.clone();
+    let Some(list) = witness.pointer_mut(path).and_then(Value::as_array_mut) else {
+        return false;
+    };
+    list.insert(0, json!({"kind":"continue"}));
+    canonical_body_value(witness).is_ok()
+}
+
+pub(crate) fn body_structural_targets(body: &SemanticBody) -> Result<Vec<BodyStructuralTarget>> {
+    let root = serde_json::to_value(body)?;
+    let pointers = body_pointers(body)?;
+    let mut statement_lists = Vec::new();
+    fn collect_lists(root: &Value, value: &Value, path: &str, out: &mut Vec<String>) {
+        match value {
+            Value::Array(items) => {
+                if statement_list_at(root, path) {
+                    out.push(path.to_owned());
+                }
+                for (index, child) in items.iter().enumerate() {
+                    collect_lists(root, child, &format!("{path}/{index}"), out);
+                }
+            }
+            Value::Object(fields) => {
+                for (key, child) in fields {
+                    collect_lists(
+                        root,
+                        child,
+                        &format!("{path}/{}", pointer_segment(key)),
+                        out,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    collect_lists(&root, &root, "", &mut statement_lists);
+
+    let mut targets = Vec::new();
+    for row in pointers {
+        let path = row[0]
+            .as_str()
+            .context("semantic body pointer omitted its path")?
+            .to_owned();
+        let category: NodeCategory = serde_json::from_value(row[1].clone())?;
+        let current = root
+            .pointer(&path)
+            .context("semantic body pointer no longer selects a node")?
+            .clone();
+        targets.push(BodyStructuralTarget {
+            address_pointer: path.clone(),
+            path: path.clone(),
+            index: None,
+            category,
+            operation: StructuralOperation::Replace,
+            placement: "replace",
+            current: current.clone(),
+        });
+        let Some((parent, segment)) = path.rsplit_once('/') else {
+            continue;
+        };
+        if category == NodeCategory::Statement && statement_lists.iter().any(|list| list == parent)
+        {
+            let index = array_index(segment).context("statement pointer lost its array index")?;
+            targets.push(BodyStructuralTarget {
+                address_pointer: path.clone(),
+                path: path.clone(),
+                index: None,
+                category,
+                operation: StructuralOperation::DeleteStatement,
+                placement: "delete",
+                current: current.clone(),
+            });
+            targets.push(BodyStructuralTarget {
+                address_pointer: path.clone(),
+                path: parent.to_owned(),
+                index: Some(index),
+                category,
+                operation: StructuralOperation::InsertStatement,
+                placement: "before",
+                current: root.pointer(parent).unwrap().clone(),
+            });
+        }
+    }
+    for path in statement_lists {
+        let current = root.pointer(&path).unwrap().clone();
+        targets.push(BodyStructuralTarget {
+            address_pointer: path.clone(),
+            path,
+            index: Some(current.as_array().map_or(0, Vec::len)),
+            category: NodeCategory::Statement,
+            operation: StructuralOperation::InsertStatement,
+            placement: "append",
+            current,
+        });
+    }
+    Ok(targets)
 }
 
 fn canonical_body_value(value: Value) -> Result<(Value, SemanticBody, usize)> {
@@ -588,5 +720,27 @@ mod tests {
         assert!(rows.contains(&("/body/0/value", "expression")));
         assert!(rows.contains(&("/body/0/value/value/0", "template")));
         assert!(rows.contains(&("/body/0/value/value/0/value", "expression")));
+    }
+
+    #[test]
+    fn structural_targets_cover_nodes_statement_boundaries_and_empty_lists() {
+        let input = r#"{"schema":"fr-semantic-body-1","body":[{"kind":"if","value":{"condition":{"kind":"call","value":{"callee":{"kind":"name","value":"ready"},"args":[]}},"then":[],"otherwise":[{"kind":"return","value":null}]}}]}"#;
+        let body = validate_body_input(input).unwrap().manifest;
+        let targets = body_structural_targets(&body).unwrap();
+        let has = |operation, path, index| {
+            targets.iter().any(|target| {
+                target.operation.name() == operation && target.path == path && target.index == index
+            })
+        };
+        assert!(has("replace", "/body/0/value/condition", None));
+        assert!(has("delete-statement", "/body/0", None));
+        assert!(has("insert-statement", "/body", Some(0)));
+        assert!(has("insert-statement", "/body", Some(1)));
+        assert!(has("insert-statement", "/body/0/value/then", Some(0)));
+        assert!(has("insert-statement", "/body/0/value/otherwise", Some(1)));
+        assert!(!targets
+            .iter()
+            .any(|target| target.path == "/body/0/value/condition/value/args"
+                && target.operation == StructuralOperation::InsertStatement));
     }
 }

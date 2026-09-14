@@ -7,9 +7,9 @@ fr project disclose <HANDLE> --token-limit 4096
 ```
 
 The first response contains semantic and source holes without either payload. Prefer a relevant
-`semantic_shortcuts` action whose `editable_scalars` count is nonzero when changing a scalar, then
-the semantic root hole. Run `reveal.arguments` exactly; do not reconstruct the handle, cursor,
-profile or limit.
+`semantic_shortcuts` action whose `editable_scalars` count is nonzero for a scalar change or whose
+`editable_ir` count is nonzero for a typed-node or statement-list change. Run `reveal.arguments`
+exactly; do not reconstruct the handle, cursor, profile or limit.
 Each reveal exposes one IR level. Small scalars are inline and composite children remain holes with
 their own exact actions. Follow only the child whose `summary`, key and semantic address match the
 task. If `continuation` is present, run its exact arguments to finish that child page.
@@ -27,6 +27,22 @@ Preview and inspect the complete diff before the bound write. A large scalar app
 `from_commitment`; finish its page chain to obtain the edit without repeating its value. Stale,
 unknown, malformed and no-op capabilities refuse before mutation. The same request is
 `{"edit":"frde1:...","to":"..."}` under a batch/task `disclosed` field.
+
+Use `--profile expanded --token-limit 16384` before following `editable_ir`; compact reveals omit
+structural descriptors so scalar inspection stays within its smaller envelope. An `ir_edits` entry
+selects one structural operation without exposing its hidden path or index.
+Use `accepts` to construct the smallest typed node with the Python SDK or the category named by its
+`schema_action`, write that node as one JSON value, and run `preview_template.arguments` exactly:
+
+```sh
+fr author edit-body-disclosed-ir <HANDLE> --edit <IR_EDIT_ID> --from ../node.json
+fr author edit-body-disclosed-ir <HANDLE> --edit <DELETE_EDIT_ID>
+```
+
+Replacement accepts the bound category. Insert-before and append accept a statement. Delete takes
+no value. Batch and task manifests carry `disclosed_ir: {edit,value?}`. The ID binds the revision,
+body, operation, category, exact position and current Merkle commitment; reveal a fresh capability
+after any source change.
 
 Use the `exact-source` hole only when semantic structure cannot support the edit or review. Source
 pages place their continuation hole in `frontier`; follow its exact action until the frontier is

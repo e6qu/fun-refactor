@@ -222,8 +222,8 @@ with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
-selection identity matches. Calls fall from four to one. Median counted context falls from 1,746 to
-1,514 tokens (13.3%), and bytes fall from 6,407 to 4,758 (25.7%). The 446-byte task manifest is
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,802 to
+1,514 tokens (16.0%), and bytes fall from 6,662 to 4,758 (28.6%). The 446-byte task manifest is
 counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
@@ -319,10 +319,10 @@ first response's `context_basis`; the batch includes its 794-byte manifest in co
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
 Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
 the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
-is 0.413 versus 0.052 seconds with the fact cache disabled. It is 0.050 versus 0.008 seconds after
+is 1.803 versus 0.231 seconds with the fact cache disabled. It is 0.183 versus 0.029 seconds after
 each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
-representatives. Byte counts and report identities retain the real values. The release binary digest is
-`3f68f6e2425ca1bcf523095a2793401313f84b43eca6a51ac22d7e2f380afd5d`.
+representatives. Byte counts and report identities retain the real values. The measured binary digest is
+`ebe3f9230a9ed880b15095a004ab37326a0608f94ef9ee0c058a9d37ed71580a`.
 The audit recomputes every measurement-source digest, paired report identity and summary statistic.
 OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.
 
@@ -361,7 +361,7 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step. It reduces
-42 calls to 29 and measured context from 15,458 to 13,380 tokens. This 2,078-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,414 tokens. This 2,044-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed
@@ -1330,7 +1330,7 @@ PR 284 CI also passed its default, WASM, playground and title jobs before merge.
 
 ## Disclosure-bound semantic editing
 
-PR 22 is in review as [PR 285](https://github.com/e6qu/fun-refactor/pull/285). It continues the
+PR 22 merged as [PR 285](https://github.com/e6qu/fun-refactor/pull/285). It continues the
 progressive hierarchy into exact source-free authoring. Every scalar that the
 current semantic reader and body writer can author receives an opaque `frde1:` capability when it is
 revealed. Its ID binds the revision, full declaration handle, canonical body basis, scalar pointer,
@@ -1380,3 +1380,66 @@ lost their path at a colon, and TypeScript optional callbacks crossed back as ca
 results. TypeScript now groups the callback inside its nullable union. Both readers preserve the
 grouping and the Rust reader no longer treats path separators as parameter labels. The focused
 default regression and the formerly failing complete repository round trip pass.
+
+The first post-merge structural-authoring dogfood found B859. A source-bearing body had a valid
+read-only semantic view and an unavailable authoring identity. Disclosure redacted its unsupported
+source into commitments, then tried to deserialize that public shape as private typed IR while
+enumerating scalar edits. It now consults the existing body-identity status first. Such bodies keep
+their bounded semantic and source frontiers and offer zero edit capabilities.
+
+## Disclosure-bound IR structure editing
+
+PR 23 begins from the boundary left by scalar capabilities. An agent can already build arbitrary
+typed IR through `fr-semantic-change-1` or the Python SDK, but it must reconstruct the target pointer
+and operation envelope. The new `frdi1:` capability binds that information to the progressively
+revealed node or statement-list position. The request carries only the opaque identity and an
+optional typed IR value.
+
+The initial operation set is same-category node replacement, statement deletion, insertion before
+an existing statement and append to a statement list. Before plus append covers every position and
+keeps capability volume linear in the revealed statements. Append also covers empty lists. The
+capability binds the revision, full declaration handle, body basis, operation, category, exact
+path/index and current node or list commitment. The existing semantic-change validator remains the
+execution boundary and revalidates every resulting body before the body writer sees it.
+
+The first two PR 23 checkpoints are committed as `bf56bde` and `781898b`. Disclosure now enumerates
+same-category replacement, statement deletion, insertion-before and statement-list append
+capabilities. `author edit-body-disclosed-ir` accepts the opaque ID and optional bounded node file,
+then reconstructs one current candidate and delegates to `fr-semantic-change-1`. Direct regressions
+cover all four operations, empty lists, malformed shapes, wrong categories, no-ops, stale source and
+exact undo/redo. Author batches, project tasks and reviewed task changes carry the inline
+`disclosed_ir: {edit,value?}` shape; the task-change test runs checks, reversal and patch delivery.
+
+The zero-dependency Python SDK adds `DisclosedIrEditRequest`, which accepts the same typed IR nodes
+as complete bodies and deltas. `FrKernels.DisclosedIrEdit` proves full-handle, identity-shape,
+exact-one, current-match, request-shape, category-match and changed-result admission requirements.
+Rust and Lean agree on 576 finite states. Operation 9 extends the anchored task policy to 1,980
+operation/language/target cases, while the existing semantic-change proof supplies insertion and
+deletion position and statement-count laws. The package builds 60 jobs.
+
+The retained `tests/agent-eval/disclosed-ir-edit.json` report independently recomputes all four
+capability IDs and their current Merkle roots. Capability and explicit semantic-change previews are
+identical. The generic Rust fixture compiles and runs after every edit, stale reuse refuses, forward
+and reverse patches match, and undo/redo restore the expected behavior. Two same-shaped empty lists
+at different positions receive distinct IDs. Individual edit trials need four to eight bounded
+disclosure responses; every response stays below 16,384 bytes.
+
+Evaluator dogfooding found B860: the Rust IR writer inserted `todo!()` into every empty nested block
+during an unrelated body render. Empty nested blocks now remain empty; only an entirely empty
+non-unit function receives that compile-preserving placeholder. The evaluator executes through the
+formerly empty branch. PR 23 is at its final adversarial and repository-gate checkpoint; no
+live-agent context or quality claim is attached to this deterministic milestone.
+
+The final adversarial pass exercises replacement in Rust, Go, Java, TypeScript and TSX. It also
+checks that descriptors and receipts commit a 256-byte typed node without returning its value.
+Dogfooding found B861: structural descriptor arrays displaced scalar rows from compact disclosure.
+Compact mode now preserves structural counts, while explicit expanded disclosure returns the full
+capabilities. The portable skill discovers fresh IDs and previews both structural command shapes.
+
+PR 23 is ready for review. The packaged skill executes 51 shell examples; its largest route is
+7,164 bytes under the 7,168-byte ceiling. The independent structural evaluator still verifies all
+four operations, Merkle identities, compiled behavior, stale refusal, patches and undo/redo. The
+default gate passes 311 advertised capability cells and builds 60 Lean jobs. Strict proof checking
+reports 68 fresh anchors with zero obligations or debts, and the separate WASM lane passes. Derived
+context reports were refreshed for current source and skill hashes without changing frozen agent
+transcripts. The hosted PR gate remains responsible for building and exercising the browser bundle.

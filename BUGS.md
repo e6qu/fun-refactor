@@ -67,6 +67,29 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B861: **structural descriptor arrays crowded scalar inspection out of compact disclosure.**
+
+  A statement can expose replacement, deletion and insertion capabilities. Attaching all three to a
+  compact child row left no room for that child under the 4,096-byte ceiling. An existing scalar
+  skill route therefore refused instead of progressing. Compact responses now retain `editable_ir`
+  counts and reserve structural descriptors for the explicit expanded profile. The packaged skill executes
+  both scalar and structural capability previews within their documented route budgets.
+
+- [x] B860: **an unrelated semantic body edit turned an empty Rust branch into a panic.**
+
+  The Rust IR writer used the non-unit empty-function placeholder for every empty nested block.
+  Re-rendering a function could therefore insert `todo!()` into an `if` branch that was valid and
+  intentionally empty. Empty nested blocks now stay empty. Only an entirely empty function with a
+  non-unit result receives the compile-preserving placeholder. The structural capability evaluator
+  executes through the formerly empty branch after each edit.
+
+- [x] B859: **progressive disclosure refused a source-bearing semantic body before showing it.**
+
+  Disclosure redacted unsupported IR source into commitments and then tried to deserialize that
+  public representation as the private typed IR. The redacted fields are intentionally not part of
+  the authoring type. Disclosure now uses the existing body-identity status before constructing edit
+  capabilities. Source-bearing bodies remain progressively inspectable and expose no edits.
+
 - [x] B858: **an optional callback changed into a callback with an optional result.**
 
   The TypeScript writer omitted parentheses around an optional function type. Its reader also

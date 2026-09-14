@@ -332,6 +332,7 @@ def disclosure_workflow(exercise, root):
     source.parent.mkdir()
     original = "pub fn calc(value: i32) -> i32 { value + 1 }\n"
     source.write_text(original)
+    (root.parent / "node.json").write_text('{"kind":"int","value":"9"}')
     git(root, "init", "-q", "-b", "main")
     git(root, "add", ".")
     git(root, "commit", "-qm", "disclosure fixture")
@@ -339,8 +340,46 @@ def disclosure_workflow(exercise, root):
     exercise.values["<HANDLE>"] = found["rows"][0][0]
     exercise.values["<NEW_VALUE>"] = "7"
 
+    def structural_edits():
+        found, _ = exercise.run(root, ["project", "find", "calc"])
+        exercise.values["<HANDLE>"] = found["rows"][0][0]
+        initial, _ = exercise.run(root, [
+            "project", "disclose", exercise.values["<HANDLE>"],
+            "--profile", "expanded", "--token-limit", "16384",
+        ])
+        pending = [shortcut["reveal"]["arguments"] for shortcut in initial["semantic_shortcuts"]
+                   if shortcut.get("editable_ir", 0) > 0]
+        seen = set()
+        edits = []
+        while pending:
+            arguments = pending.pop(0)
+            key = tuple(arguments)
+            if key in seen:
+                continue
+            seen.add(key)
+            revealed, _ = exercise.run(root, arguments)
+            node = revealed.get("revealed", {})
+            edits.extend(node.get("ir_edits", []))
+            for child in node.get("children", []):
+                edits.extend(child.get("ir_edits", []))
+                if "hole" in child:
+                    pending.append(child["hole"]["reveal"]["arguments"])
+            if "continuation" in revealed:
+                pending.append(revealed["continuation"]["arguments"])
+        replacement = next(edit for edit in edits
+                           if edit["operation"] == "replace"
+                           and edit["accepts"] == "expression")
+        deletion = next(edit for edit in edits if edit["operation"] == "delete-statement")
+        return replacement["id"], deletion["id"]
+
     path = SKILL / "references/disclosure.md"
     for command in commands(path):
+        if command[1:3] == ["author", "edit-body-disclosed-ir"] \
+                and "<IR_EDIT_ID>" not in exercise.values:
+            replacement, deletion = structural_edits()
+            exercise.values["<IR_EDIT_ID>"] = replacement
+            exercise.values["<DELETE_EDIT_ID>"] = deletion
+        before_source = source.read_text()
         value = exercise.example(root, path, command)
         if command[1:3] == ["project", "disclose"]:
             assert value["token_budget"]["used_upper_bound"] <= value["token_budget"]["limit"]
@@ -365,7 +404,7 @@ def disclosure_workflow(exercise, root):
             assert edit, "Disclosure must expose the fixture's integer edit capability."
             exercise.values["<EDIT_ID>"] = edit["id"]
         elif "--write" not in command:
-            assert not value["applied"] and source.read_text() == original
+            assert not value["applied"] and source.read_text() == before_source
             exercise.values["<PLAN_CONTEXT_BASIS>"] = value["plan_context_basis"]
         else:
             assert value["applied"]

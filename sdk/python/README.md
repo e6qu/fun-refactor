@@ -81,3 +81,20 @@ operation = {"op": "edit-body-disclosed", "handle": handle,
 
 The SDK checks the wire shape. Rust rebinds the opaque identity to the current revision,
 declaration, body, scalar value and typed role locator before it plans an edit.
+
+Structural disclosure capabilities use the same IR constructors as complete bodies and deltas.
+Pass a typed node for replacement or insertion; omit it for a deletion capability:
+
+```python
+from fr_ir import DisclosedIrEditRequest, Expr
+
+replacement = DisclosedIrEditRequest(
+    "frdi1:<64 lowercase hex digits>", Expr.Int(7)
+)
+deletion = DisclosedIrEditRequest("frdi1:<64 lowercase hex digits>")
+operation = {"op": "edit-body-disclosed-ir", "handle": handle,
+             "disclosed_ir": replacement.to_data()}
+```
+
+The opaque identity determines the operation, position, and accepted node category. Rust checks
+that the optional value shape agrees with that capability and with the current Merkle commitment.

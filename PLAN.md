@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 704 |
+| Defects fixed | 707 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -49,7 +49,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rust declaration replacement and function insertion into files, inline modules, impls and traits.
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
 - Merkle-committed progressive semantic and source disclosure with exact actions, strict
-  per-response bounds and opaque exact-scalar edit capabilities.
+  per-response bounds and opaque scalar, typed-node and statement-position edit capabilities.
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
@@ -72,8 +72,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,380 context tokens. This is 2,078 below the observed `fr` arm
-and 1,780 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+reduces that trace to 29 calls and 13,414 context tokens. This is 2,044 below the observed `fr` arm
+and 1,814 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
 fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -96,8 +96,8 @@ The PR 9 controlled broad-query fixture compares eight separate project calls, a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
 the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
 calls fall from eight to one. The current local rerun records median subprocess time falling from
-0.413 to 0.052 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
-0.050 to 0.008 seconds. Token counts use
+1.803 to 0.231 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
+0.183 to 0.029 seconds. Token counts use
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
@@ -110,8 +110,8 @@ in all three repetitions. This fixed sequence supports an adoption trial and mak
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
 revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
-median counted context falls from 1,746 to 1,514 tokens, a 13.3% reduction. Serialized context falls
-from 6,407 to 4,758 bytes, a 25.7% reduction. Calls fall from four to one. Both arms stop before
+median counted context falls from 1,802 to 1,514 tokens, a 16.0% reduction. Serialized context falls
+from 6,662 to 4,758 bytes, a 28.6% reduction. Calls fall from four to one. Both arms stop before
 fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
@@ -208,13 +208,14 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 19](https://github.com/e6qu/fun-refactor/pull/282) | Incremental Project Identity and Agent Query Latency | Merged |
 | [PR 20](https://github.com/e6qu/fun-refactor/pull/283) | Bounded Agent Discovery and Concurrent Query Coalescing | Merged |
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
-| PR 22 | Disclosure-Bound Semantic Editing | In progress |
+| [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
+| PR 23 | Disclosure-Bound IR Structure Editing | Ready for review |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
 PRs 19 through 21 made repeated discovery faster, bounded and progressively disclosed. PR 22 joins
-the revealed hierarchy directly to exact authoring, including repeated scalar values. Later edit
-shapes remain evidence-driven.
+the revealed hierarchy directly to exact scalar authoring, including repeated values. PR 23 extends
+that capability boundary to typed node replacement and statement-list structure.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -226,7 +227,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,075 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,265-token or 62.6% `fr` premium.
+- The current checksum-bound projection uses 11,109 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,299-token or 63.1% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -937,7 +938,7 @@ Planned checkpoints:
 
 ### PR 22. Disclosure-Bound Semantic Editing
 
-Status: in review as [PR 285](https://github.com/e6qu/fun-refactor/pull/285).
+Status: merged as [PR 285](https://github.com/e6qu/fun-refactor/pull/285).
 
 Goal: let an agent turn one progressively revealed scalar into an exact reviewed change without
 reading source, reconstructing a pointer or writing a semantic-intent locator. Preserve the typed
@@ -996,6 +997,67 @@ Planned checkpoints:
    first party version-only lockfile changes while preserving third party dependency identities.
 8. **Complete.** Repair optional callback precedence and qualified callback parameters found by
    the post-release deep audit. A default regression and the complete repository round trip pass.
+
+### PR 23. Disclosure-Bound IR Structure Editing
+
+Status: ready for review.
+
+Goal: let an agent replace a typed semantic node or change statement-list structure from a
+progressively revealed IR region. The route avoids reconstructing a JSON pointer or reading source.
+Keep the existing checked semantic-change engine, body writer, transaction history and Git
+lifecycle as the authority for every source edit.
+
+Deliverables:
+
+- Attach opaque `frdi1:` capabilities to authorable typed nodes and statement-list positions.
+  Support same-category node replacement, statement deletion, insertion before an existing
+  statement and append to any statement list, including an empty one.
+- Bind every capability to the project revision, full declaration handle, canonical body basis,
+  operation, typed category, exact path/index and current semantic Merkle commitment. Refuse
+  malformed, unknown, stale, ambiguous, mismatched, oversized and no-op requests before mutation.
+- Accept only `{edit,value?}` at the capability boundary. Direct CLI reads an optional bounded IR
+  node file; author batches, project tasks and reviewed task changes carry the same inline shape.
+- Mirror the request in the zero-dependency Python SDK and point agents to the existing semantic
+  catalog and constructors for the required node category.
+- Preserve progressive disclosure's source-free reports and explicit response budgets. Report
+  structural-edit counts on shortcuts and keep large current or replacement nodes as commitments.
+- Retain a generic deterministic evaluator that derives capability identities independently and
+  exercises all four edit shapes. Compile behavior and validate stale refusal, patches, undo and
+  redo. Compare its route with an explicit semantic-change manifest before making a context claim.
+- Model capability admission, request shape, operation/category policy and statement-position
+  boundaries in Lean. Add strict Rust anchors and exhaustive shared finite cases.
+
+Verification and acceptance:
+
+1. Two same-shaped nodes at different locations receive distinct capabilities. One selected
+   capability changes only its target and preserves every byte outside the selected function body.
+2. Replace accepts exactly one source-free node in the bound category. Delete accepts no value.
+   Insert accepts one source-free statement at its bound position; empty-list append works.
+3. A changed body, node/list commitment, operation, category, position, declaration or revision
+   invalidates the capability before history creation. Malformed and unchanged requests refuse.
+4. Direct, batch and task-change writes retain semantic-change validation, declared checks, exact
+   undo and redo, and forward and reverse Git patch identity across supported body languages.
+5. Every disclosure response remains within its requested token ceiling. Structural descriptors
+   contain no source or hidden node value, and committed large values do not reappear in receipts.
+6. Lean proves the finite admission and operation implications. Rust agrees on every shared Boolean,
+   category, operation and statement-boundary case; hashing, parsers, writers, compilers and
+   filesystems remain explicit trusted or integration-tested boundaries.
+7. The deterministic evaluator, Python SDK, portable skill, docs, native tests, strict Lean build,
+   capability matrix and WASM/playground gates pass before review.
+
+Planned checkpoints:
+
+1. **Complete.** Fix B859, found by the first self-disclosure: source-bearing bodies remain readable
+   and expose no edit capabilities instead of failing typed-IR reconstruction.
+2. **Complete.** Implement structural target enumeration, identities, bounded descriptors and direct preview/write.
+3. **Complete.** Carry structural requests through author batches, project tasks and reviewed task changes.
+4. **Complete.** Add the Python request mirror, semantic-catalog guidance and portable skill route.
+5. **Complete.** Prove admission and position policies, anchor Rust and exhaustively compare the finite models.
+6. **Complete.** Retain the generic independent evaluator, compare explicit/capability routes and refresh affected
+   context evidence.
+7. **Complete.** Close adversarial coverage, defect and continuity records. The complete default,
+   WASM, strict-proof, skill and evidence gates pass locally. Hosted CI builds and exercises the
+   browser playground before review.
 
 ## Formal verification policy
 

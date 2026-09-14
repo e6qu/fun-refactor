@@ -479,11 +479,11 @@ theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
   simp [batchSectionFits]
   omega
 
--- fr:spec src/project/task.rs::task_author_target_candidate @ affa88de7a289c1db7cbfe1abd54427c3807668c4c90a3f5c4f0b5dfcf713c3e
+-- fr:spec src/project/task.rs::task_author_target_candidate @ 63975edca5ff3c62b8f9e520b55729cd7784e4e7756000a3fb9ea57476c4ac13
 -- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
 def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
   match operation with
-  | 0 | 4 | 5 | 6 | 7 | 8 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
+  | 0 | 4 | 5 | 6 | 7 | 8 | 9 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
       (target = 1 ∨ target = 2 ∨ (language = 4 ∨ language = 5) ∧ target = 3))
   | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
   | 2 => decide (language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5))
@@ -526,6 +526,11 @@ theorem semantic_scalar_targets_match_source_body_targets (language target : Nat
 
 theorem disclosed_edit_targets_match_source_body_targets (language target : Nat) :
     taskAuthorTargetCandidate 8 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+theorem disclosed_ir_edit_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 9 language target =
       taskAuthorTargetCandidate 0 language target := by
   simp [taskAuthorTargetCandidate]
 

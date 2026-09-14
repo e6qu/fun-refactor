@@ -9,6 +9,7 @@ import FrKernels.ProjectIdentity
 import FrKernels.AgentDiscovery
 import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
+import FrKernels.DisclosedIrEdit
 
 open FrKernels.Project
 
@@ -70,7 +71,7 @@ def main (args : List String) : IO Unit := do
         for budget in samples do
           IO.println (batchSectionFits used next budget)
   else if args == ["task-author-targets"] then
-    for operation in [0:9] do
+    for operation in [0:10] do
       for language in [0:22] do
         for target in [0:9] do
           IO.println (taskAuthorTargetCandidate operation language target)
@@ -181,6 +182,16 @@ def main (args : List String) : IO Unit := do
             for different in [false, true] do
               IO.println (FrKernels.DisclosedEdit.admitted fullHandle referenceFormat
                 candidateCount currentMatches different)
+  else if args == ["disclosed-ir-edit-admission"] then
+    for fullHandle in [false, true] do
+      for referenceFormat in [false, true] do
+        for candidateCount in frameworkSamples do
+          for currentMatches in [false, true] do
+            for requestShape in [false, true] do
+              for valueMatches in [false, true] do
+                for different in [false, true] do
+                  IO.println (FrKernels.DisclosedIrEdit.admitted fullHandle referenceFormat
+                    candidateCount currentMatches requestShape valueMatches different)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

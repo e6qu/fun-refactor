@@ -1,0 +1,58 @@
+{
+  "schema": "fr-disclosed-ir-edit-eval-1",
+  "passed": true,
+  "tool_sha256": "092ce8f2573e171c67b42bc89ae32906da0fe21af0bfabd9b89693f14ade1595",
+  "fixture_sha256": "333e45b5af254e1f1ba495107c5a660b52352c9adc5b99f87175cbb6c27c0524",
+  "operations": {
+    "replace": {
+      "identity_independently_verified": true,
+      "explicit_change_equivalent": true,
+      "behavior": "7",
+      "disclosure_responses": 5,
+      "disclosure_bytes": 28251,
+      "preview_bytes": 3088
+    },
+    "delete": {
+      "identity_independently_verified": true,
+      "explicit_change_equivalent": true,
+      "behavior": "1",
+      "disclosure_responses": 4,
+      "disclosure_bytes": 24354,
+      "preview_bytes": 3043
+    },
+    "insert-before": {
+      "identity_independently_verified": true,
+      "explicit_change_equivalent": true,
+      "behavior": "1",
+      "disclosure_responses": 4,
+      "disclosure_bytes": 24354,
+      "preview_bytes": 3121
+    },
+    "append-empty": {
+      "identity_independently_verified": true,
+      "explicit_change_equivalent": true,
+      "behavior": "1",
+      "disclosure_responses": 8,
+      "disclosure_bytes": 56870,
+      "preview_bytes": 3123
+    }
+  },
+  "identity": {
+    "same_shaped_empty_lists_distinct": true
+  },
+  "flow": {
+    "source_disclosed": false,
+    "stale_refused": true,
+    "preview_read_only": true,
+    "patch_checked": true,
+    "undo_checked": true,
+    "redo_checked": true
+  },
+  "budget": {
+    "limit": 16384,
+    "disclosure_responses": 21,
+    "maximum_disclosure_response_bytes": 15507,
+    "disclosure_bytes": 133829
+  },
+  "scope": "Generated generic Rust fixture with independent capability and Merkle calculation, explicit semantic-change equivalence, rustc behavior checks and exact history checks; SHA-256 collision resistance, parser, writer, compiler and filesystem behavior remain trusted or tested boundaries."
+}

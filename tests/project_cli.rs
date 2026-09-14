@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -87,6 +88,72 @@ fn disclosed_edits(root: &Path, name: &str, operation: &str) -> (String, Vec<Val
     (handle, edits)
 }
 
+fn disclosed_ir_edits(root: &Path, name: &str) -> (String, Vec<Value>) {
+    let found = ok(root, &["project", "find", name]);
+    let handle = found["rows"][0][0].as_str().unwrap().to_owned();
+    let initial = ok(
+        root,
+        &[
+            "project",
+            "disclose",
+            &handle,
+            "--token-limit",
+            "16384",
+            "--profile",
+            "expanded",
+        ],
+    );
+    let mut pending = initial["semantic_shortcuts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|shortcut| {
+            shortcut["editable_ir"]
+                .as_u64()
+                .is_some_and(|count| count > 0)
+        })
+        .map(|shortcut| exact_arguments(&shortcut["reveal"]["arguments"]))
+        .collect::<VecDeque<_>>();
+    let mut edits = BTreeMap::new();
+    let mut seen = BTreeSet::new();
+    while let Some(arguments) = pending.pop_front() {
+        if !seen.insert(arguments.join("\0")) {
+            continue;
+        }
+        let report = ok_owned(root, &arguments);
+        for edit in report["revealed"]["ir_edits"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            edits.insert(edit["id"].as_str().unwrap().to_owned(), edit.clone());
+        }
+        for child in report["revealed"]["children"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            for edit in child["ir_edits"].as_array().into_iter().flatten() {
+                edits.insert(edit["id"].as_str().unwrap().to_owned(), edit.clone());
+            }
+            if let Some(arguments) = child
+                .get("hole")
+                .and_then(|hole| hole.get("reveal"))
+                .and_then(|reveal| reveal.get("arguments"))
+            {
+                pending.push_back(exact_arguments(arguments));
+            }
+        }
+        if let Some(arguments) = report
+            .get("continuation")
+            .and_then(|continuation| continuation.get("arguments"))
+        {
+            pending.push_back(exact_arguments(arguments));
+        }
+    }
+    (handle, edits.into_values().collect())
+}
+
 fn ok_cached(root: &Path, cache: &Path, args: &[&str]) -> Value {
     let output = Command::new(env!("CARGO_BIN_EXE_fr"))
         .args(["--json", "-C"])
@@ -169,6 +236,37 @@ fn progressive_disclosure_starts_source_free_and_follows_exact_semantic_and_sour
         .as_str()
         .unwrap()
         .contains("def run"));
+}
+
+#[test]
+fn progressive_disclosure_keeps_source_bearing_bodies_readable_without_offering_edits() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("app.rs"),
+        "fn partial() { crate::service::run(); }\n",
+    )
+    .unwrap();
+    let found = ok(dir.path(), &["project", "find", "partial"]);
+    let handle = found["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        dir.path(),
+        &["project", "disclose", handle, "--token-limit", "4096"],
+    );
+    assert_disclosure_budget(&initial);
+    assert_eq!(initial["status"], "frontier");
+    assert!(initial["semantic_shortcuts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|row| row["editable_scalars"] == 0));
+    assert!(!initial.to_string().contains("crate::service::run"));
+
+    let semantic = ok_owned(
+        dir.path(),
+        &exact_arguments(&initial["frontier"][0]["reveal"]["arguments"]),
+    );
+    assert_disclosure_budget(&semantic);
+    assert_eq!(semantic["revealed"]["domain"], "semantic-ir");
 }
 
 #[test]
@@ -631,6 +729,51 @@ fn project_task_carries_a_disclosed_edit_into_its_author_template() {
 
     let mut malformed = manifest;
     malformed["targets"][0]["disclosed"]["edit"] = serde_json::json!("frde1:short");
+    let (success, error) = project_task(dir.path(), malformed, 65_536);
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("exact returned edit ID"));
+}
+
+#[test]
+fn project_task_carries_a_disclosed_ir_edit_into_its_author_template() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("app.rs"), "fn calc() -> i32 { 1 }\n").unwrap();
+    let (_handle, edits) = disclosed_ir_edits(dir.path(), "calc");
+    let edit = edits
+        .iter()
+        .find(|edit| edit["operation"] == "replace" && edit["accepts"] == "expression")
+        .unwrap();
+    let manifest = serde_json::json!({
+        "schema":"fr-project-task-1",
+        "requests":[{"id":"target","arguments":["find","calc"]}],
+        "targets":[{
+            "id":"chosen-node",
+            "handle":{"request":"target","pointer":"/rows/0/0"},
+            "op":"edit-body-disclosed-ir",
+            "disclosed_ir":{
+                "edit":edit["id"],
+                "value":{"kind":"int","value":"7"}
+            }
+        }],
+        "checks":[]
+    });
+    let (success, task) = project_task(dir.path(), manifest.clone(), 65_536);
+    assert!(success, "{task}");
+    assert_eq!(task["targets"][0]["operation"], "edit-body-disclosed-ir");
+    assert_eq!(task["targets"][0]["disclosed_ir"]["edit"], edit["id"]);
+    assert_eq!(
+        task["author_manifest_template"]["operations"][0]["disclosed_ir"]["value"]["value"],
+        "7"
+    );
+    assert!(task["author_manifest_template"]["operations"][0]
+        .get("from")
+        .is_none());
+
+    let mut malformed = manifest;
+    malformed["targets"][0]["disclosed_ir"]["edit"] = serde_json::json!("frdi1:short");
     let (success, error) = project_task(dir.path(), malformed, 65_536);
     assert!(!success, "{error}");
     assert!(error["error"]["message"]

@@ -42,6 +42,8 @@ pub enum Command {
     EditBodyScalar(EditBodyScalarOptions),
     #[command(about = "Apply one exact scalar edit capability returned by project disclosure.")]
     EditBodyDisclosed(EditBodyDisclosedOptions),
+    #[command(about = "Apply one exact typed IR capability returned by project disclosure.")]
+    EditBodyDisclosedIr(EditBodyDisclosedIrOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -83,6 +85,10 @@ pub fn guide() -> Value {
                 "input-schema": "fr-disclosed-edit-1",
                 "generated-schema": "fr-semantic-intent-1",
                 "targets": "one exact scalar capability returned by project disclose"},
+            {"op": "edit-body-disclosed-ir", "requires": ["full-handle", "edit", "optional-from"],
+                "input-schema": "fr-disclosed-ir-edit-1",
+                "generated-schema": "fr-semantic-change-1",
+                "targets": "one exact typed node or statement-list capability returned by project disclose"},
             {"op": "replace-declaration", "requires": ["handle", "from"],
                 "targets": "Rust function declaration with unchanged name"},
             {"op": "insert-declaration", "requires": ["handle", "from"],
@@ -165,6 +171,8 @@ pub(super) struct BatchStep {
     pub(super) scalar: Option<super::semantic_intent::ScalarRequest>,
     #[serde(default)]
     pub(super) disclosed: Option<super::disclose::EditRequest>,
+    #[serde(default)]
+    pub(super) disclosed_ir: Option<super::disclose::IrEditRequest>,
 }
 
 #[derive(Clone, Copy, Deserialize)]
@@ -176,6 +184,7 @@ pub(super) enum BatchOperation {
     EditBodyIntent,
     EditBodyScalar,
     EditBodyDisclosed,
+    EditBodyDisclosedIr,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -261,6 +270,30 @@ pub struct EditBodyDisclosedOptions {
 }
 
 #[derive(Args)]
+pub struct EditBodyDisclosedIrOptions {
+    #[arg(help = "Full revision-bound declaration handle returned by project disclosure.")]
+    pub handle: String,
+    #[arg(long, help = "Opaque typed IR edit ID returned by project disclosure.")]
+    pub edit: String,
+    #[arg(
+        long,
+        help = "Source-free typed IR node JSON required by replace and insert capabilities."
+    )]
+    pub from: Option<PathBuf>,
+    #[arg(
+        long,
+        default_value_t = 4096,
+        help = "Maximum UTF-8 diff bytes, from 0 through 65536."
+    )]
+    pub diff_bytes: usize,
+    #[arg(
+        long,
+        help = "Record and apply the edit after checking the source revision."
+    )]
+    pub write: bool,
+}
+
+#[derive(Args)]
 pub struct ValidateSemanticOptions {
     #[arg(
         long,
@@ -293,6 +326,24 @@ pub fn disclosed_edit_admitted(
     different: bool,
 ) -> bool {
     full_handle && reference_format && candidate_count == 1 && current_matches && different
+}
+
+pub fn disclosed_ir_edit_admitted(
+    full_handle: bool,
+    reference_format: bool,
+    candidate_count: usize,
+    current_matches: bool,
+    request_shape: bool,
+    value_matches: bool,
+    different: bool,
+) -> bool {
+    full_handle
+        && reference_format
+        && candidate_count == 1
+        && current_matches
+        && request_shape
+        && value_matches
+        && different
 }
 
 impl Plan {
@@ -618,14 +669,19 @@ impl Project<'_> {
             let plan = match step.op {
                 BatchOperation::OrganizeImports => {
                     ensure!(
-                        step.from.is_none() && step.scalar.is_none() && step.disclosed.is_none(),
+                        step.from.is_none()
+                            && step.scalar.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
                         "organize-imports does not accept fragment, scalar or disclosed input."
                     );
                     self.organize_imports(&step.handle, revision.as_deref())
                 }
                 BatchOperation::EditBodyScalar => {
                     ensure!(
-                        step.from.is_none() && step.disclosed.is_none(),
+                        step.from.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
                         "edit-body-scalar accepts only scalar input."
                     );
                     let scalar = step
@@ -644,7 +700,7 @@ impl Project<'_> {
                 }
                 BatchOperation::EditBodyDisclosed => {
                     ensure!(
-                        step.from.is_none() && step.scalar.is_none(),
+                        step.from.is_none() && step.scalar.is_none() && step.disclosed_ir.is_none(),
                         "edit-body-disclosed accepts only disclosed input."
                     );
                     let disclosed = step
@@ -658,9 +714,22 @@ impl Project<'_> {
                         write: false,
                     })
                 }
+                BatchOperation::EditBodyDisclosedIr => {
+                    ensure!(
+                        step.from.is_none() && step.scalar.is_none() && step.disclosed.is_none(),
+                        "edit-body-disclosed-ir accepts only disclosed_ir input."
+                    );
+                    let disclosed_ir = step
+                        .disclosed_ir
+                        .as_ref()
+                        .context("edit-body-disclosed-ir requires a disclosed_ir request.")?;
+                    self.edit_body_disclosed_ir_request(&step.handle, disclosed_ir, diff_bytes)
+                }
                 operation => {
                     ensure!(
-                        step.scalar.is_none() && step.disclosed.is_none(),
+                        step.scalar.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
                         "fragment authoring operations do not accept scalar or disclosed input."
                     );
                     let operation_options = ReplaceBodyOptions {
@@ -683,6 +752,7 @@ impl Project<'_> {
                         BatchOperation::EditBodyIntent => self.edit_body_intent(&operation_options),
                         BatchOperation::EditBodyScalar => unreachable!(),
                         BatchOperation::EditBodyDisclosed => unreachable!(),
+                        BatchOperation::EditBodyDisclosedIr => unreachable!(),
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -710,7 +780,8 @@ impl Project<'_> {
                 | BatchOperation::EditBodySemantic
                 | BatchOperation::EditBodyIntent
                 | BatchOperation::EditBodyScalar
-                | BatchOperation::EditBodyDisclosed => "body",
+                | BatchOperation::EditBodyDisclosed
+                | BatchOperation::EditBodyDisclosedIr => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -754,6 +825,7 @@ impl Project<'_> {
                 "semantic_intent",
                 "semantic_edit_plan",
                 "disclosed_edit",
+                "disclosed_ir_edit",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();
@@ -1683,6 +1755,148 @@ impl Project<'_> {
             disclosed["to_commitment"] = super::disclose::scalar_commitment(&to)?;
         }
         plan.report["disclosed_edit"] = disclosed;
+        Ok(plan)
+    }
+
+    pub fn edit_body_disclosed_ir(&self, options: &EditBodyDisclosedIrOptions) -> Result<Plan> {
+        let value = options
+            .from
+            .as_ref()
+            .map(|path| {
+                serde_json::from_str(&fragment(&self.root.join(path))?)
+                    .context("typed IR replacement input must be one JSON value")
+            })
+            .transpose()?;
+        self.edit_body_disclosed_ir_request(
+            &options.handle,
+            &super::disclose::IrEditRequest {
+                edit: options.edit.clone(),
+                value,
+            },
+            options.diff_bytes,
+        )
+    }
+
+    pub(super) fn edit_body_disclosed_ir_request(
+        &self,
+        requested_handle: &str,
+        request: &super::disclose::IrEditRequest,
+        diff_bytes: usize,
+    ) -> Result<Plan> {
+        ensure!(
+            diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        ensure!(
+            requested_handle.starts_with("frp1:")
+                && super::disclose::ir_edit_id_well_formed(&request.edit),
+            "disclosed IR editing requires an exact returned full handle and edit ID."
+        );
+        let (handle, current) = self.semantic_body_for_edit(requested_handle, None)?;
+        let body_basis = super::semantic_change::body_basis(&current)?;
+        let candidates = super::semantic_change::body_structural_targets(&current)?;
+        let mut matched = Vec::new();
+        for candidate in &candidates {
+            if super::disclose::disclosed_ir_edit_id(
+                &self.revision,
+                &handle,
+                &body_basis,
+                candidate,
+            )? == request.edit
+            {
+                matched.push(candidate);
+            }
+        }
+        let request_shape = matched.first().is_some_and(|candidate| {
+            candidate.operation.value_required() == request.value.is_some()
+        });
+        let current_value = serde_json::to_value(&current)?;
+        let current_matches = matched.first().is_some_and(|candidate| {
+            current_value.pointer(&candidate.path) == Some(&candidate.current)
+        });
+        let different = matched.first().is_some_and(|candidate| {
+            candidate.operation != super::semantic_change::StructuralOperation::Replace
+                || request.value.as_ref() != Some(&candidate.current)
+        });
+        let value_matches = matched.first().is_some_and(|candidate| {
+            request
+                .value
+                .as_ref()
+                .map_or(!candidate.operation.value_required(), |value| {
+                    super::semantic_change::category_matches(value, candidate.category)
+                })
+        });
+        ensure!(
+            disclosed_ir_edit_admitted(
+                true,
+                true,
+                matched.len(),
+                current_matches,
+                request_shape,
+                value_matches,
+                different,
+            ),
+            "disclosed IR edit is stale, unknown, ambiguous, malformed or unchanged; reveal a fresh structural edit capability."
+        );
+        let selected = matched[0];
+        let operation = match selected.operation {
+            super::semantic_change::StructuralOperation::Replace => json!({
+                "op":"replace", "path":selected.path, "category":selected.category,
+                "value":request.value
+            }),
+            super::semantic_change::StructuralOperation::DeleteStatement => {
+                json!({"op":"delete-statement", "path":selected.path})
+            }
+            super::semantic_change::StructuralOperation::InsertStatement => json!({
+                "op":"insert-statement", "path":selected.path,
+                "index":selected.index, "value":request.value
+            }),
+        };
+        let manifest = json!({
+            "schema":super::semantic_change::CHANGE_SCHEMA,
+            "base":body_basis,
+            "operations":[operation]
+        });
+        let change_input = serde_json::to_string(&manifest)?;
+        let applied =
+            super::semantic_change::apply(&serde_json::to_string(&current)?, &change_input)?;
+        let result = serde_json::to_string(&applied.body)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
+        temporary.write_all(result.as_bytes())?;
+        temporary.flush()?;
+        let mut plan = self.replace_body_semantic(&ReplaceBodyOptions {
+            handle,
+            revision: None,
+            from: temporary.path().to_path_buf(),
+            diff_bytes,
+            write: false,
+        })?;
+        plan.report["query"] = json!("edit-body-disclosed-ir");
+        let mut disclosed = json!({
+            "schema":super::disclose::IR_EDIT_SCHEMA,
+            "id":request.edit,
+            "operation":selected.operation,
+            "placement":selected.placement,
+            "category":selected.category,
+            "change_sha256":applied.change_sha256,
+            "input_basis":applied.input_basis,
+            "result_basis":applied.result_basis,
+            "semantic_nodes":applied.nodes,
+            "current_commitment":super::disclose::scalar_commitment(&selected.current)?,
+            "source_free":true,
+            "refinement_checked":true,
+            "exact_target":true,
+            "value_included":false
+        });
+        if let Some(value) = &request.value {
+            if super::disclose::scalar_is_inline(value)? {
+                disclosed["value"] = value.clone();
+                disclosed["value_included"] = json!(true);
+            } else {
+                disclosed["value_commitment"] = super::disclose::scalar_commitment(value)?;
+            }
+        }
+        plan.report["disclosed_ir_edit"] = disclosed;
         Ok(plan)
     }
 }

@@ -49,6 +49,8 @@ pub(super) struct Target {
     pub(super) scalar: Option<super::semantic_intent::ScalarRequest>,
     #[serde(default)]
     pub(super) disclosed: Option<super::disclose::EditRequest>,
+    #[serde(default)]
+    pub(super) disclosed_ir: Option<super::disclose::IrEditRequest>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -68,6 +70,7 @@ pub(super) enum AuthorOperation {
     EditBodyIntent,
     EditBodyScalar,
     EditBodyDisclosed,
+    EditBodyDisclosedIr,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -82,6 +85,7 @@ impl AuthorOperation {
             Self::EditBodyIntent => "edit-body-intent",
             Self::EditBodyScalar => "edit-body-scalar",
             Self::EditBodyDisclosed => "edit-body-disclosed",
+            Self::EditBodyDisclosedIr => "edit-body-disclosed-ir",
             Self::ReplaceDeclaration => "replace-declaration",
             Self::InsertDeclaration => "insert-declaration",
             Self::OrganizeImports => "organize-imports",
@@ -99,13 +103,17 @@ impl AuthorOperation {
             Self::EditBodyIntent => 6,
             Self::EditBodyScalar => 7,
             Self::EditBodyDisclosed => 8,
+            Self::EditBodyDisclosedIr => 9,
         }
     }
 
     pub(super) fn needs_fragment(self) -> bool {
         !matches!(
             self,
-            Self::OrganizeImports | Self::EditBodyScalar | Self::EditBodyDisclosed
+            Self::OrganizeImports
+                | Self::EditBodyScalar
+                | Self::EditBodyDisclosed
+                | Self::EditBodyDisclosedIr
         )
     }
 }
@@ -209,7 +217,7 @@ fn target_code(file: bool, kind: Option<SymbolKind>) -> usize {
 /// deliberately checked later by the existing author preview.
 pub fn task_author_target_candidate(operation: usize, language: usize, target: usize) -> bool {
     match operation {
-        0 | 4 | 5 | 6 | 7 | 8 => {
+        0 | 4 | 5 | 6 | 7 | 8 | 9 => {
             matches!(language, 0 | 1 | 3 | 4 | 5)
                 && (matches!(target, 1 | 2) || matches!(language, 4 | 5) && target == 3)
         }
@@ -277,10 +285,21 @@ impl Project<'_> {
                     == target.disclosed.is_some(),
                 "project task disclosed input must appear exactly for edit-body-disclosed."
             );
+            ensure!(
+                matches!(target.op, AuthorOperation::EditBodyDisclosedIr)
+                    == target.disclosed_ir.is_some(),
+                "project task disclosed_ir input must appear exactly for edit-body-disclosed-ir."
+            );
             if let Some(disclosed) = &target.disclosed {
                 ensure!(
                     super::disclose::edit_id_well_formed(&disclosed.edit),
                     "project task disclosed input requires an exact returned edit ID."
+                );
+            }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                ensure!(
+                    super::disclose::ir_edit_id_well_formed(&disclosed_ir.edit),
+                    "project task disclosed_ir input requires an exact returned edit ID."
                 );
             }
         }
@@ -367,6 +386,9 @@ impl Project<'_> {
             if let Some(disclosed) = &target.disclosed {
                 operation["disclosed"] = serde_json::to_value(disclosed)?;
             }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                operation["disclosed_ir"] = serde_json::to_value(disclosed_ir)?;
+            }
             author_operations.push(operation);
             let mut target_row = json!({
                 "id": target.id,
@@ -382,6 +404,9 @@ impl Project<'_> {
             if let Some(disclosed) = &target.disclosed {
                 target_row["disclosed"] = serde_json::to_value(disclosed)?;
             }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                target_row["disclosed_ir"] = serde_json::to_value(disclosed_ir)?;
+            }
             target_rows.push(target_row);
             resolved_targets.push((
                 target.id.clone(),
@@ -389,6 +414,7 @@ impl Project<'_> {
                 target.op,
                 target.scalar.clone(),
                 target.disclosed.clone(),
+                target.disclosed_ir.clone(),
             ));
         }
 
