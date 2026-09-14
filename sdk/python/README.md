@@ -6,6 +6,31 @@ namespaces follow the Rust IR hierarchy and retain distinct node types at runtim
 `FormalPlan.from_json(...)` also mirrors `fr-formal-plan-1`, validates every nested field and
 independently recomputes its Merkle content address. Agents can inspect and store a plan without
 handling source text, then pass the unchanged JSON to `fr spec scaffold --from`.
+`ProofTask.from_json(...)` validates a bounded `fr-proof-task-1` context and its Merkle address.
+`ProofAttempt.from_json(...)` verifies that an accepted attempt's receipt binds the goal, normalized
+agent-written tactics and pinned checker. Neither class generates proof tactics.
+
+`PropertyTask.from_data(...)` validates `fr-property-task-1` and independently recomputes its Merkle
+address. `PropertyTerm` and `PropertyProposition` mirror the Rust proposition IR. The task's
+`property(...)` method checks names, disclosed types, model arity and the 64-node/16-level ceilings,
+then returns an `AgentProperty` with the exact `fr-formal-property-1` wire shape:
+
+```python
+from fr_ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
+
+task = PropertyTask.from_data(property_task_json)
+x, y = Term.variable("x"), Term.variable("y")
+property_ = task.property(
+    "commutative",
+    [{"name": "x", "lean_type": "Bool"},
+     {"name": "y", "lean_type": "Bool"}],
+    Prop.equals(Term.model(x, y), Term.model(y, x)),
+)
+property_.write("property.json")
+```
+
+The property tree contains a theorem proposition and no tactics. Rust revalidates it against the
+current model task before planning, and the proof remains agent-authored.
 
 ```python
 from fr_ir import BinaryOp, Expr, SemanticBody, Stmt

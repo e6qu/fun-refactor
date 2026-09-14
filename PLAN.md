@@ -1139,7 +1139,7 @@ Planned checkpoints:
 
 ### PR 25. Agent Formalization Workbench
 
-Status: complete and ready for review.
+Status: proposed as [PR 290](https://github.com/e6qu/fun-refactor/pull/290).
 
 Goal: let an agent discover conservative formalization candidates and inspect a source-free semantic
 plan. It can create a Lean kernel and solve one exact proof goal without ingesting or rewriting whole
@@ -1191,6 +1191,95 @@ Planned checkpoints:
 4. **Complete.** Mirror and validate plans in Python; formalize admission and exhaust finite cases.
 5. **Complete.** Cover the complete workflow, stale refusal and history reversal in integration tests.
 6. **Complete.** Refresh agent guidance, continuity and evidence; pass the complete repository gate.
+
+### PR 26. Agent Proof Companion
+
+Status: proposed as [PR 291](https://github.com/e6qu/fun-refactor/pull/291).
+
+Goal: give an agent a small, revision-bound Lean proof task and a deterministic feedback loop. The
+agent authors every proof tactic. `fr` supplies context, empty templates, checking, diagnostics and
+the existing reversible write path.
+
+Deliverables:
+
+- Build one content-addressed proof task from an exact generated obligation. Include the theorem,
+  anchors, proof input contract, empty structural templates and exact next actions under a byte
+  ceiling.
+- Check an agent-written tactics file with the package's pinned Lean toolchain before any workspace
+  mutation. Return structured, bounded diagnostics and a receipt bound to the goal and proof bytes.
+- Require the same Lean check when `spec prove` previews, saves or applies a proof. Refuse stale
+  goals, invalid tactics and toolchain failures before history creation.
+- Mirror and validate proof tasks and receipts in the Python SDK so an agent can retain their exact
+  shapes without reading Lean files.
+- Model proof-submission admission in Lean and exhaust the shared finite policy against Rust.
+- Cover failed attempts, correction, successful application, regeneration, undo, redo and strict
+  verification in the end-to-end workflow.
+
+Verification and acceptance:
+
+1. The task contains no completed proof or source body. Templates reserve positions for tactics the
+   agent must write.
+2. A wrong proof returns bounded structured Lean diagnostics and changes no workspace file or
+   history state.
+3. A successful receipt binds the current goal digest and normalized tactics digest. Any changed
+   inserted proof or goal produces a different receipt.
+4. `spec prove` cannot prepare a change unless Lean accepts the exact updated module.
+5. Lean proves the finite admission policy and Rust agrees for every input.
+6. Native, Python, documentation, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Add proof task and proof check protocols with exact content identities.
+2. **Complete.** Make proof writes require Lean verification and return the checked receipt.
+3. **Complete.** Mirror the protocol in Python and formalize proof admission.
+4. **Complete.** Cover failed and corrected attempts, checked proof writes, regeneration, undo,
+   redo and stale refusal in the end-to-end workflow. Agent guidance and continuity are current;
+   the complete default and WASM repository gates pass locally.
+
+### PR 27. Agent-Authored Formal Properties
+
+Status: proposed as [PR 292](https://github.com/e6qu/fun-refactor/pull/292).
+
+Goal: let an agent state a project-specific property over a generated Lean model without reading or
+editing the generated module. The agent authors both the proposition IR and every proof tactic.
+`fr` supplies a revision-bound task, validates the typed proposition, renders a theorem scaffold and
+connects it to the existing checked proof workflow.
+
+Deliverables:
+
+- Disclose a bounded, content-addressed property task containing the model signature, admitted
+  proposition grammar, empty source-free templates and exact next actions.
+- Accept a strict `fr-formal-property-1` tree authored by the agent. Bind it to the current task,
+  validate identifiers, variables, model arguments, types, node/depth ceilings and theorem-name
+  collisions before creating a formal plan.
+- Render only the validated theorem statement and an empty proof region. Use the initialized pinned
+  Lean package to elaborate the complete generated module before any scaffold write.
+- Preserve agent-authored property trees across deterministic plan regeneration. Make source or
+  property-task drift refuse before history creation.
+- Mirror constructors, validation and Merkle identity in the zero-dependency Python SDK.
+- Model property admission and the abstract term/proposition type rules in Lean, then compare the
+  shared finite cases with Rust.
+- Exercise a multi-input property through task creation, plan creation, scaffolding, failed and
+  corrected proof attempts, apply, verify, undo, redo and stale-source refusal.
+
+Verification and acceptance:
+
+1. The property task contains no source body, completed theorem or proof tactics.
+2. The plan contains exactly the agent-authored proposition tree and its deterministically rendered
+   Lean theorem. Changed task identity, names, types, variables, arity or tree limits refuse.
+3. Scaffold preview and write require successful Lean elaboration of the exact generated module.
+4. The proof companion still accepts only agent-written tactics and changes one named region.
+5. Python independently recomputes task and plan identities. Lean proves the finite admission and
+   abstract typing policies; Rust agrees for every shared input.
+6. Native, Python, documentation, strict Lean and WASM gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Define the property task and typed agent property protocol.
+2. **Complete.** Integrate custom properties into plans, scaffolding and Lean elaboration.
+3. **Complete.** Add the Python mirror and Lean admission/type models.
+4. **Complete.** Cover the full lifecycle and refusal matrix. The agent guidance and continuity
+   are current, and the complete default and WASM repository gates pass locally.
 
 ## Formal verification policy
 

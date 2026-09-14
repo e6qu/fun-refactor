@@ -6,8 +6,16 @@ Preview `fr --json spec init`, then apply with `--write` or save with `--save-pl
 For supported pure functions, run `fr --json spec candidates src`, save
 `fr --json spec plan TARGET --property KIND`, and apply it with
 `fr --json spec scaffold --from PLAN --write`. Review each property. Use `spec goals specs`, reveal
-one returned digest, put tactics without `by` in a file, and use its `spec prove` and `spec verify`
-actions. `docs/agent-formalization.md` defines the subset and evidence boundary.
+one returned digest, then request its `spec proof-task`. The task contains empty templates; write the
+tactics without `by` yourself. Run `spec proof-check` until Lean accepts them, then use `spec prove`
+and `spec verify`. `docs/agent-formalization.md` defines the subset and evidence boundary.
+
+For a property outside the built-in shapes, request `fr --json spec property-task TARGET`. Use its
+model signature, grammar and object digest to author `fr-formal-property-1`, preferably with the
+Python `PropertyTask`, `PropertyTerm` and `PropertyProposition` mirrors. Pass it to `spec plan TARGET
+--property-from FILE`. Do not put Lean text or proof tactics in the property tree. `fr` validates
+the tree and makes Lean elaborate the generated theorem before scaffolding; you still write every
+proof tactic through the proof-task loop.
 
 Manual scaffolding remains available as `fr --json spec scaffold src/lib.rs::allowed`. It creates an
 anchor, signature map and visible `sorry`; replace its model and add reviewed properties. On source

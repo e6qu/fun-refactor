@@ -71,6 +71,69 @@ fn formal_plan_admission_matches_lean_for_every_boolean_case() {
             }
         }
     }
+    for tactics_only in [false, true] {
+        for nonempty in [false, true] {
+            for within_limit in [false, true] {
+                for no_placeholders in [false, true] {
+                    for unique_region in [false, true] {
+                        for syntax_valid in [false, true] {
+                            for lean_passed in [false, true] {
+                                expected.push(fun_refactor::spec::proof_submission_admitted(
+                                    tactics_only,
+                                    nonempty,
+                                    within_limit,
+                                    no_placeholders,
+                                    unique_region,
+                                    syntax_valid,
+                                    lean_passed,
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for schema_matches in [false, true] {
+        for task_matches in [false, true] {
+            for safe_names in [false, true] {
+                for types_disclosed in [false, true] {
+                    for within_limits in [false, true] {
+                        for terms_well_typed in [false, true] {
+                            for proposition_well_typed in [false, true] {
+                                expected.push(fun_refactor::spec::agent_property_admitted(
+                                    schema_matches,
+                                    task_matches,
+                                    safe_names,
+                                    types_disclosed,
+                                    within_limits,
+                                    terms_well_typed,
+                                    proposition_well_typed,
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for operator in 0..9 {
+        for operand_type in 0..5 {
+            expected.push(fun_refactor::spec::agent_term_operator_admitted(
+                operator,
+                operand_type,
+            ));
+        }
+    }
+    for relation in 0..9 {
+        for left_type in 0..5 {
+            for right_type in 0..5 {
+                expected.push(fun_refactor::spec::agent_relation_admitted(
+                    relation, left_type, right_type,
+                ));
+            }
+        }
+    }
     assert_eq!(
         actual.lines().collect::<Vec<_>>(),
         expected

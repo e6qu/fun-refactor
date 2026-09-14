@@ -67,6 +67,31 @@ def main (args : List String) : IO Unit := do
         for inputMatchesOutput in [false, true] do
           for booleanSurface in [false, true] do
             IO.println (FrKernels.FormalPlan.propertyAdmitted knownKind oneInput inputMatchesOutput booleanSurface)
+    for tacticsOnly in [false, true] do
+      for nonempty in [false, true] do
+        for withinLimit in [false, true] do
+          for noPlaceholders in [false, true] do
+            for uniqueRegion in [false, true] do
+              for syntaxValid in [false, true] do
+                for leanPassed in [false, true] do
+                  IO.println (FrKernels.FormalPlan.proofSubmissionAdmitted tacticsOnly nonempty
+                    withinLimit noPlaceholders uniqueRegion syntaxValid leanPassed)
+    for schemaMatches in [false, true] do
+      for taskMatches in [false, true] do
+        for safeNames in [false, true] do
+          for typesDisclosed in [false, true] do
+            for withinLimits in [false, true] do
+              for termsWellTyped in [false, true] do
+                for propositionWellTyped in [false, true] do
+                  IO.println (FrKernels.FormalPlan.agentPropertyAdmitted schemaMatches taskMatches
+                    safeNames typesDisclosed withinLimits termsWellTyped propositionWellTyped)
+    for operator in [0:9] do
+      for operandType in [0:5] do
+        IO.println (FrKernels.FormalPlan.agentTermOperatorAdmitted operator operandType)
+    for relation in [0:9] do
+      for leftType in [0:5] do
+        for rightType in [0:5] do
+          IO.println (FrKernels.FormalPlan.agentRelationAdmitted relation leftType rightType)
   else if args == ["plan-basis"] then
     for complete in [false, true] do
       for supplied in [false, true] do

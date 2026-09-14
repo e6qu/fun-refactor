@@ -11,11 +11,17 @@ from fr_ir import (
     TEMPLATE_KINDS,
     TYPE_KINDS,
     BinaryOp,
+    AgentProperty,
     Change,
     DisclosedEditRequest,
     DisclosedIrEditRequest,
     Expr,
     FormalPlan,
+    ProofAttempt,
+    ProofTask,
+    PropertyProposition,
+    PropertyTask,
+    PropertyTerm,
     Intent,
     IrError,
     LocatorStep,
@@ -42,6 +48,142 @@ def kinds(namespace):
 
 
 class IrTests(unittest.TestCase):
+    def test_property_task_builds_and_validates_agent_authored_ir(self):
+        target = {"source": "src/lib.rs", "symbol": "both", "source_hash": "a" * 64}
+        kernel = {
+            "model": "bothModel",
+            "inputs": [
+                {"name": "left", "rust_type": "bool", "lean_type": "Bool"},
+                {"name": "right", "rust_type": "bool", "lean_type": "Bool"},
+            ],
+            "output": {"name": "return", "rust_type": "bool", "lean_type": "Bool"},
+        }
+        contract = {
+            "author": "agent", "format": "fr-formal-property-1", "proof_author": "agent",
+            "allowed_terms": ["variable", "model", "boolean", "integer", "unary", "binary", "if"],
+            "allowed_propositions": [
+                "equals", "not-equals", "less-than", "less-or-equal", "greater-than",
+                "greater-or-equal", "holds", "not", "and", "or", "implies",
+            ],
+            "allowed_unary_operators": ["not", "negate"],
+            "allowed_binary_operators": ["add", "subtract", "multiply", "and", "or"],
+            "max_parameters": 8, "max_nodes": 64, "max_depth": 16,
+        }
+        templates = [{
+            "kind": "model-relation",
+            "value": {"schema": "fr-formal-property-1", "task_digest": "<copy>"},
+        }]
+        core = {
+            "schema": "fr-property-task-1", "target": target, "kernel": kernel,
+            "contract": contract, "templates": templates,
+        }
+        data = dict(core)
+        data.update({
+            "object_digest": merkle_object_digest(core),
+            "actions": {
+                "plan": ["spec", "plan", "src/lib.rs::both", "--property-from", "<PROPERTY_FILE>"],
+                "scaffold": ["spec", "scaffold", "--from", "<PLAN_FILE>", "--write"],
+            },
+            "token_budget": {
+                "limit": 4096, "used_upper_bound": 2048, "measurement": "serialized_utf8_bytes",
+            },
+        })
+        task = PropertyTask.from_data(data)
+        x, y = PropertyTerm.variable("x"), PropertyTerm.variable("y")
+        property_ = task.property(
+            "commutative",
+            [{"name": "x", "lean_type": "Bool"}, {"name": "y", "lean_type": "Bool"}],
+            PropertyProposition.equals(PropertyTerm.model(x, y), PropertyTerm.model(y, x)),
+        )
+        self.assertEqual(AgentProperty.from_data(property_.to_data(), task), property_)
+        self.assertEqual(AgentProperty.from_json(property_.to_json(), task), property_)
+        self.assertEqual(property_.to_data()["task_digest"], task.object_digest)
+        self.assertEqual(PropertyProposition.not_equals(x, y)["kind"], "not-equals")
+        self.assertEqual(PropertyProposition.less_than(x, y)["kind"], "less-than")
+        self.assertEqual(PropertyProposition.less_or_equal(x, y)["kind"], "less-or-equal")
+        self.assertEqual(PropertyProposition.greater_than(x, y)["kind"], "greater-than")
+        self.assertEqual(PropertyProposition.greater_or_equal(x, y)["kind"], "greater-or-equal")
+        changed = property_.to_data()
+        changed["parameters"][0]["lean_type"] = "String"
+        with self.assertRaisesRegex(IrError, "outside the disclosed"):
+            AgentProperty.from_data(changed, task)
+        changed = property_.to_data()
+        changed["proposition"]["left"]["arguments"].pop()
+        with self.assertRaisesRegex(IrError, "wrong arity"):
+            AgentProperty.from_data(changed, task)
+        changed_task = json.loads(json.dumps(data))
+        changed_task["kernel"]["model"] = "otherModel"
+        with self.assertRaisesRegex(IrError, "Merkle content address"):
+            PropertyTask.from_data(changed_task)
+        empty_model = json.loads(json.dumps(data))
+        empty_model["kernel"]["model"] = ""
+        core = {key: empty_model[key] for key in ("schema", "target", "kernel", "contract", "templates")}
+        empty_model["object_digest"] = merkle_object_digest(core)
+        with self.assertRaisesRegex(IrError, "kernel is malformed"):
+            PropertyTask.from_data(empty_model)
+
+    def test_proof_task_and_attempt_bind_agent_context_and_tactics(self):
+        goal = {
+            "id": "a" * 64, "name": "keep_identity", "spec": "specs/Keep.lean", "line": 8,
+            "theorem": "theorem keep_identity (x : Bool) : keep x = x",
+            "source_anchor": "-- fr:spec src/lib.rs::keep @ " + "b" * 64,
+            "signature_map": "-- fr:signature value: bool => value: Bool",
+            "proof_region": "keep_identity", "object_digest": "a" * 64,
+            "prove_template": ["spec", "prove", "specs/Keep.lean::keep_identity"],
+            "verify": ["spec", "verify", "specs/Keep.lean"],
+        }
+        contract = {
+            "author": "agent", "format": "utf8-lean-tactics",
+            "insertion_point": "inside-existing-by-block",
+            "normalization": "trim-outer-whitespace-indent-two-spaces", "forbidden": ["sorry"],
+            "checker": "leanprover/lean4:v4.28.0",
+        }
+        templates = [{"kind": "direct", "lines": ["<agent-written-tactics>"]}]
+        task = {
+            "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
+            "templates": templates,
+            "object_digest": merkle_object_digest({
+                "schema": "fr-proof-task-1", "goal": goal, "contract": contract,
+                "templates": templates,
+            }),
+            "actions": {
+                "check": ["spec", "proof-check"], "apply": ["spec", "prove"],
+                "verify": ["spec", "verify"],
+            },
+            "token_budget": {
+                "limit": 4096, "used_upper_bound": 1500, "measurement": "serialized_utf8_bytes",
+            },
+        }
+        parsed_task = ProofTask.from_data(task)
+        self.assertEqual(parsed_task.to_data(), task)
+        changed_task = json.loads(json.dumps(task))
+        changed_task["goal"]["theorem"] = "changed"
+        with self.assertRaisesRegex(IrError, "Merkle content address"):
+            ProofTask.from_data(changed_task)
+
+        proof_digest = merkle_object_digest("rfl")
+        receipt_core = {
+            "schema": "fr-proof-receipt-1", "goal_id": goal["id"],
+            "proof_digest": proof_digest, "checker": contract["checker"],
+        }
+        attempt = {
+            "schema": "fr-proof-attempt-1", "goal_id": goal["id"],
+            "proof_digest": proof_digest, "checker": contract["checker"], "passed": True,
+            "diagnostics": [], "diagnostics_omitted": 0,
+            "receipt": merkle_object_digest(receipt_core),
+            "actions": {
+                "revise": ["spec", "proof-check"], "apply": ["spec", "prove"],
+                "verify": ["spec", "verify"],
+            },
+            "token_budget": {
+                "limit": 4096, "used_upper_bound": 900, "measurement": "serialized_utf8_bytes",
+            },
+        }
+        self.assertEqual(ProofAttempt.from_data(attempt).to_data(), attempt)
+        attempt["receipt"] = "0" * 64
+        with self.assertRaisesRegex(IrError, "invalid receipt"):
+            ProofAttempt.from_data(attempt)
+
     def test_formal_plan_mirrors_rust_shape_and_rejects_tampering(self):
         core = {
             "schema": "fr-formal-plan-1",

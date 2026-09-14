@@ -129,6 +129,101 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     let obligation = revealed["revealed"]["name"].as_str().unwrap();
     let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
+    let proof_task = run(workspace.path(), &["--json", "spec", "proof-task", &target]);
+    assert!(
+        proof_task.status.success(),
+        "{}",
+        String::from_utf8_lossy(&proof_task.stderr)
+    );
+    let proof_task: serde_json::Value = serde_json::from_slice(&proof_task.stdout).unwrap();
+    assert_eq!(proof_task["schema"], "fr-proof-task-1");
+    assert_eq!(proof_task["contract"]["author"], "agent");
+    assert!(proof_task["templates"][0]["lines"][0]
+        .as_str()
+        .unwrap()
+        .contains("agent-written"));
+    assert!(!proof_task.to_string().contains("rfl"));
+    let source_path = workspace.path().join("src/lib.rs");
+    let current_source = std::fs::read_to_string(&source_path).unwrap();
+    std::fs::write(
+        &source_path,
+        current_source.replace("{ value }", "{ !value }"),
+    )
+    .unwrap();
+    let stale_task = run(workspace.path(), &["spec", "proof-task", &target]);
+    assert!(!stale_task.status.success());
+    assert!(String::from_utf8_lossy(&stale_task.stderr).contains("stale source"));
+    std::fs::write(&source_path, current_source).unwrap();
+
+    std::fs::write(workspace.path().join("wrong-proof.lean"), "exact false\n").unwrap();
+    let before_failed_attempt = std::fs::read_to_string(&model).unwrap();
+    let failed = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            &target,
+            "--from",
+            "wrong-proof.lean",
+            "--token-limit",
+            "2048",
+        ],
+    );
+    assert!(
+        failed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&failed.stderr)
+    );
+    let failed: serde_json::Value = serde_json::from_slice(&failed.stdout).unwrap();
+    assert_eq!(failed["schema"], "fr-proof-attempt-1");
+    assert_eq!(failed["passed"], false);
+    assert!(failed["receipt"].is_null());
+    assert!(!failed["diagnostics"].as_array().unwrap().is_empty());
+    assert!(failed["token_budget"]["used_upper_bound"].as_u64().unwrap() <= 2048);
+    assert_eq!(
+        std::fs::read_to_string(&model).unwrap(),
+        before_failed_attempt
+    );
+    let rejected_write = run(
+        workspace.path(),
+        &[
+            "spec",
+            "prove",
+            &target,
+            "--from",
+            "wrong-proof.lean",
+            "--write",
+        ],
+    );
+    assert!(!rejected_write.status.success());
+    assert!(
+        String::from_utf8_lossy(&rejected_write.stderr).contains("proof failed Lean verification")
+    );
+    assert_eq!(
+        std::fs::read_to_string(&model).unwrap(),
+        before_failed_attempt
+    );
+
+    let checked = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            &target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        checked.status.success(),
+        "{}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    let checked: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert_eq!(checked["passed"], true);
+    let checked_receipt = checked["receipt"].as_str().unwrap();
     let proved = run(
         workspace.path(),
         &[
@@ -147,6 +242,7 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
         String::from_utf8_lossy(&proved.stderr)
     );
     let proved_json: serde_json::Value = serde_json::from_slice(&proved.stdout).unwrap();
+    assert_eq!(proved_json["receipt"], checked_receipt);
     let transaction = proved_json["transaction"].as_u64().unwrap().to_string();
     let after = std::fs::read_to_string(&model).unwrap();
     assert_eq!(after.matches("-- fr:debt").count(), 1);
@@ -195,6 +291,269 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     );
     assert!(!stale.status.success());
     assert!(String::from_utf8_lossy(&stale.stderr).contains("does not match the current source"));
+}
+
+#[test]
+fn agent_authors_a_multi_input_property_and_its_proof() {
+    let workspace = tempfile::tempdir().unwrap();
+    std::fs::write(workspace.path().join("Cargo.toml"), "[workspace]\n").unwrap();
+    std::fs::create_dir_all(workspace.path().join("src")).unwrap();
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn both(left: bool, right: bool) -> bool { left && right }\n",
+    )
+    .unwrap();
+    assert!(run(workspace.path(), &["spec", "init", "--write"])
+        .status
+        .success());
+
+    let task = run(
+        workspace.path(),
+        &["--json", "spec", "property-task", "src/lib.rs::both"],
+    );
+    assert!(
+        task.status.success(),
+        "{}",
+        String::from_utf8_lossy(&task.stderr)
+    );
+    let task: serde_json::Value = serde_json::from_slice(&task.stdout).unwrap();
+    assert_eq!(task["schema"], "fr-property-task-1");
+    assert_eq!(task["contract"]["author"], "agent");
+    assert_eq!(task["contract"]["proof_author"], "agent");
+    assert_eq!(task["kernel"]["inputs"].as_array().unwrap().len(), 2);
+    assert!(!task.to_string().contains("pub fn both"));
+    assert!(!task.to_string().contains("rfl"));
+
+    let property = serde_json::json!({
+        "schema": "fr-formal-property-1",
+        "task_digest": task["object_digest"],
+        "name": "commutative",
+        "parameters": [
+            {"name": "x", "lean_type": "Bool"},
+            {"name": "y", "lean_type": "Bool"}
+        ],
+        "proposition": {
+            "kind": "equals",
+            "left": {
+                "kind": "model",
+                "arguments": [
+                    {"kind": "variable", "name": "x"},
+                    {"kind": "variable", "name": "y"}
+                ]
+            },
+            "right": {
+                "kind": "model",
+                "arguments": [
+                    {"kind": "variable", "name": "y"},
+                    {"kind": "variable", "name": "x"}
+                ]
+            }
+        }
+    });
+    std::fs::write(
+        workspace.path().join("property.json"),
+        serde_json::to_vec_pretty(&property).unwrap(),
+    )
+    .unwrap();
+    let mut stale_property = property.clone();
+    stale_property["task_digest"] = serde_json::Value::String("0".repeat(64));
+    std::fs::write(
+        workspace.path().join("stale-property.json"),
+        serde_json::to_vec_pretty(&stale_property).unwrap(),
+    )
+    .unwrap();
+    let stale = run(
+        workspace.path(),
+        &[
+            "spec",
+            "plan",
+            "src/lib.rs::both",
+            "--property-from",
+            "stale-property.json",
+        ],
+    );
+    assert!(!stale.status.success());
+    assert!(String::from_utf8_lossy(&stale.stderr).contains("task identity"));
+
+    let mut bad_type = property.clone();
+    bad_type["parameters"][0]["lean_type"] = serde_json::Value::String("String".into());
+    let mut unknown_variable = property.clone();
+    unknown_variable["proposition"]["left"]["arguments"][0]["name"] =
+        serde_json::Value::String("missing".into());
+    let mut wrong_arity = property.clone();
+    wrong_arity["proposition"]["left"]["arguments"] = serde_json::json!([]);
+    let mut unsafe_name = property.clone();
+    unsafe_name["name"] = serde_json::Value::String("theorem".into());
+    let mut too_deep = property.clone();
+    let mut deep_proposition = property["proposition"].clone();
+    for _ in 0..16 {
+        deep_proposition = serde_json::json!({
+            "kind": "not",
+            "proposition": deep_proposition
+        });
+    }
+    too_deep["proposition"] = deep_proposition;
+    let mut too_many_nodes = property.clone();
+    let mut wide_proposition = property["proposition"].clone();
+    for _ in 0..4 {
+        wide_proposition = serde_json::json!({
+            "kind": "and",
+            "propositions": [wide_proposition.clone(), wide_proposition]
+        });
+    }
+    too_many_nodes["proposition"] = wide_proposition;
+    for (index, (invalid, message)) in [
+        (bad_type, "outside the disclosed kernel signature"),
+        (unknown_variable, "is not a parameter"),
+        (wrong_arity, "wrong arity"),
+        (unsafe_name, "safe Lean identifier"),
+        (too_deep, "16-level depth ceiling"),
+        (too_many_nodes, "64-node ceiling"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let file = format!("invalid-property-{index}.json");
+        std::fs::write(
+            workspace.path().join(&file),
+            serde_json::to_vec_pretty(&invalid).unwrap(),
+        )
+        .unwrap();
+        let rejected = run(
+            workspace.path(),
+            &["spec", "plan", "src/lib.rs::both", "--property-from", &file],
+        );
+        assert!(!rejected.status.success());
+        assert!(
+            String::from_utf8_lossy(&rejected.stderr).contains(message),
+            "{}",
+            String::from_utf8_lossy(&rejected.stderr)
+        );
+    }
+
+    let planned = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "plan",
+            "src/lib.rs::both",
+            "--property-from",
+            "property.json",
+        ],
+    );
+    assert!(
+        planned.status.success(),
+        "{}",
+        String::from_utf8_lossy(&planned.stderr)
+    );
+    let plan: serde_json::Value = serde_json::from_slice(&planned.stdout).unwrap();
+    assert_eq!(plan["properties"][0]["kind"], "agent");
+    assert_eq!(plan["properties"][0]["agent_spec"], property);
+    assert_eq!(
+        plan["properties"][0]["proposition"],
+        "(x : Bool) (y : Bool) : (bothModel (x) (y)) = (bothModel (y) (x))"
+    );
+    std::fs::write(workspace.path().join("formal-plan.json"), &planned.stdout).unwrap();
+
+    let scaffold = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "scaffold",
+            "--from",
+            "formal-plan.json",
+            "--write",
+        ],
+    );
+    assert!(
+        scaffold.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scaffold.stderr)
+    );
+    let model = workspace.path().join("specs/FrSpecs/SrcLibRsBoth.lean");
+    let unproved = std::fs::read_to_string(&model).unwrap();
+    assert!(unproved.contains("theorem bothModel_commutative"));
+    assert!(unproved.contains("-- fr:debt bothModel_commutative"));
+
+    std::fs::write(
+        workspace.path().join("proof.lean"),
+        "cases x <;> cases y <;> rfl\n",
+    )
+    .unwrap();
+    let target = "specs/FrSpecs/SrcLibRsBoth.lean::bothModel_commutative";
+    let checked = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "proof-check",
+            target,
+            "--from",
+            "proof.lean",
+        ],
+    );
+    assert!(
+        checked.status.success(),
+        "{}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    let checked: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert_eq!(checked["passed"], true);
+    let proved = run(
+        workspace.path(),
+        &[
+            "--json",
+            "spec",
+            "prove",
+            target,
+            "--from",
+            "proof.lean",
+            "--write",
+        ],
+    );
+    assert!(
+        proved.status.success(),
+        "{}",
+        String::from_utf8_lossy(&proved.stderr)
+    );
+    let proved: serde_json::Value = serde_json::from_slice(&proved.stdout).unwrap();
+    let transaction = proved["transaction"].as_u64().unwrap().to_string();
+    assert!(run(workspace.path(), &["spec", "verify", "specs"])
+        .status
+        .success());
+    assert!(run(
+        workspace.path(),
+        &["history", "undo", &transaction, "--write"]
+    )
+    .status
+    .success());
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), unproved);
+    assert!(run(
+        workspace.path(),
+        &["history", "redo", &transaction, "--write"]
+    )
+    .status
+    .success());
+
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn both(left: bool, right: bool) -> bool { left || right }\n",
+    )
+    .unwrap();
+    let stale = run(
+        workspace.path(),
+        &[
+            "spec",
+            "plan",
+            "src/lib.rs::both",
+            "--property-from",
+            "property.json",
+        ],
+    );
+    assert!(!stale.status.success());
+    assert!(String::from_utf8_lossy(&stale.stderr).contains("task identity"));
 }
 
 #[test]

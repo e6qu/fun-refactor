@@ -8,6 +8,7 @@ use ignore::WalkBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
@@ -112,6 +113,10 @@ pub struct CorrespondenceEvidence {
 
 pub const FORMAL_PLAN_SCHEMA: &str = "fr-formal-plan-1";
 pub const FORMAL_GOALS_SCHEMA: &str = "fr-formal-goals-1";
+pub const PROOF_TASK_SCHEMA: &str = "fr-proof-task-1";
+pub const PROOF_ATTEMPT_SCHEMA: &str = "fr-proof-attempt-1";
+pub const PROPERTY_TASK_SCHEMA: &str = "fr-property-task-1";
+pub const AGENT_PROPERTY_SCHEMA: &str = "fr-formal-property-1";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -161,6 +166,147 @@ pub struct FormalProperty {
     pub name: String,
     pub proposition: String,
     pub proof_status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_spec: Option<AgentProperty>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentProperty {
+    pub schema: String,
+    pub task_digest: String,
+    pub name: String,
+    pub parameters: Vec<AgentPropertyParameter>,
+    pub proposition: AgentProposition,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentPropertyParameter {
+    pub name: String,
+    pub lean_type: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum AgentTerm {
+    Variable {
+        name: String,
+    },
+    Model {
+        arguments: Vec<AgentTerm>,
+    },
+    Boolean {
+        value: bool,
+    },
+    Integer {
+        value: i64,
+        lean_type: String,
+    },
+    Unary {
+        operator: String,
+        operand: Box<AgentTerm>,
+    },
+    Binary {
+        operator: String,
+        left: Box<AgentTerm>,
+        right: Box<AgentTerm>,
+    },
+    If {
+        condition: Box<AgentTerm>,
+        then: Box<AgentTerm>,
+        otherwise: Box<AgentTerm>,
+    },
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum AgentProposition {
+    Equals {
+        left: AgentTerm,
+        right: AgentTerm,
+    },
+    NotEquals {
+        left: AgentTerm,
+        right: AgentTerm,
+    },
+    LessThan {
+        left: AgentTerm,
+        right: AgentTerm,
+    },
+    LessOrEqual {
+        left: AgentTerm,
+        right: AgentTerm,
+    },
+    GreaterThan {
+        left: AgentTerm,
+        right: AgentTerm,
+    },
+    GreaterOrEqual {
+        left: AgentTerm,
+        right: AgentTerm,
+    },
+    Holds {
+        term: AgentTerm,
+    },
+    Not {
+        proposition: Box<AgentProposition>,
+    },
+    And {
+        propositions: Vec<AgentProposition>,
+    },
+    Or {
+        propositions: Vec<AgentProposition>,
+    },
+    Implies {
+        premise: Box<AgentProposition>,
+        conclusion: Box<AgentProposition>,
+    },
+}
+
+#[derive(Debug, Serialize)]
+pub struct PropertyTask {
+    pub schema: &'static str,
+    pub target: FormalTarget,
+    pub kernel: PropertyKernelContext,
+    pub contract: PropertyContract,
+    pub templates: Vec<PropertyTemplate>,
+    pub object_digest: String,
+    pub actions: PropertyTaskActions,
+    pub token_budget: FormalGoalBudget,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PropertyKernelContext {
+    pub model: String,
+    pub inputs: Vec<FormalBinding>,
+    pub output: FormalBinding,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PropertyContract {
+    pub author: &'static str,
+    pub format: &'static str,
+    pub proof_author: &'static str,
+    pub allowed_terms: Vec<&'static str>,
+    pub allowed_propositions: Vec<&'static str>,
+    pub allowed_unary_operators: Vec<&'static str>,
+    pub allowed_binary_operators: Vec<&'static str>,
+    pub max_parameters: usize,
+    pub max_nodes: usize,
+    pub max_depth: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PropertyTemplate {
+    pub kind: &'static str,
+    pub value: serde_json::Value,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PropertyTaskActions {
+    pub plan: Vec<String>,
+    pub scaffold: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -272,6 +418,73 @@ pub struct ProofPlan {
     pub obligation: String,
     pub original: String,
     pub updated: String,
+    pub goal_id: String,
+    pub proof_digest: String,
+    pub receipt: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofTask {
+    pub schema: &'static str,
+    pub goal: FormalGoalDetail,
+    pub contract: ProofInputContract,
+    pub templates: Vec<ProofTemplate>,
+    pub object_digest: String,
+    pub actions: ProofTaskActions,
+    pub token_budget: FormalGoalBudget,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofInputContract {
+    pub author: &'static str,
+    pub format: &'static str,
+    pub insertion_point: &'static str,
+    pub normalization: &'static str,
+    pub forbidden: Vec<&'static str>,
+    pub checker: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofTemplate {
+    pub kind: &'static str,
+    pub lines: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofTaskActions {
+    pub check: Vec<String>,
+    pub apply: Vec<String>,
+    pub verify: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofAttempt {
+    pub schema: &'static str,
+    pub goal_id: String,
+    pub proof_digest: String,
+    pub checker: &'static str,
+    pub passed: bool,
+    pub diagnostics: Vec<ProofDiagnostic>,
+    pub diagnostics_omitted: usize,
+    pub receipt: Option<String>,
+    pub actions: ProofAttemptActions,
+    pub token_budget: FormalGoalBudget,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofDiagnostic {
+    pub severity: String,
+    pub line: Option<usize>,
+    pub column: Option<usize>,
+    pub message: String,
+    pub context: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProofAttemptActions {
+    pub revise: Vec<String>,
+    pub apply: Option<Vec<String>>,
+    pub verify: Vec<String>,
 }
 
 pub fn formal_candidate_admitted(
@@ -291,6 +504,61 @@ pub fn formal_property_admitted(
     boolean_surface: bool,
 ) -> bool {
     known_kind && one_input && (input_matches_output || boolean_surface)
+}
+
+pub fn proof_submission_admitted(
+    tactics_only: bool,
+    nonempty: bool,
+    within_limit: bool,
+    no_placeholders: bool,
+    unique_region: bool,
+    syntax_valid: bool,
+    lean_passed: bool,
+) -> bool {
+    tactics_only
+        && nonempty
+        && within_limit
+        && no_placeholders
+        && unique_region
+        && syntax_valid
+        && lean_passed
+}
+
+pub fn agent_property_admitted(
+    schema_matches: bool,
+    task_matches: bool,
+    safe_names: bool,
+    types_disclosed: bool,
+    within_limits: bool,
+    terms_well_typed: bool,
+    proposition_well_typed: bool,
+) -> bool {
+    schema_matches
+        && task_matches
+        && safe_names
+        && types_disclosed
+        && within_limits
+        && terms_well_typed
+        && proposition_well_typed
+}
+
+pub fn agent_term_operator_admitted(operator: u8, operand_type: u8) -> bool {
+    match operator {
+        0 => operand_type == 0,
+        1 => operand_type == 2,
+        2..=4 => matches!(operand_type, 1 | 2),
+        5 | 6 => operand_type == 0,
+        _ => false,
+    }
+}
+
+pub fn agent_relation_admitted(relation: u8, left_type: u8, right_type: u8) -> bool {
+    match relation {
+        0 | 1 => left_type < 4 && left_type == right_type,
+        2..=5 => matches!(left_type, 1 | 2) && left_type == right_type,
+        6 => left_type == 0,
+        _ => false,
+    }
 }
 
 pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
@@ -631,8 +899,50 @@ pub fn formal_candidates(
     })
 }
 
+pub fn property_task(root: &Path, target: &str, token_limit: usize) -> Result<PropertyTask> {
+    if !(1_024..=16_384).contains(&token_limit) {
+        bail!("property task token limit must be between 1024 and 16384.");
+    }
+    let root = root.canonicalize()?;
+    let formal = formal_function(&root, target)?;
+    property_task_for_formal(&formal, token_limit)
+}
+
 pub fn formal_plan(root: &Path, target: &str, property_kinds: &[String]) -> Result<FormalPlan> {
-    if property_kinds.len() > 16 {
+    formal_plan_from_agent_specs(root, target, property_kinds, &[])
+}
+
+pub fn formal_plan_with_agent_properties(
+    root: &Path,
+    target: &str,
+    property_kinds: &[String],
+    property_paths: &[PathBuf],
+) -> Result<FormalPlan> {
+    let root = root.canonicalize()?;
+    let mut properties = Vec::new();
+    for path in property_paths {
+        let path = if path.is_absolute() {
+            path.clone()
+        } else {
+            root.join(path)
+        };
+        let text = crate::vfs::read_to_string(&path)
+            .with_context(|| format!("reading agent property {}", path.display()))?;
+        properties.push(
+            serde_json::from_str(&text)
+                .with_context(|| format!("parsing agent property {}", path.display()))?,
+        );
+    }
+    formal_plan_from_agent_specs(&root, target, property_kinds, &properties)
+}
+
+fn formal_plan_from_agent_specs(
+    root: &Path,
+    target: &str,
+    property_kinds: &[String],
+    agent_specs: &[AgentProperty],
+) -> Result<FormalPlan> {
+    if property_kinds.len() + agent_specs.len() > 16 {
         bail!("a formal plan accepts at most 16 properties.");
     }
     let unique = property_kinds.iter().collect::<BTreeSet<_>>();
@@ -641,10 +951,20 @@ pub fn formal_plan(root: &Path, target: &str, property_kinds: &[String]) -> Resu
     }
     let root = root.canonicalize()?;
     let formal = formal_function(&root, target)?;
-    let properties = property_kinds
+    let mut properties = property_kinds
         .iter()
         .map(|kind| formal_property(kind, &formal))
         .collect::<Result<Vec<_>>>()?;
+    for property in agent_specs {
+        properties.push(agent_formal_property(property, &formal)?);
+    }
+    let unique_names = properties
+        .iter()
+        .map(|property| property.name.as_str())
+        .collect::<BTreeSet<_>>();
+    if unique_names.len() != properties.len() {
+        bail!("a formal plan cannot repeat a theorem name.");
+    }
     let target = FormalTarget {
         source: formal.source,
         symbol: formal.symbol,
@@ -725,9 +1045,15 @@ pub fn scaffold_formal(
     let kinds = supplied
         .properties
         .iter()
+        .filter(|property| property.agent_spec.is_none())
         .map(|property| property.kind.clone())
         .collect::<Vec<_>>();
-    let expected = formal_plan(root, &target, &kinds)?;
+    let agent_specs = supplied
+        .properties
+        .iter()
+        .filter_map(|property| property.agent_spec.clone())
+        .collect::<Vec<_>>();
+    let expected = formal_plan_from_agent_specs(root, &target, &kinds, &agent_specs)?;
     if serde_json::to_value(&supplied)? != serde_json::to_value(&expected)? {
         bail!("formal plan does not match the current source, kernel, properties and actions.");
     }
@@ -763,6 +1089,7 @@ pub fn scaffold_formal(
     if parsed.has_errors() {
         bail!("generated formal kernel did not parse as Lean; no files changed.");
     }
+    check_generated_formal_module(&package_plan.package, &updated)?;
     let root_path = package_plan.package.join("FrSpecs.lean");
     let root_original = crate::vfs::read_to_string(&root_path)?;
     let import = format!("import FrSpecs.{}", expected.kernel.module);
@@ -941,8 +1268,157 @@ pub fn formal_goals(
     }
 }
 
+pub fn proof_task(
+    root: &Path,
+    target: &str,
+    token_limit: usize,
+    respect_ignore: bool,
+) -> Result<ProofTask> {
+    if !(1_024..=16_384).contains(&token_limit) {
+        bail!("proof task token limit must be between 1024 and 16384.");
+    }
+    let root = root.canonicalize()?;
+    let (spec, obligation) = proof_target(target)?;
+    let evidence = check_strict(&root, std::slice::from_ref(&spec), respect_ignore)?;
+    if !evidence.ok() {
+        bail!("formal proof target has stale source or signature evidence.");
+    }
+    checked_proof_package(&root, &root.join(&spec))?;
+    let catalog = formal_goals(
+        &root,
+        std::slice::from_ref(&spec),
+        None,
+        64,
+        16_384,
+        respect_ignore,
+    )?;
+    let item = catalog
+        .catalog
+        .iter()
+        .find(|item| item.spec == spec && item.name == obligation)
+        .with_context(|| format!("formal proof target `{target}` is absent or already proved"))?;
+    let revealed = formal_goals(
+        &root,
+        std::slice::from_ref(&spec),
+        Some(&item.id),
+        1,
+        16_384,
+        respect_ignore,
+    )?
+    .revealed
+    .context("selected formal proof goal was not revealed")?;
+    let contract = ProofInputContract {
+        author: "agent",
+        format: "utf8-lean-tactics",
+        insertion_point: "inside-existing-by-block",
+        normalization: "trim-outer-whitespace-indent-two-spaces",
+        forbidden: vec![
+            "leading-by",
+            "sorry",
+            "admit",
+            "unsolved-placeholder",
+            "proof-region-marker",
+        ],
+        checker: LEAN_TOOLCHAIN,
+    };
+    let templates = vec![
+        ProofTemplate {
+            kind: "direct",
+            lines: vec!["<agent-written-tactics>"],
+        },
+        ProofTemplate {
+            kind: "structured-calculation",
+            lines: vec![
+                "calc",
+                "  <expression> = <expression> := by",
+                "    <agent-written-tactics>",
+            ],
+        },
+    ];
+    let core = serde_json::json!({
+        "schema": PROOF_TASK_SCHEMA,
+        "goal": &revealed,
+        "contract": &contract,
+        "templates": &templates,
+    });
+    let object_digest = crate::project::object_merkle(&core)?;
+    let actions = ProofTaskActions {
+        check: vec![
+            "spec".into(),
+            "proof-check".into(),
+            target.into(),
+            "--from".into(),
+            "<PROOF_FILE>".into(),
+        ],
+        apply: vec![
+            "spec".into(),
+            "prove".into(),
+            target.into(),
+            "--from".into(),
+            "<PROOF_FILE>".into(),
+            "--write".into(),
+        ],
+        verify: vec!["spec".into(), "verify".into(), spec.display().to_string()],
+    };
+    let provisional = serde_json::json!({
+        "schema": PROOF_TASK_SCHEMA,
+        "goal": &revealed,
+        "contract": &contract,
+        "templates": &templates,
+        "object_digest": &object_digest,
+        "actions": &actions,
+        "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
+    });
+    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+    if upper_bound > token_limit {
+        bail!("proof task cannot fit the selected response ceiling.");
+    }
+    Ok(ProofTask {
+        schema: PROOF_TASK_SCHEMA,
+        goal: revealed,
+        contract,
+        templates,
+        object_digest,
+        actions,
+        token_budget: FormalGoalBudget {
+            limit: token_limit,
+            used_upper_bound: upper_bound,
+            measurement: "serialized_utf8_bytes",
+        },
+    })
+}
+
+pub fn proof_check(
+    root: &Path,
+    target: &str,
+    proof_path: &Path,
+    token_limit: usize,
+) -> Result<ProofAttempt> {
+    if !(1_024..=16_384).contains(&token_limit) {
+        bail!("proof check token limit must be between 1024 and 16384.");
+    }
+    let root = root.canonicalize()?;
+    let prepared = prepare_proof(&root, target, proof_path)?;
+    check_prepared_proof(&root, target, proof_path, &prepared, token_limit)
+}
+
 pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
     let root = root.canonicalize()?;
+    let mut prepared = prepare_proof(&root, target, proof_path)?;
+    let attempt = check_prepared_proof(&root, target, proof_path, &prepared, 4_096)?;
+    if !attempt.passed {
+        let reason = attempt
+            .diagnostics
+            .first()
+            .map(|diagnostic| diagnostic.message.as_str())
+            .unwrap_or("Lean rejected the submitted tactics");
+        bail!("proof failed Lean verification: {reason}");
+    }
+    prepared.receipt = attempt.receipt.context("accepted proof has no receipt")?;
+    Ok(prepared)
+}
+
+fn proof_target(target: &str) -> Result<(PathBuf, String)> {
     let (spec, obligation) = target
         .rsplit_once("::")
         .ok_or_else(|| anyhow::anyhow!("a proof target needs `<spec-path>::<obligation-name>`."))?;
@@ -963,6 +1439,11 @@ pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> 
     {
         bail!("a proof target must name a workspace-relative Lean file.");
     }
+    Ok((spec, obligation.into()))
+}
+
+fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> {
+    let (spec, obligation) = proof_target(target)?;
     let path = root.join(&spec);
     let original = crate::vfs::read_to_string(&path)?;
     let proof = crate::vfs::read_to_string(proof_path)?;
@@ -970,11 +1451,14 @@ pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> 
     if proof.is_empty() || proof.len() > 65_536 {
         bail!("proof tactics must contain between 1 and 65536 UTF-8 bytes.");
     }
-    if proof.starts_with("by") {
+    if proof.split_whitespace().next() == Some("by") {
         bail!("proof input contains tactics only; omit the leading `by`.");
     }
-    if proof.contains("sorry") || proof.contains("fr:proof-") || proof.contains("fr:debt") {
-        bail!("proof input cannot carry debt or proof-region markers.");
+    if ["sorry", "admit", "?_", "fr:proof-", "fr:debt"]
+        .iter()
+        .any(|forbidden| proof.contains(forbidden))
+    {
+        bail!("proof input cannot carry placeholders, debt or proof-region markers.");
     }
     let begin = format!("-- fr:proof-begin {obligation}");
     let end = format!("-- fr:proof-end {obligation}");
@@ -1002,12 +1486,220 @@ pub fn prove(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPlan> 
     if parsed.has_errors() {
         bail!("proof replacement does not parse as Lean; no files changed.");
     }
+    let task = proof_task(root, target, 16_384, true)?;
+    let proof_digest = crate::project::object_merkle(&serde_json::json!(proof))?;
     Ok(ProofPlan {
         spec: path,
-        obligation: obligation.into(),
+        obligation,
         original,
         updated,
+        goal_id: task.goal.id,
+        proof_digest,
+        receipt: String::new(),
     })
+}
+
+fn check_prepared_proof(
+    root: &Path,
+    target: &str,
+    proof_path: &Path,
+    prepared: &ProofPlan,
+    token_limit: usize,
+) -> Result<ProofAttempt> {
+    let package = checked_proof_package(root, &prepared.spec)?;
+    let mut scratch = tempfile::Builder::new()
+        .prefix("fr-proof-check-")
+        .suffix(".lean")
+        .tempfile()?;
+    scratch
+        .as_file_mut()
+        .write_all(prepared.updated.as_bytes())?;
+    scratch.as_file_mut().flush()?;
+    let output = Command::new("lake")
+        .args(["env", "lean"])
+        .arg(scratch.path())
+        .current_dir(&package)
+        .output()
+        .with_context(|| format!("running Lean proof check in {}", package.display()))?;
+    let passed =
+        proof_submission_admitted(true, true, true, true, true, true, output.status.success());
+    let mut raw = String::from_utf8_lossy(&output.stdout).to_string();
+    raw.push_str(&String::from_utf8_lossy(&output.stderr));
+    let mut diagnostics = if passed {
+        Vec::new()
+    } else {
+        lean_diagnostics(&raw, scratch.path(), root)
+    };
+    let all_diagnostics = diagnostics.len();
+    let receipt = passed
+        .then(|| {
+            crate::project::object_merkle(&serde_json::json!({
+                "schema": "fr-proof-receipt-1",
+                "goal_id": prepared.goal_id,
+                "proof_digest": prepared.proof_digest,
+                "checker": LEAN_TOOLCHAIN,
+            }))
+        })
+        .transpose()?;
+    let actions = ProofAttemptActions {
+        revise: vec![
+            "spec".into(),
+            "proof-check".into(),
+            target.into(),
+            "--from".into(),
+            proof_path.display().to_string(),
+        ],
+        apply: passed.then(|| {
+            vec![
+                "spec".into(),
+                "prove".into(),
+                target.into(),
+                "--from".into(),
+                proof_path.display().to_string(),
+                "--write".into(),
+            ]
+        }),
+        verify: vec![
+            "spec".into(),
+            "verify".into(),
+            prepared.spec.display().to_string(),
+        ],
+    };
+    loop {
+        let provisional = serde_json::json!({
+            "schema": PROOF_ATTEMPT_SCHEMA,
+            "goal_id": &prepared.goal_id,
+            "proof_digest": &prepared.proof_digest,
+            "checker": LEAN_TOOLCHAIN,
+            "passed": passed,
+            "diagnostics": &diagnostics,
+            "diagnostics_omitted": all_diagnostics.saturating_sub(diagnostics.len()),
+            "receipt": &receipt,
+            "actions": &actions,
+            "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
+        });
+        let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+        if upper_bound <= token_limit {
+            return Ok(ProofAttempt {
+                schema: PROOF_ATTEMPT_SCHEMA,
+                goal_id: prepared.goal_id.clone(),
+                proof_digest: prepared.proof_digest.clone(),
+                checker: LEAN_TOOLCHAIN,
+                passed,
+                diagnostics_omitted: all_diagnostics.saturating_sub(diagnostics.len()),
+                diagnostics,
+                receipt,
+                actions,
+                token_budget: FormalGoalBudget {
+                    limit: token_limit,
+                    used_upper_bound: upper_bound,
+                    measurement: "serialized_utf8_bytes",
+                },
+            });
+        }
+        if diagnostics.pop().is_none() {
+            bail!("proof check report cannot fit the selected response ceiling.");
+        }
+    }
+}
+
+fn check_generated_formal_module(package: &Path, source: &str) -> Result<()> {
+    let toolchain_path = package.join("lean-toolchain");
+    let toolchain = crate::vfs::read_to_string(&toolchain_path)
+        .with_context(|| format!("reading pinned Lean toolchain {}", toolchain_path.display()))?;
+    if toolchain.trim() != LEAN_TOOLCHAIN {
+        bail!("formal scaffolding requires the fr pinned Lean toolchain {LEAN_TOOLCHAIN}.");
+    }
+    let mut scratch = tempfile::Builder::new()
+        .prefix("fr-property-check-")
+        .suffix(".lean")
+        .tempfile_in(package)
+        .context("creating temporary Lean property check")?;
+    scratch.as_file_mut().write_all(source.as_bytes())?;
+    scratch.as_file_mut().flush()?;
+    let output = Command::new("lake")
+        .args(["env", "lean"])
+        .arg(scratch.path())
+        .current_dir(package)
+        .output()
+        .context("running Lean property elaboration")?;
+    if !output.status.success() {
+        let diagnostic = String::from_utf8_lossy(&output.stderr)
+            .replace(&scratch.path().display().to_string(), "<PROPERTY_CHECK>")
+            .chars()
+            .take(2_048)
+            .collect::<String>();
+        bail!("generated formal property failed Lean elaboration: {diagnostic}");
+    }
+    Ok(())
+}
+
+fn checked_proof_package(root: &Path, spec: &Path) -> Result<PathBuf> {
+    let package = lean_package(root, spec)?;
+    let toolchain_path = package.join("lean-toolchain");
+    let toolchain = crate::vfs::read_to_string(&toolchain_path)
+        .with_context(|| format!("reading pinned Lean toolchain {}", toolchain_path.display()))?;
+    if toolchain.trim() != LEAN_TOOLCHAIN {
+        bail!("proof checking requires the fr pinned Lean toolchain {LEAN_TOOLCHAIN}.");
+    }
+    Ok(package)
+}
+
+fn lean_diagnostics(output: &str, scratch: &Path, root: &Path) -> Vec<ProofDiagnostic> {
+    let normalized = output
+        .replace(&scratch.display().to_string(), "<PROOF_CHECK>")
+        .replace(&root.display().to_string(), ".");
+    let mut diagnostics: Vec<ProofDiagnostic> = Vec::new();
+    for line in normalized.lines() {
+        let marker = [(": error: ", "error"), (": warning: ", "warning")]
+            .into_iter()
+            .find_map(|(needle, severity)| {
+                line.find(needle).map(|index| (index, needle, severity))
+            });
+        if let Some((index, needle, severity)) = marker {
+            let location = &line[..index];
+            let mut parts = location.rsplitn(3, ':');
+            let column = parts.next().and_then(|part| part.parse().ok());
+            let line_number = parts.next().and_then(|part| part.parse().ok());
+            diagnostics.push(ProofDiagnostic {
+                severity: severity.into(),
+                line: line_number,
+                column,
+                message: bounded_text(&line[index + needle.len()..], 512),
+                context: Vec::new(),
+            });
+        } else if let Some(diagnostic) = diagnostics.last_mut() {
+            if !line.trim().is_empty() && diagnostic.context.len() < 8 {
+                diagnostic.context.push(bounded_text(line, 512));
+            }
+        }
+    }
+    if diagnostics.is_empty() {
+        diagnostics.push(ProofDiagnostic {
+            severity: "error".into(),
+            line: None,
+            column: None,
+            message: "Lean rejected the submitted tactics".into(),
+            context: normalized
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .take(8)
+                .map(|line| bounded_text(line, 512))
+                .collect(),
+        });
+    }
+    diagnostics
+}
+
+fn bounded_text(text: &str, limit: usize) -> String {
+    if text.len() <= limit {
+        return text.to_string();
+    }
+    let mut end = limit;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}…", &text[..end])
 }
 
 fn theorem_before(source: &str, debt_line: usize) -> Result<String> {
@@ -1517,6 +2209,404 @@ fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
     }
 }
 
+fn property_task_for_formal(formal: &FormalFunction, token_limit: usize) -> Result<PropertyTask> {
+    let target = FormalTarget {
+        source: formal.source.clone(),
+        symbol: formal.symbol.clone(),
+        source_hash: formal.source_hash.clone(),
+    };
+    let kernel = PropertyKernelContext {
+        model: formal.model.clone(),
+        inputs: formal.inputs.clone(),
+        output: formal.output.clone(),
+    };
+    let contract = PropertyContract {
+        author: "agent",
+        format: AGENT_PROPERTY_SCHEMA,
+        proof_author: "agent",
+        allowed_terms: vec![
+            "variable", "model", "boolean", "integer", "unary", "binary", "if",
+        ],
+        allowed_propositions: vec![
+            "equals",
+            "not-equals",
+            "less-than",
+            "less-or-equal",
+            "greater-than",
+            "greater-or-equal",
+            "holds",
+            "not",
+            "and",
+            "or",
+            "implies",
+        ],
+        allowed_unary_operators: vec!["not", "negate"],
+        allowed_binary_operators: vec!["add", "subtract", "multiply", "and", "or"],
+        max_parameters: 8,
+        max_nodes: 64,
+        max_depth: 16,
+    };
+    let templates = vec![PropertyTemplate {
+        kind: "model-relation",
+        value: serde_json::json!({
+            "schema": AGENT_PROPERTY_SCHEMA,
+            "task_digest": "<copy-property-task-object-digest>",
+            "name": "<agent-property-name>",
+            "parameters": [{"name": "x", "lean_type": "<choose-a-disclosed-kernel-type>"}],
+            "proposition": {
+                "kind": "equals",
+                "left": {"kind": "model", "arguments": [{"kind": "variable", "name": "x"}]},
+                "right": {"kind": "variable", "name": "x"}
+            }
+        }),
+    }];
+    let core = serde_json::json!({
+        "schema": PROPERTY_TASK_SCHEMA,
+        "target": &target,
+        "kernel": &kernel,
+        "contract": &contract,
+        "templates": &templates,
+    });
+    let object_digest = crate::project::object_merkle(&core)?;
+    let actions = PropertyTaskActions {
+        plan: vec![
+            "spec".into(),
+            "plan".into(),
+            format!("{}::{}", target.source.display(), target.symbol),
+            "--property-from".into(),
+            "<PROPERTY_FILE>".into(),
+        ],
+        scaffold: vec![
+            "spec".into(),
+            "scaffold".into(),
+            "--from".into(),
+            "<PLAN_FILE>".into(),
+            "--write".into(),
+        ],
+    };
+    let provisional = serde_json::json!({
+        "schema": PROPERTY_TASK_SCHEMA,
+        "target": &target,
+        "kernel": &kernel,
+        "contract": &contract,
+        "templates": &templates,
+        "object_digest": &object_digest,
+        "actions": &actions,
+        "token_budget": {"limit": token_limit, "used_upper_bound": token_limit, "measurement": "serialized_utf8_bytes"},
+    });
+    let upper_bound = serde_json::to_vec_pretty(&provisional)?.len();
+    if upper_bound > token_limit {
+        bail!("property task cannot fit the selected response ceiling.");
+    }
+    Ok(PropertyTask {
+        schema: PROPERTY_TASK_SCHEMA,
+        target,
+        kernel,
+        contract,
+        templates,
+        object_digest,
+        actions,
+        token_budget: FormalGoalBudget {
+            limit: token_limit,
+            used_upper_bound: upper_bound,
+            measurement: "serialized_utf8_bytes",
+        },
+    })
+}
+
+fn agent_formal_property(
+    property: &AgentProperty,
+    formal: &FormalFunction,
+) -> Result<FormalProperty> {
+    if property.schema != AGENT_PROPERTY_SCHEMA {
+        bail!("agent property schema must be {AGENT_PROPERTY_SCHEMA}.");
+    }
+    let task = property_task_for_formal(formal, 16_384)?;
+    if property.task_digest != task.object_digest {
+        bail!("agent property task identity is absent, stale or belongs to another model.");
+    }
+    if !agent_lean_identifier(&property.name) {
+        bail!("agent property name must be a safe Lean identifier.");
+    }
+    if property.parameters.len() > task.contract.max_parameters {
+        bail!("agent property accepts at most 8 parameters.");
+    }
+    let allowed_types = formal
+        .inputs
+        .iter()
+        .chain(std::iter::once(&formal.output))
+        .map(|binding| binding.lean_type.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut parameters = BTreeMap::new();
+    for parameter in &property.parameters {
+        if !agent_lean_identifier(&parameter.name) {
+            bail!("agent property parameter names must be safe Lean identifiers.");
+        }
+        if !allowed_types.contains(parameter.lean_type.as_str()) {
+            bail!("agent property parameter type is outside the disclosed kernel signature.");
+        }
+        if parameters
+            .insert(parameter.name.as_str(), parameter.lean_type.as_str())
+            .is_some()
+        {
+            bail!("agent property parameter names must be unique.");
+        }
+    }
+    let mut nodes = 0;
+    let proposition =
+        render_agent_proposition(&property.proposition, formal, &parameters, &mut nodes, 1)?;
+    if nodes > task.contract.max_nodes {
+        bail!("agent property exceeds the 64-node ceiling.");
+    }
+    let binders = property
+        .parameters
+        .iter()
+        .map(|parameter| format!("({} : {})", parameter.name, parameter.lean_type))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let proposition = if binders.is_empty() {
+        format!(": {proposition}")
+    } else {
+        format!("{binders} : {proposition}")
+    };
+    Ok(FormalProperty {
+        kind: "agent".into(),
+        name: format!("{}_{}", formal.model, property.name),
+        proposition,
+        proof_status: "unproved".into(),
+        agent_spec: Some(property.clone()),
+    })
+}
+
+fn agent_lean_identifier(name: &str) -> bool {
+    lean_identifier(name)
+        && !matches!(
+            name,
+            "axiom"
+                | "by"
+                | "def"
+                | "else"
+                | "end"
+                | "false"
+                | "if"
+                | "in"
+                | "let"
+                | "match"
+                | "namespace"
+                | "then"
+                | "theorem"
+                | "true"
+        )
+}
+
+fn agent_property_node(nodes: &mut usize, depth: usize) -> Result<()> {
+    *nodes += 1;
+    if *nodes > 64 {
+        bail!("agent property exceeds the 64-node ceiling.");
+    }
+    if depth > 16 {
+        bail!("agent property exceeds the 16-level depth ceiling.");
+    }
+    Ok(())
+}
+
+fn agent_abstract_type(lean_type: &str) -> u8 {
+    match lean_type {
+        "Bool" => 0,
+        "Nat" => 1,
+        "Int" => 2,
+        _ => 3,
+    }
+}
+
+fn render_agent_term(
+    term: &AgentTerm,
+    formal: &FormalFunction,
+    parameters: &BTreeMap<&str, &str>,
+    nodes: &mut usize,
+    depth: usize,
+) -> Result<(String, String)> {
+    agent_property_node(nodes, depth)?;
+    match term {
+        AgentTerm::Variable { name } => parameters
+            .get(name.as_str())
+            .map(|lean_type| (name.clone(), (*lean_type).to_string()))
+            .with_context(|| format!("agent property variable `{name}` is not a parameter")),
+        AgentTerm::Model { arguments } => {
+            if arguments.len() != formal.inputs.len() {
+                bail!("agent property model call has the wrong arity.");
+            }
+            let mut rendered = Vec::new();
+            for (argument, input) in arguments.iter().zip(&formal.inputs) {
+                let (argument, actual) =
+                    render_agent_term(argument, formal, parameters, nodes, depth + 1)?;
+                if actual != input.lean_type {
+                    bail!("agent property model argument type does not match its input.");
+                }
+                rendered.push(format!("({argument})"));
+            }
+            Ok((
+                format!("{} {}", formal.model, rendered.join(" "))
+                    .trim()
+                    .to_string(),
+                formal.output.lean_type.clone(),
+            ))
+        }
+        AgentTerm::Boolean { value } => Ok((value.to_string(), "Bool".into())),
+        AgentTerm::Integer { value, lean_type } => {
+            if !matches!(lean_type.as_str(), "Int" | "Nat") || (*value < 0 && lean_type == "Nat") {
+                bail!("agent property integer literals require Int, or a non-negative Nat.");
+            }
+            Ok((format!("({value} : {lean_type})"), lean_type.clone()))
+        }
+        AgentTerm::Unary { operator, operand } => {
+            let (operand, lean_type) =
+                render_agent_term(operand, formal, parameters, nodes, depth + 1)?;
+            let operator_code = match operator.as_str() {
+                "not" => 0,
+                "negate" => 1,
+                _ => u8::MAX,
+            };
+            if !agent_term_operator_admitted(operator_code, agent_abstract_type(&lean_type)) {
+                bail!("agent property unary operator does not accept its operand type.");
+            }
+            match (operator.as_str(), lean_type.as_str()) {
+                ("not", "Bool") => Ok((format!("(!({operand}))"), lean_type)),
+                ("negate", "Int") => Ok((format!("(-({operand}))"), lean_type)),
+                _ => bail!("agent property unary operator does not accept its operand type."),
+            }
+        }
+        AgentTerm::Binary {
+            operator,
+            left,
+            right,
+        } => {
+            let (left, left_type) = render_agent_term(left, formal, parameters, nodes, depth + 1)?;
+            let (right, right_type) =
+                render_agent_term(right, formal, parameters, nodes, depth + 1)?;
+            if left_type != right_type {
+                bail!("agent property binary operands must have the same type.");
+            }
+            let operator_code = match operator.as_str() {
+                "add" => 2,
+                "subtract" => 3,
+                "multiply" => 4,
+                "and" => 5,
+                "or" => 6,
+                _ => u8::MAX,
+            };
+            if !agent_term_operator_admitted(operator_code, agent_abstract_type(&left_type)) {
+                bail!("agent property binary operator does not accept its operand type.");
+            }
+            let symbol = match (operator.as_str(), left_type.as_str()) {
+                ("add", "Int" | "Nat") => "+",
+                ("subtract", "Int" | "Nat") => "-",
+                ("multiply", "Int" | "Nat") => "*",
+                ("and", "Bool") => "&&",
+                ("or", "Bool") => "||",
+                _ => bail!("agent property binary operator does not accept its operand type."),
+            };
+            Ok((format!("(({left}) {symbol} ({right}))"), left_type))
+        }
+        AgentTerm::If {
+            condition,
+            then,
+            otherwise,
+        } => {
+            let (condition, condition_type) =
+                render_agent_term(condition, formal, parameters, nodes, depth + 1)?;
+            if condition_type != "Bool" {
+                bail!("agent property if condition must be Bool.");
+            }
+            let (then, then_type) = render_agent_term(then, formal, parameters, nodes, depth + 1)?;
+            let (otherwise, otherwise_type) =
+                render_agent_term(otherwise, formal, parameters, nodes, depth + 1)?;
+            if then_type != otherwise_type {
+                bail!("agent property if branches must have the same type.");
+            }
+            Ok((
+                format!("(if {condition} then {then} else {otherwise})"),
+                then_type,
+            ))
+        }
+    }
+}
+
+fn render_agent_proposition(
+    proposition: &AgentProposition,
+    formal: &FormalFunction,
+    parameters: &BTreeMap<&str, &str>,
+    nodes: &mut usize,
+    depth: usize,
+) -> Result<String> {
+    agent_property_node(nodes, depth)?;
+    let relation = |relation_code: u8,
+                    left: &AgentTerm,
+                    right: &AgentTerm,
+                    symbol: &str,
+                    nodes: &mut usize|
+     -> Result<String> {
+        let (left, left_type) = render_agent_term(left, formal, parameters, nodes, depth + 1)?;
+        let (right, right_type) = render_agent_term(right, formal, parameters, nodes, depth + 1)?;
+        if left_type != right_type {
+            bail!("agent property relation operands must have the same type.");
+        }
+        if !agent_relation_admitted(
+            relation_code,
+            agent_abstract_type(&left_type),
+            agent_abstract_type(&right_type),
+        ) {
+            bail!("agent property relation does not accept its operand types.");
+        }
+        Ok(format!("({left}) {symbol} ({right})"))
+    };
+    match proposition {
+        AgentProposition::Equals { left, right } => relation(0, left, right, "=", nodes),
+        AgentProposition::NotEquals { left, right } => relation(1, left, right, "≠", nodes),
+        AgentProposition::LessThan { left, right } => relation(2, left, right, "<", nodes),
+        AgentProposition::LessOrEqual { left, right } => relation(3, left, right, "≤", nodes),
+        AgentProposition::GreaterThan { left, right } => relation(4, left, right, ">", nodes),
+        AgentProposition::GreaterOrEqual { left, right } => relation(5, left, right, "≥", nodes),
+        AgentProposition::Holds { term } => {
+            let (term, lean_type) = render_agent_term(term, formal, parameters, nodes, depth + 1)?;
+            if !agent_relation_admitted(6, agent_abstract_type(&lean_type), u8::MAX) {
+                bail!("agent property holds requires a Bool term.");
+            }
+            Ok(format!("({term}) = true"))
+        }
+        AgentProposition::Not { proposition } => Ok(format!(
+            "¬ ({})",
+            render_agent_proposition(proposition, formal, parameters, nodes, depth + 1)?
+        )),
+        AgentProposition::And { propositions } | AgentProposition::Or { propositions } => {
+            if !(2..=8).contains(&propositions.len()) {
+                bail!("agent property conjunctions and disjunctions require 2 to 8 children.");
+            }
+            let symbol = if matches!(proposition, AgentProposition::And { .. }) {
+                "∧"
+            } else {
+                "∨"
+            };
+            let rendered = propositions
+                .iter()
+                .map(|part| {
+                    render_agent_proposition(part, formal, parameters, nodes, depth + 1)
+                        .map(|part| format!("({part})"))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            Ok(rendered.join(&format!(" {symbol} ")))
+        }
+        AgentProposition::Implies {
+            premise,
+            conclusion,
+        } => Ok(format!(
+            "({}) → ({})",
+            render_agent_proposition(premise, formal, parameters, nodes, depth + 1)?,
+            render_agent_proposition(conclusion, formal, parameters, nodes, depth + 1)?
+        )),
+    }
+}
+
 fn suggested_properties(inputs: &[FormalBinding], output: &FormalBinding) -> Vec<&'static str> {
     let one_same = inputs.len() == 1 && inputs[0].lean_type == output.lean_type;
     let boolean = one_same && output.lean_type == "Bool";
@@ -1571,6 +2661,7 @@ fn formal_property(kind: &str, function: &FormalFunction) -> Result<FormalProper
         name: format!("{model}_{suffix}"),
         proposition,
         proof_status: "unproved".into(),
+        agent_spec: None,
     })
 }
 
@@ -2530,10 +3621,12 @@ fn debts_in(spec: &Path, text: &str) -> Vec<DebtReport> {
 mod tests {
     use super::{
         anchors_in, check, check_strict, ci, debts_in, declaration_hash, init, lean_package,
-        obligations_in, scaffold, sync, Status,
+        obligations_in, render_agent_proposition, scaffold, sync, AgentProposition, AgentTerm,
+        FormalBinding, FormalFunction, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
+    use std::collections::BTreeMap;
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -2554,6 +3647,35 @@ mod tests {
         assert_eq!(debts.len(), 2);
         assert_eq!(debts[0].name.as_deref(), Some("model-semantics"));
         assert!(debts[1].name.is_none());
+    }
+
+    #[test]
+    fn agent_equality_requires_exact_types_beyond_the_abstract_lean_classes() {
+        let formal = FormalFunction {
+            source: PathBuf::from("src/lib.rs"),
+            symbol: "choose".into(),
+            source_hash: "0".repeat(64),
+            module: "SrcLibRsChoose".into(),
+            model: "chooseModel".into(),
+            inputs: Vec::new(),
+            output: FormalBinding {
+                name: "return".into(),
+                rust_type: "Option<usize>".into(),
+                lean_type: "Option Nat".into(),
+            },
+            semantic_ir: serde_json::json!({}),
+            lean_definition: String::new(),
+        };
+        let proposition = AgentProposition::Equals {
+            left: AgentTerm::Variable { name: "xs".into() },
+            right: AgentTerm::Variable {
+                name: "result".into(),
+            },
+        };
+        let parameters = BTreeMap::from([("xs", "List Nat"), ("result", "Option Nat")]);
+        let error =
+            render_agent_proposition(&proposition, &formal, &parameters, &mut 0, 1).unwrap_err();
+        assert!(error.to_string().contains("same type"), "{error}");
     }
 
     #[test]
