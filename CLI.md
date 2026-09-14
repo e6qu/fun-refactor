@@ -1761,7 +1761,7 @@ fr git diff src/main.rs --symbols --since HEAD~1
 `--symbols` pages through declarations overlapping changed lines on each side, with containing declarations and explicit coverage gaps.
 It omits source bodies and requires each parsed snapshot to match Git's observed blob identity.
 Symbol cursors bind the declaration result and cannot continue ordinary line pages.
-This view reports direct line overlap; cross-file callers and transitive impact remain pending.
+This view reports direct line overlap. Use the call view with workspace context for cross-file transitive impact.
 ```sh
 fr git diff src/main.rs --calls --direction incoming
 fr git diff src/main.rs --calls --staged
@@ -1772,6 +1772,14 @@ fr git diff src/main.rs --calls --staged
 Containing declarations also select nested sites and targets, including unchanged sibling methods inside a changed class.
 Call analysis uses captured source and omits bodies. Without included context, each side analyzes one file.
 Cursors bind the call result and direction.
+
+```sh
+fr git diff src/main.rs --calls --workspace-context --depth 3
+```
+
+Workspace context captures up to 256 tracked source files and 64 MiB internally, then emits only calls reachable within one through eight edges.
+It supports default, staged and `--since` comparisons and conflicts with explicit `--include` paths.
+Rows report their distance from the changed selection; cursors bind the captured snapshots and depth.
 
 ```sh
 fr git diff src/main.rs --calls --staged --include src/api.rs

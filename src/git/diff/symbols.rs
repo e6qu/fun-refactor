@@ -19,6 +19,14 @@ pub(super) struct View {
     pub coverage: Value,
 }
 
+#[derive(Clone, Copy)]
+struct Calls<'a> {
+    direction: CallDirection,
+    context: Option<&'a [context::Snapshot]>,
+    depth: usize,
+    workspace: bool,
+}
+
 fn source(root: &Path, path: &str, oid: &str, working: bool) -> Result<String> {
     if !patch::oid(oid) {
         bail!("invalid symbol snapshot identity");
@@ -65,8 +73,7 @@ fn side(
     source: &str,
     changed: &BTreeSet<usize>,
     language: Language,
-    calls: Option<CallDirection>,
-    context: Option<&[context::Snapshot]>,
+    calls: Option<Calls<'_>>,
 ) -> Result<(Vec<Value>, Value)> {
     let parsed = Parsers::new().parse(language, source)?;
     let facts = Extractor::new().extract(&parsed, path, source)?;
@@ -134,7 +141,7 @@ fn side(
     let mut coverage = json!({"status": if gaps.is_empty() {"parsed"} else {"partial"},
         "language": language, "gaps": gaps, "changed_lines": changed.len(),
         "mapped_lines": mapped.len(), "unmapped_lines": changed.len()-mapped.len(), "declarations": entries.len()});
-    if let Some(direction) = calls {
+    if let Some(calls) = calls {
         let result = calls::collect(
             calls::Focus {
                 path,
@@ -144,8 +151,10 @@ fn side(
                 facts: &facts,
                 selected: &selected,
             },
-            direction,
-            context,
+            calls.direction,
+            calls.context,
+            calls.depth,
+            calls.workspace,
         )?;
         entries = result.0;
         coverage["calls"] = result.1;
@@ -160,6 +169,7 @@ pub(super) fn collect(
     observed: &patch::Observation,
     calls: Option<CallDirection>,
     context: Option<&Context>,
+    depth: usize,
 ) -> Result<View> {
     let language = language(Path::new(path));
     let mut changed = [BTreeSet::new(), BTreeSet::new()];
@@ -225,8 +235,12 @@ pub(super) fn collect(
                 &text,
                 &changed[index],
                 language.unwrap(),
-                calls,
-                context.map(|context| context.sides[index].as_slice()),
+                calls.map(|direction| Calls {
+                    direction,
+                    context: context.map(|context| context.sides[index].as_slice()),
+                    depth,
+                    workspace: context.is_some_and(|context| context.workspace),
+                }),
             )?
         };
         coverage["blob"] = json!(oid);

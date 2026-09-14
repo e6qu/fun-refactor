@@ -67,6 +67,27 @@ theorem swapping_sides_preserves_selection (incoming outgoing includeIncoming in
       callInSelection outgoing incoming includeOutgoing includeIncoming := by
   cases incoming <;> cases outgoing <;> cases includeIncoming <;> cases includeOutgoing <;> rfl
 
+-- fr:spec src/git.rs::git_call_expansion_allowed @ b80e08a125899c54a711c9430bf9dbffeabad86797d6d7eefd6c02a7cb300f97
+-- fr:signature files: usize => files: Nat; bytes: usize => bytes: Nat; depth: usize => depth: Nat; return: bool => return: Bool
+def gitCallExpansionAllowed (files : Nat) (bytes : Nat) (depth : Nat) : Bool :=
+  decide (1 ≤ files ∧ files ≤ 256 ∧ bytes ≤ 67108864 ∧ 1 ≤ depth ∧ depth ≤ 8)
+
+theorem git_call_expansion_bounds (files bytes depth : Nat)
+    (allowed : gitCallExpansionAllowed files bytes depth = true) :
+    1 ≤ files ∧ files ≤ 256 ∧ bytes ≤ 67108864 ∧ 1 ≤ depth ∧ depth ≤ 8 := by
+  simpa [gitCallExpansionAllowed] using allowed
+
+theorem git_call_expansion_accepts_smallest : gitCallExpansionAllowed 1 0 1 = true := by decide
+
+theorem git_call_expansion_refuses_empty (bytes depth : Nat) :
+    gitCallExpansionAllowed 0 bytes depth = false := by simp [gitCallExpansionAllowed]
+
+theorem git_call_expansion_refuses_excess_files (bytes depth : Nat) :
+    gitCallExpansionAllowed 257 bytes depth = false := by simp [gitCallExpansionAllowed]
+
+theorem git_call_expansion_refuses_excess_bytes (files depth : Nat) :
+    gitCallExpansionAllowed files 67108865 depth = false := by simp [gitCallExpansionAllowed]
+
 -- fr:spec src/git.rs::staging_transition_allowed @ 6efae259027fb6da965260dada7bb6817c1ffac1eb16b6527c99f2d25e4d10bc
 -- fr:signature matches_before: bool => matchesBefore: Bool; matches_after: bool => matchesAfter: Bool; recovery: bool => recovery: Bool; return: bool => return: Bool
 def stagingTransitionAllowed (matchesBefore : Bool) (matchesAfter : Bool) (recovery : Bool) : Bool :=

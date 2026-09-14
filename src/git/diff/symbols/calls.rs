@@ -25,6 +25,8 @@ pub(super) fn collect(
     focus: Focus<'_>,
     direction: CallDirection,
     context: Option<&[Snapshot]>,
+    depth: usize,
+    workspace: bool,
 ) -> Result<(Vec<Value>, Value)> {
     let Focus {
         path,
@@ -110,27 +112,72 @@ pub(super) fn collect(
                     "outgoing"
                 })
             };
+            let mut incoming_distance = BTreeMap::new();
+            let mut outgoing_distance = BTreeMap::new();
+            for id in selected.iter().copied() {
+                incoming_distance.insert(id, 0usize);
+                outgoing_distance.insert(id, 0usize);
+            }
+            for (caller, callee, _) in graph.edges() {
+                for id in [caller, callee] {
+                    if symbol_in_scope(id) {
+                        incoming_distance.insert(id, 0);
+                        outgoing_distance.insert(id, 0);
+                    }
+                }
+            }
+            for distance in 0..depth {
+                for (caller, callee, _) in graph.edges() {
+                    if outgoing_distance.get(&caller) == Some(&distance) {
+                        outgoing_distance.entry(callee).or_insert(distance + 1);
+                    }
+                    if incoming_distance.get(&callee) == Some(&distance) {
+                        incoming_distance.entry(caller).or_insert(distance + 1);
+                    }
+                }
+            }
             let mut rows = Vec::new();
             for (caller, callee, edge) in graph.edges() {
-                let Some(relation) = relation(symbol_in_scope(callee), site_in_scope(&edge.file, edge.offset)) else {
+                let incoming = incoming_distance
+                    .get(&callee)
+                    .filter(|distance| **distance < depth)
+                    .map(|distance| distance + 1);
+                let outgoing = outgoing_distance
+                    .get(&caller)
+                    .filter(|distance| **distance < depth)
+                    .map(|distance| distance + 1);
+                let Some(scope_relation) = relation(incoming.is_some(), outgoing.is_some()) else {
                     continue;
                 };
-                rows.push(json!({"kind":"call","side":side,"scope_relation":relation,"caller":endpoint(caller)?,"callee":endpoint(callee)?,
+                let distance = incoming.into_iter().chain(outgoing).min().unwrap();
+                rows.push(json!({"kind":"call","side":side,"scope_relation":scope_relation,"distance":distance,"caller":endpoint(caller)?,"callee":endpoint(callee)?,
                     "site":site(&edge.file,edge.offset)?,"confidence":edge.confidence,"origin":edge.origin.as_str(),
                     "dispatch_candidate":edge.origin.is_dispatch(),"status":if edge.origin.is_dispatch() {"dispatch-candidate"} else {"indexed-target"}}));
             }
             for call in &graph.file_scope {
-                let Some(relation) = relation(symbol_in_scope(call.callee), site_in_scope(&call.file, call.offset)) else {
+                let incoming = incoming_distance
+                    .get(&call.callee)
+                    .filter(|distance| **distance < depth)
+                    .map(|distance| distance + 1);
+                let outgoing = site_in_scope(&call.file, call.offset).then_some(1);
+                let Some(scope_relation) = relation(incoming.is_some(), outgoing.is_some()) else {
                     continue;
                 };
-                rows.push(json!({"kind":"call","side":side,"scope_relation":relation,"caller":null,"caller_scope":"file","callee":endpoint(call.callee)?,
+                let distance = incoming.into_iter().chain(outgoing).min().unwrap();
+                rows.push(json!({"kind":"call","side":side,"scope_relation":scope_relation,"distance":distance,"caller":null,"caller_scope":"file","callee":endpoint(call.callee)?,
                     "site":site(&call.file,call.offset)?,"confidence":call.confidence,"origin":"resolved","dispatch_candidate":false,"status":"indexed-target"}));
             }
             for call in &graph.unresolved {
-                let Some(relation) = relation(false, site_in_scope(&call.file, call.offset)) else {
+                let outgoing = call
+                    .caller
+                    .and_then(|caller| outgoing_distance.get(&caller).copied())
+                    .filter(|distance| *distance < depth)
+                    .map(|distance| distance + 1)
+                    .or_else(|| site_in_scope(&call.file, call.offset).then_some(1));
+                let Some(scope_relation) = relation(false, outgoing.is_some()) else {
                     continue;
                 };
-                rows.push(json!({"kind":"call","side":side,"scope_relation":relation,"caller":call.caller.map(endpoint).transpose()?,"callee":null,
+                rows.push(json!({"kind":"call","side":side,"scope_relation":scope_relation,"distance":outgoing.unwrap(),"caller":call.caller.map(endpoint).transpose()?,"callee":null,
                     "name":bounded(&call.callee_name),"site":site(&call.file,call.offset)?,"confidence":call.confidence,"origin":"unresolved","dispatch_candidate":false,"status":"unresolved"}));
             }
             rows.sort_by_cached_key(Value::to_string);
@@ -138,7 +185,7 @@ pub(super) fn collect(
                 .map(|(path, reason)| if context.is_some() {json!({"path":path,"reason":bounded(reason)})} else {bounded(reason)})
                 .collect::<Vec<_>>();
             let analysis = json!({"status":if files.iter().all(|(_,_,facts)|facts.gaps.is_empty()) && gaps.is_empty() {"analyzed"} else {"partial"},
-                "scope":analysis_scope,"cross_file":if context.is_some() {"explicit-files-only"} else {"not-collected"},"hierarchy_supported":Family::of(language).is_some(),"hierarchy_gaps":gaps,
+                "scope":analysis_scope,"cross_file":if workspace {"workspace-files"} else if context.is_some() {"explicit-files-only"} else {"not-collected"},"depth":depth,"hierarchy_supported":Family::of(language).is_some(),"hierarchy_gaps":gaps,
                 "callable_nodes":graph.node_count(),"edges":graph.edge_count(),"file_scope_calls":graph.file_scope.len(),"unresolved_calls":graph.unresolved.len(),
                 "selected_rows":rows.len()});
             Ok((rows,analysis))
@@ -194,6 +241,8 @@ mod tests {
                 },
                 CallDirection::Both,
                 context,
+                1,
+                false,
             )
             .unwrap();
             assert_eq!(rows.len(), count);

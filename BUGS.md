@@ -67,6 +67,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B869: **Git call impact required agents to guess every context file and stopped after one edge.**
+
+  `git diff --calls --workspace-context --depth N` now captures bounded tracked source snapshots
+  internally and returns only incoming or outgoing edges reachable from changed declarations.
+  Default, staged and commit comparisons bind every source identity, traversal direction and depth.
+  File, byte and depth limits have an anchored Lean model and machine-boundary comparisons.
+
 - [x] B868: **owned worktree removal was durable but could not be undone or redone.**
 
   A completed archive retained the committed object identity and private metadata needed for

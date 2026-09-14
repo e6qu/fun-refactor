@@ -1614,3 +1614,12 @@ fresh receipt and the exact archived commit, then runs reviewed removal and retu
 for another cycle. Native tests cover regular, executable and symlink entries, exact repeated
 remove/undo/redo, source-index preservation and stale, occupied, drifted or dirty refusals. An
 anchored admission predicate and three abstract state theorems extend the Lean boundary.
+
+Git diff call analysis now supports bounded workspace context and transitive traversal. The command
+captures at most 256 eligible tracked source files and 64 MiB across the selected Git snapshots,
+builds independent before and after graphs, and returns only edges reachable from changed
+declarations through one to eight incoming or outgoing steps. Default, staged and commit-based
+tests cover two-edge Python dependency and caller chains, exclude unrelated captured code, preserve
+source-free responses and bind cursors to the full observation. An anchored Rust/Lean predicate
+covers file, byte and depth admission at machine boundaries; the existing finite reachability laws
+cover bounded graph rounds abstractly.

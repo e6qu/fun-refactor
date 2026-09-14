@@ -472,6 +472,142 @@ fn staged_context_resolves_only_selected_files_and_keeps_file_boundaries() {
 }
 
 #[test]
+fn workspace_context_finds_bounded_transitive_incoming_and_outgoing_calls() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    fs::write(
+        root.join("app.py"),
+        "from middle import middle\ndef changed():\n    number = 1\n    middle()\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("middle.py"),
+        "from leaf import leaf\ndef middle():\n    leaf()\n",
+    )
+    .unwrap();
+    fs::write(root.join("leaf.py"), "def leaf():\n    pass\n").unwrap();
+    fs::write(
+        root.join("caller.py"),
+        "from app import changed\ndef caller():\n    changed()\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("upper.py"),
+        "from caller import caller\ndef upper():\n    caller()\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("unrelated.py"),
+        "def unrelated():\n    unrelated()\n",
+    )
+    .unwrap();
+    commit(root);
+    fs::write(
+        root.join("app.py"),
+        "from middle import middle\ndef changed():\n    number = 2\n    middle()\n",
+    )
+    .unwrap();
+    let direct = report(root, &["app.py", "--calls", "--workspace-context"]);
+    assert_eq!(direct["page"]["total"], 4, "{direct}");
+    assert_eq!(direct["structure"]["depth"], 1);
+    assert_eq!(
+        direct["structure"]["relationships"],
+        "workspace-call-candidates"
+    );
+    assert_eq!(
+        direct["structure"]["coverage"]["context"]["scope"],
+        "workspace-working-files"
+    );
+    assert_eq!(
+        direct["structure"]["coverage"]["after"]["calls"]["cross_file"],
+        "workspace-files"
+    );
+    let transitive = report(
+        root,
+        &["app.py", "--calls", "--workspace-context", "--depth", "2"],
+    );
+    assert_eq!(transitive["page"]["total"], 8, "{transitive}");
+    for side in ["before", "after"] {
+        let rows = transitive["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row["side"] == side)
+            .collect::<Vec<_>>();
+        assert!(rows.iter().any(|row| {
+            row["caller"]["name"]["text"] == "middle"
+                && row["callee"]["name"]["text"] == "leaf"
+                && row["distance"] == 2
+        }));
+        assert!(rows.iter().any(|row| {
+            row["caller"]["name"]["text"] == "upper"
+                && row["callee"]["name"]["text"] == "caller"
+                && row["distance"] == 2
+        }));
+        assert!(!rows.iter().any(|row| {
+            row["caller"]["name"]["text"] == "unrelated"
+                || row["callee"]["name"]["text"] == "unrelated"
+        }));
+    }
+    assert!(!transitive.to_string().contains("number ="));
+    git(root, &["add", "app.py"]);
+    let staged = report(
+        root,
+        &[
+            "app.py",
+            "--calls",
+            "--staged",
+            "--workspace-context",
+            "--depth",
+            "2",
+        ],
+    );
+    assert_eq!(staged["page"]["total"], 8, "{staged}");
+    assert_eq!(
+        staged["structure"]["coverage"]["context"]["scope"],
+        "workspace-staged-files"
+    );
+    let since = report(
+        root,
+        &[
+            "app.py",
+            "--calls",
+            "--since",
+            "HEAD",
+            "--workspace-context",
+            "--depth",
+            "2",
+        ],
+    );
+    assert_eq!(since["page"]["total"], 8, "{since}");
+    assert!(!fr(
+        root,
+        &[
+            "app.py",
+            "--calls",
+            "--workspace-context",
+            "--include",
+            "leaf.py",
+        ],
+    )
+    .output()
+    .unwrap()
+    .status
+    .success());
+    error(
+        root,
+        &["app.py", "--calls", "--depth", "0"],
+        "between 1 and 8",
+    );
+    error(
+        root,
+        &["app.py", "--calls", "--depth", "9"],
+        "between 1 and 8",
+    );
+}
+
+#[test]
 fn staged_context_uses_independent_blob_sides_and_ignores_working_bytes() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

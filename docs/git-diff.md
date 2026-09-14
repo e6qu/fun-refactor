@@ -163,7 +163,7 @@ fr git diff src/main.rs --calls --staged
 fr git diff src/main.rs --calls --since HEAD~1
 ```
 
-`--calls` sets `view: "calls"` and returns call candidates touching the changed declarations selected above, without source bodies.
+`--calls` sets `view: "calls"` and returns call candidates reachable from the changed declarations selected above, without source bodies.
 It cannot combine with `--symbols`. `--direction` requires `--calls` and accepts `incoming`, `outgoing` or `both` (default).
 Before and after snapshots are analyzed independently, with the same blob checks, conversion refusals and extension-based language detection as symbol pages.
 Without `--include`, only the selected file enters each index and hierarchy analysis. Source-dependent receiver inference reads that captured snapshot.
@@ -176,7 +176,8 @@ Incoming rows have a target declaration inside the selection; outgoing rows have
 Otherwise it is `incoming` or `outgoing`. This describes containment, without claiming semantic change or runtime impact.
 Sides with no changed lines do not run call analysis.
 
-Each row contains `kind: "call"`, `side`, `scope_relation`, `caller`, `callee`, `site`, `confidence`, `origin`, `dispatch_candidate` and `status`.
+Each row contains `kind: "call"`, `side`, `scope_relation`, `distance`, `caller`, `callee`, `site`, `confidence`, `origin`, `dispatch_candidate` and `status`.
+Direct rows have distance one. A larger distance identifies a resolved transitive path from the selection.
 Sites contain repository-relative `path`, byte `offset` and one-based `line` and `column` coordinates.
 Non-null endpoints contain `id`, repository-relative `path`, `name`, `kind`, `qualifier`, declaration `line`, `changed_declaration` and `in_selection`.
 `changed_declaration` reports direct line overlap; `in_selection` also includes declarations inside selected containers.
@@ -190,8 +191,8 @@ Statuses distinguish `indexed-target`, `dispatch-candidate` and `unresolved`.
 Confidence and origin retain the existing call graph's evidence, including weaker dispatch candidates.
 An indexed target does not establish a unique runtime destination or permission to rewrite.
 
-`structure.scope` is `calls-touching-changed-declarations`; without included context, `relationships` is `single-file-call-candidates`.
-`structure.direction` records the normalized direction. Each analyzed side adds `calls` to its existing declaration coverage.
+`structure.scope` is `calls-reachable-from-changed-declarations`; without captured context, `relationships` is `single-file-call-candidates`.
+`structure.direction` records the normalized direction and `structure.depth` records the edge limit. Each analyzed side adds `calls` to its existing declaration coverage.
 Call coverage reports `status` (`analyzed`, `partial` or `unsupported-language`), `scope: "single-file-snapshot"` and, when analysis runs, `cross_file: "not-collected"`.
 Analyzed sides include hierarchy support and gaps, callable-node and edge counts, file-scope and unresolved-call counts, and `selected_rows`.
 Graph counts cover the complete captured snapshot; `selected_rows` counts only rows matching this selection and direction.
@@ -206,7 +207,33 @@ Pagination bounds response rows; complete snapshot extraction and call analysis 
 The direction predicate has a source anchor, signature map and six Lean laws, proved without axioms.
 Shared execution compares all 16 boolean inputs with Rust.
 Those laws cover supplied selection flags; extraction, graph construction, enum mapping and complete report correspondence remain outside the proof.
-Automatic dependency expansion and transitive impact remain pending.
+The workspace-context admission predicate bounds files, captured bytes and depth. Lean proves its limits, and shared execution checks machine-size boundaries.
+
+
+## Bounded workspace context and transitive impact
+
+```sh
+fr git diff src/main.rs --calls --workspace-context --depth 3
+fr git diff src/main.rs --calls --staged --workspace-context --depth 2
+fr git diff src/main.rs --calls --since HEAD~1 --workspace-context --depth 2
+```
+
+`--workspace-context` captures the union of tracked paths from the selected before and after inventories.
+It keeps languages with call-graph support and refuses more than 256 total source files or 64 MiB of captured source.
+The mode conflicts with `--include`; use explicit paths when the workspace exceeds either bound.
+No source text enters the response.
+
+The tool parses the selected snapshots, resolves imports and hierarchy evidence, and builds one call graph per comparison side.
+`--depth` accepts one through eight and defaults to one.
+Outgoing traversal follows caller to callee; incoming traversal follows callee to caller; `both` takes their union.
+Rows include only edges reached within that distance, so unrelated captured files do not consume response rows.
+Unresolved calls can appear at a reached outgoing node but cannot extend the traversal.
+Dispatch candidates retain their evidence and may widen the reported reachability.
+
+Context coverage reports `workspace-working-files` or `workspace-staged-files`, every captured file's object basis, total source bytes and both limits.
+The cursor identity binds all snapshots, coverage, direction and depth.
+Final checks reread every selected index and working identity.
+The process does not execute package managers, load untracked files or claim runtime reachability.
 
 
 ## Explicit file context

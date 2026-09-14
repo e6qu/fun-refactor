@@ -473,6 +473,11 @@ def main (args : List String) : IO Unit := do
         for includeIncoming in [false, true] do
           for includeOutgoing in [false, true] do
             IO.println (FrKernels.Git.callInSelection incoming outgoing includeIncoming includeOutgoing)
+  else if args == ["git-call-expansion"] then
+    for files in [0, 1, 2, 255, 256, 257, 4294967295, 18446744073709551615] do
+      for bytes in [0, 1, 67108863, 67108864, 67108865, 18446744073709551615] do
+        for depth in [0, 1, 2, 7, 8, 9, 4294967295, 18446744073709551615] do
+          IO.println (FrKernels.Git.gitCallExpansionAllowed files bytes depth)
   else if args == ["line-ranges"] then
     for start in samples do
       for finish in samples do

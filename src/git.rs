@@ -190,6 +190,10 @@ pub fn call_in_selection(
     (incoming && include_incoming) || (outgoing && include_outgoing)
 }
 
+pub fn git_call_expansion_allowed(files: usize, bytes: usize, depth: usize) -> bool {
+    (1..=256).contains(&files) && bytes <= 67_108_864 && (1..=8).contains(&depth)
+}
+
 pub fn staging_transition_allowed(
     matches_before: bool,
     matches_after: bool,

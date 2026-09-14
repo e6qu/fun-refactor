@@ -340,6 +340,7 @@ See [repository change pages](docs/git-changes.md) for scope and metadata identi
 Add `--symbols` for changed declarations and their containing hierarchy, with snapshot checks and no source bodies.
 Add `--calls` for incoming and outgoing candidates within each file snapshot, retaining confidence and unresolved targets.
 Repeat `--include FILE` to add explicit caller and target context, with selected blob bases and checked raw working snapshots.
+Use `--workspace-context --depth N` for bounded transitive calls across tracked source snapshots without returning source bodies.
 See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
 `fr git stage PATH...` previews raw staging entries; `--basis TOKEN --write` applies them through a prepared index on Unix.
 See [staging semantics and limits](docs/git-staging.md) for raw byte and mode semantics.

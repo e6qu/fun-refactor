@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 714 |
+| Defects fixed | 715 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -55,6 +55,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
 - Basis-bound native history compaction that retains audit summaries while bounding replay payloads.
 - Bounded Git status, diff, changed-declaration and call-context views.
+- Bounded Git workspace call snapshots and transitive impact from changed declarations, without source in responses.
 - Unix staging previews and writes, durable staging undo/redo, reviewed commits and owned worktree creation, recovery, removal, resumption, undo/redo and archive compaction.
 - Native releases, a WASM API, and a browser playground with checked transaction undo/redo and shared Git patch downloads.
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
