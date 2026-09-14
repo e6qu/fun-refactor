@@ -391,6 +391,12 @@ def main (args : List String) : IO Unit := do
         for metadataAbsent in [false, true] do
           for unlocked in [false, true] do
             IO.println (FrKernels.Git.worktreeArchiveCompactionAllowed complete checkoutAbsent metadataAbsent unlocked)
+  else if args == ["worktree-removal-reversal"] then
+    for complete in [false, true] do
+      for checkoutAbsent in [false, true] do
+        for metadataAbsent in [false, true] do
+          for branchUnoccupied in [false, true] do
+            IO.println (FrKernels.Git.worktreeRemovalReversalAllowed complete checkoutAbsent metadataAbsent branchUnoccupied)
   else if args == ["worktree-branch-selection"] then
     for existing in [false, true] do
       for present in [false, true] do

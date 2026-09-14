@@ -1605,3 +1605,12 @@ Python, Zig, Bash and Lean declarations expose their parameter names and shared-
 qualified method before any unqualified fallback and refuses ambiguous IR matches. Rust keeps its
 source-spelled type maps, while generated model scaffolding keeps its existing conservative Rust
 body subset.
+
+The worktree lifecycle now closes its reversal gap. `git worktree undo-removal` reconstructs a
+completed removal from pinned Git blobs after binding the archive, retained branch, free endpoints,
+repository mode and complete registration set. It creates fresh private metadata and a completed
+ownership receipt instead of replaying stale inode identities. `redo-removal` accepts only that
+fresh receipt and the exact archived commit, then runs reviewed removal and returns the next archive
+for another cycle. Native tests cover regular, executable and symlink entries, exact repeated
+remove/undo/redo, source-index preservation and stale, occupied, drifted or dirty refusals. An
+anchored admission predicate and three abstract state theorems extend the Lean boundary.

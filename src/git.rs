@@ -295,3 +295,12 @@ pub fn worktree_archive_compaction_allowed(
 ) -> bool {
     complete && checkout_absent && metadata_absent && unlocked
 }
+
+pub fn worktree_removal_reversal_allowed(
+    complete: bool,
+    checkout_absent: bool,
+    metadata_absent: bool,
+    branch_unoccupied: bool,
+) -> bool {
+    complete && checkout_absent && metadata_absent && branch_unoccupied
+}

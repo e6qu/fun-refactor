@@ -1895,6 +1895,15 @@ Inspection returns `can_resume`, bounded rows and full counts, with blockers fir
 Only `applied: true` confirms completion; inspect the same record again after an uncertain result.
 See [removal resumption](docs/git-worktree-removal-resumption.md) for archive validation and remaining limits.
 
+`fr git worktree undo-removal RECORD` previews reconstruction of a completed removed worktree.
+`--basis TOKEN --write` revalidates the archive, retained branch, absent endpoints and complete registration set.
+It then attaches the branch and copies raw blobs from the pinned commit.
+The write returns a fresh `ownership_record`; it never replays archived inode identities or stale private Git files.
+
+`fr git worktree redo-removal RECORD` previews removal of a checkout restored from that record.
+Its checked write requires the fresh receipt and exact archived commit, uses the ordinary reviewed-removal path, and returns `next_removal_record`.
+Use that new record for the next undo. See [reviewed worktree removal](docs/git-worktree-removal.md) for the full cycle and crash boundaries.
+
 `fr git worktree compact-removal RECORD` previews compaction of one completed removal archive.
 `--basis TOKEN --write` saves an audit summary before deleting the full recovery record.
 Incomplete removals, reappeared paths and active locks block compaction. Compaction discards recovery data; `fr` cannot restore it.

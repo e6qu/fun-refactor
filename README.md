@@ -356,6 +356,8 @@ See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts an
 `fr git worktree remove PATH` previews removal of a clean owned worktree; `--basis TOKEN --write` archives metadata and removes reviewed files.
 [Reviewed removal](docs/git-worktree-removal.md) retains the branch and refuses extra content.
 [Removal resumption](docs/git-worktree-removal-resumption.md) uses `fr git worktree resume-removal RECORD` to inspect partial removals and `--basis TOKEN --write` to finish them.
+`fr git worktree undo-removal RECORD` reconstructs a completed removed checkout from its retained commit.
+`redo-removal RECORD` removes that restored checkout and returns the next reversible archive.
 [Archive compaction](docs/git-worktree-archive-compaction.md) uses `fr git worktree compact-removal RECORD` to review discarding completed recovery records while retaining audit summaries.
 Its plural `compact-removals RECORD...` form applies the same checks to an explicit bulk-retention set.
 The browser records bounded in-memory transactions, supports checked one-step undo/redo and exports

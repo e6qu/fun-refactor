@@ -21,10 +21,50 @@ pub enum Command {
     Remove(RemoveOptions),
     #[command(about = "Inspect or resume a recorded incomplete worktree removal.")]
     ResumeRemoval(ResumeRemovalOptions),
+    #[command(about = "Preview or restore a completed owned-worktree removal.")]
+    UndoRemoval(UndoRemovalOptions),
+    #[command(about = "Preview or repeat a restored owned-worktree removal.")]
+    RedoRemoval(RedoRemovalOptions),
     #[command(about = "Preview or compact a completed worktree removal archive.")]
     CompactRemoval(CompactRemovalOptions),
     #[command(about = "Preview or compact several selected worktree removal archives.")]
     CompactRemovals(CompactRemovalsOptions),
+}
+
+#[derive(Args)]
+pub struct UndoRemovalOptions {
+    #[arg(
+        help = "Completed removal record.json path, relative to the repository root or absolute."
+    )]
+    record: std::path::PathBuf,
+    #[arg(
+        long,
+        help = "Require the reviewed archive, branch, destination and registrations."
+    )]
+    basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Restore the reviewed committed worktree."
+    )]
+    write: bool,
+}
+
+#[derive(Args)]
+pub struct RedoRemovalOptions {
+    #[arg(help = "Removal record.json path restored by undo-removal.")]
+    record: std::path::PathBuf,
+    #[arg(
+        long,
+        help = "Require the reviewed restored checkout and archive marker."
+    )]
+    basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Remove the restored owned worktree again."
+    )]
+    write: bool,
 }
 
 #[derive(Args)]
@@ -178,6 +218,10 @@ pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
         #[cfg(unix)]
         Command::ResumeRemoval(options) => create::removal::resume::report(root, options),
         #[cfg(unix)]
+        Command::UndoRemoval(options) => create::removal::reversal::undo(root, options),
+        #[cfg(unix)]
+        Command::RedoRemoval(options) => create::removal::reversal::redo(root, options),
+        #[cfg(unix)]
         Command::CompactRemoval(options) => create::removal::compact::report(root, options),
         #[cfg(unix)]
         Command::CompactRemovals(options) => create::removal::compact::bulk::report(root, options),
@@ -189,6 +233,10 @@ pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::CompactRemoval(_) => bail!("removal compaction requires Unix ownership checks."),
         #[cfg(not(unix))]
         Command::ResumeRemoval(_) => bail!("removal resumption requires Unix ownership checks."),
+        #[cfg(not(unix))]
+        Command::UndoRemoval(_) => bail!("worktree removal undo requires Unix ownership checks."),
+        #[cfg(not(unix))]
+        Command::RedoRemoval(_) => bail!("worktree removal redo requires Unix ownership checks."),
         #[cfg(not(unix))]
         Command::Remove(_) => bail!("worktree removal requires Unix ownership checks."),
         #[cfg(not(unix))]

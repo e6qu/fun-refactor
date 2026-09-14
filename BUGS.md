@@ -67,6 +67,15 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B868: **owned worktree removal was durable but could not be undone or redone.**
+
+  A completed archive retained the committed object identity and private metadata needed for
+  inspection, yet agents had to reconstruct a deleted workspace manually. Checked `undo-removal`
+  now binds the archive, retained branch, free destination and complete registration snapshot,
+  then creates fresh owned Git metadata and raw committed files. `redo-removal` requires that fresh
+  receipt and exact committed state, performs reviewed removal, and returns the next reversible
+  archive. Cycle, stale-state, occupied-state and Rust/Lean boundary tests cover the lifecycle.
+
 - [x] B867: **an agent could repeat a successful unchanged evaluator request.**
 
   The prompt prohibited repeated successful workflow steps, but the instrument ran an identical

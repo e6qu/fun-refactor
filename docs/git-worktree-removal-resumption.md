@@ -71,7 +71,7 @@ Mutation failures return `applied: null`, `can_resume: null`, a bounded diagnost
 These JSON outcomes exit successfully, so agents must inspect `applied`.
 The returned counts describe the reviewed observation; inspect again to learn the state after a partial failure.
 
-Resumption does not recreate deleted paths or perform worktree undo/redo.
+Resumption only finishes an incomplete deletion. After it records completion, use [worktree removal reversal](git-worktree-removal.md#undo-and-redo) to reconstruct or remove the checkout again.
 Crashes can leave locks requiring manual ownership review.
 Observation and unlinking are separate filesystem operations; hostile concurrent path replacement remains outside complete race protection.
 Neither deletion nor completion is an atomic transaction across all involved paths.

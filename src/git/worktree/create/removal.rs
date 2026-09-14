@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 use super::branch;
 pub(in crate::git::worktree) mod compact;
 pub(in crate::git::worktree) mod resume;
+pub(in crate::git::worktree) mod reversal;
 
 #[derive(Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
