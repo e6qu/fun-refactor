@@ -1550,3 +1550,22 @@ diagram-local name collisions before creating history.
 exactly one candidate, current source agreement, a valid changed value and collision freedom. Rust
 and Lean agree on all 288 generated boundary states. Hashing, candidate enumeration, host parsers
 and filesystem commits remain named tested boundaries.
+
+The cross-stack coverage milestone is complete. Technology inventory, standalone React and Express
+feature trees, CSS/Tailwind relationships, Markdown/Mermaid hierarchy, the project Merkle view,
+Python suite authoring and exact surface edits now cover every requested surface through bounded
+agent-facing structures. JavaScript participates explicitly in every shared semantic authoring
+matrix rather than inheriting TypeScript's test result.
+
+Lean also covers inventory partitioning, React admission, style resolution, surface omission,
+surface-value bounds and exact edit admission. Strict checking reports every anchor and signature
+fresh with zero obligations and zero debts. The correspondence suite passes 77 tests with two
+repository-wide audits reserved for the deep gate. The browser lane passes 436 library tests and
+11 browser API/history tests.
+
+The final native pass completed every all-target test before the prose ratchet found two passive
+phrases and two long sentences. Their repair also exposed invalid scoped commands in the portable
+skill. The new `surfaces.md` route keeps every reference below 4 KiB and every composed route below
+7 KiB; all 51 executable examples pass. Five retained deterministic context reports now bind the
+current binary, implementation and skill hashes. The full acceptance harness passes 15 tests with
+its one environment-dependent replay ignored.

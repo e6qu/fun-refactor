@@ -608,7 +608,8 @@ Arrow targets accept a complete block or expression and can move between those f
 Calls, conditionals and comma expressions around a function initializer remain unsupported.
 Go supports named functions, `init` declarations and receiver methods; interface specifications and variables containing function literals refuse.
 Java supports methods, constructors and default interface methods with bodies. Abstract and bodyless interface methods refuse.
-Python supports synchronous and asynchronous functions, decorated framework handlers and methods. Its fragment is a relative suite without the enclosing `def`; nested indentation is preserved when the suite is spliced into its destination.
+Python supports synchronous and asynchronous functions, decorated framework handlers and methods.
+Its fragment is a relative suite without the enclosing `def`. The command preserves nested indentation when it splices the suite into its destination.
 Use a current project handle; this command accepts structural identities directly.
 The input is a regular UTF-8 file containing one complete body, at most 64 KiB. The old body must also fit 64 KiB.
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.
@@ -867,8 +868,8 @@ operators without returning labels or message text. Unknown kinds, unclosed fenc
 and per-diagram overflow remain explicit gaps. It does not execute Mermaid or validate rendering.
 
 Editable `styles` and `diagrams` rows carry an opaque `fr-surface-edit-1` capability.
-`author edit-surface` changes one simple CSS definition, one direct HTML/JSX/TSX class token, one
-ATX Markdown heading, or every captured occurrence of one Mermaid node inside a single fence. The
+`author edit-surface` changes one simple CSS definition or one direct HTML/JSX/TSX class token.
+It can also change an ATX Markdown heading or every captured occurrence of one Mermaid node inside a single fence. The
 capability binds the revision, kind, path, exact spans, current value and local scope. Invalid
 tokens, stale IDs, no-ops and Mermaid name collisions refuse before persistence. Preview, reviewed
 write, undo, redo and Git patch export use the normal source-history lifecycle. See

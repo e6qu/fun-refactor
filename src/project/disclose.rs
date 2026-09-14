@@ -388,7 +388,7 @@ fn inclusion_proof(value: &Value, wanted: &str, pointer: &str) -> Result<Option<
 
 fn proof(view: &View, pointer: &str, value: &Value) -> Result<Value> {
     let path = inclusion_proof(&view.model, pointer, "/model")?
-        .context("revealed semantic pointer is outside its committed proof tree")?;
+        .context("revealed semantic pointer is outside its committed proof tree.")?;
     Ok(json!({
         "schema": PROOF_SCHEMA,
         "algorithm": "sha256-tagged-binary-json-tree",
@@ -839,7 +839,7 @@ fn cursor_offset(view: &View, options: &Options, hole: &str) -> Result<usize> {
                     offset
                 ))?
             ),
-        "stale or conflicting disclosure cursor; use an exact returned reveal action."
+        "stale or conflicting disclosure cursor. Use an exact returned reveal action."
     );
     Ok(offset)
 }

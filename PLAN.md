@@ -1351,10 +1351,12 @@ Planned checkpoints:
    body splices, typed semantic edits, progressive capabilities, history and Git patches. Opaque
    surface capabilities add exact CSS definition, literal class token, Markdown heading and
    diagram-scoped Mermaid node edits with the same reversible lifecycle.
-6. **In progress.** Add Lean policies, exhaustive correspondence and the complete repository gates.
-   Inventory evidence partitioning, standalone React admission, style resolution and generic
-   surface omission bounds are anchored and executable. Surface-edit admission now additionally
+6. **Complete.** Add Lean policies, exhaustive correspondence and the complete repository gates.
+   Executable anchors cover inventory evidence partitioning, standalone React admission, style
+   resolution, generic surface omission bounds and surface-value size limits. Surface-edit admission
    requires a well-formed capability, one current candidate, a valid changed value and no collision.
+   Rust and Lean agree across the generated finite domains. Native, portable-skill, strict proof and
+   WASM gates pass with zero proof obligations or debts.
 
 ## Formal verification policy
 
