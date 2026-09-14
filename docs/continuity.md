@@ -1477,3 +1477,9 @@ Dogfooding also repaired two independent regressions. B862 scopes Rust `#[path]`
 the destination actually remapped by the attribute. B863 folds writer-generated remainder helpers
 back into semantic remainder operators across snake-case and camel-case spellings. The complete
 repository translation and self-translation round trips now pass across every advertised language.
+
+Final validation covers the default, WASM and deep gates. The default gate includes all native
+tests, 311 capability cells, prose checks and a 60-job Lean build. The WASM gate covers 432 library
+tests, browser history and cumulative patches, host APIs and the minimal browser feature set. The
+deep gate covers 14 whole-repository command agreements, external runtime conformance, all
+translation round trips and 74 Rust/Lean tests with both repository-wide edit audits enabled.

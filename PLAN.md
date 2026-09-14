@@ -210,7 +210,7 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
 | [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
 | [PR 23](https://github.com/e6qu/fun-refactor/pull/287) | Disclosure-Bound IR Structure Editing | Merged |
-| PR 24 | Content-Addressed Progressive Project Evidence | In progress |
+| PR 24 | Content-Addressed Progressive Project Evidence | Ready for review |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1063,7 +1063,7 @@ Planned checkpoints:
 
 ### PR 24. Content-Addressed Progressive Project Evidence
 
-Status: in progress.
+Status: ready for review.
 
 Goal: make one bounded progressive-reveal protocol the agent-facing navigation layer for semantic
 IR, project hierarchy, call traces, impact and value-flow endpoints. Agents fetch only the relevant
@@ -1132,10 +1132,10 @@ Planned checkpoints:
    hierarchy, calls, impact, origins and destinations.
 4. **Complete.** Formalize proof reconstruction and evidence-view transition policy. Add strict
    anchors and exhaustive Rust/Lean correspondence.
-5. **In progress.** Run all parsing and translation audits. Fix concrete regressions and record
+5. **Complete.** Run all parsing and translation audits. Fix concrete regressions and record
    remaining evidence limits.
-6. Retain the independent progressive-evidence evaluator, update SDK and skill guidance, refresh
-   context evidence, and pass the full native/browser/proof/documentation gates.
+6. **Complete.** Retain the independent progressive-evidence evaluator. Update SDK and skill
+   guidance, refresh context evidence, and pass all native, browser, proof and documentation gates.
 
 ## Formal verification policy
 
