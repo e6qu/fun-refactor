@@ -27,7 +27,7 @@ condition, and exact emitted/omitted partitioning. Shared executions compare the
 functions. CSS, HTML, JSX, Markdown and Mermaid recognition remains parser and fixture tested.
 
 `fr project disclose HANDLE --view project` commits five branches under one
-`fr-cross-stack-project-2` value: technologies, packages, applications, styles and documents/diagrams. The
+`fr-cross-stack-project-3` value: technologies, packages, applications, styles and documents/diagrams. The
 initial response contains no source and always catalogs the branches. Each returned action retains
 the response ceiling, profile, target and revision. Individual facts keep exact source handles.
 The generic Python Merkle pack and lazy restore functions can persist any completely revealed

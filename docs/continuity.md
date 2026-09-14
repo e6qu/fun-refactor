@@ -1680,3 +1680,11 @@ reuse their owning root lock without reading it or invoking a package manager.
 `FrKernels.Project.dependencyResolutionCandidate` requires applicable lock ownership, equal
 ecosystems and equal normalized names. Lean proves the conjunction and its name-mismatch refusal.
 Rust agrees over all eight Boolean states; mixed fixtures cover all four ecosystems and aliases.
+
+Cargo manifests now expose a bounded, source-free feature activation graph through `project
+package-features`. Default and explicit roots reach local cycles safely; implicit optional features,
+`dep:name`, strong dependency-feature requests, weak requests and dependency-declared features have
+separate evidence. The default selection is committed inside the progressive project's package
+branch. Feature and direct-member inventories each stop at 65,536, with a source-anchored Lean
+predicate and machine-boundary correspondence. Target predicates, resolver versions and build
+scripts remain explicit unchecked fields rather than implied runtime claims.

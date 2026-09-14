@@ -3341,6 +3341,68 @@ fn dependency_resolution_candidates_match_lean_for_every_boolean_state() {
 }
 
 #[test]
+fn package_feature_inventory_matches_lean_at_machine_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("package-feature-inventory")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let samples = [0u64, 1, 65_535, 65_536, 65_537, u32::MAX.into(), u64::MAX];
+    let mut index = 0;
+    for features in samples {
+        for members in samples {
+            if let (Ok(features), Ok(members)) =
+                (usize::try_from(features), usize::try_from(members))
+            {
+                assert_eq!(
+                    fun_refactor::project::package_feature_inventory_allowed(features, members),
+                    actual[index]
+                );
+            }
+            index += 1;
+        }
+    }
+    assert_eq!(index, actual.len());
+}
+
+#[test]
+fn package_feature_dependency_requests_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("package-feature-dependency-request")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for source_active in [false, true] {
+        for dependency_known in [false, true] {
+            for weak in [false, true] {
+                for dependency_active in [false, true] {
+                    expected.push(fun_refactor::project::package_feature_dependency_request(
+                        source_active,
+                        dependency_known,
+                        weak,
+                        dependency_active,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

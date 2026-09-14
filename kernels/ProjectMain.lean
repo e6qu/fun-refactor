@@ -548,6 +548,16 @@ def main (args : List String) : IO Unit := do
       for ecosystemEqual in [false, true] do
         for nameEqual in [false, true] do
           IO.println (dependencyResolutionCandidate lockfileApplies ecosystemEqual nameEqual)
+  else if args == ["package-feature-inventory"] then
+    for features in [0, 1, 65535, 65536, 65537, 4294967295, 18446744073709551615] do
+      for members in [0, 1, 65535, 65536, 65537, 4294967295, 18446744073709551615] do
+        IO.println (packageFeatureInventoryAllowed features members)
+  else if args == ["package-feature-dependency-request"] then
+    for sourceActive in [false, true] do
+      for dependencyKnown in [false, true] do
+        for weak in [false, true] do
+          for dependencyActive in [false, true] do
+            IO.println (packageFeatureDependencyRequest sourceActive dependencyKnown weak dependencyActive)
   else
     for total in samples do
       for start in samples do

@@ -373,6 +373,10 @@ format gaps. It reads `Cargo.lock`, npm lockfiles, `go.sum`, Poetry, uv and Pipe
 Dependency rows select the nearest ancestor lock of the same ecosystem. Cargo and npm aliases map
 to their resolved package names, and Python names use normalized punctuation and case. Candidate
 versions remain bounded and keep ambiguity when a lock contains several versions.
+`fr project package-features --manifest Cargo.toml` evaluates the bounded local Cargo feature
+graph. It handles defaults, cycles, implicit optional-dependency features, `dep:`, strong and weak
+dependency-feature requests, and dependency-declared features without invoking Cargo. Default
+Progressive project disclosure also stores activation evidence beneath its packages branch.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.

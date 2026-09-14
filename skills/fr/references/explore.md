@@ -25,18 +25,15 @@ names mode and caps the page at twelve rows. Execute the selected row's `next.ar
 obtain its bounded source and direct relationships. Execute truncation continuations instead of
 raising limits. Use `--profile expanded` only through the reported explicit expansion action.
 
-When two stages are known, put `explore` requests in one `project batch --profile compact`
-manifest and reference the selected handle through `/rows/0/handle`. This reuses one project
-snapshot and enforces an aggregate report budget. Independent cold processes coalesce identical
-resolution work.
+Put known multi-stage reads in one `project batch --profile compact` manifest. Reference prior
+handles through `/rows/0/handle`; the batch shares one snapshot and report budget.
 
 Use exact `project find NAME` for known declarations. `--contains` is a boolean literal-substring flag.
 Use `project select SELECTOR...` for several exact names or handles under one revision and budget.
 Read every selector status before claiming absence. Handles can report `outside-scope`,
 `not-a-declaration` or an omitted local; stale handles refuse instead of becoming names.
 Use maps when hierarchy matters. Choose `<HANDLE>` from a declaration row. Full handles include their source revision.
-Alternatively use a short ID with the returned `--revision`; never reuse a bare ID across revisions.
-`show` gives the declaration's `position`, a 1-based line and column suitable for a refactoring target.
+Use a short ID only with its returned `--revision`. `show` gives the declaration's 1-based position.
 Its syntax header can contain defaults and attributes; it is not a complete semantic contract.
 
 Request `--source` only when needed. Source offsets count bytes from the selected node's start, not lines or file-relative offsets.
@@ -52,6 +49,8 @@ Use `project resolutions` for source-free captured lock entries. Filter with `--
 `--lockfile`; the result reports observed versions and integrity metadata without running a solver.
 Dependency rows already join the nearest ancestor lock and preserve all bounded version candidates.
 Cargo's `package` field, npm aliases and normalized Python names participate in that match.
+Use `project package-features --manifest Cargo.toml` for Cargo feature and dependency activation.
+The progressive project's `packages` branch addresses the default selection.
 `links` and `workspaces` add Cargo/npm local relationships.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
 Use [Surfaces](surfaces.md) for framework, style and embedded-diagram discovery, exact surface edits,

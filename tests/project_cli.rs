@@ -3131,6 +3131,185 @@ fn dependency_views_join_aliases_and_nearest_ancestor_locks() {
 }
 
 #[test]
+fn package_features_evaluate_defaults_cycles_optional_dependencies_and_weak_requests() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        r#"[package]
+name = "feature-case"
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", optional = true, default-features = false, features = ["std"] }
+tracing = { version = "0.1", optional = true }
+
+[features]
+default = ["api", "weak"]
+api = ["dep:serde", "serde/derive", "logging"]
+logging = []
+weak = ["tracing?/log"]
+cycle-a = ["cycle-b"]
+cycle-b = ["cycle-a"]
+"#,
+    );
+    put(root, "src/lib.rs", "pub fn marker() {}\n");
+
+    let report = ok(
+        root,
+        &[
+            "project",
+            "package-features",
+            "--manifest",
+            "Cargo.toml",
+            "--limit",
+            "100",
+        ],
+    );
+    assert_eq!(report["query"], "package-features");
+    assert_eq!(report["activation"]["activated_feature_count"], 4);
+    assert_eq!(
+        report["activation"]["activated_dependency_candidate_count"],
+        2
+    );
+    let rows = report["items"].as_array().unwrap();
+    let row = |kind: &str, name: &str| {
+        rows.iter()
+            .find(|row| row["kind"] == kind && row["name"] == name)
+            .unwrap()
+    };
+    assert_eq!(row("package-feature", "default")["activated"], true);
+    assert_eq!(row("package-feature", "logging")["activated"], true);
+    assert_eq!(row("package-feature", "cycle-a")["activated"], false);
+    assert_eq!(
+        row("package-feature", "tracing")["implicit_optional_dependency"],
+        true
+    );
+    assert_eq!(row("package-feature", "tracing")["activated"], false);
+    assert_eq!(
+        row("dependency-feature-request", "anyhow")["activated"],
+        true
+    );
+    assert_eq!(
+        row("dependency-feature-request", "serde")["activated"],
+        true
+    );
+    assert_eq!(
+        row("dependency-feature-request", "serde")["default_features"],
+        false
+    );
+    assert_eq!(
+        row("dependency-feature-request", "serde")["requested_features"],
+        serde_json::json!(["derive", "std"])
+    );
+    assert_eq!(
+        row("dependency-feature-request", "tracing")["activated"],
+        false
+    );
+    assert_eq!(
+        row("dependency-feature-request", "tracing")["inactive_weak_features"],
+        serde_json::json!(["log"])
+    );
+
+    let mapped = ok(
+        root,
+        &["project", "map", ".", "--depth", "0", "--fields", "handle"],
+    );
+    let handle = mapped["rows"][0][0].as_str().unwrap();
+    let initial = ok(
+        root,
+        &[
+            "project",
+            "disclose",
+            handle,
+            "--view",
+            "project",
+            "--profile",
+            "expanded",
+            "--token-limit",
+            "16384",
+        ],
+    );
+    let packages = initial["project_shortcuts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|shortcut| shortcut["domain"] == "packages")
+        .unwrap();
+    let revealed = ok_owned(root, &exact_arguments(&packages["reveal"]["arguments"]));
+    assert!(revealed.to_string().contains("feature_activations"));
+
+    let cycles = ok(
+        root,
+        &[
+            "project",
+            "package-features",
+            "--manifest",
+            "Cargo.toml",
+            "--activate",
+            "cycle-a,tracing",
+            "--no-default-features",
+            "--limit",
+            "100",
+        ],
+    );
+    assert_eq!(cycles["activation"]["activated_feature_count"], 3);
+    let rows = cycles["items"].as_array().unwrap();
+    let cycle_a = rows
+        .iter()
+        .find(|row| row["kind"] == "package-feature" && row["name"] == "cycle-a")
+        .unwrap();
+    let cycle_b = rows
+        .iter()
+        .find(|row| row["kind"] == "package-feature" && row["name"] == "cycle-b")
+        .unwrap();
+    let tracing = rows
+        .iter()
+        .find(|row| row["kind"] == "dependency-feature-request" && row["name"] == "tracing")
+        .unwrap();
+    assert_eq!(cycle_a["activated"], true);
+    assert_eq!(cycle_b["activated"], true);
+    assert_eq!(tracing["activated"], true);
+    assert_eq!(tracing["requested_features"], serde_json::json!([]));
+
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "package-features",
+                "--manifest",
+                "Cargo.toml",
+                "--activate",
+                "missing"
+            ]
+        )
+        .0
+    );
+    put(
+        root,
+        "Cargo.toml",
+        "[package]\nname='bad'\nversion='0.1.0'\n[features]\nbad=['missing']\n",
+    );
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "package-features",
+                "--manifest",
+                "Cargo.toml",
+                "--activate",
+                "bad"
+            ]
+        )
+        .0
+    );
+}
+
+#[test]
 fn manifest_pages_are_bounded_complete_and_bound_to_the_filter() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

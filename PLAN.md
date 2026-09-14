@@ -1414,6 +1414,10 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 11. **Complete.** Join dependency declarations to their nearest captured ecosystem lock. Resolve
     Cargo and npm aliases plus normalized Python names while retaining every bounded version
     candidate. Lean proves the three required identity conditions.
+12. **Complete.** Evaluate bounded Cargo manifest feature activation, including defaults, explicit
+    roots, cycles, implicit optional dependencies, strong and weak dependency feature requests and
+    dependency-declared features. Put default activation evidence in progressive project disclosure;
+    Lean and Rust agree on both graph ceilings and all strong/weak request admission states.
 
 ## Formal verification policy
 
@@ -1465,8 +1469,9 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 ## Explicit boundaries
 
 - Manifest readers cover Cargo, npm, Go modules and Python projects. Lock readers expose observed
-  versions and integrity fields from Cargo, npm, Go, Poetry, uv and Pipenv files. Package-manager
-  solving, feature evaluation and artifact verification remain outside these syntactic subsets.
+  versions and integrity fields from Cargo, npm, Go, Poetry, uv and Pipenv files. Cargo manifest
+  `fr` evaluates feature activation with explicit target/resolver limits. Package-manager version
+  solving and artifact verification remain outside these syntactic subsets.
 - Framework readers recognize selected static patterns. Their feature hierarchy joins packages,
   components, configuration, middleware, execution dependencies and local HTTP route candidates.
   Runtime execution remains outside static evidence and stays explicit in every affected fact.

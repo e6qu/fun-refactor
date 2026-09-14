@@ -67,6 +67,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B876: **agents could see Cargo feature counts but not the activation graph**. The bounded
+  `project package-features` view now evaluates defaults, explicit roots and cycles. It also covers
+  implicit optional features and strong or weak dependency requests. Dependency declaration rows
+  also retain their first sixteen requested feature names. The default graph participates in the
+  progressive project's package Merkle branch.
+
 - [x] B875: **captured lock entries were disconnected from dependency declarations.**
 
   Dependency pages now select the nearest ancestor lock from the same ecosystem and return bounded

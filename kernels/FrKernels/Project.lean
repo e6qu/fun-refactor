@@ -662,6 +662,43 @@ theorem dependency_resolution_refuses_mismatched_name
     dependencyResolutionCandidate lockfileApplies ecosystemEqual false = false := by
   cases lockfileApplies <;> cases ecosystemEqual <;> decide
 
+-- fr:spec src/project.rs::package_feature_inventory_allowed @ 826798c4a54526a47772af204f43c386d83b6656c9f4bd70238d3662d4fc0a3a
+-- fr:signature features: usize => features: Nat; members: usize => members: Nat; return: bool => return: Bool
+def packageFeatureInventoryAllowed (features : Nat) (members : Nat) : Bool :=
+  decide (features ≤ 65536 ∧ members ≤ 65536)
+
+theorem package_feature_inventory_bounds (features members : Nat)
+    (allowed : packageFeatureInventoryAllowed features members = true) :
+    features ≤ 65536 ∧ members ≤ 65536 := by
+  simpa [packageFeatureInventoryAllowed] using allowed
+
+theorem package_feature_inventory_refuses_excess_features (members : Nat) :
+    packageFeatureInventoryAllowed 65537 members = false := by
+  simp [packageFeatureInventoryAllowed]
+
+theorem package_feature_inventory_refuses_excess_members (features : Nat) :
+    packageFeatureInventoryAllowed features 65537 = false := by
+  simp [packageFeatureInventoryAllowed]
+
+-- fr:spec src/project.rs::package_feature_dependency_request @ 8a9c3ff8756df095379654e0e4f6134dd80e5287af77e2784f68b3c35334ef0a
+-- fr:signature source_active: bool => sourceActive: Bool; dependency_known: bool => dependencyKnown: Bool; weak: bool => weak: Bool; dependency_active: bool => dependencyActive: Bool; return: bool => return: Bool
+def packageFeatureDependencyRequest
+    (sourceActive : Bool) (dependencyKnown : Bool) (weak : Bool) (dependencyActive : Bool) : Bool :=
+  sourceActive && dependencyKnown && (!weak || dependencyActive)
+
+theorem package_feature_dependency_request_iff
+    (sourceActive dependencyKnown weak dependencyActive : Bool) :
+    packageFeatureDependencyRequest sourceActive dependencyKnown weak dependencyActive = true ↔
+      sourceActive = true ∧ dependencyKnown = true ∧
+        (weak = false ∨ dependencyActive = true) := by
+  cases sourceActive <;> cases dependencyKnown <;> cases weak <;> cases dependencyActive <;>
+    decide
+
+theorem package_feature_weak_request_requires_active_dependency
+    (sourceActive dependencyKnown : Bool) :
+    packageFeatureDependencyRequest sourceActive dependencyKnown true false = false := by
+  cases sourceActive <;> cases dependencyKnown <;> decide
+
 -- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
 -- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat
 def handleSelectionStatus (inScope : Bool) (declaration : Bool) (isLocal : Bool)

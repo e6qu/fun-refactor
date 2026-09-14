@@ -12,7 +12,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-3";
+const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-4";
 
 pub mod author;
 pub use author::{disclosed_edit_admitted, disclosed_ir_edit_admitted};
@@ -43,6 +43,7 @@ mod lockfiles;
 mod manifests;
 pub mod migration;
 mod next_routes;
+mod package_features;
 mod relationships;
 mod routes;
 mod schemas;
@@ -181,6 +182,8 @@ pub enum Command {
         #[arg(long)]
         cursor: Option<String>,
     },
+    #[command(about = "Evaluate bounded Cargo manifest feature activation.")]
+    PackageFeatures(package_features::Options),
     #[command(about = "Page through local manifest links and workspace pattern matches.")]
     Links {
         #[arg(long, help = "Select a manifest path relative to the project root.")]
@@ -459,6 +462,19 @@ pub fn dependency_resolution_candidate(
     name_equal: bool,
 ) -> bool {
     lockfile_applies && ecosystem_equal && name_equal
+}
+
+pub fn package_feature_inventory_allowed(features: usize, members: usize) -> bool {
+    features <= 65_536 && members <= 65_536
+}
+
+pub fn package_feature_dependency_request(
+    source_active: bool,
+    dependency_known: bool,
+    weak: bool,
+    dependency_active: bool,
+) -> bool {
+    source_active && dependency_known && (!weak || dependency_active)
 }
 
 /// Classify an exact-handle selection after resolving its revision-bound identity.
@@ -1279,6 +1295,40 @@ impl<'a> Project<'a> {
         Ok(result)
     }
 
+    fn package_features(&self, options: &package_features::Options) -> Result<Value> {
+        check_limit(options.limit)?;
+        let manifest = self
+            .selected_manifest(Some(&options.manifest))?
+            .expect("a manifest option was supplied");
+        let evaluation = package_features::evaluate(
+            &self.manifests,
+            &manifest,
+            &options.activate,
+            options.no_default_features,
+        )?;
+        let key = format!(
+            "frpc1:{}",
+            &hash((
+                &self.revision,
+                "package-features",
+                &manifest,
+                &options.activate,
+                options.no_default_features,
+            ))?[..32]
+        );
+        let (start, end, page) = page(
+            evaluation.rows.len(),
+            options.limit,
+            options.cursor.as_deref(),
+            &key,
+        )?;
+        let mut result = self.envelope("package-features");
+        result["items"] = json!(&evaluation.rows[start..end]);
+        result["page"] = page;
+        result["activation"] = evaluation.summary;
+        Ok(result)
+    }
+
     fn links(&self, manifest: Option<&Path>, limit: usize, cursor: Option<&str>) -> Result<Value> {
         check_limit(limit)?;
         let selected = self.selected_manifest(manifest)?;
@@ -1373,6 +1423,7 @@ impl<'a> Project<'a> {
                 *limit,
                 cursor.as_deref(),
             ),
+            Command::PackageFeatures(options) => self.package_features(options),
             Command::Links {
                 manifest,
                 limit,

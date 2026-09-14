@@ -586,11 +586,19 @@ resolution and gap rows. Lean proves both bounds and rejects either first value 
 and Lean agree at zero, both limits and machine-sized boundary samples. Format parsing, filesystem
 capture and checksum authenticity remain integration-tested assumptions.
 
-Dependency-to-lock joins use `dependencyResolutionCandidate`: a candidate is admitted exactly when
+Dependency-to-lock joins use `dependencyResolutionCandidate`: a candidate qualifies only when
 the selected lock applies to the manifest and both ecosystem and full package identity agree. Lean
 proves that conjunction and refuses a mismatched identity; Rust and Lean agree on all eight Boolean
 states. Lock ownership, Cargo and npm alias interpretation, and Python name normalization remain
 parser-level rules covered by cross-ecosystem integration tests.
+
+Cargo feature extraction uses `packageFeatureInventoryAllowed` to cap both named local features and
+their direct members at 65,536. Lean proves both ceilings and rejects either adjacent overflow;
+Rust and Lean agree at the limits and machine-sized samples. Cargo feature grammar and closure
+interpretation remain covered by integration tests over defaults, cycles, optional dependencies,
+strong requests and weak requests. `packageFeatureDependencyRequest` separately proves that every
+request needs an active source and known dependency, while a weak request additionally needs the
+dependency to be active. Rust and Lean agree on all sixteen states.
 
 ## Formalization order
 

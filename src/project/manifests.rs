@@ -608,6 +608,13 @@ impl Manifests {
                             .filter(|a| a.iter().all(Value::is_string))
                         {
                             row["feature_count"] = json!(features.len());
+                            row["features"] = features
+                                .iter()
+                                .take(16)
+                                .filter_map(Value::as_str)
+                                .map(|feature| bounded_text(feature, 160))
+                                .collect();
+                            row["features_omitted"] = json!(features.len().saturating_sub(16));
                         } else {
                             self.gap(manifest, "dependency features must be an array of strings.");
                         }

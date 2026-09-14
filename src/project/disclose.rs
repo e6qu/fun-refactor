@@ -991,10 +991,36 @@ impl Project<'_> {
         let packages = self.packages(500, None)?;
         let dependencies = self.dependencies(None, 500, None)?;
         let resolutions = self.resolutions(None, None, 500, None)?;
+        let mut feature_rows = Vec::new();
+        let mut feature_gaps = Vec::new();
+        let mut feature_total = 0usize;
+        for manifest in self
+            .manifests
+            .documents
+            .keys()
+            .filter(|path| path.file_name().is_some_and(|name| name == "Cargo.toml"))
+        {
+            match super::package_features::evaluate(&self.manifests, manifest, &[], false) {
+                Ok(evaluation) => {
+                    feature_total += evaluation.rows.len();
+                    feature_rows.extend(
+                        evaluation
+                            .rows
+                            .into_iter()
+                            .take(500usize.saturating_sub(feature_rows.len())),
+                    );
+                }
+                Err(error) => feature_gaps.push(json!({
+                    "manifest": bounded_text(&manifest.to_string_lossy(), 512),
+                    "reason": bounded_text(&error.to_string(), 512),
+                    "scope": "cargo-feature-activation"
+                })),
+            }
+        }
         let manifest_gap_total = self.manifests.gaps.len();
         let lockfile_gap_total = self.lockfiles.gaps.len();
         Ok(json!({
-            "schema": "fr-cross-stack-project-2",
+            "schema": "fr-cross-stack-project-3",
             "scope": {"target": target, "selected": self.handle(selected)},
             "technologies": {
                 "schema": technologies["technology_schema"],
@@ -1005,6 +1031,14 @@ impl Project<'_> {
                 "manifests": {"items": packages["items"], "page": packages["page"]},
                 "declarations": {"items": dependencies["items"], "page": dependencies["page"]},
                 "resolutions": {"items": resolutions["items"], "page": resolutions["page"]},
+                "feature_activations": {
+                    "items": feature_rows,
+                    "total": feature_total,
+                    "omitted": feature_total.saturating_sub(500),
+                    "gaps": feature_gaps.iter().take(64).collect::<Vec<_>>(),
+                    "gaps_omitted": feature_gaps.len().saturating_sub(64),
+                    "selection": {"default_features": true, "requested": []}
+                },
                 "gaps": {
                     "manifests": self.manifests.gaps.iter().take(500).collect::<Vec<_>>(),
                     "lockfiles": self.lockfiles.gaps.iter().take(500).collect::<Vec<_>>(),
@@ -1089,7 +1123,7 @@ impl Project<'_> {
                 let basis = format!(
                     "frpx1:{}",
                     hash((
-                        "fr-cross-stack-project-2",
+                        "fr-cross-stack-project-3",
                         &self.revision,
                         &options.target,
                         object_merkle(&model)?

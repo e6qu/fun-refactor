@@ -819,6 +819,10 @@ fr project tests '<ID>' --revision '<REVISION>' --depth 5
 fr project packages --limit 40
 fr project dependencies --manifest Cargo.toml --limit 40
 fr project dependencies --cursor '<NEXT>'
+fr project resolutions --manifest Cargo.toml --limit 40
+fr project resolutions --lockfile Cargo.lock --limit 40
+fr project package-features --manifest Cargo.toml --activate api,serde --limit 40
+fr project package-features --manifest Cargo.toml --no-default-features
 fr project links --manifest Cargo.toml --limit 40
 fr project links --cursor '<NEXT>'
 fr project workspaces --limit 40
@@ -850,6 +854,12 @@ Maps default to 80 rows; other pages default to 40.
 Reuse the same query and fields with a cursor. The page size may change.
 Changed source, manifest content, inventory, scan options or query scope invalidates the corresponding handle or cursor.
 A short ID without its revision cannot identify a symbol for `show`.
+
+`package-features` computes Cargo's captured manifest feature closure. It includes implicit optional
+dependency features, `dep:name`, `name/feature`, `name?/feature`, dependency-declared features,
+cycles and default-feature selection. Rows distinguish local features from dependency requests and
+retain counts when member lists exceed sixteen entries. Target predicates, resolver-version effects,
+build scripts, version selection and compilation remain outside this static activation report.
 
 `technologies` always states all thirteen web-stack surfaces, including surfaces absent from the
 selected scope. Detected rows contain no source text. Each evidence row carries its path, basis,
