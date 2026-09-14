@@ -19,13 +19,34 @@ transaction back to the loaded workspace basis. Both call the same Rust Git text
 a SHA-256 digest, byte count and Git diff-section count.
 
 Browser history retains at most 256 records, 1,024 changed paths per transaction, 16 MiB of snapshots
-per transaction and 64 MiB total. It lasts only for the current loaded `Workspace`. Browser snapshots
-are UTF-8 regular files projected as mode `0644`; executable modes, symlinks, persistence, compaction
-and crash recovery remain native-only concerns.
+per transaction and 64 MiB total. `compact_history(keep)` retains the newest requested undo and redo
+steps. It folds older applied steps into the cumulative patch basis, then discards old redo and
+abandoned records. The cumulative patch remains byte-identical. Compacted transaction IDs cannot be
+undone, redone or exported individually, and IDs are never reused.
+
+`session()` exports `fr-browser-session-1`, a canonical checkpoint containing current files and the
+complete retained history. `Workspace.from_session(text)` accepts at most 4 MiB and 4,096 files. It
+checks the envelope digest, schema, relative paths, record bases, stack membership, size limits and
+the complete applied and redo snapshot chains before constructing a workspace. Unknown fields,
+changed bytes, unsafe paths and inconsistent intermediate states refuse the whole restoration.
+
+The playground stores that envelope under one versioned `localStorage` key after loading a workspace
+and after each completed apply, undo or redo. A page opened without `?repo=` restores it before any
+network request. An explicit repository parameter loads that repository and replaces the checkpoint.
+If storage is unavailable or full, the current edit remains applied and the page reports the storage
+failure. A failed write leaves the prior checkpoint in place.
+
+Rust mutations and browser storage replacement are synchronous. Only a fully completed transaction
+can produce a checkpoint, so reload recovery selects the previous or next complete state. There is no
+pending browser mutation to replay. Invalid saved state is removed and the ordinary loader continues.
+Browser snapshots remain UTF-8 regular files projected as mode `0644`; executable modes and symlinks
+remain native-only concerns.
 
 [`FrKernels.MemoryHistory`](../kernels/FrKernels/MemoryHistory.lean) anchors the finite transition
-predicate and proves that non-top or abandoned records cannot transition, each live status permits
-only its inverse action, a multi-snapshot mismatch refuses the whole abstract replacement, and
-apply/undo restores the full selected snapshot list. Exhaustive executable cases compare the Rust
-and Lean transition predicates. Filesystem mutation, reindexing, hashing, patch rendering, JavaScript,
-the browser runtime, Git and the correspondence outside those finite cases remain trusted.
+predicate and proves that non-top or abandoned records cannot transition. Each live status permits
+only its inverse action. A multi-snapshot mismatch refuses the whole abstract replacement, and
+apply/undo restores the selected snapshot list. Restoration theorems require valid schema, digest,
+history and finite file and payload bounds. Compaction theorems cover the retention boundary and the
+zero and complete list cases. Executable comparisons include every transition input and machine-size
+restoration and compaction boundaries. Reindexing, SHA-256, browser storage, JavaScript, Git and full
+Rust/model correspondence remain tested or trusted boundaries.

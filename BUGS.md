@@ -67,6 +67,21 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B872: **closing the playground discarded its complete checked edit history.**
+
+  The WASM API exports and restores a digest-bound session with current files, compacted basis and
+  live transaction stacks. The page replaces one local checkpoint after completed mutations. It
+  restores that checkpoint before a default network load. Invalid paths, changed content, malformed
+  stacks and oversized sessions refuse before workspace construction. Explicit compaction preserves
+  the cumulative Git patch and retained undo/redo steps while transaction IDs stay unique.
+
+- [x] B871: **the browser build failed with current Clang on an upstream allocator warning.**
+
+  Clang 23 promotes the tree-sitter Markdown allocator's compatible-layout pointer warning to an
+  error. The freestanding wasm build now suppresses that specific legacy pointer diagnostic and the
+  duplicate `NULL` macro warning. A production wasm build and all Node capability, patch and session
+  tests pass with wasi-sdk 34.
+
 - [x] B870: **package views omitted Go modules and Python project metadata.**
 
   Manifest discovery now includes `go.mod` and `pyproject.toml`. The bounded package and dependency

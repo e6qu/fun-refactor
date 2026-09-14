@@ -478,9 +478,10 @@ async def delete(postId: str, req: Request):
     <p>
       The browser cannot do the parts that need a filesystem. It keeps no fact cache,
       and a repository has to fit in a tab, so the loader caps the file count and says
-      what it left out. Its bounded history lasts only for the loaded tab and has no
-      crash recovery; <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/browser-history.md">the browser history contract</a>
-      records the exact limits and trust boundary.
+      what it left out. Its bounded history is saved as one content-bound browser
+      checkpoint after each completed transaction. Reload restores the last complete
+      state; <a href="https://github.com/e6qu/fun-refactor/blob/main/docs/browser-history.md">the browser history contract</a>
+      records the exact limits, compaction behavior and trust boundary.
     </p>
 
     <h3>Asking the page instead of reading it</h3>

@@ -1423,8 +1423,9 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 
 - Manifest readers cover Cargo, npm, Go modules and Python projects. Lockfile resolution, feature evaluation and complete package-manager semantics remain outside their declared subsets.
 - Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
-- Native history has explicit, basis-bound replay-payload retention. Browser history remains
-  session-only and records UTF-8 regular-file snapshots with mode `0644`; it does not provide crash recovery or persistence.
+- Native and browser history both have bounded replay retention. Browser checkpoints bind the
+  current UTF-8 regular files, transaction graph and cumulative patch basis across page reloads.
+  Browser snapshots project mode `0644`; executable files and symlinks require the native tool.
 - Strict signature maps cover all readable code languages. Non-Rust maps use canonical shared-IR
   types; markup, stylesheets, configuration and Markdown have no function signature surface.
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.

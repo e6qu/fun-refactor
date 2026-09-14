@@ -1045,6 +1045,58 @@ fn browser_history_transition_policy_matches_lean_exhaustively() {
 }
 
 #[test]
+fn browser_session_restore_policy_matches_lean_at_machine_boundaries() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("memory-restores")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for schema_matches in [false, true] {
+        for digest_matches in [false, true] {
+            for history_valid in [false, true] {
+                for files in [0, 4096, 4097, usize::MAX] {
+                    for payload_bytes in [0, 4 * 1024 * 1024, 4 * 1024 * 1024 + 1, usize::MAX] {
+                        expected.push(
+                            fun_refactor::transaction_kernel::memory_restore_allowed(
+                                schema_matches,
+                                digest_matches,
+                                history_valid,
+                                files,
+                                payload_bytes,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
+fn browser_history_compaction_bound_matches_lean_at_machine_boundaries() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("memory-compactions")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let expected = [0, 1, 255, 256, 257, usize::MAX]
+        .into_iter()
+        .map(fun_refactor::transaction_kernel::memory_compaction_allowed)
+        .map(|allowed| allowed.to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn source_history_compaction_policy_matches_lean_for_every_boolean_input() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))

@@ -113,9 +113,15 @@ implementation boundaries.
 It proves that non-top and abandoned records cannot transition. Applied and undone records admit only
 their inverse action. A mismatched multi-snapshot basis refuses the whole abstract replacement, and
 apply followed by undo restores every selected snapshot. Its anchored transition predicate agrees
-with Rust for all 24 generated known/unknown status, action and stack-position cases. The list model
-does not prove that browser filesystem writes are atomic; Rust tests exercise the implementation's
-complete preflight and unchanged conflict result.
+with Rust for all 24 generated known/unknown status, action and stack-position cases.
+
+Two more anchored predicates cover browser session restoration and in-memory compaction. Restoration
+requires the schema, digest and history graph plus the 4,096-file and 4 MiB limits. Six theorems
+characterize each refusal and the accepted boundary. Compaction admits retention counts through 256;
+its list model proves the zero-retention and retain-all cases. Rust and Lean agree across every
+Boolean restoration input and selected machine-size boundaries. Host and wasm tests cover canonical
+hashing, path checks, graph reconstruction, exact patch preservation and retained transitions. The
+models do not prove browser storage, SHA-256 or complete Rust correspondence.
 
 `FrKernels.Patch` models Git regular, executable and symlink mode projection, supported permission changes and receiving patch-basis equality.
 Five Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.

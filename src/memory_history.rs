@@ -1,5 +1,5 @@
 use anyhow::{bail, ensure, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -8,7 +8,7 @@ const MAX_RECORDS: usize = 256;
 const MAX_RECORD_BYTES: usize = 16 * 1024 * 1024;
 const MAX_HISTORY_BYTES: usize = 64 * 1024 * 1024;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Status {
     Applied,
@@ -26,14 +26,16 @@ impl Status {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Change {
     pub path: PathBuf,
     pub before: Option<String>,
     pub after: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Record {
     pub id: u32,
     pub status: Status,
@@ -41,12 +43,37 @@ pub struct Record {
     pub changes: Vec<Change>,
 }
 
-#[derive(Default)]
 pub struct History {
+    base: Vec<Change>,
     records: Vec<Record>,
     applied: Vec<u32>,
     redo: Vec<u32>,
     bytes: usize,
+    next_id: u32,
+}
+
+impl Default for History {
+    fn default() -> Self {
+        Self {
+            base: Vec::new(),
+            records: Vec::new(),
+            applied: Vec::new(),
+            redo: Vec::new(),
+            bytes: 0,
+            next_id: 1,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Snapshot {
+    pub(crate) schema: String,
+    pub(crate) base: Vec<Change>,
+    pub(crate) records: Vec<Record>,
+    pub(crate) applied: Vec<u32>,
+    pub(crate) redo: Vec<u32>,
+    pub(crate) next_id: u32,
 }
 
 #[derive(Serialize)]
@@ -56,8 +83,24 @@ pub struct Summary<'a> {
     pub applied: &'a [u32],
     pub redo: &'a [u32],
     pub retained_bytes: usize,
+    pub compacted_files: usize,
+    pub next_transaction: u32,
     pub record_limit: usize,
     pub byte_limit: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Compaction {
+    pub schema: &'static str,
+    pub keep: usize,
+    pub records_before: usize,
+    pub records_after: usize,
+    pub frozen_transactions: usize,
+    pub discarded_transactions: usize,
+    pub compacted_files: usize,
+    pub retained_bytes: usize,
+    pub undo: Option<u32>,
+    pub redo: Option<u32>,
 }
 
 #[derive(Serialize)]
@@ -127,6 +170,174 @@ fn write(path: &Path, snapshot: &Option<String>) -> Result<()> {
 }
 
 impl History {
+    pub(crate) fn snapshot(&self) -> Snapshot {
+        Snapshot {
+            schema: "fr-memory-history-snapshot-2".to_string(),
+            base: self.base.clone(),
+            records: self.records.clone(),
+            applied: self.applied.clone(),
+            redo: self.redo.clone(),
+            next_id: self.next_id,
+        }
+    }
+
+    pub(crate) fn restore(
+        snapshot: Snapshot,
+        current_files: &BTreeMap<PathBuf, String>,
+    ) -> Result<Self> {
+        ensure!(
+            snapshot.schema == "fr-memory-history-snapshot-2",
+            "unsupported browser history snapshot"
+        );
+        ensure!(
+            snapshot.records.len() <= MAX_RECORDS,
+            "browser history exceeds its 256-record limit."
+        );
+
+        ensure_changes(&snapshot.base, "browser compacted history")?;
+        let mut bytes = snapshot.base.iter().map(snapshot_bytes).sum::<usize>();
+        let mut previous = 0;
+        for record in &snapshot.records {
+            ensure!(
+                record.id > previous && record.id < snapshot.next_id,
+                "browser transaction identities do not have increasing order."
+            );
+            previous = record.id;
+            ensure!(
+                !record.changes.is_empty() && record.changes.len() <= 1024,
+                "browser transaction {} has an invalid file count.",
+                record.id
+            );
+            ensure_changes(
+                &record.changes,
+                &format!("browser transaction {}", record.id),
+            )?;
+            let record_bytes = record.changes.iter().map(snapshot_bytes).sum::<usize>();
+            ensure!(
+                record_bytes <= MAX_RECORD_BYTES,
+                "browser transaction {} exceeds its snapshot limit.",
+                record.id
+            );
+            bytes = bytes
+                .checked_add(record_bytes)
+                .context("browser history size overflow")?;
+            ensure!(
+                record.basis == basis(&record.changes),
+                "browser transaction {} has an invalid basis.",
+                record.id
+            );
+        }
+        ensure!(
+            bytes <= MAX_HISTORY_BYTES,
+            "browser history exceeds its 64 MiB snapshot limit."
+        );
+        ensure!(
+            snapshot.next_id > 0,
+            "browser history has an invalid next identity."
+        );
+        ensure!(
+            snapshot.applied.windows(2).all(|ids| ids[0] < ids[1]),
+            "browser applied stack does not have increasing order."
+        );
+        ensure!(
+            snapshot.redo.windows(2).all(|ids| ids[0] > ids[1]),
+            "browser redo stack does not have decreasing order."
+        );
+
+        let applied = snapshot.applied.iter().copied().collect::<BTreeSet<_>>();
+        let redo = snapshot.redo.iter().copied().collect::<BTreeSet<_>>();
+        ensure!(
+            applied.len() == snapshot.applied.len()
+                && redo.len() == snapshot.redo.len()
+                && applied.is_disjoint(&redo),
+            "browser history stacks contain duplicate transaction identities."
+        );
+        for record in &snapshot.records {
+            let expected = match (applied.contains(&record.id), redo.contains(&record.id)) {
+                (true, false) => Status::Applied,
+                (false, true) => Status::Undone,
+                (false, false) => Status::Abandoned,
+                (true, true) => unreachable!(),
+            };
+            ensure!(
+                record.status == expected,
+                "browser transaction {} disagrees with its stack.",
+                record.id
+            );
+        }
+        let find = |id: u32| {
+            snapshot
+                .records
+                .binary_search_by_key(&id, |record| record.id)
+                .ok()
+                .map(|at| &snapshot.records[at])
+        };
+        let replace = |files: &mut BTreeMap<PathBuf, String>,
+                       changes: &[Change],
+                       before: bool|
+         -> Result<()> {
+            for change in changes {
+                let expected = if before {
+                    &change.before
+                } else {
+                    &change.after
+                };
+                ensure!(
+                    files.get(&change.path) == expected.as_ref(),
+                    "browser transaction {} does not match the restored workspace.",
+                    basis(changes)
+                );
+            }
+            for change in changes {
+                let value = if before {
+                    &change.after
+                } else {
+                    &change.before
+                };
+                match value {
+                    Some(text) => {
+                        files.insert(change.path.clone(), text.clone());
+                    }
+                    None => {
+                        files.remove(&change.path);
+                    }
+                }
+            }
+            Ok(())
+        };
+
+        let mut reconstructed_basis = current_files.clone();
+        for id in snapshot.applied.iter().rev() {
+            replace(
+                &mut reconstructed_basis,
+                &find(*id)
+                    .context("browser applied stack names an unknown transaction")?
+                    .changes,
+                false,
+            )?;
+        }
+        replace(&mut reconstructed_basis, &snapshot.base, false)?;
+        let mut redo_state = current_files.clone();
+        for id in snapshot.redo.iter().rev() {
+            replace(
+                &mut redo_state,
+                &find(*id)
+                    .context("browser redo stack names an unknown transaction")?
+                    .changes,
+                true,
+            )?;
+        }
+
+        Ok(Self {
+            base: snapshot.base,
+            records: snapshot.records,
+            applied: snapshot.applied,
+            redo: snapshot.redo,
+            bytes,
+            next_id: snapshot.next_id,
+        })
+    }
+
     pub fn ensure_capacity(&self, changes: &[Change]) -> Result<()> {
         ensure!(
             !changes.is_empty(),
@@ -155,6 +366,10 @@ impl History {
             "browser history reached its 256-record limit."
         );
         ensure!(
+            self.next_id < u32::MAX,
+            "browser history exhausted its transaction identities."
+        );
+        ensure!(
             self.bytes.saturating_add(bytes) <= MAX_HISTORY_BYTES,
             "browser history reached its 64 MiB snapshot limit."
         );
@@ -168,7 +383,8 @@ impl History {
                 record.status = Status::Abandoned;
             }
         }
-        let id = self.records.last().map_or(1, |record| record.id + 1);
+        let id = self.next_id;
+        self.next_id += 1;
         let record = Record {
             id,
             status: Status::Applied,
@@ -198,6 +414,8 @@ impl History {
             applied: &self.applied,
             redo: &self.redo,
             retained_bytes: self.bytes,
+            compacted_files: self.base.len(),
+            next_transaction: self.next_id,
             record_limit: MAX_RECORDS,
             byte_limit: MAX_HISTORY_BYTES,
         }
@@ -299,19 +517,95 @@ impl History {
 
     pub fn current_patch(&self) -> Result<String> {
         let mut changes = BTreeMap::<PathBuf, Change>::new();
+        merge(&mut changes, &self.base);
         for id in &self.applied {
-            for change in &self.record(*id)?.changes {
-                changes
-                    .entry(change.path.clone())
-                    .and_modify(|combined| combined.after = change.after.clone())
-                    .or_insert_with(|| change.clone());
-            }
+            merge(&mut changes, &self.record(*id)?.changes);
         }
         let changes = changes
             .into_values()
             .filter(|change| change.before != change.after)
             .collect::<Vec<_>>();
         render(&changes, false)
+    }
+
+    pub fn compact(&mut self, keep: usize) -> Result<Compaction> {
+        ensure!(
+            crate::transaction_kernel::memory_compaction_allowed(keep),
+            "browser history keep count must be 0 through 256"
+        );
+        let records_before = self.records.len();
+        let applied_drop = self.applied.len().saturating_sub(keep);
+        let redo_drop = self.redo.len().saturating_sub(keep);
+        let frozen = self.applied[..applied_drop].to_vec();
+
+        let mut base = self
+            .base
+            .iter()
+            .cloned()
+            .map(|change| (change.path.clone(), change))
+            .collect::<BTreeMap<_, _>>();
+        for id in &frozen {
+            merge(&mut base, &self.record(*id)?.changes);
+        }
+        self.base = base
+            .into_values()
+            .filter(|change| change.before != change.after)
+            .collect();
+        self.applied.drain(..applied_drop);
+        self.redo.drain(..redo_drop);
+        let retained = self
+            .applied
+            .iter()
+            .chain(&self.redo)
+            .copied()
+            .collect::<BTreeSet<_>>();
+        self.records.retain(|record| retained.contains(&record.id));
+        self.bytes = self
+            .base
+            .iter()
+            .map(snapshot_bytes)
+            .chain(
+                self.records
+                    .iter()
+                    .flat_map(|record| record.changes.iter().map(snapshot_bytes)),
+            )
+            .sum();
+
+        Ok(Compaction {
+            schema: "fr-memory-history-compaction-1",
+            keep,
+            records_before,
+            records_after: self.records.len(),
+            frozen_transactions: frozen.len(),
+            discarded_transactions: records_before - self.records.len() - frozen.len(),
+            compacted_files: self.base.len(),
+            retained_bytes: self.bytes,
+            undo: self.applied.last().copied(),
+            redo: self.redo.last().copied(),
+        })
+    }
+}
+
+fn ensure_changes(changes: &[Change], label: &str) -> Result<()> {
+    ensure!(
+        changes.windows(2).all(|pair| pair[0].path < pair[1].path),
+        "{label} has unordered or duplicate paths."
+    );
+    ensure!(
+        changes
+            .iter()
+            .all(|change| !change.path.as_os_str().is_empty() && change.before != change.after),
+        "{label} has an empty or unchanged path."
+    );
+    Ok(())
+}
+
+fn merge(changes: &mut BTreeMap<PathBuf, Change>, next: &[Change]) {
+    for change in next {
+        changes
+            .entry(change.path.clone())
+            .and_modify(|combined| combined.after = change.after.clone())
+            .or_insert_with(|| change.clone());
     }
 }
 

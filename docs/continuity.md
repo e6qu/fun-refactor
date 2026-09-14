@@ -1632,3 +1632,20 @@ retaining each declaration's origin. Mixed-ecosystem tests cover literal constra
 replacement metadata, Poetry object specifications and source-free output. A source-anchored
 inventory predicate caps a snapshot at 1,024 manifests and 65,536 declarations and agrees with Lean
 at its boundaries and machine limits. Local-link resolution remains explicitly scoped to Cargo/npm.
+
+Browser history now survives reloads without importing the native filesystem journal. The WASM API
+exports one canonical session containing current files, the compacted patch basis and retained undo
+and redo records. Restoration checks the SHA-256 envelope, schema, relative paths, transaction bases,
+stack partition, all resource limits and both live snapshot chains before it builds an index. The
+playground replaces one local-storage checkpoint only after a completed synchronous transition and
+restores it before its default network load. Storage refusal preserves the current edit and previous
+checkpoint while producing a visible warning.
+
+`compact_history(keep)` folds older applied transactions into the cumulative basis and discards old
+redo and abandoned payloads. It preserves the cumulative Git patch, newest requested stack entries
+and monotonic transaction identities. Host and real-wasm tests cover restoration, subsequent undo
+and redo, compaction, tampering, unsafe paths, malformed envelopes, file limits and quota failure.
+The production build now tolerates two targeted legacy diagnostics from the upstream Markdown
+allocator under Clang 23; wasi-sdk 34 builds all grammars and the 88-capability and patch suites pass.
+Lean anchors restoration and compaction admission, proves their finite bounds and agrees with Rust
+over Boolean and machine-size boundary cases.
