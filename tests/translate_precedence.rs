@@ -172,6 +172,24 @@ fn a_remainder_between_integers_answers_what_the_source_answered() {
 }
 
 #[test]
+fn a_generated_python_remainder_helper_folds_back_into_the_operator() {
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let path = tmp.path().join("a.py");
+    std::fs::write(
+        &path,
+        "def fr_trunc_rem(dividend: int, divisor: int) -> int:\n    remainder = dividend % divisor\n    if remainder != 0 and (remainder < 0) != (dividend < 0):\n        return remainder - divisor\n    return remainder\n\ndef width(dividend: int, divisor: int) -> int:\n    return fr_trunc_rem(dividend, divisor)\n",
+    )
+    .expect("the file");
+    let plan = transpile::plan(&path, Language::Rust).expect("a translation");
+    assert!(
+        plan.output.contains("dividend % divisor"),
+        "{}",
+        plan.output
+    );
+    assert!(!plan.output.contains("fn frtruncrem"), "{}", plan.output);
+}
+
+#[test]
 fn a_remainder_between_floats_is_not_reported() {
     // Float `%` agrees.
     let tmp = tempfile::tempdir().expect("a temporary directory");
