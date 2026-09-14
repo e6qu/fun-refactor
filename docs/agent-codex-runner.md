@@ -2,7 +2,9 @@
 
 `tools/agent-eval-codex.py` launches prepared paired trials through `codex exec`. It is opt-in, never runs from the normal CI gate and requires an explicit quota acknowledgement.
 
-Prepare a fresh pair, inspect the generated prompts, then dry-run the exact commands:
+Prepare a fresh pair, inspect the generated prompts, then dry-run the exact commands. Preparation
+copies the selected executable once to `<sessions>/fr-agent-eval-bin`, makes that copy read-only and
+binds every arm to its digest. Later Cargo builds cannot silently invalidate a running cohort.
 
 ```sh
 python3 tools/agent-eval.py prepare --project regex-coordinated --repetitions 1 --out /tmp/fr-agent-sessions
@@ -33,5 +35,13 @@ target/agent-eval-venv/bin/python tools/agent-eval.py record /tmp/fr-agent-sessi
 ```
 
 The manifest records overall acceptance and failed trial names. Failed cohorts remain recordable as diagnostic evidence and token-auditable, while replay refuses them rather than treating their patches as accepted results.
+
+The [2026-09-14 diagnostic pair](../tests/agent-eval/results/2026-09-14-deferred-diagnostic/manifest.json)
+found two evaluator defects. The portable workflow reference described the integer input schema
+without showing its exact JSON, and prepared sessions pointed to a mutable Cargo output. The file
+arm passed its changed-state oracle before that executable changed. The corrected harness copies one
+read-only binary for the pair, fingerprints the evaluator at preparation, and reports every invalid
+workflow field with the expected shape. This cohort remains failed evidence and supports no
+acceptance or comparative-efficiency claim.
 
 The command shape follows the official [Codex non-interactive command reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli#codex-exec) and [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference). `--ignore-user-config` still uses the operator's Codex home for authentication. Model availability and quota remain account-dependent; a failed launch stays part of the attempted trial record.

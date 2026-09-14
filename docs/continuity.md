@@ -1314,6 +1314,12 @@ rather than proved.
 ## Continuing agent-evaluation policy
 
 The agreed real-agent baseline is local `codex exec` with `gpt-5.6-luna`, `low` reasoning and the default service tier.
+The 2026-09-14 deferred-work diagnostic retained the first new pair after source-history compaction.
+Both scores failed: the `fr` arm could not infer the integer workflow input schema from an ambiguous
+reference, while a concurrent Cargo build changed the shared debug executable and stopped the file
+arm after its changed-state oracle passed. The harness now copies one read-only executable into each
+prepared experiment, fingerprints evaluator sources, shows an exact workflow manifest and returns
+field-specific manifest errors. Reruns belong in a separate cohort; the diagnostic remains immutable.
 Routine CI keeps deterministic replay and does not consume agent quota; real-agent smoke pairs and cohorts are explicit authenticated runs.
 Each fresh trial must ignore user configuration, retain Codex JSONL events and record the CLI catalog entry and complete model settings.
 A small Terra or Sol calibration is reserved for milestones where Luna failures could otherwise conflate model capability with workflow usability.
