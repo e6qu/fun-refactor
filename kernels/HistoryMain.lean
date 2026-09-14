@@ -76,4 +76,10 @@ def main (args : List String) : IO Unit :=
           for retained in [false, true] do
             for planned in [false, true] do
               IO.println (recordCompactable detailed pending retained planned)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, memory-transitions, record-compaction or no arguments")
+  | ["file-move"] =>
+      for sourceExists in [false, true] do
+        for destinationExists in [false, true] do
+          for distinctPaths in [false, true] do
+            for sourceSupported in [false, true] do
+              IO.println (moveAdmitted sourceExists destinationExists distinctPaths sourceSupported)
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, memory-transitions, record-compaction, file-move or no arguments")

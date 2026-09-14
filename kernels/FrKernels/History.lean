@@ -8,6 +8,29 @@ structure FileSnapshot where
 
 abbrev Snapshot := Option FileSnapshot
 
+-- fr:spec src/history/files.rs::move_admitted @ 5ec97817daf278f170eaa1efcd91b689aaa99d7add15875ee4abc8ab8459827e
+-- fr:signature source_exists: bool => sourceExists: Bool; destination_exists: bool => destinationExists: Bool; distinct_paths: bool => distinctPaths: Bool; source_supported: bool => sourceSupported: Bool; return: bool => return: Bool
+def moveAdmitted
+    (sourceExists : Bool) (destinationExists : Bool) (distinctPaths : Bool)
+    (sourceSupported : Bool) : Bool :=
+  sourceExists && !destinationExists && distinctPaths && sourceSupported
+
+theorem move_admitted_iff
+    (sourceExists destinationExists distinctPaths sourceSupported : Bool) :
+    moveAdmitted sourceExists destinationExists distinctPaths sourceSupported = true ↔
+      sourceExists = true ∧ destinationExists = false ∧ distinctPaths = true ∧
+        sourceSupported = true := by
+  cases sourceExists <;> cases destinationExists <;> cases distinctPaths <;>
+    cases sourceSupported <;> decide
+
+theorem admitted_move_has_exact_endpoint_existence
+    (sourceExists destinationExists distinctPaths sourceSupported : Bool)
+    (accepted : moveAdmitted sourceExists destinationExists distinctPaths sourceSupported = true) :
+    sourceExists = true ∧ destinationExists = false := by
+  have facts :=
+    (move_admitted_iff sourceExists destinationExists distinctPaths sourceSupported).mp accepted
+  exact ⟨facts.1, facts.2.1⟩
+
 -- fr:spec src/history.rs::matches_snapshot @ 6ea40f4e
 -- fr:signature current: &Option<Snapshot> => current: Snapshot; before: &Option<Snapshot> => before: Snapshot; after: &Option<Snapshot> => after: Snapshot; recovery: bool => recovery: Bool; return: bool => return: Bool
 def matchesSnapshot (current : Snapshot) (before : Snapshot) (after : Snapshot) (recovery : Bool) : Bool :=

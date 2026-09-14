@@ -104,6 +104,10 @@ Its source-history retention model admits compaction only for detailed, non-pend
 non-planned records. Lean proves retained and planned records cannot qualify, and shared execution
 compares all sixteen boolean states with Rust. Integration tests cover basis drift, stack windows,
 summary integrity, journal shrinkage and refusal to replay a compacted record.
+The file-move admission predicate adds sixteen shared cases. Lean proves that an admitted move has a
+present supported source, absent destination and distinct paths. The generic snapshot and replay
+laws then cover exact endpoint restoration; path resolution and filesystem operations remain tested
+implementation boundaries.
 
 `FrKernels.MemoryHistory` specializes the lifecycle boundary used by an in-memory WASM workspace.
 It proves that non-top and abandoned records cannot transition. Applied and undone records admit only

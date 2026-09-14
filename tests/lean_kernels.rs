@@ -866,6 +866,47 @@ fn history_snapshot_checks_match_lean_for_existence_content_and_modes() {
 }
 
 #[test]
+fn file_move_admission_matches_lean_for_every_boundary_case() {
+    use fun_refactor::history::files::move_admitted;
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-history-kernel", "file-move"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut expected = Vec::new();
+    for source_exists in [false, true] {
+        for destination_exists in [false, true] {
+            for distinct_paths in [false, true] {
+                for source_supported in [false, true] {
+                    expected.push(
+                        move_admitted(
+                            source_exists,
+                            destination_exists,
+                            distinct_paths,
+                            source_supported,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
+#[test]
 fn patch_modes_match_lean_across_permission_bits_and_u32_boundaries() {
     use fun_refactor::history::{git_mode, git_mode_change_supported};
     build_kernel();

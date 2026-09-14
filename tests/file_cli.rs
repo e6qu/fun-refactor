@@ -142,6 +142,114 @@ fn delete_preview_save_apply_undo_redo_and_patches_preserve_unrelated_git_state(
 }
 
 #[test]
+fn move_preview_save_apply_undo_redo_and_patch_preserve_exact_snapshot() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "source λ.txt", "moved text\n", 0o751);
+    put(root, "unrelated.txt", "keep\n", 0o644);
+    git(root, &["init", "-q"]);
+    git(root, &["add", "."]);
+    git(root, &["commit", "-qm", "base"]);
+    let index = fs::read(root.join(".git/index")).unwrap();
+
+    let preview = ok(
+        root,
+        &["file", "move", "source λ.txt", "nested/destination.txt"],
+    );
+    assert_eq!(preview["operation"], "move");
+    assert_eq!(preview["changed"], 2);
+    assert_eq!(preview["source"], "source λ.txt");
+    assert_eq!(preview["destination"], "nested/destination.txt");
+    assert!(root.join("source λ.txt").exists());
+    assert!(!root.join("nested/destination.txt").exists());
+
+    let saved = ok(
+        root,
+        &[
+            "file",
+            "move",
+            "source λ.txt",
+            "nested/destination.txt",
+            "--save-plan",
+        ],
+    );
+    assert_eq!(saved["basis"], preview["basis"]);
+    assert_eq!(saved["transaction"], 1);
+    let patch = ok(root, &["history", "patch", "1"]);
+    let patch_text = patch["patch"].as_str().unwrap();
+    assert!(patch_text.contains("nested/destination.txt"));
+    assert!(patch_text.contains("new file mode 100755"));
+    assert!(patch_text.contains("deleted file mode 100755"));
+    assert_eq!(
+        ok(root, &["history", "patch", "1", "--git-check"])["applicable"],
+        true
+    );
+
+    ok(root, &["history", "apply", "1", "--write"]);
+    assert!(!root.join("source λ.txt").exists());
+    assert_eq!(
+        fs::read_to_string(root.join("nested/destination.txt")).unwrap(),
+        "moved text\n"
+    );
+    assert_eq!(mode(&root.join("nested/destination.txt")), 0o751);
+    put(root, "later.txt", "later\n", 0o600);
+
+    ok(root, &["history", "undo", "1", "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("source λ.txt")).unwrap(),
+        "moved text\n"
+    );
+    assert_eq!(mode(&root.join("source λ.txt")), 0o751);
+    assert!(!root.join("nested/destination.txt").exists());
+    assert_eq!(
+        fs::read_to_string(root.join("later.txt")).unwrap(),
+        "later\n"
+    );
+
+    ok(root, &["history", "redo", "1", "--write"]);
+    assert!(!root.join("source λ.txt").exists());
+    assert_eq!(
+        fs::read_to_string(root.join("nested/destination.txt")).unwrap(),
+        "moved text\n"
+    );
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+}
+
+#[test]
+fn move_refuses_missing_same_unsupported_and_occupied_endpoints_without_history() {
+    for case in 0..4 {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        put(
+            root,
+            "source.txt",
+            if case == 2 { "a\0b" } else { "text\n" },
+            0o640,
+        );
+        if case == 3 {
+            put(root, "destination.txt", "occupied\n", 0o600);
+        }
+        let args = match case {
+            0 => ["file", "move", "missing.txt", "destination.txt", "--write"],
+            1 => ["file", "move", "source.txt", "source.txt", "--write"],
+            _ => ["file", "move", "source.txt", "destination.txt", "--write"],
+        };
+        let out = command(root, &args).output().unwrap();
+        error(out, "file move");
+        assert!(root.join("source.txt").exists());
+        if case == 3 {
+            assert_eq!(
+                fs::read_to_string(root.join("destination.txt")).unwrap(),
+                "occupied\n"
+            );
+        } else {
+            assert!(!root.join("destination.txt").exists());
+        }
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
 fn executable_changes_only_owner_bit_and_records_only_changed_paths() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

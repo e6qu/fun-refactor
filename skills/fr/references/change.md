@@ -25,7 +25,9 @@ Syntax validation rejects new parser errors; it does not prove imports resolve, 
 Refresh handles only before another source query or edit needs one. Keep the transaction ID for [history](history.md) and [patch export](git.md).
 
 For related operations, load [recipes](recipes.md). For implementation changes, load [authoring](author.md).
-For whole-entry changes, use `fr file delete`, `fr file executable`, or `fr file symlink`; each previews or records through the same history workflow.
+For whole-entry changes, use `fr file delete`, `fr file move`, `fr file executable`, or
+`fr file symlink`; each previews or records through the same history workflow. A file move requires
+an absent destination and preserves the exact recorded source snapshot.
 
 For a revision-bound Next.js or FastAPI route feature, use `fr migrate feature` after `fr project features`.
 FastAPI dependency edits require an explicit owning `pyproject.toml` and one exact requirement string for every missing generated import.

@@ -1688,19 +1688,24 @@ History restores entry kinds, file contents or UTF-8 link targets, existence and
 ```sh
 fr file delete obsolete.txt empty.txt
 fr file delete obsolete.txt --save-plan
+
+fr file move old/name.rs new/name.rs --save-plan
 fr file executable scripts/build.sh --set on --write
 fr file executable scripts/build.sh --set off
 
 fr file symlink public/current --target releases/v2 --save-plan
 ```
 
-Preview or record deletion and owner-execute operations on up to 500 explicit entries, or create and replace one symlink.
+Preview or record deletion and owner-execute operations on up to 500 explicit entries.
+Move one file to an absent path, or create and replace one symlink.
 Both output modes print JSON metadata without source bodies. Paths sort before recording and reporting.
 The default previews without writing. `--save-plan` saves a transaction; `--write` records and applies it.
 Choose either flag. Apply a saved transaction with `fr history apply ID --write`.
 The same history commands provide undo, redo, recovery and Git patch export.
 
 `delete` removes whole files, including empty files, without checking references or project behavior.
+`move SOURCE DESTINATION` records source deletion and destination creation in one transaction. The
+destination must be absent. Contents, entry kind and complete regular-file mode move unchanged.
 `executable --set on|off` changes only the owner-execute bit and preserves content and all other permission bits.
 For example, setting `on` changes `0644` to `0744`; Git patches project that result to `100755`.
 `symlink PATH --target TARGET` creates or replaces a regular file or link without following the target.
@@ -1708,7 +1713,8 @@ The target may be relative, absolute or dangling and must contain 1 through 1,02
 Already-correct modes produce no transaction and leave any existing journal unchanged.
 The `file-snapshots` validation label covers existence, entry kind, complete contents or link target and recorded regular-file modes; it does not claim compilation or dependency validation.
 
-Absolute paths, parent traversal, duplicate targets, parent symlinks, directories, missing deletion targets, non-UTF-8 entries and NUL-containing contents cause refusal.
+Absolute paths, parent traversal, duplicate targets, parent symlinks, directories, missing deletion
+or move sources, occupied move destinations, non-UTF-8 entries and NUL-containing contents cause refusal.
 Executable changes require regular files. Reports use a null permission mode for symlinks.
 Targets cannot traverse `.git` or `.fr-history`. Explicit paths can name ignored files.
 Git is optional; operations preserve its index and use the native journal for checked writes.
