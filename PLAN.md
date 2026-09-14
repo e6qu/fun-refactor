@@ -1372,6 +1372,40 @@ Planned checkpoints:
    Rust and Lean agree across the generated finite domains. Native, portable-skill, strict proof and
    WASM gates pass with zero proof obligations or debts.
 
+### PR 29. Deferred Boundary Closure
+
+**Goal.** Close every concrete lifecycle, evaluator, context and manifest gap retained after the
+cross-stack milestone. Replace old roadmap qualifications with implemented, tested contracts.
+
+**Delivered scope.**
+
+- Compact native source history through a reviewed retention basis while preserving audit summaries.
+- Pin external agent replay, freeze trial inputs and reject redundant evaluator calls before quota use.
+- Extend strict source-signature correspondence across every readable programming language.
+- Undo and redo completed owned-worktree removals through retained Git objects and fresh metadata.
+- Expand Git change impact through bounded tracked workspace context and transitive call traversal.
+- Add source-free Go module and Python project manifest inventories with explicit declaration origins.
+- Persist, restore and compact browser history through a checked, content-bound local checkpoint.
+- Repair every adjacent defect found while exercising these flows, including current-Clang wasm builds.
+
+**Acceptance.**
+
+1. **Complete.** Native history compaction preserves retained replay and refuses pending or planned
+   records. Lean and Rust agree on the complete finite admission boundary.
+2. **Complete.** Agent evaluation binds immutable inputs, retains failed diagnostics and stops exact
+   repeated successful calls before execution.
+3. **Complete.** Strict checking validates explicit shared-IR signatures for all readable code
+   languages and rejects ambiguous source declarations.
+4. **Complete.** Worktree removal supports repeated remove, undo and redo cycles with fresh ownership
+   receipts, exact Git state checks and Lean-backed admission.
+5. **Complete.** Git diff call reports traverse one to eight steps over bounded tracked snapshots.
+   Reports return reachable structure and omit captured source bodies.
+6. **Complete.** Package views read Cargo, npm, Go and Python manifests under shared finite limits.
+7. **Complete.** Browser checkpoints validate schema, digest, paths, stacks and every live snapshot
+   chain. Compaction preserves cumulative patches and monotonic transaction identities.
+8. **Complete.** Native, browser, real-wasm, agent-skill, prose, site and formal correspondence gates
+   pass for the combined branch.
+
 ## Formal verification policy
 
 Prioritize properties whose failure silently changes code or misleads an agent.
@@ -1419,7 +1453,7 @@ Each cohort records the CLI version, visible model catalog entry, model, effort,
 Availability and quota policy can change.
 The harness retains every attempted trial and keeps infrastructure failures separate from agent failures.
 
-## Known limits and deferred choices
+## Explicit boundaries
 
 - Manifest readers cover Cargo, npm, Go modules and Python projects. Lockfile resolution, feature evaluation and complete package-manager semantics remain outside their declared subsets.
 - Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
