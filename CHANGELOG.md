@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.20.0...fun-refactor-v0.21.0) (2026-09-14)
+
+
+### Features
+
+* **project:** disclose content-addressed project evidence ([#288](https://github.com/e6qu/fun-refactor/issues/288)) ([1f2bd22](https://github.com/e6qu/fun-refactor/commit/1f2bd224d42a3898033fcf344cb3d1acb487ff9d))
+* **spec:** add agent formalization workbench ([#290](https://github.com/e6qu/fun-refactor/issues/290)) ([3ddc47e](https://github.com/e6qu/fun-refactor/commit/3ddc47e18db1e1a0af853c689d95eeefa651bef9))
+
 ## [0.20.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.19.0...fun-refactor-v0.20.0) (2026-09-14)
 
 
