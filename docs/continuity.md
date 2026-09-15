@@ -24,7 +24,8 @@ also carries the project coverage envelope. This measurement covers deterministi
 costs and makes no model, token, quota or population claim. B894 and B895 record the orchestration
 and purpose-boundary defects fixed by this checkpoint.
 
-PR 35 is in progress. It lets a `change` intent carry one direct typed task change whose literal
+PR 35 is in review as [GitHub PR 303](https://github.com/e6qu/fun-refactor/pull/303). It lets a
+`change` intent carry one direct typed task change whose literal
 target must equal the evidence target. Native preview compiles both from one project snapshot and
 returns one `fraa1:` basis over the intent and task review. Native write accepts only the unchanged
 manifest and basis, then delegates to the established original-check, apply, check, undo, restored

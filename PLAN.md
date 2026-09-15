@@ -270,7 +270,7 @@ agent workflow. PR 35 joins native intent compilation to the reviewed change lif
 | [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Merged |
 | [PR 33](https://github.com/e6qu/fun-refactor/pull/299) | Declarative Agent Intents and Current Toolchains | Merged |
 | [PR 34](https://github.com/e6qu/fun-refactor/pull/301) | Native Agent Intent Compiler | Merged |
-| PR 35 | Intent-Bound Reviewed Changes | In progress |
+| [PR 35](https://github.com/e6qu/fun-refactor/pull/303) | Intent-Bound Reviewed Changes | In review |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -352,7 +352,7 @@ Verification and acceptance:
 
 ### PR 35. Intent-Bound Reviewed Changes
 
-Status: in progress.
+Status: in review as [GitHub PR 303](https://github.com/e6qu/fun-refactor/pull/303).
 
 Goal: compile task evidence and one exact high-level change into a single review. Execute only that
 unchanged review through the existing checks, reversal and patch lifecycle.
