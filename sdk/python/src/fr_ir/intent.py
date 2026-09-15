@@ -206,6 +206,8 @@ def compile_intent(client: FrClient, intent: AgentIntent,
                                     identity_complete,
                                     complete)):
         raise FrRuntimeError("native agent intent failed its final admission policy")
+    if not isinstance(selected, Mapping) or not isinstance(digests, Mapping):
+        raise FrRuntimeError("native agent intent has no complete selected object map")
     stored: list[str] = []
     if store is not None:
         for name in sorted(expected_names):
