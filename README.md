@@ -33,6 +33,9 @@ The [agent IR SDK evaluation](docs/agent-ir-sdk-evaluation.md) compares direct J
 The [agent runtime SDK](docs/agent-runtime-sdk.md) keeps bounded project, disclosure and reviewed
 change reports as Python objects. It follows server-issued continuations and executes an unchanged
 reviewed manifest and basis.
+The [agent context workspace](docs/agent-context-workspace.md) recursively materializes selected
+Merkle subtrees, then verifies and stores their objects. Its bounded packet contains only the code
+map, traces, impact, value flow or other pointers an agent chooses.
 The [semantic context comparison](docs/semantic-context-evaluation.md) records identical changes and patches, zero exposed source bytes and the current small-task payload premium.
 The [semantic delta evaluation](docs/semantic-delta-evaluation.md) compares basis-bound node edits with complete semantic-body replacement under deterministic and fresh-agent checks.
 The [semantic intent evaluation](docs/semantic-intent-evaluation.md) compares filtered role-based

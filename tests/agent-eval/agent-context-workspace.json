@@ -1,0 +1,201 @@
+{
+  "schema": "fr-agent-context-workspace-eval-1",
+  "passed": true,
+  "inputs": {
+    "tool_sha256": "f053b8827854b2020df473cc0b2fb377ff12dceb127c5afec805a69b604854bd",
+    "runtime_sha256": "c74e3ddcf25d080a8b8ddd95d59d75177e7cf57caf2f7e12f8d56173cf105fcc",
+    "context_sha256": "54375d1e92108dc72c923cc16242f62e8b23d4671baa5e1052d6bffac1f22383"
+  },
+  "arms": {
+    "progressive_reports": {
+      "agent_visible_calls": 16,
+      "internal_fr_calls": 16,
+      "agent_visible_bytes": 59825,
+      "request_response_bytes": [
+        67,
+        1039,
+        169,
+        4049,
+        230,
+        3462,
+        230,
+        3497,
+        230,
+        3803,
+        316,
+        3499,
+        230,
+        3845,
+        316,
+        3889,
+        230,
+        3850,
+        230,
+        3854,
+        316,
+        3466,
+        230,
+        3173,
+        230,
+        3855,
+        316,
+        3875,
+        230,
+        3020,
+        230,
+        3849
+      ],
+      "packet": {
+        "schema": "fr-agent-context-1",
+        "view": "evidence",
+        "calls": 15,
+        "serialized_bytes": 3864,
+        "cached_objects": 32,
+        "target": {
+          "kind": "function",
+          "name": "render",
+          "path": "src/lib.rs"
+        },
+        "selected": {
+          "code_map": {
+            "ancestors": [
+              {
+                "children": 1,
+                "depth": 0,
+                "kind": "directory",
+                "name": ".",
+                "path": ""
+              },
+              {
+                "children": 1,
+                "depth": 1,
+                "kind": "directory",
+                "name": "src",
+                "path": "src"
+              },
+              {
+                "children": 3,
+                "depth": 2,
+                "kind": "file",
+                "name": "lib.rs",
+                "path": "src/lib.rs"
+              },
+              {
+                "children": 1,
+                "depth": 3,
+                "kind": "function",
+                "name": "render",
+                "path": "src/lib.rs"
+              }
+            ],
+            "descendants": [
+              {
+                "children": 0,
+                "depth": 1,
+                "kind": "parameter",
+                "name": "item",
+                "path": "src/lib.rs"
+              }
+            ],
+            "omitted": {
+              "depth": 3,
+              "depth_or_row_bound": 0,
+              "row_limit": 256
+            },
+            "target": {
+              "children": 1,
+              "depth": 0,
+              "kind": "function",
+              "name": "render",
+              "path": "src/lib.rs"
+            }
+          }
+        },
+        "selected_sha256": "58a8ff44b584636412ce71c2760af254a59054747b97c8753239abc07cbb0bee"
+      }
+    },
+    "selected_packet": {
+      "agent_visible_calls": 1,
+      "internal_fr_calls": 16,
+      "agent_visible_bytes": 4516,
+      "request_response_bytes": [
+        652,
+        3864
+      ],
+      "packet": {
+        "schema": "fr-agent-context-1",
+        "view": "evidence",
+        "calls": 15,
+        "serialized_bytes": 3864,
+        "cached_objects": 32,
+        "target": {
+          "kind": "function",
+          "name": "render",
+          "path": "src/lib.rs"
+        },
+        "selected": {
+          "code_map": {
+            "ancestors": [
+              {
+                "children": 1,
+                "depth": 0,
+                "kind": "directory",
+                "name": ".",
+                "path": ""
+              },
+              {
+                "children": 1,
+                "depth": 1,
+                "kind": "directory",
+                "name": "src",
+                "path": "src"
+              },
+              {
+                "children": 3,
+                "depth": 2,
+                "kind": "file",
+                "name": "lib.rs",
+                "path": "src/lib.rs"
+              },
+              {
+                "children": 1,
+                "depth": 3,
+                "kind": "function",
+                "name": "render",
+                "path": "src/lib.rs"
+              }
+            ],
+            "descendants": [
+              {
+                "children": 0,
+                "depth": 1,
+                "kind": "parameter",
+                "name": "item",
+                "path": "src/lib.rs"
+              }
+            ],
+            "omitted": {
+              "depth": 3,
+              "depth_or_row_bound": 0,
+              "row_limit": 256
+            },
+            "target": {
+              "children": 1,
+              "depth": 0,
+              "kind": "function",
+              "name": "render",
+              "path": "src/lib.rs"
+            }
+          }
+        },
+        "selected_sha256": "58a8ff44b584636412ce71c2760af254a59054747b97c8753239abc07cbb0bee"
+      }
+    }
+  },
+  "reduction": {
+    "agent_visible_calls": 15,
+    "agent_visible_bytes": 55309,
+    "agent_visible_percent": 92.5
+  },
+  "scope": "One deterministic generic Rust project. Both arms perform identical handle discovery, bounded exact disclosure traversal, recursive code-map materialization, digest checks and object-store writes. The report arm counts every fr request and response at the agent boundary. The packet arm counts its complete Python program and final selected packet while intermediate reports remain local. This does not run a model or measure tokens, hidden reasoning, billed quota or population behavior."
+}

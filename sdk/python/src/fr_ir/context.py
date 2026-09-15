@@ -203,13 +203,33 @@ def store_merkle_value(
         for key, record in objects.items()
     }
     total = sum(len(item) for item in encoded.values())
-    if not _object_store_admitted(
-        len(objects), total, expected_digest is None or expected_digest == digest,
-        True, digest in objects,
-    ):
+    if not (1 <= len(objects) <= _PACK_MAX_OBJECTS and total <= _PACK_MAX_BYTES
+            and digest in objects):
         raise FrRuntimeError("Merkle object pack exceeds the local storage admission bounds")
+    records_canonical = True
     for key in sorted(objects, key=lambda item: (item == digest, item)):
         store.put(key, objects[key])
+        observed = store.get(key)
+        if not isinstance(observed, Mapping):
+            records_canonical = False
+            break
+        try:
+            observed_bytes = json.dumps(
+                observed, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False,
+            ).encode("utf-8")
+        except (TypeError, ValueError):
+            records_canonical = False
+            break
+        if observed_bytes != encoded[key]:
+            records_canonical = False
+            break
+    root_present = store.get(digest) is not None
+    if not _object_store_admitted(
+        len(objects), total, expected_digest is None or expected_digest == digest,
+        records_canonical, root_present,
+    ):
+        raise FrRuntimeError("Merkle object backend failed immutable write verification")
     return StoredMerkleValue(digest, len(objects), total)
 
 
@@ -328,7 +348,11 @@ class ContextSession:
                 raise FrRuntimeError(f"no exact disclosure action reaches {pointer!r}")
             action = candidates[0]
             visited.add(action.arguments)
-            self._append(action)
+            report = self._append(action)
+            revealed = report._value.get("revealed")
+            if (isinstance(revealed, Mapping)
+                    and self._pointer_from_address(revealed.get("address")) == pointer):
+                return report
         raise FrRuntimeError(f"disclosure traversal exceeded {max_calls} calls")
 
     def reveal_section(self, section: str, *, max_calls: int = 16) -> Disclosure:
@@ -377,7 +401,10 @@ class ContextSession:
             total: int | None = None
             while True:
                 node = current._value.get("revealed")
-                if not isinstance(node, Mapping) or not isinstance(node.get("value_fragment"), str):
+                if (not isinstance(node, Mapping)
+                        or self._pointer_from_address(node.get("address")) != pointer
+                        or node.get("object_digest") != digest
+                        or not isinstance(node.get("value_fragment"), str)):
                     active.remove(pointer)
                     raise FrRuntimeError("disclosed string page is malformed")
                 offset, returned, candidate_total = (
@@ -494,7 +521,7 @@ class ContextSession:
             raise FrRuntimeError("materialization call bound must be 1 through 64")
         start = len(self._reports)
         report = self.reveal(pointer, max_calls=max_calls)
-        value = self._materialize_report(report, pointer, start + max_calls + 1, set())
+        value = self._materialize_report(report, pointer, start + max_calls, set())
         digest = self._materialized_digests.get(pointer)
         admitted = _context_materialization_admitted(
             len(self._reports) - start,

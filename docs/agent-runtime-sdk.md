@@ -36,6 +36,11 @@ checks the project-disclosure command shape. Rust still checks its revision, vie
 identity and cursor. Source remains behind its own action and is not fetched by these calls unless
 local code deliberately selects it.
 
+For multi-page sections, use the [agent context workspace](agent-context-workspace.md). It binds all
+responses to one disclosure identity, recursively materializes `code_map`, `call_traces`, `impact`,
+`sources_and_sinks` or another selected pointer, verifies its Merkle digest and emits one bounded
+packet. This avoids making an agent implement page traversal itself.
+
 ## Complete reviewed changes
 
 The existing `TaskChange`, `TaskTarget` and `TaskDelivery` types build the wire object. `review`

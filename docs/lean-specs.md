@@ -182,6 +182,20 @@ Python-oracle tests cover those implementation boundaries on selected cases. Pro
 opt-in evaluator and cache-audit mechanism; ordinary agent disclosure carries content addresses
 without proof payloads.
 
+`FrKernels.AgentContext` models final admission for the Python context workspace. Materialization
+requires a limit from one through 64, observed calls within that limit, one unchanged disclosure
+session, a complete value and a matching Merkle digest. Object-store publication requires one
+through 65,536 records, at most 64 MiB of canonical record bytes, matching digests and a present
+root. Four theorems recover the numeric bounds and every evidence condition. Both definitions have
+fresh source anchors and explicit Rust-to-Lean signature maps. The executable corpus compares 576
+boundary and Boolean cases with Rust; Python compares the same corpus with Rust.
+
+These theorems cover the two admission conjunctions. They do not prove the recursive Python
+materializer, SHA-256 collision resistance, JSON parsing, subprocess behavior, filesystem atomicity,
+remote object-store durability or general Python/Rust/Lean correspondence. Adversarial unit tests
+and a real Rust/Python traversal cover selected implementation paths. See the
+[agent context workspace](agent-context-workspace.md) for the complete boundary.
+
 `FrKernels.DisclosedEdit` models admission of the opaque scalar capability produced by progressive
 disclosure. Admission requires a full handle, a well-formed reference, exactly one recomputed
 candidate, agreement with the current scalar and a changed replacement. Theorems recover the exact

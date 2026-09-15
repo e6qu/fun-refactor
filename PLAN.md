@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 730 |
+| Defects fixed | 732 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -50,6 +50,8 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
 - A Python agent runtime that retains structured reports locally, follows exact progressive
   disclosure actions and carries reviewed task-change evidence into execution without JSON glue.
+- A content-addressed Python context workspace that traverses and reconstructs selected Merkle
+  subtrees, verifies storage writes and emits bounded packets for agent consumption.
 - Merkle-committed progressive semantic and source disclosure with exact actions, strict
   per-response bounds and opaque scalar, typed-node and statement-position edit capabilities.
 - Multi-file authoring batches using one reviewed source-history transaction.
@@ -170,6 +172,12 @@ eight lifecycle stages and applied history state. Direct JSON exposes 17,689 byt
 agent exchanges; the complete runtime program and result expose 1,864 bytes in one exchange, an
 89.5% reduction. This fixed protocol measurement does not run a model or measure billed tokens.
 
+PR 32's deterministic context-workspace comparison performs the same 16 internal `fr` operations
+and obtains the same normalized code map in both arms. Exposing all progressive reports costs
+59,825 bytes across 16 exchanges. The complete high-level Python program and its selected packet
+cost 4,516 bytes in one exchange, a 92.5% reduction. The fixture checks the same packet size, call
+count and cached-object count. It does not run a model or measure tokens or quota.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -242,7 +250,8 @@ The next completed milestone is awaiting review:
 | [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
 | [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
 | [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
-| [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Proposed |
+| [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Merged |
+| PR 32 | Content-Addressed Agent Context Workspace | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1488,7 +1497,7 @@ requiring agents to read successful command streams.
 
 ### PR 31. Structured Agent Runtime SDK
 
-Status: proposed as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297).
+Status: merged as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297).
 
 **Goal.** Let an agent keep bounded `fr` data inside a local Python process and progressively select
 needed high-level structures. Execute one reviewed change without copying complete JSON reports or
@@ -1519,6 +1528,46 @@ manually joining bases through its conversation.
    All 56 portable-skill examples, 22 Python unit tests and 15 Rust/Python integration tests pass.
    The default and WASM gates, 311/311 capability cells and 68-job strict Lean build pass locally.
    The deep gate passes all 93 Lean correspondence tests and its complete repository audits.
+
+### PR 32. Content-Addressed Agent Context Workspace
+
+Status: in progress.
+
+**Goal.** Let an agent request a high-level project subtree without implementing Merkle pagination
+or ingesting each intermediate report. Preserve the exact progressive-disclosure, revision and
+digest boundaries while making retrieved objects reusable through local or remote storage adapters.
+
+**Acceptance.**
+
+1. **Complete.** `client.context(...)` binds one complete disclosure identity. Exact server actions
+   reach later object pages and selected descendants under a shared 1–64 call bound. Cross-session
+   responses, invented actions, malformed pointers and a target reached beyond the limit refuse.
+2. **Complete.** `materialize` reconstructs inline values, paged objects and arrays, empty
+   containers and paginated UTF-8 strings. It checks page identity, offsets, unique keys, contiguous
+   indices, cycle freedom and the final advertised Merkle digest.
+3. **Complete.** `MemoryObjectStore` and `DirectoryObjectStore` implement the two-operation storage
+   protocol. Packs stay within 65,536 objects and 64 MiB, publish the root last, read every object
+   back and reject missing, altered, noncanonical or conflicting immutable records. Restoration
+   verifies every reachable digest.
+4. **Complete.** `packet` selects up to 32 named JSON Pointers and returns only their detached
+   values. It adds revision, view, commitment, target, call and cache provenance under a 1–64 KiB
+   bound.
+   `code_map`, `call_traces`, `impact` and `sources_and_sinks` use the same API.
+5. **Complete.** `FrKernels.AgentContext` proves the call bounds and all
+   session/completion/digest evidence for accepted materializations. It proves count, byte,
+   canonical-record and root evidence for accepted object packs. Both source anchors and signature
+   maps are fresh.
+   Rust and Lean agree on the 576 selected boundary cases; Python and Rust agree on the same corpus.
+6. **Complete.** Unit tests cover exact continuations, nested pages, empty arrays, Unicode byte
+   fragments, backend write verification, conflicts, session drift and call ceilings. A real
+   Rust/Python fixture materializes a paginated code map from `fr`, persists its objects, builds a
+   packet, then completes a reviewed change and patch lifecycle.
+7. **Complete.** The controlled context fixture makes the same 16 internal calls and retains the
+   same normalized code map in both arms. Progressive request/response exposure is 59,825 bytes in
+   16 exchanges; the complete high-level program and selected packet are 4,516 bytes in one
+   exchange, a 92.5% reduction. This measures fixed bytes, not model behavior, tokens or quota.
+8. **In progress.** Keep the Python package, portable skill, runtime, disclosure, Lean, roadmap and
+   continuity docs aligned. Pass the complete default, deep and WASM gates, then publish the PR.
 
 ## Formal verification policy
 

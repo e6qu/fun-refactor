@@ -67,6 +67,15 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B886: **a pluggable Merkle object backend could silently discard or alter writes**. The
+  context workspace treated successful `put` returns as durable evidence. It now reads every
+  immutable record back, compares canonical bytes and confirms the root before admitting the pack.
+
+- [x] B885: **a progressive reveal refused a target reached by its final permitted call**. The
+  loop checked the pointer only before following an action, turning an exact one-call traversal
+  into a false bound failure. It now accepts the returned target and shares the same total call
+  ceiling with recursive materialization.
+
 - [x] B884: **the Python runtime accepted a trailing tilde in a JSON Pointer**. RFC 6901 permits
   only `~0` and `~1` escapes, but the validator checked a tilde only when another character
   followed it. `FrReport.at()` and context traversal now refuse trailing and unknown escapes.

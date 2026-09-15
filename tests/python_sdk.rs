@@ -546,6 +546,31 @@ fn checked_agent_runtime_context_comparison_is_reproducible() {
 }
 
 #[test]
+fn checked_agent_context_workspace_comparison_is_reproducible() {
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/agent-context-workspace.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let expected: Value = serde_json::from_slice(
+        &fs::read(root().join("tests/agent-eval/agent-context-workspace.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn semantic_edit_plan_evaluation_is_reproducible() {
     let temp = tempfile::tempdir().unwrap();
     let output_path = temp.path().join("report.json");

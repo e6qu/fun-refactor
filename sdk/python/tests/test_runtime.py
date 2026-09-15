@@ -292,6 +292,16 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(FrRuntimeError, "conflicting immutable"):
             store.put(stored.digest, {"schema": "wrong"})
 
+        class DroppingStore:
+            def get(self, digest):
+                return None
+
+            def put(self, digest, record):
+                pass
+
+        with self.assertRaisesRegex(FrRuntimeError, "immutable write verification"):
+            store_merkle_value(DroppingStore(), value)
+
     @patch("fr_ir.runtime.subprocess.run")
     def test_materialization_reconstructs_pages_empty_arrays_and_unicode_strings(self, run):
         revision = "1" * 64
@@ -389,6 +399,40 @@ class RuntimeTests(unittest.TestCase):
         store = MemoryObjectStore()
         with self.assertRaisesRegex(FrRuntimeError, "lowercase SHA-256"):
             store.get("ABC")
+
+    @patch("fr_ir.runtime.subprocess.run")
+    def test_materialization_never_issues_a_call_beyond_its_bound(self, run):
+        handle = "frp1:rev:1"
+        identity = {
+            "schema": "fr-progressive-disclosure-1",
+            "token_budget": {"limit": 4096, "used_upper_bound": 900},
+            "revision": "1" * 64, "view_basis": "frdv1:" + "2" * 64,
+            "view": "evidence", "profile": "compact",
+            "commitment": {"object_root": "3" * 64},
+            "target": {"handle": handle},
+        }
+        child_action = ["project", "disclose", handle, "--reveal", "frh1:child"]
+        nested_action = ["project", "disclose", handle, "--reveal", "frh1:nested"]
+        run.side_effect = [
+            completed({**identity, "revealed": {
+                "address": "basis#/model", "object_digest": "3" * 64,
+                "value_kind": "object", "children": [{"key": "code_map", "hole": {
+                    "address": "basis#/model/code_map", "object_digest": "4" * 64,
+                    "reveal": {"arguments": child_action},
+                }}],
+            }}),
+            completed({**identity, "revealed": {
+                "address": "basis#/model/code_map", "object_digest": "4" * 64,
+                "value_kind": "object", "children": [{"key": "nodes", "hole": {
+                    "address": "basis#/model/code_map/nodes", "object_digest": "5" * 64,
+                    "reveal": {"arguments": nested_action},
+                }}],
+            }}),
+        ]
+        session = self.client.context(handle, view="evidence")
+        with self.assertRaisesRegex(FrRuntimeError, "call bound"):
+            session.materialize_section("code_map", max_calls=1)
+        self.assertEqual(run.call_count, 2)
 
 
 if __name__ == "__main__":
