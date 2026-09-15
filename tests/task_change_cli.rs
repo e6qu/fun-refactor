@@ -395,6 +395,11 @@ fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
     assert_eq!(preview["executed"], false);
     assert_eq!(preview["passed"], Value::Null);
     assert_eq!(preview["author"]["postconditions_held"], true);
+    assert_eq!(
+        preview["author"]["context_inherited"],
+        json!(["coverage", "revision", "handle_prefix"])
+    );
+    assert!(preview["author"].get("coverage").is_none());
     assert!(preview["author"]["diff"]
         .as_str()
         .unwrap()
@@ -419,6 +424,12 @@ fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
     );
     assert_eq!(completed["passed"], true);
     assert_eq!(completed["workflow"]["transaction_status"], "applied");
+    assert!(completed["workflow"].get("checks").is_none());
+    assert!(completed["workflow"]["reviewed_context_omitted"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|field| field == "checks"));
     assert!(completed["workflow"]["stages"]
         .as_array()
         .unwrap()
@@ -442,6 +453,70 @@ fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
             .len(),
         1
     );
+}
+
+#[test]
+fn inline_fragments_and_original_checks_form_one_reviewed_change_session() {
+    let root = fixture("true");
+    let selected = report(
+        fr(
+            root.path(),
+            &[
+                "project",
+                "find",
+                "render",
+                "--signature",
+                "--source",
+                "--bytes",
+                "2048",
+            ],
+        ),
+        0,
+    );
+    let path = root.path().join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    manifest["requests"] = json!([]);
+    manifest["targets"][0]["handle"] = selected["rows"][0][0].clone();
+    manifest["targets"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("from");
+    manifest["targets"][0]["fragment"] = json!("{ value.to_ascii_uppercase() }");
+    manifest["delivery"]["check-original"] = json!(true);
+    manifest["delivery"]["compact-success"] = json!(true);
+    fs::write(&path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+
+    let preview = preview(root.path());
+    assert_eq!(preview["delivery"]["check_original"], true);
+    assert_eq!(preview["stages"][0]["stage"], "check-original");
+    assert!(preview["author"]["diff"]
+        .as_str()
+        .unwrap()
+        .contains("to_ascii_uppercase"));
+
+    let completed = report(
+        fr(
+            root.path(),
+            &[
+                "task-change",
+                "--from",
+                ".fr/task-change.json",
+                "--write",
+                "--basis",
+                preview["task_change_basis"].as_str().unwrap(),
+            ],
+        ),
+        0,
+    );
+    let stages = completed["workflow"]["stages"].as_array().unwrap();
+    assert_eq!(stages.len(), 8);
+    assert_eq!(stages[0]["stage"], "check-original");
+    assert!(stages.iter().all(|stage| stage["status"] == "passed"));
+    assert_eq!(stages[0]["result"]["success_detail"], "summary");
+    assert!(stages[0]["result"]["results"][0].get("stdout").is_none());
+    assert!(fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_ascii_uppercase"));
 }
 
 #[test]
@@ -956,7 +1031,7 @@ fn incomplete_diffs_bad_fragments_and_invalid_fragment_choices_never_create_hist
         match fault {
             "diff" => assert!(message.contains("complete untruncated diff")),
             "syntax" => assert!(message.contains("batch operation 1 failed")),
-            "missing-fragment" => assert!(message.contains("invalid fragment choice")),
+            "missing-fragment" => assert!(message.contains("exactly one of 'from'")),
             _ => unreachable!(),
         }
         assert!(!root.path().join(".fr-history").exists(), "{fault}");

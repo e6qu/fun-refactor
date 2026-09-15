@@ -59,6 +59,8 @@ struct Target {
     op: task::AuthorOperation,
     from: Option<PathBuf>,
     #[serde(default)]
+    fragment: Option<String>,
+    #[serde(default)]
     scalar: Option<super::semantic_intent::ScalarRequest>,
     #[serde(default)]
     disclosed: Option<super::disclose::EditRequest>,
@@ -69,6 +71,10 @@ struct Target {
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(crate) struct Delivery {
+    #[serde(default)]
+    pub check_original: bool,
+    #[serde(default)]
+    pub compact_success: bool,
     #[serde(default)]
     pub exercise_reversal: bool,
     pub patch: Option<PathBuf>,
@@ -146,11 +152,25 @@ impl Project<'_> {
             "task change requires at least one declared check."
         );
         for target in &manifest.targets {
+            let fragment_inputs =
+                usize::from(target.from.is_some()) + usize::from(target.fragment.is_some());
             ensure!(
-                target.op.needs_fragment() == target.from.is_some(),
-                "task-change target '{}' has an invalid fragment choice.",
+                fragment_inputs == usize::from(target.op.needs_fragment()),
+                "task-change target '{}' must provide exactly one of 'from' or inline 'fragment' when its operation needs source, and neither otherwise.",
                 target.id
             );
+            if let Some(fragment) = &target.fragment {
+                ensure!(
+                    fragment.len() <= 65_536,
+                    "task-change target '{}' inline fragment exceeds 64 KiB.",
+                    target.id
+                );
+                ensure!(
+                    !fragment.contains('\0'),
+                    "task-change target '{}' inline fragment contains a NUL byte.",
+                    target.id
+                );
+            }
             ensure!(
                 matches!(target.op, task::AuthorOperation::EditBodyScalar)
                     == target.scalar.is_some(),
@@ -214,18 +234,28 @@ impl Project<'_> {
             resolved.len() == manifest.targets.len(),
             "task-change target resolution count changed."
         );
+        let inline_root =
+            tempfile::tempdir().context("creating inline task-change fragment directory")?;
         let operations = manifest
             .targets
             .iter()
             .zip(resolved)
-            .map(|(target, row)| {
+            .enumerate()
+            .map(|(index, (target, row))| {
+                let from = if let Some(fragment) = &target.fragment {
+                    let path = inline_root.path().join(format!("fragment-{index}"));
+                    fs::write(&path, fragment).context("writing inline task-change fragment")?;
+                    Some(path)
+                } else {
+                    target.from.clone()
+                };
                 Ok(author::BatchStep {
                     op: batch_operation(target.op),
                     handle: row["handle"]
                         .as_str()
                         .context("task-change target has no resolved handle")?
                         .to_owned(),
-                    from: target.from.clone(),
+                    from,
                     scalar: target.scalar.clone(),
                     disclosed: target.disclosed.clone(),
                     disclosed_ir: target.disclosed_ir.clone(),
@@ -261,6 +291,8 @@ impl Project<'_> {
             "targets": task_report["targets"],
             "checks": task_report["checks"],
             "delivery": {
+                "check_original": manifest.delivery.check_original,
+                "compact_success": manifest.delivery.compact_success,
                 "exercise_reversal": manifest.delivery.exercise_reversal,
                 "patch": manifest.delivery.patch,
                 "check_output_bytes": manifest.delivery.check_output_bytes,

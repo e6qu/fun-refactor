@@ -4254,6 +4254,36 @@ fn batch_postconditions_refuse_mismatches_before_history_or_source_changes() {
 }
 
 #[test]
+fn batch_postcondition_error_identifies_an_unchanged_operation() {
+    let source = "fn calc() { println!(\"same\"); }\n";
+    let (_temp, root, _) = fixture(source, b"{}");
+    let (handle, _) = selection(&root, "calc");
+    let input = batch_manifest(
+        &root,
+        vec![batch_step(
+            &root,
+            "replace-body",
+            &handle,
+            "body.txt",
+            "{ println!(\"same\"); }",
+        )],
+        None,
+    );
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&input).unwrap()).unwrap();
+    manifest["postconditions"] = serde_json::json!({"edits": 1});
+    fs::write(&input, serde_json::to_vec(&manifest).unwrap()).unwrap();
+
+    let (success, failed) = batch(&root, &input, &[]);
+    assert!(!success, "{failed}");
+    let message = failed["error"]["message"].as_str().unwrap();
+    assert!(
+        message.contains("Unchanged operations: 1 (replace-body)"),
+        "{failed}"
+    );
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
 fn batch_keeps_original_spans_when_same_file_edits_change_lengths() {
     use sha2::{Digest, Sha256};
     let source = "fn first() -> i32 { 1 }\nfn second() -> i32 { 2 }\n";

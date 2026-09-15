@@ -20,43 +20,53 @@ names a full handle directly or references a returned query report.
 }
 ```
 
-Run `fr project task --from '<TASK_MANIFEST>'`. Read every nested query’s gaps and omissions. A
-target’s `target-supported` eligibility only proves that its language and declaration kind can
-enter that authoring route. It does not validate fragment bytes or the exact syntax container.
+Run `fr project task --from '<TASK_MANIFEST>'`. Read every query’s gaps and omissions.
+`target-supported` covers the language and declaration kind, not fragment syntax.
 
-An `edit-body-scalar` target carries
-`"scalar":{"operation":"set-int","from":"1","to":"2"}` and needs no fragment. Task change
-validates its unique role match and generated intent during preview. Other authoring targets retain
-their existing fragment rules.
+`edit-body-scalar` carries `"scalar":{"operation":"set-int","from":"1","to":"2"}` and no
+fragment. Preview validates its unique role match and generated intent.
 
-An `edit-body-disclosed` target carries
-`"disclosed":{"edit":"frde1:<DIGEST>","to":"7"}` and the full handle returned with that
-capability. It needs no fragment or scalar object. Project task preserves the request in its author
-template; task change rebinds it to the current typed body and refuses stale or changed input.
+`edit-body-disclosed` carries `"disclosed":{"edit":"frde1:<DIGEST>","to":"7"}` and the full
+handle returned with that capability. It needs no fragment. Task change rebinds it to the current
+typed body and refuses stale input.
 
-An `edit-body-disclosed-ir` target carries
-`"disclosed_ir":{"edit":"frdi1:<DIGEST>","value":<TYPED_IR_NODE>}`. Omit `value` only for a
-delete capability. Its opaque ID fixes replacement category or statement position, so do not add a
-path or index. The Python SDK's `DisclosedIrEditRequest` emits this object from ordinary typed IR
-constructors.
+`edit-body-disclosed-ir` carries
+`"disclosed_ir":{"edit":"frdi1:<DIGEST>","value":<TYPED_IR_NODE>}`. Omit `value` only for
+delete. The ID fixes category or statement position; do not add a path or index. Python
+`DisclosedIrEditRequest` builds it from typed IR.
 
-Write each required fragment outside recognized source. Replace every `<FRAGMENT:ID>` in
-`author_manifest_template` with the actual path and save the result. Follow `next`: preview the
-author batch, save it under the complete `plan_context_basis`, replace the
-transaction placeholders in `workflow_manifest_template`, preview the workflow, and write it under
-the complete `workflow_basis`.
+For the multi-command route, write fragments outside recognized source and replace each
+`<FRAGMENT:ID>` in `author_manifest_template`. Follow `next`: preview and save the author batch
+under `plan_context_basis`, fill the workflow transaction placeholders, then preview and write it
+under `workflow_basis`.
 
-Do not pass either template directly to its command. Preserve full bases until their reviewed
-write. If no `.fr/checks.json` exists, omit `checks` and `delivery`; use the manual author/history
-route and independent validation. A task reference to an omitted query report refuses, so increase
-`--report-bytes` or narrow that query instead of guessing its handle.
+Do not pass an unfilled template. Preserve full bases until write. Without `.fr/checks.json`, omit
+`checks` and `delivery` and validate independently. If a referenced report was omitted, increase
+`--report-bytes` or narrow the query.
 
 When concrete fragments and declared checks exist, use `task-change` to remove the template joins.
-Keep the same requests and targets, add each fragment path as target `from`, add exact author
-`postconditions`, and use schema `fr-task-change-1`. Put `check-output-bytes` inside `delivery`.
+Targets carry either a file path in `from` or complete UTF-8 text in `fragment`. With full retained
+handles, set `requests` to `[]`; stale handles refuse.
+Add exact author `postconditions` and use schema `fr-task-change-1`:
+
+```json
+{
+  "schema": "fr-task-change-1",
+  "requests": [],
+  "targets": [{"id": "render-body", "handle": "frp1:<REVISION>:<ID>",
+               "op": "replace-body", "fragment": "{ value.to_uppercase() }"}],
+  "postconditions": {"files-changed": 1, "edits": 1, "changed-operations": 1,
+                     "paths-changed": ["src/lib.rs"]},
+  "checks": ["unit"],
+  "delivery": {"check-original": true, "compact-success": true,
+               "exercise-reversal": true, "patch": "artifacts/change.patch",
+               "check-output-bytes": 2048}
+}
+```
 
 Preview with `fr task-change --from '<TASK_CHANGE_MANIFEST>'`. Retain the complete diff and
 `task_change_basis`. Execute with `fr task-change --from '<TASK_CHANGE_MANIFEST>' --write --basis
-'<TASK_CHANGE_BASIS>'`. The second call recomputes all inputs, records one check-bound transaction,
-and runs the requested reversal and patch lifecycle. Changed source, fragments, checks or delivery
-choices refuse before persistence. A failed stage withholds the patch and reports its current state.
+'<TASK_CHANGE_BASIS>'`. The write recomputes all inputs, records one check-bound transaction,
+checks the original, and runs the reversal and patch lifecycle. Compact success keeps outcomes,
+source stability and its receipt; failures keep bounded diagnostics. Changed inputs refuse before
+mutation. A failed stage withholds the patch and reports its current state.

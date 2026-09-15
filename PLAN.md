@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 725 |
+| Defects fixed | 727 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -155,6 +155,13 @@ receiver oracle cases, exact undo/redo, ordered checks and index preservation. T
 confirms workflow adoption after two retained diagnostic cohorts. Its 58.4% context premium remains
 an optimization target and does not establish a population result.
 
+PR 30's deterministic ideal rehearsal replaces that manual `fr` sequence with one reviewed
+task-change session. On the same pinned workspace it passes the project and receiver oracles. It
+also passes ordered original, applied, restored and reapplied checks, internal undo/redo, index
+preservation and patch delivery. It uses nine instrumented calls and 8,549 measured context tokens.
+It uses no model and makes no
+agent-adoption claim; the fresh pair in PR 30 acceptance item 7 is the required follow-up.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -224,6 +231,8 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 26](https://github.com/e6qu/fun-refactor/pull/291) | Agent Proof Companion | Merged |
 | [PR 27](https://github.com/e6qu/fun-refactor/pull/292) | Agent-Authored Formal Properties | Merged |
 | [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
+| [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
+| PR 30 | Complete Reviewed Agent Change Sessions | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -242,7 +251,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,109 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,299-token or 63.1% `fr` premium.
+- The current checksum-bound projection uses 11,138 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,328-token or 63.6% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -1374,7 +1383,7 @@ Planned checkpoints:
 
 ### PR 29. Deferred Boundary Closure
 
-Status: proposed as [PR 295](https://github.com/e6qu/fun-refactor/pull/295).
+Status: merged as [PR 295](https://github.com/e6qu/fun-refactor/pull/295).
 
 **Goal.** Close every concrete lifecycle, evaluator, context and manifest gap retained after the
 cross-stack milestone. Replace old roadmap qualifications with implemented, tested contracts.
@@ -1431,6 +1440,39 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
     latter no longer crash when token fields are intentionally absent.
 16. **Complete.** Make the external replay gate retry-safe with a unique owned scratch directory.
     Interrupted dependency fetches no longer poison every later deep verification attempt.
+
+### PR 30. Complete Reviewed Agent Change Sessions
+
+Status: in progress.
+
+**Goal.** Replace the measured manual author, workflow and history sequence with one reviewed,
+revision-bound task-change session. It must prove the untouched starting state before mutation and
+preserve exact reversal and patch evidence. It must expose compact structured outcomes without
+requiring agents to read successful command streams.
+
+**Acceptance.**
+
+1. **Complete.** Task changes accept bounded inline fragments or file-backed fragments. Agents may
+   reuse full retained handles with an empty request list. The reviewed basis still binds the
+   manifest, source, fragments, checks, exact changes and patch destination.
+2. **Complete.** A requested original-check stage runs while history remains planned. Failure stops
+   before apply. Apply, changed checks, undo, restored checks, redo, final checks and delivery retain
+   their ordered state requirements.
+3. **Complete.** Compact successful evidence keeps check names, exit status, timeout and output-limit
+   state, source stability and receipt identity. Failures keep bounded diagnostics.
+4. **Complete.** The zero-dependency Python SDK mirrors requests, references, targets, inline
+   fragments, postconditions and delivery settings, rejecting malformed values before serialization.
+5. **Complete.** `FrKernels.Workflow` models the seventh stage and proves generated lifecycles finish
+   applied. Rust and Lean agree on all fourteen state-stage inputs; strict package verification passes.
+6. **Complete.** The generic controlled comparison uses two calls and 3,342 median counted tokens,
+   below the two-call task-change route's 3,370 and the five-call composed route's 4,623. It
+   additionally checks the original before mutation and produces equal final source, patch and history.
+7. **Pending.** Run a fresh isolated Luna-low pair against the frozen regex workspace. Require both
+   arms to pass the 1,060-case project and receiver oracles, ordered lifecycle, patch replay and index
+   preservation. Compare calls and measured context without claiming population or billed-quota results.
+8. **Complete.** Active evidence, portable skill, CLI, roadmap and continuity docs are current.
+   Native, Python, harness, prose, all 92 Lean audits, deep replay and the host WASM lane pass
+   locally. Linux CI passes the native, real-WASM and browser playground gates.
 
 ## Formal verification policy
 

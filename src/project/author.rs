@@ -1040,6 +1040,26 @@ impl Project<'_> {
         report["files_changed"] = json!(edits.file_count());
         report["changed"] = json!(!edits.is_empty());
         report["steps"] = json!(steps);
+        let unchanged_operations = steps
+            .iter()
+            .enumerate()
+            .filter(|(_, step)| step["changed"] == false)
+            .map(|(index, step)| {
+                format!(
+                    "{} ({})",
+                    index + 1,
+                    step["operation"].as_str().unwrap_or("unknown")
+                )
+            })
+            .collect::<Vec<_>>();
+        let mismatch_detail = if unchanged_operations.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " Unchanged operations: {}. Remove them or correct their replacement.",
+                unchanged_operations.join(", ")
+            )
+        };
         let mut postconditions = Vec::new();
         if let Some(expected) = manifest.postconditions {
             ensure!(
@@ -1055,9 +1075,10 @@ impl Project<'_> {
                     "actual": actual, "held": held}));
                 ensure!(
                     held,
-                    "postcondition {name} failed: expected {}, actual {}.",
+                    "postcondition {name} failed: expected {}, actual {}.{}",
                     expected,
-                    actual
+                    actual,
+                    mismatch_detail
                 );
                 Ok(())
             };

@@ -159,6 +159,51 @@ fn reviewed_workflow_applies_checks_reverses_redoes_and_delivers_patch() {
 }
 
 #[test]
+fn original_check_runs_before_apply_and_can_stop_the_workflow_planned() {
+    let (root, plan, check_basis) = fixture();
+    let mut value = manifest(&plan, &check_basis);
+    value["check-original"] = json!(true);
+    write_manifest_value(root.path(), &value);
+
+    let preview = report(fr(root.path(), &["workflow", "--from", ".fr-workflow"]), 0);
+    assert_eq!(preview["stages"][0]["stage"], "check-original");
+    fs::write(root.path().join(".fail-workflow"), "fail\n").unwrap();
+    let failed = report(
+        fr(
+            root.path(),
+            &["workflow", "--from", ".fr-workflow", "--write"],
+        ),
+        1,
+    );
+    assert_eq!(failed["stages"][0]["status"], "failed");
+    assert_eq!(failed["stages"][1]["status"], "pending");
+    assert_eq!(failed["transaction_status"], "planned");
+    assert!(fs::read_to_string(root.path().join("app.py"))
+        .unwrap()
+        .contains("before"));
+}
+
+#[test]
+fn compact_success_keeps_outcomes_and_omits_empty_stream_envelopes() {
+    let (root, plan, check_basis) = fixture();
+    let mut value = manifest(&plan, &check_basis);
+    value["compact-success"] = json!(true);
+    write_manifest_value(root.path(), &value);
+    let completed = report(
+        fr(
+            root.path(),
+            &["workflow", "--from", ".fr-workflow", "--write"],
+        ),
+        0,
+    );
+    let result = &completed["stages"][1]["result"];
+    assert_eq!(result["success_detail"], "summary");
+    assert_eq!(result["results"][0]["passed"], true);
+    assert!(result["results"][0].get("stdout").is_none());
+    assert!(result["results"][0].get("stderr").is_none());
+}
+
+#[test]
 fn failed_checks_stop_before_reversal_and_patch_delivery() {
     let (root, plan, check_basis) = fixture();
     fs::write(root.path().join(".fail-workflow"), "fail\n").unwrap();

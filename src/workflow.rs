@@ -43,6 +43,10 @@ pub(crate) struct Manifest {
     pub checks: CheckRequest,
     #[serde(default)]
     pub exercise_reversal: bool,
+    #[serde(default)]
+    pub check_original: bool,
+    #[serde(default)]
+    pub compact_success: bool,
     pub patch: Option<PatchRequest>,
     #[serde(default = "default_output_bytes")]
     pub check_output_bytes: usize,
@@ -69,6 +73,7 @@ enum Stage {
     CheckRestored = 3,
     Redo = 4,
     DeliverPatch = 5,
+    CheckOriginal = 6,
 }
 
 impl Stage {
@@ -80,13 +85,14 @@ impl Stage {
             Self::CheckRestored => "check-restored",
             Self::Redo => "redo",
             Self::DeliverPatch => "deliver-patch",
+            Self::CheckOriginal => "check-original",
         }
     }
 }
 
 pub fn workflow_stage_state(applied: bool, stage: usize) -> usize {
     match (applied, stage) {
-        (false, 0 | 3) => usize::from(stage == 0),
+        (false, 0 | 3 | 6) => usize::from(stage == 0),
         (false, 4) => 1,
         (true, 1 | 5) => 1,
         (true, 2) => 0,
@@ -98,8 +104,12 @@ fn default_output_bytes() -> usize {
     4_096
 }
 
-fn stages(exercise_reversal: bool, patch: bool) -> Vec<Stage> {
-    let mut stages = vec![Stage::Apply, Stage::CheckApplied];
+fn stages(check_original: bool, exercise_reversal: bool, patch: bool) -> Vec<Stage> {
+    let mut stages = Vec::new();
+    if check_original {
+        stages.push(Stage::CheckOriginal);
+    }
+    stages.extend([Stage::Apply, Stage::CheckApplied]);
     if exercise_reversal {
         stages.extend([
             Stage::Undo,
@@ -114,8 +124,12 @@ fn stages(exercise_reversal: bool, patch: bool) -> Vec<Stage> {
     stages
 }
 
-pub(crate) fn planned_stage_names(exercise_reversal: bool, patch: bool) -> Vec<&'static str> {
-    stages(exercise_reversal, patch)
+pub(crate) fn planned_stage_names(
+    check_original: bool,
+    exercise_reversal: bool,
+    patch: bool,
+) -> Vec<&'static str> {
+    stages(check_original, exercise_reversal, patch)
         .into_iter()
         .map(Stage::name)
         .collect()
@@ -316,7 +330,11 @@ fn preflight_manifest(
             patch_digest.as_bytes(),
         ])
     );
-    let planned_stages = stages(manifest.exercise_reversal, manifest.patch.is_some());
+    let planned_stages = stages(
+        manifest.check_original,
+        manifest.exercise_reversal,
+        manifest.patch.is_some(),
+    );
     let report = json!({
         "schema": "fr-workflow-1",
         "manifest_sha256": manifest_digest,
@@ -332,6 +350,8 @@ fn preflight_manifest(
             "output_bytes": manifest.check_output_bytes,
         },
         "exercise_reversal": manifest.exercise_reversal,
+        "check_original": manifest.check_original,
+        "compact_success": manifest.compact_success,
         "patch": manifest.patch.as_ref().map(|request| json!({
             "output": request.output,
             "bytes": export.patch.len(),
@@ -368,6 +388,25 @@ fn compact_check(report: Value) -> Value {
         "passed": report["passed"],
         "results": report["results"],
         "recorded_evidence": report.get("recorded_evidence").cloned(),
+    })
+}
+
+fn compact_successful_check(report: &Value) -> Value {
+    json!({
+        "basis": report["basis"],
+        "source_revision": report["source_revision"],
+        "source_snapshot_stable": report["source_snapshot_stable"],
+        "passed": report["passed"],
+        "results": report["results"].as_array().into_iter().flatten().map(|result| json!({
+            "name": result["name"],
+            "passed": result["passed"],
+            "exit_code": result["exit_code"],
+            "timed_out": result["timed_out"],
+            "output_limit_exceeded": result["output_limit_exceeded"],
+            "source_snapshot_stable": result["source_snapshot_stable"],
+        })).collect::<Vec<_>>(),
+        "recorded_evidence": report.get("recorded_evidence").cloned(),
+        "success_detail": "summary",
     })
 }
 
@@ -413,7 +452,8 @@ pub(crate) fn run_manifest(root: &Path, manifest: Manifest, write: bool) -> Resu
     ensure!(root.is_dir(), "workflow root must be a directory");
     let bytes = serde_json::to_vec(&manifest)?;
     let preflight = preflight_manifest(root, manifest, bytes)?;
-    execute(preflight, write, None)
+    let basis = write.then(|| preflight.workflow_basis.clone());
+    execute(preflight, write, basis.as_deref())
 }
 
 fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Outcome> {
@@ -451,6 +491,8 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
             "transaction_context_basis",
             "checks",
             "exercise_reversal",
+            "check_original",
+            "compact_success",
             "patch",
             "ready",
         ];
@@ -460,7 +502,11 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
         report["reviewed_context_omitted"] = json!(omitted);
     }
     let transaction = manifest.transaction;
-    let planned_stages = stages(manifest.exercise_reversal, manifest.patch.is_some());
+    let planned_stages = stages(
+        manifest.check_original,
+        manifest.exercise_reversal,
+        manifest.patch.is_some(),
+    );
     let mut applied = false;
 
     for (index, stage) in planned_stages.into_iter().enumerate() {
@@ -493,7 +539,7 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
                     },
                 )
             }
-            Stage::CheckApplied | Stage::CheckRestored => {
+            Stage::CheckOriginal | Stage::CheckApplied | Stage::CheckRestored => {
                 let options = checks::Options {
                     run: resolved_checks.clone(),
                     basis: Some(check_basis.clone()),
@@ -504,7 +550,11 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
                 };
                 checks::report(&root, &options).and_then(|check| {
                     let passed = check["passed"] == true;
-                    report["stages"][index]["result"] = compact_check(check);
+                    report["stages"][index]["result"] = if passed && manifest.compact_success {
+                        compact_successful_check(&check)
+                    } else {
+                        compact_check(check)
+                    };
                     ensure!(passed, "declared checks failed");
                     Ok(())
                 })
@@ -567,7 +617,7 @@ mod tests {
 
     #[test]
     fn stage_policy_accepts_only_state_appropriate_steps() {
-        let expected = [[1, 2, 2, 0, 1, 2], [2, 1, 0, 2, 2, 1]];
+        let expected = [[1, 2, 2, 0, 1, 2, 0], [2, 1, 0, 2, 2, 1, 2]];
         for (applied, row) in expected.into_iter().enumerate() {
             for (stage, next) in row.into_iter().enumerate() {
                 assert_eq!(workflow_stage_state(applied == 1, stage), next);
@@ -577,15 +627,17 @@ mod tests {
 
     #[test]
     fn generated_lifecycles_start_planned_and_finish_applied() {
-        for exercise in [false, true] {
-            for patch in [false, true] {
-                let mut applied = false;
-                for stage in stages(exercise, patch) {
-                    let next = workflow_stage_state(applied, stage as usize);
-                    assert_ne!(next, 2);
-                    applied = next == 1;
+        for original in [false, true] {
+            for exercise in [false, true] {
+                for patch in [false, true] {
+                    let mut applied = false;
+                    for stage in stages(original, exercise, patch) {
+                        let next = workflow_stage_state(applied, stage as usize);
+                        assert_ne!(next, 2);
+                        applied = next == 1;
+                    }
+                    assert!(applied);
                 }
-                assert!(applied);
             }
         }
     }

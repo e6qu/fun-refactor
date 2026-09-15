@@ -674,12 +674,15 @@ declared checks, reversal and patch delivery under one reviewed basis. Its manif
                      "paths-changed": ["src/lib.rs"]},
   "checks": ["unit"],
   "delivery": {"exercise-reversal": true, "patch": "artifacts/change.patch",
+               "check-original": true, "compact-success": true,
                "check-output-bytes": 2048}
 }
 ```
 
 The query, target and fragment rules match `project task` and `author batch`. Fragment operations
-require `from`; `edit-body-scalar` requires `scalar`; `edit-body-disclosed` requires `disclosed`;
+require one file path in `from` or complete UTF-8 text in `fragment`. The manifest and each fragment
+remain bounded to 64 KiB. `requests` may be empty when every target uses a full
+revision-bound handle retained from earlier discovery. `edit-body-scalar` requires `scalar`; `edit-body-disclosed` requires `disclosed`;
 `organize-imports` forbids all three inputs. The command requires at least one declared check and
 one real source change. The manifest and each fragment can contain at most 65,536 bytes.
 
@@ -693,6 +696,12 @@ diff, checks and patch destination before recording one planned transaction. It 
 existing verified workflow to apply, check, optionally reverse and recheck, and deliver the patch.
 Any input drift changes the basis and refuses before history or source mutation. A failed check
 retains the workflow's structured current state and withholds the patch.
+
+`delivery.check-original` runs the selected checks while the transaction is still planned, before
+apply. `delivery.compact-success` keeps check names, outcomes, source stability and durable receipt
+identity while omitting empty successful stream envelopes. Failed checks always keep bounded
+diagnostics. Together with `exercise-reversal`, one reviewed write checks original, applied,
+restored and reapplied states in order.
 
 The write report omits reviewed task and author fields and names them in
 `reviewed_context_omitted`. It retains the task-change basis, transaction identity, reuse status and
@@ -1612,6 +1621,9 @@ declared checks and optional Git patch delivery. Its versioned JSON manifest has
   "transaction": 7,
   "transaction-context-basis": "frtb2:<DIGEST>",
   "checks": {"basis": "<CHECK_DIGEST>", "names": ["unit"]},
+
+  "check-original": true,
+  "compact-success": true,
   "exercise-reversal": true,
   "patch": {"output": "artifacts/change.patch"},
   "check-output-bytes": 2048
@@ -1622,6 +1634,11 @@ Preview changes no files. It verifies the planned transaction, complete `frtb2:`
 configuration, patch representation and output safety. It also verifies the planned source revision
 and affected snapshots. A manifest cannot exceed 65,536 bytes. It requires one through 32 unique checks.
 The check output budget defaults to 4,096 bytes and cannot exceed 65,536.
+
+`check-original` runs the selected checks while the transaction is still planned and stops before
+apply on failure. `compact-success` retains bounded outcomes and receipt identity without empty
+successful stream fields; failures retain their diagnostics. Both flags default to false for
+compatibility with existing workflow manifests.
 
 `--write` applies the transaction and runs the selected checks with quiet successful streams. The
 report omits reviewed declarations. Passing checks attach evidence to the applied transaction. With

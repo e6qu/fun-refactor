@@ -20,24 +20,23 @@ When the task only needs several read views, use the bounded manifest in [Batch]
 When those views select structural edit targets and declared checks, use [Task](task.md).
 Keep the cache enabled. Cold calls may emit `indexing` progress on stderr; stdout remains the report.
 
-For behavior discovery, start with one `project explore TERM [--contains]`. It returns no source in
-names mode and caps the page at twelve rows. Execute the selected row's `next.arguments` exactly to
-obtain its bounded source and direct relationships. Execute truncation continuations instead of
-raising limits. Use `--profile expanded` only through the reported explicit expansion action.
+For behavior discovery, start with `project explore TERM [--contains]`. Names mode returns no source
+and at most twelve rows. Run a selected row's `next.arguments` for bounded source and relationships.
+Follow truncation continuations. Use `--profile expanded` only through its reported action.
 
 Put known multi-stage reads in one `project batch --profile compact` manifest. Reference prior
 handles through `/rows/0/handle`; the batch shares one snapshot and report budget.
 
-Use exact `project find NAME` for known declarations. `--contains` is a boolean literal-substring flag.
-Use `project select SELECTOR...` for several exact names or handles under one revision and budget.
-Read every selector status before claiming absence. Handles can report `outside-scope`,
-`not-a-declaration` or an omitted local; stale handles refuse instead of becoming names.
+Use `project find NAME` for known declarations and `project select SELECTOR...` for several exact
+names or handles under one revision and budget. `--contains` is a literal-substring flag. Read every
+status before claiming absence. Handles may be `outside-scope`, `not-a-declaration` or omitted;
+stale handles refuse instead of becoming names.
 Use maps when hierarchy matters. Choose `<HANDLE>` from a declaration row. Full handles include their source revision.
 Use a short ID only with its returned `--revision`. `show` gives the declaration's 1-based position.
 Its syntax header can contain defaults and attributes; it is not a complete semantic contract.
 
-Request `--source` only when needed. Source offsets count bytes from the selected node's start, not lines or file-relative offsets.
-For another slice, pass the returned `next_offset` with `--offset`; this preserves UTF-8 boundaries.
+Request `--source` only when needed. Offsets count bytes from the selected node's start. For another
+slice, pass `next_offset` with `--offset`; this preserves UTF-8 boundaries.
 For another result page, reuse the same query and fields with `--cursor` and the returned `page.next`.
 Changing source, manifests, scan options or query scope can invalidate a handle or cursor. Restart the relevant map or query after a stale response.
 

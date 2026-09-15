@@ -155,19 +155,18 @@ def prompt(session, task, arm):
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Before delivering the saved plan, read {\"tool\":\"read\",\"path\":\"skill/references/workflow.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, then deliver, undo and redo that transaction. The author manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Write every fragment first, then copy each returned fr_reference into one final manifest; never write placeholder references. Preview the batch once without a mutation flag, then call it once with --save-plan; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff, transaction_context_basis and check-listing basis. Write a workflow manifest under artifacts with the saved transaction, both declared checks, exercise-reversal false, patch output .fr-agent-change.patch and check-output-bytes 2048. Preview workflow once, then execute it once with --write and its workflow_basis. Its internal check-applied stage is the changed-state validation; do not repeat that check or call history apply or history patch. Add the sentinel afterward. Preview undo and redo transitions in full, execute them with --write, and use the transaction context basis to compact redo."
+        surface += " Read the instrumented skill/references/task.md route once, at most 120 lines. Use one reviewed task-change session with the full handles retained from inspection and an empty requests array. Put each complete replacement directly in its target's inline fragment field. The targets must include both API insertion operations and every changed regex-syntax body, with exact files-changed, edits, changed-operations and paths-changed postconditions. Select both declared checks. Delivery must set check-original, compact-success and exercise-reversal true, patch .fr-agent-change.patch and check-output-bytes 2048. Write one final manifest under artifacts, preview task-change once, then execute it once with --write and its task_change_basis. This one write must check the untouched source, apply, check, undo, check restored, redo, check again and export the patch. Do not call author batch, workflow, history or a separate check execution. Add the sentinel after the session."
 
     ordered_workflow = (
-        "Workflow: inspect; list and run declared checks on the original; implement and save the batch; "
-        "preview and execute the workflow to apply, check and export; add the sentinel; undo and check; "
-        "redo and check; verify the receiver; finish."
+        "Workflow: inspect and list declared checks; write one inline task-change manifest; preview and "
+        "execute its complete checked lifecycle; add the sentinel; verify the receiver; finish."
         if task == regex_escape_len.TASK and arm == "fr" else
         "Workflow: inspect; list and run declared checks on the original; implement the task; run checks "
         "on the change; export the patch; add the sentinel; undo and check; redo and check; verify the "
         "receiver; finish."
     )
     patch_instruction = (
-        "In the coordinated fr arm, workflow writes .fr-agent-change.patch and the harness retains it "
+        "In the coordinated fr arm, task-change writes .fr-agent-change.patch and the harness retains it "
         "as artifacts/change.patch after successful delivery."
         if task == regex_escape_len.TASK and arm == "fr" else
         "In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while "
@@ -194,16 +193,16 @@ Tool objects:
 {{"tool":"replace","path":"src/lib.rs","old":"unique existing text","new":"replacement"}} requires exactly one match (baseline only).
 {{"tool":"append","path":"src/lib.rs","text":"new function text"}} appends source (baseline only).
 {{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns `fr_reference`, its absolute path (both arms). Copy `fr_reference` verbatim into every manifest `from` field and use the manifest write's `fr_reference` after `author batch --from`; relative paths resolve from the project and do not name the artifact directory.
-{{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. The args array starts with `checks`, `project`, `author`, `history` or `git`; omit the `fr` executable name. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
+{{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. The args array starts with `checks`, `project`, `task-change`, `author`, `history` or `git`; omit the `fr` executable name. Use this for checks in both arms and project/task-change/author/history/git in the fr arm. --help is available.
 {{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). {patch_instruction}
 {{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only). Apply refuses until all declared checks pass on the state restored by reverse.
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project. It refuses until all declared checks pass after the final redo/apply.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
-{ordered_workflow} The harness refuses every source-changing request until the original checks pass. fr arm: preview/save an authoring transaction and use the reviewed delivery route plus history undo/redo. Run all declared checks together at each explicit validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+{ordered_workflow} The harness requires original-state evidence before source mutation; the coordinated task-change session supplies it internally. Other routes must run all declared checks together using the reviewed configuration basis. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
 
-Execute each successful workflow step once. Do not repeat a successful skill read, listing, saved plan, mutation, patch export, check, or receiver call. Preserve the order above, including the original-state check before any edit and the final-state check before receiver verification.
+Execute each successful workflow step once. Do not repeat a successful skill read, listing, preview, mutation, patch export, check, or receiver call. Preserve the order above, including the original-state check before any edit and the final-state check before receiver verification.
 
 For every successful check run, pass --quiet-success --no-declarations --output-bytes 2048 after reviewing the listing. Failure diagnostics stay bounded and visible. The instrumented fr tool disables its fact cache for every arm and stage; do not add a separate cache warm-up or change that policy.
 
@@ -403,6 +402,69 @@ def coordinated_workflow_manifest(session, project, config, args):
     return manifest
 
 
+def change_session_manifest(session, project, config, args):
+    if config["task"] != regex_escape_len.TASK or args[:1] != ["task-change"]:
+        return None
+    if "--help" in args or "-h" in args:
+        return None
+    try:
+        source = args[args.index("--from") + 1]
+    except (ValueError, IndexError):
+        raise ValueError("The coordinated task change requires --from MANIFEST") from None
+    try:
+        manifest_path = within(session / "artifacts", (project / source).resolve())
+    except ValueError:
+        raise ValueError(
+            "The coordinated task-change manifest must use the absolute fr_reference returned by the write tool"
+        ) from None
+    manifest = json.loads(manifest_path.read_text())
+    targets = manifest.get("targets")
+    kinds = [target.get("op") for target in targets or [] if isinstance(target, dict)]
+    expected_postconditions = {
+        "files-changed": 2,
+        "edits": len(targets) if isinstance(targets, list) else 0,
+        "changed-operations": len(targets) if isinstance(targets, list) else 0,
+        "paths-changed": list(edit_paths(config["task"])),
+    }
+    expected_delivery = {
+        "check-original": True,
+        "compact-success": True,
+        "exercise-reversal": True,
+        "patch": ".fr-agent-change.patch",
+        "check-output-bytes": 2048,
+    }
+    mismatches = []
+    if manifest.get("schema") != "fr-task-change-1":
+        mismatches.append("schema must be fr-task-change-1")
+    if manifest.get("requests") != []:
+        mismatches.append("requests must be empty when retained full handles are supplied")
+    if (not isinstance(targets, list) or not 3 <= len(targets) <= 6
+            or kinds.count("insert-declaration") != 2 or "replace-body" not in kinds):
+        mismatches.append("targets need two insert-declaration operations and at least one replace-body")
+    elif any(not isinstance(target.get("handle"), str)
+             or not target["handle"].startswith("frp1:")
+             or not isinstance(target.get("fragment"), str)
+             or "from" in target for target in targets):
+        mismatches.append("each target needs one full handle and one inline fragment without from")
+    if manifest.get("postconditions") != expected_postconditions:
+        mismatches.append(f"postconditions must equal {expected_postconditions}")
+    if manifest.get("checks") != required_checks(config["task"]):
+        mismatches.append(f"checks must equal {required_checks(config['task'])}")
+    if manifest.get("delivery") != expected_delivery:
+        mismatches.append(f"delivery must equal {expected_delivery}")
+    if mismatches:
+        raise ValueError("Invalid coordinated task-change manifest: " + "; ".join(mismatches))
+    return manifest
+
+
+def internally_checks_original(session, project, config, request):
+    return (
+        request.get("tool") == "fr"
+        and "--write" in request.get("args", [])
+        and change_session_manifest(session, project, config, request["args"]) is not None
+    )
+
+
 def retain_workflow_patch(session, project, report):
     if not (
         isinstance(report, dict)
@@ -485,6 +547,7 @@ def action(session, config, request):
             raise ValueError("The fr args array omits the executable name; start with its top-level command")
         validate_coordinated_manifest(session, project, config, args)
         workflow_manifest = coordinated_workflow_manifest(session, project, config, args)
+        task_change_manifest = change_session_manifest(session, project, config, args)
         if args[:2] == ["history", "redo"]:
             events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
             if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
@@ -498,6 +561,10 @@ def action(session, config, request):
             result["patch_artifact"] = "artifacts/change.patch"
         if workflow_manifest is not None and "--write" in args:
             retained = retain_workflow_patch(session, project, report)
+            if retained is not None:
+                result["patch_artifact"] = retained
+        if task_change_manifest is not None and "--write" in args:
+            retained = retain_workflow_patch(session, project, report.get("workflow"))
             if retained is not None:
                 result["patch_artifact"] = retained
         return result
@@ -540,9 +607,9 @@ def step(session, request):
         events = [json.loads(line) for line in events_path.read_text().splitlines()] if events_path.is_file() else []
         if redundant_success(events, request):
             raise ValueError("This exact request already succeeded; reuse its retained response")
-        if source_mutation_requested(request) and not state_checked(
-            events, config["original"], required_checks(config["task"])
-        ):
+        if (source_mutation_requested(request)
+                and not internally_checks_original(session, session / "project", config, request)
+                and not state_checked(events, config["original"], required_checks(config["task"]))):
             raise ValueError("Run all declared checks on the original source before any source-changing request")
         result = action(session, config, request)
     except (ValueError, OSError, subprocess.SubprocessError, RuntimeError) as error:
@@ -577,10 +644,21 @@ def tokenizer():
     return tiktoken.get_encoding("o200k_base")
 
 
+def workflow_reports(report):
+    if not isinstance(report, dict):
+        return []
+    if report.get("schema") == "fr-workflow-1":
+        return [report]
+    nested = report.get("workflow")
+    if report.get("schema") == "fr-task-change-1" and isinstance(nested, dict):
+        return [nested]
+    return []
+
+
 def workflow(events, original, final, required_checks=()):
     checks = []
     check_positions = []
-    undo, redo, receivers = [], [], []
+    changes, undo, redo, receivers = [], [], [], []
     for index, event in enumerate(events):
         payload = json.loads(event["visible"])
         report = payload.get("result")
@@ -591,22 +669,42 @@ def workflow(events, original, final, required_checks=()):
                         "final": event["before"] == event["after"] == final}
             checks.append(evidence)
             check_positions.append((index * 10, evidence))
-        if (isinstance(report, dict) and report.get("schema") == "fr-workflow-1"
-                and report.get("executed") and report.get("passed") and payload.get("exit_code") == 0):
-            for stage_index, stage in enumerate(report.get("stages", []), 1):
+        completed_workflows = [item for item in workflow_reports(report)
+                               if item.get("executed") and item.get("passed")
+                               and payload.get("exit_code") == 0]
+        internal_round_trip = False
+        for completed in completed_workflows:
+            passed_stages = {stage.get("stage") for stage in completed.get("stages", [])
+                             if stage.get("status") == "passed"}
+            internal_round_trip = (
+                {"apply", "undo", "redo"}.issubset(passed_stages)
+                and event["before"] == original and event["after"] == final
+            )
+            for stage_index, stage in enumerate(completed.get("stages", []), 1):
+                name = stage.get("stage")
                 result = stage.get("result", {})
-                if stage.get("status") != "passed" or stage.get("stage") not in ("check-applied", "check-restored"):
+                position = index * 10 + stage_index
+                if internal_round_trip and stage.get("status") == "passed":
+                    if name == "apply":
+                        changes.append(position)
+                    elif name == "undo":
+                        undo.append(position)
+                    elif name == "redo":
+                        redo.append(position)
+                if stage.get("status") != "passed" or name not in (
+                        "check-original", "check-applied", "check-restored"):
                     continue
                 evidence = {
                     "event": index,
-                    "workflow_stage": stage.get("stage"),
+                    "workflow_stage": name,
                     "passed": result.get("passed") is True
                     and set(required_checks).issubset({check["name"] for check in result.get("results", []) if check.get("passed")}),
-                    "original": stage.get("stage") == "check-restored" and event["before"] == original,
-                    "final": stage.get("stage") == "check-applied" and event["after"] == final,
+                    "original": name in ("check-original", "check-restored")
+                    and event["before"] == original,
+                    "final": name == "check-applied" and event["after"] == final,
                 }
                 checks.append(evidence)
-                check_positions.append((index * 10 + stage_index, evidence))
+                check_positions.append((position, evidence))
         tool, args = event["request"].get("tool"), event["request"].get("args", [])[:2]
         sentinel = event["sentinel"] == "Preserve this independent later edit.\n"
         if (tool == "reverse" or args == ["history", "undo"]) and sentinel and event["before"] == final and event["after"] == original:
@@ -615,6 +713,8 @@ def workflow(events, original, final, required_checks=()):
             redo.append(index * 10)
         if tool == "receiver" and payload.get("patch_applied") and payload.get("matches"):
             receivers.append(index * 10)
+        if event["before"] == original and event["after"] != original and not internal_round_trip:
+            changes.append(index * 10)
     initial_checks = [position for position, check in check_positions if check["passed"] and check["original"]]
     final_checks = [position for position, check in check_positions if check["passed"] and check["final"]]
     ordered = any(
@@ -622,8 +722,7 @@ def workflow(events, original, final, required_checks=()):
         and any(changed < c < back for c in final_checks)
         and any(back < c < forward for c in initial_checks)
         and any(forward < c < received for c in final_checks)
-        for changed, event in ((index * 10, event) for index, event in enumerate(events))
-        if event["before"] == original and event["after"] != original
+        for changed in changes
         for back in undo if changed < back
         for forward in redo if back < forward
         for received in receivers if forward < received
@@ -640,14 +739,14 @@ def state_checked(events, state, required):
                 and report.get("passed") and event["before"] == event["after"] == state
                 and set(required).issubset({check["name"] for check in report.get("results", []) if check.get("passed")})):
             return True
-        if (payload.get("exit_code") == 0 and isinstance(report, dict)
-                and report.get("schema") == "fr-workflow-1" and report.get("executed")
-                and report.get("passed") and event["after"] == state
+        if (payload.get("exit_code") == 0 and event["after"] == state
+                and any(completed.get("executed") and completed.get("passed")
                 and any(stage.get("stage") == "check-applied" and stage.get("status") == "passed"
                         and stage.get("result", {}).get("passed")
                         and set(required).issubset({check["name"] for check in stage["result"].get("results", [])
                                                   if check.get("passed")})
-                        for stage in report.get("stages", []))):
+                        for stage in completed.get("stages", []))
+                        for completed in workflow_reports(report))):
             return True
     return False
 
@@ -663,7 +762,7 @@ def current_state_checked(events, state, required):
     mutations = [index for index, event in enumerate(events) if event["before"] != event["after"]]
     if not mutations:
         return False
-    return state_checked(events[mutations[-1] + 1:], state, required)
+    return state_checked(events[mutations[-1]:], state, required)
 
 
 def redundant_success(events, request):
@@ -686,6 +785,45 @@ def redundant_success(events, request):
 
 
 def coordinated_batch(events):
+    previews, writes = [], []
+    for event in events:
+        args = event["request"].get("args", [])
+        payload = json.loads(event["visible"])
+        report = payload.get("result")
+        if (args[:1] != ["task-change"] or payload.get("exit_code") != 0
+                or not isinstance(report, dict) or report.get("schema") != "fr-task-change-1"):
+            continue
+        if "--write" not in args and report.get("ready") is True and report.get("executed") is False:
+            previews.append((event, report))
+        elif "--write" in args and report.get("executed") is True and report.get("passed") is True:
+            writes.append((event, report, payload))
+    if previews or writes:
+        if len(previews) != 1 or len(writes) != 1:
+            return False
+        preview_event, preview = previews[0]
+        write_event, completion, payload = writes[0]
+        args = write_event["request"]["args"]
+        try:
+            supplied = args[args.index("--basis") + 1]
+            prefix = args[:args.index("--write")]
+        except (ValueError, IndexError):
+            return False
+        workflow = completion.get("workflow", {})
+        passed_stages = [stage.get("stage") for stage in workflow.get("stages", [])
+                         if stage.get("status") == "passed"]
+        required = {
+            "check-original", "apply", "check-applied", "undo", "check-restored",
+            "redo", "deliver-patch",
+        }
+        return (
+            supplied == preview.get("task_change_basis") == completion.get("task_change_basis")
+            and preview_event["request"].get("args") == prefix
+            and required.issubset(passed_stages)
+            and passed_stages.count("check-applied") == 2
+            and workflow.get("transaction_status") == "applied"
+            and payload.get("patch_artifact") == "artifacts/change.patch"
+        )
+
     saved = []
     for event in events:
         payload = json.loads(event["visible"])

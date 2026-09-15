@@ -11,14 +11,14 @@ changed request and response path against an embedded allowlist.
 |---|---:|---:|---:|
 | Normalized starting mean | 13,278.5 | 6,810 | 6,468.5 |
 | Protocol v2 mean | 11,229 | 6,810 | 4,419 |
-| Current v3 projection | 11,109 | 6,810 | 4,299 |
+| Current v3 projection | 11,138 | 6,810 | 4,328 |
 
-The current v3 projection removes 120 mean tokens, or 1.1% of the v2 `fr` total. The complete
-fixed projection is 2,169.5 tokens or 16.3% below the normalized starting mean. The remaining
-`fr` premium is 63.1%.
+The current v3 projection removes 91 mean tokens, or 0.8% of the v2 `fr` total. The complete
+fixed projection is 2,140.5 tokens or 16.1% below the normalized starting mean. The remaining
+`fr` premium is 63.6%.
 
 The contribution is entirely the smaller five-file skill route: its projected reads fall from
-1,962 to 1,842 tokens. Changing the transaction namespace from `frtb1` to `frtb2` changes no
+1,962 to 1,871 tokens. Changing the transaction namespace from `frtb1` to `frtb2` changes no
 token count when the opaque digest body is held fixed.
 
 ## Applicability boundary
