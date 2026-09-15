@@ -1,7 +1,7 @@
 # Development continuity
 
-PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298). PR 33 is active on
-`agent_structured_intent`. It adds declarative `understand`, `trace`, `change`, `migrate` and
+PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298). PR 33 is proposed as
+[GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299). It adds declarative `understand`, `trace`, `change`, `migrate` and
 `prove` requests over the content-addressed context workspace. `AgentIntent` expands each purpose
 to typed evidence projections, traverses the necessary branches locally and returns one bounded
 packet. A request may name 32 projections across eight sections, uses no more than 64 calls per
@@ -43,7 +43,7 @@ new route. B888 binds external dependency warmup to the same isolated Cargo home
 
 The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
 host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all
-translation and repository round trips, all 94 Lean correspondence and self-audit tests, and the
+translation and repository round trips, all 95 Lean correspondence and self-audit tests, and the
 pinned external patch replay with independent oracles and exact reversal.
 
 PR 29 merged as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295) and closed every

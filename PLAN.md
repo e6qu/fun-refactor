@@ -216,7 +216,7 @@ The identifiers remain stable for references in defect records.
 ## Delivery plan
 
 Thirty-three pull-request milestones established the product foundation and its measured agent
-workflow. PR 33 is the active delivery unit:
+workflow. PR 33 is ready for review:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -253,7 +253,7 @@ workflow. PR 33 is the active delivery unit:
 | [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
 | [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Merged |
 | [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Merged |
-| PR 33 | Declarative Agent Intents and Current Toolchains | In progress |
+| [PR 33](https://github.com/e6qu/fun-refactor/pull/299) | Declarative Agent Intents and Current Toolchains | Proposed |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -266,7 +266,7 @@ Git history and [development continuity](docs/continuity.md) retain checkpoint-l
 
 ### PR 33. Declarative Agent Intents and Current Toolchains
 
-Status: in progress.
+Status: proposed as [GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299).
 
 Goal: let an agent state `understand`, `trace`, `change`, `migrate` or `prove`. The runtime then
 returns one bounded packet assembled from the necessary high-level evidence without intermediate text.
