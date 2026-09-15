@@ -1,7 +1,7 @@
 # Development continuity
 
-PR 30 merged as [GitHub PR 296](https://github.com/e6qu/fun-refactor/pull/296). The active PR 31
-adds a structured Python runtime over the existing agent protocol. `FrClient` keeps project and
+PR 30 merged as [GitHub PR 296](https://github.com/e6qu/fun-refactor/pull/296). PR 31's implementation
+is complete and adds a structured Python runtime over the existing agent protocol. `FrClient` keeps project and
 disclosure reports as local data, selects only requested JSON Pointer values, follows exact
 server-issued reveal actions and carries canonical task-change bytes from review into execution.
 The binary still rechecks the complete basis before mutation.
@@ -18,6 +18,13 @@ requires equal source, patch, history state and eight-stage lifecycle results. D
 17,689 request/response bytes across five agent-visible exchanges. The runtime exposes its complete
 Python program and compact result in one 1,864-byte exchange, an 89.5% reduction for this fixed
 task. It does not run a model or claim token, quota, adoption or population results.
+
+The complete local default and WASM gates pass. The default gate includes 22 Python unit tests,
+15 Rust/Python integration tests, all 56 portable-skill examples, 311/311 capability cells and a
+68-job strict Lean build. The deep gate passes the repository-wide self-hosted relations, recipe,
+translation conformance and every retained round trip. All 93 Lean kernel cases pass. The pinned
+external workspace replay also passes its upstream oracles and exact reversal. B882 records the
+inaccurate skill wording found and fixed while dogfooding task-change preview.
 
 PR 29 merged as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295) and closed every
 concrete deferred boundary recorded in `PLAN.md`.

@@ -48,6 +48,8 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rust, Go, Java, Python, JavaScript, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
 - Rust declaration replacement and function insertion into files, inline modules, impls and traits.
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
+- A Python agent runtime that retains structured reports locally, follows exact progressive
+  disclosure actions and carries reviewed task-change evidence into execution without JSON glue.
 - Merkle-committed progressive semantic and source disclosure with exact actions, strict
   per-response bounds and opaque scalar, typed-node and statement-position edit capabilities.
 - Multi-file authoring batches using one reviewed source-history transaction.
@@ -162,6 +164,12 @@ preservation and patch delivery. It uses nine instrumented calls and 8,549 measu
 It uses no model and makes no
 agent-adoption claim; the fresh pair in PR 30 acceptance item 7 is the required follow-up.
 
+PR 31's deterministic runtime comparison performs the same five internal `fr` operations through
+direct JSON and the structured Python runtime. Both paths produce the same final source, patch,
+eight lifecycle stages and applied history state. Direct JSON exposes 17,689 bytes across five
+agent exchanges; the complete runtime program and result expose 1,864 bytes in one exchange, an
+89.5% reduction. This fixed protocol measurement does not run a model or measure billed tokens.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -198,7 +206,8 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Twenty merged pull requests established the product foundation and its first measured workflow reduction:
+Thirty merged pull requests established the product foundation and its measured agent workflow.
+The next completed milestone is awaiting review:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -233,7 +242,7 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
 | [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
 | [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
-| PR 31 | Structured Agent Runtime SDK | In progress |
+| PR 31 | Structured Agent Runtime SDK | Implementation complete; PR pending |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1479,7 +1488,7 @@ requiring agents to read successful command streams.
 
 ### PR 31. Structured Agent Runtime SDK
 
-Status: in progress.
+Status: implementation complete; PR pending.
 
 **Goal.** Let an agent keep bounded `fr` data inside a local Python process and progressively select
 needed high-level structures. Execute one reviewed change without copying complete JSON reports or
@@ -1506,8 +1515,10 @@ manually joining bases through its conversation.
    outcomes. Direct JSON exposes 17,689 bytes across five exchanges; the complete runtime program
    and result expose 1,864 bytes in one exchange, an 89.5% reduction. This measures fixed visible
    payload, not a model or billed tokens.
-7. **In progress.** Refresh the skill, SDK, roadmap and continuity docs and pass native, WASM,
-   Python, strict Lean and deep gates.
+7. **Complete.** The skill, SDK, roadmap and continuity docs describe the same runtime contract.
+   All 56 portable-skill examples, 22 Python unit tests and 15 Rust/Python integration tests pass.
+   The default and WASM gates, 311/311 capability cells and 68-job strict Lean build pass locally.
+   The deep gate passes all 93 Lean correspondence tests and its complete repository audits.
 
 ## Formal verification policy
 
