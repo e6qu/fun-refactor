@@ -67,6 +67,9 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B893: **two retained Python reports still bound the source before its ty repair**.
+  Their behavioral results remain unchanged, and their exact input hashes now bind the checked SDK.
+
 - [x] B892: **the typed Python SDK was outside the ty gate and hid one unchecked cast**.
   The runtime now narrows its validated session identity with an explicit cast, and the type-safety
   suite runs ty over every SDK source module.
