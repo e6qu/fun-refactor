@@ -29,12 +29,12 @@ theorem execution_requires_matching_review
     simp_all [mode]
 
 theorem accepted_execution_finishes_applied
-    (completeReview write basisSupplied basisMatches exerciseReversal deliverPatch : Bool)
+    (completeReview write basisSupplied basisMatches checkOriginal exerciseReversal deliverPatch : Bool)
     (accepted : mode completeReview write basisSupplied basisMatches = 1) :
     FrKernels.Workflow.run .planned
-      (FrKernels.Workflow.lifecycle exerciseReversal deliverPatch) = some .applied := by
+      (FrKernels.Workflow.lifecycle checkOriginal exerciseReversal deliverPatch) = some .applied := by
   obtain ⟨rfl, rfl, rfl, rfl⟩ :=
     execution_requires_matching_review completeReview write basisSupplied basisMatches accepted
-  exact FrKernels.Workflow.generated_lifecycle_finishes_applied exerciseReversal deliverPatch
+  exact FrKernels.Workflow.generated_lifecycle_finishes_applied checkOriginal exerciseReversal deliverPatch
 
 end FrKernels.TaskChange

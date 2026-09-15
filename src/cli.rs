@@ -2940,6 +2940,7 @@ fn cmd_task_change(cli: &Cli, options: &crate::project::task_change::Options) ->
         }
         prepared.report["author"] = prepared.plan.report;
         prepared.report["stages"] = serde_json::json!(crate::workflow::planned_stage_names(
+            prepared.delivery.check_original,
             prepared.delivery.exercise_reversal,
             prepared.delivery.patch.is_some(),
         )
@@ -2985,6 +2986,8 @@ fn cmd_task_change(cli: &Cli, options: &crate::project::task_change::Options) ->
                 basis: prepared.checks.configuration_basis,
                 names: prepared.checks.checks,
             },
+            check_original: prepared.delivery.check_original,
+            compact_success: prepared.delivery.compact_success,
             exercise_reversal: prepared.delivery.exercise_reversal,
             patch: prepared
                 .delivery

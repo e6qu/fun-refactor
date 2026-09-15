@@ -983,7 +983,7 @@ fn workflow_stage_policy_matches_lean_for_every_state_and_stage() {
     let observed = observed.lines().collect::<Vec<_>>();
     let mut expected = Vec::new();
     for applied in [false, true] {
-        for stage in 0..6 {
+        for stage in 0..7 {
             expected.push(fun_refactor::workflow::workflow_stage_state(applied, stage).to_string());
         }
     }

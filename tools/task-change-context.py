@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SPEC = importlib.util.spec_from_file_location("agent_eval_harness", ROOT / "tools/agent-eval.py")
 HARNESS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HARNESS)
-ARMS = ("composed", "task_change")
+ARMS = ("composed", "task_change", "change_session")
 TOKEN_IDENTITIES = {
     32: hashlib.sha256(b"fr-task-change-token-32").hexdigest()[:32],
     64: hashlib.sha256(b"fr-task-change-token-64").hexdigest(),
@@ -92,15 +92,21 @@ def task_manifest():
     }
 
 
-def change_manifest(fragment):
+def change_manifest(fragment, *, session=False):
     value = task_manifest()
     value["schema"] = "fr-task-change-1"
-    value["targets"][0]["from"] = str(fragment)
+    if session:
+        value["targets"][0]["fragment"] = FRAGMENT.strip()
+    else:
+        value["targets"][0]["from"] = str(fragment)
     value["postconditions"] = {
         "files-changed": 1, "edits": 1, "changed-operations": 1,
         "paths-changed": ["src/lib.rs"],
     }
     value["delivery"]["check-output-bytes"] = 256
+    if session:
+        value["delivery"]["check-original"] = True
+        value["delivery"]["compact-success"] = True
     return value
 
 
@@ -178,9 +184,10 @@ def composed(binary, root, base, fragment):
     return reports, outputs, requests, artifacts, sum(elapsed), completed
 
 
-def task_change(binary, root, base, fragment):
+def task_change(binary, root, base, fragment, *, session=False):
     path = base / "task-change.json"
-    artifacts = [fragment.read_text(), write_json(path, change_manifest(fragment))]
+    manifest = write_json(path, change_manifest(fragment, session=session))
+    artifacts = [manifest] if session else [fragment.read_text(), manifest]
     preview_command = ["task-change", "--from", str(path)]
     preview, preview_output, preview_seconds = invoke(binary, root, preview_command)
     write_command = [*preview_command, "--write", "--basis", preview["task_change_basis"]]
@@ -224,7 +231,8 @@ def measure(binary, repetitions, encoding):
                 fragment.write_text(FRAGMENT)
                 roots.extend([root, control])
                 result = (composed(binary, root, control, fragment) if arm == "composed"
-                          else task_change(binary, root, control, fragment))
+                          else task_change(binary, root, control, fragment,
+                                           session=arm == "change_session"))
                 reports, outputs, requests, artifacts, seconds, workflow = result
                 assert workflow["passed"] and workflow["transaction_status"] == "applied"
                 stages = [normalized(stage["result"]) for stage in workflow["stages"]]
@@ -244,10 +252,12 @@ def measure(binary, repetitions, encoding):
                 }
                 pair[arm] = run
                 runs.append(run)
-            for key in ["stage_identity", "state_identity", "source_sha256", "patch_sha256"]:
-                assert pair["composed"][key] == pair["task_change"][key], (repetition, key)
+            for key in ["state_identity", "source_sha256", "patch_sha256"]:
+                assert len({pair[arm][key] for arm in ARMS}) == 1, (repetition, key)
+            assert pair["composed"]["stage_identity"] == pair["task_change"]["stage_identity"]
             assert not pair["composed"]["required_checks_bound"]
             assert pair["task_change"]["required_checks_bound"]
+            assert pair["change_session"]["required_checks_bound"]
     assert digest(binary.read_bytes()) == binary_sha
     summary = {}
     for arm in ARMS:
@@ -264,7 +274,7 @@ def measure(binary, repetitions, encoding):
                ROOT / "src/project/author.rs", ROOT / "src/workflow.rs",
                ROOT / "src/history.rs", ROOT / "src/checks.rs", ROOT / "Cargo.lock"]
     return {
-        "schema": "fr-task-change-context-1", "passed": True,
+        "schema": "fr-task-change-context-2", "passed": True,
         "binary_sha256": binary_sha,
         "source_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -281,13 +291,13 @@ def measure(binary, repetitions, encoding):
             "representatives": {str(length): value for length, value in TOKEN_IDENTITIES.items()},
         },
         "summary": summary, "runs": runs,
-        "scope": "Prescribed generic Rust change. The composed arm counts task, author and workflow manifests plus five calls. The task-change arm counts one manifest and two calls. Both resolve the same task, author the same fragment, enforce the same postconditions, run the same reversal stages and produce equal source, patch and normalized history. Task change additionally binds required checks to its transaction. Counts exclude system context, hidden reasoning and billed usage. This is deterministic workflow evidence without an agent or population claim.",
+        "scope": "Prescribed generic Rust change. The composed arm counts task, author and workflow manifests plus five calls. The task-change and change-session arms each count one manifest and two calls. The session embeds its fragment, checks the original before apply and compacts successful evidence. All arms resolve the same task, author the same fragment, enforce the same postconditions, reverse and redo, and produce equal source, patch and normalized history. Both direct task-change arms bind required checks to their transaction. Counts exclude system context, hidden reasoning and billed usage. This is deterministic workflow evidence without an agent or population claim.",
     }
 
 
 def audit(path):
     report = json.loads(path.read_text())
-    assert report["schema"] == "fr-task-change-context-1" and report["passed"]
+    assert report["schema"] == "fr-task-change-context-2" and report["passed"]
     assert report["repetitions"] >= 1
     assert report["token_normalization"]["representatives"] == {
         str(length): value for length, value in TOKEN_IDENTITIES.items()}
@@ -295,11 +305,14 @@ def audit(path):
         assert file_digest(ROOT / name) == expected, name
     for repetition in range(1, report["repetitions"] + 1):
         pair = {run["arm"]: run for run in report["runs"] if run["repetition"] == repetition}
-        assert pair["composed"]["calls"] == 5 and pair["task_change"]["calls"] == 2
+        assert pair["composed"]["calls"] == 5
+        assert pair["task_change"]["calls"] == pair["change_session"]["calls"] == 2
         assert not pair["composed"]["required_checks_bound"]
         assert pair["task_change"]["required_checks_bound"]
-        for key in ["stage_identity", "state_identity", "source_sha256", "patch_sha256"]:
-            assert pair["composed"][key] == pair["task_change"][key]
+        assert pair["change_session"]["required_checks_bound"]
+        assert pair["composed"]["stage_identity"] == pair["task_change"]["stage_identity"]
+        for key in ["state_identity", "source_sha256", "patch_sha256"]:
+            assert len({pair[arm][key] for arm in ARMS}) == 1
     for arm in ARMS:
         selected = [run for run in report["runs"] if run["arm"] == arm]
         summary = report["summary"][arm]

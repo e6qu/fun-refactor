@@ -94,14 +94,18 @@ fn read_manifest(root: &Path, path: &Path) -> Result<String> {
     String::from_utf8(bytes).context("project batch manifest must use UTF-8.")
 }
 
-fn validate(manifest: Manifest) -> Result<Vec<Request>> {
+fn validate(manifest: Manifest, allow_empty: bool) -> Result<Vec<Request>> {
     ensure!(
         manifest.schema == SCHEMA,
         "project batch manifest schema must be {SCHEMA}."
     );
     ensure!(
-        (1..=16).contains(&manifest.requests.len()),
-        "project batch needs 1 through 16 requests."
+        (usize::from(!allow_empty)..=16).contains(&manifest.requests.len()),
+        if allow_empty {
+            "project task accepts 0 through 16 requests."
+        } else {
+            "project batch needs 1 through 16 requests."
+        }
     );
     let mut ids = BTreeSet::new();
     let mut argument_bytes = 0usize;
@@ -240,7 +244,7 @@ impl Project<'_> {
             Some(profile) => format!("frpqb2:{}", hash((SCHEMA, &manifest, profile))?),
             None => format!("frpqb1:{}", hash((SCHEMA, &manifest))?),
         };
-        let requests = validate(manifest)?;
+        let requests = validate(manifest, query_name == "task")?;
         if let Some(profile) = profile {
             ensure!(
                 requests.len() <= profile.request_limit(),

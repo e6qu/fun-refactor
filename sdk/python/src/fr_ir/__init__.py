@@ -26,6 +26,7 @@ PROOF_TASK_SCHEMA = "fr-proof-task-1"
 PROOF_ATTEMPT_SCHEMA = "fr-proof-attempt-1"
 PROPERTY_TASK_SCHEMA = "fr-property-task-1"
 AGENT_PROPERTY_SCHEMA = "fr-formal-property-1"
+TASK_CHANGE_SCHEMA = "fr-task-change-1"
 _ABSENT = object()
 
 TYPE_KINDS = ("unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn")
@@ -1798,10 +1799,221 @@ class ProofAttempt:
         return json.loads(json.dumps(self.data))
 
 
+@dataclass(frozen=True)
+class ProjectReference:
+    """A JSON Pointer to one earlier project request."""
+
+    request: str
+    pointer: str
+
+    def __post_init__(self) -> None:
+        if (not self.request or len(self.request) > 80
+                or not re.fullmatch(r"[A-Za-z0-9._-]+", self.request)):
+            raise IrError("project reference request has an invalid ID")
+        if not self.pointer.startswith("/") or len(self.pointer.encode()) > 512:
+            raise IrError("project reference pointer must be a bounded JSON Pointer")
+
+    def to_data(self) -> dict[str, str]:
+        return {"request": self.request, "pointer": self.pointer}
+
+
+@dataclass(frozen=True)
+class ProjectRequest:
+    """One bounded source-free request inside a task-change manifest."""
+
+    id: str
+    arguments: Sequence[str | ProjectReference]
+
+    def __post_init__(self) -> None:
+        ProjectReference(self.id, "/validates-id")
+        if not 1 <= len(self.arguments) <= 64:
+            raise IrError("project request needs 1 through 64 arguments")
+        if any(not isinstance(item, (str, ProjectReference)) for item in self.arguments):
+            raise IrError("project request arguments must be strings or references")
+        if sum(len(json.dumps(self._argument(item), ensure_ascii=False))
+               for item in self.arguments) > 4096:
+            raise IrError("project request exceeds the 4096-byte argument budget")
+
+    @staticmethod
+    def _argument(value: str | ProjectReference) -> Any:
+        return value.to_data() if isinstance(value, ProjectReference) else value
+
+    def to_data(self) -> dict[str, Any]:
+        return {"id": self.id, "arguments": [self._argument(item) for item in self.arguments]}
+
+
+_TASK_FRAGMENT_OPERATIONS = {
+    "replace-body", "replace-body-semantic", "edit-body-semantic", "edit-body-intent",
+    "replace-declaration", "insert-declaration",
+}
+_TASK_SCALAR_OPERATIONS = {"edit-body-scalar"}
+_TASK_DISCLOSED_OPERATIONS = {"edit-body-disclosed"}
+_TASK_DISCLOSED_IR_OPERATIONS = {"edit-body-disclosed-ir"}
+_TASK_OPERATIONS = (_TASK_FRAGMENT_OPERATIONS | _TASK_SCALAR_OPERATIONS
+                    | _TASK_DISCLOSED_OPERATIONS | _TASK_DISCLOSED_IR_OPERATIONS
+                    | {"organize-imports"})
+
+
+@dataclass(frozen=True)
+class TaskTarget:
+    """One exact authoring target, shaped like the Rust task-change IR."""
+
+    id: str
+    handle: str | ProjectReference
+    op: str
+    from_path: str | None = None
+    fragment: str | None = None
+    scalar: ScalarRequest | None = None
+    disclosed: DisclosedEditRequest | None = None
+    disclosed_ir: DisclosedIrEditRequest | None = None
+
+    def __post_init__(self) -> None:
+        ProjectReference(self.id, "/validates-id")
+        if not isinstance(self.handle, (str, ProjectReference)) or not self.handle:
+            raise IrError("task target handle must be a string or project reference")
+        if self.op not in _TASK_OPERATIONS:
+            raise IrError("task target operation is unsupported")
+        fragments = int(self.from_path is not None) + int(self.fragment is not None)
+        if fragments != int(self.op in _TASK_FRAGMENT_OPERATIONS):
+            raise IrError("fragment operations need exactly one of from_path or fragment")
+        if self.fragment is not None and (len(self.fragment.encode()) > 65536 or "\0" in self.fragment):
+            raise IrError("inline fragment must be NUL-free UTF-8 of at most 64 KiB")
+        expected = (
+            int(self.scalar is not None), int(self.disclosed is not None),
+            int(self.disclosed_ir is not None),
+        )
+        actual = (
+            int(self.op in _TASK_SCALAR_OPERATIONS), int(self.op in _TASK_DISCLOSED_OPERATIONS),
+            int(self.op in _TASK_DISCLOSED_IR_OPERATIONS),
+        )
+        if expected != actual:
+            raise IrError("task target auxiliary input does not match its operation")
+
+    def to_data(self) -> dict[str, Any]:
+        value: dict[str, Any] = {
+            "id": self.id,
+            "handle": self.handle.to_data() if isinstance(self.handle, ProjectReference) else self.handle,
+            "op": self.op,
+        }
+        if self.from_path is not None:
+            value["from"] = self.from_path
+        if self.fragment is not None:
+            value["fragment"] = self.fragment
+        if self.scalar is not None:
+            value["scalar"] = self.scalar.to_data()
+        if self.disclosed is not None:
+            value["disclosed"] = self.disclosed.to_data()
+        if self.disclosed_ir is not None:
+            value["disclosed_ir"] = self.disclosed_ir.to_data()
+        return value
+
+
+@dataclass(frozen=True)
+class TaskDelivery:
+    """Checked lifecycle requested by one task change."""
+
+    check_original: bool = True
+    compact_success: bool = True
+    exercise_reversal: bool = True
+    patch: str | None = None
+    check_output_bytes: int = 2048
+
+    def __post_init__(self) -> None:
+        if (not isinstance(self.check_original, bool) or not isinstance(self.compact_success, bool)
+                or not isinstance(self.exercise_reversal, bool)):
+            raise IrError("task delivery lifecycle flags must be booleans")
+        if (not isinstance(self.check_output_bytes, int) or isinstance(self.check_output_bytes, bool)
+                or not 0 <= self.check_output_bytes <= 65536):
+            raise IrError("task delivery check output budget must be between 0 and 65536")
+        if self.patch is not None:
+            path = Path(self.patch)
+            if (path.is_absolute() or not path.parts or any(part in (".", "..") for part in path.parts)
+                    or any(part in (".git", ".fr-history") for part in path.parts)):
+                raise IrError("task delivery patch must be a safe relative path")
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "check-original": self.check_original,
+            "compact-success": self.compact_success,
+            "exercise-reversal": self.exercise_reversal,
+            "patch": self.patch,
+            "check-output-bytes": self.check_output_bytes,
+        }
+
+
+@dataclass(frozen=True)
+class TaskChange:
+    """A complete reviewed task-change manifest with inline or file-backed fragments."""
+
+    requests: Sequence[ProjectRequest]
+    targets: Sequence[TaskTarget]
+    postconditions: Mapping[str, Any]
+    checks: Sequence[str]
+    delivery: TaskDelivery = TaskDelivery()
+
+    def __post_init__(self) -> None:
+        if not 0 <= len(self.requests) <= 16:
+            raise IrError("task change accepts 0 through 16 project requests")
+        ids = [request.id for request in self.requests]
+        if len(ids) != len(set(ids)):
+            raise IrError("task change request IDs must be unique")
+        seen: set[str] = set()
+        for request in self.requests:
+            for argument in request.arguments:
+                if isinstance(argument, ProjectReference) and argument.request not in seen:
+                    raise IrError("project request references must name an earlier request")
+            seen.add(request.id)
+        if not 1 <= len(self.targets) <= 32:
+            raise IrError("task change needs 1 through 32 targets")
+        target_ids = [target.id for target in self.targets]
+        if len(target_ids) != len(set(target_ids)):
+            raise IrError("task change target IDs must be unique")
+        if any(isinstance(target.handle, ProjectReference)
+               and target.handle.request not in seen for target in self.targets):
+            raise IrError("task target references an unknown project request")
+        allowed = {"files-changed", "edits", "changed-operations", "paths-changed"}
+        if not self.postconditions or not set(self.postconditions) <= allowed:
+            raise IrError("task change postconditions are empty or unknown")
+        for name in ("files-changed", "edits", "changed-operations"):
+            value = self.postconditions.get(name)
+            if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value < 0):
+                raise IrError("numeric task postconditions must be non-negative integers")
+        paths = self.postconditions.get("paths-changed")
+        if paths is not None and (not isinstance(paths, list) or any(
+                not isinstance(item, str) or Path(item).is_absolute()
+                or not Path(item).parts or any(part in (".", "..") for part in Path(item).parts)
+                for item in paths)):
+            raise IrError("paths-changed must contain normalized relative paths")
+        if (not self.checks or len(self.checks) != len(set(self.checks))
+                or any(not isinstance(name, str) or not name for name in self.checks)):
+            raise IrError("task change needs named checks")
+        encoded = json.dumps(self.to_data(), ensure_ascii=False, separators=(",", ":")).encode()
+        if len(encoded) > 65536:
+            raise IrError("task change manifest exceeds 64 KiB")
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "schema": TASK_CHANGE_SCHEMA,
+            "requests": [request.to_data() for request in self.requests],
+            "targets": [target.to_data() for target in self.targets],
+            "postconditions": dict(self.postconditions),
+            "checks": list(self.checks),
+            "delivery": self.delivery.to_data(),
+        }
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_data(), ensure_ascii=False, indent=indent,
+                          separators=None if indent else (",", ":"))
+
+    def write(self, path: str | Path, *, indent: int | None = 2) -> None:
+        Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
+
+
 __all__ = [
     "AGENT_PROPERTY_SCHEMA", "AgentProperty", "BinaryOp", "Catch", "CHANGE_SCHEMA", "Change", "DISCLOSED_EDIT_SCHEMA", "DISCLOSED_IR_EDIT_SCHEMA", "DisclosedEditRequest", "DisclosedIrEditRequest", "EXPRESSION_KINDS", "Expr", "FORMAL_PLAN_SCHEMA", "FormalBinding", "FormalKernel", "FormalPlan", "FormalProperty", "Function", "INTENT_OPERATIONS", "PROOF_ATTEMPT_SCHEMA", "PROOF_TASK_SCHEMA", "PROPERTY_TASK_SCHEMA", "ProofAttempt", "ProofTask", "PropertyProposition", "PropertyTask", "PropertyTerm",
     "INTENT_SCHEMA", "Intent", "IrError", "LocatorStep", "MERKLE_OBJECT_SCHEMA", "MERKLE_PROOF_SCHEMA", "NodeCategory", "Param", "ExpressionNode", "ParamKind",
     "ROLE_NAMES", "Role", "SCHEMA", "ScalarRequest",
     "STATEMENT_KINDS", "SemanticBody", "SemanticIntent", "StatementNode", "SemanticChange", "Stmt", "TEMPLATE_KINDS",
+    "TASK_CHANGE_SCHEMA", "ProjectReference", "ProjectRequest", "TaskChange", "TaskDelivery", "TaskTarget",
     "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode", "UnaryOp", "VariantArm", "merkle_object_digest", "merkle_object_pack", "restore_merkle_object", "verify_disclosure_commitment", "verify_disclosure_proof",
 ]

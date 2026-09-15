@@ -22,6 +22,8 @@ from fr_ir import (
     PropertyProposition,
     PropertyTask,
     PropertyTerm,
+    ProjectReference,
+    ProjectRequest,
     Intent,
     IrError,
     LocatorStep,
@@ -33,6 +35,9 @@ from fr_ir import (
     SemanticIntent,
     Stmt,
     TemplatePart,
+    TaskChange,
+    TaskDelivery,
+    TaskTarget,
     Type,
     merkle_object_digest,
     merkle_object_pack,
@@ -48,6 +53,36 @@ def kinds(namespace):
 
 
 class IrTests(unittest.TestCase):
+    def test_task_change_builder_mirrors_inline_reviewed_session(self):
+        request = ProjectRequest("target", [
+            "find", "render", "--signature", "--source", "--bytes", "2048",
+        ])
+        target = TaskTarget(
+            "render-body", ProjectReference("target", "/rows/0/0"), "replace-body",
+            fragment="{ value.to_uppercase() }",
+        )
+        change = TaskChange(
+            [request], [target],
+            {"files-changed": 1, "edits": 1, "changed-operations": 1,
+             "paths-changed": ["src/lib.rs"]},
+            ["unit"], TaskDelivery(patch="artifacts/change.patch"),
+        )
+        data = change.to_data()
+        self.assertEqual(data["schema"], "fr-task-change-1")
+        self.assertEqual(data["targets"][0]["fragment"], "{ value.to_uppercase() }")
+        self.assertEqual(data["delivery"]["check-original"], True)
+        self.assertEqual(json.loads(change.to_json()), data)
+        direct = TaskChange(
+            [], [TaskTarget("render-body", "frp1:" + "a" * 32 + ":0001", "replace-body",
+                            fragment="{ value.to_uppercase() }")],
+            {"files-changed": 1}, ["unit"],
+        )
+        self.assertEqual(direct.to_data()["requests"], [])
+        with self.assertRaisesRegex(IrError, "exactly one"):
+            TaskTarget("bad", "handle", "replace-body")
+        with self.assertRaisesRegex(IrError, "safe relative"):
+            TaskDelivery(patch="../change.patch")
+
     def test_property_task_builds_and_validates_agent_authored_ir(self):
         target = {"source": "src/lib.rs", "symbol": "both", "source_hash": "a" * 64}
         kernel = {
