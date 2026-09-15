@@ -252,7 +252,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,138 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,328-token or 63.6% `fr` premium.
+- The current checksum-bound projection uses 11,142 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,332-token or 63.6% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -1481,26 +1481,26 @@ requiring agents to read successful command streams.
 
 Status: in progress.
 
-**Goal.** Let an agent keep bounded `fr` data inside a local Python process, progressively select
-only needed high-level structures and execute one exact reviewed change without copying complete
-JSON reports or manually joining bases through its conversation.
+**Goal.** Let an agent keep bounded `fr` data inside a local Python process and progressively select
+needed high-level structures. Execute one reviewed change without copying complete JSON reports or
+manually joining bases through its conversation.
 
 **Acceptance.**
 
-1. **Complete.** A zero-dependency `FrClient` fixes one project root, invokes `fr` without a shell,
-   bounds arguments, standard input, output and time, parses exactly one JSON object and preserves
+1. **Complete.** A zero-dependency `FrClient` fixes one project root and invokes `fr` without a shell.
+   It bounds arguments, standard input, output and time, parses one JSON object and preserves
    structured failure evidence.
-2. **Complete.** `FrReport` selects detached values by JSON Pointer. `Disclosure` checks the declared
-   response budget, extracts exact server-issued reveal actions and allows domain-filtered semantic,
-   project, code-map, trace, impact and sources/sinks progression without fetching source implicitly.
+2. **Complete.** `FrReport` selects detached values by JSON Pointer. `Disclosure` checks the response
+   budget and extracts server-issued reveal actions. Domain filters cover semantic, project,
+   code-map, trace, impact and sources/sinks progression without fetching source implicitly.
 3. **Complete.** `TaskReview` binds canonical manifest bytes, their SHA-256, the complete preview and
    its `frtc1` basis. `execute` refuses locally changed evidence before Rust independently recomputes
    the reviewed basis and runs original/apply/check/undo/restored-check/redo/final-check/patch.
 4. **Complete.** `FrKernels.AgentSession` proves that execution requires reviewed state and exact
    preview, manifest and basis inputs. Rust and Lean agree on all 48 finite cases; Python and Rust
    agree on the same complete corpus.
-5. **Complete.** A real Rust/Python integration fixture discovers a handle, follows source-free
-   project evidence, reviews and executes an inline change, checks its final state and reads the
+5. **Complete.** A real Rust/Python integration fixture discovers a handle and follows source-free
+   project evidence. It reviews and executes an inline change, checks its final state and reads the
    delivered Git patch without hand-written JSON parsing.
 6. **Complete.** The controlled five-operation task preserves exact final source, patch and lifecycle
    outcomes. Direct JSON exposes 17,689 bytes across five exchanges; the complete runtime program

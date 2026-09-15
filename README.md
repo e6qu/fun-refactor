@@ -31,8 +31,8 @@ Reviewed semantic edit plans resolve one exact declaration and scalar below a wo
 Agents can preview or write the generated intent without reading source or building JSON.
 The [agent IR SDK evaluation](docs/agent-ir-sdk-evaluation.md) compares direct JSON and typed Python construction under deterministic and fresh-agent checks.
 The [agent runtime SDK](docs/agent-runtime-sdk.md) keeps bounded project, disclosure and reviewed
-change reports as Python objects, follows exact server-issued continuations and executes only an
-unchanged reviewed manifest and basis.
+change reports as Python objects. It follows server-issued continuations and executes an unchanged
+reviewed manifest and basis.
 The [semantic context comparison](docs/semantic-context-evaluation.md) records identical changes and patches, zero exposed source bytes and the current small-task payload premium.
 The [semantic delta evaluation](docs/semantic-delta-evaluation.md) compares basis-bound node edits with complete semantic-body replacement under deterministic and fresh-agent checks.
 The [semantic intent evaluation](docs/semantic-intent-evaluation.md) compares filtered role-based
