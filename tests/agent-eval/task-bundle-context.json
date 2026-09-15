@@ -16,7 +16,7 @@
     "src/project/task.rs": "d99f35813e2dcab0f2b47821389ee798d9868db2f0764b795dc83514818b2143",
     "src/project/batch.rs": "ac2004157090f314b78ec23daba63b7612968b661a5c157ad9a8e369fadad4ff",
     "src/checks.rs": "16b154b775e428234f62a142e4a145f78b0745060284ddaed0103d1b4c8bc93d",
-    "Cargo.lock": "fbf5aba723e7b27db17555f58e582553c6a771447d3f2c7347247bb63c916ec9"
+    "Cargo.lock": "3807705d6f8ce521b398118d302ff127ccec2aae0e0c42787a1d2a83258a7b0d"
   },
   "fixture": {
     "src/lib.rs": "use std::fmt;\n\npub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",

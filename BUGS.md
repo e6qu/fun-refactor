@@ -67,6 +67,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B891: **four retained agent evaluations still named the pre-upgrade Cargo lockfile**.
+  Their source bindings now carry the upgraded normalized lockfile digest, so the default gate
+  audits the retained measurements against the dependency graph they describe.
+
 - [x] B890: **the browser checkpoint test depended on the removed TypeScript 7 compiler API**.
   Node 26 already executes erasable TypeScript directly. The test now imports the production module
   and avoids an unrelated compiler adapter.
