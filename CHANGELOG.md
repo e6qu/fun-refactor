@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.23.0...fun-refactor-v0.24.0) (2026-09-15)
+
+
+### Features
+
+* **agent:** compile declarative intents natively ([#301](https://github.com/e6qu/fun-refactor/issues/301)) ([27c5a84](https://github.com/e6qu/fun-refactor/commit/27c5a842db5b9140a4ea342dac4cce97e54e8803))
+
 ## [0.23.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.22.0...fun-refactor-v0.23.0) (2026-09-15)
 
 
