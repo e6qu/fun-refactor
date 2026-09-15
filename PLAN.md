@@ -268,8 +268,8 @@ Git history and [development continuity](docs/continuity.md) retain checkpoint-l
 
 Status: in progress.
 
-Goal: let an agent state `understand`, `trace`, `change`, `migrate` or `prove`, then receive one
-bounded packet assembled from the necessary high-level evidence without reading intermediate text.
+Goal: let an agent state `understand`, `trace`, `change`, `migrate` or `prove`. The runtime then
+returns one bounded packet assembled from the necessary high-level evidence without intermediate text.
 
 Deliverables:
 
@@ -278,8 +278,8 @@ Deliverables:
   content-addressed object storage, under shared call and packet limits.
 - Keep the Python package root empty and expose explicit `ir`, `runtime`, `context` and `intent`
   modules without `__main__.py` or a mutable `__all__` registry.
-- Use pytest 9.1.1 and ty 0.0.80 for the Python suites and update every direct Rust, Python, npm and CI-action
-  dependency to the latest stable release that had been public for at least 24 hours at selection.
+- Use pytest 9.1.1 and ty 0.0.80 for the Python suites. Update every direct Rust, Python, npm and
+  CI-action dependency to the latest eligible stable release.
 - Anchor the final intent admission policy in Lean and compare Rust, Python and Lean over the same
   numeric boundaries and Boolean evidence states.
 - Retain deterministic SDK and progressive-context reports after the module split, and document
@@ -292,11 +292,11 @@ Verification and acceptance:
 2. Traversal can reuse an earlier ancestor action to open a sibling without crossing revision,
    view, object-root, handle or profile identity.
 3. Invalid names, pointers, purposes, bounds, duplicate projections, stale sessions and incomplete
-   packets refuse before being returned to the agent.
+   packets refuse before the agent receives them.
 4. Rust, Python and Lean agree on all 32,768 intent-admission boundary cases; Lean recovers every
    numeric bound and all three final evidence requirements.
-5. Python tests run under pytest 9.1.1 and type-check under ty 0.0.80, upgraded TypeScript/Next.js fixtures compile and execute,
-   the browser build has no npm audit findings, and strict source correspondence passes.
+5. Python tests run under pytest 9.1.1 and type-check under ty 0.0.80. Upgraded TypeScript/Next.js
+   fixtures execute, the browser audit is clear, and strict source correspondence passes.
 6. The complete native, WASM, documentation, skill and deep repository gates pass before review.
 
 ### PR 8. Agent Workflow Simplification

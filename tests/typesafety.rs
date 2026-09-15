@@ -151,7 +151,6 @@ fn ty_available() -> bool {
         .is_ok_and(|out| out.status.success())
 }
 
-/// ty with the tutorial's configuration, over the given files.
 fn ty(files: &[&str]) -> std::process::Output {
     Command::new("ty")
         .current_dir(python_dir())
