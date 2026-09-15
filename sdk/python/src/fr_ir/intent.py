@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
+import hashlib
+import json
 import re
 from typing import Any, Mapping, TYPE_CHECKING
 
-from .context import ContextSession, ObjectStore
+from .context import ContextSession, ObjectStore, merkle_object_digest, store_merkle_value
 from .runtime import FrReport, FrRuntimeError
 
 if TYPE_CHECKING:
@@ -23,6 +25,29 @@ _PURPOSES = {
 _EVIDENCE_SECTIONS = frozenset(
     {section for sections in _PURPOSES.values() for section in sections}
 )
+_SECTION_CODES = {
+    "code_map": 0,
+    "call_traces": 1,
+    "impact": 2,
+    "sources_and_sinks": 3,
+}
+_PURPOSE_CODES = {
+    "understand": 0,
+    "trace": 1,
+    "change": 2,
+    "migrate": 3,
+    "prove": 4,
+}
+
+
+def _intent_section_allowed(purpose: int, section: int) -> bool:
+    return ((purpose, section) in {
+        (0, 0),
+        (1, 0), (1, 1), (1, 3),
+        (2, 0), (2, 2),
+        (3, 0), (3, 2), (3, 3),
+        (4, 0), (4, 2),
+    })
 
 
 def _intent_admitted(needs: int, sections: int, calls: int, call_limit: int,
@@ -81,6 +106,9 @@ class AgentIntent:
             raise FrRuntimeError("agent intent projection names must be unique")
         if len({need.section for need in needs}) > 8:
             raise FrRuntimeError("agent intent reaches at most eight evidence sections")
+        if any(not _intent_section_allowed(_PURPOSE_CODES[self.purpose],
+                                           _SECTION_CODES[need.section]) for need in needs):
+            raise FrRuntimeError("agent intent need section is outside its declared purpose")
         for value, low, high, label in ((self.token_limit, 1_024, 4_096, "token"),
                                         (self.call_limit, 1, 512, "call"),
                                         (self.packet_limit, 1_024, 65_536, "packet")):
@@ -108,6 +136,83 @@ class PreparedIntent:
 
     def to_data(self) -> Mapping[str, Any]:
         return self.packet.to_data()
+
+
+@dataclass(frozen=True)
+class CompiledIntent:
+    """One native single-snapshot intent packet and any verified stored roots."""
+    intent: AgentIntent
+    packet: FrReport
+    stored_digests: tuple[str, ...] = ()
+
+    def at(self, pointer: str = "") -> Any:
+        return self.packet.at(pointer)
+
+    def to_data(self) -> Mapping[str, Any]:
+        return self.packet.to_data()
+
+
+def compile_intent(client: FrClient, intent: AgentIntent,
+                   *, store: ObjectStore | None = None) -> CompiledIntent:
+    """Compile an intent natively in one ``fr`` process and verify its packet."""
+    if not isinstance(intent, AgentIntent):
+        raise FrRuntimeError("compile_intent requires an AgentIntent")
+    manifest = json.dumps(intent.to_data(), ensure_ascii=False, sort_keys=True,
+                          separators=(",", ":"), allow_nan=False).encode("utf-8")
+    report = client.call("intent", "--from", "-", input_bytes=manifest)
+    value = report.to_data()
+    intent_data = value.get("intent")
+    target = value.get("target")
+    selected = value.get("selected")
+    digests = value.get("object_digests")
+    execution = value.get("execution")
+    limits = value.get("limits")
+    expected_names = {need.name for need in intent.needs}
+    manifest_sha256 = hashlib.sha256(manifest).hexdigest()
+    identity_complete = all(isinstance(value.get(name), str) and value.get(name)
+                            for name in ("revision", "context_basis", "view_basis", "object_root"))
+    complete = (
+        report.schema == "fr-agent-context-1"
+        and isinstance(intent_data, Mapping)
+        and intent_data.get("schema") == "fr-agent-intent-1"
+        and intent_data.get("purpose") == intent.purpose
+        and intent_data.get("manifest_sha256") == manifest_sha256
+        and intent_data.get("basis") == f"frai1:{manifest_sha256}"
+        and isinstance(target, Mapping) and target.get("handle") == intent.target
+        and value.get("view") == "evidence" and value.get("profile") == "compact"
+        and value.get("calls") == 0
+        and identity_complete
+        and value.get("cached_objects") == []
+        and execution == {"engine": "native", "project_snapshots": 1,
+                          "progressive_disclosure_calls": 0}
+        and limits == {"packet_bytes": intent.packet_limit,
+                       "progressive_disclosure_calls": intent.call_limit}
+        and isinstance(selected, Mapping) and set(selected) == expected_names
+        and isinstance(digests, Mapping) and set(digests) == expected_names
+        and all(isinstance(digests[name], str)
+                and merkle_object_digest(selected[name]) == digests[name]
+                for name in expected_names)
+    )
+    serialized = json.dumps(value, ensure_ascii=False, sort_keys=True,
+                            separators=(",", ":"), allow_nan=False).encode("utf-8")
+    packet_bytes = value.get("serialized_bytes")
+    sections = len({need.section for need in intent.needs})
+    if (isinstance(packet_bytes, bool) or not isinstance(packet_bytes, int)
+            or packet_bytes != len(serialized)
+            or not _intent_admitted(len(intent.needs), sections, 0, intent.call_limit,
+                                    packet_bytes, intent.packet_limit,
+                                    isinstance(target, Mapping)
+                                    and target.get("handle") == intent.target,
+                                    identity_complete,
+                                    complete)):
+        raise FrRuntimeError("native agent intent failed its final admission policy")
+    stored: list[str] = []
+    if store is not None:
+        for name in sorted(expected_names):
+            stored.append(store_merkle_value(
+                store, selected[name], expected_digest=digests[name],
+            ).digest)
+    return CompiledIntent(intent, report, tuple(stored))
 
 
 def prepare_intent(client: FrClient, intent: AgentIntent,

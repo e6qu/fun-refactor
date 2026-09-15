@@ -45,6 +45,12 @@ reconstruction and enforces at most 64 follow calls for each materialized subtre
 unique sections, emits one selected packet and checks its target, session, completeness and byte
 budget before returning it. The default is 192 calls and an 8 KiB packet.
 
+`fr intent --from` and `FrClient.compile` provide the native route for ordinary use. They construct
+the same evidence model once and select the requested values without progressive subprocess calls.
+`FrClient.prepare` remains the independently tested traversal route. Native results include a
+Merkle object digest per selection; a supplied Python object store verifies and persists those
+subtrees using the same record format.
+
 Materialization supports inline JSON values, paged objects and arrays, empty containers and UTF-8
 strings split at byte offsets. It requires stable node identity across pages, unique object keys,
 contiguous array indices, gap-free string coverage and a final digest equal to the advertised

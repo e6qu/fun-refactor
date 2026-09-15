@@ -10,9 +10,13 @@ fr project disclose <HANDLE> --token-limit 4096
 fr project disclose <HANDLE> --view evidence --depth 3 --token-limit 4096
 ```
 
-This source-free view catalogs `code_map`, `call_traces`, `impact` and `sources_and_sinks`. Follow
-an exact shortcut or root action. `object_digest` is a stable storage key; the Python SDK packs and
-lazily restores objects. Use `--proofs` only for cache or protocol tests.
+Evidence catalogs `code_map`, `call_traces`, `impact` and `sources_and_sinks`. Follow an
+exact shortcut or root action. `object_digest` keys storage; the Python SDK restores it lazily.
+Use `--proofs` for protocol tests.
+
+Use `fr intent --from INTENT.json` for a complete request. It selects named subtrees from one
+snapshot and returns their object digests. Use reveals for choices, proof tests or later
+subtrees.
 
 The first response contains semantic and source holes without either payload. Prefer a relevant
 `semantic_shortcuts` action whose `editable_scalars` count is nonzero for a scalar change or whose

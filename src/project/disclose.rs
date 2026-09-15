@@ -1020,6 +1020,76 @@ fn base(project: &Project<'_>, view: &View, options: &Options) -> Result<Value> 
 }
 
 impl Project<'_> {
+    pub(super) fn native_intent_packet(
+        &self,
+        intent: &super::agent_intent::Manifest,
+        manifest_sha256: &str,
+    ) -> Result<Value> {
+        let options = Options {
+            target: intent.target.clone(),
+            reveal: None,
+            cursor: None,
+            token_limit: intent.token_limit,
+            profile: AgentProfile::Compact,
+            view: DisclosureView::Evidence,
+            depth: 3,
+            proofs: false,
+        };
+        let view = self.disclosure_view(&options)?;
+        let id = self.resolve_handle(&view.target)?;
+        let node = &self.nodes[id];
+        let mut selected = serde_json::Map::new();
+        let mut object_digests = serde_json::Map::new();
+        for need in &intent.needs {
+            let section = view
+                .model
+                .get(&need.section)
+                .with_context(|| format!("agent intent section '{}' is absent.", need.section))?;
+            let value = relative_pointer(section, &need.pointer).with_context(|| {
+                format!(
+                    "agent intent projection '{}' is absent from section '{}'.",
+                    need.pointer, need.section
+                )
+            })?;
+            selected.insert(need.name.clone(), value.clone());
+            object_digests.insert(need.name.clone(), json!(object_merkle(value)?));
+        }
+        let purpose = serde_json::to_value(intent.purpose)?;
+        let mut report = self.envelope("intent");
+        report["schema"] = json!(super::agent_intent::RESULT_SCHEMA);
+        report["intent"] = json!({
+            "schema": super::agent_intent::SCHEMA,
+            "purpose": purpose,
+            "manifest_sha256": manifest_sha256,
+            "basis": format!("frai1:{manifest_sha256}")
+        });
+        report["view_basis"] = json!(view.basis);
+        report["object_root"] = json!(view.object_root);
+        report["view"] = json!(view.kind);
+        report["profile"] = json!(options.profile);
+        report["target"] = json!({
+            "handle": view.target,
+            "name": node.name,
+            "kind": node.kind,
+            "path": node.path
+        });
+        report["calls"] = json!(0);
+        report["selected"] = Value::Object(selected);
+        report["object_digests"] = Value::Object(object_digests);
+        report["cached_objects"] = json!([]);
+        report["execution"] = json!({
+            "engine": "native",
+            "project_snapshots": 1,
+            "progressive_disclosure_calls": 0
+        });
+        report["limits"] = json!({
+            "packet_bytes": intent.packet_limit,
+            "progressive_disclosure_calls": intent.call_limit
+        });
+        report["serialized_bytes"] = json!(0);
+        Ok(report)
+    }
+
     fn cross_stack_project_model(&self, selected: usize) -> Result<Value> {
         let mut scope = selected;
         while self.nodes[scope].symbol.is_some() {
@@ -1712,6 +1782,29 @@ impl Project<'_> {
         }
         best.context("no semantic string fragment fits this token limit; raise --token-limit or reuse --context-basis.")
     }
+}
+
+fn relative_pointer<'a>(mut value: &'a Value, pointer: &str) -> Option<&'a Value> {
+    if pointer.is_empty() {
+        return Some(value);
+    }
+    for encoded in pointer.strip_prefix('/')?.split('/') {
+        let part = encoded.replace("~1", "/").replace("~0", "~");
+        value = match value {
+            Value::Array(values) => {
+                if part.is_empty()
+                    || !part.bytes().all(|byte| byte.is_ascii_digit())
+                    || part.len() > 1 && part.starts_with('0')
+                {
+                    return None;
+                }
+                values.get(part.parse::<usize>().ok()?)?
+            }
+            Value::Object(object) => object.get(&part)?,
+            _ => return None,
+        };
+    }
+    Some(value)
 }
 
 #[cfg(test)]

@@ -42,7 +42,7 @@ responses to one disclosure identity, recursively materializes `code_map`, `call
 packet. This avoids making an agent implement page traversal itself.
 
 For a complete high-level request, declare an `AgentIntent`. Its purpose expands to stable evidence
-sections and `prepare` follows the retained action graph locally before returning one packet:
+sections. `compile` asks native `fr` to select them from one project snapshot and returns one packet:
 
 ```python
 from fr_ir.intent import AgentIntent, IntentNeed
@@ -56,15 +56,18 @@ intent = AgentIntent(
         IntentNeed("flows", "sources_and_sinks"),
     ),
 )
-prepared = client.prepare(intent)
-calls = prepared.at("/selected/calls")
+compiled = client.compile(intent)
+calls = compiled.at("/selected/calls")
 ```
 
 The built-in purposes are `understand`, `trace`, `change`, `migrate` and `prove`. An intent accepts
-at most 32 named projections across eight evidence sections, uses at most 64 disclosure calls per
+at most 32 named projections across four current evidence sections and uses 64 calls at most per
 section and 512 across the complete request, and returns at most 64 KiB. The default 192-call
 budget covers each current built-in purpose. An explicit RFC 6901 suffix can select a smaller value
-inside a section.
+inside a section. Native compilation uses one `fr` process and reports zero progressive calls.
+`client.prepare(intent)` retains the earlier action-by-action implementation for protocol tests and
+independent parity checks. Passing an object store to `compile` verifies and stores each selected
+Merkle subtree under the digest returned by Rust.
 
 ## Complete reviewed changes
 
@@ -127,3 +130,15 @@ python3 tools/agent-runtime-context.py --audit tests/agent-eval/agent-runtime-co
 
 The measurement includes the complete program rather than treating SDK orchestration as free. It
 does not run a model or measure hidden reasoning, tokens, billed quota, adoption or a population.
+
+The native intent comparison runs the same three-section trace through both compilers. Both return
+the same selected value digest. Progressive compilation uses 89 subprocesses and receives 302,380
+internal response bytes; native compilation uses one subprocess and receives 4,975 bytes. The final
+native packet is 4,975 bytes versus 3,909 for the locally assembled packet because it also carries
+the project coverage envelope. These are deterministic process and byte measurements, not model,
+token, quota or population results.
+
+```sh
+python3 tools/native-intent-context.py --fr target/debug/fr
+python3 tools/native-intent-context.py --audit tests/agent-eval/native-intent-context.json
+```

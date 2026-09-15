@@ -54,6 +54,26 @@ fn python_package_keeps_explicit_module_boundaries() {
 }
 
 #[test]
+fn native_intent_context_evidence_is_source_bound_and_arithmetically_valid() {
+    let output = python()
+        .arg(root().join("tools/native-intent-context.py"))
+        .arg("--audit")
+        .arg(root().join("tests/agent-eval/native-intent-context.json"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["native"]["process_calls"], 1);
+    assert_eq!(report["native"]["progressive_disclosure_calls"], 0);
+    assert!(report["progressive"]["process_calls"].as_u64().unwrap() > 1);
+    assert!(report["reduction"]["response_bytes"].as_u64().unwrap() > 0);
+}
+
+#[test]
 fn python_runtime_discovers_discloses_reviews_and_executes_without_json_glue() {
     let workspace = tempfile::tempdir().unwrap();
     fs::create_dir_all(workspace.path().join("src")).unwrap();
@@ -157,18 +177,24 @@ fn python_runtime_compiles_a_high_level_intent_into_bounded_evidence() {
     )
     .unwrap();
     let objects = tempfile::tempdir().unwrap();
-    let script = r#"# => declarative intent fixture
+    let script = r#"# => declarative native and progressive intent fixture
 import json, sys
-from fr_ir.context import DirectoryObjectStore
+from fr_ir.context import DirectoryObjectStore, restore_stored_value
 from fr_ir.intent import AgentIntent
 from fr_ir.runtime import FrClient
 
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 found = client.project('find', 'render', '--signature')
 handle = found.at('/rows/0/0')
-prepared = client.prepare(AgentIntent(
+intent = AgentIntent(
     handle, 'trace', call_limit=192, packet_limit=65536,
-), store=DirectoryObjectStore(sys.argv[3]))
+)
+store = DirectoryObjectStore(sys.argv[3])
+prepared = client.prepare(intent, store=store)
+compiled = client.compile(intent, store=store)
+assert compiled.at('/selected') == prepared.at('/selected')
+for name, digest in compiled.at('/object_digests').items():
+    assert restore_stored_value(store, digest) == compiled.at('/selected/' + name)
 print(json.dumps({
     'purpose': prepared.intent.purpose,
     'sections': sorted(prepared.at('/selected')),
@@ -176,6 +202,10 @@ print(json.dumps({
     'bytes': prepared.at('/serialized_bytes'),
     'cached_objects': len(prepared.session.cached_digests),
     'target': prepared.session.session_identity()[3],
+    'native_calls': compiled.at('/calls'),
+    'native_bytes': compiled.at('/serialized_bytes'),
+    'native_engine': compiled.at('/execution/engine'),
+    'native_stored': len(compiled.stored_digests),
 }))
 "#;
     let output = python()
@@ -200,6 +230,10 @@ print(json.dumps({
     assert!(report["bytes"].as_u64().unwrap() <= 65_536);
     assert!(report["cached_objects"].as_u64().unwrap() > 0);
     assert!(report["target"].as_str().unwrap().starts_with("frp1:"));
+    assert_eq!(report["native_calls"], 0);
+    assert!(report["native_bytes"].as_u64().unwrap() <= 65_536);
+    assert_eq!(report["native_engine"], "native");
+    assert_eq!(report["native_stored"], 3);
 }
 
 #[test]
@@ -316,6 +350,35 @@ for count in objects:
         }
     }
     assert_eq!(observed, expected);
+}
+
+#[test]
+fn python_intent_purpose_sections_match_rust_exhaustively() {
+    let script = r#"# => Python purpose-section kernel corpus
+from fr_ir.intent import _intent_section_allowed
+for purpose in range(7):
+    for section in range(6):
+        print(str(_intent_section_allowed(purpose, section)).lower())
+"#;
+    let output = python().args(["-c", script]).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let mut observed = observed.lines();
+    for purpose in 0..7 {
+        for section in 0..6 {
+            assert_eq!(
+                observed.next().map(|line| line.parse::<bool>().unwrap()),
+                Some(fun_refactor::project::agent_intent_section_allowed(
+                    purpose, section
+                ))
+            );
+        }
+    }
+    assert!(observed.next().is_none());
 }
 
 #[test]

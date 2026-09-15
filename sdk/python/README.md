@@ -32,14 +32,15 @@ Declare a high-level evidence goal instead of manually sequencing section traver
 ```python
 from fr_ir.intent import AgentIntent
 
-prepared = client.prepare(AgentIntent(handle, "trace"))
-call_traces = prepared.at("/selected/call_traces")
+compiled = client.compile(AgentIntent(handle, "trace"))
+call_traces = compiled.at("/selected/call_traces")
 ```
 
 `understand`, `trace`, `change`, `migrate` and `prove` expand to fixed evidence sections. Use
-`IntentNeed` for named projections or a pointer inside a section. The runtime keeps intermediate
-reports local, follows sibling branches through the retained action graph and admits only a packet
-within the declared call and byte ceilings.
+`IntentNeed` names a projection or a pointer inside a purpose-approved section. Native compilation
+uses one project snapshot and no progressive subprocess calls. Pass a `MemoryObjectStore` or
+`DirectoryObjectStore` to verify and retain each selected subtree. `client.prepare` keeps the
+progressive action traversal available for protocol testing and parity checks.
 
 The package root is deliberately empty. Import IR constructors from `fr_ir.ir`, the subprocess
 client from `fr_ir.runtime`, progressive storage from `fr_ir.context`, and high-level requests from
