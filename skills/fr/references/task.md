@@ -40,7 +40,7 @@ delete capability. Its opaque ID fixes replacement category or statement positio
 path or index. The Python SDK's `DisclosedIrEditRequest` emits this object from ordinary typed IR
 constructors.
 
-Write each required fragment outside recognized source. Replace every `<FRAGMENT:ID>` in
+For the multi-command `project task` route, write each required fragment outside recognized source. Replace every `<FRAGMENT:ID>` in
 `author_manifest_template` with the actual path and save the result. Follow `next`: preview the
 author batch, save it under the complete `plan_context_basis`, replace the
 transaction placeholders in `workflow_manifest_template`, preview the workflow, and write it under
@@ -52,11 +52,30 @@ route and independent validation. A task reference to an omitted query report re
 `--report-bytes` or narrow that query instead of guessing its handle.
 
 When concrete fragments and declared checks exist, use `task-change` to remove the template joins.
-Keep the same requests and targets, add each fragment path as target `from`, add exact author
-`postconditions`, and use schema `fr-task-change-1`. Put `check-output-bytes` inside `delivery`.
+Targets can carry one file path as `from` or the complete UTF-8 text as `fragment`. Inline text keeps
+the manifest source-free outside that explicit requested replacement. If discovery already returned
+full handles, set `requests` to `[]` and reuse those handles directly; stale handles refuse.
+Add exact author `postconditions` and use schema `fr-task-change-1`:
+
+```json
+{
+  "schema": "fr-task-change-1",
+  "requests": [],
+  "targets": [{"id": "render-body", "handle": "frp1:<REVISION>:<ID>",
+               "op": "replace-body", "fragment": "{ value.to_uppercase() }"}],
+  "postconditions": {"files-changed": 1, "edits": 1, "changed-operations": 1,
+                     "paths-changed": ["src/lib.rs"]},
+  "checks": ["unit"],
+  "delivery": {"check-original": true, "compact-success": true,
+               "exercise-reversal": true, "patch": "artifacts/change.patch",
+               "check-output-bytes": 2048}
+}
+```
 
 Preview with `fr task-change --from '<TASK_CHANGE_MANIFEST>'`. Retain the complete diff and
 `task_change_basis`. Execute with `fr task-change --from '<TASK_CHANGE_MANIFEST>' --write --basis
 '<TASK_CHANGE_BASIS>'`. The second call recomputes all inputs, records one check-bound transaction,
-and runs the requested reversal and patch lifecycle. Changed source, fragments, checks or delivery
-choices refuse before persistence. A failed stage withholds the patch and reports its current state.
+checks the original before apply, and runs the requested reversal and patch lifecycle. A compact
+successful check keeps names, outcomes, source stability and the durable receipt; failures retain
+bounded diagnostics. Changed source, fragments, checks or delivery choices refuse before mutation.
+A failed stage withholds the patch and reports its current state.

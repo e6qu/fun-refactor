@@ -1,29 +1,32 @@
 # Reviewed task-change evaluation
 
-Roadmap PR 13 adds `fr task-change` after task bundles exposed two remaining manual manifest joins.
-The command resolves the task, validates concrete authoring fragments and runs checked delivery
-under one review basis.
+Roadmap PR 13 added `fr task-change` after task bundles exposed two manual manifest joins. PR 30
+extends it into a complete change session: targets may embed bounded fragments, retained full
+handles remove repeated project requests, declared checks can run before the first mutation and
+successful stage evidence can use a compact outcome shape.
 
 ## Controlled comparison
 
 The retained [measurement](../tests/agent-eval/task-change-context.json) uses a generic Rust source,
-one body fragment and one declared compiler check. Both arms discover the target and its caller,
+one body fragment and one declared compiler check. All three arms discover the target and its caller,
 replace the same body, enforce four exact postconditions, exercise undo and redo, and emit a patch.
 
 The composed arm counts three manifests and five calls: project task, author preview, author save,
-workflow preview and workflow write. The task-change arm counts one manifest, one preview and one
-write. Both count the common fragment.
+workflow preview and workflow write. Both direct arms count one manifest, one preview and one write.
+The change-session arm embeds its fragment, runs the original check before apply and uses compact
+success evidence.
 
-| Measure | Composed | Task change | Difference |
+| Measure | Composed | Task change | Complete session |
 |---|---:|---:|---:|
-| Calls | 5 | 2 | 3 fewer |
-| Median counted context | 4,627 tokens | 3,740 tokens | 887 tokens (19.2%) fewer |
-| Median counted context | 13,690 bytes | 11,288 bytes | 2,402 bytes (17.5%) fewer |
-| Median local wall time | 0.533 s | 0.442 s | 17.1% lower |
+| Calls | 5 | 2 | 2 |
+| Median counted context | 4,623 tokens | 3,740 tokens | 3,712 tokens |
+| Median counted context | 13,686 bytes | 11,296 bytes | 10,965 bytes |
+| Median local wall time | 0.320 s | 0.315 s | 0.342 s |
 
-All three rotating repetitions produce equal normalized stage, history, final source and patch
+All three rotating repetitions produce equal normalized history, final source and patch
 identities. Task change also records the selected check requirement on its transaction. The older
 composed path verifies the same checks during workflow preflight but does not bind them at planning.
+The session has an additional original-check stage, so its stage-list identity intentionally differs.
 
 Token counts replace temporary roots, elapsed milliseconds and opaque hexadecimal identities with
 fixed representatives. Byte counts and semantic identities retain original values. The report binds

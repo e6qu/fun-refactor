@@ -128,6 +128,30 @@ operation = {"op": "edit-body-disclosed-ir", "handle": handle,
 The opaque identity determines the operation, position, and accepted node category. Rust checks
 that the optional value shape agrees with that capability and with the current Merkle commitment.
 
+Build one complete reviewed change session without separate fragment files. These classes mirror
+the `fr-task-change-1` wire shape and validate request order, target inputs, postconditions, checks,
+paths and byte ceilings before writing JSON:
+
+```python
+from fr_ir import ProjectReference, ProjectRequest, TaskChange, TaskDelivery, TaskTarget
+
+request = ProjectRequest("target", ["find", "render", "--signature"])
+change = TaskChange(
+    [request],
+    [TaskTarget("body", ProjectReference("target", "/rows/0/0"),
+                "replace-body", fragment="{ value.to_uppercase() }")],
+    {"files-changed": 1, "edits": 1, "changed-operations": 1,
+     "paths-changed": ["src/lib.rs"]},
+    ["unit"],
+    TaskDelivery(patch="artifacts/change.patch"),
+)
+change.write("task-change.json")
+```
+
+`TaskDelivery` defaults to original-state checks, compact successful evidence and reversal. Rust
+revalidates the complete manifest, handles, source, fragments and check declarations under the
+reviewed task-change basis.
+
 Disclosure trees can be stored by content address:
 
 ```python

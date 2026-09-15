@@ -198,21 +198,21 @@ class AgentWorkflowV4Evidence(unittest.TestCase):
         self.assertEqual(workflow_v4.stable_live_value(first),
                          workflow_v4.stable_live_value(second))
 
-    def test_prescribed_trace_reduction_is_live_bounded_and_retained(self):
+    def test_historical_prescribed_trace_remains_frozen_and_internally_consistent(self):
         retained = json.loads(
             (TOOLS.parent / "tests/agent-eval/agent-workflow-v4.json").read_text()
         )
-        actual = workflow_v4.measure(TOOLS.parent / "target/debug/fr")
-        self.assertTrue(actual["passed"])
-        self.assertEqual(actual["observed"]["calls"], 42)
-        self.assertEqual(actual["prescribed"]["calls"], 29)
-        self.assertEqual(actual["difference"]["calls"], -13)
-        self.assertEqual(len(actual["removed_calls"]), 13)
-        for section in ("observed", "prescribed", "difference"):
-            for field in ("calls", "prompt_bytes", "visible_output_bytes", "tool_request_bytes"):
-                self.assertEqual(actual[section][field], retained[section][field])
-        self.assertEqual(actual["removed_calls"], retained["removed_calls"])
-        self.assertEqual(actual["measurement_files"], retained["measurement_files"])
+        workflow_v4.verify_evidence()
+        self.assertTrue(retained["passed"])
+        self.assertEqual(retained["observed"]["calls"], 42)
+        self.assertEqual(retained["prescribed"]["calls"], 29)
+        self.assertEqual(retained["difference"]["calls"], -13)
+        self.assertEqual(len(retained["removed_calls"]), 13)
+        for field in ("calls", "prompt_bytes", "visible_output_bytes", "tool_request_bytes"):
+            self.assertEqual(
+                retained["difference"][field],
+                retained["prescribed"][field] - retained["observed"][field],
+            )
 
     def test_fresh_cohorts_retain_failed_and_passing_acceptance(self):
         root = TOOLS.parent / "tests/agent-eval/results"
@@ -349,15 +349,19 @@ class TaskChangeEvidence(unittest.TestCase):
         report = task_change_measurement.audit(path)
         self.assertEqual(report["summary"]["composed"]["calls"], 5)
         self.assertEqual(report["summary"]["task_change"]["calls"], 2)
-        self.assertEqual(report["summary"]["composed"]["median_context_tokens"], 4627)
+        self.assertEqual(report["summary"]["change_session"]["calls"], 2)
+        self.assertEqual(report["summary"]["composed"]["median_context_tokens"], 4623)
         self.assertEqual(report["summary"]["task_change"]["median_context_tokens"], 3740)
+        self.assertEqual(report["summary"]["change_session"]["median_context_tokens"], 3712)
         for repetition in range(1, 4):
             pair = {run["arm"]: run for run in report["runs"]
                     if run["repetition"] == repetition}
-            for key in ("stage_identity", "state_identity", "source_sha256", "patch_sha256"):
-                self.assertEqual(pair["composed"][key], pair["task_change"][key])
+            self.assertEqual(pair["composed"]["stage_identity"], pair["task_change"]["stage_identity"])
+            for key in ("state_identity", "source_sha256", "patch_sha256"):
+                self.assertEqual(len({pair[arm][key] for arm in task_change_measurement.ARMS}), 1)
             self.assertFalse(pair["composed"]["required_checks_bound"])
             self.assertTrue(pair["task_change"]["required_checks_bound"])
+            self.assertTrue(pair["change_session"]["required_checks_bound"])
 
 class CheckPolicyEvidence(unittest.TestCase):
     def setUp(self):
@@ -526,19 +530,18 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertEqual(harness.required_checks(task), ["upstream", "minimal"])
         prompt = harness.prompt(Path("session"), task, "fr")
         self.assertIn("regex-syntax/src/lib.rs, src/lib.rs", prompt)
-        self.assertIn("one author batch saved transaction", prompt)
+        self.assertIn("one reviewed task-change session", prompt)
         self.assertIn('{"tool":"read","path":"skill/SKILL.md","start":1,"lines":80}', prompt)
-        self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
-        self.assertIn('{"tool":"read","path":"skill/references/workflow.md","start":1,"lines":160}', prompt)
-        self.assertIn("do not pass --write to author batch", prompt)
-        self.assertIn("exercise-reversal false", prompt)
-        self.assertIn("patch output .fr-agent-change.patch", prompt)
-        self.assertIn("do not repeat that check or call history apply or history patch", prompt)
-        self.assertIn("both API insertion operations and the regex-syntax escape body replacement", prompt)
+        self.assertIn("skill/references/task.md", prompt)
+        self.assertIn("exercise-reversal true", prompt)
+        self.assertIn("patch .fr-agent-change.patch", prompt)
+        self.assertIn("Do not call author batch, workflow, history or a separate check execution", prompt)
+        self.assertIn("both API insertion operations and every changed regex-syntax body", prompt)
+        self.assertIn("inline fragment field", prompt)
+        self.assertIn("check-original, compact-success", prompt)
         self.assertIn("at most 200 lines per read", prompt)
         self.assertIn("omit the `fr` executable name", prompt)
-        self.assertIn("never write placeholder references", prompt)
-        self.assertIn("refuses every source-changing request until the original checks pass", prompt)
+        self.assertIn("requires original-state evidence before source mutation", prompt)
         self.assertIn("--request-stdin <<'FRJSON'", prompt)
         self.assertIn("Apply refuses until all declared checks pass", prompt)
         self.assertIn("It refuses until all declared checks pass after the final redo/apply", prompt)
@@ -668,6 +671,98 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         broken = copy.deepcopy(events)
         broken[2]["request"]["args"][-1] = "frwb1:" + "b" * 64
         self.assertFalse(harness.coordinated_batch(broken))
+
+    def test_change_session_manifest_and_nested_lifecycle_are_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            artifacts = session / "artifacts"
+            project.mkdir()
+            artifacts.mkdir()
+            targets = [
+                {"id": "lower-api", "handle": "frp1:a", "op": "insert-declaration",
+                 "fragment": "pub fn escape_len(_: &str) -> usize { 0 }"},
+                {"id": "lower-body", "handle": "frp1:b", "op": "replace-body",
+                 "fragment": "{ String::new() }"},
+                {"id": "facade-api", "handle": "frp1:c", "op": "insert-declaration",
+                 "fragment": "pub fn escape_len(_: &str) -> usize { 0 }"},
+            ]
+            manifest = {
+                "schema": "fr-task-change-1", "requests": [], "targets": targets,
+                "postconditions": {
+                    "files-changed": 2, "edits": 3, "changed-operations": 3,
+                    "paths-changed": ["regex-syntax/src/lib.rs", "src/lib.rs"],
+                },
+                "checks": ["upstream", "minimal"],
+                "delivery": {
+                    "check-original": True, "compact-success": True,
+                    "exercise-reversal": True, "patch": ".fr-agent-change.patch",
+                    "check-output-bytes": 2048,
+                },
+            }
+            path = artifacts / "task-change.json"
+            path.write_text(json.dumps(manifest))
+            config = {"task": harness.regex_escape_len.TASK}
+            args = ["task-change", "--from", str(path), "--write", "--basis", "frtc1:a"]
+            self.assertEqual(
+                harness.change_session_manifest(session, project, config, args), manifest
+            )
+            request = {"tool": "fr", "args": args}
+            self.assertTrue(harness.internally_checks_original(session, project, config, request))
+            manifest["delivery"]["check-original"] = False
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "delivery must equal"):
+                harness.change_session_manifest(session, project, config, args)
+
+        basis = "frtc1:" + "a" * 64
+        check_result = {
+            "passed": True,
+            "results": [{"name": name, "passed": True} for name in ("upstream", "minimal")],
+        }
+        stages = [
+            {"stage": "check-original", "status": "passed", "result": check_result},
+            {"stage": "apply", "status": "passed", "result": {}},
+            {"stage": "check-applied", "status": "passed", "result": check_result},
+            {"stage": "undo", "status": "passed", "result": {}},
+            {"stage": "check-restored", "status": "passed", "result": check_result},
+            {"stage": "redo", "status": "passed", "result": {}},
+            {"stage": "check-applied", "status": "passed", "result": check_result},
+            {"stage": "deliver-patch", "status": "passed", "result": {}},
+        ]
+        preview = {
+            "request": {"tool": "fr", "args": ["task-change", "--from", "task.json"]},
+            "visible": json.dumps({"exit_code": 0, "result": {
+                "schema": "fr-task-change-1", "ready": True, "executed": False,
+                "task_change_basis": basis,
+            }}),
+        }
+        completion = {
+            "request": {"tool": "fr", "args": [
+                "task-change", "--from", "task.json", "--write", "--basis", basis,
+            ]},
+            "visible": json.dumps({"exit_code": 0, "patch_artifact": "artifacts/change.patch",
+                                    "result": {
+                "schema": "fr-task-change-1", "executed": True, "passed": True,
+                "task_change_basis": basis,
+                "workflow": {"schema": "fr-workflow-1", "executed": True, "passed": True,
+                             "transaction_status": "applied", "stages": stages},
+            }}),
+        }
+        self.assertTrue(harness.coordinated_batch([preview, completion]))
+
+        original, final = {"src/lib.rs": "old"}, {"src/lib.rs": "new"}
+        completion.update({"before": original, "after": final, "sentinel": None})
+        receiver = {
+            "request": {"tool": "receiver"},
+            "visible": json.dumps({"patch_applied": True, "matches": True}),
+            "before": final, "after": final, "sentinel": "Preserve this independent later edit.\n",
+        }
+        observed = harness.workflow(
+            [completion, receiver], original, final, ["upstream", "minimal"]
+        )
+        self.assertTrue(observed["workflow_ordered"])
+        self.assertTrue(observed["undo_exact"])
+        self.assertTrue(observed["redo_exact"])
 
     def test_coordinated_workflow_manifest_reports_each_invalid_field(self):
         with tempfile.TemporaryDirectory() as tmp:

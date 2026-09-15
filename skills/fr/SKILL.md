@@ -20,5 +20,6 @@ Load only the needed route: [Task](references/task.md), [Explore](references/exp
 [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md),
 [Git](references/git.md), or [Lean](references/lean.md).
 
-Author with handles; refactor with names or positions. Preview mutations. Save coordinated
-changes as one transaction, then apply it. Preserve refusals, gaps and uncertainty.
+Author with handles; refactor with names or positions. When concrete targets and checks exist,
+prefer one reviewed task-change session for original checks, apply, reversal and patch delivery.
+Preview mutations. Preserve refusals, gaps and uncertainty.

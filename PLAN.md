@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 725 |
+| Defects fixed | 726 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -155,6 +155,12 @@ receiver oracle cases, exact undo/redo, ordered checks and index preservation. T
 confirms workflow adoption after two retained diagnostic cohorts. Its 58.4% context premium remains
 an optimization target and does not establish a population result.
 
+PR 30's deterministic ideal rehearsal replaces that manual `fr` sequence with one reviewed
+task-change session. On the same pinned workspace it passes the project and receiver oracles,
+ordered original/applied/restored/reapplied checks, internal undo/redo, index preservation and patch
+delivery in nine instrumented calls and 8,549 measured context tokens. It uses no model and makes no
+agent-adoption claim; the fresh pair in PR 30 acceptance item 7 is the required follow-up.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -224,6 +230,8 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 26](https://github.com/e6qu/fun-refactor/pull/291) | Agent Proof Companion | Merged |
 | [PR 27](https://github.com/e6qu/fun-refactor/pull/292) | Agent-Authored Formal Properties | Merged |
 | [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
+| [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
+| PR 30 | Complete Reviewed Agent Change Sessions | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1374,7 +1382,7 @@ Planned checkpoints:
 
 ### PR 29. Deferred Boundary Closure
 
-Status: proposed as [PR 295](https://github.com/e6qu/fun-refactor/pull/295).
+Status: merged as [PR 295](https://github.com/e6qu/fun-refactor/pull/295).
 
 **Goal.** Close every concrete lifecycle, evaluator, context and manifest gap retained after the
 cross-stack milestone. Replace old roadmap qualifications with implemented, tested contracts.
@@ -1431,6 +1439,38 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
     latter no longer crash when token fields are intentionally absent.
 16. **Complete.** Make the external replay gate retry-safe with a unique owned scratch directory.
     Interrupted dependency fetches no longer poison every later deep verification attempt.
+
+### PR 30. Complete Reviewed Agent Change Sessions
+
+Status: in progress.
+
+**Goal.** Replace the measured manual author, workflow and history sequence with one reviewed,
+revision-bound task-change session. The session must prove the untouched starting state before its
+first mutation, preserve exact reversal and patch evidence, and expose compact structured outcomes
+that an agent can consume without reading successful command streams.
+
+**Acceptance.**
+
+1. **Complete.** Task changes accept bounded inline fragments or file-backed fragments. Agents may
+   reuse full retained handles with an empty request list; the reviewed basis still binds the
+   manifest, source, fragments, checks, exact changes and patch destination.
+2. **Complete.** A requested original-check stage runs while history remains planned. Failure stops
+   before apply. Apply, changed checks, undo, restored checks, redo, final checks and delivery retain
+   their ordered state requirements.
+3. **Complete.** Compact successful evidence keeps check names, exit status, timeout and output-limit
+   state, source stability and receipt identity. Failures keep bounded diagnostics.
+4. **Complete.** The zero-dependency Python SDK mirrors requests, references, targets, inline
+   fragments, postconditions and delivery settings, rejecting malformed values before serialization.
+5. **Complete.** `FrKernels.Workflow` models the seventh stage and proves generated lifecycles finish
+   applied. Rust and Lean agree on all fourteen state-stage inputs; strict package verification passes.
+6. **Complete.** The generic controlled comparison uses two calls and 3,712 median counted tokens,
+   below the older two-call task-change route's 3,740 and the five-call composed route's 4,623. It
+   additionally checks the original before mutation and produces equal final source, patch and history.
+7. **Pending.** Run a fresh isolated Luna-low pair against the frozen regex workspace. Require both
+   arms to pass the 1,060-case project and receiver oracles, ordered lifecycle, patch replay and index
+   preservation. Compare calls and measured context without claiming population or billed-quota results.
+8. **Pending.** Refresh active evidence, portable skill, CLI, roadmap and continuity documentation;
+   pass native, Python, harness, prose, strict Lean, deep and real-WASM gates.
 
 ## Formal verification policy
 

@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B880: **a batch postcondition failure hid which requested operation was a no-op**. An
+  agent that supplied one unchanged body saw only an aggregate edit-count mismatch and had to
+  rewrite manifests or guess at the cause. The refusal now lists every unchanged operation by
+  one-based position and operation name while still refusing before history or source mutation.
+
 - [x] B879: **an interrupted external replay made every retry fail before verification**. The
   replay script unpacked into one fixed temporary directory and never removed it. It now owns a
   unique scratch directory for each run and removes that directory on success or failure.

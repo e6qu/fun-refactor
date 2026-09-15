@@ -6,7 +6,7 @@ and seven refused or failed requests. The ordinary-file arm used 11,600 context 
 and 20 calls. Both passed the independent project and receiver oracles, ordered checks,
 exact reversal and index-preservation gates.
 
-`tools/agent-workflow-v4.py` applies a prescribed workflow to that immutable `fr` trace.
+The historical `tools/agent-workflow-v4.py` projection applied a prescribed workflow to that immutable `fr` trace.
 It checks the retained evidence manifest and event-stream checksum, requires the accepted
 42-call/15,458-token baseline, and then runs the current binary against the pristine pinned
 workspace. The live query repeats the trace's broad `escape` lookup and feeds its current
@@ -34,7 +34,7 @@ has 29 calls, no retained refusal, and 13,414 context tokens with the current po
 2,044 fewer than the observed trace. It remains 1,814 tokens, or 15.6%, above the passing
 ordinary-file arm.
 
-This is a counterfactual for one trace. It shows that the delivered commands can support the
+This is a counterfactual for one trace. It shows that the commands at that milestone supported the
 shorter sequence and measures its serialized payloads. It does not show that an autonomous
 agent will choose that sequence, predict latency or billed usage, or establish a population
 effect. A fresh paired run is the adoption test.
@@ -94,14 +94,14 @@ sample. It does not establish a population result, billed-token reduction or lat
 The accepted evidence is retained at
 [`2026-09-11-workflow-v4`](../tests/agent-eval/results/2026-09-11-workflow-v4/manifest.json).
 
-The token audit uses tiktoken 0.12.0, `o200k_base`, and the repository's checksum-pinned
-vocabulary. Reproduce the retained report with:
+The token audit used tiktoken 0.12.0, `o200k_base`, and the repository's checksum-pinned
+vocabulary. The retained report is bound to its historical measurement files and remains
+reproducible from the commit named by that evidence:
 
 ```sh
-target/agent-eval-venv/bin/python tools/agent-workflow-v4.py --fr target/debug/fr --tokens
+git show 2a522ea:tests/agent-eval/agent-workflow-v4.json
 ```
 
-The default command omits token fields and runs in ordinary deterministic CI without the
-optional tokenizer package. The acceptance regression recomputes live byte and call evidence,
-then compares those fields, every removal reason and each measurement-file checksum with
-`tests/agent-eval/agent-workflow-v4.json`.
+The current acceptance regression verifies the frozen trace and the retained report's internal
+arithmetic. It does not combine today's task-change instructions with the obsolete 29-call action
+sequence. The complete change-session evaluation supersedes that route for current guidance.
