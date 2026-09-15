@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.22.0...fun-refactor-v0.23.0) (2026-09-15)
+
+
+### Features
+
+* **agent:** add declarative structured intents ([#299](https://github.com/e6qu/fun-refactor/issues/299)) ([b60e17c](https://github.com/e6qu/fun-refactor/commit/b60e17c2e216df02a22ca96b584f1889e5c99dc1))
+
 ## [0.22.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.21.0...fun-refactor-v0.22.0) (2026-09-15)
 
 
