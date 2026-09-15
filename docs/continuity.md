@@ -342,8 +342,8 @@ with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
-selection identity matches. Calls fall from four to one. Median counted context falls from 1,802 to
-1,514 tokens (16.0%), and bytes fall from 6,662 to 4,758 (28.6%). The 446-byte task manifest is
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,836 to
+1,504 tokens (18.1%), and bytes fall from 6,803 to 4,715 (30.7%). The 446-byte task manifest is
 counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
@@ -395,9 +395,9 @@ Rust. The portable bundle has 45 executable shell examples. Every route remains 
 The fifth checkpoint retains `tests/agent-eval/workflow-context.json`. A generic Python fixture
 compares seven compact manual lifecycle calls with one workflow preview and write. Both arms apply,
 check, undo, check, redo, check and export the same transaction. Across three rotating repetitions,
-median counted context falls from 2,047 to 1,880 tokens, or 8.2%. Calls fall from seven to two and
-bytes fall from 6,368 to 5,556. The current rerun records median local subprocess time falling from
-0.284 to 0.262 seconds.
+median counted context falls from 2,047 to 1,896 tokens, or 7.4%. Calls fall from seven to two and
+bytes fall from 6,368 to 5,638. The current rerun records median local subprocess time falling from
+0.280 to 0.252 seconds.
 Every normalized stage, final history record, source and patch matches. The fixed comparison excludes
 planning, skill reads, agent behavior, independent oracles and receiver checks. Its reduction supports
 one fresh Luna-low adoption pair after the complete deterministic gate passes.
@@ -437,12 +437,12 @@ TypeScript and Python fixture requests structure, an exact declaration, referenc
 calls, test candidates, packages, dependencies and gaps. Eight standalone calls already reuse the
 first response's `context_basis`; the batch includes its 794-byte manifest in counted context.
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
-Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
-the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
-is 1.803 versus 0.231 seconds with the fact cache disabled. It is 0.183 versus 0.029 seconds after
+Across three rotating repetitions, median context is 2,720 tokens for separate calls and 2,478 for
+the batch, a 242-token or 8.9% reduction. Calls fall from eight to one. Median local subprocess time
+is 2.009 versus 0.256 seconds with the fact cache disabled. It is 0.127 versus 0.022 seconds after
 each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
 representatives. Byte counts and report identities retain the real values. The measured binary digest is
-`ebe3f9230a9ed880b15095a004ab37326a0608f94ef9ee0c058a9d37ed71580a`.
+`a995c6170be4dec6b5188561a4e39668111ffaa1ecdb4d170c90d5c1bcad4152`.
 The audit recomputes every measurement-source digest, paired report identity and summary statistic.
 OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.
 

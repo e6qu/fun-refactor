@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-change-context-2",
   "passed": true,
-  "binary_sha256": "13d2c3dc7db6c04e760c0f5359ada8f7eb2e00985fe5d627488587b7cbe668cb",
-  "source_commit": "e62dd9cb504c8c09570ce6bfe1d2b2fe8a0d6969",
+  "binary_sha256": "a995c6170be4dec6b5188561a4e39668111ffaa1ecdb4d170c90d5c1bcad4152",
+  "source_commit": "13756acff8a151dd51f1443402b433be24bb5414",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
@@ -13,13 +13,13 @@
     "tools/task-change-context.py": "898133c484653dedaa989b15179eac8ad5118d0c7bd2697f4433e4b4e1d46d2e",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
-    "src/project/task_change.rs": "ad6897b6a8ec2980149cca65324aa2de72d12405edfbd68a2fd965b8ed461a82",
+    "src/project/task_change.rs": "3c3261b7ddef35710e86d52296d89d2f35d052ca20fa2aeba355189bad5f2ee3",
     "src/project/task.rs": "d99f35813e2dcab0f2b47821389ee798d9868db2f0764b795dc83514818b2143",
-    "src/project/author.rs": "c5463e5264d155af90a84a6f832280c1033617770fb71101812f341d723939aa",
-    "src/workflow.rs": "a659f4f9f482b3d0cd93940e0388aa1d8918f971378a979197481f45cd352af4",
-    "src/history.rs": "c5ba4383748f23e042e82d273700303f83d17e14b224aebe543136cadf5efff6",
-    "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
-    "Cargo.lock": "4093af80a7d389783e783c3e8c5342d4197e13df91b5f38b4b3dce7efb9b506c"
+    "src/project/author.rs": "1753b4453c0e1c3f17b2ce41acb5dcb3ac1ab3f8318deeb609a38ee17e0c371a",
+    "src/workflow.rs": "0b5a280d99b918e1a33ff301ffa6aa78f56488a447f7242ded4ba43a4aff9f07",
+    "src/history.rs": "7ce1f21d25bc9c6883df2a2ff1d6debc4035af834839e3bb9252df9197e07df0",
+    "src/checks.rs": "16b154b775e428234f62a142e4a145f78b0745060284ddaed0103d1b4c8bc93d",
+    "Cargo.lock": "fbf5aba723e7b27db17555f58e582553c6a771447d3f2c7347247bb63c916ec9"
   },
   "fixture": {
     "src/lib.rs": "pub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",
@@ -67,21 +67,21 @@
       "calls": 5,
       "median_context_bytes": 13686,
       "median_context_tokens": 4623,
-      "median_seconds": 0.47267645702231675
+      "median_seconds": 0.47854641603771597
     },
     "task_change": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 10426,
       "median_context_tokens": 3370,
-      "median_seconds": 0.3969869159627706
+      "median_seconds": 0.4197365840082057
     },
     "change_session": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 10097,
       "median_context_tokens": 3342,
-      "median_seconds": 0.4828296669293195
+      "median_seconds": 0.46228537504794076
     }
   },
   "runs": [
@@ -105,7 +105,7 @@
         "bytes": 13686,
         "tokens": 4623
       },
-      "seconds": 1.2694369569653645,
+      "seconds": 0.5344809161033481,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -132,7 +132,7 @@
         "bytes": 10426,
         "tokens": 3370
       },
-      "seconds": 0.3969869159627706,
+      "seconds": 0.4197365840082057,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -159,7 +159,7 @@
         "bytes": 10097,
         "tokens": 3342
       },
-      "seconds": 0.4828296669293195,
+      "seconds": 0.468742040975485,
       "stage_identity": "75896afb9ef5a1b063c8aa43dbcb71b54d45fdbded8e39d1e028da71c394f6c0",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -186,7 +186,7 @@
         "bytes": 10097,
         "tokens": 3342
       },
-      "seconds": 0.48297362495213747,
+      "seconds": 0.46228537504794076,
       "stage_identity": "75896afb9ef5a1b063c8aa43dbcb71b54d45fdbded8e39d1e028da71c394f6c0",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -213,7 +213,7 @@
         "bytes": 10426,
         "tokens": 3370
       },
-      "seconds": 0.3838733750162646,
+      "seconds": 0.4414221250335686,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -240,7 +240,7 @@
         "bytes": 13686,
         "tokens": 4623
       },
-      "seconds": 0.4279462909908034,
+      "seconds": 0.47854641603771597,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -267,7 +267,7 @@
         "bytes": 13686,
         "tokens": 4623
       },
-      "seconds": 0.47267645702231675,
+      "seconds": 0.439539500977844,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -294,7 +294,7 @@
         "bytes": 10426,
         "tokens": 3370
       },
-      "seconds": 0.3997569589992054,
+      "seconds": 0.38748383399797603,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -321,7 +321,7 @@
         "bytes": 10097,
         "tokens": 3342
       },
-      "seconds": 0.4426529999473132,
+      "seconds": 0.39990187395596877,
       "stage_identity": "75896afb9ef5a1b063c8aa43dbcb71b54d45fdbded8e39d1e028da71c394f6c0",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",

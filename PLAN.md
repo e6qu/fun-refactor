@@ -100,24 +100,24 @@ The normalized fixed action sequence therefore leaves a 6,468.5-token mean `fr` 
 
 The PR 9 controlled broad-query fixture compares eight separate project calls, already reusing a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
-the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
+the batch manifest, median counted context falls from 2,720 to 2,478 tokens, an 8.9% reduction, while
 calls fall from eight to one. The current local rerun records median subprocess time falling from
-1.803 to 0.231 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
-0.183 to 0.029 seconds. Token counts use
+2.009 to 0.256 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
+0.127 to 0.022 seconds. Token counts use
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
 The PR 10 controlled delivery fixture compares seven compact manual calls with a reviewed workflow
-preview and write. It counts the 318-byte manifest. Median context falls from 2,047 to 1,880 tokens,
-an 8.2% reduction, while calls fall from seven to two. The current local rerun records median time
-falling from 0.284 to 0.262 seconds. Final stages, history, source and patch match
+preview and write. It counts the 318-byte manifest. Median context falls from 2,047 to 1,896 tokens,
+a 7.4% reduction, while calls fall from seven to two. The current local rerun records median time
+falling from 0.280 to 0.252 seconds. Final stages, history, source and patch match
 in all three repetitions. This fixed sequence supports an adoption trial and makes no agent claim.
 
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
 revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
-median counted context falls from 1,802 to 1,514 tokens, a 16.0% reduction. Serialized context falls
-from 6,662 to 4,758 bytes, a 28.6% reduction. Calls fall from four to one. Both arms stop before
+median counted context falls from 1,836 to 1,504 tokens, an 18.1% reduction. Serialized context falls
+from 6,803 to 4,715 bytes, a 30.7% reduction. Calls fall from four to one. Both arms stop before
 fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
 
