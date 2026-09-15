@@ -70,3 +70,6 @@ Preview with `fr task-change --from '<TASK_CHANGE_MANIFEST>'`. Retain the comple
 checks the original, and runs the reversal and patch lifecycle. Compact success keeps outcomes,
 source stability and its receipt; failures keep bounded diagnostics. Changed inputs refuse before
 mutation. A failed stage withholds the patch and reports its current state.
+
+When Python is available, use [Runtime](runtime.md) to retain reports and the reviewed basis as local
+objects instead of copying complete JSON through context.

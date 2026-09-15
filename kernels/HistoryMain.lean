@@ -3,6 +3,7 @@ import FrKernels.MemoryHistory
 import FrKernels.Patch
 import FrKernels.Workflow
 import FrKernels.TaskChange
+import FrKernels.AgentSession
 
 open FrKernels.History
 
@@ -65,6 +66,13 @@ def main (args : List String) : IO Unit :=
           for basisSupplied in [false, true] do
             for basisMatches in [false, true] do
               IO.println (FrKernels.TaskChange.mode completeReview write basisSupplied basisMatches)
+  | ["agent-session-steps"] =>
+      for state in List.range 3 do
+        for action in List.range 2 do
+          for previewValid in [false, true] do
+            for manifestMatches in [false, true] do
+              for basisMatches in [false, true] do
+                IO.println (FrKernels.AgentSession.step state action previewValid manifestMatches basisMatches)
   | ["memory-transitions"] =>
       for status in List.range 4 do
         for action in List.range 3 do
@@ -93,4 +101,4 @@ def main (args : List String) : IO Unit :=
           for distinctPaths in [false, true] do
             for sourceSupported in [false, true] do
               IO.println (moveAdmitted sourceExists destinationExists distinctPaths sourceSupported)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, agent-session-steps, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")

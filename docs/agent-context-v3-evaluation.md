@@ -11,7 +11,7 @@ changed request and response path against an embedded allowlist.
 |---|---:|---:|---:|
 | Normalized starting mean | 13,278.5 | 6,810 | 6,468.5 |
 | Protocol v2 mean | 11,229 | 6,810 | 4,419 |
-| Current v3 projection | 11,138 | 6,810 | 4,328 |
+| Current v3 projection | 11,142 | 6,810 | 4,332 |
 
 The current v3 projection removes 91 mean tokens, or 0.8% of the v2 `fr` total. The complete
 fixed projection is 2,140.5 tokens or 16.1% below the normalized starting mean. The remaining

@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 727 |
+| Defects fixed | 728 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -48,6 +48,8 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rust, Go, Java, Python, JavaScript, TypeScript and TSX body authoring through complete semantic bodies and checked deltas.
 - Rust declaration replacement and function insertion into files, inline modules, impls and traits.
 - A source-free semantic IR contract and zero-dependency Python SDK with cross-runtime canonical validation.
+- A Python agent runtime that retains structured reports locally, follows exact progressive
+  disclosure actions and carries reviewed task-change evidence into execution without JSON glue.
 - Merkle-committed progressive semantic and source disclosure with exact actions, strict
   per-response bounds and opaque scalar, typed-node and statement-position edit capabilities.
 - Multi-file authoring batches using one reviewed source-history transaction.
@@ -162,6 +164,12 @@ preservation and patch delivery. It uses nine instrumented calls and 8,549 measu
 It uses no model and makes no
 agent-adoption claim; the fresh pair in PR 30 acceptance item 7 is the required follow-up.
 
+PR 31's deterministic runtime comparison performs the same five internal `fr` operations through
+direct JSON and the structured Python runtime. Both paths produce the same final source, patch,
+eight lifecycle stages and applied history state. Direct JSON exposes 17,689 bytes across five
+agent exchanges; the complete runtime program and result expose 1,864 bytes in one exchange, an
+89.5% reduction. This fixed protocol measurement does not run a model or measure billed tokens.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -198,7 +206,8 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Twenty merged pull requests established the product foundation and its first measured workflow reduction:
+Thirty merged pull requests established the product foundation and its measured agent workflow.
+The next completed milestone is awaiting review:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -232,7 +241,8 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 27](https://github.com/e6qu/fun-refactor/pull/292) | Agent-Authored Formal Properties | Merged |
 | [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
 | [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
-| PR 30 | Complete Reviewed Agent Change Sessions | In progress |
+| [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
+| [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Proposed |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -251,7 +261,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,138 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,328-token or 63.6% `fr` premium.
+- The current checksum-bound projection uses 11,142 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,332-token or 63.6% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -1443,7 +1453,7 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 
 ### PR 30. Complete Reviewed Agent Change Sessions
 
-Status: in progress.
+Status: merged as [PR 296](https://github.com/e6qu/fun-refactor/pull/296).
 
 **Goal.** Replace the measured manual author, workflow and history sequence with one reviewed,
 revision-bound task-change session. It must prove the untouched starting state before mutation and
@@ -1467,12 +1477,48 @@ requiring agents to read successful command streams.
 6. **Complete.** The generic controlled comparison uses two calls and 3,342 median counted tokens,
    below the two-call task-change route's 3,370 and the five-call composed route's 4,623. It
    additionally checks the original before mutation and produces equal final source, patch and history.
-7. **Pending.** Run a fresh isolated Luna-low pair against the frozen regex workspace. Require both
+7. **External follow-up.** Run a fresh isolated Luna-low pair against the frozen regex workspace after
+   explicit approval of the project payload and hosted service. Require both
    arms to pass the 1,060-case project and receiver oracles, ordered lifecycle, patch replay and index
    preservation. Compare calls and measured context without claiming population or billed-quota results.
+   This follow-up is evidence collection, not an unfinished implementation or merge gate.
 8. **Complete.** Active evidence, portable skill, CLI, roadmap and continuity docs are current.
    Native, Python, harness, prose, all 92 Lean audits, deep replay and the host WASM lane pass
    locally. Linux CI passes the native, real-WASM and browser playground gates.
+
+### PR 31. Structured Agent Runtime SDK
+
+Status: proposed as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297).
+
+**Goal.** Let an agent keep bounded `fr` data inside a local Python process and progressively select
+needed high-level structures. Execute one reviewed change without copying complete JSON reports or
+manually joining bases through its conversation.
+
+**Acceptance.**
+
+1. **Complete.** A zero-dependency `FrClient` fixes one project root and invokes `fr` without a shell.
+   It bounds arguments, standard input, output and time, parses one JSON object and preserves
+   structured failure evidence.
+2. **Complete.** `FrReport` selects detached values by JSON Pointer. `Disclosure` checks the response
+   budget and extracts server-issued reveal actions. Domain filters cover semantic, project,
+   code-map, trace, impact and sources/sinks progression without fetching source implicitly.
+3. **Complete.** `TaskReview` binds canonical manifest bytes, their SHA-256, the complete preview and
+   its `frtc1` basis. `execute` refuses locally changed evidence before Rust independently recomputes
+   the reviewed basis and runs original/apply/check/undo/restored-check/redo/final-check/patch.
+4. **Complete.** `FrKernels.AgentSession` proves that execution requires reviewed state and exact
+   preview, manifest and basis inputs. Rust and Lean agree on all 48 finite cases; Python and Rust
+   agree on the same complete corpus.
+5. **Complete.** A real Rust/Python integration fixture discovers a handle and follows source-free
+   project evidence. It reviews and executes an inline change, checks its final state and reads the
+   delivered Git patch without hand-written JSON parsing.
+6. **Complete.** The controlled five-operation task preserves exact final source, patch and lifecycle
+   outcomes. Direct JSON exposes 17,689 bytes across five exchanges; the complete runtime program
+   and result expose 1,864 bytes in one exchange, an 89.5% reduction. This measures fixed visible
+   payload, not a model or billed tokens.
+7. **Complete.** The skill, SDK, roadmap and continuity docs describe the same runtime contract.
+   All 56 portable-skill examples, 22 Python unit tests and 15 Rust/Python integration tests pass.
+   The default and WASM gates, 311/311 capability cells and 68-job strict Lean build pass locally.
+   The deep gate passes all 93 Lean correspondence tests and its complete repository audits.
 
 ## Formal verification policy
 

@@ -67,6 +67,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B882: **the portable skill said that task-change preview writes**. The command has always kept
+  preview read-only. Its top-level routing sentence read "Preview writes." The skill now says
+  "Preview first." The task route retains the exact preview and execution commands.
+
 - [x] B881: **the portable agent skill exceeded its enforced route and file budgets**. The new task
   session guidance pushed `task.md` past 4 KiB and three routes past 7 KiB. We removed repeated
   explanation while preserving every executable example and workflow choice. The largest route has

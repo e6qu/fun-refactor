@@ -1,9 +1,36 @@
 # Development continuity
 
+PR 30 merged as [GitHub PR 296](https://github.com/e6qu/fun-refactor/pull/296). PR 31 is proposed as
+[GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297) and adds a structured Python runtime
+over the existing agent protocol. `FrClient` keeps project and
+disclosure reports as local data, selects only requested JSON Pointer values, follows exact
+server-issued reveal actions and carries canonical task-change bytes from review into execution.
+The binary still rechecks the complete basis before mutation.
+
+The first checkpoint passes 22 zero-dependency Python tests. A real integration fixture discovers a
+Rust target, follows source-free evidence, previews and executes the complete checked reversal
+lifecycle and verifies the patch. `FrKernels.AgentSession` proves that execution requires reviewed
+state plus matching preview, manifest and basis evidence. Rust and Lean agree on all 48 finite
+inputs, and Python agrees with Rust on the same corpus. Python execution, serialization, subprocess
+behavior and the existing host boundaries remain outside the proof.
+
+The controlled runtime comparison performs the same five internal `fr` calls in each arm and
+requires equal source, patch, history state and eight-stage lifecycle results. Direct JSON exposes
+17,689 request/response bytes across five agent-visible exchanges. The runtime exposes its complete
+Python program and compact result in one 1,864-byte exchange, an 89.5% reduction for this fixed
+task. It does not run a model or claim token, quota, adoption or population results.
+
+The complete local default and WASM gates pass. The default gate includes 22 Python unit tests,
+15 Rust/Python integration tests, all 56 portable-skill examples, 311/311 capability cells and a
+68-job strict Lean build. The deep gate passes the repository-wide self-hosted relations, recipe,
+translation conformance and every retained round trip. All 93 Lean kernel cases pass. The pinned
+external workspace replay also passes its upstream oracles and exact reversal. B882 records the
+inaccurate skill wording found and fixed while dogfooding task-change preview.
+
 PR 29 merged as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295) and closed every
 concrete deferred boundary recorded in `PLAN.md`.
 
-The active PR 30 branch targets the remaining measured agent-context premium. `task-change` now
+PR 30 targeted the remaining measured agent-context premium. `task-change` now
 accepts inline fragments and retained full handles without repeated project requests. Its reviewed
 write can check the untouched source before apply, run apply/check/undo/check/redo/check/patch in
 one ordered lifecycle and compact successful check evidence without hiding failures. The Python SDK
@@ -15,7 +42,8 @@ session, compared with 3,370 for the earlier task-change shape and 4,623 for the
 route. An end-to-end ideal rehearsal on the pinned regex workspace passes all 1,060 project and
 receiver oracle cases, exact internal reversal, ordered checks, index preservation and patch
 delivery in nine instrumented calls and 8,549 measured context tokens. This is deterministic
-workflow evidence; the fresh agent pair remains the next acceptance checkpoint.
+workflow evidence. A fresh hosted agent pair remains an optional evidence follow-up after explicit
+approval of its project payload and service; it is not unfinished implementation.
 
 The complete local gate passes 311/311 capability cells, all Python and agent-harness tests, the
 portable skill's 56 executable examples, its byte budgets, and all 66 strict Lean build jobs. The
