@@ -1,11 +1,28 @@
 # Development continuity
 
-PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298). PR 33 is proposed as
+PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298), and PR 33 merged as
 [GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299). It adds declarative `understand`, `trace`, `change`, `migrate` and
 `prove` requests over the content-addressed context workspace. `AgentIntent` expands each purpose
 to typed evidence projections, traverses the necessary branches locally and returns one bounded
-packet. A request may name 32 projections across eight sections, uses no more than 64 calls per
+packet. A request may name 32 projections across four current sections, uses 64 calls at most per
 section and 512 overall, and returns at most 64 KiB.
+
+PR 34 is proposed as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301). It moves that
+compiler into native `fr`. `fr intent --from` parses the same exact
+manifest, builds one immutable evidence model and selects every requested RFC 6901 value without
+progressive subprocess calls. It returns project, view, target and manifest identities, a measured
+packet size and a Merkle object digest for each selection. Custom projections now stay within their
+declared purpose. Rust, Python and Lean share that finite relation.
+
+`FrClient.compile` drives the native route and verifies the complete result. When given an object
+store, it repacks each selected value, checks Rust's digest and reads every immutable record back.
+`FrClient.prepare` retains the progressive action graph as an independent parity path. The generic
+trace fixture produces the same selected digest through both implementations. Progressive
+compilation uses 89 subprocesses and receives 302,380 internal bytes; native compilation uses one
+subprocess and receives 4,975 bytes. The native final packet is 4,975 bytes versus 3,909 because it
+also carries the project coverage envelope. This measurement covers deterministic process and byte
+costs and makes no model, token, quota or population claim. B894 and B895 record the orchestration
+and purpose-boundary defects fixed by this checkpoint.
 
 Materialization now handles paged objects and arrays, empty containers, inline children and UTF-8
 strings paged by byte offset. It verifies stable page identity, exact coverage, child ordering and

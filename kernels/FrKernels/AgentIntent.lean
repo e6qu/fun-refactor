@@ -1,5 +1,38 @@
 namespace FrKernels.AgentIntent
 
+-- fr:spec src/project/agent_intent.rs::agent_intent_section_allowed @ 9cf9e503721b3830c3f2ac8b66548947f9714ccb83b2596c4c3438a2cbc9c5ad
+-- fr:signature purpose: usize => purpose: Nat; section_code: usize => sectionCode: Nat; return: bool => return: Bool
+def sectionAllowed (purpose : Nat) (sectionCode : Nat) : Bool :=
+  match purpose with
+  | 0 => sectionCode == 0
+  | 1 => sectionCode == 0 || sectionCode == 1 || sectionCode == 3
+  | 2 => sectionCode == 0 || sectionCode == 2
+  | 3 => sectionCode == 0 || sectionCode == 2 || sectionCode == 3
+  | 4 => sectionCode == 0 || sectionCode == 2
+  | _ => false
+
+theorem understand_admits_exactly_code_map (sectionCode : Nat) :
+    sectionAllowed 0 sectionCode = true ↔ sectionCode = 0 := by
+  simp [sectionAllowed]
+
+theorem trace_admits_exactly_declared_sections (sectionCode : Nat) :
+    sectionAllowed 1 sectionCode = true ↔
+      (sectionCode = 0 ∨ sectionCode = 1) ∨ sectionCode = 3 := by
+  simp [sectionAllowed]
+
+theorem change_admits_exactly_declared_sections (sectionCode : Nat) :
+    sectionAllowed 2 sectionCode = true ↔ sectionCode = 0 ∨ sectionCode = 2 := by
+  simp [sectionAllowed]
+
+theorem migrate_admits_exactly_declared_sections (sectionCode : Nat) :
+    sectionAllowed 3 sectionCode = true ↔
+      (sectionCode = 0 ∨ sectionCode = 2) ∨ sectionCode = 3 := by
+  simp [sectionAllowed]
+
+theorem prove_admits_exactly_declared_sections (sectionCode : Nat) :
+    sectionAllowed 4 sectionCode = true ↔ sectionCode = 0 ∨ sectionCode = 2 := by
+  simp [sectionAllowed]
+
 def boundsAdmitted
     (needs sections calls callLimit packetBytes packetLimit : Nat) : Bool :=
   1 ≤ needs && needs ≤ 32 && 1 ≤ sections && sections ≤ 8 && sections ≤ needs &&

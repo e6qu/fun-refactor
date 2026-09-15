@@ -1,6 +1,9 @@
-from fr_ir.intent import AgentIntent, IntentNeed, prepare_intent
+from fr_ir.context import MemoryObjectStore, merkle_object_digest, restore_stored_value
+from fr_ir.intent import AgentIntent, IntentNeed, compile_intent, prepare_intent
 from fr_ir.runtime import FrReport, FrRuntimeError
-from fr_ir.intent import _intent_admitted
+from fr_ir.intent import _intent_admitted, _intent_section_allowed
+import hashlib
+import json
 import pytest
 
 
@@ -47,6 +50,39 @@ class FakeClient:
         return self.session
 
 
+class FakeNativeClient:
+    def __init__(self, mutate=None):
+        self.input = None
+        self.mutate = mutate
+
+    def call(self, *arguments, input_bytes=None):
+        self.input = input_bytes
+        intent = json.loads(input_bytes)
+        selected = {need["name"]: {"section": need["section"]} for need in intent["needs"]}
+        digest = hashlib.sha256(input_bytes).hexdigest()
+        value = {
+            "schema": "fr-agent-context-1", "revision": "r", "context_basis": "c",
+            "view_basis": "v", "object_root": "o", "view": "evidence", "profile": "compact",
+            "target": {"handle": intent["target"]}, "calls": 0,
+            "intent": {"schema": "fr-agent-intent-1", "purpose": intent["purpose"],
+                       "manifest_sha256": digest, "basis": f"frai1:{digest}"},
+            "selected": selected,
+            "object_digests": {name: merkle_object_digest(item) for name, item in selected.items()},
+            "cached_objects": [], "serialized_bytes": 0,
+            "execution": {"engine": "native", "project_snapshots": 1,
+                          "progressive_disclosure_calls": 0},
+            "limits": {"packet_bytes": intent["packet_limit"],
+                       "progressive_disclosure_calls": intent["call_limit"]},
+        }
+        if self.mutate is not None:
+            self.mutate(value)
+        for _ in range(4):
+            encoded = json.dumps(value, ensure_ascii=False, sort_keys=True,
+                                 separators=(",", ":"), allow_nan=False).encode()
+            value["serialized_bytes"] = len(encoded)
+        return FrReport(value, arguments)
+
+
 class TestIntent:
     def test_purposes_expand_to_stable_high_level_evidence(self):
         expected = {
@@ -84,6 +120,7 @@ class TestIntent:
             lambda: AgentIntent("target", "trace", (IntentNeed("x", "invented"),)),
             lambda: AgentIntent("target", "trace", (IntentNeed("same", "code_map"),
                                                      IntentNeed("same", "impact"))),
+            lambda: AgentIntent("target", "understand", (IntentNeed("x", "impact"),)),
             lambda: AgentIntent("target", "trace", call_limit=0),
             lambda: AgentIntent("target", "trace", call_limit=513),
             lambda: AgentIntent("target", "trace", packet_limit=1000),
@@ -91,6 +128,39 @@ class TestIntent:
         for build in invalid:
             with pytest.raises(FrRuntimeError):
                 build()
+
+    def test_native_compile_uses_one_call_and_verifies_object_storage(self):
+        client = FakeNativeClient()
+        store = MemoryObjectStore()
+        intent = AgentIntent("target", "trace")
+        compiled = compile_intent(client, intent, store=store)
+        assert json.loads(client.input) == intent.to_data()
+        assert compiled.at("/calls") == 0
+        assert set(compiled.at("/selected")) == {"code_map", "call_traces", "sources_and_sinks"}
+        assert len(compiled.stored_digests) == 3
+        for name, digest in compiled.at("/object_digests").items():
+            assert restore_stored_value(store, digest) == compiled.at(f"/selected/{name}")
+
+    def test_native_compile_refuses_changed_digest_and_identity(self):
+        for mutate in (
+            lambda value: value["object_digests"].__setitem__("code_map", "0" * 64),
+            lambda value: value["target"].__setitem__("handle", "other"),
+            lambda value: value["intent"].__setitem__("purpose", "change"),
+            lambda value: value["execution"].__setitem__("project_snapshots", 2),
+            lambda value: value["limits"].__setitem__("packet_bytes", 65_536),
+            lambda value: value.__setitem__("view_basis", None),
+        ):
+            with pytest.raises(FrRuntimeError):
+                compile_intent(FakeNativeClient(mutate), AgentIntent("target", "understand"))
+
+    def test_purpose_section_policy_is_total_over_public_codes(self):
+        expected = {
+            0: {0}, 1: {0, 1, 3}, 2: {0, 2}, 3: {0, 2, 3}, 4: {0, 2},
+        }
+        for purpose in range(7):
+            for section in range(6):
+                assert _intent_section_allowed(purpose, section) == \
+                    (section in expected.get(purpose, set()))
 
     def test_admission_policy_requires_every_bound_and_identity(self):
         assert _intent_admitted(2, 1, 512, 512, 65_536, 65_536,

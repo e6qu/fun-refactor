@@ -138,6 +138,8 @@ enum Command {
         #[command(subcommand)]
         command: crate::git::Command,
     },
+    #[command(about = "Compile one declarative agent intent in a single project snapshot.")]
+    Intent(crate::project::agent_intent::Options),
     #[command(about = "Inspect bounded project maps and revision-bound source details.")]
     Project {
         #[command(subcommand)]
@@ -982,7 +984,8 @@ fn dispatch(cli: &Cli) -> Result<()> {
     if cli.context_basis.is_some()
         && !matches!(
             cli.command,
-            Command::Project { .. }
+            Command::Intent(_)
+                | Command::Project { .. }
                 | Command::Author { .. }
                 | Command::Migrate { .. }
                 | Command::History { .. }
@@ -1066,6 +1069,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             );
             Ok(())
         }
+        Command::Intent(options) => cmd_intent(cli, options),
         Command::Project { command } => cmd_project(cli, command),
         Command::TaskChange(options) => cmd_task_change(cli, options),
         Command::Workflow(options) => {
@@ -2671,6 +2675,18 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
         context.apply(&mut report)?;
         crate::project::minimize_semantic_report(command, &mut report);
         println!("{}", serde_json::to_string(&report)?);
+        Ok(())
+    })
+}
+
+fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Result<()> {
+    with_project(cli, |project, root| {
+        let context = project.response_context(cli.context_basis.as_deref())?;
+        let mut compiled = project.compile_agent_intent(options)?;
+        project.verify(root)?;
+        context.apply(&mut compiled.report)?;
+        compiled.finalize()?;
+        println!("{}", serde_json::to_string(&compiled.report)?);
         Ok(())
     })
 }

@@ -1156,6 +1156,29 @@ fn agent_intent_admission_matches_lean_at_every_boundary() {
 }
 
 #[test]
+fn agent_intent_purpose_sections_match_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-intent-sections")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let mut observed = observed.lines();
+    for purpose in 0..7 {
+        for section in 0..6 {
+            assert_eq!(
+                observed.next().map(|line| line.parse::<bool>().unwrap()),
+                Some(fun_refactor::project::agent_intent_section_allowed(
+                    purpose, section
+                ))
+            );
+        }
+    }
+    assert!(observed.next().is_none());
+}
+
+#[test]
 fn browser_history_transition_policy_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))

@@ -21,11 +21,12 @@ revision, view and object identity. `MemoryObjectStore` caches in process. A
 `DirectoryObjectStore(PATH)` can persist reusable objects; keep `PATH` outside the analyzed project
 so cache writes do not invalidate its handles.
 
-Prefer `client.prepare(AgentIntent(handle, PURPOSE))` when the goal is `understand`, `trace`,
+Prefer `client.compile(AgentIntent(handle, PURPOSE))` when the goal is `understand`, `trace`,
 `change`, `migrate` or `prove`. Import `AgentIntent` and optional `IntentNeed` from `fr_ir.intent`.
-The runtime expands the purpose, materializes sibling sections from the retained session action
-graph and returns one bounded `PreparedIntent`. Use explicit needs and pointer suffixes when the
-default section values would exceed the packet budget.
+Native `fr` expands the purpose and selects the evidence in one project snapshot. It returns one
+bounded `CompiledIntent` and a Merkle object digest for each selection. Use explicit needs and
+pointer suffixes when the default section values would exceed the packet budget. Use
+`client.prepare` only to exercise the progressive action protocol or compare both implementations.
 
 Construct `TaskChange`, `TaskTarget` and `TaskDelivery` as shown in [Task](task.md). Preview with
 `review = client.review(change)`, inspect selected values with `review.at(POINTER)`, then call

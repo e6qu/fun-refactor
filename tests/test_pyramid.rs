@@ -80,6 +80,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("history", vec!["history"]),
         ("file", vec!["file", "delete", "svc/a.go"]),
         ("git", vec!["git", "status"]),
+        ("intent", vec!["intent", "--from", "missing.intent"]),
         ("project", vec!["project", "map"]),
         (
             "migrate",

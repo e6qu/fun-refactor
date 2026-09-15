@@ -67,6 +67,15 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B895: **an explicit intent could request evidence outside its declared purpose**. Purpose
+  labels expanded to useful defaults but did not constrain custom projections. Rust, Python and
+  Lean now share the exact purpose-to-section relation and reject cross-purpose requests.
+
+- [x] B894: **a complete high-level intent rebuilt one project through dozens of subprocesses**.
+  The progressive Python compiler preserved context from an agent but still made 89 process calls
+  for the retained trace fixture. Native `fr intent` now selects the same Merkle-addressed evidence
+  from one snapshot and one process call; the progressive route remains a parity oracle.
+
 - [x] B893: **two retained Python reports still bound the source before its ty repair**.
   Their behavioral results remain unchanged, and their exact input hashes now bind the checked SDK.
 

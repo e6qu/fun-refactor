@@ -18,7 +18,7 @@ from typing import Any, Mapping, Sequence, TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from .ir import TaskChange
     from .context import ContextSession, ObjectStore
-    from .intent import AgentIntent, PreparedIntent
+    from .intent import AgentIntent, CompiledIntent, PreparedIntent
 
 
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
@@ -452,6 +452,16 @@ class FrClient:
         """Compile one declarative intent into a bounded context packet."""
         from .intent import prepare_intent
         return prepare_intent(self, intent, store=store)
+
+    def compile(
+        self,
+        intent: AgentIntent,
+        *,
+        store: ObjectStore | None = None,
+    ) -> CompiledIntent:
+        """Compile one intent natively in a single project snapshot."""
+        from .intent import compile_intent
+        return compile_intent(self, intent, store=store)
 
     def execute(self, review: TaskReview) -> TaskResult:
         """Execute only the unchanged manifest and basis held by one review."""

@@ -275,6 +275,24 @@ The matrix comes from asking each refactoring's own predicate, so it cannot drif
 from the code. Every cell that is not supported carries its reason.
 `--markdown` prints the table the README publishes.
 
+### `fr intent`
+
+`fr --json intent --from INTENT.json` compiles one `fr-agent-intent-1` request directly from one
+verified project snapshot. Pass `-` to read at most 64 KiB from standard input. The manifest names
+one full declaration handle, an `understand`, `trace`, `change`, `migrate` or `prove` purpose, and
+one through 32 named evidence projections:
+
+```json
+{"schema":"fr-agent-intent-1","target":"frp1:...","purpose":"trace","needs":[{"name":"map","section":"code_map","pointer":"/target"},{"name":"calls","section":"call_traces","pointer":""}],"token_limit":4096,"call_limit":192,"packet_limit":8192}
+```
+
+Each purpose admits only its declared sections. A pointer is relative to that section and follows
+RFC 6901. The result is one source-free `fr-agent-context-1` packet with selected values and their
+Merkle object digests. It also binds the exact manifest, project and view identities, and measured
+compact JSON bytes. It performs no progressive-disclosure subprocess calls. Missing pointers, stale
+handles, cross-purpose sections, unknown fields and packets beyond the requested 1–64 KiB limit
+refuse without returning a partial selection.
+
 ## Finding work
 
 ### `fr duplicates`

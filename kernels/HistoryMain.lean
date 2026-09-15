@@ -102,6 +102,10 @@ def main (args : List String) : IO Unit :=
                       for complete in [false, true] do
                         IO.println (FrKernels.AgentIntent.admitted needs sections calls callLimit
                           packetBytes packetLimit targetMatches sessionMatches complete)
+  | ["agent-intent-sections"] =>
+      for purpose in [0:7] do
+        for sectionCode in [0:6] do
+          IO.println (FrKernels.AgentIntent.sectionAllowed purpose sectionCode)
   | ["memory-transitions"] =>
       for status in List.range 4 do
         for action in List.range 3 do
@@ -130,4 +134,4 @@ def main (args : List String) : IO Unit :=
           for distinctPaths in [false, true] do
             for sourceSupported in [false, true] do
               IO.println (moveAdmitted sourceExists destinationExists distinctPaths sourceSupported)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, agent-session-steps, agent-context-admission, agent-intent-admission, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, agent-session-steps, agent-context-admission, agent-intent-admission, agent-intent-sections, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")

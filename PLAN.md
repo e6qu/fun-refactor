@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 739 |
+| Defects fixed | 741 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -178,6 +178,13 @@ and obtains the same normalized code map in both arms. Exposing all progressive 
 cost 4,550 bytes in one exchange, a 92.4% reduction. The fixture checks the same packet size, call
 count and cached-object count. It does not run a model or measure tokens or quota.
 
+PR 34's deterministic native-intent comparison returns the same selected trace evidence as the
+progressive compiler. The progressive implementation makes 89 subprocess calls and receives
+302,380 internal response bytes. Native compilation makes one call and receives 4,975 bytes. Its
+final packet is 4,975 bytes versus 3,909 for the locally assembled packet because it retains the
+project coverage envelope. This measures process and serialized-byte cost, not model behavior,
+tokens, quota or a population.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -215,8 +222,8 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-Thirty-three pull-request milestones established the product foundation and its measured agent
-workflow. PR 33 is ready for review:
+Thirty-three merged pull-request milestones established the product foundation and its measured
+agent workflow. PR 34 moves intent compilation into the native tool:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -253,7 +260,8 @@ workflow. PR 33 is ready for review:
 | [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
 | [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Merged |
 | [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Merged |
-| [PR 33](https://github.com/e6qu/fun-refactor/pull/299) | Declarative Agent Intents and Current Toolchains | Proposed |
+| [PR 33](https://github.com/e6qu/fun-refactor/pull/299) | Declarative Agent Intents and Current Toolchains | Merged |
+| [PR 34](https://github.com/e6qu/fun-refactor/pull/301) | Native Agent Intent Compiler | Proposed |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -266,7 +274,7 @@ Git history and [development continuity](docs/continuity.md) retain checkpoint-l
 
 ### PR 33. Declarative Agent Intents and Current Toolchains
 
-Status: proposed as [GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299).
+Status: merged as [GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299).
 
 Goal: let an agent state `understand`, `trace`, `change`, `migrate` or `prove`. The runtime then
 returns one bounded packet assembled from the necessary high-level evidence without intermediate text.
@@ -298,6 +306,40 @@ Verification and acceptance:
 5. Python tests run under pytest 9.1.1 and type-check under ty 0.0.80. Upgraded TypeScript/Next.js
    fixtures execute, the browser audit is clear, and strict source correspondence passes.
 6. The complete native, WASM, documentation, skill and deep repository gates pass before review.
+
+### PR 34. Native Agent Intent Compiler
+
+Status: proposed as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301).
+
+Goal: compile a complete high-level intent in one native process and one immutable project
+snapshot. Preserve the Python progressive implementation as an independent protocol oracle.
+
+Deliverables:
+
+- Accept the existing `fr-agent-intent-1` manifest through `fr intent --from`, including standard
+  input, exact unknown-field rejection and the existing call and packet ceilings.
+- Select named RFC 6901 values directly from the source-free evidence model.
+- Return revision, view, target and manifest identities plus one Merkle object digest for every
+  selected subtree.
+- Constrain custom sections to the declared `understand`, `trace`, `change`, `migrate` or `prove`
+  purpose in Rust and Python.
+- Add `FrClient.compile` as the one-process default while retaining `prepare` for progressive parity,
+  inclusion-proof testing and later interactive reveals.
+- Verify optional object-store writes against Rust's selected object digests.
+- Retain a source-bound native-versus-progressive comparison with complete internal response and
+  final packet byte counts.
+- Anchor the purpose-to-section policy in Lean and compare its complete finite domain with Rust.
+
+Verification and acceptance:
+
+1. A real three-section trace returns equal selected values through native and progressive routes.
+2. Native compilation uses one process, one project snapshot and zero progressive calls.
+3. Unknown fields, invalid names and pointers, stale handles, absent values, cross-purpose sections
+   and packets over their ceiling refuse without partial selections.
+4. Each selected value independently recomputes the Rust-issued object digest, and Python storage
+   reads it back through verified Merkle records.
+5. Rust, Python and Lean agree on every purpose and section code in and around the public domain.
+6. Native, Python, ty, skill, prose, strict Lean, WASM and deep repository gates pass before review.
 
 ### PR 8. Agent Workflow Simplification
 
