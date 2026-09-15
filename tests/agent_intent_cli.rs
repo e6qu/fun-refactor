@@ -244,6 +244,12 @@ fn change_intent_previews_and_executes_one_bound_reviewed_lifecycle() {
     assert_eq!(preview["action"]["schema"], "fr-agent-action-1");
     assert_eq!(preview["action"]["review"]["ready"], true);
     assert_eq!(preview["action"]["review"]["executed"], false);
+    assert!(preview["action"]["review"].get("revision").is_none());
+    assert!(preview["action"]["review"].get("coverage").is_none());
+    assert_eq!(
+        preview["action"]["review"]["intent_context_inherited"],
+        json!(["revision", "coverage"])
+    );
     assert!(preview["action"]["review"]["author"]["diff"]
         .as_str()
         .unwrap()

@@ -74,6 +74,30 @@ fn native_intent_context_evidence_is_source_bound_and_arithmetically_valid() {
 }
 
 #[test]
+fn intent_action_context_evidence_is_source_bound_and_arithmetically_valid() {
+    let output = python()
+        .arg(root().join("tools/intent-action-context.py"))
+        .arg("--audit")
+        .arg(root().join("tests/agent-eval/intent-action-context.json"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["composed"]["process_calls"], 3);
+    assert_eq!(report["intent_action"]["process_calls"], 2);
+    assert_eq!(report["reduction"]["process_calls"], 1);
+    assert!(report["equality"]
+        .as_object()
+        .unwrap()
+        .values()
+        .all(|value| value.as_bool() == Some(true)));
+}
+
+#[test]
 fn python_runtime_discovers_discloses_reviews_and_executes_without_json_glue() {
     let workspace = tempfile::tempdir().unwrap();
     fs::create_dir_all(workspace.path().join("src")).unwrap();
@@ -259,7 +283,8 @@ fn python_runtime_executes_one_intent_bound_reviewed_change() {
         .unwrap(),
     )
     .unwrap();
-    let script = r#"import json, sys
+    let script = r#"# => intent action SDK fixture
+import json, sys
 from fr_ir.intent import AgentIntent, IntentAction
 from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import FrClient

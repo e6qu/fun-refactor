@@ -2722,10 +2722,23 @@ fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Res
                 }
                 return Ok(());
             }
+            let mut action_review = outcome.report;
+            for field in [
+                "revision",
+                "coverage",
+                "task_basis",
+                "task_resolution_basis",
+                "requests",
+            ] {
+                action_review.as_object_mut().unwrap().remove(field);
+            }
+            action_review["intent_context_inherited"] = serde_json::json!(["revision", "coverage"]);
+            action_review["basis_committed_omitted"] =
+                serde_json::json!(["task_basis", "task_resolution_basis", "requests"]);
             compiled.report["action"] = serde_json::json!({
                 "schema": "fr-agent-action-1",
                 "basis": outcome.basis,
-                "review": outcome.report,
+                "review": action_review,
             });
         } else {
             anyhow::ensure!(
