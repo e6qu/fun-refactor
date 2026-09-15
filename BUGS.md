@@ -67,6 +67,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B883: **the Python runtime discarded progressive-disclosure page continuations**. It extracted
+  nested `reveal` commands but ignored the top-level `continuation` command returned for another
+  page of wide object or array children. Agents could reach the first page and no later sibling.
+  `Disclosure.actions()` now returns the exact continuation with its reason and revealed-node
+  metadata, while rejecting extra fields and non-disclosure commands.
+
 - [x] B882: **the portable skill said that task-change preview writes**. The command has always kept
   preview read-only. Its top-level routing sentence read "Preview writes." The skill now says
   "Preview first." The task route retains the exact preview and execution commands.

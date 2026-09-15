@@ -98,10 +98,13 @@ class DisclosureAction:
     domain: str | None = None
     address: str | None = None
     object_digest: str | None = None
+    kind: str = "reveal"
+    reason: str | None = None
 
     def __post_init__(self) -> None:
         arguments = self.arguments
-        if (not isinstance(arguments, tuple) or not 3 <= len(arguments) <= 32
+        if (self.kind not in ("reveal", "continuation")
+                or not isinstance(arguments, tuple) or not 3 <= len(arguments) <= 32
                 or any(not isinstance(item, str) or "\0" in item for item in arguments)
                 or arguments[:2] != ("project", "disclose")
                 or "--reveal" not in arguments):
@@ -120,6 +123,25 @@ class DisclosureAction:
             meta.get("domain") if isinstance(meta.get("domain"), str) else None,
             meta.get("address") if isinstance(meta.get("address"), str) else None,
             meta.get("object_digest") if isinstance(meta.get("object_digest"), str) else None,
+        )
+
+    @classmethod
+    def from_continuation(
+        cls, value: Any, metadata: Mapping[str, Any] | None = None,
+    ) -> DisclosureAction:
+        """Read one exact page continuation returned by ``fr``."""
+        if (not isinstance(value, Mapping) or not set(value) <= {"arguments", "reason"}
+                or "arguments" not in value or not isinstance(value["arguments"], list)
+                or ("reason" in value and not isinstance(value["reason"], str))):
+            raise FrRuntimeError("disclosure continuation has an unsupported shape")
+        meta = metadata or {}
+        return cls(
+            tuple(value["arguments"]),
+            meta.get("domain") if isinstance(meta.get("domain"), str) else None,
+            meta.get("address") if isinstance(meta.get("address"), str) else None,
+            meta.get("object_digest") if isinstance(meta.get("object_digest"), str) else None,
+            "continuation",
+            value.get("reason"),
         )
 
 
@@ -143,6 +165,15 @@ class Disclosure(FrReport):
         """Return deduplicated exact continuations, optionally filtered by domain."""
         found: list[DisclosureAction] = []
         seen: set[tuple[str, ...]] = set()
+
+        continuation = self._value.get("continuation")
+        revealed = self._value.get("revealed")
+        if isinstance(continuation, Mapping):
+            metadata = revealed if isinstance(revealed, Mapping) else None
+            action = DisclosureAction.from_continuation(continuation, metadata)
+            if domain is None or action.domain == domain:
+                seen.add(action.arguments)
+                found.append(action)
 
         def visit(node: Any) -> None:
             if isinstance(node, dict):

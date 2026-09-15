@@ -73,6 +73,27 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(FrRuntimeError, "token budget"):
             Disclosure({**initial, "token_budget": {"limit": 10, "used_upper_bound": 11}}, ())
 
+    def test_disclosure_exposes_exact_page_continuations(self):
+        arguments = ["project", "disclose", "frp1:rev:1", "--reveal", "frh1:hole",
+                     "--token-limit", "4096", "--cursor", "frdc1:page:1"]
+        disclosure = Disclosure({
+            "schema": "fr-progressive-disclosure-1",
+            "token_budget": {"limit": 4096, "used_upper_bound": 900},
+            "revealed": {
+                "domain": "project-evidence", "address": "basis#/model",
+                "object_digest": "a" * 64,
+            },
+            "continuation": {"arguments": arguments, "reason": "more-children"},
+        }, ())
+        actions = disclosure.actions(domain="project-evidence")
+        self.assertEqual(len(actions), 1)
+        self.assertEqual(actions[0].arguments, tuple(arguments))
+        self.assertEqual(actions[0].kind, "continuation")
+        self.assertEqual(actions[0].reason, "more-children")
+        with self.assertRaisesRegex(FrRuntimeError, "unsupported shape"):
+            from fr_ir import DisclosureAction
+            DisclosureAction.from_continuation({"arguments": arguments, "extra": True})
+
     @patch("fr_ir.runtime.subprocess.run")
     def test_review_and_execute_reuse_exact_manifest_and_basis(self, run):
         basis = "frtc1:" + "b" * 64
