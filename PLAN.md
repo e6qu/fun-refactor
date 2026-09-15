@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 735 |
+| Defects fixed | 736 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |

@@ -3,16 +3,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const source = readFileSync(join(here, "../src/session.ts"), "utf8");
-const javascript = ts.transpile(source, {
-  module: ts.ModuleKind.ESNext,
-  target: ts.ScriptTarget.ES2022,
-});
-const module = await import(`data:text/javascript;base64,${Buffer.from(javascript).toString("base64")}`);
-const { loadCheckpoint, saveCheckpoint } = module;
+const { loadCheckpoint, saveCheckpoint } = await import(new URL("../src/session.ts", import.meta.url));
 const wasm = await import(join(here, "../src/wasm/fun_refactor.js"));
 await wasm.default({
   module_or_path: readFileSync(join(here, "../src/wasm/fun_refactor_bg.wasm")),

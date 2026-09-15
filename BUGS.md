@@ -67,6 +67,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B890: **the browser checkpoint test depended on the removed TypeScript 7 compiler API**.
+  Node 26 already executes erasable TypeScript directly. The test now imports the production module
+  and avoids an unrelated compiler adapter.
+
 - [x] B889: **tree-sitter 0.27 broke the browser build across current grammar crates**.
   Their build scripts requested libc sources that 0.1.8 removed, while the upgraded headers
   also exposed stale wide-character declarations in the local shim. A local 0.1.8 bridge keeps
