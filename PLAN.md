@@ -261,7 +261,7 @@ agent workflow. PR 34 moves intent compilation into the native tool:
 | [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Merged |
 | [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Merged |
 | [PR 33](https://github.com/e6qu/fun-refactor/pull/299) | Declarative Agent Intents and Current Toolchains | Merged |
-| PR 34 | Native Agent Intent Compiler | In progress |
+| [PR 34](https://github.com/e6qu/fun-refactor/pull/301) | Native Agent Intent Compiler | Proposed |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -309,7 +309,7 @@ Verification and acceptance:
 
 ### PR 34. Native Agent Intent Compiler
 
-Status: in progress.
+Status: proposed as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301).
 
 Goal: compile a complete high-level intent in one native process and one immutable project
 snapshot. Preserve the Python progressive implementation as an independent protocol oracle.

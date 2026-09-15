@@ -7,7 +7,8 @@ to typed evidence projections, traverses the necessary branches locally and retu
 packet. A request may name 32 projections across four current sections, uses 64 calls at most per
 section and 512 overall, and returns at most 64 KiB.
 
-The next checkpoint moves that compiler into native `fr`. `fr intent --from` parses the same exact
+PR 34 is proposed as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301). It moves that
+compiler into native `fr`. `fr intent --from` parses the same exact
 manifest, builds one immutable evidence model and selects every requested RFC 6901 value without
 progressive subprocess calls. It returns project, view, target and manifest identities, a measured
 packet size and a Merkle object digest for each selection. Custom projections now stay within their
