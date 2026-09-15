@@ -34,10 +34,27 @@ fn run(root: &Path, arguments: &[&str], input: Option<&[u8]>) -> (bool, Value) {
 fn fixture() -> tempfile::TempDir {
     let root = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(root.path().join("src")).unwrap();
+    std::fs::create_dir_all(root.path().join(".fr")).unwrap();
+    std::fs::create_dir_all(root.path().join("artifacts")).unwrap();
     std::fs::write(
         root.path().join("src/lib.rs"),
         "pub fn render(value: &str) -> String { value.to_owned() }\n\
          pub fn caller() -> String { render(\"ok\") }\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join(".fr/checks.json"),
+        serde_json::to_vec(&json!({
+            "schema": 1,
+            "checks": [{
+                "name": "syntax",
+                "argv": ["true"],
+                "cwd": ".",
+                "timeout_seconds": 10,
+                "covers": ["selected source state"]
+            }]
+        }))
+        .unwrap(),
     )
     .unwrap();
     root
@@ -58,6 +75,47 @@ fn intent(target: &str, purpose: &str, needs: Value, packet_limit: usize) -> Vec
         "token_limit": 4096,
         "call_limit": 192,
         "packet_limit": packet_limit
+    }))
+    .unwrap()
+}
+
+fn change_intent(target: &str, purpose: &str) -> Vec<u8> {
+    serde_json::to_vec(&json!({
+        "schema": "fr-agent-intent-1",
+        "target": target,
+        "purpose": purpose,
+        "needs": [{"name": "map", "section": "code_map", "pointer": "/target"}],
+        "token_limit": 4096,
+        "call_limit": 192,
+        "packet_limit": 65_536,
+        "action": {
+            "task_change": {
+                "schema": "fr-task-change-1",
+                "requests": [],
+                "targets": [{
+                    "id": "render-body",
+                    "handle": target,
+                    "op": "replace-body",
+                    "fragment": "{ value.to_uppercase() }\n"
+                }],
+                "postconditions": {
+                    "files-changed": 1,
+                    "edits": 1,
+                    "changed-operations": 1,
+                    "paths-changed": ["src/lib.rs"]
+                },
+                "checks": ["syntax"],
+                "delivery": {
+                    "check-original": true,
+                    "compact-success": true,
+                    "exercise-reversal": true,
+                    "patch": "artifacts/change.patch",
+                    "check-output-bytes": 256
+                }
+            },
+            "diff_bytes": 4096,
+            "report_bytes": 65_536
+        }
     }))
     .unwrap()
 }
@@ -172,4 +230,105 @@ fn native_intent_rejects_unknown_fields_and_noncanonical_pointers() {
         let (success, report) = run(root.path(), &["intent", "--from", "-"], Some(&input));
         assert!(!success, "{report}");
     }
+}
+
+#[test]
+fn change_intent_previews_and_executes_one_bound_reviewed_lifecycle() {
+    let root = fixture();
+    let handle = handle(root.path());
+    let input = change_intent(&handle, "change");
+    let (success, preview) = run(root.path(), &["intent", "--from", "-"], Some(&input));
+    assert!(success, "{preview}");
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    assert!(basis.starts_with("fraa1:"));
+    assert_eq!(preview["action"]["schema"], "fr-agent-action-1");
+    assert_eq!(preview["action"]["review"]["ready"], true);
+    assert_eq!(preview["action"]["review"]["executed"], false);
+    assert!(preview["action"]["review"]["author"]["diff"]
+        .as_str()
+        .unwrap()
+        .contains("to_uppercase"));
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_owned"));
+    assert!(!root.path().join(".fr-history").exists());
+
+    let (success, applied) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&input),
+    );
+    assert!(success, "{applied}");
+    assert_eq!(applied["schema"], "fr-agent-action-result-1");
+    assert_eq!(applied["action_basis"], basis);
+    assert_eq!(applied["executed"], true);
+    assert_eq!(applied["passed"], true);
+    assert_eq!(applied["action"]["executed"], true);
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_uppercase"));
+    assert!(root.path().join("artifacts/change.patch").is_file());
+
+    let transaction = applied["action"]["transaction"]
+        .as_u64()
+        .unwrap()
+        .to_string();
+    let (success, undone) = run(
+        root.path(),
+        &["history", "undo", &transaction, "--write"],
+        None,
+    );
+    assert!(success, "{undone}");
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_owned"));
+    let (success, redone) = run(
+        root.path(),
+        &["history", "redo", &transaction, "--write"],
+        None,
+    );
+    assert!(success, "{redone}");
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_uppercase"));
+}
+
+#[test]
+fn change_intent_refuses_wrong_purpose_target_basis_and_unreviewed_execution() {
+    let root = fixture();
+    let handle = handle(root.path());
+    let mut cases = vec![change_intent(&handle, "trace")];
+    let mut wrong_target: Value =
+        serde_json::from_slice(&change_intent(&handle, "change")).unwrap();
+    wrong_target["action"]["task_change"]["targets"][0]["handle"] = json!(format!("{handle}0"));
+    cases.push(serde_json::to_vec(&wrong_target).unwrap());
+    for input in cases {
+        let (success, refused) = run(root.path(), &["intent", "--from", "-"], Some(&input));
+        assert!(!success, "{refused}");
+    }
+
+    let input = change_intent(&handle, "change");
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", "fraa1:wrong"],
+        Some(&input),
+    );
+    assert!(!success, "{refused}");
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_owned"));
+    assert!(!root.path().join(".fr-history").exists());
+
+    let plain = intent(
+        &handle,
+        "change",
+        json!([{"name": "map", "section": "code_map", "pointer": ""}]),
+        65_536,
+    );
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", "fraa1:wrong"],
+        Some(&plain),
+    );
+    assert!(!success, "{refused}");
 }

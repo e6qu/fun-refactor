@@ -237,6 +237,78 @@ print(json.dumps({
 }
 
 #[test]
+fn python_runtime_executes_one_intent_bound_reviewed_change() {
+    let workspace = tempfile::tempdir().unwrap();
+    fs::create_dir_all(workspace.path().join("src")).unwrap();
+    fs::create_dir_all(workspace.path().join(".fr")).unwrap();
+    fs::create_dir_all(workspace.path().join("artifacts")).unwrap();
+    fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn render(value: &str) -> String { value.to_owned() }\n",
+    )
+    .unwrap();
+    fs::write(
+        workspace.path().join(".fr/checks.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": 1,
+            "checks": [{
+                "name": "syntax", "argv": ["true"], "cwd": ".",
+                "timeout_seconds": 10, "covers": ["selected source state"]
+            }]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let script = r#"import json, sys
+from fr_ir.intent import AgentIntent, IntentAction
+from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
+from fr_ir.runtime import FrClient
+
+client = FrClient(sys.argv[1], executable=sys.argv[2])
+handle = client.project('find', 'render', '--signature').at('/rows/0/0')
+change = TaskChange(
+    [],
+    [TaskTarget('render-body', handle, 'replace-body',
+                fragment='{ value.to_uppercase() }\n')],
+    {'files-changed': 1, 'edits': 1, 'changed-operations': 1,
+     'paths-changed': ['src/lib.rs']},
+    ['syntax'],
+    TaskDelivery(patch='artifacts/change.patch'),
+)
+compiled = client.compile(AgentIntent(
+    handle, 'change', packet_limit=65536, action=IntentAction(change),
+))
+assert compiled.action_basis.startswith('fraa1:')
+assert compiled.at('/action/review/ready') is True
+result = client.execute_intent(compiled)
+print(json.dumps({
+    'passed': result.passed,
+    'basis': result.at('/action_basis'),
+    'status': result.at('/action/workflow/transaction_status'),
+}))
+"#;
+    let output = python()
+        .args(["-c", script])
+        .arg(workspace.path())
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["status"], "applied");
+    assert!(report["basis"].as_str().unwrap().starts_with("fraa1:"));
+    assert!(fs::read_to_string(workspace.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_uppercase"));
+    assert!(workspace.path().join("artifacts/change.patch").is_file());
+}
+
+#[test]
 fn python_runtime_session_policy_matches_rust_exhaustively() {
     let script = r#"# => Python agent-session kernel corpus
 from fr_ir.runtime import _session_step

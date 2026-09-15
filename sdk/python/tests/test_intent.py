@@ -1,5 +1,7 @@
 from fr_ir.context import MemoryObjectStore, merkle_object_digest, restore_stored_value
-from fr_ir.intent import AgentIntent, IntentNeed, compile_intent, prepare_intent
+from fr_ir.intent import (AgentIntent, IntentAction, IntentNeed, compile_intent,
+                          execute_intent, prepare_intent)
+from fr_ir.ir import ProjectRequest, TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import FrReport, FrRuntimeError
 from fr_ir.intent import _intent_admitted, _intent_section_allowed
 import hashlib
@@ -58,6 +60,19 @@ class FakeNativeClient:
     def call(self, *arguments, input_bytes=None):
         self.input = input_bytes
         intent = json.loads(input_bytes)
+        if "--write" in arguments:
+            basis = arguments[arguments.index("--basis") + 1]
+            digest = hashlib.sha256(input_bytes).hexdigest()
+            return FrReport({
+                "schema": "fr-agent-action-result-1",
+                "intent_basis": f"frai1:{digest}",
+                "action_basis": basis,
+                "reviewed_context_omitted": True,
+                "executed": True,
+                "passed": True,
+                "action": {"schema": "fr-task-change-1", "executed": True,
+                           "passed": True},
+            }, arguments)
         selected = {need["name"]: {"section": need["section"]} for need in intent["needs"]}
         digest = hashlib.sha256(input_bytes).hexdigest()
         value = {
@@ -74,6 +89,19 @@ class FakeNativeClient:
             "limits": {"packet_bytes": intent["packet_limit"],
                        "progressive_disclosure_calls": intent["call_limit"]},
         }
+        action = intent.get("action")
+        if action is not None:
+            task_bytes = json.dumps(action["task_change"], ensure_ascii=False, sort_keys=True,
+                                    separators=(",", ":"), allow_nan=False).encode()
+            value["action"] = {
+                "schema": "fr-agent-action-1", "basis": f"fraa1:{'0' * 64}",
+                "review": {
+                    "schema": "fr-task-change-1",
+                    "manifest_sha256": hashlib.sha256(task_bytes).hexdigest(),
+                    "targets": [{"handle": intent["target"]}],
+                    "ready": True, "executed": False,
+                },
+            }
         if self.mutate is not None:
             self.mutate(value)
         for _ in range(4):
@@ -84,6 +112,17 @@ class FakeNativeClient:
 
 
 class TestIntent:
+    @staticmethod
+    def change(target="target", *, requests=()):
+        return TaskChange(
+            requests,
+            [TaskTarget("render", target, "replace-body", fragment="{ 1 }")],
+            {"files-changed": 1, "edits": 1, "changed-operations": 1,
+             "paths-changed": ["src/lib.rs"]},
+            ["unit"],
+            TaskDelivery(patch="artifacts/change.patch"),
+        )
+
     def test_purposes_expand_to_stable_high_level_evidence(self):
         expected = {
             "understand": ("code_map",),
@@ -152,6 +191,40 @@ class TestIntent:
         ):
             with pytest.raises(FrRuntimeError):
                 compile_intent(FakeNativeClient(mutate), AgentIntent("target", "understand"))
+
+    def test_native_change_intent_compiles_and_executes_one_retained_review(self):
+        client = FakeNativeClient()
+        intent = AgentIntent(
+            "target", "change", packet_limit=65_536,
+            action=IntentAction(self.change()),
+        )
+        compiled = compile_intent(client, intent)
+        assert compiled.action_basis == f"fraa1:{'0' * 64}"
+        assert compiled.at("/action/review/targets/0/handle") == "target"
+        result = execute_intent(client, compiled)
+        assert result.passed
+        assert result.at("/action_basis") == compiled.action_basis
+        assert json.loads(client.input) == intent.to_data()
+
+    def test_invalid_change_actions_refuse_before_subprocess_work(self):
+        with pytest.raises(FrRuntimeError):
+            AgentIntent("target", "trace", action=IntentAction(self.change()))
+        with pytest.raises(FrRuntimeError):
+            AgentIntent("target", "change", action=IntentAction(self.change("other")))
+        request = ProjectRequest("find", ["find", "render"])
+        referenced = TaskChange(
+            [request],
+            [TaskTarget("render", "target", "replace-body", fragment="{ 1 }")],
+            {"files-changed": 1}, ["unit"],
+        )
+        with pytest.raises(FrRuntimeError):
+            AgentIntent("target", "change", action=IntentAction(referenced))
+        with pytest.raises(FrRuntimeError):
+            IntentAction(self.change(), diff_bytes=True)
+        with pytest.raises(FrRuntimeError):
+            execute_intent(FakeNativeClient(), compile_intent(
+                FakeNativeClient(), AgentIntent("target", "change")
+            ))
 
     def test_purpose_section_policy_is_total_over_public_codes(self):
         expected = {

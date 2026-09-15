@@ -2680,10 +2680,60 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
 }
 
 fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Result<()> {
+    anyhow::ensure!(
+        !cli.save_plan && cli.plan_basis.is_none(),
+        "agent intent uses its own reviewed action basis."
+    );
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
         let mut compiled = project.compile_agent_intent(options)?;
-        project.verify(root)?;
+        if let Some(action) = compiled.action.take() {
+            anyhow::ensure!(
+                cli.context_basis.is_none(),
+                "an intent action carries its complete context and does not accept --context-basis."
+            );
+            let intent_basis = compiled.report["intent"]["basis"]
+                .as_str()
+                .context("compiled intent has no basis")?
+                .to_owned();
+            let outcome = run_task_change(
+                cli,
+                project,
+                root,
+                action,
+                compiled.action_diff_bytes,
+                options.write,
+                options.basis.as_deref(),
+                Some((compiled.purpose, &intent_basis)),
+            )?;
+            if options.write {
+                let report = serde_json::json!({
+                    "schema": "fr-agent-action-result-1",
+                    "intent_basis": intent_basis,
+                    "action_basis": outcome.basis,
+                    "reviewed_context_omitted": true,
+                    "executed": true,
+                    "passed": outcome.passed,
+                    "action": outcome.report,
+                });
+                println!("{}", serde_json::to_string(&report)?);
+                if !outcome.passed {
+                    std::process::exit(1);
+                }
+                return Ok(());
+            }
+            compiled.report["action"] = serde_json::json!({
+                "schema": "fr-agent-action-1",
+                "basis": outcome.basis,
+                "review": outcome.report,
+            });
+        } else {
+            anyhow::ensure!(
+                !options.write && options.basis.is_none(),
+                "agent intent has no reviewed action to execute."
+            );
+            project.verify(root)?;
+        }
         context.apply(&mut compiled.report)?;
         compiled.finalize()?;
         println!("{}", serde_json::to_string(&compiled.report)?);
@@ -2915,121 +2965,183 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
     })
 }
 
+struct TaskChangeRun {
+    report: serde_json::Value,
+    passed: bool,
+    basis: String,
+}
+
+fn run_task_change(
+    cli: &Cli,
+    project: &crate::project::Project<'_>,
+    root: &Path,
+    mut prepared: crate::project::task_change::Prepared,
+    diff_bytes: usize,
+    write: bool,
+    supplied_basis: Option<&str>,
+    outer_intent: Option<(usize, &str)>,
+) -> Result<TaskChangeRun> {
+    let outcomes = crate::edit::plan(&prepared.plan.edits, crate::edit::Validation::ReparseStrict)?;
+    anyhow::ensure!(
+        outcomes.iter().any(crate::edit::FileOutcome::changed),
+        "task change produced no source change."
+    );
+    project.verify(root)?;
+    let diff = outcomes
+        .iter()
+        .map(|outcome| workspace_diff(cli, outcome))
+        .collect::<String>();
+    prepared.plan.set_diff(&diff, diff_bytes);
+    anyhow::ensure!(
+        prepared.plan.report["diff"].is_string(),
+        "task change requires a complete untruncated diff; raise the action diff limit."
+    );
+    let changes = outcomes
+        .iter()
+        .map(crate::edit::FileChange::from)
+        .collect::<Vec<_>>();
+    if let Some(output) = &prepared.delivery.patch {
+        crate::workflow::validate_patch_output(root, output)?;
+        anyhow::ensure!(
+            !outcomes.iter().any(|change| {
+                change
+                    .path
+                    .strip_prefix(root)
+                    .is_ok_and(|relative| relative == output)
+            }),
+            "task-change patch output conflicts with a source target."
+        );
+    }
+    for field in ["coverage", "revision", "handle_prefix"] {
+        prepared.plan.report.as_object_mut().unwrap().remove(field);
+    }
+    prepared.plan.report["context_inherited"] =
+        serde_json::json!(["coverage", "revision", "handle_prefix"]);
+    prepared.report["author"] = prepared.plan.report;
+    prepared.report["stages"] = serde_json::json!(crate::workflow::planned_stage_names(
+        prepared.delivery.check_original,
+        prepared.delivery.exercise_reversal,
+        prepared.delivery.patch.is_some(),
+    )
+    .into_iter()
+    .map(|stage| serde_json::json!({"stage": stage, "status": "pending"}))
+    .collect::<Vec<_>>());
+    let exact = exact_plan_changes(root, &changes, &[]);
+    let task_change_basis = crate::project::task_change::review_basis(&prepared.report, &exact)?;
+    prepared.report["task_change_basis"] = serde_json::json!(&task_change_basis);
+    prepared.report["ready"] = serde_json::json!(true);
+    let basis = if let Some((_, intent_basis)) = outer_intent {
+        format!(
+            "fraa1:{}",
+            hex::encode(Sha256::digest(serde_json::to_vec(&(
+                "fr-agent-action-review-1",
+                intent_basis,
+                &task_change_basis,
+            ))?))
+        )
+    } else {
+        task_change_basis.clone()
+    };
+    let mode = outer_intent.map_or_else(
+        || {
+            crate::project::task_change::task_change_mode(
+                true,
+                write,
+                supplied_basis.is_some(),
+                supplied_basis == Some(basis.as_str()),
+            )
+        },
+        |(purpose, _)| {
+            crate::project::agent_intent::agent_action_mode(
+                purpose,
+                true,
+                write,
+                supplied_basis.is_some(),
+                supplied_basis == Some(basis.as_str()),
+            )
+        },
+    );
+    if mode == 0 {
+        return Ok(TaskChangeRun {
+            report: prepared.report,
+            passed: true,
+            basis,
+        });
+    }
+    if mode != 1 {
+        anyhow::bail!(if outer_intent.is_some() {
+            "stale or conflicting intent-action basis; review the complete current preview."
+        } else {
+            "stale or conflicting task-change basis; review the complete current preview."
+        });
+    }
+    let requirement = crate::history::CheckRequirement {
+        configuration_basis: prepared.checks.configuration_basis.clone(),
+        checks: prepared.checks.checks.clone(),
+    };
+    let recorded = crate::history::record_with_required_checks(
+        root,
+        &changes,
+        "reparse-strict",
+        &requirement,
+    )?
+    .context("task change produced no recordable transaction")?;
+    let transaction_context_basis = crate::history::record_context_basis(root, recorded.id)?;
+    let workflow = crate::workflow::Manifest {
+        schema: 1,
+        transaction: recorded.id,
+        transaction_context_basis,
+        checks: crate::workflow::CheckRequest {
+            basis: prepared.checks.configuration_basis,
+            names: prepared.checks.checks,
+        },
+        check_original: prepared.delivery.check_original,
+        compact_success: prepared.delivery.compact_success,
+        exercise_reversal: prepared.delivery.exercise_reversal,
+        patch: prepared
+            .delivery
+            .patch
+            .map(|output| crate::workflow::PatchRequest { output }),
+        check_output_bytes: prepared.delivery.check_output_bytes,
+    };
+    let outcome = crate::workflow::run_manifest(root, workflow, true)?;
+    let report = serde_json::json!({
+        "schema": "fr-task-change-1",
+        "manifest_sha256": prepared.manifest_sha256,
+        "task_change_basis": task_change_basis,
+        "reviewed_context_omitted": ["revision", "task_basis", "task_resolution_basis", "coverage", "requests", "targets", "checks", "delivery", "author", "stages", "ready"],
+        "transaction": recorded.id,
+        "saved": recorded.created,
+        "reused_transaction": !recorded.created,
+        "executed": true,
+        "passed": outcome.passed,
+        "workflow": outcome.report,
+    });
+    Ok(TaskChangeRun {
+        report,
+        passed: outcome.passed,
+        basis,
+    })
+}
+
 fn cmd_task_change(cli: &Cli, options: &crate::project::task_change::Options) -> Result<()> {
     anyhow::ensure!(
         !cli.save_plan && cli.plan_basis.is_none() && cli.context_basis.is_none(),
         "task change uses its own reviewed basis and does not accept global plan or context options."
     );
     with_project(cli, |project, root| {
-        let mut prepared = project.task_change(options)?;
-        let outcomes =
-            crate::edit::plan(&prepared.plan.edits, crate::edit::Validation::ReparseStrict)?;
-        anyhow::ensure!(
-            outcomes.iter().any(crate::edit::FileOutcome::changed),
-            "task change produced no source change."
-        );
-        project.verify(root)?;
-        let diff = outcomes
-            .iter()
-            .map(|outcome| workspace_diff(cli, outcome))
-            .collect::<String>();
-        prepared.plan.set_diff(&diff, options.diff_bytes);
-        anyhow::ensure!(
-            prepared.plan.report["diff"].is_string(),
-            "task change requires a complete untruncated diff; raise --diff-bytes."
-        );
-        let changes = outcomes
-            .iter()
-            .map(crate::edit::FileChange::from)
-            .collect::<Vec<_>>();
-        if let Some(output) = &prepared.delivery.patch {
-            crate::workflow::validate_patch_output(root, output)?;
-            anyhow::ensure!(
-                !outcomes.iter().any(|change| {
-                    change
-                        .path
-                        .strip_prefix(root)
-                        .is_ok_and(|relative| relative == output)
-                }),
-                "task-change patch output conflicts with a source target."
-            );
-        }
-        for field in ["coverage", "revision", "handle_prefix"] {
-            prepared.plan.report.as_object_mut().unwrap().remove(field);
-        }
-        prepared.plan.report["context_inherited"] =
-            serde_json::json!(["coverage", "revision", "handle_prefix"]);
-        prepared.report["author"] = prepared.plan.report;
-        prepared.report["stages"] = serde_json::json!(crate::workflow::planned_stage_names(
-            prepared.delivery.check_original,
-            prepared.delivery.exercise_reversal,
-            prepared.delivery.patch.is_some(),
-        )
-        .into_iter()
-        .map(|stage| serde_json::json!({"stage": stage, "status": "pending"}))
-        .collect::<Vec<_>>());
-        let exact = exact_plan_changes(root, &changes, &[]);
-        let task_change_basis =
-            crate::project::task_change::review_basis(&prepared.report, &exact)?;
-        prepared.report["task_change_basis"] = serde_json::json!(task_change_basis);
-        prepared.report["ready"] = serde_json::json!(true);
-        let mode = crate::project::task_change::task_change_mode(
-            true,
-            options.write,
-            options.basis.is_some(),
-            options.basis.as_deref() == Some(task_change_basis.as_str()),
-        );
-        if mode == 0 {
-            println!("{}", serde_json::to_string(&prepared.report)?);
-            return Ok(());
-        }
-        anyhow::ensure!(
-            mode == 1,
-            "stale or conflicting task-change basis; review the complete current preview."
-        );
-        let requirement = crate::history::CheckRequirement {
-            configuration_basis: prepared.checks.configuration_basis.clone(),
-            checks: prepared.checks.checks.clone(),
-        };
-        let recorded = crate::history::record_with_required_checks(
+        let prepared = project.task_change(options)?;
+        let outcome = run_task_change(
+            cli,
+            project,
             root,
-            &changes,
-            "reparse-strict",
-            &requirement,
-        )?
-        .context("task change produced no recordable transaction")?;
-        let transaction_context_basis = crate::history::record_context_basis(root, recorded.id)?;
-        let workflow = crate::workflow::Manifest {
-            schema: 1,
-            transaction: recorded.id,
-            transaction_context_basis,
-            checks: crate::workflow::CheckRequest {
-                basis: prepared.checks.configuration_basis,
-                names: prepared.checks.checks,
-            },
-            check_original: prepared.delivery.check_original,
-            compact_success: prepared.delivery.compact_success,
-            exercise_reversal: prepared.delivery.exercise_reversal,
-            patch: prepared
-                .delivery
-                .patch
-                .map(|output| crate::workflow::PatchRequest { output }),
-            check_output_bytes: prepared.delivery.check_output_bytes,
-        };
-        let outcome = crate::workflow::run_manifest(root, workflow, true)?;
-        let report = serde_json::json!({
-            "schema": "fr-task-change-1",
-            "manifest_sha256": prepared.manifest_sha256,
-            "task_change_basis": task_change_basis,
-            "reviewed_context_omitted": ["revision", "task_basis", "task_resolution_basis", "coverage", "requests", "targets", "checks", "delivery", "author", "stages", "ready"],
-            "transaction": recorded.id,
-            "saved": recorded.created,
-            "reused_transaction": !recorded.created,
-            "executed": true,
-            "passed": outcome.passed,
-            "workflow": outcome.report,
-        });
-        println!("{}", serde_json::to_string(&report)?);
+            prepared,
+            options.diff_bytes,
+            options.write,
+            options.basis.as_deref(),
+            None,
+        )?;
+        println!("{}", serde_json::to_string(&outcome.report)?);
         if !outcome.passed {
             std::process::exit(1);
         }

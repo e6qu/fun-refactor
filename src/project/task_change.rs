@@ -137,6 +137,15 @@ pub(crate) struct Prepared {
 impl Project<'_> {
     pub(crate) fn task_change(&self, options: &Options) -> Result<Prepared> {
         let bytes = read_manifest(&self.root, &options.from)?;
+        self.task_change_bytes(&bytes, options.diff_bytes, options.report_bytes)
+    }
+
+    pub(crate) fn task_change_bytes(
+        &self,
+        bytes: &[u8],
+        diff_bytes: usize,
+        report_bytes: usize,
+    ) -> Result<Prepared> {
         let manifest: Manifest = serde_json::from_slice(&bytes)
             .context("task-change input must be a task-change manifest.")?;
         ensure!(
@@ -226,7 +235,7 @@ impl Project<'_> {
                 patch: manifest.delivery.patch.clone(),
             }),
         };
-        let mut task_report = self.task_manifest(task_manifest, options.report_bytes)?;
+        let mut task_report = self.task_manifest(task_manifest, report_bytes)?;
         let resolved = task_report["targets"]
             .as_array()
             .context("task-change targets must be an array")?;
@@ -268,7 +277,7 @@ impl Project<'_> {
                 operations,
                 postconditions: manifest.postconditions,
             },
-            options.diff_bytes,
+            diff_bytes,
         )?;
         let checks = crate::checks::select(&self.root, &manifest.checks)?
             .context("task change requires at least one declared check.")?;

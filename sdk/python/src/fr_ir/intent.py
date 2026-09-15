@@ -1,13 +1,14 @@
 """Declarative bounded context requests for agent workflows."""
 
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hashlib
 import json
 import re
 from typing import Any, Mapping, TYPE_CHECKING
 
 from .context import ContextSession, ObjectStore, merkle_object_digest, store_merkle_value
+from .ir import TaskChange
 from .runtime import FrReport, FrRuntimeError
 
 if TYPE_CHECKING:
@@ -91,6 +92,7 @@ class AgentIntent:
     token_limit: int = 4_096
     call_limit: int = 192
     packet_limit: int = 8_192
+    action: IntentAction | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.target, str) or not self.target or len(self.target.encode()) > 16_384:
@@ -114,15 +116,52 @@ class AgentIntent:
                                         (self.packet_limit, 1_024, 65_536, "packet")):
             if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
                 raise FrRuntimeError(f"agent intent {label} bound is invalid")
+        if self.action is not None:
+            if not isinstance(self.action, IntentAction):
+                raise FrRuntimeError("agent intent action must be an IntentAction")
+            if self.purpose != "change":
+                raise FrRuntimeError("agent intent actions require purpose 'change'")
+            change = self.action.task_change
+            if change.requests or len(change.targets) != 1:
+                raise FrRuntimeError(
+                    "agent intent action requires one direct task-change target and no project requests"
+                )
+            if change.targets[0].handle != self.target:
+                raise FrRuntimeError("agent intent action target must equal the intent target")
         object.__setattr__(self, "needs", needs)
 
     def to_data(self) -> dict[str, Any]:
-        return {"schema": "fr-agent-intent-1", "target": self.target,
-                "purpose": self.purpose,
-                "needs": [{"name": n.name, "section": n.section, "pointer": n.pointer}
-                          for n in self.needs],
-                "token_limit": self.token_limit, "call_limit": self.call_limit,
-                "packet_limit": self.packet_limit}
+        value = {"schema": "fr-agent-intent-1", "target": self.target,
+                 "purpose": self.purpose,
+                 "needs": [{"name": n.name, "section": n.section, "pointer": n.pointer}
+                           for n in self.needs],
+                 "token_limit": self.token_limit, "call_limit": self.call_limit,
+                 "packet_limit": self.packet_limit}
+        if self.action is not None:
+            value["action"] = self.action.to_data()
+        return value
+
+
+@dataclass(frozen=True)
+class IntentAction:
+    """One direct reviewed task change compiled with its evidence intent."""
+    task_change: TaskChange
+    diff_bytes: int = 4_096
+    report_bytes: int = 65_536
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.task_change, TaskChange):
+            raise FrRuntimeError("intent action requires a TaskChange")
+        for value, low, high, label in (
+            (self.diff_bytes, 0, 65_536, "diff"),
+            (self.report_bytes, 256, 1_048_576, "report"),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
+                raise FrRuntimeError(f"intent action {label} bound is invalid")
+
+    def to_data(self) -> dict[str, Any]:
+        return {"task_change": self.task_change.to_data(),
+                "diff_bytes": self.diff_bytes, "report_bytes": self.report_bytes}
 
 
 @dataclass(frozen=True)
@@ -144,12 +183,69 @@ class CompiledIntent:
     intent: AgentIntent
     packet: FrReport
     stored_digests: tuple[str, ...] = ()
+    manifest: bytes = field(default=b"", repr=False)
+    preview_sha256: str = field(default="", repr=False)
+    action_basis: str | None = None
 
     def at(self, pointer: str = "") -> Any:
         return self.packet.at(pointer)
 
     def to_data(self) -> Mapping[str, Any]:
         return self.packet.to_data()
+
+
+@dataclass(frozen=True)
+class IntentResult:
+    """The checked result of one unchanged intent-bound action review."""
+    compiled: CompiledIntent
+    report: FrReport
+
+    def __post_init__(self) -> None:
+        value = self.report.to_data()
+        if (value.get("schema") != "fr-agent-action-result-1"
+                or value.get("intent_basis") != self.compiled.at("/intent/basis")
+                or value.get("action_basis") != self.compiled.action_basis
+                or value.get("reviewed_context_omitted") is not True
+                or value.get("executed") is not True
+                or value.get("passed") is not True):
+            raise FrRuntimeError("intent action result does not match its reviewed intent")
+
+    @property
+    def passed(self) -> bool:
+        return True
+
+    def at(self, pointer: str = "") -> Any:
+        return self.report.at(pointer)
+
+    def to_data(self) -> Mapping[str, Any]:
+        return self.report.to_data()
+
+
+def _action_complete(intent: AgentIntent, action: Any) -> bool:
+    if intent.action is None:
+        return action is None
+    if not isinstance(action, Mapping):
+        return False
+    review = action.get("review")
+    if not isinstance(review, Mapping):
+        return False
+    task = intent.action.task_change
+    task_bytes = json.dumps(task.to_data(), ensure_ascii=False, sort_keys=True,
+                            separators=(",", ":"), allow_nan=False).encode("utf-8")
+    targets = review.get("targets")
+    return (
+        action.get("schema") == "fr-agent-action-1"
+        and isinstance(action.get("basis"), str)
+        and action.get("basis", "").startswith("fraa1:")
+        and review.get("schema") == "fr-task-change-1"
+        and review.get("manifest_sha256") == hashlib.sha256(task_bytes).hexdigest()
+        and review.get("ready") is True
+        and review.get("executed") is False
+        and isinstance(targets, list)
+        and len(targets) == 1
+        and isinstance(targets[0], Mapping)
+        and targets[0].get("handle") == intent.target
+    )
 
 
 def compile_intent(client: FrClient, intent: AgentIntent,
@@ -167,6 +263,7 @@ def compile_intent(client: FrClient, intent: AgentIntent,
     digests = value.get("object_digests")
     execution = value.get("execution")
     limits = value.get("limits")
+    action = value.get("action")
     expected_names = {need.name for need in intent.needs}
     manifest_sha256 = hashlib.sha256(manifest).hexdigest()
     identity_complete = all(isinstance(value.get(name), str) and value.get(name)
@@ -187,6 +284,7 @@ def compile_intent(client: FrClient, intent: AgentIntent,
                           "progressive_disclosure_calls": 0}
         and limits == {"packet_bytes": intent.packet_limit,
                        "progressive_disclosure_calls": intent.call_limit}
+        and _action_complete(intent, action)
         and isinstance(selected, Mapping) and set(selected) == expected_names
         and isinstance(digests, Mapping) and set(digests) == expected_names
         and all(isinstance(digests[name], str)
@@ -214,7 +312,30 @@ def compile_intent(client: FrClient, intent: AgentIntent,
             stored.append(store_merkle_value(
                 store, selected[name], expected_digest=digests[name],
             ).digest)
-    return CompiledIntent(intent, report, tuple(stored))
+    action_basis = action.get("basis") if isinstance(action, Mapping) else None
+    preview_sha256 = hashlib.sha256(serialized).hexdigest()
+    return CompiledIntent(intent, report, tuple(stored), manifest,
+                          preview_sha256, action_basis)
+
+
+def execute_intent(client: FrClient, compiled: CompiledIntent) -> IntentResult:
+    """Execute one unchanged native intent action and its reviewed lifecycle."""
+    if not isinstance(compiled, CompiledIntent) or compiled.action_basis is None:
+        raise FrRuntimeError("execute_intent requires a compiled intent action")
+    current = json.dumps(compiled.packet.to_data(), ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":"), allow_nan=False).encode("utf-8")
+    if (hashlib.sha256(compiled.manifest).hexdigest()
+            != hashlib.sha256(json.dumps(
+                compiled.intent.to_data(), ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False,
+            ).encode("utf-8")).hexdigest()
+            or hashlib.sha256(current).hexdigest() != compiled.preview_sha256):
+        raise FrRuntimeError("compiled intent action changed after review")
+    report = client.call(
+        "intent", "--from", "-", "--write", "--basis", compiled.action_basis,
+        input_bytes=compiled.manifest,
+    )
+    return IntentResult(compiled, report)
 
 
 def prepare_intent(client: FrClient, intent: AgentIntent,

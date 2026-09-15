@@ -106,6 +106,14 @@ def main (args : List String) : IO Unit :=
       for purpose in [0:7] do
         for sectionCode in [0:6] do
           IO.println (FrKernels.AgentIntent.sectionAllowed purpose sectionCode)
+  | ["agent-intent-actions"] =>
+      for purpose in [0:7] do
+        for actionComplete in [false, true] do
+          for write in [false, true] do
+            for basisSupplied in [false, true] do
+              for basisMatches in [false, true] do
+                IO.println (FrKernels.AgentIntent.actionMode purpose actionComplete write
+                  basisSupplied basisMatches)
   | ["memory-transitions"] =>
       for status in List.range 4 do
         for action in List.range 3 do
