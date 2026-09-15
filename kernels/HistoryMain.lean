@@ -4,6 +4,7 @@ import FrKernels.Patch
 import FrKernels.Workflow
 import FrKernels.TaskChange
 import FrKernels.AgentSession
+import FrKernels.AgentContext
 
 open FrKernels.History
 
@@ -73,6 +74,21 @@ def main (args : List String) : IO Unit :=
             for manifestMatches in [false, true] do
               for basisMatches in [false, true] do
                 IO.println (FrKernels.AgentSession.step state action previewValid manifestMatches basisMatches)
+  | ["agent-context-admission"] => do
+      for calls in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do
+        for limit in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do
+          for sessionMatches in [false, true] do
+            for complete in [false, true] do
+              for digestMatches in [false, true] do
+                IO.println (FrKernels.AgentContext.materializationAdmitted
+                  calls limit sessionMatches complete digestMatches)
+      for objects in ([0, 1, 65535, 65536, 65537, 18446744073709551615] : List Nat) do
+        for bytes in ([0, 1, 67108863, 67108864, 67108865, 18446744073709551615] : List Nat) do
+          for digestMatches in [false, true] do
+            for recordsCanonical in [false, true] do
+              for rootPresent in [false, true] do
+                IO.println (FrKernels.AgentContext.objectStoreAdmitted
+                  objects bytes digestMatches recordsCanonical rootPresent)
   | ["memory-transitions"] =>
       for status in List.range 4 do
         for action in List.range 3 do
@@ -101,4 +117,4 @@ def main (args : List String) : IO Unit :=
           for distinctPaths in [false, true] do
             for sourceSupported in [false, true] do
               IO.println (moveAdmitted sourceExists destinationExists distinctPaths sourceSupported)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, agent-session-steps, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, agent-session-steps, agent-context-admission, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")

@@ -2033,3 +2033,18 @@ __all__ += [
     "Disclosure", "DisclosureAction", "FrClient", "FrReport", "FrRuntimeError",
     "TaskResult", "TaskReview",
 ]
+
+from .context import (
+    ContextSession,
+    DirectoryObjectStore,
+    MemoryObjectStore,
+    ObjectStore,
+    StoredMerkleValue,
+    restore_stored_value,
+    store_merkle_value,
+)
+
+__all__ += [
+    "ContextSession", "DirectoryObjectStore", "MemoryObjectStore", "ObjectStore",
+    "StoredMerkleValue", "restore_stored_value", "store_merkle_value",
+]

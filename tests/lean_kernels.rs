@@ -1049,6 +1049,63 @@ fn agent_session_policy_matches_lean_for_every_finite_input() {
 }
 
 #[test]
+fn agent_context_admission_matches_lean_at_every_boundary() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-context-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let samples = [0, 1, 63, 64, 65, usize::MAX];
+    let object_samples = [0, 1, 65_535, 65_536, 65_537, usize::MAX];
+    let byte_samples = [0, 1, 67_108_863, 67_108_864, 67_108_865, usize::MAX];
+    let mut expected = Vec::new();
+    for calls in samples {
+        for limit in samples {
+            for session_matches in [false, true] {
+                for complete in [false, true] {
+                    for digest_matches in [false, true] {
+                        expected.push(
+                            fun_refactor::project::context_materialization_admitted(
+                                calls,
+                                limit,
+                                session_matches,
+                                complete,
+                                digest_matches,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    for objects in object_samples {
+        for encoded_bytes in byte_samples {
+            for digest_matches in [false, true] {
+                for records_canonical in [false, true] {
+                    for root_present in [false, true] {
+                        expected.push(
+                            fun_refactor::project::object_store_admitted(
+                                objects,
+                                encoded_bytes,
+                                digest_matches,
+                                records_canonical,
+                                root_present,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn browser_history_transition_policy_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))

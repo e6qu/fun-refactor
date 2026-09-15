@@ -67,6 +67,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B884: **the Python runtime accepted a trailing tilde in a JSON Pointer**. RFC 6901 permits
+  only `~0` and `~1` escapes, but the validator checked a tilde only when another character
+  followed it. `FrReport.at()` and context traversal now refuse trailing and unknown escapes.
+
 - [x] B883: **the Python runtime discarded progressive-disclosure page continuations**. It extracted
   nested `reveal` commands but ignored the top-level `continuation` command returned for another
   page of wide object or array children. Agents could reach the first page and no later sibling.
