@@ -2938,6 +2938,11 @@ fn cmd_task_change(cli: &Cli, options: &crate::project::task_change::Options) ->
                 "task-change patch output conflicts with a source target."
             );
         }
+        for field in ["coverage", "revision", "handle_prefix"] {
+            prepared.plan.report.as_object_mut().unwrap().remove(field);
+        }
+        prepared.plan.report["context_inherited"] =
+            serde_json::json!(["coverage", "revision", "handle_prefix"]);
         prepared.report["author"] = prepared.plan.report;
         prepared.report["stages"] = serde_json::json!(crate::workflow::planned_stage_names(
             prepared.delivery.check_original,

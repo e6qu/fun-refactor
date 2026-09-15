@@ -19,14 +19,16 @@ success evidence.
 | Measure | Composed | Task change | Complete session |
 |---|---:|---:|---:|
 | Calls | 5 | 2 | 2 |
-| Median counted context | 4,623 tokens | 3,740 tokens | 3,712 tokens |
-| Median counted context | 13,686 bytes | 11,296 bytes | 10,965 bytes |
-| Median local wall time | 0.320 s | 0.315 s | 0.342 s |
+| Median counted context | 4,623 tokens | 3,370 tokens | 3,342 tokens |
+| Median counted context | 13,686 bytes | 10,426 bytes | 10,097 bytes |
+| Median local wall time | 0.377 s | 0.339 s | 0.387 s |
 
 All three rotating repetitions produce equal normalized history, final source and patch
 identities. Task change also records the selected check requirement on its transaction. The older
 composed path verifies the same checks during workflow preflight but does not bind them at planning.
 The session has an additional original-check stage, so its stage-list identity intentionally differs.
+The enclosing reviewed basis also lets the write response omit author fields inherited from the
+session and workflow check envelopes already returned by the preview.
 
 Token counts replace temporary roots, elapsed milliseconds and opaque hexadecimal identities with
 fixed representatives. Byte counts and semantic identities retain original values. The report binds

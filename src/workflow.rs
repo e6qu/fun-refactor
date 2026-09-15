@@ -452,7 +452,8 @@ pub(crate) fn run_manifest(root: &Path, manifest: Manifest, write: bool) -> Resu
     ensure!(root.is_dir(), "workflow root must be a directory");
     let bytes = serde_json::to_vec(&manifest)?;
     let preflight = preflight_manifest(root, manifest, bytes)?;
-    execute(preflight, write, None)
+    let basis = write.then(|| preflight.workflow_basis.clone());
+    execute(preflight, write, basis.as_deref())
 }
 
 fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Outcome> {

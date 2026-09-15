@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 726 |
+| Defects fixed | 727 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -156,9 +156,10 @@ confirms workflow adoption after two retained diagnostic cohorts. Its 58.4% cont
 an optimization target and does not establish a population result.
 
 PR 30's deterministic ideal rehearsal replaces that manual `fr` sequence with one reviewed
-task-change session. On the same pinned workspace it passes the project and receiver oracles,
-ordered original/applied/restored/reapplied checks, internal undo/redo, index preservation and patch
-delivery in nine instrumented calls and 8,549 measured context tokens. It uses no model and makes no
+task-change session. On the same pinned workspace it passes the project and receiver oracles. It
+also passes ordered original, applied, restored and reapplied checks, internal undo/redo, index
+preservation and patch delivery. It uses nine instrumented calls and 8,549 measured context tokens.
+It uses no model and makes no
 agent-adoption claim; the fresh pair in PR 30 acceptance item 7 is the required follow-up.
 
 ## Product contract
@@ -250,7 +251,7 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The current checksum-bound projection uses 11,109 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,299-token or 63.1% `fr` premium.
+- The current checksum-bound projection uses 11,138 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,328-token or 63.6% `fr` premium.
 - The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - The PR 8 passing pair uses 13,949 `fr` context tokens and 30 calls. Ordinary files use 12,815 tokens and 23 calls, an 8.8% premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
@@ -1445,14 +1446,14 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 Status: in progress.
 
 **Goal.** Replace the measured manual author, workflow and history sequence with one reviewed,
-revision-bound task-change session. The session must prove the untouched starting state before its
-first mutation, preserve exact reversal and patch evidence, and expose compact structured outcomes
-that an agent can consume without reading successful command streams.
+revision-bound task-change session. It must prove the untouched starting state before mutation and
+preserve exact reversal and patch evidence. It must expose compact structured outcomes without
+requiring agents to read successful command streams.
 
 **Acceptance.**
 
 1. **Complete.** Task changes accept bounded inline fragments or file-backed fragments. Agents may
-   reuse full retained handles with an empty request list; the reviewed basis still binds the
+   reuse full retained handles with an empty request list. The reviewed basis still binds the
    manifest, source, fragments, checks, exact changes and patch destination.
 2. **Complete.** A requested original-check stage runs while history remains planned. Failure stops
    before apply. Apply, changed checks, undo, restored checks, redo, final checks and delivery retain
@@ -1463,14 +1464,15 @@ that an agent can consume without reading successful command streams.
    fragments, postconditions and delivery settings, rejecting malformed values before serialization.
 5. **Complete.** `FrKernels.Workflow` models the seventh stage and proves generated lifecycles finish
    applied. Rust and Lean agree on all fourteen state-stage inputs; strict package verification passes.
-6. **Complete.** The generic controlled comparison uses two calls and 3,712 median counted tokens,
-   below the older two-call task-change route's 3,740 and the five-call composed route's 4,623. It
+6. **Complete.** The generic controlled comparison uses two calls and 3,342 median counted tokens,
+   below the two-call task-change route's 3,370 and the five-call composed route's 4,623. It
    additionally checks the original before mutation and produces equal final source, patch and history.
 7. **Pending.** Run a fresh isolated Luna-low pair against the frozen regex workspace. Require both
    arms to pass the 1,060-case project and receiver oracles, ordered lifecycle, patch replay and index
    preservation. Compare calls and measured context without claiming population or billed-quota results.
-8. **Pending.** Refresh active evidence, portable skill, CLI, roadmap and continuity documentation;
-   pass native, Python, harness, prose, strict Lean, deep and real-WASM gates.
+8. **Pending only on CI.** Active evidence, portable skill, CLI, roadmap and continuity docs are
+   current. Native, Python, harness, prose, all 92 Lean audits, deep replay and the host WASM lane
+   pass locally. This Mac has no wasm-capable clang, so the Linux real-WASM job remains the gate.
 
 ## Formal verification policy
 

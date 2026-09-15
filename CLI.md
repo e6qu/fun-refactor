@@ -680,8 +680,8 @@ declared checks, reversal and patch delivery under one reviewed basis. Its manif
 ```
 
 The query, target and fragment rules match `project task` and `author batch`. Fragment operations
-require exactly one file path in `from` or complete UTF-8 text in `fragment`; the combined manifest
-and each fragment remain bounded to 64 KiB. `requests` may be empty when every target uses a full
+require one file path in `from` or complete UTF-8 text in `fragment`. The manifest and each fragment
+remain bounded to 64 KiB. `requests` may be empty when every target uses a full
 revision-bound handle retained from earlier discovery. `edit-body-scalar` requires `scalar`; `edit-body-disclosed` requires `disclosed`;
 `organize-imports` forbids all three inputs. The command requires at least one declared check and
 one real source change. The manifest and each fragment can contain at most 65,536 bytes.
@@ -1621,6 +1621,7 @@ declared checks and optional Git patch delivery. Its versioned JSON manifest has
   "transaction": 7,
   "transaction-context-basis": "frtb2:<DIGEST>",
   "checks": {"basis": "<CHECK_DIGEST>", "names": ["unit"]},
+
   "check-original": true,
   "compact-success": true,
   "exercise-reversal": true,

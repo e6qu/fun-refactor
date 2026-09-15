@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B881: **the portable agent skill exceeded its enforced route and file budgets**. The new task
+  session guidance pushed `task.md` past 4 KiB and three routes past 7 KiB. We removed repeated
+  explanation while preserving every executable example and workflow choice. The largest route has
+  189 bytes of headroom, and all 56 shell examples still pass.
+
 - [x] B880: **a batch postcondition failure hid which requested operation was a no-op**. An
   agent that supplied one unchanged body saw only an aggregate edit-count mismatch and had to
   rewrite manifests or guess at the cause. The refusal now lists every unchanged operation by

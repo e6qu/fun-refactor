@@ -395,6 +395,11 @@ fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
     assert_eq!(preview["executed"], false);
     assert_eq!(preview["passed"], Value::Null);
     assert_eq!(preview["author"]["postconditions_held"], true);
+    assert_eq!(
+        preview["author"]["context_inherited"],
+        json!(["coverage", "revision", "handle_prefix"])
+    );
+    assert!(preview["author"].get("coverage").is_none());
     assert!(preview["author"]["diff"]
         .as_str()
         .unwrap()
@@ -419,6 +424,12 @@ fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
     );
     assert_eq!(completed["passed"], true);
     assert_eq!(completed["workflow"]["transaction_status"], "applied");
+    assert!(completed["workflow"].get("checks").is_none());
+    assert!(completed["workflow"]["reviewed_context_omitted"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|field| field == "checks"));
     assert!(completed["workflow"]["stages"]
         .as_array()
         .unwrap()

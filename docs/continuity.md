@@ -10,12 +10,20 @@ one ordered lifecycle and compact successful check evidence without hiding failu
 mirrors the complete manifest. `FrKernels.Workflow` adds the original-check state transition; Lean
 and Rust agree on all fourteen finite inputs and the strict package build passes.
 
-The generic three-arm comparison records 3,712 median counted tokens and two calls for the complete
-session, compared with 3,740 for the earlier task-change shape and 4,623 for the five-call composed
+The generic three-arm comparison records 3,342 median counted tokens and two calls for the complete
+session, compared with 3,370 for the earlier task-change shape and 4,623 for the five-call composed
 route. An end-to-end ideal rehearsal on the pinned regex workspace passes all 1,060 project and
 receiver oracle cases, exact internal reversal, ordered checks, index preservation and patch
 delivery in nine instrumented calls and 8,549 measured context tokens. This is deterministic
 workflow evidence; the fresh agent pair remains the next acceptance checkpoint.
+
+The complete local gate passes 311/311 capability cells, all Python and agent-harness tests, the
+portable skill's 56 executable examples, its byte budgets, and all 66 strict Lean build jobs. The
+deep gate passes repository-wide command agreement, translation conformance, round trips, all 92
+Lean correspondence and self-audit tests, plus pinned regex patch replay and reversal. The host WASM
+lane passes all browser tests and feature combinations. This Mac's clang lacks a wasm backend, so
+the Linux CI job remains responsible for the real `wasm32-unknown-unknown` artifact. B881 records
+the skill-budget regression found and fixed during the gate.
 
 The combined-gate checkpoint refreshed the context-protocol, workflow, project-batch and task-bundle
 reports from their frozen inputs after their checksum-bound sources changed. All fifteen active
