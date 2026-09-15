@@ -13,7 +13,9 @@
 #ifndef FR_WASM_SHIM_H
 #define FR_WASM_SHIM_H
 
-typedef __SIZE_TYPE__ fr_size_t;
+typedef __SIZE_TYPE__ size_t;
+typedef size_t fr_size_t;
+typedef unsigned int fr_wint_t;
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -39,12 +41,12 @@ int ispunct(int c);
 int toupper(int c);
 int tolower(int c);
 
-int iswxdigit(int c);
-int iswlower(int c);
-int iswupper(int c);
-int iswpunct(int c);
-int iswblank(int c);
-int towupper(int c);
-int towlower(int c);
+int iswxdigit(fr_wint_t c);
+int iswlower(fr_wint_t c);
+int iswupper(fr_wint_t c);
+int iswpunct(fr_wint_t c);
+int iswblank(fr_wint_t c);
+fr_wint_t towupper(fr_wint_t c);
+fr_wint_t towlower(fr_wint_t c);
 
 #endif /* FR_WASM_SHIM_H */

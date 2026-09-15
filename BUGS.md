@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B889: **tree-sitter 0.27 broke the browser build across current grammar crates**.
+  Their build scripts requested libc sources that 0.1.8 removed, while the upgraded headers
+  also exposed stale wide-character declarations in the local shim. A local 0.1.8 bridge keeps
+  empty compatibility paths, tree-sitter supplies libc once, and the remaining shim matches its ABI.
+
 - [x] B888: **external replay warmup populated a Cargo home the offline oracle never read**. The
   replay isolates dependencies under `target/cargo-home`, while its wrapper fetched into the
   account-wide default. A clean checkout completed warmup and then refused the first locked crate.

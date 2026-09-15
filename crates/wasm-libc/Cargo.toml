@@ -5,15 +5,3 @@ edition = "2021"
 license = "AGPL-3.0-or-later"
 description = "The libc tree-sitter's C needs on wasm32-unknown-unknown"
 publish = false
-
-# The analysis crate forbids unsafe outright, and that is worth keeping. Raw pointers
-# are the whole job here, so the exception lives in its own crate where it is a
-# hundred lines that can be read in one sitting instead of a hole in a guarantee.
-[lints.rust]
-unsafe_code = "allow"
-
-# For `set_allocator`. The binding keeps its own copy of the free function and uses it
-# for every buffer the C side hands back, so telling only the C library which allocator
-# to use leaves half the pairing wrong.
-[dependencies]
-tree-sitter = "0.27"

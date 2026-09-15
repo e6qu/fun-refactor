@@ -244,14 +244,6 @@ impl Workspace {
 
     /// Load a repository from plain Rust values.
     pub fn load(map: std::collections::BTreeMap<String, String>) -> Result<Workspace, String> {
-        // The grammars' scanners allocate through a bump allocator that starts at NULL until
-        // something hands it a region.
-        #[cfg(target_arch = "wasm32")]
-        {
-            fun_refactor_wasm_libc::init_scanner_heap();
-            fun_refactor_wasm_libc::use_rust_allocator_in_tree_sitter();
-        }
-
         let loaded: Vec<(PathBuf, String)> = map
             .into_iter()
             .map(|(path, text)| (PathBuf::from(path), text))

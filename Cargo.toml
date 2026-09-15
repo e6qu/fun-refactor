@@ -1,5 +1,6 @@
 [workspace]
 members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python", "grammars/go", "grammars/typescript", "grammars/scss", "grammars/sass", "grammars/lean"]
+exclude = ["crates/tree-sitter-language"]
 
 [package]
 name = "fun-refactor"
@@ -12,6 +13,9 @@ repository = "https://github.com/e6qu/fun-refactor"
 # Reference material and derivation evidence, not build input. Compiling it would
 # change the licence obligations — see vendor/README.md.
 exclude = ["vendor/", "docs/"]
+
+[patch.crates-io]
+tree-sitter-language = { path = "crates/tree-sitter-language" }
 
 [lib]
 name = "fun_refactor"
