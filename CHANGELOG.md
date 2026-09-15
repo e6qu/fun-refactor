@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.22.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.21.0...fun-refactor-v0.22.0) (2026-09-15)
+
+
+### Features
+
+* **agent:** add content-addressed context workspace ([#298](https://github.com/e6qu/fun-refactor/issues/298)) ([4ec9e07](https://github.com/e6qu/fun-refactor/commit/4ec9e07ad6f71b67857d7cfefa5b65613797aba8))
+* **agent:** add structured Python runtime ([#297](https://github.com/e6qu/fun-refactor/issues/297)) ([68496b1](https://github.com/e6qu/fun-refactor/commit/68496b1d928c76be52fa48b620720ef59e1a746b))
+* **agent:** complete reviewed change sessions ([#296](https://github.com/e6qu/fun-refactor/issues/296)) ([e6c565c](https://github.com/e6qu/fun-refactor/commit/e6c565c7ee6ea1ff97dc22d3b1dabe14aeed8264))
+* close deferred agent and project boundaries ([#295](https://github.com/e6qu/fun-refactor/issues/295)) ([8d6605a](https://github.com/e6qu/fun-refactor/commit/8d6605a8f96ec7bd5285f698e15eceabfe1a9376))
+* **project:** complete cross-stack agent coverage ([#293](https://github.com/e6qu/fun-refactor/issues/293)) ([b477f0f](https://github.com/e6qu/fun-refactor/commit/b477f0fb08f6f23dc5c2c8f8c191b24d2130b4c8))
+
 ## [0.21.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.20.0...fun-refactor-v0.21.0) (2026-09-14)
 
 
