@@ -2007,5 +2007,3 @@ class TaskChange:
 
     def write(self, path: str | Path, *, indent: int | None = 2) -> None:
         Path(path).write_text(self.to_json(indent=indent) + "\n", encoding="utf-8")
-
-

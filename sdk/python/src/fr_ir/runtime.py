@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
-from typing import Any, Mapping, Sequence, TYPE_CHECKING
+from typing import Any, Mapping, Sequence, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from .ir import TaskChange
@@ -226,7 +226,7 @@ class Disclosure(FrReport):
             self._value.get("profile"),
         )
         if all(isinstance(value, str) and value for value in values):
-            return values  # type: ignore[return-value]
+            return cast(tuple[str, str, str, str, str, str], values)
         if required:
             raise FrRuntimeError("disclosure report has no complete session identity")
         return None

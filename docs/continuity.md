@@ -43,6 +43,7 @@ new route. B888 binds external dependency warmup to the same isolated Cargo home
 B889 adapts current grammar build scripts to tree-sitter 0.27's application-supplied WASM libc.
 B890 lets Node 26 execute the checkpoint module after TypeScript 7 removed its JavaScript compiler API.
 B891 renews four retained evaluation bindings after the dependency lockfile upgrade.
+B892 puts every Python SDK source module under the pinned ty gate and removes its unchecked cast.
 
 The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
 host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all

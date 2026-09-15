@@ -67,6 +67,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B892: **the typed Python SDK was outside the ty gate and hid one unchecked cast**.
+  The runtime now narrows its validated session identity with an explicit cast, and the type-safety
+  suite runs ty over every SDK source module.
+
 - [x] B891: **four retained agent evaluations still named the pre-upgrade Cargo lockfile**.
   Their source bindings now carry the upgraded normalized lockfile digest, so the default gate
   audits the retained measurements against the dependency graph they describe.

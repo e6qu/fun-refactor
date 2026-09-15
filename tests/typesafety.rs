@@ -232,6 +232,32 @@ fn every_python_example_gets_the_verdict_it_declares() {
 }
 
 #[test]
+fn the_python_sdk_passes_ty() {
+    if !ty_available() {
+        eprintln!("typesafety: ty is not installed, so the Python SDK went unchecked");
+        common::require_on_ci("the Python SDK", &["ty".to_string()]);
+        return;
+    }
+    let output = Command::new("ty")
+        .current_dir(root())
+        .args(["check", "--project", "sdk/python", "sdk/python/src"])
+        .args([
+            "--output-format",
+            "concise",
+            "--color",
+            "never",
+            "--no-progress",
+        ])
+        .output()
+        .expect("running ty on the Python SDK");
+    assert!(
+        output.status.success(),
+        "ty rejected the Python SDK:\n{}",
+        said(&output)
+    );
+}
+
+#[test]
 fn every_typescript_example_gets_the_verdict_it_declares() {
     if !tsc_available() {
         eprintln!(
