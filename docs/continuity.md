@@ -7,7 +7,7 @@ to typed evidence projections, traverses the necessary branches locally and retu
 packet. A request may name 32 projections across four current sections, uses 64 calls at most per
 section and 512 overall, and returns at most 64 KiB.
 
-PR 34 is proposed as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301). It moves that
+PR 34 merged as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301). It moves that
 compiler into native `fr`. `fr intent --from` parses the same exact
 manifest, builds one immutable evidence model and selects every requested RFC 6901 value without
 progressive subprocess calls. It returns project, view, target and manifest identities, a measured
@@ -23,6 +23,27 @@ subprocess and receives 4,975 bytes. The native final packet is 4,975 bytes vers
 also carries the project coverage envelope. This measurement covers deterministic process and byte
 costs and makes no model, token, quota or population claim. B894 and B895 record the orchestration
 and purpose-boundary defects fixed by this checkpoint.
+
+PR 35 is in progress. It lets a `change` intent carry one direct typed task change whose literal
+target must equal the evidence target. Native preview compiles both from one project snapshot and
+returns one `fraa1:` basis over the intent and task review. Native write accepts only the unchanged
+manifest and basis, then delegates to the established original-check, apply, check, undo, restored
+check, redo, final-check and patch lifecycle. Other purposes, indirect project requests and target
+mismatches refuse before history exists.
+
+The Python SDK adds `IntentAction` and `execute_intent` while retaining the exact canonical manifest
+and preview digest locally. It checks the nested task manifest identity, direct target and final
+intent/action identities. The first real Python integration finishes applied and emits the reviewed
+patch. `FrKernels.AgentIntent.actionMode` characterizes the only preview and execution states, and
+Rust agrees with Lean across all 112 public-purpose and Boolean cases.
+
+The source-bound comparison produces the same final source, patch, applied transaction status and
+eight ordered successful lifecycle stages. Separate intent compilation, task review and task write
+use three processes and 11,549 request/response bytes. The bound route uses two processes, reduces
+responses by 82 bytes, adds 354 request bytes and therefore carries a 272-byte total wire premium.
+The runtime keeps those internal exchanges out of the agent conversation. The fixture reports the
+cost and makes no model, token, quota, adoption or population claim. B896 records the composition
+gap closed by this checkpoint.
 
 Materialization now handles paged objects and arrays, empty containers, inline children and UTF-8
 strings paged by byte offset. It verifies stable page identity, exact coverage, child ordering and

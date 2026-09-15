@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 741 |
+| Defects fixed | 742 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -185,6 +185,14 @@ final packet is 4,975 bytes versus 3,909 for the locally assembled packet becaus
 project coverage envelope. This measures process and serialized-byte cost, not model behavior,
 tokens, quota or a population.
 
+PR 35's deterministic change comparison produces the same source, patch and eight successful
+lifecycle stages through both routes. Separate intent compilation plus task-change preview and
+execution uses three subprocesses and 11,549 request/response bytes. One intent-bound review and
+execution uses two subprocesses, 82 fewer response bytes and 354 additional request bytes, for a
+272-byte total wire premium. The Python runtime keeps both internal responses local. This fixed
+fixture establishes composition and equivalent artifacts; it makes no model, token, quota,
+adoption or population claim.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -222,8 +230,8 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-Thirty-three merged pull-request milestones established the product foundation and its measured
-agent workflow. PR 34 moves intent compilation into the native tool:
+Thirty-five merged pull-request milestones established the product foundation and its measured
+agent workflow. PR 35 joins native intent compilation to the reviewed change lifecycle:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -261,7 +269,8 @@ agent workflow. PR 34 moves intent compilation into the native tool:
 | [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Merged |
 | [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Merged |
 | [PR 33](https://github.com/e6qu/fun-refactor/pull/299) | Declarative Agent Intents and Current Toolchains | Merged |
-| [PR 34](https://github.com/e6qu/fun-refactor/pull/301) | Native Agent Intent Compiler | Proposed |
+| [PR 34](https://github.com/e6qu/fun-refactor/pull/301) | Native Agent Intent Compiler | Merged |
+| PR 35 | Intent-Bound Reviewed Changes | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -309,7 +318,7 @@ Verification and acceptance:
 
 ### PR 34. Native Agent Intent Compiler
 
-Status: proposed as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301).
+Status: merged as [GitHub PR 301](https://github.com/e6qu/fun-refactor/pull/301).
 
 Goal: compile a complete high-level intent in one native process and one immutable project
 snapshot. Preserve the Python progressive implementation as an independent protocol oracle.
@@ -340,6 +349,48 @@ Verification and acceptance:
    reads it back through verified Merkle records.
 5. Rust, Python and Lean agree on every purpose and section code in and around the public domain.
 6. Native, Python, ty, skill, prose, strict Lean, WASM and deep repository gates pass before review.
+
+### PR 35. Intent-Bound Reviewed Changes
+
+Status: in progress.
+
+Goal: compile task evidence and one exact high-level change into a single review. Execute only that
+unchanged review through the existing checks, reversal and patch lifecycle.
+
+Deliverables:
+
+- Let a `change` intent carry one direct `fr-task-change-1` value whose target must equal the intent
+  target. Other purposes, indirect query targets and mismatched handles refuse.
+- Build the evidence packet and task-change plan from one native project snapshot. Return the
+  source-free selections, checked diff, checks, lifecycle stages and one `fraa1:` basis.
+- Execute only the unchanged intent manifest and outer basis. Rebuild target, source, fragment,
+  postcondition, check and delivery evidence before any history write.
+- Reuse the task-change syntax validation, original checks, apply, undo, restored checks, redo,
+  final checks and Git patch delivery without a second implementation.
+- Add `IntentAction`, retained compiled bytes and `FrClient.execute_intent` to the Python SDK while
+  preserving its empty package root and explicit modules.
+- Remove task report identity already carried by the outer intent packet and name every omitted,
+  basis-committed field.
+- Retain a source-bound composed-versus-bound fixture with process, request and response byte counts
+  plus exact final source, patch and lifecycle equality.
+- Anchor the preview/execute/refuse mode in Lean and compare its complete finite domain with Rust.
+
+Verification and acceptance:
+
+1. Preview leaves source and history unchanged and returns a complete action review under the
+   overall packet ceiling.
+2. Write with the exact `fraa1:` basis completes the configured lifecycle and leaves one reversible
+   applied transaction and patch.
+3. Wrong purpose, wrong target, project requests, stale source, changed manifest, wrong basis,
+   missing action and truncated diff refuse before history creation.
+4. Existing standalone task-change behavior and error contracts remain unchanged.
+5. Python validates the nested task digest, direct target, retained preview and final intent/action
+   identities before admitting a result.
+6. Lean proves the exact preview and execution states; Rust and Lean agree for every public purpose
+   code and Boolean evidence combination.
+7. The controlled fixture proves equal final source, patch, transaction status and ordered stages.
+   It reports byte costs even when the total wire size does not improve.
+8. Native, Python, ty, skill, prose, strict Lean, WASM and deep repository gates pass before review.
 
 ### PR 8. Agent Workflow Simplification
 

@@ -547,6 +547,12 @@ on all 48 finite inputs; the Python runtime and Rust agree on the same complete 
 execution, JSON serialization, hashing, subprocess behavior and the host boundaries above remain
 outside the proof.
 
+`FrKernels.AgentIntent.actionMode` joins the evidence intent to that reviewed write boundary. Its
+preview state requires purpose `change`, one complete direct action and no supplied basis. Its
+execution state additionally requires write intent and an exact basis. The two iff theorems cover
+all accepted modes, and Rust agrees with Lean on all 112 public-purpose and Boolean combinations.
+The model does not prove JSON nesting, outer-basis hashing or the reused task-change host behavior.
+
 Semantic project reports add two anchored policies. `semanticSectionFits` proves that an admitted
 model fits the complete node budget and rejects a short budget. `semanticBodyAdmitted` proves that
 typed authoring requires the declared schema, a supported target, source-free input and its size
