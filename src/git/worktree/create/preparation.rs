@@ -29,8 +29,8 @@ impl Prepared {
             .to_str()
             .context("prepared worktree destination must use UTF-8.")?;
         Ok(common.join(format!(
-            "fr-worktree-creation-{:x}.json",
-            Sha256::digest(destination.as_bytes())
+            "fr-worktree-creation-{}.json",
+            hex::encode(Sha256::digest(destination.as_bytes()))
         )))
     }
 

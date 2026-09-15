@@ -6,7 +6,7 @@ root, bounds arguments, input, output and time, and returns `FrReport` objects. 
 remains the authority for project construction, handles, authoring, checks and history.
 
 ```python
-from fr_ir import FrClient
+from fr_ir.runtime import FrClient
 
 client = FrClient(".", executable="fr")
 found = client.project("find", "render", "--signature")
@@ -41,6 +41,31 @@ responses to one disclosure identity, recursively materializes `code_map`, `call
 `sources_and_sinks` or another selected pointer, verifies its Merkle digest and emits one bounded
 packet. This avoids making an agent implement page traversal itself.
 
+For a complete high-level request, declare an `AgentIntent`. Its purpose expands to stable evidence
+sections and `prepare` follows the retained action graph locally before returning one packet:
+
+```python
+from fr_ir.intent import AgentIntent, IntentNeed
+
+intent = AgentIntent(
+    handle,
+    "trace",
+    needs=(
+        IntentNeed("map", "code_map"),
+        IntentNeed("calls", "call_traces"),
+        IntentNeed("flows", "sources_and_sinks"),
+    ),
+)
+prepared = client.prepare(intent)
+calls = prepared.at("/selected/calls")
+```
+
+The built-in purposes are `understand`, `trace`, `change`, `migrate` and `prove`. An intent accepts
+at most 32 named projections across eight evidence sections, uses at most 64 disclosure calls per
+section and 512 across the complete request, and returns at most 64 KiB. The default 192-call
+budget covers each current built-in purpose. An explicit RFC 6901 suffix can select a smaller value
+inside a section.
+
 ## Complete reviewed changes
 
 The existing `TaskChange`, `TaskTarget` and `TaskDelivery` types build the wire object. `review`
@@ -49,7 +74,7 @@ serializes it once into canonical UTF-8 bytes and passes those bytes on standard
 `frtc1` basis.
 
 ```python
-from fr_ir import TaskChange, TaskDelivery, TaskTarget
+from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 
 change = TaskChange(
     [],
@@ -91,8 +116,8 @@ produce the same final source and patch SHA-256, eight passed lifecycle stages a
 state.
 
 The direct JSON arm exposes five request/response exchanges totaling 17,689 bytes. The runtime arm
-exposes its complete 1,442-byte Python program and 422-byte result in one exchange, while the four
-intermediate reports stay inside that local process. Agent-visible payload is 1,864 bytes, an 89.5%
+exposes its complete 1,471-byte Python program and 422-byte result in one exchange, while the four
+intermediate reports stay inside that local process. Agent-visible payload is 1,893 bytes, an 89.3%
 reduction in this fixed task. Internal work remains five `fr` calls in both arms.
 
 ```sh

@@ -27,6 +27,6 @@ impl RevisionDigest {
 
     pub(super) fn finish(mut self) -> String {
         self.flush();
-        format!("{:x}", self.digest.finalize())
+        hex::encode(self.digest.finalize())
     }
 }

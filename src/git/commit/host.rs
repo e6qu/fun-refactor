@@ -381,7 +381,7 @@ pub(in crate::git) fn report(root: &Path, options: &Options) -> Result<Value> {
         .iter()
         .map(|path| Ok(std::str::from_utf8(path)?.to_owned()))
         .collect::<Result<Vec<_>>>()?;
-    let index_digest = format!("{:x}", Sha256::digest(serde_json::to_vec(&bytes)?));
+    let index_digest = hex::encode(Sha256::digest(serde_json::to_vec(&bytes)?));
     let proposal = Basis {
         root: &root,
         version: env!("CARGO_PKG_VERSION"),
@@ -394,8 +394,8 @@ pub(in crate::git) fn report(root: &Path, options: &Options) -> Result<Value> {
         committer: &committer,
     };
     let basis = format!(
-        "frcommit1:{:x}",
-        Sha256::digest(serde_json::to_vec(&proposal)?)
+        "frcommit1:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(&proposal)?))
     );
     if let Some(expected) = &options.basis {
         ensure!(

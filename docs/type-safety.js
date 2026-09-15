@@ -51,7 +51,7 @@ function highlight(code, language) {
 }
 
 const LANG_KEY = "fr-typesafety-lang";
-const LABELS = { python: "Python 3.14", typescript: "TypeScript 5.9" };
+const LABELS = { python: "Python 3.14", typescript: "TypeScript 7.0" };
 
 let lang = "python";
 try {
@@ -133,12 +133,12 @@ function shown(value) {
 
 async function runTypescript(code) {
   compilerPromise ??= loadScript(
-    "https://cdn.jsdelivr.net/npm/typescript@5.9.3/lib/typescript.min.js",
+    "https://cdn.jsdelivr.net/npm/typescript@7.0.2/lib/typescript.min.js",
   ).then(() => globalThis.ts);
   const compiler = await compilerPromise;
   const modules = {};
   if (code.includes('from "zod"')) {
-    zodPromise ??= import("https://cdn.jsdelivr.net/npm/zod@4.3.5/+esm");
+    zodPromise ??= import("https://cdn.jsdelivr.net/npm/zod@4.6.5/+esm");
     modules.zod = await zodPromise;
   }
   const js = compiler.transpileModule(code, {
@@ -174,7 +174,7 @@ async function runTypescript(code) {
   }
 }
 
-const TS_LIB_HOST = "https://cdn.jsdelivr.net/npm/typescript@5.9.3/lib/";
+const TS_LIB_HOST = "https://cdn.jsdelivr.net/npm/typescript@7.0.2/lib/";
 let libsPromise;
 
 async function typescriptLibs() {
@@ -206,7 +206,7 @@ const MODULE_STUB =
 
 async function typescriptDiagnostics(code, extra = {}) {
   compilerPromise ??= loadScript(
-    "https://cdn.jsdelivr.net/npm/typescript@5.9.3/lib/typescript.min.js",
+    "https://cdn.jsdelivr.net/npm/typescript@7.0.2/lib/typescript.min.js",
   ).then(() => globalThis.ts);
   const compiler = await compilerPromise;
   libsPromise ??= typescriptLibs();
@@ -302,7 +302,7 @@ async function checkPython(code) {
       .loadPackage("micropip")
       .then(() =>
         pyodide.runPythonAsync(
-          'import micropip\nawait micropip.install(["mypy==1.18.2"])',
+          'import micropip\nawait micropip.install(["mypy==2.3.1"])',
         ),
       );
     await mypyPromise;

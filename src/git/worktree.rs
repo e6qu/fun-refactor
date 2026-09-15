@@ -290,14 +290,11 @@ fn list(root: &Path, options: &ListOptions) -> Result<Value> {
         );
     }
     let entries = records::parse(&output.stdout, &root)?;
-    let revision = format!(
-        "{:x}",
-        Sha256::digest(serde_json::to_vec(&(
-            &root,
-            &common,
-            format!("{:x}", Sha256::digest(&output.stdout))
-        ))?)
-    );
+    let revision = hex::encode(Sha256::digest(serde_json::to_vec(&(
+        &root,
+        &common,
+        hex::encode(Sha256::digest(&output.stdout)),
+    ))?));
     let key = format!("frwt1:{revision}");
     let start = if let Some(cursor) = &options.cursor {
         let (basis, offset) = cursor

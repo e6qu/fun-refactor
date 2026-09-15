@@ -272,7 +272,7 @@ impl Project<'_> {
         )?;
         let checks = crate::checks::select(&self.root, &manifest.checks)?
             .context("task change requires at least one declared check.")?;
-        let manifest_sha256 = format!("{:x}", Sha256::digest(&bytes));
+        let manifest_sha256 = hex::encode(Sha256::digest(&bytes));
         for field in [
             "author_manifest_template",
             "workflow_manifest_template",
@@ -312,12 +312,12 @@ impl Project<'_> {
 
 pub(crate) fn review_basis(report: &Value, exact_changes: &Value) -> Result<String> {
     Ok(format!(
-        "frtc1:{:x}",
-        Sha256::digest(serde_json::to_vec(&(
+        "frtc1:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(&(
             "fr-task-change-review-1",
             report,
             exact_changes
-        ))?)
+        ))?))
     ))
 }
 

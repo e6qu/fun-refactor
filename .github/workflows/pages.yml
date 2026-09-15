@@ -62,7 +62,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '26'
           cache: npm
           cache-dependency-path: web/package-lock.json
 
@@ -105,8 +105,8 @@ jobs:
           } > docs/built.js
           cat docs/built.js
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs
 
@@ -146,6 +146,6 @@ jobs:
       # "Timeout reached" while the deployment sat queued behind a build that was
       # holding the same environment.
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
         with:
           timeout: 1800000

@@ -958,6 +958,7 @@ fn spec_ci_generates_an_undoable_workflow_with_the_reviewed_ratchet() {
     assert!(ok, "{initialized}");
     let (preview, ok) = ws.run(&["spec", "ci", "--max-debt", "3"]);
     assert!(ok, "{preview}");
+    assert!(preview.contains("actions/checkout@v7"), "{preview}");
     assert!(preview.contains("leanprover/lean-action@v1"), "{preview}");
     assert!(preview.contains("--strict --max-debt 3"), "{preview}");
     assert!(!ws.root().join(".github/workflows/fr-lean.yml").exists());

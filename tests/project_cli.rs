@@ -7428,7 +7428,7 @@ fn pinned_fastapi_project_matches_an_independent_route_contract() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/framework-corpus/fastapi");
     let source = fs::read(root.join("items.py")).unwrap();
     assert_eq!(
-        format!("{:x}", Sha256::digest(source)),
+        hex::encode(Sha256::digest(source)),
         "7f0fa55d1f7b02188c4abd4f88aa6db92fe03de38258b765ed050ec72032b410"
     );
     let view = ok(&root, &["project", "features", "--limit", "500"]);

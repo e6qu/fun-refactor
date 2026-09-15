@@ -110,7 +110,7 @@ This evidence covers handler behavior and payload preservation in the supported 
 The pinned FastAPI 0.141.1 fixture mounts the generated router through `include_router` and invokes its ASGI application.
 Pydantic 2.13.5 accepts the valid body, and an invalid array element produces a field-specific 422 response through Starlette 1.6.0.
 Another pinned fixture imports the application edited by `--register-with` after cutover and serves the selected generic route through that application.
-The reverse fixture places the generated route below a captured application manifest and starts Next.js 16.3.4 with React 19.3.0.
+The reverse fixture places the generated route below a captured application manifest and starts Next.js 16.3.5 with React 19.3.0.
 It sends a real HTTP request to the registered `/events` route.
 Its valid response matches the FastAPI source exactly.
 For one direct body model whose complete declared shape uses the supported structural types, the generated route checks the parsed JSON before invoking the translated handler.

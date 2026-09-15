@@ -157,6 +157,7 @@ fn mypy(files: &[&str]) -> std::process::Output {
         .current_dir(python_dir())
         .arg("--config-file")
         .arg("mypy.ini")
+        .arg("--no-incremental")
         .args(files)
         .output()
         .expect("running mypy")

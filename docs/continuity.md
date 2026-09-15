@@ -1,12 +1,11 @@
 # Development continuity
 
-PR 31 merged as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297). PR 32 is proposed as
-[GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298) and adds a content-addressed context
-workspace over that structured Python runtime. `client.context(...)`
-binds revision, view, commitment and target identity; follows exact server-issued reveal and page
-actions; reconstructs selected Merkle subtrees; and returns one bounded `fr-agent-context-1` packet.
-The same route reaches code maps, call traces, impact, sources and sinks, semantic IR and project
-evidence without exposing every intermediate report to the agent.
+PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298). PR 33 is active on
+`agent_structured_intent`. It adds declarative `understand`, `trace`, `change`, `migrate` and
+`prove` requests over the content-addressed context workspace. `AgentIntent` expands each purpose
+to typed evidence projections, traverses the necessary branches locally and returns one bounded
+packet. A request may name 32 projections across eight sections, uses no more than 64 calls per
+section and 512 overall, and returns at most 64 KiB.
 
 Materialization now handles paged objects and arrays, empty containers, inline children and UTF-8
 strings paged by byte offset. It verifies stable page identity, exact coverage, child ordering and
@@ -22,10 +21,22 @@ suite currently has 30 tests, including adversarial pagination, session, pointer
 bound cases. The real Rust/Python integration traverses a paginated code map, caches it, creates a
 selected packet and then completes the reviewed change and patch lifecycle.
 
-The deterministic PR 32 comparison makes the same 16 internal `fr` calls and retains the same
+The Python package now has an empty `fr_ir/__init__.py` and explicit `ir`, `runtime`, `context` and
+`intent` modules. It has no `__main__.py` or `__all__` mutation. Tests use pytest 9.1.1. Real intent
+dogfood found and fixed traversal that could not return to an earlier disclosed ancestor to open a
+sibling branch. Rust, Python and Lean compare the final intent admission policy over the same
+32,768 boundary cases.
+
+The dependency refresh selects releases that were stable and at least 24 hours old on 2026-09-15.
+It updates tree-sitter 0.27, SHA-2 0.11, similar 3.2, rstest 0.27, mypy 2.3.1, pytest 9.1.1,
+Vite 8.3.0, TypeScript 7.0.2, Zod 4.6.5, Next.js 16.3.5 and current CI action majors. The three npm
+trees report no outdated direct dependency and no audit finding. TypeScript and mypy diagnostic
+fixtures are regenerated with the pinned compilers.
+
+The refreshed PR 32 comparison still makes the same 16 internal `fr` calls and retains the same
 normalized code map in both arms. Exposing all progressive requests and responses costs 59,825
-bytes across 16 exchanges. The complete high-level program and its selected packet cost 4,516 bytes
-in one exchange, a 92.5% reduction. This measures fixed protocol bytes and does not run a model or
+bytes across 16 exchanges. The complete high-level program and its selected packet cost 4,550 bytes
+in one exchange, a 92.4% reduction. This measures fixed protocol bytes and does not run a model or
 claim tokens, billed quota, adoption or population behavior. B883 through B886 record the page,
 pointer, final-call and backend-verification defects fixed while dogfooding the new route.
 
@@ -563,7 +574,7 @@ Pinned FastAPI 0.141.1 mounts the generated router through `include_router` and 
 Pydantic 2.13.5 and Starlette 1.6.0 preserve the valid body and produce a field-specific 422 response for an invalid array item.
 The promotion policy requires one candidate and no collision.
 Three Lean theorems characterize that rule, and sixteen shared cases cover unique, missing, repeated and colliding candidates.
-The eighth checkpoint installs a lockfile-pinned Next.js 16.3.4 application with React 19.3.0 and TypeScript 5.9.3.
+The eighth checkpoint installs a lockfile-pinned Next.js 16.3.5 application with React 19.3.0 and TypeScript 7.0.2.
 App Router placement registers the generated generic events route.
 A real framework request returns the exact FastAPI source payload.
 The runtime fixture uses no example-specific translation rule.

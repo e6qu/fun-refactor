@@ -28,9 +28,9 @@ mod digest_tests;
 mod disclose;
 mod evidence;
 pub use disclose::{
-    context_materialization_admitted, disclosure_budget_admitted, disclosure_frontier_after,
-    disclosure_proof_parent, disclosure_proof_step_allowed, disclosure_transition_allowed,
-    disclosure_view_admitted, object_merkle, object_store_admitted,
+    agent_intent_admitted, context_materialization_admitted, disclosure_budget_admitted,
+    disclosure_frontier_after, disclosure_proof_parent, disclosure_proof_step_allowed,
+    disclosure_transition_allowed, disclosure_view_admitted, object_merkle, object_store_admitted,
 };
 mod explore;
 mod fast_routes;
@@ -420,7 +420,7 @@ impl<const ENABLED: bool> ConstructionTimer<ENABLED> {
 }
 
 fn hash(value: impl serde::Serialize) -> Result<String> {
-    Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(&value)?)))
+    Ok(hex::encode(Sha256::digest(serde_json::to_vec(&value)?)))
 }
 
 fn bounded_text(text: &str, max: usize) -> Value {

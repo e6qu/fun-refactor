@@ -14,7 +14,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
 
-from fr_ir import BinaryOp, Expr, IrError, SemanticBody, Stmt, Type  # noqa: E402
+from fr_ir.ir import BinaryOp, Expr, IrError, SemanticBody, Stmt, Type  # noqa: E402
 
 
 def compact(value: object) -> str:
@@ -53,7 +53,7 @@ def evaluate(binary: Path) -> dict:
         }}}],
     }
     sdk = SemanticBody([Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))])
-    sdk_program = 'from fr_ir import *\nprint(SemanticBody([Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))]).to_json())\n'
+    sdk_program = 'from fr_ir.ir import BinaryOp, Expr, SemanticBody, Stmt\nprint(SemanticBody([Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))]).to_json())\n'
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         direct_path = root / "direct.json"

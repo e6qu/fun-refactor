@@ -208,7 +208,7 @@ fn undo_and_redo_reconstruct_the_owned_worktree_as_a_checked_cycle() {
     let restoring = serde_json::json!({
         "schema":1,
         "state":"restoring",
-        "record_digest":format!("{:x}", Sha256::digest(fs::read(record_path).unwrap())),
+        "record_digest":hex::encode(Sha256::digest(fs::read(record_path).unwrap())),
         "destination":undo["destination"],
         "branch":"owned",
         "commit":String::from_utf8(main_head.clone()).unwrap().trim(),

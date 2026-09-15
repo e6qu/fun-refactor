@@ -150,7 +150,7 @@ fn basis(changes: &[Change]) -> String {
             }
         }
     }
-    format!("frmb1:{:x}", digest.finalize())
+    format!("frmb1:{}", hex::encode(digest.finalize()))
 }
 
 fn current(path: &Path) -> Result<Option<String>> {

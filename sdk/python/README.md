@@ -8,7 +8,8 @@ Python objects. It invokes the local `fr` binary without a shell and exposes sel
 without printing the surrounding JSON:
 
 ```python
-from fr_ir import DirectoryObjectStore, FrClient
+from fr_ir.context import DirectoryObjectStore
+from fr_ir.runtime import FrClient
 
 client = FrClient(".")
 found = client.project("find", "render", "--signature")
@@ -26,6 +27,31 @@ its revision. See [the runtime contract](../../docs/agent-runtime-sdk.md) and
 [context workspace](../../docs/agent-context-workspace.md) for bounded calls, selected packets,
 storage adapters and the reviewed session API.
 
+Declare a high-level evidence goal instead of manually sequencing section traversal:
+
+```python
+from fr_ir.intent import AgentIntent
+
+prepared = client.prepare(AgentIntent(handle, "trace"))
+call_traces = prepared.at("/selected/call_traces")
+```
+
+`understand`, `trace`, `change`, `migrate` and `prove` expand to fixed evidence sections. Use
+`IntentNeed` for named projections or a pointer inside a section. The runtime keeps intermediate
+reports local, follows sibling branches through the retained action graph and admits only a packet
+within the declared call and byte ceilings.
+
+The package root is deliberately empty. Import IR constructors from `fr_ir.ir`, the subprocess
+client from `fr_ir.runtime`, progressive storage from `fr_ir.context`, and high-level requests from
+`fr_ir.intent`. The package has no `__main__.py` and publishes no mutable `__all__` registry.
+
+Install the current test extra and run the suite with pytest:
+
+```sh
+python3 -m pip install -e './sdk/python[test]'
+python3 -m pytest -q sdk/python/tests
+```
+
 `FormalPlan.from_json(...)` also mirrors `fr-formal-plan-1`, validates every nested field and
 independently recomputes its Merkle content address. Agents can inspect and store a plan without
 handling source text, then pass the unchanged JSON to `fr spec scaffold --from`.
@@ -39,7 +65,7 @@ address. `PropertyTerm` and `PropertyProposition` mirror the Rust proposition IR
 then returns an `AgentProperty` with the exact `fr-formal-property-1` wire shape:
 
 ```python
-from fr_ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
+from fr_ir.ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
 
 task = PropertyTask.from_data(property_task_json)
 x, y = Term.variable("x"), Term.variable("y")
@@ -56,7 +82,7 @@ The property tree contains a theorem proposition and no tactics. Rust revalidate
 current model task before planning, and the proof remains agent-authored.
 
 ```python
-from fr_ir import BinaryOp, Expr, SemanticBody, Stmt
+from fr_ir.ir import BinaryOp, Expr, SemanticBody, Stmt
 
 change = SemanticBody([
     Stmt.Return(
@@ -83,7 +109,7 @@ Build a smaller change when the agent already has a semantic body. The SDK compu
 body identity and infers the replacement category from the typed node:
 
 ```python
-from fr_ir import Change, Expr, SemanticChange
+from fr_ir.ir import Change, Expr, SemanticChange
 
 delta = SemanticChange(change, [
     Change.Replace("/body/0/value/value/right", Expr.Int(3)),
@@ -102,7 +128,7 @@ For scalar edits, role locators avoid serialization-only `value` segments and co
 nodes. The object hierarchy mirrors `fr-semantic-intent-1` directly:
 
 ```python
-from fr_ir import Intent, LocatorStep, NodeCategory, Role, SemanticIntent
+from fr_ir.ir import Intent, LocatorStep, NodeCategory, Role, SemanticIntent
 
 intent = SemanticIntent(change, [
     Intent.SetInt([
@@ -124,7 +150,7 @@ reconstructing its locator. `DisclosedEditRequest` mirrors the two fields accept
 project-task and task-change manifests:
 
 ```python
-from fr_ir import DisclosedEditRequest
+from fr_ir.ir import DisclosedEditRequest
 
 request = DisclosedEditRequest("frde1:<64 lowercase hex digits>", "7")
 operation = {"op": "edit-body-disclosed", "handle": handle,
@@ -138,7 +164,7 @@ Structural disclosure capabilities use the same IR constructors as complete bodi
 Pass a typed node for replacement or insertion; omit it for a deletion capability:
 
 ```python
-from fr_ir import DisclosedIrEditRequest, Expr
+from fr_ir.ir import DisclosedIrEditRequest, Expr
 
 replacement = DisclosedIrEditRequest(
     "frdi1:<64 lowercase hex digits>", Expr.Int(7)
@@ -156,7 +182,7 @@ the `fr-task-change-1` wire shape and validate request order, target inputs, pos
 paths and byte ceilings before writing JSON:
 
 ```python
-from fr_ir import ProjectReference, ProjectRequest, TaskChange, TaskDelivery, TaskTarget
+from fr_ir.ir import ProjectReference, ProjectRequest, TaskChange, TaskDelivery, TaskTarget
 
 request = ProjectRequest("target", ["find", "render", "--signature"])
 change = TaskChange(
@@ -178,7 +204,7 @@ reviewed task-change basis.
 Disclosure trees can be stored by content address:
 
 ```python
-from fr_ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
+from fr_ir.ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
 
 pack = merkle_object_pack(project_evidence)
 for digest, record in pack["objects"].items():

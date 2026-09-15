@@ -23,7 +23,7 @@ Use the Python SDK when it is available. Its `Type`, `Stmt`, `Expr` and `Templat
 match the IR hierarchy and reject category mistakes before serialization:
 
 ```python
-from fr_ir import BinaryOp, Expr, SemanticBody, Stmt
+from fr_ir.ir import BinaryOp, Expr, SemanticBody, Stmt
 
 change = SemanticBody([
     Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))

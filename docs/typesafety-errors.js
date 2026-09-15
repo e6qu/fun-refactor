@@ -8,11 +8,11 @@ export const ERRORS = {
   },
   "config_parse_once_misuse": {
     python: "config_parse_once_misuse.py:17: error: Argument 1 to \"connect\" has incompatible type \"dict[str, str]\"; expected \"Config\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "config_parse_once_misuse.ts(12,33): error TS2345: Argument of type 'Map<string, string>' is not assignable to parameter of type 'Config'.\n  Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
+    typescript: "config_parse_once_misuse.ts(12,33): error TS2739: Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
   },
   "deploy_plan_misuse": {
     python: "deploy_plan_misuse.py:31: error: Argument 1 to \"summary\" has incompatible type \"Resource\"; expected \"ServerPlan\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "deploy_plan_misuse.ts(21,18): error TS2345: Argument of type 'Resource' is not assignable to parameter of type 'ServerPlan'.\n  Type 'Resource' is missing the following properties from type 'ServerPlan': port, replicas",
+    typescript: "deploy_plan_misuse.ts(21,18): error TS2739: Type 'Resource' is missing the following properties from type 'ServerPlan': port, replicas",
   },
   "dispatch_typed_misuse": {
     python: "dispatch_typed_misuse.py:27: error: Dict entry 1 has incompatible type \"Literal['sent']\": \"Callable[[str], str]\"; expected \"Literal['draft', 'sent', 'paid']\": \"Callable[[Invoice], Invoice]\"  [dict-item]\nFound 1 error in 1 file (checked 1 source file)",
@@ -24,7 +24,7 @@ export const ERRORS = {
   },
   "entity_ids_misuse": {
     python: "entity_ids_misuse.py:15: error: Argument 1 to \"bill\" has incompatible type \"ProductId\"; expected \"CustomerId\"  [arg-type]\nentity_ids_misuse.py:15: error: Argument 2 to \"bill\" has incompatible type \"CustomerId\"; expected \"ProductId\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "entity_ids_misuse.ts(14,15): error TS2345: Argument of type 'ProductId' is not assignable to parameter of type 'CustomerId'.\n  Property '[customerBrand]' is missing in type 'String & { readonly [productBrand]: true; }' but required in type '{ readonly [customerBrand]: true; }'.",
+    typescript: "entity_ids_misuse.ts(14,15): error TS2345: Argument of type 'ProductId' is not assignable to parameter of type 'CustomerId'.\n  Type 'ProductId' is not assignable to type '{ readonly [customerBrand]: true; }'.\n    Property '[customerBrand]' is missing in type 'String & { readonly [productBrand]: true; }' but required in type '{ readonly [customerBrand]: true; }'.",
   },
   "escape_wrapper_misuse": {
     python: "escape_wrapper_misuse.py:21: error: Argument 1 to \"render_note\" has incompatible type \"str\"; expected \"HtmlText\"  [arg-type]\nescape_wrapper_misuse.py:22: error: Argument 1 to \"escape_html\" has incompatible type \"HtmlText\"; expected \"str\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
@@ -40,7 +40,7 @@ export const ERRORS = {
   },
   "exercise_shipping_misuse": {
     python: "exercise_shipping_misuse.py:25: error: Argument 1 to \"shipping_cents\" has incompatible type \"Kilometers\"; expected \"Kilograms\"  [arg-type]\nexercise_shipping_misuse.py:25: error: Argument 2 to \"shipping_cents\" has incompatible type \"Kilograms\"; expected \"Kilometers\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "exercise_shipping_misuse.ts(30,3): error TS2345: Argument of type 'Kilometers' is not assignable to parameter of type 'Kilograms'.\n  Property '[kilogramsBrand]' is missing in type 'Number & { readonly [kilometersBrand]: true; }' but required in type '{ readonly [kilogramsBrand]: true; }'.",
+    typescript: "exercise_shipping_misuse.ts(30,3): error TS2345: Argument of type 'Kilometers' is not assignable to parameter of type 'Kilograms'.\n  Type 'Kilometers' is not assignable to type '{ readonly [kilogramsBrand]: true; }'.\n    Property '[kilogramsBrand]' is missing in type 'Number & { readonly [kilometersBrand]: true; }' but required in type '{ readonly [kilogramsBrand]: true; }'.",
   },
   "exercise_status_misuse": {
     python: "exercise_status_misuse.py:22: error: Argument 1 to \"next_action\" has incompatible type \"Literal['recieved']\"; expected \"Literal['received', 'picked', 'shipped']\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
@@ -68,7 +68,7 @@ export const ERRORS = {
   },
   "money_pence_misuse": {
     python: "money_pence_misuse.py:15: error: Argument 1 to \"apply_discount\" has incompatible type \"Rate\"; expected \"Pence\"  [arg-type]\nmoney_pence_misuse.py:15: error: Argument 2 to \"apply_discount\" has incompatible type \"Pence\"; expected \"Rate\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "money_pence_misuse.ts(21,41): error TS2345: Argument of type 'Rate' is not assignable to parameter of type 'Pence'.\n  Property '[penceBrand]' is missing in type 'Number & { readonly [rateBrand]: true; }' but required in type '{ readonly [penceBrand]: true; }'.",
+    typescript: "money_pence_misuse.ts(21,41): error TS2345: Argument of type 'Rate' is not assignable to parameter of type 'Pence'.\n  Type 'Rate' is not assignable to type '{ readonly [penceBrand]: true; }'.\n    Property '[penceBrand]' is missing in type 'Number & { readonly [rateBrand]: true; }' but required in type '{ readonly [penceBrand]: true; }'.",
   },
   "note_narrowing_misuse": {
     python: "note_narrowing_misuse.py:5: error: Item \"None\" of \"str | None\" has no attribute \"upper\"  [union-attr]\nFound 1 error in 1 file (checked 1 source file)",
@@ -100,10 +100,10 @@ export const ERRORS = {
   },
   "unit_arithmetic_misuse": {
     python: "unit_arithmetic_misuse.py:24: error: Unsupported operand types for + (\"Meters\" and \"Kilograms\")  [operator]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "unit_arithmetic_misuse.ts(21,48): error TS2345: Argument of type 'Kilograms' is not assignable to parameter of type 'Meters'.\n  Property '[metersBrand]' is missing in type 'Number & { readonly [kilogramsBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
+    typescript: "unit_arithmetic_misuse.ts(21,48): error TS2345: Argument of type 'Kilograms' is not assignable to parameter of type 'Meters'.\n  Type 'Kilograms' is not assignable to type '{ readonly [metersBrand]: true; }'.\n    Property '[metersBrand]' is missing in type 'Number & { readonly [kilogramsBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
   },
   "unit_newtype_misuse": {
     python: "unit_newtype_misuse.py:16: error: Argument 1 to \"cut_tubing\" has incompatible type \"float\"; expected \"Meters\"  [arg-type]\nunit_newtype_misuse.py:17: error: Argument 1 to \"cut_tubing\" has incompatible type \"Each\"; expected \"Meters\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "unit_newtype_misuse.ts(19,13): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Meters'.\n  Type 'number' is not assignable to type '{ readonly [metersBrand]: true; }'.\nunit_newtype_misuse.ts(20,20): error TS2345: Argument of type 'Each' is not assignable to parameter of type 'Meters'.\n  Property '[metersBrand]' is missing in type 'Number & { readonly [eachBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
+    typescript: "unit_newtype_misuse.ts(19,13): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Meters'.\n  Type 'number' is not assignable to type '{ readonly [metersBrand]: true; }'.\nunit_newtype_misuse.ts(20,20): error TS2345: Argument of type 'Each' is not assignable to parameter of type 'Meters'.\n  Type 'Each' is not assignable to type '{ readonly [metersBrand]: true; }'.\n    Property '[metersBrand]' is missing in type 'Number & { readonly [eachBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
   },
 };

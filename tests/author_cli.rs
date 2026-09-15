@@ -3618,7 +3618,7 @@ fn module_insertion_bounds_fragment_bytes_and_hashes_the_actual_splice() {
     assert_eq!(splice, format!("\r\n{text}\r\n"));
     assert_eq!(
         report["insertion"]["sha256"],
-        format!("{:x}", Sha256::digest(splice.as_bytes()))
+        hex::encode(Sha256::digest(splice.as_bytes()))
     );
     ok(&root, &["history", "undo", "1", "--write"]);
     fs::write(&input, text + " ").unwrap();
@@ -4315,7 +4315,7 @@ fn batch_keeps_original_spans_when_same_file_edits_change_lengths() {
     );
     assert_eq!(
         report["steps"][0]["after_sha256"],
-        format!("{:x}", Sha256::digest(after.as_bytes()))
+        hex::encode(Sha256::digest(after.as_bytes()))
     );
     assert_eq!(
         fs::read_to_string(root.join("app.rs")).unwrap(),

@@ -452,10 +452,7 @@ fn basis(changes: &[Change]) -> Result<String> {
         .iter()
         .map(|c| (&c.path, &c.before))
         .collect::<Vec<_>>();
-    Ok(format!(
-        "{:x}",
-        Sha256::digest(serde_json::to_vec(&source)?)
-    ))
+    Ok(hex::encode(Sha256::digest(serde_json::to_vec(&source)?)))
 }
 
 pub(crate) fn check_evidence_receipt(
@@ -464,12 +461,12 @@ pub(crate) fn check_evidence_receipt(
     checks: &[String],
 ) -> Result<String> {
     Ok(format!(
-        "frce1:{:x}",
-        Sha256::digest(serde_json::to_vec(&(
+        "frce1:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(&(
             configuration_basis,
             source_revision,
             checks
-        ))?)
+        ))?))
     ))
 }
 
@@ -507,7 +504,7 @@ pub(crate) fn source_revision(root: &Path) -> Result<String> {
         digest.update((content.len() as u64).to_le_bytes());
         digest.update(content.as_bytes());
     }
-    Ok(format!("{:x}", digest.finalize()))
+    Ok(hex::encode(digest.finalize()))
 }
 
 fn lock(root: &Path) -> Result<File> {
@@ -742,7 +739,7 @@ fn store_record(
 }
 
 fn digest(value: &impl Serialize) -> Result<String> {
-    Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(value)?)))
+    Ok(hex::encode(Sha256::digest(serde_json::to_vec(value)?)))
 }
 
 fn compaction_digest(record: &Record) -> Result<String> {
@@ -1090,7 +1087,7 @@ pub(crate) fn transaction_context_basis(record: &Record) -> String {
             }
         }
     }
-    format!("frtb2:{:x}", digest.finalize())
+    format!("frtb2:{}", hex::encode(digest.finalize()))
 }
 
 pub fn record_context_basis(root: &Path, id: u64) -> Result<String> {

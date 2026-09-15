@@ -147,7 +147,7 @@ fn configuration(root: &Path) -> Result<(Configuration, String)> {
         }
         confined(root, &check.cwd, true)?;
     }
-    Ok((config, format!("{:x}", Sha256::digest(&bytes))))
+    Ok((config, hex::encode(Sha256::digest(&bytes))))
 }
 
 pub(crate) fn select(root: &Path, names: &[String]) -> Result<Option<Selection>> {

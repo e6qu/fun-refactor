@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "tests/agent-eval/agent-context-workspace.json"
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
 
-from fr_ir import DirectoryObjectStore, FrClient  # noqa: E402
+from fr_ir.context import DirectoryObjectStore
+from fr_ir.runtime import FrClient  # noqa: E402
 
 
 def digest(data: bytes) -> str:
@@ -97,7 +98,8 @@ def direct_arm(binary: Path, root: Path, objects: Path) -> dict:
 
 RUNTIME_PROGRAM = r'''# => selected content-addressed context packet
 import json, sys
-from fr_ir import DirectoryObjectStore, FrClient
+from fr_ir.context import DirectoryObjectStore
+from fr_ir.runtime import FrClient
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 found = client.project("find", "render", "--signature")
 handle = found.at("/rows/0/0")

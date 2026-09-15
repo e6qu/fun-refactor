@@ -271,7 +271,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     digest.update(serde_json::to_vec(&(&root, path, scope, &base))?);
     digest.update([0]);
     digest.update(&output.stdout);
-    let revision = format!("{:x}", digest.finalize());
+    let revision = hex::encode(digest.finalize());
     let direction = options.calls.then_some(
         options
             .direction
@@ -298,19 +298,16 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         None
     };
     let (total, structure, key) = if let Some(view) = &symbol_view {
-        let identity = format!(
-            "{:x}",
-            Sha256::digest(serde_json::to_vec(&(
-                &revision,
-                view_name,
-                direction,
-                options.depth,
-                options.workspace_context,
-                env!("CARGO_PKG_VERSION"),
-                &view.entries,
-                &view.coverage,
-            ))?)
-        );
+        let identity = hex::encode(Sha256::digest(serde_json::to_vec(&(
+            &revision,
+            view_name,
+            direction,
+            options.depth,
+            options.workspace_context,
+            env!("CARGO_PKG_VERSION"),
+            &view.entries,
+            &view.coverage,
+        ))?));
         let structure = json!({"revision": identity, "coverage": view.coverage,
             "scope": if options.calls {"calls-reachable-from-changed-declarations"} else {"changed-line-overlap"}, "hierarchy": "strict-span-containment", "locals": "omitted",
             "cross_side_matching": "none", "relationships": if options.workspace_context {"workspace-call-candidates"} else if context.is_some() {"selected-file-call-candidates"} else if options.calls {"single-file-call-candidates"} else {"not-collected"}, "direction": direction, "depth":options.calls.then_some(options.depth), "text_bytes": 256});

@@ -6,7 +6,8 @@ that subtree, verifies its Merkle digest and returns a selected packet. Intermed
 inside the Python process.
 
 ```python
-from fr_ir import DirectoryObjectStore, FrClient
+from fr_ir.context import DirectoryObjectStore
+from fr_ir.runtime import FrClient
 
 client = FrClient(".", executable="fr")
 handle = client.project("find", "render", "--signature").at("/rows/0/0")
@@ -33,10 +34,16 @@ outside its explicit 1–64 KiB serialized bound.
 ## Traversal contract
 
 One session binds the revision, view basis, object root, target handle, view and profile from its
-initial report. A followed response must carry the same identity. Traversal prioritizes an exact
-target action, then an ancestor action, then the current page continuation. It accepts only commands
-returned by `fr`, detects pointer cycles during reconstruction and enforces one shared limit of at
-most 64 follow calls.
+initial report. A followed response must carry the same identity. Traversal retains the action graph
+from every response, so it can return to a disclosed ancestor and open a sibling branch. It
+prioritizes an exact target action, then an ancestor action, then a continuation whose address can
+reach the target. It accepts only commands returned by `fr`, detects pointer cycles during
+reconstruction and enforces at most 64 follow calls for each materialized subtree.
+
+`AgentIntent` in `fr_ir.intent` compiles a complete `understand`, `trace`, `change`, `migrate` or
+`prove` request into these traversals. The intent shares a 1–512 call budget across at most eight
+unique sections, emits one selected packet and checks its target, session, completeness and byte
+budget before returning it. The default is 192 calls and an 8 KiB packet.
 
 Materialization supports inline JSON values, paged objects and arrays, empty containers and UTF-8
 strings split at byte offsets. It requires stable node identity across pages, unique object keys,
@@ -76,12 +83,18 @@ predicates. Python execution, SHA-256 collision resistance, JSON and filesystem 
 the subprocess boundary and general correspondence of the traversal algorithm remain trusted or
 integration-tested components.
 
+`FrKernels.AgentIntent` models the complete intent admission conjunction. It proves that every
+accepted request satisfies all projection, section, call and packet bounds and that target,
+session and completeness evidence are all true. Rust and Lean agree on 32,768 boundary cases;
+Python and Rust agree on the same corpus. A real three-section trace test exercises the Python
+compiler against `fr`, including sibling traversal and content-addressed storage.
+
 ## Controlled comparison
 
 The retained generic fixture materializes the same code map in both arms with 16 internal `fr`
 calls. Exposing every progressive request and response costs 59,825 bytes across 16 agent-visible
-exchanges. The complete 652-byte Python program request and its 3,864-byte selected packet cost 4,516 bytes
-in one exchange, a 92.5% reduction. Both arms retain the same normalized code map, call count,
+exchanges. The complete 686-byte Python program request and its 3,864-byte selected packet cost 4,550 bytes
+in one exchange, a 92.4% reduction. Both arms retain the same normalized code map, call count,
 packet size and cached-object count.
 
 ```sh

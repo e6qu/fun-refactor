@@ -131,7 +131,7 @@ pub struct AppliedChange {
 }
 
 fn digest(bytes: impl AsRef<[u8]>) -> String {
-    format!("{:x}", Sha256::digest(bytes.as_ref()))
+    hex::encode(Sha256::digest(bytes.as_ref()))
 }
 
 pub(super) fn validate_body_input(input: &str) -> Result<ValidatedBody> {

@@ -203,7 +203,7 @@ impl Context {
         let working_revision = working
             .as_ref()
             .map(|working| {
-                serde_json::to_vec(working).map(|bytes| format!("{:x}", Sha256::digest(bytes)))
+                serde_json::to_vec(working).map(|bytes| hex::encode(Sha256::digest(bytes)))
             })
             .transpose()?;
         Ok(Self {

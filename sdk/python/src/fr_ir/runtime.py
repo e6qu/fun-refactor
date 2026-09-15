@@ -16,8 +16,9 @@ import subprocess
 from typing import Any, Mapping, Sequence, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from . import TaskChange
+    from .ir import TaskChange
     from .context import ContextSession, ObjectStore
+    from .intent import AgentIntent, PreparedIntent
 
 
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
@@ -430,7 +431,7 @@ class FrClient:
 
     def review(self, change: TaskChange) -> TaskReview:
         """Preview one typed task change and retain its exact canonical bytes."""
-        from . import TaskChange
+        from .ir import TaskChange
 
         if not isinstance(change, TaskChange):
             raise FrRuntimeError("review requires a TaskChange")
@@ -441,6 +442,16 @@ class FrClient:
         if not isinstance(basis, str):
             raise FrRuntimeError("task-change preview has no reviewed basis")
         return TaskReview(report._value, report.arguments, manifest, digest, basis)
+
+    def prepare(
+        self,
+        intent: AgentIntent,
+        *,
+        store: ObjectStore | None = None,
+    ) -> PreparedIntent:
+        """Compile one declarative intent into a bounded context packet."""
+        from .intent import prepare_intent
+        return prepare_intent(self, intent, store=store)
 
     def execute(self, review: TaskReview) -> TaskResult:
         """Execute only the unchanged manifest and basis held by one review."""
@@ -465,9 +476,3 @@ class FrClient:
             input_bytes=review.manifest,
         )
         return TaskResult(report._value, report.arguments, review.task_change_basis)
-
-
-__all__ = [
-    "Disclosure", "DisclosureAction", "FrClient", "FrReport", "FrRuntimeError",
-    "TaskResult", "TaskReview",
-]

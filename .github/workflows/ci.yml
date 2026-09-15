@@ -157,10 +157,11 @@ jobs:
         if: matrix.slice == 'default'
         run: >-
           pip install
-          "mypy==1.18.2"
+          "mypy==2.3.1"
           "fastapi==0.141.1"
           "pydantic==2.13.5"
           "starlette==1.6.0"
+          "pytest==9.1.1"
       - uses: actions/setup-node@v7
         if: matrix.slice == 'default'
         with:
@@ -183,7 +184,7 @@ jobs:
         if: matrix.slice == 'default'
         with:
           distribution: temurin
-          java-version: "25"
+          java-version: "26"
       - name: Install the tutorial's TypeScript checker
         if: matrix.slice == 'default'
         run: npm ci --no-fund --no-audit

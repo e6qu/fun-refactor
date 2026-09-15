@@ -19,7 +19,7 @@ use `/body/0/value/value/value/right`. Inspect wire shapes with
 The Python SDK mirrors the operation hierarchy:
 
 ```python
-from fr_ir import Change, Expr, SemanticChange
+from fr_ir.ir import Change, Expr, SemanticChange
 
 change = SemanticChange(body_basis, [
     Change.Replace(pointer, Expr.Int(2)),

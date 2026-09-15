@@ -14,7 +14,7 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
 
-from fr_ir import BinaryOp, Expr, SemanticBody, Stmt, Type  # noqa: E402
+from fr_ir.ir import BinaryOp, Expr, SemanticBody, Stmt, Type  # noqa: E402
 
 
 def expected() -> dict:

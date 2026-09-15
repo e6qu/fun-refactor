@@ -1,6 +1,6 @@
 """Emit one valid source-free payload covering every SDK node constructor."""
 
-from fr_ir import BinaryOp, Catch, Expr, Function, Param, SemanticBody, Stmt, TemplatePart, Type, UnaryOp, VariantArm
+from fr_ir.ir import BinaryOp, Catch, Expr, Function, Param, SemanticBody, Stmt, TemplatePart, Type, UnaryOp, VariantArm
 
 
 name = Expr.Name("x")

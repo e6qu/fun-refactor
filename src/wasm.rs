@@ -29,7 +29,7 @@ struct Session {
 
 fn session_digest(body: &SessionBody) -> Result<String, String> {
     let encoded = serde_json::to_vec(body).map_err(|error| error.to_string())?;
-    Ok(format!("frbs1:{:x}", Sha256::digest(encoded)))
+    Ok(format!("frbs1:{}", hex::encode(Sha256::digest(encoded))))
 }
 
 fn session_path(path: &str) -> bool {
@@ -1643,7 +1643,7 @@ fn patch_report(transaction: Option<u32>, reverse: bool, patch: String) -> Strin
     }
 
     let sections = patch.matches("diff --git ").count();
-    let patch_sha256 = format!("{:x}", Sha256::digest(patch.as_bytes()));
+    let patch_sha256 = hex::encode(Sha256::digest(patch.as_bytes()));
     ok(&Patch {
         schema: "fr-memory-patch-1",
         transaction,

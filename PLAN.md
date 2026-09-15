@@ -169,13 +169,13 @@ agent-adoption claim; the fresh pair in PR 30 acceptance item 7 is the required 
 PR 31's deterministic runtime comparison performs the same five internal `fr` operations through
 direct JSON and the structured Python runtime. Both paths produce the same final source, patch,
 eight lifecycle stages and applied history state. Direct JSON exposes 17,689 bytes across five
-agent exchanges; the complete runtime program and result expose 1,864 bytes in one exchange, an
-89.5% reduction. This fixed protocol measurement does not run a model or measure billed tokens.
+agent exchanges; the complete runtime program and result expose 1,893 bytes in one exchange, an
+89.3% reduction. This fixed protocol measurement does not run a model or measure billed tokens.
 
 PR 32's deterministic context-workspace comparison performs the same 16 internal `fr` operations
 and obtains the same normalized code map in both arms. Exposing all progressive reports costs
 59,825 bytes across 16 exchanges. The complete high-level Python program and its selected packet
-cost 4,516 bytes in one exchange, a 92.5% reduction. The fixture checks the same packet size, call
+cost 4,550 bytes in one exchange, a 92.4% reduction. The fixture checks the same packet size, call
 count and cached-object count. It does not run a model or measure tokens or quota.
 
 ## Product contract
@@ -211,11 +211,12 @@ The identifiers remain stable for references in defect records.
 | D10 | Maintain scope resolution in the project's query and index layers. |
 | D11 | Declare supported toolchain versions and run validation with those versions. |
 | D12 | Use the cheapest supported Codex CLI model at its lowest effort for routine real-agent evaluations. Record the exact configuration. |
+| D13 | Select dependency upgrades only after a stable release has been public for at least 24 hours; retain exact lockfiles and verify real compiler/runtime fixtures after each toolchain change. |
 
 ## Delivery plan
 
-Thirty merged pull requests established the product foundation and its measured agent workflow.
-The next completed milestone is awaiting review:
+Thirty-three pull-request milestones established the product foundation and its measured agent
+workflow. PR 33 is the active delivery unit:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -251,7 +252,8 @@ The next completed milestone is awaiting review:
 | [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
 | [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
 | [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Merged |
-| [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Proposed |
+| [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Merged |
+| PR 33 | Declarative Agent Intents and Current Toolchains | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -261,6 +263,41 @@ that capability boundary to typed node replacement and statement-list structure.
 same traversal to source-free project evidence and gives every subtree a reusable object address.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
+
+### PR 33. Declarative Agent Intents and Current Toolchains
+
+Status: in progress.
+
+Goal: let an agent state `understand`, `trace`, `change`, `migrate` or `prove`, then receive one
+bounded packet assembled from the necessary high-level evidence without reading intermediate text.
+
+Deliverables:
+
+- Add typed intent and projection objects that mirror the progressive evidence hierarchy.
+- Compile each intent through one revision-bound context session, including sibling branches and
+  content-addressed object storage, under shared call and packet limits.
+- Keep the Python package root empty and expose explicit `ir`, `runtime`, `context` and `intent`
+  modules without `__main__.py` or a mutable `__all__` registry.
+- Use pytest 9.1.1 for the Python suite and update every direct Rust, Python, npm and CI-action
+  dependency to the latest stable release that had been public for at least 24 hours at selection.
+- Anchor the final intent admission policy in Lean and compare Rust, Python and Lean over the same
+  numeric boundaries and Boolean evidence states.
+- Retain deterministic SDK and progressive-context reports after the module split, and document
+  their complete agent-visible cost instead of treating local orchestration as free.
+
+Verification and acceptance:
+
+1. A real three-section trace intent reaches `code_map`, `call_traces` and `sources_and_sinks`
+   through the local runtime and returns one packet within its declared call and byte ceilings.
+2. Traversal can reuse an earlier ancestor action to open a sibling without crossing revision,
+   view, object-root, handle or profile identity.
+3. Invalid names, pointers, purposes, bounds, duplicate projections, stale sessions and incomplete
+   packets refuse before being returned to the agent.
+4. Rust, Python and Lean agree on all 32,768 intent-admission boundary cases; Lean recovers every
+   numeric bound and all three final evidence requirements.
+5. Python tests run under pytest 9.1.1, upgraded TypeScript/Next.js fixtures compile and execute,
+   the browser build has no npm audit findings, and strict source correspondence passes.
+6. The complete native, WASM, documentation, skill and deep repository gates pass before review.
 
 ### PR 8. Agent Workflow Simplification
 
@@ -1522,7 +1559,7 @@ manually joining bases through its conversation.
    delivered Git patch without hand-written JSON parsing.
 6. **Complete.** The controlled five-operation task preserves exact final source, patch and lifecycle
    outcomes. Direct JSON exposes 17,689 bytes across five exchanges; the complete runtime program
-   and result expose 1,864 bytes in one exchange, an 89.5% reduction. This measures fixed visible
+   and result expose 1,893 bytes in one exchange, an 89.3% reduction. This measures fixed visible
    payload, not a model or billed tokens.
 7. **Complete.** The skill, SDK, roadmap and continuity docs describe the same runtime contract.
    All 56 portable-skill examples, 22 Python unit tests and 15 Rust/Python integration tests pass.
@@ -1531,7 +1568,7 @@ manually joining bases through its conversation.
 
 ### PR 32. Content-Addressed Agent Context Workspace
 
-Status: proposed as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298).
+Status: merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298).
 
 **Goal.** Let an agent request a high-level project subtree without implementing Merkle pagination
 or ingesting each intermediate report. Preserve the exact progressive-disclosure, revision and
@@ -1564,8 +1601,8 @@ digest boundaries while making retrieved objects reusable through local or remot
    packet, then completes a reviewed change and patch lifecycle.
 7. **Complete.** The controlled context fixture makes the same 16 internal calls and retains the
    same normalized code map in both arms. Progressive request/response exposure is 59,825 bytes in
-   16 exchanges; the complete high-level program and selected packet are 4,516 bytes in one
-   exchange, a 92.5% reduction. This measures fixed bytes, not model behavior, tokens or quota.
+   16 exchanges; the complete high-level program and selected packet are 4,550 bytes in one
+   exchange, a 92.4% reduction. This measures fixed bytes, not model behavior, tokens or quota.
 8. **Complete.** The Python package, portable skill, runtime, disclosure, Lean, roadmap and
    continuity docs describe one contract. The complete default gate passes its native, Python,
    skill, capability, strict-Lean and WASM lanes. The deep gate passes full-audit command agreement,
