@@ -3837,9 +3837,7 @@ mod python {
                         callee: Box::new(Expr::Field {
                             of: Box::new(
                                 cx.field(node, "right")
-                                    .or_else(|| {
-                                        node.child(node.child_count().saturating_sub(1) as u32)
-                                    })
+                                    .or_else(|| node.child(node.child_count().saturating_sub(1)))
                                     .map(|r| expr(cx, r))
                                     .unwrap_or(Expr::Null),
                             ),

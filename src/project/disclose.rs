@@ -29,6 +29,8 @@ pub fn context_materialization_admitted(
 }
 
 #[doc = "Admission policy for a completed declarative agent intent."]
+// Keep this flat signature aligned with the Python and Lean executable corpora.
+#[allow(clippy::too_many_arguments)]
 pub fn agent_intent_admitted(
     needs: usize,
     sections: usize,
