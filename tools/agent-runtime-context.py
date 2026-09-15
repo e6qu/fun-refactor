@@ -105,7 +105,8 @@ def direct_arm(binary: Path, root: Path) -> dict:
 RUNTIME_PROGRAM = r'''# => structured agent runtime comparison
 import hashlib, json, sys
 from pathlib import Path
-from fr_ir import FrClient, TaskChange, TaskDelivery, TaskTarget
+from fr_ir.runtime import FrClient
+from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 root, binary = Path(sys.argv[1]), sys.argv[2]
 client = FrClient(root, executable=binary)
 found = client.project("find", "render", "--signature")
@@ -172,7 +173,7 @@ def generate(binary: Path) -> dict:
         "inputs": {
             "tool_sha256": digest(Path(__file__).read_bytes()),
             "runtime_sha256": digest((ROOT / "sdk/python/src/fr_ir/runtime.py").read_bytes()),
-            "sdk_sha256": digest((ROOT / "sdk/python/src/fr_ir/__init__.py").read_bytes()),
+            "sdk_sha256": digest((ROOT / "sdk/python/src/fr_ir/ir.py").read_bytes()),
         },
         "arms": {"direct_json": direct, "python_runtime": runtime},
         "reduction": {

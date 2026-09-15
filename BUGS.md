@@ -67,6 +67,37 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B893: **two retained Python reports still bound the source before its ty repair**.
+  Their behavioral results remain unchanged, and their exact input hashes now bind the checked SDK.
+
+- [x] B892: **the typed Python SDK was outside the ty gate and hid one unchecked cast**.
+  The runtime now narrows its validated session identity with an explicit cast, and the type-safety
+  suite runs ty over every SDK source module.
+
+- [x] B891: **four retained agent evaluations still named the pre-upgrade Cargo lockfile**.
+  Their source bindings now carry the upgraded normalized lockfile digest, so the default gate
+  audits the retained measurements against the dependency graph they describe.
+
+- [x] B890: **the browser checkpoint test depended on the removed TypeScript 7 compiler API**.
+  Node 26 already executes erasable TypeScript directly. The test now imports the production module
+  and avoids an unrelated compiler adapter.
+
+- [x] B889: **tree-sitter 0.27 broke the browser build across current grammar crates**.
+  Their build scripts requested libc sources that 0.1.8 removed, while the upgraded headers
+  also exposed stale wide-character declarations in the local shim. A local 0.1.8 bridge keeps
+  empty compatibility paths, tree-sitter supplies libc once, and the remaining shim matches its ABI.
+
+- [x] B888: **external replay warmup populated a Cargo home the offline oracle never read**. The
+  replay isolates dependencies under `target/cargo-home`, while its wrapper fetched into the
+  account-wide default. A clean checkout completed warmup and then refused the first locked crate.
+  Warmup and every replay now share the repository-local store.
+
+- [x] B887: **the Python context workspace could reveal the first requested evidence branch and
+  then strand every sibling**. `ContextSession` retained actions only from its newest report, so a
+  trace intent that reached `code_map` lost the earlier ancestor action needed to open
+  `call_traces`. It now searches the complete session report graph newest-first and admits only
+  actions whose addresses still reach the requested target.
+
 - [x] B886: **a pluggable Merkle object backend could silently discard or alter writes**. The
   context workspace treated successful `put` returns as durable evidence. It now reads every
   immutable record back, compares canonical bytes and confirms the root before admitting the pack.

@@ -1,5 +1,6 @@
 [workspace]
 members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python", "grammars/go", "grammars/typescript", "grammars/scss", "grammars/sass", "grammars/lean"]
+exclude = ["crates/tree-sitter-language"]
 
 [package]
 name = "fun-refactor"
@@ -12,6 +13,9 @@ repository = "https://github.com/e6qu/fun-refactor"
 # Reference material and derivation evidence, not build input. Compiling it would
 # change the licence obligations — see vendor/README.md.
 exclude = ["vendor/", "docs/"]
+
+[patch.crates-io]
+tree-sitter-language = { path = "crates/tree-sitter-language" }
 
 [lib]
 name = "fun_refactor"
@@ -76,7 +80,7 @@ full-audit = []
 [dependencies]
 # Tree-sitter parsing. Grammar pins inherited from funveil (github.com/e6qu/funveil
 # @ 2b9a47408e3419ce0061a2c9a2dd5f1efc11f4ba) — a known-good, mutually compatible set.
-tree-sitter = "0.26"
+tree-sitter = "0.27"
 fun-refactor-zig-grammar = { path = "grammars/zig", optional = true }
 fun-refactor-python-grammar = { path = "grammars/python", optional = true }
 fun-refactor-go-grammar = { path = "grammars/go", optional = true }
@@ -114,13 +118,14 @@ anyhow = "1.0"
 walkdir = { version = "2.5", optional = true }
 ignore = { version = "0.4", optional = true }
 regex = "1.12"
-sha2 = { version = "0.10", optional = true }
+sha2 = { version = "0.11", optional = true }
+hex = "0.4"
 petgraph = "0.8"
 postcard = { version = "1.1", features = ["alloc"] }
 rayon = { version = "1.11", optional = true }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
-similar = "2.6"
+similar = "3.2"
 
 # Browser bindings, only compiled for the wasm target.
 wasm-bindgen = { version = "0.2", optional = true }
@@ -140,7 +145,7 @@ fun-refactor-wasm-libc = { version = "0.22.0", path = "crates/wasm-libc", option
 # Also an optional runtime dependency (the edit engine stages through it); tests need
 # it unconditionally, including when the crate is built without the `cli` feature.
 tempfile = "3.27"
-rstest = "0.26"
+rstest = "0.27"
 assert_cmd = "2.2"
 predicates = "3.1"
 

@@ -1744,7 +1744,7 @@ pub fn ci(root: &Path, requested_package: &Path, max_debt: usize) -> Result<CiPl
     let shell_package = shell_quote(&package.display().to_string());
     let yaml_package = serde_json::to_string(&package.display().to_string())?;
     let updated = format!(
-        "name: fr Lean verification\n\non:\n  push:\n  pull_request:\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n\n      - uses: actions/checkout@v4\n\n      - name: Install fr\n        run: cargo install fun-refactor --locked --version {}\n\n      - name: Check source correspondence and proof-debt ratchet\n        run: fr spec check {} --strict --max-debt {}\n\n      - uses: leanprover/lean-action@v1\n        with:\n          lake-package-directory: {}\n          build-args: --wfail\n",
+        "name: fr Lean verification\n\non:\n  push:\n  pull_request:\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n\n      - uses: actions/checkout@v7\n\n      - name: Install fr\n        run: cargo install fun-refactor --locked --version {}\n\n      - name: Check source correspondence and proof-debt ratchet\n        run: fr spec check {} --strict --max-debt {}\n\n      - uses: leanprover/lean-action@v1\n        with:\n          lake-package-directory: {}\n          build-args: --wfail\n",
         env!("CARGO_PKG_VERSION"),
         shell_package,
         max_debt,
@@ -3325,10 +3325,9 @@ fn declaration_hash(
     path: &Path,
     wanted: &str,
 ) -> Result<String> {
-    Ok(format!(
-        "{:x}",
-        Sha256::digest(declaration_text_with(parsers, extractor, path, wanted)?.as_bytes())
-    ))
+    Ok(hex::encode(Sha256::digest(
+        declaration_text_with(parsers, extractor, path, wanted)?.as_bytes(),
+    )))
 }
 
 fn declaration_text(path: &Path, wanted: &str) -> Result<String> {

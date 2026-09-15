@@ -3,107 +3,107 @@
 // The checkers' verbatim words for each type-error example. Regenerated together with typesafety-data.js.
 export const ERRORS = {
   "carrier_protocol_misuse": {
-    python: "carrier_protocol_misuse.py:20: error: List item 0 has incompatible type \"ChattyCourier\"; expected \"Carrier\"  [list-item]\ncarrier_protocol_misuse.py:20: note: Following member(s) of \"ChattyCourier\" have conflicts:\ncarrier_protocol_misuse.py:20: note:     Expected:\ncarrier_protocol_misuse.py:20: note:         def quote_pence(self, kilograms: float) -> int\ncarrier_protocol_misuse.py:20: note:     Got:\ncarrier_protocol_misuse.py:20: note:         def quote_pence(self, kilograms: float) -> str\nFound 1 error in 1 file (checked 1 source file)",
+    python: "carrier_protocol_misuse.py:20:17: error[invalid-argument-type] Argument to function `cheapest` is incorrect: Expected `list[Carrier]`, found `list[Carrier | ChattyCourier]`\nFound 1 diagnostic",
     typescript: "carrier_protocol_misuse.ts(17,31): error TS2322: Type 'ChattyCourier' is not assignable to type 'Carrier'.\n  The types returned by 'quotePence(...)' are incompatible between these types.\n    Type 'string' is not assignable to type 'number'.",
   },
   "config_parse_once_misuse": {
-    python: "config_parse_once_misuse.py:17: error: Argument 1 to \"connect\" has incompatible type \"dict[str, str]\"; expected \"Config\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "config_parse_once_misuse.ts(12,33): error TS2345: Argument of type 'Map<string, string>' is not assignable to parameter of type 'Config'.\n  Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
+    python: "config_parse_once_misuse.py:17:20: error[invalid-argument-type] Argument to function `connect` is incorrect: Expected `Config`, found `dict[str, str]`\nFound 1 diagnostic",
+    typescript: "config_parse_once_misuse.ts(12,33): error TS2739: Type 'Map<string, string>' is missing the following properties from type 'Config': port, verbose",
   },
   "deploy_plan_misuse": {
-    python: "deploy_plan_misuse.py:31: error: Argument 1 to \"summary\" has incompatible type \"Resource\"; expected \"ServerPlan\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "deploy_plan_misuse.ts(21,18): error TS2345: Argument of type 'Resource' is not assignable to parameter of type 'ServerPlan'.\n  Type 'Resource' is missing the following properties from type 'ServerPlan': port, replicas",
+    python: "deploy_plan_misuse.py:31:20: error[invalid-argument-type] Argument to function `summary` is incorrect: Expected `ServerPlan`, found `Resource`\nFound 1 diagnostic",
+    typescript: "deploy_plan_misuse.ts(21,18): error TS2739: Type 'Resource' is missing the following properties from type 'ServerPlan': port, replicas",
   },
   "dispatch_typed_misuse": {
-    python: "dispatch_typed_misuse.py:27: error: Dict entry 1 has incompatible type \"Literal['sent']\": \"Callable[[str], str]\"; expected \"Literal['draft', 'sent', 'paid']\": \"Callable[[Invoice], Invoice]\"  [dict-item]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "dispatch_typed_misuse.py:25:56: error[invalid-assignment] Object of type `dict[Literal[\"draft\", \"sent\", \"paid\"], ((Invoice, /) -> Invoice) | ((number: str) -> str)]` is not assignable to `dict[Status, (Invoice, /) -> Invoice]`\nFound 1 diagnostic",
     typescript: "dispatch_typed_misuse.ts(17,3): error TS2322: Type '(invoiceNumber: string) => string' is not assignable to type '(invoice: Invoice) => Invoice'.\n  Types of parameters 'invoiceNumber' and 'invoice' are incompatible.\n    Type 'Invoice' is not assignable to type 'string'.",
   },
   "email_parse_misuse": {
-    python: "email_parse_misuse.py:13: error: Argument 1 to \"send_receipt\" has incompatible type \"str\"; expected \"EmailAddress\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "email_parse_misuse.py:13:29: error[invalid-argument-type] Argument to function `send_receipt` is incorrect: Expected `EmailAddress`, found `Literal[\"bob@example.test\"]`\nFound 1 diagnostic",
     typescript: "email_parse_misuse.ts(10,41): error TS2345: Argument of type 'string' is not assignable to parameter of type 'EmailAddress'.\n  Type 'string' is not assignable to type '{ readonly [emailBrand]: true; }'.",
   },
   "entity_ids_misuse": {
-    python: "entity_ids_misuse.py:15: error: Argument 1 to \"bill\" has incompatible type \"ProductId\"; expected \"CustomerId\"  [arg-type]\nentity_ids_misuse.py:15: error: Argument 2 to \"bill\" has incompatible type \"CustomerId\"; expected \"ProductId\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "entity_ids_misuse.ts(14,15): error TS2345: Argument of type 'ProductId' is not assignable to parameter of type 'CustomerId'.\n  Property '[customerBrand]' is missing in type 'String & { readonly [productBrand]: true; }' but required in type '{ readonly [customerBrand]: true; }'.",
+    python: "entity_ids_misuse.py:15:17: error[invalid-argument-type] Argument to function `bill` is incorrect: Expected `CustomerId`, found `ProductId`\nentity_ids_misuse.py:15:26: error[invalid-argument-type] Argument to function `bill` is incorrect: Expected `ProductId`, found `CustomerId`\nFound 2 diagnostics",
+    typescript: "entity_ids_misuse.ts(14,15): error TS2345: Argument of type 'ProductId' is not assignable to parameter of type 'CustomerId'.\n  Type 'ProductId' is not assignable to type '{ readonly [customerBrand]: true; }'.\n    Property '[customerBrand]' is missing in type 'String & { readonly [productBrand]: true; }' but required in type '{ readonly [customerBrand]: true; }'.",
   },
   "escape_wrapper_misuse": {
-    python: "escape_wrapper_misuse.py:21: error: Argument 1 to \"render_note\" has incompatible type \"str\"; expected \"HtmlText\"  [arg-type]\nescape_wrapper_misuse.py:22: error: Argument 1 to \"escape_html\" has incompatible type \"HtmlText\"; expected \"str\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
+    python: "escape_wrapper_misuse.py:21:20: error[invalid-argument-type] Argument to function `render_note` is incorrect: Expected `HtmlText`, found `Literal[\"<b>fragile</b>\"]`\nescape_wrapper_misuse.py:22:22: error[invalid-argument-type] Argument to function `escape_html` is incorrect: Expected `str`, found `HtmlText`\nFound 2 diagnostics",
     typescript: "escape_wrapper_misuse.ts(15,32): error TS2345: Argument of type 'string' is not assignable to parameter of type 'HtmlText'.\nescape_wrapper_misuse.ts(16,33): error TS2345: Argument of type 'HtmlText' is not assignable to parameter of type 'string'.",
   },
   "exercise_lookup_misuse": {
-    python: "exercise_lookup_misuse.py:28: error: Argument 1 to \"greet\" has incompatible type \"Ok[str] | Err\"; expected \"str\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "exercise_lookup_misuse.py:28:16: error[invalid-argument-type] Argument to function `greet` is incorrect: Expected `str`, found `Result[str]`\nFound 1 diagnostic",
     typescript: "exercise_lookup_misuse.ts(15,29): error TS2345: Argument of type 'Result<string>' is not assignable to parameter of type 'string'.\n  Type 'Err' is not assignable to type 'string'.",
   },
   "exercise_money_misuse": {
-    python: "exercise_money_misuse.py:22: error: Value of type variable \"M\" of \"add\" cannot be \"object\"  [type-var]\nexercise_money_misuse.py:22: error: Incompatible return value type (got \"object\", expected \"Usd\")  [return-value]\nFound 2 errors in 1 file (checked 1 source file)",
+    python: "exercise_money_misuse.py:22:12: error[invalid-return-type] Return type does not match returned value: expected `Usd`, found `Usd | Eur`\nFound 1 diagnostic",
     typescript: "exercise_money_misuse.ts(19,34): error TS2345: Argument of type 'Money<\"EUR\">' is not assignable to parameter of type 'Money<\"USD\">'.\n  Type '\"EUR\"' is not assignable to type '\"USD\"'.",
   },
   "exercise_shipping_misuse": {
-    python: "exercise_shipping_misuse.py:25: error: Argument 1 to \"shipping_cents\" has incompatible type \"Kilometers\"; expected \"Kilograms\"  [arg-type]\nexercise_shipping_misuse.py:25: error: Argument 2 to \"shipping_cents\" has incompatible type \"Kilograms\"; expected \"Kilometers\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "exercise_shipping_misuse.ts(30,3): error TS2345: Argument of type 'Kilometers' is not assignable to parameter of type 'Kilograms'.\n  Property '[kilogramsBrand]' is missing in type 'Number & { readonly [kilometersBrand]: true; }' but required in type '{ readonly [kilogramsBrand]: true; }'.",
+    python: "exercise_shipping_misuse.py:25:5: error[invalid-argument-type] Argument to function `shipping_cents` is incorrect: Expected `Kilograms`, found `Kilometers`\nexercise_shipping_misuse.py:25:24: error[invalid-argument-type] Argument to function `shipping_cents` is incorrect: Expected `Kilometers`, found `Kilograms`\nFound 2 diagnostics",
+    typescript: "exercise_shipping_misuse.ts(30,3): error TS2345: Argument of type 'Kilometers' is not assignable to parameter of type 'Kilograms'.\n  Type 'Kilometers' is not assignable to type '{ readonly [kilogramsBrand]: true; }'.\n    Property '[kilogramsBrand]' is missing in type 'Number & { readonly [kilometersBrand]: true; }' but required in type '{ readonly [kilogramsBrand]: true; }'.",
   },
   "exercise_status_misuse": {
-    python: "exercise_status_misuse.py:22: error: Argument 1 to \"next_action\" has incompatible type \"Literal['recieved']\"; expected \"Literal['received', 'picked', 'shipped']\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "exercise_status_misuse.py:22:24: error[invalid-argument-type] Argument to function `next_action` is incorrect: Expected `Status`, found `Literal[\"recieved\"]`\nFound 1 diagnostic",
     typescript: "exercise_status_misuse.ts(23,21): error TS2345: Argument of type '\"recieved\"' is not assignable to parameter of type 'Status'.",
   },
   "exercise_user_json_misuse": {
-    python: "exercise_user_json_misuse.py:17: error: Argument 1 to \"greeting\" has incompatible type \"dict[str, object]\"; expected \"User\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "exercise_user_json_misuse.py:17:18: error[invalid-argument-type] Argument to function `greeting` is incorrect: Expected `User`, found `dict[str, str | int]`\nFound 1 diagnostic",
     typescript: "exercise_user_json_misuse.ts(9,46): error TS2322: Type 'string' is not assignable to type 'number'.",
   },
   "function_values_misuse": {
-    python: "function_values_misuse.py:24: error: Argument 2 to \"picking_list\" has incompatible type \"Callable[[InvoiceLine], str]\"; expected \"Callable[[InvoiceLine], int]\"  [arg-type]\nfunction_values_misuse.py:24: error: Incompatible return value type (got \"str\", expected \"int\")  [return-value]\nFound 2 errors in 1 file (checked 1 source file)",
+    python: "function_values_misuse.py:24:28: error[invalid-argument-type] Argument to function `picking_list` is incorrect: Expected `(InvoiceLine, /) -> int`, found `(line: InvoiceLine) -> str`\nFound 1 diagnostic",
     typescript: "function_values_misuse.ts(15,49): error TS2322: Type 'string' is not assignable to type 'number'.",
   },
   "higher_order_misuse": {
-    python: "higher_order_misuse.py:25: error: Argument 1 has incompatible type \"int\"; expected \"str\"  [arg-type]\nhigher_order_misuse.py:25: error: Argument 2 has incompatible type \"str\"; expected \"int\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
+    python: "higher_order_misuse.py:25:24: error[invalid-argument-type] Argument is incorrect: Expected `str`, found `Literal[10]`\nhigher_order_misuse.py:25:28: error[invalid-argument-type] Argument is incorrect: Expected `int`, found `Literal[\"https://example.test\"]`\nFound 2 diagnostics",
     typescript: "higher_order_misuse.ts(28,36): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.",
   },
   "invoice_typestate_misuse": {
-    python: "invoice_typestate_misuse.py:28: error: \"DraftInvoice\" has no attribute \"record_payment\"  [attr-defined]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "invoice_typestate_misuse.py:28:8: error[unresolved-attribute] Object of type `DraftInvoice` has no attribute `record_payment`\nFound 1 diagnostic",
     typescript: "invoice_typestate_misuse.ts(15,37): error TS2322: Type '\"draft\"' is not assignable to type '\"sent\"'.",
   },
   "json_parsed_misuse": {
-    python: "json_parsed_misuse.py:24: error: Argument 1 to \"invoice_total\" has incompatible type \"bool | int | float | str | list[Json] | dict[str, Json] | None\"; expected \"list[Line]\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "json_parsed_misuse.py:24:26: error[invalid-argument-type] Argument to function `invoice_total` is incorrect: Expected `list[Line]`, found `Json`\nFound 1 diagnostic",
     typescript: "json_parsed_misuse.ts(15,23): error TS2345: Argument of type 'Json' is not assignable to parameter of type 'readonly Line[]'.\n  Type 'null' is not assignable to type 'readonly Line[]'.",
   },
   "money_pence_misuse": {
-    python: "money_pence_misuse.py:15: error: Argument 1 to \"apply_discount\" has incompatible type \"Rate\"; expected \"Pence\"  [arg-type]\nmoney_pence_misuse.py:15: error: Argument 2 to \"apply_discount\" has incompatible type \"Pence\"; expected \"Rate\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "money_pence_misuse.ts(21,41): error TS2345: Argument of type 'Rate' is not assignable to parameter of type 'Pence'.\n  Property '[penceBrand]' is missing in type 'Number & { readonly [rateBrand]: true; }' but required in type '{ readonly [penceBrand]: true; }'.",
+    python: "money_pence_misuse.py:15:27: error[invalid-argument-type] Argument to function `apply_discount` is incorrect: Expected `Pence`, found `Rate`\nmoney_pence_misuse.py:15:38: error[invalid-argument-type] Argument to function `apply_discount` is incorrect: Expected `Rate`, found `Pence`\nFound 2 diagnostics",
+    typescript: "money_pence_misuse.ts(21,41): error TS2345: Argument of type 'Rate' is not assignable to parameter of type 'Pence'.\n  Type 'Rate' is not assignable to type '{ readonly [penceBrand]: true; }'.\n    Property '[penceBrand]' is missing in type 'Number & { readonly [rateBrand]: true; }' but required in type '{ readonly [penceBrand]: true; }'.",
   },
   "note_narrowing_misuse": {
-    python: "note_narrowing_misuse.py:5: error: Item \"None\" of \"str | None\" has no attribute \"upper\"  [union-attr]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "note_narrowing_misuse.py:5:12: error[unresolved-attribute] Attribute `upper` is not defined on `None` in union `str | None`\nFound 1 diagnostic",
     typescript: "note_narrowing_misuse.ts(4,10): error TS18047: 'note' is possibly 'null'.",
   },
   "payment_states_misuse": {
-    python: "payment_states_misuse.py:22: error: Item \"Pending\" of \"Pending | Settled\" has no attribute \"receipt_id\"  [union-attr]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "payment_states_misuse.py:22:12: error[unresolved-attribute] Attribute `receipt_id` is not defined on `Pending` in union `Payment`\nFound 1 diagnostic",
     typescript: "payment_states_misuse.ts(8,18): error TS2339: Property 'receiptId' does not exist on type 'Payment'.\n  Property 'receiptId' does not exist on type 'Pending'.",
   },
   "pure_clock_misuse": {
-    python: "pure_clock_misuse.py:13: error: Argument \"now\" to \"remaining\" has incompatible type \"float\"; expected \"datetime\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "pure_clock_misuse.py:13:28: error[invalid-argument-type] Argument to function `remaining` is incorrect: Expected `datetime`, found `float*`\nFound 1 diagnostic",
     typescript: "pure_clock_misuse.ts(9,41): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Date'.",
   },
   "result_chain_misuse": {
-    python: "result_chain_misuse.py:25: error: Unsupported operand types for + (\"Ok[int]\" and \"int\")  [operator]\nresult_chain_misuse.py:25: error: Unsupported operand types for + (\"Err\" and \"int\")  [operator]\nresult_chain_misuse.py:25: note: Left operand is of type \"Ok[int] | Err\"\nFound 2 errors in 1 file (checked 1 source file)",
+    python: "result_chain_misuse.py:25:12: error[unsupported-operator] Operator `+` is not supported between objects of type `Result[int]` and `Literal[45]`\nFound 1 diagnostic",
     typescript: "result_chain_misuse.ts(14,10): error TS2365: Operator '+' cannot be applied to types 'Result<number>' and 'number'.",
   },
   "status_literal_misuse": {
-    python: "status_literal_misuse.py:20: error: Argument 1 to \"advance\" has incompatible type \"Literal['snet']\"; expected \"Literal['draft', 'sent', 'paid']\"  [arg-type]\nFound 1 error in 1 file (checked 1 source file)",
+    python: "status_literal_misuse.py:20:20: error[invalid-argument-type] Argument to function `advance` is incorrect: Expected `Status`, found `Literal[\"snet\"]`\nFound 1 diagnostic",
     typescript: "status_literal_misuse.ts(17,18): error TS2345: Argument of type '\"snet\"' is not assignable to parameter of type 'Status'.",
   },
   "the_program": {
-    python: "the_program.py:5: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:9: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:13: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:18: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:22: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:26: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:34: error: Function is missing a type annotation  [no-untyped-def]\nthe_program.py:38: error: Function is missing a type annotation  [no-untyped-def]\nFound 8 errors in 1 file (checked 1 source file)",
+    python: "",
     typescript: "the_program.ts(3,25): error TS7006: Parameter 'partNo' implicitly has an 'any' type.\nthe_program.ts(3,33): error TS7006: Parameter 'description' implicitly has an 'any' type.\nthe_program.ts(3,46): error TS7006: Parameter 'qty' implicitly has an 'any' type.\nthe_program.ts(3,51): error TS7006: Parameter 'unit' implicitly has an 'any' type.\nthe_program.ts(3,57): error TS7006: Parameter 'cost' implicitly has an 'any' type.\nthe_program.ts(7,29): error TS7006: Parameter 'costsPounds' implicitly has an 'any' type.\nthe_program.ts(8,30): error TS7006: Parameter 'sum' implicitly has an 'any' type.\nthe_program.ts(8,35): error TS7006: Parameter 'cost' implicitly has an 'any' type.\nthe_program.ts(11,29): error TS7006: Parameter 'description' implicitly has an 'any' type.\nthe_program.ts(11,42): error TS7006: Parameter 'pricePence' implicitly has an 'any' type.\nthe_program.ts(11,54): error TS7006: Parameter 'quantity' implicitly has an 'any' type.\nthe_program.ts(11,64): error TS7006: Parameter 'taxed' implicitly has an 'any' type.\nthe_program.ts(16,30): error TS7006: Parameter 'pricesPounds' implicitly has an 'any' type.\nthe_program.ts(17,31): error TS7006: Parameter 'sum' implicitly has an 'any' type.\nthe_program.ts(17,36): error TS7006: Parameter 'price' implicitly has an 'any' type.\nthe_program.ts(20,31): error TS7006: Parameter 'totalPounds' implicitly has an 'any' type.\nthe_program.ts(20,44): error TS7006: Parameter 'rate' implicitly has an 'any' type.\nthe_program.ts(24,25): error TS7006: Parameter 'status' implicitly has an 'any' type.\nthe_program.ts(30,22): error TS7006: Parameter 'customerId' implicitly has an 'any' type.\nthe_program.ts(30,34): error TS7006: Parameter 'productId' implicitly has an 'any' type.\nthe_program.ts(34,29): error TS7006: Parameter 'row' implicitly has an 'any' type.",
   },
   "typed_arguments_misuse": {
-    python: "typed_arguments_misuse.py:9: error: Argument 1 to \"invoice_line\" has incompatible type \"int\"; expected \"str\"  [arg-type]\ntyped_arguments_misuse.py:9: error: Argument 2 to \"invoice_line\" has incompatible type \"str\"; expected \"int\"  [arg-type]\ntyped_arguments_misuse.py:9: error: Argument 4 to \"invoice_line\" has incompatible type \"int\"; expected \"bool\"  [arg-type]\nFound 3 errors in 1 file (checked 1 source file)",
+    python: "typed_arguments_misuse.py:9:21: error[invalid-argument-type] Argument to function `invoice_line` is incorrect: Expected `str`, found `Literal[80]`\ntyped_arguments_misuse.py:9:25: error[invalid-argument-type] Argument to function `invoice_line` is incorrect: Expected `int`, found `Literal[\"handlebar grip\"]`\ntyped_arguments_misuse.py:9:49: error[invalid-argument-type] Argument to function `invoice_line` is incorrect: Expected `bool`, found `Literal[2]`\nFound 3 diagnostics",
     typescript: "typed_arguments_misuse.ts(8,33): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.",
   },
   "unit_arithmetic_misuse": {
-    python: "unit_arithmetic_misuse.py:24: error: Unsupported operand types for + (\"Meters\" and \"Kilograms\")  [operator]\nFound 1 error in 1 file (checked 1 source file)",
-    typescript: "unit_arithmetic_misuse.ts(21,48): error TS2345: Argument of type 'Kilograms' is not assignable to parameter of type 'Meters'.\n  Property '[metersBrand]' is missing in type 'Number & { readonly [kilogramsBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
+    python: "unit_arithmetic_misuse.py:24:12: error[unsupported-operator] Operator `+` is not supported between objects of type `Meters` and `Kilograms`\nFound 1 diagnostic",
+    typescript: "unit_arithmetic_misuse.ts(21,48): error TS2345: Argument of type 'Kilograms' is not assignable to parameter of type 'Meters'.\n  Type 'Kilograms' is not assignable to type '{ readonly [metersBrand]: true; }'.\n    Property '[metersBrand]' is missing in type 'Number & { readonly [kilogramsBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
   },
   "unit_newtype_misuse": {
-    python: "unit_newtype_misuse.py:16: error: Argument 1 to \"cut_tubing\" has incompatible type \"float\"; expected \"Meters\"  [arg-type]\nunit_newtype_misuse.py:17: error: Argument 1 to \"cut_tubing\" has incompatible type \"Each\"; expected \"Meters\"  [arg-type]\nFound 2 errors in 1 file (checked 1 source file)",
-    typescript: "unit_newtype_misuse.ts(19,13): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Meters'.\n  Type 'number' is not assignable to type '{ readonly [metersBrand]: true; }'.\nunit_newtype_misuse.ts(20,20): error TS2345: Argument of type 'Each' is not assignable to parameter of type 'Meters'.\n  Property '[metersBrand]' is missing in type 'Number & { readonly [eachBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
+    python: "unit_newtype_misuse.py:16:16: error[invalid-argument-type] Argument to function `cut_tubing` is incorrect: Expected `Meters`, found `float*`\nunit_newtype_misuse.py:17:23: error[invalid-argument-type] Argument to function `cut_tubing` is incorrect: Expected `Meters`, found `Each`\nFound 2 diagnostics",
+    typescript: "unit_newtype_misuse.ts(19,13): error TS2345: Argument of type 'number' is not assignable to parameter of type 'Meters'.\n  Type 'number' is not assignable to type '{ readonly [metersBrand]: true; }'.\nunit_newtype_misuse.ts(20,20): error TS2345: Argument of type 'Each' is not assignable to parameter of type 'Meters'.\n  Type 'Each' is not assignable to type '{ readonly [metersBrand]: true; }'.\n    Property '[metersBrand]' is missing in type 'Number & { readonly [eachBrand]: true; }' but required in type '{ readonly [metersBrand]: true; }'.",
   },
 };

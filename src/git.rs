@@ -129,16 +129,13 @@ fn status_report(root: &Path, options: &StatusOptions) -> Result<Value> {
         .iter()
         .map(|entry| &entry.fingerprint)
         .collect::<Vec<_>>();
-    let revision = format!(
-        "{:x}",
-        Sha256::digest(serde_json::to_vec(&(
-            &root,
-            &observed.branch,
-            &observed.head,
-            &fingerprints,
-            options.kind
-        ))?)
-    );
+    let revision = hex::encode(Sha256::digest(serde_json::to_vec(&(
+        &root,
+        &observed.branch,
+        &observed.head,
+        &fingerprints,
+        options.kind,
+    ))?));
     let key = format!("frg1:{revision}");
     let all = &observed.entries;
     let count = |kind| all.iter().filter(|entry| entry.matches(kind)).count();

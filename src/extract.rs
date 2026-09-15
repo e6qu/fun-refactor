@@ -727,7 +727,7 @@ impl Extractor {
                 let mut container_span: Option<Span> = None;
                 let mut container_name: Option<Span> = None;
 
-                for cap in m.captures {
+                for cap in m.captures() {
                     let cap_name = &capture_names[cap.index as usize];
                     let span = Span::from(cap.node);
 

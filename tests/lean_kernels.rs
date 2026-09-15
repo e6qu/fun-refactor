@@ -1106,6 +1106,56 @@ fn agent_context_admission_matches_lean_at_every_boundary() {
 }
 
 #[test]
+fn agent_intent_admission_matches_lean_at_every_boundary() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-intent-admission")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let needs_samples = [0, 1, 32, 33];
+    let section_samples = [0, 1, 8, 9];
+    let call_samples = [0, 1, 512, 513];
+    let packet_samples = [0, 1_024, 65_536, 65_537];
+    let mut expected = Vec::new();
+    for needs in needs_samples {
+        for sections in section_samples {
+            for calls in call_samples {
+                for call_limit in call_samples {
+                    for packet_bytes in packet_samples {
+                        for packet_limit in packet_samples {
+                            for target_matches in [false, true] {
+                                for session_matches in [false, true] {
+                                    for complete in [false, true] {
+                                        expected.push(
+                                            fun_refactor::project::agent_intent_admitted(
+                                                needs,
+                                                sections,
+                                                calls,
+                                                call_limit,
+                                                packet_bytes,
+                                                packet_limit,
+                                                target_matches,
+                                                session_matches,
+                                                complete,
+                                            )
+                                            .to_string(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn browser_history_transition_policy_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))

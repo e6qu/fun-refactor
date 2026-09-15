@@ -63,7 +63,7 @@ negation, conjunction, disjunction and implication.
 The zero-dependency Python mirror keeps the authored shape adjacent to the protocol:
 
 ```python
-from fr_ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
+from fr_ir.ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
 
 task = PropertyTask.from_data(property_task_json)
 x, y = Term.variable("x"), Term.variable("y")

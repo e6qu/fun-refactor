@@ -2,9 +2,9 @@
   "schema": "fr-agent-runtime-context-1",
   "passed": true,
   "inputs": {
-    "tool_sha256": "b76682df290b31c06d0d1eb88de84e7fdbe725fa4689e050800a4d62e0b52d76",
-    "runtime_sha256": "c74e3ddcf25d080a8b8ddd95d59d75177e7cf57caf2f7e12f8d56173cf105fcc",
-    "sdk_sha256": "fec853b334b736b5c9885e3043317939e24e229aaf215aae90277bc62025436a"
+    "tool_sha256": "3a37a567776363c9cecce384ea60033555aa1b4ed6a4671be28cd2906d7fc4ea",
+    "runtime_sha256": "803317d364bbff383f3ebcce0bfe054f2c022a49142251715bbc3d65f386c4d8",
+    "sdk_sha256": "1c9b7eaacc06cb8e5520a165f4eb6f68ead9fb49963a0f258baf457ca9fdef53"
   },
   "arms": {
     "direct_json": {
@@ -53,9 +53,9 @@
     "python_runtime": {
       "agent_visible_calls": 1,
       "internal_fr_calls": 5,
-      "agent_visible_bytes": 1864,
+      "agent_visible_bytes": 1893,
       "request_response_bytes": [
-        1442,
+        1471,
         422
       ],
       "outcome": {
@@ -88,8 +88,8 @@
   },
   "reduction": {
     "agent_visible_calls": 4,
-    "agent_visible_bytes": 15825,
-    "agent_visible_percent": 89.5
+    "agent_visible_bytes": 15796,
+    "agent_visible_percent": 89.3
   },
   "scope": "One deterministic generic Rust task. Both arms execute the same five fr operations and produce equal source, patch and lifecycle outcomes. Direct JSON counts every request and response at the agent boundary. The runtime arm counts its complete Python program and compact result; intermediate reports stay inside the local process. This does not measure a model, hidden reasoning, tokens, billed quota or population behavior."
 }

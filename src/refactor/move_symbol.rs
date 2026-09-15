@@ -3066,7 +3066,7 @@ fn link_destinations(source: &str) -> Vec<Span> {
         if node.kind() == "link_destination" {
             out.push(Span::from(node));
         }
-        for i in (0..node.child_count() as u32).rev() {
+        for i in (0..node.child_count()).rev() {
             if let Some(child) = node.child(i) {
                 stack.push(child);
             }

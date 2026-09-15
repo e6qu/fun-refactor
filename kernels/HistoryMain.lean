@@ -5,6 +5,7 @@ import FrKernels.Workflow
 import FrKernels.TaskChange
 import FrKernels.AgentSession
 import FrKernels.AgentContext
+import FrKernels.AgentIntent
 
 open FrKernels.History
 
@@ -89,6 +90,18 @@ def main (args : List String) : IO Unit :=
               for rootPresent in [false, true] do
                 IO.println (FrKernels.AgentContext.objectStoreAdmitted
                   objects bytes digestMatches recordsCanonical rootPresent)
+  | ["agent-intent-admission"] =>
+      for needs in ([0, 1, 32, 33] : List Nat) do
+        for sections in ([0, 1, 8, 9] : List Nat) do
+          for calls in ([0, 1, 512, 513] : List Nat) do
+            for callLimit in ([0, 1, 512, 513] : List Nat) do
+              for packetBytes in ([0, 1024, 65536, 65537] : List Nat) do
+                for packetLimit in ([0, 1024, 65536, 65537] : List Nat) do
+                  for targetMatches in [false, true] do
+                    for sessionMatches in [false, true] do
+                      for complete in [false, true] do
+                        IO.println (FrKernels.AgentIntent.admitted needs sections calls callLimit
+                          packetBytes packetLimit targetMatches sessionMatches complete)
   | ["memory-transitions"] =>
       for status in List.range 4 do
         for action in List.range 3 do
@@ -117,4 +130,4 @@ def main (args : List String) : IO Unit :=
           for distinctPaths in [false, true] do
             for sourceSupported in [false, true] do
               IO.println (moveAdmitted sourceExists destinationExists distinctPaths sourceSupported)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, agent-session-steps, agent-context-admission, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, agent-session-steps, agent-context-admission, agent-intent-admission, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")

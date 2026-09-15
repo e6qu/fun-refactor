@@ -42,7 +42,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "25"
+          java-version: "26"
 
       - name: Install Zig for the conformance matrix
         timeout-minutes: 5

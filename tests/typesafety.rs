@@ -144,22 +144,29 @@ fn examples() -> Vec<Example> {
         .collect()
 }
 
-fn mypy_available() -> bool {
-    Command::new("mypy")
-        .arg("--version")
+fn ty_available() -> bool {
+    Command::new("ty")
+        .arg("version")
         .output()
         .is_ok_and(|out| out.status.success())
 }
 
-/// mypy with the tutorial's configuration, over the given files.
-fn mypy(files: &[&str]) -> std::process::Output {
-    Command::new("mypy")
+fn ty(files: &[&str]) -> std::process::Output {
+    Command::new("ty")
         .current_dir(python_dir())
+        .arg("check")
         .arg("--config-file")
-        .arg("mypy.ini")
+        .arg("ty.toml")
+        .args([
+            "--output-format",
+            "concise",
+            "--color",
+            "never",
+            "--no-progress",
+        ])
         .args(files)
         .output()
-        .expect("running mypy")
+        .expect("running ty")
 }
 
 fn tsc_available() -> bool {
@@ -194,9 +201,9 @@ fn said(output: &std::process::Output) -> String {
 
 #[test]
 fn every_python_example_gets_the_verdict_it_declares() {
-    if !mypy_available() {
-        eprintln!("typesafety: mypy is not installed, so the Python examples went unchecked");
-        common::require_on_ci("the type-safety tutorial", &["mypy".to_string()]);
+    if !ty_available() {
+        eprintln!("typesafety: ty is not installed, so the Python examples went unchecked");
+        common::require_on_ci("the type-safety tutorial", &["ty".to_string()]);
         return;
     }
     let all = examples();
@@ -207,7 +214,7 @@ fn every_python_example_gets_the_verdict_it_declares() {
         .map(|e| format!("{}.py", e.id))
         .collect();
     let refs: Vec<&str> = passing.iter().map(String::as_str).collect();
-    let output = mypy(&refs);
+    let output = ty(&refs);
     assert!(
         output.status.success(),
         "the checker rejected an example the page presents as accepted:\n{}",
@@ -215,13 +222,39 @@ fn every_python_example_gets_the_verdict_it_declares() {
     );
 
     for example in all.iter().filter(|e| e.expect_python == Expect::Fails) {
-        let output = mypy(&[&format!("{}.py", example.id)]);
+        let output = ty(&[&format!("{}.py", example.id)]);
         assert!(
             !output.status.success(),
-            "{}.py is presented as a type error, and mypy accepted it",
+            "{}.py is presented as a type error, and ty accepted it",
             example.id
         );
     }
+}
+
+#[test]
+fn the_python_sdk_passes_ty() {
+    if !ty_available() {
+        eprintln!("typesafety: ty is not installed, so the Python SDK went unchecked");
+        common::require_on_ci("the Python SDK", &["ty".to_string()]);
+        return;
+    }
+    let output = Command::new("ty")
+        .current_dir(root())
+        .args(["check", "--project", "sdk/python", "sdk/python/src"])
+        .args([
+            "--output-format",
+            "concise",
+            "--color",
+            "never",
+            "--no-progress",
+        ])
+        .output()
+        .expect("running ty on the Python SDK");
+    assert!(
+        output.status.success(),
+        "ty rejected the Python SDK:\n{}",
+        said(&output)
+    );
 }
 
 #[test]
@@ -390,7 +423,7 @@ fn errors_js() -> String {
             continue;
         }
         let python = if example.expect_python == Expect::Fails {
-            said(&mypy(&[&format!("{}.py", example.id)]))
+            said(&ty(&[&format!("{}.py", example.id)]))
         } else {
             String::new()
         };
@@ -412,11 +445,11 @@ fn errors_js() -> String {
 
 #[test]
 fn the_page_shows_the_checkers_words() {
-    if !mypy_available() || !tsc_available() {
+    if !ty_available() || !tsc_available() {
         eprintln!("typesafety: a checker is missing; messages unverified.");
         common::require_on_ci(
             "the type-safety tutorial",
-            &["mypy".to_string(), "tsc".to_string()],
+            &["ty".to_string(), "tsc".to_string()],
         );
         return;
     }
@@ -435,18 +468,26 @@ fn the_page_shows_the_checkers_words() {
 }
 
 #[test]
-fn the_epilogue_names_the_mypy_the_buttons_install() {
+fn the_epilogue_names_the_ty_version_and_official_playground() {
     let page = std::fs::read_to_string(root().join("docs/type-safety.html")).unwrap();
     let script = std::fs::read_to_string(root().join("docs/type-safety.js")).unwrap();
+    let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
     let pin = script
-        .split("mypy==")
+        .split("TY_VERSION = \"")
         .nth(1)
         .and_then(|rest| rest.split('"').next())
-        .expect("the script pins a mypy version");
+        .expect("the script pins a ty version");
     assert!(
-        page.contains(&format!("mypy=={pin}")),
-        "the epilogue claims a mypy version the buttons do not install: the script pins {pin}"
+        page.contains(&format!("ty=={pin}")),
+        "the epilogue and browser metadata disagree about the CI ty version: {pin}"
     );
+    assert!(
+        workflow.contains(&format!("\"ty=={pin}\"")),
+        "the browser metadata and CI dependency disagree about the ty version: {pin}"
+    );
+    assert!(script.contains("https://play.ty.dev/"));
+    assert!(script.contains("navigator.clipboard.writeText(code)"));
+    assert!(!script.contains("mypy"));
 }
 
 #[test]

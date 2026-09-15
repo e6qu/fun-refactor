@@ -10,7 +10,11 @@ fn root() -> PathBuf {
 
 fn python() -> Command {
     let mut command = Command::new("python3");
-    command.env("PYTHONPATH", root().join("sdk/python/src"));
+    let mut paths = vec![root().join("sdk/python/src")];
+    if let Some(existing) = std::env::var_os("PYTHONPATH") {
+        paths.extend(std::env::split_paths(&existing));
+    }
+    command.env("PYTHONPATH", std::env::join_paths(paths).unwrap());
     command
 }
 
@@ -18,16 +22,16 @@ fn assert_evidence_digests(evidence: &Path, manifest: &Value) {
     for (name, expected) in manifest["files"].as_object().unwrap() {
         let bytes = fs::read(evidence.join(name)).unwrap();
         assert_eq!(
-            format!("{:x}", Sha256::digest(bytes)),
+            hex::encode(Sha256::digest(bytes)),
             expected.as_str().unwrap()
         );
     }
 }
 
 #[test]
-fn python_sdk_unit_tests_pass_without_dependencies() {
+fn python_sdk_tests_pass_with_the_declared_test_extra() {
     let output = python()
-        .args(["-m", "unittest", "discover", "-s"])
+        .args(["-m", "pytest", "-q"])
         .arg(root().join("sdk/python/tests"))
         .output()
         .unwrap();
@@ -36,6 +40,17 @@ fn python_sdk_unit_tests_pass_without_dependencies() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+#[test]
+fn python_package_keeps_explicit_module_boundaries() {
+    let package = root().join("sdk/python/src/fr_ir");
+    assert_eq!(fs::read(package.join("__init__.py")).unwrap(), b"");
+    assert!(!package.join("__main__.py").exists());
+    for module in ["ir.py", "runtime.py", "context.py", "intent.py"] {
+        let source = fs::read_to_string(package.join(module)).unwrap();
+        assert!(!source.contains("__all__"), "{module} mutates __all__");
+    }
 }
 
 #[test]
@@ -65,7 +80,9 @@ fn python_runtime_discovers_discloses_reviews_and_executes_without_json_glue() {
     let objects = tempfile::tempdir().unwrap();
     let script = r#"# => complete structured agent runtime fixture
 import json, sys
-from fr_ir import DirectoryObjectStore, FrClient, TaskChange, TaskDelivery, TaskTarget
+from fr_ir.context import DirectoryObjectStore
+from fr_ir.runtime import FrClient
+from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 found = client.project('find', 'render', '--signature')
@@ -127,6 +144,62 @@ print(json.dumps({
             .unwrap()
             .contains("+pub fn render")
     );
+}
+
+#[test]
+fn python_runtime_compiles_a_high_level_intent_into_bounded_evidence() {
+    let workspace = tempfile::tempdir().unwrap();
+    fs::create_dir_all(workspace.path().join("src")).unwrap();
+    fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn render(value: &str) -> String { value.to_owned() }\n\
+         pub fn caller() -> String { render(\"ok\") }\n",
+    )
+    .unwrap();
+    let objects = tempfile::tempdir().unwrap();
+    let script = r#"# => declarative intent fixture
+import json, sys
+from fr_ir.context import DirectoryObjectStore
+from fr_ir.intent import AgentIntent
+from fr_ir.runtime import FrClient
+
+client = FrClient(sys.argv[1], executable=sys.argv[2])
+found = client.project('find', 'render', '--signature')
+handle = found.at('/rows/0/0')
+prepared = client.prepare(AgentIntent(
+    handle, 'trace', call_limit=192, packet_limit=65536,
+), store=DirectoryObjectStore(sys.argv[3]))
+print(json.dumps({
+    'purpose': prepared.intent.purpose,
+    'sections': sorted(prepared.at('/selected')),
+    'calls': prepared.session.calls,
+    'bytes': prepared.at('/serialized_bytes'),
+    'cached_objects': len(prepared.session.cached_digests),
+    'target': prepared.session.session_identity()[3],
+}))
+"#;
+    let output = python()
+        .args(["-c", script])
+        .arg(workspace.path())
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg(objects.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["purpose"], "trace");
+    assert_eq!(
+        report["sections"],
+        serde_json::json!(["call_traces", "code_map", "sources_and_sinks"])
+    );
+    assert!(report["calls"].as_u64().unwrap() <= 193);
+    assert!(report["bytes"].as_u64().unwrap() <= 65_536);
+    assert!(report["cached_objects"].as_u64().unwrap() > 0);
+    assert!(report["target"].as_str().unwrap().starts_with("frp1:"));
 }
 
 #[test]
@@ -246,6 +319,76 @@ for count in objects:
 }
 
 #[test]
+fn python_intent_admission_matches_rust_at_every_boundary() {
+    let script = r#"# => Python intent-admission kernel corpus
+from fr_ir.intent import _intent_admitted
+needs_samples = [0, 1, 32, 33]
+section_samples = [0, 1, 8, 9]
+call_samples = [0, 1, 512, 513]
+packet_samples = [0, 1024, 65536, 65537]
+for needs in needs_samples:
+    for sections in section_samples:
+        for calls in call_samples:
+            for call_limit in call_samples:
+                for packet_bytes in packet_samples:
+                    for packet_limit in packet_samples:
+                        for target in (False, True):
+                            for session in (False, True):
+                                for complete in (False, True):
+                                    print(str(_intent_admitted(
+                                        needs, sections, calls, call_limit,
+                                        packet_bytes, packet_limit,
+                                        target, session, complete)).lower())
+"#;
+    let output = python().args(["-c", script]).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let needs_samples = [0, 1, 32, 33];
+    let section_samples = [0, 1, 8, 9];
+    let call_samples = [0, 1, 512, 513];
+    let packet_samples = [0, 1_024, 65_536, 65_537];
+    let mut expected = Vec::new();
+    for needs in needs_samples {
+        for sections in section_samples {
+            for calls in call_samples {
+                for call_limit in call_samples {
+                    for packet_bytes in packet_samples {
+                        for packet_limit in packet_samples {
+                            for target_matches in [false, true] {
+                                for session_matches in [false, true] {
+                                    for complete in [false, true] {
+                                        expected.push(
+                                            fun_refactor::project::agent_intent_admitted(
+                                                needs,
+                                                sections,
+                                                calls,
+                                                call_limit,
+                                                packet_bytes,
+                                                packet_limit,
+                                                target_matches,
+                                                session_matches,
+                                                complete,
+                                            )
+                                            .to_string(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn python_authors_a_property_from_the_rust_task_shape() {
     let workspace = tempfile::tempdir().unwrap();
     fs::create_dir_all(workspace.path().join("src")).unwrap();
@@ -267,7 +410,7 @@ fn python_authors_a_property_from_the_rust_task_shape() {
     fs::write(&task_path, task.stdout).unwrap();
     let script = r#"# => agent property SDK fixture
 import json, sys
-from fr_ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
+from fr_ir.ir import PropertyProposition as Prop, PropertyTask, PropertyTerm as Term
 task = PropertyTask.from_data(json.load(open(sys.argv[1], encoding='utf-8')))
 x, y = Term.variable('x'), Term.variable('y')
 property_ = task.property(
@@ -305,7 +448,7 @@ open(sys.argv[2], 'w', encoding='utf-8').write(property_.to_json(indent=2) + '\n
     let validated = python()
         .args([
             "-c",
-            "# => validate generated plan\nimport sys; from fr_ir import FormalPlan; FormalPlan.from_json(open(sys.argv[1], encoding='utf-8').read())",
+            "# => validate generated plan\nimport sys; from fr_ir.ir import FormalPlan; FormalPlan.from_json(open(sys.argv[1], encoding='utf-8').read())",
         ])
         .arg(&plan_path)
         .output()
@@ -322,7 +465,7 @@ open(sys.argv[2], 'w', encoding='utf-8').write(property_.to_json(indent=2) + '\n
 
 #[test]
 fn python_and_rust_publish_the_same_semantic_catalog() {
-    let script = "# => catalog fixture\nimport json; from fr_ir import *; print(json.dumps([TYPE_KINDS, STATEMENT_KINDS, EXPRESSION_KINDS, TEMPLATE_KINDS, [x.value for x in BinaryOp], [x.value for x in UnaryOp], ROLE_NAMES, INTENT_OPERATIONS]))";
+    let script = "# => catalog fixture\nimport json; from fr_ir.ir import BinaryOp, EXPRESSION_KINDS, INTENT_OPERATIONS, ROLE_NAMES, STATEMENT_KINDS, TEMPLATE_KINDS, TYPE_KINDS, UnaryOp; print(json.dumps([TYPE_KINDS, STATEMENT_KINDS, EXPRESSION_KINDS, TEMPLATE_KINDS, [x.value for x in BinaryOp], [x.value for x in UnaryOp], ROLE_NAMES, INTENT_OPERATIONS]))";
     let output = python().args(["-c", script]).output().unwrap();
     assert!(output.status.success());
     let python: Vec<Vec<String>> = serde_json::from_slice(&output.stdout).unwrap();
@@ -384,7 +527,7 @@ fn python_semantic_changes_apply_through_the_rust_engine() {
     let change = temp.path().join("change.json");
     let script = r#"# => checked semantic change fixture
 import sys
-from fr_ir import Change, Expr, SemanticBody, SemanticChange, Stmt
+from fr_ir.ir import Change, Expr, SemanticBody, SemanticChange, Stmt
 body = SemanticBody([Stmt.Return(Expr.Name("left"))])
 body.write(sys.argv[1])
 SemanticChange(body, [
@@ -439,7 +582,7 @@ fn python_semantic_intents_compile_and_apply_through_the_rust_engine() {
     let intent = temp.path().join("intent.json");
     let script = r#"# => checked semantic intent fixture
 import sys
-from fr_ir import BinaryOp, Expr, Intent, LocatorStep, NodeCategory, Role, SemanticBody, SemanticIntent, Stmt
+from fr_ir.ir import BinaryOp, Expr, Intent, LocatorStep, NodeCategory, Role, SemanticBody, SemanticIntent, Stmt
 body = SemanticBody([Stmt.Return(Expr.Binary(BinaryOp.ADD, Expr.Name("value"), Expr.Int(1)))])
 body.write(sys.argv[1])
 SemanticIntent(body, [Intent.SetInt([

@@ -2177,9 +2177,7 @@ fn collect_called_name(node: Node, source: &str, out: &mut Vec<FunctionValueCall
             }
             continue;
         }
-        node = node
-            .child(node.child_count() as u32 - 1)
-            .expect("a last child");
+        node = node.child(node.child_count() - 1).expect("a last child");
     }
 }
 

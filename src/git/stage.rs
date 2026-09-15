@@ -237,13 +237,13 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         });
     }
     let basis = format!(
-        "frstage1:{:x}",
-        Sha256::digest(serde_json::to_vec(&(
+        "frstage1:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(&(
             &root,
             "raw-bytes-owner-executable",
             env!("CARGO_PKG_VERSION"),
             &entries,
-        ))?)
+        ))?))
     );
     if let Some(expected) = &options.basis {
         ensure!(

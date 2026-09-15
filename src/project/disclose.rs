@@ -28,6 +28,32 @@ pub fn context_materialization_admitted(
         && digest_matches
 }
 
+#[doc = "Admission policy for a completed declarative agent intent."]
+// Keep this flat signature aligned with the Python and Lean executable corpora.
+#[allow(clippy::too_many_arguments)]
+pub fn agent_intent_admitted(
+    needs: usize,
+    sections: usize,
+    calls: usize,
+    call_limit: usize,
+    packet_bytes: usize,
+    packet_limit: usize,
+    target_matches: bool,
+    session_matches: bool,
+    complete: bool,
+) -> bool {
+    (1..=32).contains(&needs)
+        && (1..=8).contains(&sections)
+        && sections <= needs
+        && (1..=512).contains(&call_limit)
+        && calls <= call_limit
+        && (1_024..=65_536).contains(&packet_limit)
+        && packet_bytes <= packet_limit
+        && target_matches
+        && session_matches
+        && complete
+}
+
 #[doc = "Admission policy for one generated Merkle object pack."]
 pub fn object_store_admitted(
     objects: usize,

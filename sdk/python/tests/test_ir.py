@@ -2,9 +2,8 @@ import inspect
 import hashlib
 import json
 import re
-import unittest
 
-from fr_ir import (
+from fr_ir.ir import (
     CHANGE_SCHEMA,
     EXPRESSION_KINDS,
     STATEMENT_KINDS,
@@ -45,6 +44,7 @@ from fr_ir import (
     verify_disclosure_commitment,
     verify_disclosure_proof,
 )
+import pytest
 
 
 def kinds(namespace):
@@ -52,7 +52,7 @@ def kinds(namespace):
     return tuple(re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower() for name in names)
 
 
-class IrTests(unittest.TestCase):
+class TestIr:
     def test_task_change_builder_mirrors_inline_reviewed_session(self):
         request = ProjectRequest("target", [
             "find", "render", "--signature", "--source", "--bytes", "2048",
@@ -68,19 +68,19 @@ class IrTests(unittest.TestCase):
             ["unit"], TaskDelivery(patch="artifacts/change.patch"),
         )
         data = change.to_data()
-        self.assertEqual(data["schema"], "fr-task-change-1")
-        self.assertEqual(data["targets"][0]["fragment"], "{ value.to_uppercase() }")
-        self.assertEqual(data["delivery"]["check-original"], True)
-        self.assertEqual(json.loads(change.to_json()), data)
+        assert data["schema"] == "fr-task-change-1"
+        assert data["targets"][0]["fragment"] == "{ value.to_uppercase() }"
+        assert data["delivery"]["check-original"] == True
+        assert json.loads(change.to_json()) == data
         direct = TaskChange(
             [], [TaskTarget("render-body", "frp1:" + "a" * 32 + ":0001", "replace-body",
                             fragment="{ value.to_uppercase() }")],
             {"files-changed": 1}, ["unit"],
         )
-        self.assertEqual(direct.to_data()["requests"], [])
-        with self.assertRaisesRegex(IrError, "exactly one"):
+        assert direct.to_data()["requests"] == []
+        with pytest.raises(IrError, match="exactly one"):
             TaskTarget("bad", "handle", "replace-body")
-        with self.assertRaisesRegex(IrError, "safe relative"):
+        with pytest.raises(IrError, match="safe relative"):
             TaskDelivery(patch="../change.patch")
 
     def test_property_task_builds_and_validates_agent_authored_ir(self):
@@ -130,31 +130,31 @@ class IrTests(unittest.TestCase):
             [{"name": "x", "lean_type": "Bool"}, {"name": "y", "lean_type": "Bool"}],
             PropertyProposition.equals(PropertyTerm.model(x, y), PropertyTerm.model(y, x)),
         )
-        self.assertEqual(AgentProperty.from_data(property_.to_data(), task), property_)
-        self.assertEqual(AgentProperty.from_json(property_.to_json(), task), property_)
-        self.assertEqual(property_.to_data()["task_digest"], task.object_digest)
-        self.assertEqual(PropertyProposition.not_equals(x, y)["kind"], "not-equals")
-        self.assertEqual(PropertyProposition.less_than(x, y)["kind"], "less-than")
-        self.assertEqual(PropertyProposition.less_or_equal(x, y)["kind"], "less-or-equal")
-        self.assertEqual(PropertyProposition.greater_than(x, y)["kind"], "greater-than")
-        self.assertEqual(PropertyProposition.greater_or_equal(x, y)["kind"], "greater-or-equal")
+        assert AgentProperty.from_data(property_.to_data(), task) == property_
+        assert AgentProperty.from_json(property_.to_json(), task) == property_
+        assert property_.to_data()["task_digest"] == task.object_digest
+        assert PropertyProposition.not_equals(x, y)["kind"] == "not-equals"
+        assert PropertyProposition.less_than(x, y)["kind"] == "less-than"
+        assert PropertyProposition.less_or_equal(x, y)["kind"] == "less-or-equal"
+        assert PropertyProposition.greater_than(x, y)["kind"] == "greater-than"
+        assert PropertyProposition.greater_or_equal(x, y)["kind"] == "greater-or-equal"
         changed = property_.to_data()
         changed["parameters"][0]["lean_type"] = "String"
-        with self.assertRaisesRegex(IrError, "outside the disclosed"):
+        with pytest.raises(IrError, match="outside the disclosed"):
             AgentProperty.from_data(changed, task)
         changed = property_.to_data()
         changed["proposition"]["left"]["arguments"].pop()
-        with self.assertRaisesRegex(IrError, "wrong arity"):
+        with pytest.raises(IrError, match="wrong arity"):
             AgentProperty.from_data(changed, task)
         changed_task = json.loads(json.dumps(data))
         changed_task["kernel"]["model"] = "otherModel"
-        with self.assertRaisesRegex(IrError, "Merkle content address"):
+        with pytest.raises(IrError, match="Merkle content address"):
             PropertyTask.from_data(changed_task)
         empty_model = json.loads(json.dumps(data))
         empty_model["kernel"]["model"] = ""
         core = {key: empty_model[key] for key in ("schema", "target", "kernel", "contract", "templates")}
         empty_model["object_digest"] = merkle_object_digest(core)
-        with self.assertRaisesRegex(IrError, "kernel is malformed"):
+        with pytest.raises(IrError, match="kernel is malformed"):
             PropertyTask.from_data(empty_model)
 
     def test_proof_task_and_attempt_bind_agent_context_and_tactics(self):
@@ -190,10 +190,10 @@ class IrTests(unittest.TestCase):
             },
         }
         parsed_task = ProofTask.from_data(task)
-        self.assertEqual(parsed_task.to_data(), task)
+        assert parsed_task.to_data() == task
         changed_task = json.loads(json.dumps(task))
         changed_task["goal"]["theorem"] = "changed"
-        with self.assertRaisesRegex(IrError, "Merkle content address"):
+        with pytest.raises(IrError, match="Merkle content address"):
             ProofTask.from_data(changed_task)
 
         proof_digest = merkle_object_digest("rfl")
@@ -214,9 +214,9 @@ class IrTests(unittest.TestCase):
                 "limit": 4096, "used_upper_bound": 900, "measurement": "serialized_utf8_bytes",
             },
         }
-        self.assertEqual(ProofAttempt.from_data(attempt).to_data(), attempt)
+        assert ProofAttempt.from_data(attempt).to_data() == attempt
         attempt["receipt"] = "0" * 64
-        with self.assertRaisesRegex(IrError, "invalid receipt"):
+        with pytest.raises(IrError, match="invalid receipt"):
             ProofAttempt.from_data(attempt)
 
     def test_formal_plan_mirrors_rust_shape_and_rejects_tampering(self):
@@ -251,40 +251,38 @@ class IrTests(unittest.TestCase):
             "verify": ["spec", "verify", "specs"],
         }
         plan = FormalPlan.from_data(data)
-        self.assertEqual(plan.to_data(), data)
-        self.assertEqual(FormalPlan.from_json(plan.to_json()).object_digest, data["object_digest"])
+        assert plan.to_data() == data
+        assert FormalPlan.from_json(plan.to_json()).object_digest == data["object_digest"]
         tampered = json.loads(plan.to_json())
         tampered["kernel"]["model"] = "changedModel"
-        with self.assertRaisesRegex(IrError, "Merkle content address"):
+        with pytest.raises(IrError, match="Merkle content address"):
             FormalPlan.from_data(tampered)
 
     def test_merkle_object_pack_deduplicates_restores_and_detects_corruption(self):
         shared = {"kind": "name", "value": "item"}
         value = {"left": shared, "right": shared, "items": [shared, 1]}
         pack = merkle_object_pack(value)
-        self.assertEqual(pack["root"], merkle_object_digest(value))
-        self.assertEqual(restore_merkle_object(pack["root"], pack["objects"]), value)
+        assert pack["root"] == merkle_object_digest(value)
+        assert restore_merkle_object(pack["root"], pack["objects"]) == value
         fetched = []
-        self.assertEqual(
-            restore_merkle_object(
+        assert restore_merkle_object(
                 pack["root"], lambda digest: fetched.append(digest) or pack["objects"].get(digest)
-            ),
-            value,
-        )
-        self.assertEqual(len(fetched), len(set(fetched)))
-        self.assertLess(len(pack["objects"]), 1 + 3 * len(shared) + len(value["items"]))
+            ) == \
+            value
+        assert len(fetched) == len(set(fetched))
+        assert len(pack["objects"]) < 1 + 3 * len(shared) + len(value["items"])
         broken = json.loads(json.dumps(pack["objects"]))
         scalar = next(key for key, record in broken.items()
                       if record["kind"] == "scalar" and record["value"] == "item")
         broken[scalar]["value"] = "changed"
-        with self.assertRaisesRegex(IrError, "content verification"):
+        with pytest.raises(IrError, match="content verification"):
             restore_merkle_object(pack["root"], broken)
-        with self.assertRaisesRegex(IrError, "lowercase SHA-256"):
+        with pytest.raises(IrError, match="lowercase SHA-256"):
             restore_merkle_object("not-a-digest", pack["objects"])
-        with self.assertRaisesRegex(IrError, "absent or malformed"):
+        with pytest.raises(IrError, match="absent or malformed"):
             restore_merkle_object("f" * 64, pack["objects"])
         cycle = "0" * 64
-        with self.assertRaisesRegex(IrError, "contains a cycle"):
+        with pytest.raises(IrError, match="contains a cycle"):
             restore_merkle_object(cycle, {
                 cycle: {
                     "schema": "fr-merkle-object-1",
@@ -321,21 +319,20 @@ class IrTests(unittest.TestCase):
                 "branch": [{"side": "left", "digest": entry}],
             }],
         }
-        self.assertTrue(verify_disclosure_proof(leaf, proof))
-        self.assertTrue(verify_disclosure_commitment(leaf_digest, proof))
-        self.assertFalse(verify_disclosure_proof({"name": "changed", "kind": "function"}, proof))
+        assert verify_disclosure_proof(leaf, proof)
+        assert verify_disclosure_commitment(leaf_digest, proof)
+        assert not verify_disclosure_proof({"name": "changed", "kind": "function"}, proof)
         tampered = json.loads(json.dumps(proof))
         tampered["path"][0]["branch"][0]["digest"] = "0" * 64
-        self.assertFalse(verify_disclosure_proof(leaf, tampered))
+        assert not verify_disclosure_proof(leaf, tampered)
         tampered["path"][0]["branch"][0]["digest"] = "z" * 64
-        self.assertFalse(verify_disclosure_proof(leaf, tampered))
+        assert not verify_disclosure_proof(leaf, tampered)
 
     def test_example_matches_adjacent_tag_shape(self):
         body = SemanticBody([
             Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))
         ])
-        self.assertEqual(
-            body.to_data(),
+        assert body.to_data() == \
             {
                 "schema": "fr-semantic-body-1",
                 "body": [{
@@ -349,27 +346,26 @@ class IrTests(unittest.TestCase):
                         },
                     },
                 }],
-            },
-        )
-        self.assertEqual(json.loads(body.to_json()), body.to_data())
+            }
+        assert json.loads(body.to_json()) == body.to_data()
 
     def test_categories_cannot_cross_constructor_boundaries(self):
-        with self.assertRaisesRegex(IrError, "must be a expr node"):
+        with pytest.raises(IrError, match="must be a expr node"):
             Stmt.Return(Type.Int())
-        with self.assertRaisesRegex(IrError, "must be a type node"):
+        with pytest.raises(IrError, match="must be a type node"):
             Type.List(Expr.Int(1))
-        with self.assertRaisesRegex(IrError, "must be a statement node"):
+        with pytest.raises(IrError, match="must be a statement node"):
             SemanticBody([Expr.Int(1)])
 
     def test_unknown_operators_are_rejected(self):
-        with self.assertRaisesRegex(IrError, "invalid binary operator"):
+        with pytest.raises(IrError, match="invalid binary operator"):
             Expr.Binary("invented", Expr.Int(1), Expr.Int(2))
 
     def test_catalog_lists_every_public_constructor(self):
-        self.assertEqual(set(kinds(Type)), set(TYPE_KINDS))
-        self.assertEqual(set(kinds(Stmt)), set(STATEMENT_KINDS))
-        self.assertEqual(set(kinds(Expr)), set(EXPRESSION_KINDS))
-        self.assertEqual(set(kinds(TemplatePart)), set(TEMPLATE_KINDS))
+        assert set(kinds(Type)) == set(TYPE_KINDS)
+        assert set(kinds(Stmt)) == set(STATEMENT_KINDS)
+        assert set(kinds(Expr)) == set(EXPRESSION_KINDS)
+        assert set(kinds(TemplatePart)) == set(TEMPLATE_KINDS)
 
     def test_semantic_changes_infer_typed_replacement_categories(self):
         body = SemanticBody([Stmt.Return(Expr.Name("left"))])
@@ -379,17 +375,17 @@ class IrTests(unittest.TestCase):
             Change.DeleteStatement("/body/0"),
         ])
         data = change.to_data()
-        self.assertEqual(data["schema"], CHANGE_SCHEMA)
-        self.assertEqual(data["base"], body.basis())
-        self.assertEqual(data["operations"][1]["category"], "expression")
-        self.assertEqual(data["operations"][1]["value"]["kind"], "name")
+        assert data["schema"] == CHANGE_SCHEMA
+        assert data["base"] == body.basis()
+        assert data["operations"][1]["category"] == "expression"
+        assert data["operations"][1]["value"]["kind"] == "name"
 
     def test_semantic_change_constructors_refuse_wrong_categories_and_paths(self):
-        with self.assertRaisesRegex(IrError, "must be a statement node"):
+        with pytest.raises(IrError, match="must be a statement node"):
             Change.InsertStatement("/body", 0, Expr.Int(1))
-        with self.assertRaisesRegex(IrError, "canonical RFC 6901"):
+        with pytest.raises(IrError, match="canonical RFC 6901"):
             Change.DeleteStatement("/body/~2bad")
-        with self.assertRaisesRegex(IrError, "1 through 64"):
+        with pytest.raises(IrError, match="1 through 64"):
             SemanticChange("frsb1:" + "0" * 64, [])
 
     def test_semantic_intents_mirror_roles_scalars_and_body_identity(self):
@@ -402,7 +398,7 @@ class IrTests(unittest.TestCase):
             LocatorStep(Role.RIGHT, category=NodeCategory.EXPRESSION, kind="int"),
         ]
         intent = SemanticIntent(body, [Intent.SetInt(target, "1", "2")])
-        self.assertEqual(intent.to_data(), {
+        assert intent.to_data() == {
             "schema": "fr-semantic-intent-1",
             "base": body.basis(),
             "operations": [{
@@ -415,56 +411,52 @@ class IrTests(unittest.TestCase):
                 "from": "1",
                 "to": "2",
             }],
-        })
+        }
 
     def test_semantic_intent_constructors_refuse_invalid_values(self):
         target = [LocatorStep(Role.STATEMENT, index=0)]
-        with self.assertRaisesRegex(IrError, "portable decimal"):
+        with pytest.raises(IrError, match="portable decimal"):
             Intent.SetInt(target, "1", "-2")
-        with self.assertRaisesRegex(IrError, "portable identifiers"):
+        with pytest.raises(IrError, match="portable identifiers"):
             Intent.SetName(target, "before", "not-portable")
-        with self.assertRaisesRegex(IrError, "must change"):
+        with pytest.raises(IrError, match="must change"):
             Intent.SetComment(target, "same", "same")
-        with self.assertRaisesRegex(IrError, "nonnegative"):
+        with pytest.raises(IrError, match="nonnegative"):
             LocatorStep(Role.STATEMENT, index=True)
-        with self.assertRaisesRegex(IrError, "1 through 64"):
+        with pytest.raises(IrError, match="1 through 64"):
             Intent.SetBool([], False, True)
 
     def test_scalar_request_matches_the_reviewed_edit_plan_shape(self):
         request = ScalarRequest("set-binary-operator", BinaryOp.ADD, BinaryOp.MUL)
-        self.assertEqual(request.to_data(), {
+        assert request.to_data() == {
             "operation": "set-binary-operator",
             "from": "add",
             "to": "mul",
-        })
-        self.assertEqual(json.loads(request.to_json()), request.to_data())
-        with self.assertRaisesRegex(IrError, "must change"):
+        }
+        assert json.loads(request.to_json()) == request.to_data()
+        with pytest.raises(IrError, match="must change"):
             ScalarRequest("set-int", "1", "1")
 
     def test_disclosed_edit_request_mirrors_the_opaque_manifest_shape(self):
         request = DisclosedEditRequest("frde1:" + "a" * 64, "7")
-        self.assertEqual(request.to_data(), {"edit": "frde1:" + "a" * 64, "to": "7"})
-        self.assertEqual(json.loads(request.to_json()), request.to_data())
-        with self.assertRaisesRegex(IrError, "exact frde1"):
+        assert request.to_data() == {"edit": "frde1:" + "a" * 64, "to": "7"}
+        assert json.loads(request.to_json()) == request.to_data()
+        with pytest.raises(IrError, match="exact frde1"):
             DisclosedEditRequest("frde1:short", "7")
-        with self.assertRaisesRegex(IrError, "string CLI scalar"):
+        with pytest.raises(IrError, match="string CLI scalar"):
             DisclosedEditRequest("frde1:" + "a" * 64, 7)
 
     def test_disclosed_ir_edit_request_keeps_typed_ir_adjacent_to_the_wire_shape(self):
         identity = "frdi1:" + "b" * 64
         replacement = DisclosedIrEditRequest(identity, Expr.Int(7))
-        self.assertEqual(replacement.to_data(), {
+        assert replacement.to_data() == {
             "edit": identity,
             "value": {"kind": "int", "value": "7"},
-        })
+        }
         deletion = DisclosedIrEditRequest(identity)
-        self.assertEqual(deletion.to_data(), {"edit": identity})
-        self.assertEqual(json.loads(replacement.to_json()), replacement.to_data())
-        with self.assertRaisesRegex(IrError, "exact frdi1"):
+        assert deletion.to_data() == {"edit": identity}
+        assert json.loads(replacement.to_json()) == replacement.to_data()
+        with pytest.raises(IrError, match="exact frdi1"):
             DisclosedIrEditRequest("frdi1:short", Expr.Int(7))
-        with self.assertRaisesRegex(IrError, "typed IR node"):
+        with pytest.raises(IrError, match="typed IR node"):
             DisclosedIrEditRequest(identity, {"kind": "int", "value": "7"})
-
-
-if __name__ == "__main__":
-    unittest.main()

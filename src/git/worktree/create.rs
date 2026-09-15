@@ -291,15 +291,15 @@ fn proposal(requested: &Path, options: &CreateOptions) -> Result<Proposal> {
         from,
         commit,
         tree,
-        registrations: format!("{:x}", Sha256::digest(&registrations)),
+        registrations: hex::encode(Sha256::digest(&registrations)),
         files,
     })
 }
 
 fn basis(proposal: &Proposal) -> Result<String> {
     Ok(format!(
-        "frwtc1:{:x}",
-        Sha256::digest(serde_json::to_vec(proposal)?)
+        "frwtc1:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(proposal)?))
     ))
 }
 

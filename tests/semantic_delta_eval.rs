@@ -17,10 +17,7 @@ fn retained_semantic_delta_agent_pair_is_complete_and_digest_bound() {
     assert_eq!(manifest["reasoning_effort"], "low");
     for (name, expected) in manifest["files"].as_object().unwrap() {
         assert_eq!(
-            format!(
-                "{:x}",
-                Sha256::digest(fs::read(evidence.join(name)).unwrap())
-            ),
+            hex::encode(Sha256::digest(fs::read(evidence.join(name)).unwrap())),
             expected.as_str().unwrap()
         );
     }

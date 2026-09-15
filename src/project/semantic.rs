@@ -222,7 +222,7 @@ fn redact_sources(value: &mut Value, redacted: &mut usize) {
                 object.insert("source_bytes".into(), json!(source.len()));
                 object.insert(
                     "source_sha256".into(),
-                    json!(format!("{:x}", Sha256::digest(source.as_bytes()))),
+                    json!(hex::encode(Sha256::digest(source.as_bytes()))),
                 );
                 *redacted += 1;
             }
@@ -232,7 +232,7 @@ fn redact_sources(value: &mut Value, redacted: &mut usize) {
                         import.insert("source_bytes".into(), json!(text.len()));
                         import.insert(
                             "source_sha256".into(),
-                            json!(format!("{:x}", Sha256::digest(text.as_bytes()))),
+                            json!(hex::encode(Sha256::digest(text.as_bytes()))),
                         );
                         *redacted += 1;
                     }

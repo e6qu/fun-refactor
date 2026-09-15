@@ -131,10 +131,9 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         bail!("Git HEAD changed during unborn-branch inspection; retry the query.");
     }
     let entries = records::parse(&output.stdout)?;
-    let revision = format!(
-        "{:x}",
-        Sha256::digest(serde_json::to_vec(&(&root, scope, &base, &entries))?)
-    );
+    let revision = hex::encode(Sha256::digest(serde_json::to_vec(&(
+        &root, scope, &base, &entries,
+    ))?));
     let key = format!("frc1:{revision}");
     let start = if let Some(cursor) = &options.cursor {
         let (basis, offset) = cursor

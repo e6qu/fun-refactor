@@ -193,7 +193,7 @@ pub(super) fn parse(bytes: &[u8]) -> Result<Observation> {
                 bail!("Git rename lacks its original path");
             }
         }
-        entry.fingerprint = format!("{:x}", digest.finalize());
+        entry.fingerprint = hex::encode(digest.finalize());
         entries.push(entry);
     }
     entries.sort_by(|a, b| a.path.cmp(&b.path));

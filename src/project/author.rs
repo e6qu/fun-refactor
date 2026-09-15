@@ -395,7 +395,7 @@ impl Plan {
 }
 
 fn digest(source: &str) -> String {
-    format!("{:x}", Sha256::digest(source.as_bytes()))
+    hex::encode(Sha256::digest(source.as_bytes()))
 }
 
 struct BodySyntax {

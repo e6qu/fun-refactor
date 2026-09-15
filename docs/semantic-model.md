@@ -83,7 +83,7 @@ The zero-dependency package under `sdk/python` mirrors the Rust namespaces while
 details:
 
 ```python
-from fr_ir import BinaryOp, Expr, SemanticBody, Stmt
+from fr_ir.ir import BinaryOp, Expr, SemanticBody, Stmt
 
 change = SemanticBody([
     Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))
@@ -124,7 +124,7 @@ intermediate body. Each operation resolves against the previous canonical result
 The Python SDK mirrors the same operation hierarchy:
 
 ```python
-from fr_ir import Change, Expr, SemanticChange, Stmt
+from fr_ir.ir import Change, Expr, SemanticChange, Stmt
 
 change = SemanticChange(body_basis, [
     Change.Replace("/body/0/value", Expr.Name("replacement")),

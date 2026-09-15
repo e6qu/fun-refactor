@@ -705,8 +705,8 @@ export const EXAMPLES = {
     typescript: "export function advance(status: string): string {\n  if (status === \"darft\") {\n    return \"sent\";\n  }\n  if (status === \"sent\") {\n    return \"paid\";\n  }\n  return status;\n}\n",
   },
   "the_program": {
-    title: "The bill of materials and the invoice, as they stand today",
-    expectPython: "fails",
+    title: "The unannotated program passes gradual checking and keeps all five mistakes",
+    expectPython: "passes",
     expectTypescript: "fails",
     runs: false,
     improves: null,

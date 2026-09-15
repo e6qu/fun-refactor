@@ -11,7 +11,7 @@ import secrets
 import stat
 from typing import Any, Mapping, Protocol
 
-from . import merkle_object_digest, merkle_object_pack, restore_merkle_object
+from .ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
 from .runtime import (
     Disclosure, DisclosureAction, FrClient, FrReport, FrRuntimeError, _copy_json, _pointer,
 )
@@ -271,6 +271,10 @@ class ContextSession:
     def reports(self) -> tuple[Disclosure, ...]:
         return tuple(self._reports)
 
+    def session_identity(self) -> tuple[str, str, str, str, str, str]:
+        """Return the immutable revision, view and handle identity for this traversal."""
+        return self._identity
+
     @property
     def cached_digests(self) -> tuple[str, ...]:
         return tuple(sorted(self._cached))
@@ -331,18 +335,23 @@ class ContextSession:
             exact: list[DisclosureAction] = []
             ancestors: list[DisclosureAction] = []
             pages: list[DisclosureAction] = []
-            for action in self.latest.actions():
-                if action.arguments in visited:
-                    continue
-                action_pointer = self._pointer_from_address(action.address)
-                if action.kind == "continuation":
-                    pages.append(action)
-                elif action_pointer == pointer:
-                    exact.append(action)
-                elif action_pointer is not None and (
-                    action_pointer == "" or pointer.startswith(f"{action_pointer}/")
-                ):
-                    ancestors.append(action)
+            known_arguments: set[tuple[str, ...]] = set()
+            for report in reversed(self._reports):
+                for action in report.actions():
+                    if action.arguments in visited or action.arguments in known_arguments:
+                        continue
+                    known_arguments.add(action.arguments)
+                    action_pointer = self._pointer_from_address(action.address)
+                    reaches_pointer = action_pointer is not None and (
+                        action_pointer == "" or pointer == action_pointer
+                        or pointer.startswith(f"{action_pointer}/")
+                    )
+                    if action.kind == "continuation" and reaches_pointer:
+                        pages.append(action)
+                    elif action_pointer == pointer:
+                        exact.append(action)
+                    elif reaches_pointer:
+                        ancestors.append(action)
             candidates = exact or ancestors or pages
             if not candidates:
                 raise FrRuntimeError(f"no exact disclosure action reaches {pointer!r}")
@@ -606,9 +615,3 @@ class ContextSession:
             )
         value["serialized_bytes"] = len(encoded)
         return FrReport(value, ("context", "packet"))
-
-
-__all__ = [
-    "ContextSession", "DirectoryObjectStore", "MemoryObjectStore", "ObjectStore",
-    "StoredMerkleValue", "restore_stored_value", "store_merkle_value",
-]

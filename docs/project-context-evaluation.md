@@ -313,10 +313,10 @@ compact-context markers, every corresponding report has the same SHA-256 in both
 | Cache policy | Separate | Batch | Difference |
 |---|---:|---:|---:|
 | Calls | 8 | 1 | 7 fewer |
-| Median counted context | 2,695 tokens | 2,453 tokens | 242 tokens (9.0%) fewer |
-| Median counted context | 8,603 bytes | 8,285 bytes | 318 bytes (3.7%) fewer |
-| Fact cache disabled | 1.803 s | 0.231 s | 87.2% lower local wall time |
-| Separate prewarmed caches | 0.183 s | 0.029 s | 84.0% lower local wall time |
+| Median counted context | 2,720 tokens | 2,478 tokens | 242 tokens (8.9%) fewer |
+| Median counted context | 8,734 bytes | 8,416 bytes | 318 bytes (3.6%) fewer |
+| Fact cache disabled | 2.009 s | 0.256 s | 87.3% lower local wall time |
+| Separate prewarmed caches | 0.127 s | 0.022 s | 82.7% lower local wall time |
 
 Each policy has three runs with rotating arm order. The release binary, tokenizer vocabulary,
 measurement sources, fixture, manifest, per-query report identities and raw run metrics are bound in

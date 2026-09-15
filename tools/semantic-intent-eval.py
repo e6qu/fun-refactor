@@ -99,7 +99,7 @@ def direct_intent(report: dict) -> dict:
 
 
 def sdk_intent(repository: Path, root: Path, basis: str, target: list[dict]) -> tuple[bytes, int]:
-    producer = f'''from fr_ir import Intent, LocatorStep, SemanticIntent
+    producer = f'''from fr_ir.ir import Intent, LocatorStep, SemanticIntent
 target = [LocatorStep(**step) for step in {target!r}]
 SemanticIntent("{basis}", [Intent.SetInt(target, "1", "7")]).write("change.json", indent=None)
 '''

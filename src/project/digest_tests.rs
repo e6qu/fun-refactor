@@ -21,7 +21,7 @@ fn reused_digest_buffer_preserves_exact_serialized_bytes_across_sizes() {
         expected.extend_from_slice(bytes.as_bytes());
         assert_eq!(
             digest.clone().finish(),
-            format!("{:x}", Sha256::digest(&expected))
+            hex::encode(Sha256::digest(&expected))
         );
     }
     assert!(digest.buffer.capacity() >= large.len());
@@ -39,7 +39,7 @@ fn revision_buffer_flushes_at_its_threshold_without_changing_the_hash() {
         let expected = format!("null\"{text}\"false");
         assert_eq!(
             digest.finish(),
-            format!("{:x}", Sha256::digest(expected.as_bytes()))
+            hex::encode(Sha256::digest(expected.as_bytes()))
         );
     }
 }
@@ -60,11 +60,11 @@ fn a_partial_serialization_error_leaves_the_digest_unchanged() {
     assert_eq!(digest.buffer, b"\"prefix\"");
     assert_eq!(
         digest.clone().finish(),
-        format!("{:x}", Sha256::digest(b"\"prefix\""))
+        hex::encode(Sha256::digest(b"\"prefix\""))
     );
     digest.update(()).unwrap();
     assert_eq!(
         digest.finish(),
-        format!("{:x}", Sha256::digest(b"\"prefix\"null"))
+        hex::encode(Sha256::digest(b"\"prefix\"null"))
     );
 }

@@ -46,7 +46,7 @@ impl Drop for Lease {
 }
 
 pub(super) fn digest(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    hex::encode(Sha256::digest(bytes))
 }
 
 pub(super) fn bytes(path: &Path, limit: u64) -> Result<Vec<u8>> {

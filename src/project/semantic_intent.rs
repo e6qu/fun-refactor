@@ -347,7 +347,7 @@ pub struct ScalarRequest {
 }
 
 fn digest(bytes: impl AsRef<[u8]>) -> String {
-    format!("{:x}", Sha256::digest(bytes.as_ref()))
+    hex::encode(Sha256::digest(bytes.as_ref()))
 }
 
 fn pointer_segment(segment: &str) -> String {

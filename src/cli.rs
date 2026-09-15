@@ -2260,12 +2260,12 @@ fn prepare_plan_context(
         .context("authoring plan report must be an object")?
         .clone();
     let basis = format!(
-        "frpb1:{:x}",
-        Sha256::digest(serde_json::to_vec(&(
+        "frpb1:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(&(
             "fr-plan-context-1",
             &reviewed,
             exact_changes
-        ))?)
+        ))?))
     );
     if !crate::project::reviewed_plan_basis_allowed(
         complete,
@@ -3076,7 +3076,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
             value.as_object_mut().unwrap().remove("patch");
             value["patch_bytes"] = serde_json::json!(report.patch.len());
             value["patch_sha256"] =
-                serde_json::json!(format!("{:x}", Sha256::digest(report.patch.as_bytes())));
+                serde_json::json!(hex::encode(Sha256::digest(report.patch.as_bytes())));
             value["output"] = serde_json::json!(requested);
             println!("{}", serde_json::to_string_pretty(&value)?);
             return Ok(());

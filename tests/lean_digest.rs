@@ -100,7 +100,7 @@ fn buffered_revision_states_match_lean_and_explicit_byte_oracle() {
             assert_eq!([emitted, pending].concat(), expected);
             assert_eq!(
                 digest.clone().finish(),
-                format!("{:x}", Sha256::digest(expected))
+                hex::encode(Sha256::digest(expected))
             );
             assert!(digest.buffer.len() < 65536);
             states += 1;

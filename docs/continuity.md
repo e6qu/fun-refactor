@@ -1,12 +1,11 @@
 # Development continuity
 
-PR 31 merged as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297). PR 32 is proposed as
-[GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298) and adds a content-addressed context
-workspace over that structured Python runtime. `client.context(...)`
-binds revision, view, commitment and target identity; follows exact server-issued reveal and page
-actions; reconstructs selected Merkle subtrees; and returns one bounded `fr-agent-context-1` packet.
-The same route reaches code maps, call traces, impact, sources and sinks, semantic IR and project
-evidence without exposing every intermediate report to the agent.
+PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298). PR 33 is proposed as
+[GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299). It adds declarative `understand`, `trace`, `change`, `migrate` and
+`prove` requests over the content-addressed context workspace. `AgentIntent` expands each purpose
+to typed evidence projections, traverses the necessary branches locally and returns one bounded
+packet. A request may name 32 projections across eight sections, uses no more than 64 calls per
+section and 512 overall, and returns at most 64 KiB.
 
 Materialization now handles paged objects and arrays, empty containers, inline children and UTF-8
 strings paged by byte offset. It verifies stable page identity, exact coverage, child ordering and
@@ -18,20 +17,38 @@ project, or in an already excluded path, so cache creation does not stale the bo
 `FrKernels.AgentContext` proves the numeric and evidence requirements of the final materialization
 and object-pack admissions. Its Rust source anchors and signature maps are fresh. Rust and Lean
 agree on all 576 selected boundary cases; Python and Rust agree on the same corpus. The Python unit
-suite currently has 30 tests, including adversarial pagination, session, pointer, backend and call
-bound cases. The real Rust/Python integration traverses a paginated code map, caches it, creates a
+suite has 34 tests, including adversarial pagination, session, pointer, backend and call-bound
+cases. The real Rust/Python integration traverses a paginated code map, caches it, creates a
 selected packet and then completes the reviewed change and patch lifecycle.
 
-The deterministic PR 32 comparison makes the same 16 internal `fr` calls and retains the same
+The Python package now has an empty `fr_ir/__init__.py` and explicit `ir`, `runtime`, `context` and
+`intent` modules. It has no `__main__.py` or `__all__` mutation. Tests use pytest 9.1.1. Real intent
+dogfood found and fixed traversal that could not return to an earlier disclosed ancestor to open a
+sibling branch. Rust, Python and Lean compare the final intent admission policy over the same
+32,768 boundary cases.
+
+The dependency refresh selects releases that were stable and at least 24 hours old on 2026-09-15.
+It updates tree-sitter 0.27, SHA-2 0.11, similar 3.2, rstest 0.27, ty 0.0.80, pytest 9.1.1,
+Vite 8.3.0, TypeScript 7.0.2, Zod 4.6.5, Next.js 16.3.5 and current CI action majors. The three npm
+trees report no outdated direct dependency and no audit finding. TypeScript and ty diagnostic
+fixtures are regenerated with the pinned compilers.
+
+The refreshed PR 32 comparison still makes the same 16 internal `fr` calls and retains the same
 normalized code map in both arms. Exposing all progressive requests and responses costs 59,825
-bytes across 16 exchanges. The complete high-level program and its selected packet cost 4,516 bytes
-in one exchange, a 92.5% reduction. This measures fixed protocol bytes and does not run a model or
-claim tokens, billed quota, adoption or population behavior. B883 through B886 record the page,
-pointer, final-call and backend-verification defects fixed while dogfooding the new route.
+bytes across 16 exchanges. The complete high-level program and its selected packet cost 4,550 bytes
+in one exchange, a 92.4% reduction. This measures fixed protocol bytes and does not run a model or
+claim tokens, billed quota, adoption or population behavior. B883 through B887 record the page,
+pointer, final-call, backend-verification and sibling-traversal defects fixed while dogfooding the
+new route. B888 binds external dependency warmup to the same isolated Cargo home as offline replay.
+B889 adapts current grammar build scripts to tree-sitter 0.27's application-supplied WASM libc.
+B890 lets Node 26 execute the checkpoint module after TypeScript 7 removed its JavaScript compiler API.
+B891 renews four retained evaluation bindings after the dependency lockfile upgrade.
+B892 puts every Python SDK source module under the pinned ty gate and removes its unchecked cast.
+B893 renews the two exact Python source bindings affected by that type-safety repair.
 
 The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
 host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all
-translation and repository round trips, all 94 Lean correspondence and self-audit tests, and the
+translation and repository round trips, all 95 Lean correspondence and self-audit tests, and the
 pinned external patch replay with independent oracles and exact reversal.
 
 PR 29 merged as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295) and closed every
@@ -331,8 +348,8 @@ with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
 The controlled PR 12 report is `tests/agent-eval/task-bundle-context.json`. A generic Rust fixture
 compares separate target lookup, caller inspection, author-guide and check-list calls with one task
 bundle. Across three rotating repetitions, the exact normalized query, target-operation and check
-selection identity matches. Calls fall from four to one. Median counted context falls from 1,802 to
-1,514 tokens (16.0%), and bytes fall from 6,662 to 4,758 (28.6%). The 446-byte task manifest is
+selection identity matches. Calls fall from four to one. Median counted context falls from 1,836 to
+1,504 tokens (18.1%), and bytes fall from 6,803 to 4,715 (30.7%). The 446-byte task manifest is
 counted. Both arms stop before fragment creation or mutation,
 so this supports a fresh adoption test but makes no agent-success claim.
 
@@ -384,9 +401,9 @@ Rust. The portable bundle has 45 executable shell examples. Every route remains 
 The fifth checkpoint retains `tests/agent-eval/workflow-context.json`. A generic Python fixture
 compares seven compact manual lifecycle calls with one workflow preview and write. Both arms apply,
 check, undo, check, redo, check and export the same transaction. Across three rotating repetitions,
-median counted context falls from 2,047 to 1,880 tokens, or 8.2%. Calls fall from seven to two and
-bytes fall from 6,368 to 5,556. The current rerun records median local subprocess time falling from
-0.284 to 0.262 seconds.
+median counted context falls from 2,047 to 1,896 tokens, or 7.4%. Calls fall from seven to two and
+bytes fall from 6,368 to 5,638. The current rerun records median local subprocess time falling from
+0.280 to 0.252 seconds.
 Every normalized stage, final history record, source and patch matches. The fixed comparison excludes
 planning, skill reads, agent behavior, independent oracles and receiver checks. Its reduction supports
 one fresh Luna-low adoption pair after the complete deterministic gate passes.
@@ -426,12 +443,12 @@ TypeScript and Python fixture requests structure, an exact declaration, referenc
 calls, test candidates, packages, dependencies and gaps. Eight standalone calls already reuse the
 first response's `context_basis`; the batch includes its 794-byte manifest in counted context.
 All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
-Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
-the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
-is 1.803 versus 0.231 seconds with the fact cache disabled. It is 0.183 versus 0.029 seconds after
+Across three rotating repetitions, median context is 2,720 tokens for separate calls and 2,478 for
+the batch, a 242-token or 8.9% reduction. Calls fall from eight to one. Median local subprocess time
+is 2.009 versus 0.256 seconds with the fact cache disabled. It is 0.127 versus 0.022 seconds after
 each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
 representatives. Byte counts and report identities retain the real values. The measured binary digest is
-`ebe3f9230a9ed880b15095a004ab37326a0608f94ef9ee0c058a9d37ed71580a`.
+`a995c6170be4dec6b5188561a4e39668111ffaa1ecdb4d170c90d5c1bcad4152`.
 The audit recomputes every measurement-source digest, paired report identity and summary statistic.
 OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.
 
@@ -563,7 +580,7 @@ Pinned FastAPI 0.141.1 mounts the generated router through `include_router` and 
 Pydantic 2.13.5 and Starlette 1.6.0 preserve the valid body and produce a field-specific 422 response for an invalid array item.
 The promotion policy requires one candidate and no collision.
 Three Lean theorems characterize that rule, and sixteen shared cases cover unique, missing, repeated and colliding candidates.
-The eighth checkpoint installs a lockfile-pinned Next.js 16.3.4 application with React 19.3.0 and TypeScript 5.9.3.
+The eighth checkpoint installs a lockfile-pinned Next.js 16.3.5 application with React 19.3.0 and TypeScript 7.0.2.
 App Router placement registers the generated generic events route.
 A real framework request returns the exact FastAPI source payload.
 The runtime fixture uses no example-specific translation rule.

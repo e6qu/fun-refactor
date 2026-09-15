@@ -81,11 +81,11 @@ fn nextjs_runtime() -> Option<NextRuntime> {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/migration-runtime/nextjs-framework");
     let executable = root.join("node_modules/.bin/next");
     let packages = [
-        ("next", "16.3.4"),
+        ("next", "16.3.5"),
         ("react", "19.3.0"),
         ("react-dom", "19.3.0"),
-        ("typescript", "5.9.3"),
-        ("@types/node", "22.20.2"),
+        ("typescript", "7.0.2"),
+        ("@types/node", "26.5.1"),
         ("@types/react", "19.3.0"),
         ("@types/react-dom", "19.3.0"),
     ];

@@ -43,8 +43,8 @@ fn basis(rows: &[Value]) -> Result<String> {
         })
         .collect::<Vec<_>>();
     Ok(format!(
-        "frwtacs1:{:x}",
-        Sha256::digest(serde_json::to_vec(&observations)?)
+        "frwtacs1:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(&observations)?))
     ))
 }
 

@@ -3,6 +3,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+export CARGO_HOME="$PWD/target/cargo-home"
+mkdir -p "$CARGO_HOME"
+
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/fr-regex-deps.XXXXXX")"
 trap 'rm -rf "$scratch"' EXIT
 dependency_root="$scratch/workspace"

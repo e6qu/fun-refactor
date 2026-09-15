@@ -163,7 +163,7 @@ fn digest_parts(parts: &[&[u8]]) -> String {
         digest.update((part.len() as u64).to_be_bytes());
         digest.update(part);
     }
-    format!("{:x}", digest.finalize())
+    hex::encode(digest.finalize())
 }
 
 fn basis_matches(supplied: &str, complete: &str) -> bool {
@@ -302,7 +302,7 @@ fn preflight_manifest(
     }
 
     let export = history::export_patch(&root, manifest.transaction, false)?;
-    let patch_digest = format!("{:x}", Sha256::digest(export.patch.as_bytes()));
+    let patch_digest = hex::encode(Sha256::digest(export.patch.as_bytes()));
     let resolved_path = manifest
         .patch
         .as_ref()
@@ -318,7 +318,7 @@ fn preflight_manifest(
         );
     }
 
-    let manifest_digest = format!("{:x}", Sha256::digest(&manifest_bytes));
+    let manifest_digest = hex::encode(Sha256::digest(&manifest_bytes));
     let workflow_basis = format!(
         "frwb1:{}",
         digest_parts(&[

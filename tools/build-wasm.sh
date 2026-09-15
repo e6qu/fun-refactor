@@ -2,8 +2,8 @@
 # Build the analysis core for the browser.
 #
 # `wasm32-unknown-unknown` has no libc, and the tree-sitter grammars are C that
-# expects one. wasm-shim/include declares exactly what they call and src/wasm_libc.rs
-# implements it, so the sysroot is deliberately *not* on the include path: pointing at
+# expects one. The compatibility crate declares its libc and wasm-shim fills scanner
+# gaps, so the sysroot stays off the include path: pointing at
 # wasi's headers is what produced "<wasi/api.h> is only supported on WASI platforms".
 #
 # Set WASM_CLANG, or WASI_SDK (only its clang is used, never its sysroot), or have a
@@ -39,8 +39,9 @@ export AR_wasm32_unknown_unknown="$ar"
 # rely on implicit declarations, which C99 removed and clang now rejects.
 clang_include="$("$clang" -print-resource-dir)/include"
 export CFLAGS_wasm32_unknown_unknown="--target=wasm32-unknown-unknown -nostdinc \
-  -isystem $here/wasm-shim/include -isystem $clang_include -fno-builtin -DNDEBUG \
-  -include stdbool.h -include fr_shim.h -Wno-incompatible-pointer-types -Wno-macro-redefined"
+  -isystem $here/crates/tree-sitter-language/wasm/include -isystem $clang_include \
+  -fno-builtin -DNDEBUG -include stdbool.h -include $here/wasm-shim/include/fr_shim.h \
+  -Wno-incompatible-pointer-types -Wno-macro-redefined"
 
 cd "$here"
 # Every grammar unless told otherwise. `--no-default-features` drops the terminal's
