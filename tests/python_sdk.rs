@@ -39,6 +39,120 @@ fn python_sdk_unit_tests_pass_without_dependencies() {
 }
 
 #[test]
+fn python_runtime_discovers_discloses_reviews_and_executes_without_json_glue() {
+    let workspace = tempfile::tempdir().unwrap();
+    fs::create_dir_all(workspace.path().join("src")).unwrap();
+    fs::create_dir_all(workspace.path().join(".fr")).unwrap();
+    fs::create_dir_all(workspace.path().join("artifacts")).unwrap();
+    fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn render(value: &str) -> String { value.to_owned() }\n\
+         pub fn caller() -> String { render(\"ok\") }\n",
+    )
+    .unwrap();
+    fs::write(
+        workspace.path().join(".fr/checks.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": 1,
+            "checks": [{
+                "name": "syntax", "argv": ["true"], "cwd": ".",
+                "timeout_seconds": 10, "covers": ["selected source state"]
+            }]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let script = r#"# => complete structured agent runtime fixture
+import json, sys
+from fr_ir import FrClient, TaskChange, TaskDelivery, TaskTarget
+
+client = FrClient(sys.argv[1], executable=sys.argv[2])
+found = client.project('find', 'render', '--signature')
+handle = found.at('/rows/0/0')
+initial = client.disclose(handle, view='evidence', token_limit=4096)
+evidence = client.follow(initial.actions(domain='project-evidence')[0])
+change = TaskChange(
+    [], [TaskTarget('render-body', handle, 'replace-body',
+                    fragment='{ value.to_uppercase() }')],
+    {'files-changed': 1, 'edits': 1, 'changed-operations': 1,
+     'paths-changed': ['src/lib.rs']},
+    ['syntax'], TaskDelivery(patch='artifacts/change.patch'),
+)
+review = client.review(change)
+result = client.execute(review)
+print(json.dumps({
+    'evidence_status': evidence.at('/status'),
+    'basis': review.task_change_basis,
+    'passed': result.passed,
+    'transaction_status': result.at('/workflow/transaction_status'),
+}))
+"#;
+    let output = python()
+        .args(["-c", script])
+        .arg(workspace.path())
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["evidence_status"], "revealed");
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["transaction_status"], "applied");
+    assert!(report["basis"].as_str().unwrap().starts_with("frtc1:"));
+    assert!(fs::read_to_string(workspace.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("value.to_uppercase"));
+    assert!(
+        fs::read_to_string(workspace.path().join("artifacts/change.patch"))
+            .unwrap()
+            .contains("+pub fn render")
+    );
+}
+
+#[test]
+fn python_runtime_session_policy_matches_rust_exhaustively() {
+    let script = r#"# => Python agent-session kernel corpus
+from fr_ir.runtime import _session_step
+for state in range(3):
+    for action in range(2):
+        for preview in (False, True):
+            for manifest in (False, True):
+                for basis in (False, True):
+                    print(_session_step(state, action, preview, manifest, basis))
+"#;
+    let output = python().args(["-c", script]).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for state in 0..3 {
+        for action in 0..2 {
+            for preview in [false, true] {
+                for manifest in [false, true] {
+                    for basis in [false, true] {
+                        expected.push(
+                            fun_refactor::project::task_change::agent_session_step(
+                                state, action, preview, manifest, basis,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn python_authors_a_property_from_the_rust_task_shape() {
     let workspace = tempfile::tempdir().unwrap();
     fs::create_dir_all(workspace.path().join("src")).unwrap();
@@ -308,6 +422,31 @@ fn checked_sdk_evaluation_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join("tests/agent-eval/semantic-ir-sdk.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn checked_agent_runtime_context_comparison_is_reproducible() {
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/agent-runtime-context.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let expected: Value = serde_json::from_slice(
+        &fs::read(root().join("tests/agent-eval/agent-runtime-context.json")).unwrap(),
     )
     .unwrap();
     assert_eq!(actual, expected);

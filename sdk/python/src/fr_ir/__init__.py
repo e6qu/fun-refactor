@@ -2017,3 +2017,19 @@ __all__ = [
     "TASK_CHANGE_SCHEMA", "ProjectReference", "ProjectRequest", "TaskChange", "TaskDelivery", "TaskTarget",
     "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode", "UnaryOp", "VariantArm", "merkle_object_digest", "merkle_object_pack", "restore_merkle_object", "verify_disclosure_commitment", "verify_disclosure_proof",
 ]
+
+# Keep subprocess/runtime dependencies outside the IR implementation while exposing one package.
+from .runtime import (
+    Disclosure,
+    DisclosureAction,
+    FrClient,
+    FrReport,
+    FrRuntimeError,
+    TaskResult,
+    TaskReview,
+)
+
+__all__ += [
+    "Disclosure", "DisclosureAction", "FrClient", "FrReport", "FrRuntimeError",
+    "TaskResult", "TaskReview",
+]

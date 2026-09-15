@@ -333,3 +333,25 @@ pub fn task_change_mode(
         _ => 2,
     }
 }
+
+/// Finite admission kernel mirrored by the agent runtime SDK.
+/// States are draft/reviewed/executed and actions are review/execute; 3 means refusal.
+pub fn agent_session_step(
+    state: usize,
+    action: usize,
+    preview_valid: bool,
+    manifest_matches: bool,
+    basis_matches: bool,
+) -> usize {
+    match (
+        state,
+        action,
+        preview_valid,
+        manifest_matches,
+        basis_matches,
+    ) {
+        (0, 0, true, _, _) => 1,
+        (1, 1, true, true, true) => 2,
+        _ => 3,
+    }
+}

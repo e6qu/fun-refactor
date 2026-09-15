@@ -15,11 +15,12 @@ stale identities refuse.
 
 Load only the needed route: [Task](references/task.md), [Explore](references/explore.md),
 [Surfaces](references/surfaces.md),
+[Runtime](references/runtime.md),
 [Disclosure](references/disclosure.md), [Semantic](references/semantic.md), [Semantic intent](references/semantic-intent.md),
 [Semantic change](references/semantic-change.md), [Author](references/author.md), [Change](references/change.md),
 [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md),
 [Git](references/git.md), or [Lean](references/lean.md).
 
-Author with handles; refactor with names or positions. With targets and checks, use one reviewed
-task-change session for checks, apply, reversal and patch. Preview writes. Preserve
+Author with handles. With targets and checks, use one reviewed
+task-change session for checks, apply, reversal and patch. Preview first. Preserve
 refusals, gaps and uncertainty.

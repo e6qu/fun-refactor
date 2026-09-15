@@ -1019,6 +1019,36 @@ fn task_change_review_policy_matches_lean_for_every_boolean_input() {
 }
 
 #[test]
+fn agent_session_policy_matches_lean_for_every_finite_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-session-steps")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for state in 0..3 {
+        for action in 0..2 {
+            for preview in [false, true] {
+                for manifest in [false, true] {
+                    for basis in [false, true] {
+                        expected.push(
+                            fun_refactor::project::task_change::agent_session_step(
+                                state, action, preview, manifest, basis,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn browser_history_transition_policy_matches_lean_exhaustively() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))

@@ -526,6 +526,13 @@ the existing workflow theorem, so every accepted generated lifecycle finishes ap
 host stages succeed. Rust and Lean agree on all sixteen boolean inputs. Hashing, parsing, project
 construction, check processes, history persistence and filesystem operations remain host-tested.
 
+`FrKernels.AgentSession` models the SDK-facing draft, reviewed and executed states. Its accepted
+execution requires a valid retained preview plus matching manifest and basis identities. Lean proves
+that draft state cannot execute and an invalid preview cannot become reviewed. Rust and Lean agree
+on all 48 finite inputs; the Python runtime and Rust agree on the same complete corpus. Python
+execution, JSON serialization, hashing, subprocess behavior and the host boundaries above remain
+outside the proof.
+
 Semantic project reports add two anchored policies. `semanticSectionFits` proves that an admitted
 model fits the complete node budget and rejects a short budget. `semanticBodyAdmitted` proves that
 typed authoring requires the declared schema, a supported target, source-free input and its size

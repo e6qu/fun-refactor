@@ -1,7 +1,24 @@
-# fun-refactor semantic IR for Python
+# fun-refactor agent SDK for Python
 
 This zero-dependency package constructs source-free `fr-semantic-body-1` payloads. Its four
 namespaces follow the Rust IR hierarchy and retain distinct node types at runtime.
+
+`FrClient` also keeps project reports, progressive disclosure and reviewed task-change sessions as
+Python objects. It invokes the local `fr` binary without a shell and exposes selected report values
+without printing the surrounding JSON:
+
+```python
+from fr_ir import FrClient
+
+client = FrClient(".")
+found = client.project("find", "render", "--signature")
+handle = found.at("/rows/0/0")
+evidence = client.disclose(handle, view="evidence")
+revealed = client.follow(evidence.actions(domain="project-evidence")[0])
+```
+
+See [the runtime contract](../../docs/agent-runtime-sdk.md) for bounded calls and the reviewed
+session API.
 
 `FormalPlan.from_json(...)` also mirrors `fr-formal-plan-1`, validates every nested field and
 independently recomputes its Merkle content address. Agents can inspect and store a plan without

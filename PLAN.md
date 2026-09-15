@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 727 |
+| Defects fixed | 728 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -232,7 +232,8 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 27](https://github.com/e6qu/fun-refactor/pull/292) | Agent-Authored Formal Properties | Merged |
 | [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
 | [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
-| PR 30 | Complete Reviewed Agent Change Sessions | In progress |
+| [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
+| PR 31 | Structured Agent Runtime SDK | In progress |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1443,7 +1444,7 @@ cross-stack milestone. Replace old roadmap qualifications with implemented, test
 
 ### PR 30. Complete Reviewed Agent Change Sessions
 
-Status: in progress.
+Status: merged as [PR 296](https://github.com/e6qu/fun-refactor/pull/296).
 
 **Goal.** Replace the measured manual author, workflow and history sequence with one reviewed,
 revision-bound task-change session. It must prove the untouched starting state before mutation and
@@ -1467,12 +1468,46 @@ requiring agents to read successful command streams.
 6. **Complete.** The generic controlled comparison uses two calls and 3,342 median counted tokens,
    below the two-call task-change route's 3,370 and the five-call composed route's 4,623. It
    additionally checks the original before mutation and produces equal final source, patch and history.
-7. **Pending.** Run a fresh isolated Luna-low pair against the frozen regex workspace. Require both
+7. **External follow-up.** Run a fresh isolated Luna-low pair against the frozen regex workspace after
+   explicit approval of the project payload and hosted service. Require both
    arms to pass the 1,060-case project and receiver oracles, ordered lifecycle, patch replay and index
    preservation. Compare calls and measured context without claiming population or billed-quota results.
+   This follow-up is evidence collection, not an unfinished implementation or merge gate.
 8. **Complete.** Active evidence, portable skill, CLI, roadmap and continuity docs are current.
    Native, Python, harness, prose, all 92 Lean audits, deep replay and the host WASM lane pass
    locally. Linux CI passes the native, real-WASM and browser playground gates.
+
+### PR 31. Structured Agent Runtime SDK
+
+Status: in progress.
+
+**Goal.** Let an agent keep bounded `fr` data inside a local Python process, progressively select
+only needed high-level structures and execute one exact reviewed change without copying complete
+JSON reports or manually joining bases through its conversation.
+
+**Acceptance.**
+
+1. **Complete.** A zero-dependency `FrClient` fixes one project root, invokes `fr` without a shell,
+   bounds arguments, standard input, output and time, parses exactly one JSON object and preserves
+   structured failure evidence.
+2. **Complete.** `FrReport` selects detached values by JSON Pointer. `Disclosure` checks the declared
+   response budget, extracts exact server-issued reveal actions and allows domain-filtered semantic,
+   project, code-map, trace, impact and sources/sinks progression without fetching source implicitly.
+3. **Complete.** `TaskReview` binds canonical manifest bytes, their SHA-256, the complete preview and
+   its `frtc1` basis. `execute` refuses locally changed evidence before Rust independently recomputes
+   the reviewed basis and runs original/apply/check/undo/restored-check/redo/final-check/patch.
+4. **Complete.** `FrKernels.AgentSession` proves that execution requires reviewed state and exact
+   preview, manifest and basis inputs. Rust and Lean agree on all 48 finite cases; Python and Rust
+   agree on the same complete corpus.
+5. **Complete.** A real Rust/Python integration fixture discovers a handle, follows source-free
+   project evidence, reviews and executes an inline change, checks its final state and reads the
+   delivered Git patch without hand-written JSON parsing.
+6. **Complete.** The controlled five-operation task preserves exact final source, patch and lifecycle
+   outcomes. Direct JSON exposes 17,689 bytes across five exchanges; the complete runtime program
+   and result expose 1,864 bytes in one exchange, an 89.5% reduction. This measures fixed visible
+   payload, not a model or billed tokens.
+7. **In progress.** Refresh the skill, SDK, roadmap and continuity docs and pass native, WASM,
+   Python, strict Lean and deep gates.
 
 ## Formal verification policy
 
