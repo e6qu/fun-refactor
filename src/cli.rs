@@ -2701,10 +2701,12 @@ fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Res
                 project,
                 root,
                 action,
-                compiled.action_diff_bytes,
-                options.write,
-                options.basis.as_deref(),
-                Some((compiled.purpose, &intent_basis)),
+                TaskChangeRequest {
+                    diff_bytes: compiled.action_diff_bytes,
+                    write: options.write,
+                    supplied_basis: options.basis.as_deref(),
+                    outer_intent: Some((compiled.purpose, &intent_basis)),
+                },
             )?;
             if options.write {
                 let report = serde_json::json!({
@@ -2984,15 +2986,19 @@ struct TaskChangeRun {
     basis: String,
 }
 
+struct TaskChangeRequest<'a> {
+    diff_bytes: usize,
+    write: bool,
+    supplied_basis: Option<&'a str>,
+    outer_intent: Option<(usize, &'a str)>,
+}
+
 fn run_task_change(
     cli: &Cli,
     project: &crate::project::Project<'_>,
     root: &Path,
     mut prepared: crate::project::task_change::Prepared,
-    diff_bytes: usize,
-    write: bool,
-    supplied_basis: Option<&str>,
-    outer_intent: Option<(usize, &str)>,
+    request: TaskChangeRequest<'_>,
 ) -> Result<TaskChangeRun> {
     let outcomes = crate::edit::plan(&prepared.plan.edits, crate::edit::Validation::ReparseStrict)?;
     anyhow::ensure!(
@@ -3004,7 +3010,7 @@ fn run_task_change(
         .iter()
         .map(|outcome| workspace_diff(cli, outcome))
         .collect::<String>();
-    prepared.plan.set_diff(&diff, diff_bytes);
+    prepared.plan.set_diff(&diff, request.diff_bytes);
     anyhow::ensure!(
         prepared.plan.report["diff"].is_string(),
         "task change requires a complete untruncated diff; raise the action diff limit."
@@ -3043,7 +3049,7 @@ fn run_task_change(
     let task_change_basis = crate::project::task_change::review_basis(&prepared.report, &exact)?;
     prepared.report["task_change_basis"] = serde_json::json!(&task_change_basis);
     prepared.report["ready"] = serde_json::json!(true);
-    let basis = if let Some((_, intent_basis)) = outer_intent {
+    let basis = if let Some((_, intent_basis)) = request.outer_intent {
         format!(
             "fraa1:{}",
             hex::encode(Sha256::digest(serde_json::to_vec(&(
@@ -3055,22 +3061,22 @@ fn run_task_change(
     } else {
         task_change_basis.clone()
     };
-    let mode = outer_intent.map_or_else(
+    let mode = request.outer_intent.map_or_else(
         || {
             crate::project::task_change::task_change_mode(
                 true,
-                write,
-                supplied_basis.is_some(),
-                supplied_basis == Some(basis.as_str()),
+                request.write,
+                request.supplied_basis.is_some(),
+                request.supplied_basis == Some(basis.as_str()),
             )
         },
         |(purpose, _)| {
             crate::project::agent_intent::agent_action_mode(
                 purpose,
                 true,
-                write,
-                supplied_basis.is_some(),
-                supplied_basis == Some(basis.as_str()),
+                request.write,
+                request.supplied_basis.is_some(),
+                request.supplied_basis == Some(basis.as_str()),
             )
         },
     );
@@ -3082,7 +3088,7 @@ fn run_task_change(
         });
     }
     if mode != 1 {
-        anyhow::bail!(if outer_intent.is_some() {
+        anyhow::bail!(if request.outer_intent.is_some() {
             "stale or conflicting intent-action basis; review the complete current preview."
         } else {
             "stale or conflicting task-change basis; review the complete current preview."
@@ -3149,10 +3155,12 @@ fn cmd_task_change(cli: &Cli, options: &crate::project::task_change::Options) ->
             project,
             root,
             prepared,
-            options.diff_bytes,
-            options.write,
-            options.basis.as_deref(),
-            None,
+            TaskChangeRequest {
+                diff_bytes: options.diff_bytes,
+                write: options.write,
+                supplied_basis: options.basis.as_deref(),
+                outer_intent: None,
+            },
         )?;
         println!("{}", serde_json::to_string(&outcome.report)?);
         if !outcome.passed {

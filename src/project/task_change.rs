@@ -146,7 +146,7 @@ impl Project<'_> {
         diff_bytes: usize,
         report_bytes: usize,
     ) -> Result<Prepared> {
-        let manifest: Manifest = serde_json::from_slice(&bytes)
+        let manifest: Manifest = serde_json::from_slice(bytes)
             .context("task-change input must be a task-change manifest.")?;
         ensure!(
             manifest.schema == SCHEMA,
@@ -281,7 +281,7 @@ impl Project<'_> {
         )?;
         let checks = crate::checks::select(&self.root, &manifest.checks)?
             .context("task change requires at least one declared check.")?;
-        let manifest_sha256 = hex::encode(Sha256::digest(&bytes));
+        let manifest_sha256 = hex::encode(Sha256::digest(bytes));
         for field in [
             "author_manifest_template",
             "workflow_manifest_template",
