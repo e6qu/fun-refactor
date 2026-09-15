@@ -281,8 +281,9 @@ async function lintTypescript(code) {
   return { ok: findings.length === 0, output: findings.join("\n") || "no lint findings" };
 }
 
-let mypyPromise;
 let pyLintersPromise;
+const TY_VERSION = "0.0.80";
+const TY_PLAYGROUND = "https://play.ty.dev/";
 
 async function pythonTool(code, script, ready) {
   const pyodide = await loadPyodideOnce();
@@ -295,28 +296,24 @@ async function pythonTool(code, script, ready) {
   return String(output ?? "");
 }
 
-async function checkPython(code) {
-  const config = `[mypy]\nstrict = True\n${code.includes("pydantic") ? "plugins = pydantic.mypy\n" : ""}`;
-  const output = await pythonTool(code, MYPY_DRIVER, async (pyodide) => {
-    mypyPromise ??= pyodide
-      .loadPackage("micropip")
-      .then(() =>
-        pyodide.runPythonAsync(
-          'import micropip\nawait micropip.install(["mypy==2.3.1"])',
-        ),
-      );
-    await mypyPromise;
-    pyodide.FS.writeFile("/mypy.ini", config);
-  });
-  return { ok: !output.includes("error:"), output: output.replaceAll("/cell.py", "cell.py") };
+async function checkPython(code, playgroundWindow) {
+  try {
+    await navigator.clipboard.writeText(code);
+    if (playgroundWindow && !playgroundWindow.closed) {
+      playgroundWindow.opener = null;
+      playgroundWindow.location.replace(TY_PLAYGROUND);
+    } else {
+      window.open(TY_PLAYGROUND, "_blank", "noopener");
+    }
+    return {
+      ok: true,
+      output: `copied the cell and opened the official ty playground; paste it into main.py. Repository checks pin ty ${TY_VERSION}`,
+    };
+  } catch (error) {
+    playgroundWindow?.close();
+    throw error;
+  }
 }
-
-const MYPY_DRIVER = `
-from mypy import api
-
-_out, _err, _status = api.run(["--config-file", "/mypy.ini", "/cell.py"])
-(_out + _err).strip()
-`;
 
 async function lintPython(code) {
   pyLintersPromise ??= import(
@@ -348,7 +345,7 @@ const ACTIONS = {
     typescript: runTypescript,
   },
   check: {
-    busy: "Type checking… the first check downloads the checker",
+    busy: "Type checking… the first TypeScript check downloads the checker",
     python: checkPython,
     typescript: checkTypescript,
   },
@@ -359,13 +356,16 @@ const ACTIONS = {
   },
 };
 
-async function runCell(action, code, language, out) {
+async function runCell(action, code, language, out, playgroundWindow = null) {
   out.hidden = false;
   out.className = "ts-run-out";
-  out.textContent = ACTIONS[action].busy;
+  out.textContent =
+    action === "check" && language === "python"
+      ? "Copying the cell and opening ty…"
+      : ACTIONS[action].busy;
   let result;
   try {
-    result = await ACTIONS[action][language](code);
+    result = await ACTIONS[action][language](code, playgroundWindow);
   } catch (error) {
     result = { ok: false, output: String(error?.message ?? error) };
   }
@@ -392,7 +392,7 @@ function pane(codes, code, id) {
           <button type="button" class="ts-reset-button" hidden>Reset</button>
           <a class="ts-edit-link" href="${editUrl(id)}" target="_blank"
             rel="noopener">Edit in GitHub</a>
-          <button type="button" class="ts-cell-button" data-action="check">Type check</button>
+          <button type="button" class="ts-cell-button" data-action="check">${lang === "python" ? "Copy to ty" : "Type check"}</button>
           <button type="button" class="ts-cell-button" data-action="lint">Lint</button>
           <button type="button" class="ts-cell-button" data-action="run">Run</button>
         </span></div>
@@ -498,11 +498,21 @@ function wireCommon(slot, codes) {
     const actions = cell.querySelectorAll(".ts-cell-button");
     for (const button of actions) {
       button.addEventListener("click", async () => {
+        const playgroundWindow =
+          language === "python" && button.dataset.action === "check"
+            ? window.open("about:blank", "_blank")
+            : null;
         for (const b of actions) {
           b.disabled = true;
         }
         try {
-          await runCell(button.dataset.action, input.value, language, cell.querySelector(".ts-run-out"));
+          await runCell(
+            button.dataset.action,
+            input.value,
+            language,
+            cell.querySelector(".ts-run-out"),
+            playgroundWindow,
+          );
         } finally {
           for (const b of actions) {
             b.disabled = false;

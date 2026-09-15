@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 734 |
+| Defects fixed | 733 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -278,7 +278,7 @@ Deliverables:
   content-addressed object storage, under shared call and packet limits.
 - Keep the Python package root empty and expose explicit `ir`, `runtime`, `context` and `intent`
   modules without `__main__.py` or a mutable `__all__` registry.
-- Use pytest 9.1.1 for the Python suite and update every direct Rust, Python, npm and CI-action
+- Use pytest 9.1.1 and ty 0.0.80 for the Python suites and update every direct Rust, Python, npm and CI-action
   dependency to the latest stable release that had been public for at least 24 hours at selection.
 - Anchor the final intent admission policy in Lean and compare Rust, Python and Lean over the same
   numeric boundaries and Boolean evidence states.
@@ -295,7 +295,7 @@ Verification and acceptance:
    packets refuse before being returned to the agent.
 4. Rust, Python and Lean agree on all 32,768 intent-admission boundary cases; Lean recovers every
    numeric bound and all three final evidence requirements.
-5. Python tests run under pytest 9.1.1, upgraded TypeScript/Next.js fixtures compile and execute,
+5. Python tests run under pytest 9.1.1 and type-check under ty 0.0.80, upgraded TypeScript/Next.js fixtures compile and execute,
    the browser build has no npm audit findings, and strict source correspondence passes.
 6. The complete native, WASM, documentation, skill and deep repository gates pass before review.
 

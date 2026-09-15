@@ -28,18 +28,18 @@ sibling branch. Rust, Python and Lean compare the final intent admission policy 
 32,768 boundary cases.
 
 The dependency refresh selects releases that were stable and at least 24 hours old on 2026-09-15.
-It updates tree-sitter 0.27, SHA-2 0.11, similar 3.2, rstest 0.27, mypy 2.3.1, pytest 9.1.1,
+It updates tree-sitter 0.27, SHA-2 0.11, similar 3.2, rstest 0.27, ty 0.0.80, pytest 9.1.1,
 Vite 8.3.0, TypeScript 7.0.2, Zod 4.6.5, Next.js 16.3.5 and current CI action majors. The three npm
-trees report no outdated direct dependency and no audit finding. TypeScript and mypy diagnostic
+trees report no outdated direct dependency and no audit finding. TypeScript and ty diagnostic
 fixtures are regenerated with the pinned compilers.
 
 The refreshed PR 32 comparison still makes the same 16 internal `fr` calls and retains the same
 normalized code map in both arms. Exposing all progressive requests and responses costs 59,825
 bytes across 16 exchanges. The complete high-level program and its selected packet cost 4,550 bytes
 in one exchange, a 92.4% reduction. This measures fixed protocol bytes and does not run a model or
-claim tokens, billed quota, adoption or population behavior. B883 through B888 record the page,
-pointer, final-call, backend-verification, sibling-traversal and type-checker isolation defects
-fixed while dogfooding the new route.
+claim tokens, billed quota, adoption or population behavior. B883 through B887 record the page,
+pointer, final-call, backend-verification and sibling-traversal defects fixed while dogfooding the
+new route.
 
 The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
 host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all

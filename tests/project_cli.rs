@@ -2772,7 +2772,7 @@ fn package_views_cover_go_modules_and_python_project_metadata() {
             "httpx = { version = \"^0.28\", ",
             "optional = true }\n",
             "[tool.poetry.group.dev.dependencies]\n",
-            "mypy = \"^1.17\"\n",
+            "ty = \"==0.0.80\"\n",
             "[tool.uv.workspace]\n",
             "members = [\"packages/*\"]\n",
         ),

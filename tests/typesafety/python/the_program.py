@@ -1,5 +1,5 @@
-# expect: fails
-# title: The bill of materials and the invoice, as they stand today
+# expect: passes
+# title: The unannotated program passes gradual checking and keeps all five mistakes
 
 
 def bom_line(part_no, description, qty, unit, cost):

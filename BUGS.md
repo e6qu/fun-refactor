@@ -67,12 +67,6 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
-- [x] B888: **parallel type-safety checks could corrupt mypy's shared incremental cache**. The
-  repository launches independent compiler fixtures concurrently, but each mypy process used the
-  default cache directory. A losing writer could fail inside `UPDATE_SITE_DATA` even though the
-  checked program was valid. Fixture checks now use `--no-incremental`, which keeps their isolated,
-  deterministic diagnostics and removes the shared writer.
-
 - [x] B887: **the Python context workspace could reveal the first requested evidence branch and
   then strand every sibling**. `ContextSession` retained actions only from its newest report, so a
   trace intent that reached `code_map` lost the earlier ancestor action needed to open
