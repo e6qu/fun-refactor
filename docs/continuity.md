@@ -1,7 +1,8 @@
 # Development continuity
 
-PR 31 merged as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297). The active PR 32 adds a
-content-addressed context workspace over that structured Python runtime. `client.context(...)`
+PR 31 merged as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297). PR 32 is proposed as
+[GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298) and adds a content-addressed context
+workspace over that structured Python runtime. `client.context(...)`
 binds revision, view, commitment and target identity; follows exact server-issued reveal and page
 actions; reconstructs selected Merkle subtrees; and returns one bounded `fr-agent-context-1` packet.
 The same route reaches code maps, call traces, impact, sources and sinks, semantic IR and project
@@ -27,6 +28,11 @@ bytes across 16 exchanges. The complete high-level program and its selected pack
 in one exchange, a 92.5% reduction. This measures fixed protocol bytes and does not run a model or
 claim tokens, billed quota, adoption or population behavior. B883 through B886 record the page,
 pointer, final-call and backend-verification defects fixed while dogfooding the new route.
+
+The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
+host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all
+translation and repository round trips, all 94 Lean correspondence and self-audit tests, and the
+pinned external patch replay with independent oracles and exact reversal.
 
 PR 29 merged as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295) and closed every
 concrete deferred boundary recorded in `PLAN.md`.

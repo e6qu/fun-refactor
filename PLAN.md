@@ -251,7 +251,7 @@ The next completed milestone is awaiting review:
 | [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
 | [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
 | [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Merged |
-| PR 32 | Content-Addressed Agent Context Workspace | In progress |
+| [PR 32](https://github.com/e6qu/fun-refactor/pull/298) | Content-Addressed Agent Context Workspace | Proposed |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1531,7 +1531,7 @@ manually joining bases through its conversation.
 
 ### PR 32. Content-Addressed Agent Context Workspace
 
-Status: in progress.
+Status: proposed as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298).
 
 **Goal.** Let an agent request a high-level project subtree without implementing Merkle pagination
 or ingesting each intermediate report. Preserve the exact progressive-disclosure, revision and
@@ -1566,8 +1566,11 @@ digest boundaries while making retrieved objects reusable through local or remot
    same normalized code map in both arms. Progressive request/response exposure is 59,825 bytes in
    16 exchanges; the complete high-level program and selected packet are 4,516 bytes in one
    exchange, a 92.5% reduction. This measures fixed bytes, not model behavior, tokens or quota.
-8. **In progress.** Keep the Python package, portable skill, runtime, disclosure, Lean, roadmap and
-   continuity docs aligned. Pass the complete default, deep and WASM gates, then publish the PR.
+8. **Complete.** The Python package, portable skill, runtime, disclosure, Lean, roadmap and
+   continuity docs describe one contract. The complete default gate passes its native, Python,
+   skill, capability, strict-Lean and WASM lanes. The deep gate passes full-audit command agreement,
+   conformance, round trips, all 94 Lean checks and the pinned external exact-reversal replay. The
+   [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298) publishes the result.
 
 ## Formal verification policy
 
