@@ -17,8 +17,8 @@ project, or in an already excluded path, so cache creation does not stale the bo
 `FrKernels.AgentContext` proves the numeric and evidence requirements of the final materialization
 and object-pack admissions. Its Rust source anchors and signature maps are fresh. Rust and Lean
 agree on all 576 selected boundary cases; Python and Rust agree on the same corpus. The Python unit
-suite currently has 30 tests, including adversarial pagination, session, pointer, backend and call
-bound cases. The real Rust/Python integration traverses a paginated code map, caches it, creates a
+suite has 34 tests, including adversarial pagination, session, pointer, backend and call-bound
+cases. The real Rust/Python integration traverses a paginated code map, caches it, creates a
 selected packet and then completes the reviewed change and patch lifecycle.
 
 The Python package now has an empty `fr_ir/__init__.py` and explicit `ir`, `runtime`, `context` and
@@ -37,8 +37,9 @@ The refreshed PR 32 comparison still makes the same 16 internal `fr` calls and r
 normalized code map in both arms. Exposing all progressive requests and responses costs 59,825
 bytes across 16 exchanges. The complete high-level program and its selected packet cost 4,550 bytes
 in one exchange, a 92.4% reduction. This measures fixed protocol bytes and does not run a model or
-claim tokens, billed quota, adoption or population behavior. B883 through B886 record the page,
-pointer, final-call and backend-verification defects fixed while dogfooding the new route.
+claim tokens, billed quota, adoption or population behavior. B883 through B888 record the page,
+pointer, final-call, backend-verification, sibling-traversal and type-checker isolation defects
+fixed while dogfooding the new route.
 
 The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
 host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all
