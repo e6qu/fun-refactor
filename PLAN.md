@@ -1470,9 +1470,9 @@ requiring agents to read successful command streams.
 7. **Pending.** Run a fresh isolated Luna-low pair against the frozen regex workspace. Require both
    arms to pass the 1,060-case project and receiver oracles, ordered lifecycle, patch replay and index
    preservation. Compare calls and measured context without claiming population or billed-quota results.
-8. **Pending only on CI.** Active evidence, portable skill, CLI, roadmap and continuity docs are
-   current. Native, Python, harness, prose, all 92 Lean audits, deep replay and the host WASM lane
-   pass locally. This Mac has no wasm-capable clang, so the Linux real-WASM job remains the gate.
+8. **Complete.** Active evidence, portable skill, CLI, roadmap and continuity docs are current.
+   Native, Python, harness, prose, all 92 Lean audits, deep replay and the host WASM lane pass
+   locally. Linux CI passes the native, real-WASM and browser playground gates.
 
 ## Formal verification policy
 

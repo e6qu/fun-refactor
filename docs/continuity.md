@@ -21,9 +21,9 @@ The complete local gate passes 311/311 capability cells, all Python and agent-ha
 portable skill's 56 executable examples, its byte budgets, and all 66 strict Lean build jobs. The
 deep gate passes repository-wide command agreement, translation conformance, round trips, all 92
 Lean correspondence and self-audit tests, plus pinned regex patch replay and reversal. The host WASM
-lane passes all browser tests and feature combinations. This Mac's clang lacks a wasm backend, so
-the Linux CI job remains responsible for the real `wasm32-unknown-unknown` artifact. B881 records
-the skill-budget regression found and fixed during the gate.
+lane passes all browser tests and feature combinations. Linux CI passes the native, real
+`wasm32-unknown-unknown`, and browser playground jobs. B881 records the skill-budget regression
+found and fixed during the gate.
 
 The combined-gate checkpoint refreshed the context-protocol, workflow, project-batch and task-bundle
 reports from their frozen inputs after their checksum-bound sources changed. All fifteen active
