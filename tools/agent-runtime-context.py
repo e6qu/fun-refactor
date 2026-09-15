@@ -169,7 +169,6 @@ def generate(binary: Path) -> dict:
     return {
         "schema": "fr-agent-runtime-context-1",
         "passed": True,
-        "binary_sha256": digest(binary.read_bytes()),
         "inputs": {
             "tool_sha256": digest(Path(__file__).read_bytes()),
             "runtime_sha256": digest((ROOT / "sdk/python/src/fr_ir/runtime.py").read_bytes()),
