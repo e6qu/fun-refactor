@@ -67,6 +67,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B896: **a high-level change intent stopped before its reviewed change lifecycle**. Agents had
+  to carry the target and context into a separate task-change review. Their declared purpose,
+  evidence and mutation therefore lacked one checked basis. A change intent now binds one direct
+  typed task change and previews both from one snapshot. It executes only the unchanged outer review
+  through checks, undo, redo and patch delivery.
+
 - [x] B895: **an explicit intent could request evidence outside its declared purpose**. Purpose
   labels expanded to useful defaults but did not constrain custom projections. Rust, Python and
   Lean now share the exact purpose-to-section relation and reject cross-purpose requests.

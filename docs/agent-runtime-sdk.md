@@ -69,6 +69,29 @@ inside a section. Native compilation uses one `fr` process and reports zero prog
 independent parity checks. Passing an object store to `compile` verifies and stores each selected
 Merkle subtree under the digest returned by Rust.
 
+A complete `change` intent can retain the reviewed action in the same packet. Wrap one direct
+`TaskChange` with `IntentAction`; its only target must be the intent target and it cannot carry
+project requests:
+
+```python
+from fr_ir.intent import AgentIntent, IntentAction
+
+compiled = client.compile(AgentIntent(
+    handle,
+    "change",
+    packet_limit=65_536,
+    action=IntentAction(change),
+))
+# Review compiled.at('/action/review/author/diff').
+result = client.execute_intent(compiled)
+assert result.passed
+```
+
+The compiled value retains the exact canonical manifest, preview digest and `fraa1:` basis.
+`execute_intent` checks those local identities before native `fr` rebuilds the review. Changed
+source, intent, action, checks, postconditions or delivery options refuse before history creation.
+The accepted route uses the same checked reversal and patch lifecycle as `TaskChange`.
+
 ## Complete reviewed changes
 
 The existing `TaskChange`, `TaskTarget` and `TaskDelivery` types build the wire object. `review`

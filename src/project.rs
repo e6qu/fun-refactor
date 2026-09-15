@@ -17,7 +17,7 @@ const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-4";
 pub mod author;
 pub use author::{disclosed_edit_admitted, disclosed_ir_edit_admitted};
 pub(crate) mod agent_intent;
-pub use agent_intent::agent_intent_section_allowed;
+pub use agent_intent::{agent_action_mode, agent_intent_section_allowed};
 mod batch;
 mod components;
 mod configuration;

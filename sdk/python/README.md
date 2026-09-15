@@ -42,6 +42,11 @@ uses one project snapshot and no progressive subprocess calls. Pass a `MemoryObj
 `DirectoryObjectStore` to verify and retain each selected subtree. `client.prepare` keeps the
 progressive action traversal available for protocol testing and parity checks.
 
+For one direct reviewed change, wrap a `TaskChange` in `IntentAction` and pass it to a `change`
+intent. Inspect `/action/review`, then call `client.execute_intent(compiled)`. The runtime retains
+the canonical manifest and preview digest; native execution accepts only the unchanged `fraa1:`
+basis and uses the ordinary checks, undo/redo and patch lifecycle.
+
 The package root is deliberately empty. Import IR constructors from `fr_ir.ir`, the subprocess
 client from `fr_ir.runtime`, progressive storage from `fr_ir.context`, and high-level requests from
 `fr_ir.intent`. The package has no `__main__.py` and publishes no mutable `__all__` registry.
