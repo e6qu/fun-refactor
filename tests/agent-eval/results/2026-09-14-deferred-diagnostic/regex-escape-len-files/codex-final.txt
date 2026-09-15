@@ -1,0 +1,9 @@
+Implemented:
+
+- Added documented `escape_len(&str) -> usize` to `regex-syntax` and `regex`.
+- Updated `regex-syntax::escape` to preallocate escaped capacity.
+- Preserved existing APIs and escaping behavior.
+- Baseline and changed-state checks passed, including no-default-features compilation.
+- Patch export, reverse, sentinel preservation, and reapply completed.
+
+Post-reapply checks and receiver verification were blocked by the instrumented tool’s “Trial binary changed after preparation” refusal.

@@ -40,7 +40,7 @@ export AR_wasm32_unknown_unknown="$ar"
 clang_include="$("$clang" -print-resource-dir)/include"
 export CFLAGS_wasm32_unknown_unknown="--target=wasm32-unknown-unknown -nostdinc \
   -isystem $here/wasm-shim/include -isystem $clang_include -fno-builtin -DNDEBUG \
-  -include stdbool.h -include fr_shim.h"
+  -include stdbool.h -include fr_shim.h -Wno-incompatible-pointer-types -Wno-macro-redefined"
 
 cd "$here"
 # Every grammar unless told otherwise. `--no-default-features` drops the terminal's

@@ -107,6 +107,26 @@ theorem absolute_service_target_wins (rootRelative : Bool) :
     serviceTargetKind true rootRelative = 2 := by
   cases rootRelative <;> rfl
 
+-- fr:spec src/project/framework_kernel.rs::service_route_candidate @ 5a894135affd5798e095e8908b1d88806f3f624e9316fdd00b7dc4f45d42b207
+-- fr:signature local_target: bool => localTarget: Bool; path_equal: bool => pathEqual: Bool; method_known: bool => methodKnown: Bool; method_equal: bool => methodEqual: Bool; return: bool => return: Bool
+def serviceRouteCandidate (localTarget : Bool) (pathEqual : Bool)
+    (methodKnown : Bool) (methodEqual : Bool) : Bool :=
+  localTarget && pathEqual && (!methodKnown || methodEqual)
+
+theorem service_route_candidate_requires_local_equal_path
+    (localTarget pathEqual methodKnown methodEqual : Bool)
+    (accepted : serviceRouteCandidate localTarget pathEqual methodKnown methodEqual = true) :
+    localTarget = true ∧ pathEqual = true := by
+  cases localTarget <;> cases pathEqual <;> simp [serviceRouteCandidate] at accepted ⊢
+
+theorem service_route_unknown_method_accepts_local_path (methodEqual : Bool) :
+    serviceRouteCandidate true true false methodEqual = true := by
+  cases methodEqual <;> decide
+
+theorem service_route_known_method_requires_equality (methodEqual : Bool) :
+    serviceRouteCandidate true true true methodEqual = methodEqual := by
+  cases methodEqual <;> decide
+
 -- fr:spec src/project/framework_kernel.rs::service_redaction_flags @ ab640c3628e3562292ae80a5bb5e809068215aa9a001eb1542ba4a72abaa99cd
 -- fr:signature query_or_fragment: bool => queryOrFragment: Bool; credentials: bool => credentials: Bool; return: usize => return: Nat
 def serviceRedactionFlags (queryOrFragment : Bool) (credentials : Bool) : Nat :=
@@ -588,6 +608,116 @@ theorem body_replacement_bounds (before after : Nat)
 theorem body_replacement_budget_is_symmetric (before after : Nat) :
     bodyReplacementBudget before after = bodyReplacementBudget after before := by
   simp [bodyReplacementBudget, and_comm, and_left_comm, and_assoc]
+
+-- fr:spec src/project.rs::manifest_inventory_allowed @ 0eb2bdb401147b1fdc49db43b3d0182e2f2570bcbd5519a798799ac51f044594
+-- fr:signature manifests: usize => manifests: Nat; declarations: usize => declarations: Nat; return: bool => return: Bool
+def manifestInventoryAllowed (manifests : Nat) (declarations : Nat) : Bool :=
+  decide (manifests ≤ 1024 ∧ declarations ≤ 65536)
+
+theorem manifest_inventory_bounds (manifests declarations : Nat)
+    (allowed : manifestInventoryAllowed manifests declarations = true) :
+    manifests ≤ 1024 ∧ declarations ≤ 65536 := by
+  simpa [manifestInventoryAllowed] using allowed
+
+theorem manifest_inventory_accepts_empty : manifestInventoryAllowed 0 0 = true := by decide
+
+theorem manifest_inventory_refuses_excess_files (declarations : Nat) :
+    manifestInventoryAllowed 1025 declarations = false := by simp [manifestInventoryAllowed]
+
+theorem manifest_inventory_refuses_excess_declarations (manifests : Nat) :
+    manifestInventoryAllowed manifests 65537 = false := by simp [manifestInventoryAllowed]
+
+-- fr:spec src/project.rs::lockfile_inventory_allowed @ d523f3cce3a9c92ab127000a293fdfe57a8639ef31352774164cb137986124c4
+-- fr:signature lockfiles: usize => lockfiles: Nat; evidence: usize => evidence: Nat; return: bool => return: Bool
+def lockfileInventoryAllowed (lockfiles : Nat) (evidence : Nat) : Bool :=
+  decide (lockfiles ≤ 1024 ∧ evidence ≤ 262144)
+
+theorem lockfile_inventory_bounds (lockfiles evidence : Nat)
+    (allowed : lockfileInventoryAllowed lockfiles evidence = true) :
+    lockfiles ≤ 1024 ∧ evidence ≤ 262144 := by
+  simpa [lockfileInventoryAllowed] using allowed
+
+theorem lockfile_inventory_accepts_empty : lockfileInventoryAllowed 0 0 = true := by decide
+
+theorem lockfile_inventory_refuses_excess_files (evidence : Nat) :
+    lockfileInventoryAllowed 1025 evidence = false := by simp [lockfileInventoryAllowed]
+
+theorem lockfile_inventory_refuses_excess_rows (lockfiles : Nat) :
+    lockfileInventoryAllowed lockfiles 262145 = false := by simp [lockfileInventoryAllowed]
+
+-- fr:spec src/project.rs::dependency_resolution_candidate @ 7a3cb3a0d92308994b75bfc2862a4a548c3b5164267b4946e7cda2d03bf9d4dc
+-- fr:signature lockfile_applies: bool => lockfileApplies: Bool; ecosystem_equal: bool => ecosystemEqual: Bool; name_equal: bool => nameEqual: Bool; return: bool => return: Bool
+def dependencyResolutionCandidate
+    (lockfileApplies : Bool) (ecosystemEqual : Bool) (nameEqual : Bool) : Bool :=
+  lockfileApplies && ecosystemEqual && nameEqual
+
+theorem dependency_resolution_requires_every_identity
+    (lockfileApplies ecosystemEqual nameEqual : Bool) :
+    dependencyResolutionCandidate lockfileApplies ecosystemEqual nameEqual = true ↔
+      lockfileApplies = true ∧ ecosystemEqual = true ∧ nameEqual = true := by
+  cases lockfileApplies <;> cases ecosystemEqual <;> cases nameEqual <;> decide
+
+theorem dependency_resolution_refuses_mismatched_name
+    (lockfileApplies ecosystemEqual : Bool) :
+    dependencyResolutionCandidate lockfileApplies ecosystemEqual false = false := by
+  cases lockfileApplies <;> cases ecosystemEqual <;> decide
+
+-- fr:spec src/project.rs::package_feature_inventory_allowed @ 826798c4a54526a47772af204f43c386d83b6656c9f4bd70238d3662d4fc0a3a
+-- fr:signature features: usize => features: Nat; members: usize => members: Nat; return: bool => return: Bool
+def packageFeatureInventoryAllowed (features : Nat) (members : Nat) : Bool :=
+  decide (features ≤ 65536 ∧ members ≤ 65536)
+
+theorem package_feature_inventory_bounds (features members : Nat)
+    (allowed : packageFeatureInventoryAllowed features members = true) :
+    features ≤ 65536 ∧ members ≤ 65536 := by
+  simpa [packageFeatureInventoryAllowed] using allowed
+
+theorem package_feature_inventory_refuses_excess_features (members : Nat) :
+    packageFeatureInventoryAllowed 65537 members = false := by
+  simp [packageFeatureInventoryAllowed]
+
+theorem package_feature_inventory_refuses_excess_members (features : Nat) :
+    packageFeatureInventoryAllowed features 65537 = false := by
+  simp [packageFeatureInventoryAllowed]
+
+-- fr:spec src/project.rs::package_feature_dependency_request @ 8a9c3ff8756df095379654e0e4f6134dd80e5287af77e2784f68b3c35334ef0a
+-- fr:signature source_active: bool => sourceActive: Bool; dependency_known: bool => dependencyKnown: Bool; weak: bool => weak: Bool; dependency_active: bool => dependencyActive: Bool; return: bool => return: Bool
+def packageFeatureDependencyRequest
+    (sourceActive : Bool) (dependencyKnown : Bool) (weak : Bool) (dependencyActive : Bool) : Bool :=
+  sourceActive && dependencyKnown && (!weak || dependencyActive)
+
+theorem package_feature_dependency_request_iff
+    (sourceActive dependencyKnown weak dependencyActive : Bool) :
+    packageFeatureDependencyRequest sourceActive dependencyKnown weak dependencyActive = true ↔
+      sourceActive = true ∧ dependencyKnown = true ∧
+        (weak = false ∨ dependencyActive = true) := by
+  cases sourceActive <;> cases dependencyKnown <;> cases weak <;> cases dependencyActive <;>
+    decide
+
+theorem package_feature_weak_request_requires_active_dependency
+    (sourceActive dependencyKnown : Bool) :
+    packageFeatureDependencyRequest sourceActive dependencyKnown true false = false := by
+  cases sourceActive <;> cases dependencyKnown <;> decide
+
+-- fr:spec src/project.rs::artifact_verification_status @ 9725f2d04474ea7c00489e35bc35b01fe23737eab32f50a99157f9c9e43ae4a5
+-- fr:signature expectation_present: bool => expectationPresent: Bool; algorithm_supported: bool => algorithmSupported: Bool; digest_equal: bool => digestEqual: Bool; return: usize => return: Nat
+def artifactVerificationStatus
+    (expectationPresent : Bool) (algorithmSupported : Bool) (digestEqual : Bool) : Nat :=
+  if !expectationPresent then 0
+  else if !algorithmSupported then 1
+  else if !digestEqual then 2
+  else 3
+
+theorem artifact_verification_status_bounded
+    (expectationPresent algorithmSupported digestEqual : Bool) :
+    artifactVerificationStatus expectationPresent algorithmSupported digestEqual ≤ 3 := by
+  cases expectationPresent <;> cases algorithmSupported <;> cases digestEqual <;> decide
+
+theorem artifact_verification_succeeds_iff
+    (expectationPresent algorithmSupported digestEqual : Bool) :
+    artifactVerificationStatus expectationPresent algorithmSupported digestEqual = 3 ↔
+      expectationPresent = true ∧ algorithmSupported = true ∧ digestEqual = true := by
+  cases expectationPresent <;> cases algorithmSupported <;> cases digestEqual <;> decide
 
 -- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
 -- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat

@@ -391,6 +391,12 @@ def main (args : List String) : IO Unit := do
         for metadataAbsent in [false, true] do
           for unlocked in [false, true] do
             IO.println (FrKernels.Git.worktreeArchiveCompactionAllowed complete checkoutAbsent metadataAbsent unlocked)
+  else if args == ["worktree-removal-reversal"] then
+    for complete in [false, true] do
+      for checkoutAbsent in [false, true] do
+        for metadataAbsent in [false, true] do
+          for branchUnoccupied in [false, true] do
+            IO.println (FrKernels.Git.worktreeRemovalReversalAllowed complete checkoutAbsent metadataAbsent branchUnoccupied)
   else if args == ["worktree-branch-selection"] then
     for existing in [false, true] do
       for present in [false, true] do
@@ -467,6 +473,11 @@ def main (args : List String) : IO Unit := do
         for includeIncoming in [false, true] do
           for includeOutgoing in [false, true] do
             IO.println (FrKernels.Git.callInSelection incoming outgoing includeIncoming includeOutgoing)
+  else if args == ["git-call-expansion"] then
+    for files in [0, 1, 2, 255, 256, 257, 4294967295, 18446744073709551615] do
+      for bytes in [0, 1, 67108863, 67108864, 67108865, 18446744073709551615] do
+        for depth in [0, 1, 2, 7, 8, 9, 4294967295, 18446744073709551615] do
+          IO.println (FrKernels.Git.gitCallExpansionAllowed files bytes depth)
   else if args == ["line-ranges"] then
     for start in samples do
       for finish in samples do
@@ -504,6 +515,12 @@ def main (args : List String) : IO Unit := do
       paths := paths ++ words
     for path in paths do
       IO.println (pathConfidence path)
+  else if args == ["service-route-candidate"] then
+    for localTarget in [false, true] do
+      for pathEqual in [false, true] do
+        for methodKnown in [false, true] do
+          for methodEqual in [false, true] do
+            IO.println (serviceRouteCandidate localTarget pathEqual methodKnown methodEqual)
   else if args == ["patterns"] then
     let alphabet := ["a", "b", "*", "λ", "", "a/b"]
     let mut paths : List (List String) := [[]]
@@ -518,6 +535,34 @@ def main (args : List String) : IO Unit := do
     for obligations in [0:65] do
       for ceiling in [0:65] do
         IO.println (FrKernels.Adoption.debtWithinCeiling obligations ceiling)
+  else if args == ["manifest-inventory"] then
+    for manifests in [0, 1, 1023, 1024, 1025, 4294967295, 18446744073709551615] do
+      for declarations in [0, 1, 65535, 65536, 65537, 4294967295, 18446744073709551615] do
+        IO.println (FrKernels.Project.manifestInventoryAllowed manifests declarations)
+  else if args == ["lockfile-inventory"] then
+    for lockfiles in [0, 1, 1023, 1024, 1025, 4294967295, 18446744073709551615] do
+      for evidence in [0, 1, 262143, 262144, 262145, 4294967295, 18446744073709551615] do
+        IO.println (FrKernels.Project.lockfileInventoryAllowed lockfiles evidence)
+  else if args == ["dependency-resolution-candidate"] then
+    for lockfileApplies in [false, true] do
+      for ecosystemEqual in [false, true] do
+        for nameEqual in [false, true] do
+          IO.println (dependencyResolutionCandidate lockfileApplies ecosystemEqual nameEqual)
+  else if args == ["package-feature-inventory"] then
+    for features in [0, 1, 65535, 65536, 65537, 4294967295, 18446744073709551615] do
+      for members in [0, 1, 65535, 65536, 65537, 4294967295, 18446744073709551615] do
+        IO.println (packageFeatureInventoryAllowed features members)
+  else if args == ["package-feature-dependency-request"] then
+    for sourceActive in [false, true] do
+      for dependencyKnown in [false, true] do
+        for weak in [false, true] do
+          for dependencyActive in [false, true] do
+            IO.println (packageFeatureDependencyRequest sourceActive dependencyKnown weak dependencyActive)
+  else if args == ["artifact-verification-status"] then
+    for expectationPresent in [false, true] do
+      for algorithmSupported in [false, true] do
+        for digestEqual in [false, true] do
+          IO.println (artifactVerificationStatus expectationPresent algorithmSupported digestEqual)
   else
     for total in samples do
       for start in samples do

@@ -12,6 +12,15 @@ use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Record an exact file move to a currently absent path.")]
+    Move {
+        #[arg(help = "Workspace-relative source file path.")]
+        source: PathBuf,
+        #[arg(help = "Workspace-relative destination file path.")]
+        destination: PathBuf,
+        #[arg(long, help = "Apply the transaction after checking both snapshots.")]
+        write: bool,
+    },
     #[command(about = "Record deletion of explicit regular text files.")]
     Delete {
         #[arg(required = true, help = "Workspace-relative file paths, at most 500.")]
@@ -55,6 +64,66 @@ enum Operation<'a> {
     Delete,
     Executable(Executable),
     Symlink(&'a str),
+}
+
+pub fn move_admitted(
+    source_exists: bool,
+    destination_exists: bool,
+    distinct_paths: bool,
+    source_supported: bool,
+) -> bool {
+    source_exists && !destination_exists && distinct_paths && source_supported
+}
+
+fn plan_move(root: &Path, source: &Path, destination: &Path) -> Result<Vec<Change>> {
+    source.to_str().context("file paths must use UTF-8")?;
+    destination.to_str().context("file paths must use UTF-8")?;
+    let source_path = target(root, source)?;
+    let destination_path = target(root, destination)?;
+    let distinct_paths = source_path != destination_path;
+    let before = snapshot(&source_path)?;
+    let destination_before = snapshot(&destination_path)?;
+    let source_supported = before
+        .as_ref()
+        .is_some_and(|snapshot| !snapshot.content.contains('\0'));
+    if !move_admitted(
+        before.is_some(),
+        destination_before.is_some(),
+        distinct_paths,
+        source_supported,
+    ) {
+        if !distinct_paths {
+            bail!("file move source and destination must differ.");
+        }
+        if before.is_none() {
+            bail!("file move source does not exist: {}.", source.display());
+        }
+        if destination_before.is_some() {
+            bail!(
+                "file move destination already exists: {}.",
+                destination.display()
+            );
+        }
+        bail!(
+            "file moves require text without NUL bytes: {}.",
+            source.display()
+        );
+    }
+    let moved = before.expect("admission requires a source snapshot");
+    let mut changes = vec![
+        Change {
+            path: source_path.strip_prefix(root)?.to_path_buf(),
+            before: Some(moved.clone()),
+            after: None,
+        },
+        Change {
+            path: destination_path.strip_prefix(root)?.to_path_buf(),
+            before: None,
+            after: Some(moved),
+        },
+    ];
+    changes.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(changes)
 }
 
 fn plan(root: &Path, paths: &[PathBuf], operation: Operation<'_>) -> Result<Vec<Change>> {
@@ -144,8 +213,60 @@ fn persist(root: &Path, changes: Vec<Change>, apply: bool) -> Result<u64> {
 }
 
 pub fn execute(root: &Path, command: &Command, save_plan: bool) -> Result<Value> {
+    if let Command::Move {
+        source,
+        destination,
+        write,
+    } = command
+    {
+        if *write && save_plan {
+            bail!("choose --save-plan or --write, not both");
+        }
+        let root = workspace(root)?;
+        root.to_str().context("workspace root must use UTF-8")?;
+        History::read(&root)?.ensure_ready()?;
+        let planned = plan_move(&root, source, destination)?;
+        let basis = super::basis(&planned)?;
+        let entries = planned
+            .iter()
+            .map(|change| {
+                json!({
+                    "path": change.path,
+                    "changed": true,
+                    "before_exists": change.before.is_some(),
+                    "after_exists": change.after.is_some(),
+                    "before_mode": change.before.as_ref().and_then(Snapshot::reported_mode),
+                    "after_mode": change.after.as_ref().and_then(Snapshot::reported_mode),
+                    "before_kind": change.before.as_ref().map(|snapshot| snapshot.kind),
+                    "after_kind": change.after.as_ref().map(|snapshot| snapshot.kind),
+                    "bytes": change.before.as_ref().or(change.after.as_ref()).map_or(0, |snapshot| snapshot.content.len()),
+                })
+            })
+            .collect::<Vec<_>>();
+        let transaction = if *write || save_plan {
+            Some(persist(&root, planned, *write)?)
+        } else {
+            None
+        };
+        return Ok(json!({
+            "schema": 1,
+            "workspace_root": root,
+            "operation": "move",
+            "source": source,
+            "destination": destination,
+            "validation": "file-snapshots",
+            "basis": basis,
+            "transaction": transaction,
+            "applied": *write && transaction.is_some(),
+            "saved": save_plan && transaction.is_some(),
+            "requested": 2,
+            "changed": 2,
+            "entries": entries,
+        }));
+    }
     let one_path;
     let (paths, operation, write, name, set, link_target) = match command {
+        Command::Move { .. } => unreachable!(),
         Command::Delete { paths, write } => {
             (paths, Operation::Delete, *write, "delete", None, None)
         }

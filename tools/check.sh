@@ -76,6 +76,7 @@ if [ "$slice" = deep ]; then
         --test round_trip \
         --test self_translation
     run cargo test --test lean_kernels -- --include-ignored
+    run bash tools/check-external-replays.sh
 fi
 
 if [ "$slice" = all ] || [ "$slice" = wasm ]; then

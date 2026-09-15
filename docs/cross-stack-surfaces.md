@@ -26,12 +26,17 @@ Lean proves finite style result bounds, unique-definition priority, Tailwind's z
 condition, and exact emitted/omitted partitioning. Shared executions compare the Rust and Lean
 functions. CSS, HTML, JSX, Markdown and Mermaid recognition remains parser and fixture tested.
 
-`fr project disclose HANDLE --view project` commits four branches under one
-`fr-cross-stack-project-1` value: technologies, applications, styles and documents/diagrams. The
+`fr project disclose HANDLE --view project` commits five branches under one
+`fr-cross-stack-project-3` value: technologies, packages, applications, styles and documents/diagrams. The
 initial response contains no source and always catalogs the branches. Each returned action retains
 the response ceiling, profile, target and revision. Individual facts keep exact source handles.
 The generic Python Merkle pack and lazy restore functions can persist any completely revealed
 branch by `object_digest` without learning a separate surface schema.
+
+The package branch separates declared constraints from captured lock entries. It includes bounded
+pages for Cargo, npm, Go and Python package manifests and supported lockfile formats. These facts do
+not execute a solver or verify downloaded artifacts. Lockfile content still participates in the
+project revision, so any change invalidates old disclosure actions.
 
 ## Exact surface edits
 

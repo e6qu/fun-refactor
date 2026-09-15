@@ -67,6 +67,107 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B879: **an interrupted external replay made every retry fail before verification**. The
+  replay script unpacked into one fixed temporary directory and never removed it. It now owns a
+  unique scratch directory for each run and removes that directory on success or failure.
+
+- [x] B878: **byte-only context-report audits crashed on their documented output**. Three report
+  generators deliberately store null token counts when `--tokens` is absent, but their auditors
+  still passed those nulls to `statistics.median`. The auditors now validate null token summaries
+  directly in byte-only mode. The retained tokenized reports were also regenerated after the
+  combined branch changed their checksum-bound evaluator and project sources.
+
+- [x] B877: **captured checksums gave agents no way to verify artifact bytes**. The offline
+  `project verify-artifact` command now checks Cargo, npm, Go and Python evidence. It bounds file
+  and directory reads, returns no contents and separates missing evidence, unsupported algorithms,
+  mismatches and verified bytes.
+
+- [x] B876: **agents could see Cargo feature counts but not the activation graph**. The bounded
+  `project package-features` view now evaluates defaults, explicit roots and cycles. It also covers
+  implicit optional features and strong or weak dependency requests. Dependency declaration rows
+  also retain their first sixteen requested feature names. The default graph participates in the
+  progressive project's package Merkle branch.
+
+- [x] B875: **captured lock entries were disconnected from dependency declarations.**
+
+  Dependency pages now select the nearest ancestor lock from the same ecosystem and return bounded
+  matching versions. Cargo renamed packages, npm aliases and normalized Python names resolve to
+  their locked identities. Multiple installed versions remain candidates. Lean proves that a match
+  requires lock ownership, ecosystem equality and name equality.
+
+- [x] B874: **application service dependencies stopped at sanitized URL strings.**
+
+  Root-relative HTTP calls now link to bounded same-path route candidates across inferred
+  applications. Known methods must match, while unknown methods retain every path candidate.
+  Reports distinguish unique, ambiguous, unresolved and nonlocal targets. Lean proves the local,
+  path and method admission rule and agrees with Rust over all Boolean states.
+
+- [x] B873: **agents had to inspect lockfile text to learn captured package versions.**
+
+  `project resolutions` now normalizes supported Cargo, npm, Go and Python lock entries into a
+  bounded source-free report. Lock snapshots participate in project identity and final verification.
+  The progressive project tree carries the same evidence in its package branch. A Lean-anchored
+  policy caps lockfiles and combined evidence rows, with Rust correspondence at machine boundaries.
+
+- [x] B872: **closing the playground discarded its complete checked edit history.**
+
+  The WASM API exports and restores a digest-bound session with current files, compacted basis and
+  live transaction stacks. The page replaces one local checkpoint after completed mutations. It
+  restores that checkpoint before a default network load. Invalid paths, changed content, malformed
+  stacks and oversized sessions refuse before workspace construction. Explicit compaction preserves
+  the cumulative Git patch and retained undo/redo steps while transaction IDs stay unique.
+
+- [x] B871: **the browser build failed with current Clang on an upstream allocator warning.**
+
+  Clang 23 promotes the tree-sitter Markdown allocator's compatible-layout pointer warning to an
+  error. The freestanding wasm build now suppresses that specific legacy pointer diagnostic and the
+  duplicate `NULL` macro warning. A production wasm build and all Node capability, patch and session
+  tests pass with wasi-sdk 34.
+
+- [x] B870: **package views omitted Go modules and Python project metadata.**
+
+  Manifest discovery now includes `go.mod` and `pyproject.toml`. The bounded package and dependency
+  views normalize Go requirements, replacements and exclusions plus PEP 621, dependency-group,
+  build-system, Poetry and uv workspace declarations. Mixed-ecosystem tests pin the emitted fields,
+  gaps and source-free behavior. A Lean-anchored inventory limit bounds manifest and declaration counts.
+
+- [x] B869: **Git call impact required agents to guess every context file and stopped after one edge.**
+
+  `git diff --calls --workspace-context --depth N` now captures bounded tracked source snapshots
+  internally and returns only incoming or outgoing edges reachable from changed declarations.
+  Default, staged and commit comparisons bind every source identity, traversal direction and depth.
+  File, byte and depth limits have an anchored Lean model and machine-boundary comparisons.
+
+- [x] B868: **owned worktree removal was durable but could not be undone or redone.**
+
+  A completed archive retained the committed object identity and private metadata needed for
+  inspection, yet agents had to reconstruct a deleted workspace manually. Checked `undo-removal`
+  now binds the archive, retained branch, free destination and complete registration snapshot,
+  then creates fresh owned Git metadata and raw committed files. `redo-removal` requires that fresh
+  receipt and exact committed state, performs reviewed removal, and returns the next reversible
+  archive. Cycle, stale-state, occupied-state and Rust/Lean boundary tests cover the lifecycle.
+
+- [x] B867: **an agent could repeat a successful unchanged evaluator request.**
+
+  The prompt prohibited repeated successful workflow steps, but the instrument ran an identical
+  second batch preview and rejected the score only afterward. It now refuses the repeated request
+  before execution and points to the retained response. A source mutation or rewritten artifact
+  admits a new attempt because its inputs changed.
+
+- [x] B866: **the workflow skill confused input and output schema identities.**
+
+  It described a schema-one input without showing JSON. A low-effort agent supplied the output
+  report string `fr-workflow-1` instead of integer `1`, then received one generic error for every
+  possible mismatch. The reference now includes an exact manifest and the evaluator identifies
+  each invalid field with the expected shape.
+
+- [x] B865: **fresh agent trials shared a mutable Cargo output.**
+
+  Preparation recorded `target/debug/fr` by path and digest. A later local build replaced that path
+  during a trial, stopping valid final checks. Preparation now copies one read-only executable for
+  the whole pair and records evaluator-source fingerprints. Steps and scoring refuse evaluator
+  drift explicitly.
+
 - [x] B863: **a generated remainder helper returned as a new public function after translation.**
 
   Rust integer remainder needs a helper when written as Python because the languages disagree for

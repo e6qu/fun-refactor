@@ -124,9 +124,10 @@ The exporter handles UTF-8 text modifications, additions and deletions represent
 It preserves content bytes, including CRLF and missing final newlines.
 Empty file creation and deletion, multiple hunks and unusual UTF-8 filenames are supported.
 Paths use Git quoting, and output is sorted by path.
-Recorded deletion/addition pairs can express moves without rename detection.
-Use [`fr file delete`, `fr file executable` and `fr file symlink`](file-transactions.md) to record deletion, owner-execute and link changes.
-A dedicated file-move transaction remains pending.
+Recorded deletion/addition pairs express moves without rename detection.
+Use [`fr file delete`, `fr file move`, `fr file executable` and `fr file symlink`](file-transactions.md)
+to record deletion, moves, owner-execute and link changes.
+Use [`fr file move`](file-transactions.md) to bind both endpoints to one checked transaction.
 
 Git mode output distinguishes regular files (`100644`), executable files (`100755`) and symlinks (`120000`), using the owner execute bit for regular files.
 Other Unix permissions are not reproduced. New files use Git modes rather than private history creation permissions.

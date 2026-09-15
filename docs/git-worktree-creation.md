@@ -97,7 +97,7 @@ Creation now records ownership receipts for checked forward recovery of incomple
 After receipt publication, creation removes its preparation record before installing the index and files.
 Successful creation leaves no preparation record. A partial result reports `preparation_record` when durable evidence remains.
 See [recorded worktree recovery](git-worktree-recovery.md) for receipt scope, refusals and crash limits.
-[Reviewed removal](git-worktree-removal.md) uses completed receipts and retains the branch. Worktree undo/redo remains pending.
+[Reviewed removal](git-worktree-removal.md) uses completed receipts and retains the branch. Its completed archive supports checked worktree undo and redo.
 File and directory synchronization does not establish an atomic crash transaction across Git refs, registrations and checkout files.
 Directory and file checks detect observed replacements; they do not protect against every hostile concurrent filesystem race.
 

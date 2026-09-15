@@ -24,11 +24,13 @@ fn every_workspace_method_activates_its_own_files() {
 
         for (i, line) in lines.iter().enumerate() {
             let trimmed = line.trim_start();
-            // The two constructors install the handle they have just built and take no
+            // Constructors install the handle they have just built and take no
             // `self`, so there is nothing for them to enter.
             if !trimmed.starts_with("pub fn ")
                 || trimmed.starts_with("pub fn new(")
                 || trimmed.starts_with("pub fn load(")
+                || trimmed.starts_with("pub fn from_session(")
+                || trimmed.starts_with("pub fn restore_session(")
             {
                 continue;
             }

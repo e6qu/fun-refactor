@@ -557,8 +557,9 @@ fn evidence_catalog(view: &View) -> Result<Vec<Value>> {
         .collect())
 }
 
-const PROJECT_DOMAINS: [&str; 4] = [
+const PROJECT_DOMAINS: [&str; 5] = [
     "technologies",
+    "packages",
     "applications",
     "styles",
     "documents_and_diagrams",
@@ -987,13 +988,62 @@ impl Project<'_> {
         })?;
         let styles = self.styles(&relationship())?;
         let diagrams = self.diagrams(&relationship())?;
+        let packages = self.packages(500, None)?;
+        let dependencies = self.dependencies(None, 500, None)?;
+        let resolutions = self.resolutions(None, None, 500, None)?;
+        let mut feature_rows = Vec::new();
+        let mut feature_gaps = Vec::new();
+        let mut feature_total = 0usize;
+        for manifest in self
+            .manifests
+            .documents
+            .keys()
+            .filter(|path| path.file_name().is_some_and(|name| name == "Cargo.toml"))
+        {
+            match super::package_features::evaluate(&self.manifests, manifest, &[], false) {
+                Ok(evaluation) => {
+                    feature_total += evaluation.rows.len();
+                    feature_rows.extend(
+                        evaluation
+                            .rows
+                            .into_iter()
+                            .take(500usize.saturating_sub(feature_rows.len())),
+                    );
+                }
+                Err(error) => feature_gaps.push(json!({
+                    "manifest": bounded_text(&manifest.to_string_lossy(), 512),
+                    "reason": bounded_text(&error.to_string(), 512),
+                    "scope": "cargo-feature-activation"
+                })),
+            }
+        }
+        let manifest_gap_total = self.manifests.gaps.len();
+        let lockfile_gap_total = self.lockfiles.gaps.len();
         Ok(json!({
-            "schema": "fr-cross-stack-project-1",
+            "schema": "fr-cross-stack-project-3",
             "scope": {"target": target, "selected": self.handle(selected)},
             "technologies": {
                 "schema": technologies["technology_schema"],
                 "items": technologies["items"], "page": technologies["page"],
                 "analysis": technologies["analysis"]
+            },
+            "packages": {
+                "manifests": {"items": packages["items"], "page": packages["page"]},
+                "declarations": {"items": dependencies["items"], "page": dependencies["page"]},
+                "resolutions": {"items": resolutions["items"], "page": resolutions["page"]},
+                "feature_activations": {
+                    "items": feature_rows,
+                    "total": feature_total,
+                    "omitted": feature_total.saturating_sub(500),
+                    "gaps": feature_gaps.iter().take(64).collect::<Vec<_>>(),
+                    "gaps_omitted": feature_gaps.len().saturating_sub(64),
+                    "selection": {"default_features": true, "requested": []}
+                },
+                "gaps": {
+                    "manifests": self.manifests.gaps.iter().take(500).collect::<Vec<_>>(),
+                    "lockfiles": self.lockfiles.gaps.iter().take(500).collect::<Vec<_>>(),
+                    "omitted": manifest_gap_total.saturating_sub(500) + lockfile_gap_total.saturating_sub(500)
+                }
             },
             "applications": {
                 "items": applications["items"], "page": applications["page"],
@@ -1073,7 +1123,7 @@ impl Project<'_> {
                 let basis = format!(
                     "frpx1:{}",
                     hash((
-                        "fr-cross-stack-project-1",
+                        "fr-cross-stack-project-3",
                         &self.revision,
                         &options.target,
                         object_merkle(&model)?
@@ -1252,7 +1302,7 @@ impl Project<'_> {
                 report["instructions"] = match options.view {
                     DisclosureView::Semantic => json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Structural IR descriptors require the expanded profile. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary."),
                     DisclosureView::Evidence => json!("Prefer a relevant evidence_shortcuts action for code_map, call_traces, impact or sources_and_sinks. Object digests address reusable Merkle subtrees. Follow exact returned actions and reveal exact source only when structured evidence is insufficient; request --proofs only when independently verifying a subtree."),
-                    DisclosureView::Project => json!("Prefer a relevant project_shortcuts action for technologies, applications, styles or documents_and_diagrams. Follow exact returned actions and reveal exact source only when a high-level fact or explicit gap is insufficient."),
+                    DisclosureView::Project => json!("Prefer a relevant project_shortcuts action for technologies, packages, applications, styles or documents_and_diagrams. Follow exact returned actions and reveal exact source only when a high-level fact or explicit gap is insufficient."),
                 };
                 report["shortcut_budget"] = json!({
                     "limit": options.profile.row_limit(),

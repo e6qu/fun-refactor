@@ -1,5 +1,27 @@
 # Development continuity
 
+The active deferred-boundary closure branch implements every concrete item recorded under PR 29 in
+`PLAN.md`. It includes native and browser history retention, evaluator replay guards, cross-language
+signature checks, reversible worktree removal, transitive Git impact, Go/Python manifests, lockfile
+evidence, service-route links, dependency-to-lock joins, Cargo feature activation and offline
+artifact verification. The latest checkpoints have complete project, Clippy, portable-skill, prose
+and strict Lean evidence. LSP delegation, a daemon process, embedded package solvers and framework
+runtimes are closed architecture non-goals; `fr` exposes checked inputs and external check hooks at
+those trust boundaries.
+
+PR 29 is proposed as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295).
+
+The combined-gate checkpoint refreshed the context-protocol, workflow, project-batch and task-bundle
+reports from their frozen inputs after their checksum-bound sources changed. All fifteen active
+agent-acceptance tests pass. It also repaired the byte-only audit path shared by the three measured
+batch reports: absent optional token counts are now checked as absent instead of being sorted as
+numbers. B878 records the regression and both tokenized retained reports and byte-only one-repetition
+reports pass their independent auditors.
+
+The deep-gate checkpoint also repaired external replay setup. Each run now unpacks the pinned regex
+workspace into its own temporary root and cleans that root on every exit, so an interrupted Cargo
+fetch cannot block retries. B879 records the defect.
+
 PR 25, proposed as GitHub PR 290, adds the Agent Formalization Workbench. `spec candidates`
 identifies the conservative pure Rust subset; `spec plan` emits a source-free `fr-formal-plan-1` object;
 `spec scaffold --from` verifies it against current source and generates Lean definitions plus named
@@ -28,7 +50,7 @@ end-to-end test covers a multi-input property, invalid agent trees, checked proo
 verify, undo, redo and source drift. The complete native, Python, documentation, strict Lean and
 WASM gates pass locally.
 
-The active PR 28 adds explicit agent-facing coverage for JavaScript, TypeScript, React, Next.js,
+PR 28, merged as GitHub PR 293, adds explicit agent-facing coverage for JavaScript, TypeScript, React, Next.js,
 Go, Python, FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid. Its first
 checkpoint adds a revision-bound technology taxonomy and source-free evidence inventory. The
 second adds Express package/route applications and standalone React package/entry-component
@@ -36,7 +58,7 @@ features, including bounded import expansion and proof-backed standalone admissi
 source-free CSS/Tailwind relationships and Markdown/Mermaid hierarchies with proof-backed resolution
 and omission policies. The fourth places all of these beside application facts in a four-domain
 cross-stack Merkle view that accepts project handles and reuses the generic Python object pack.
-Later checkpoints extend checked-authoring models.
+Later checkpoints extended the checked-authoring models described in `PLAN.md`.
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
@@ -199,8 +221,8 @@ SHA-256, parsers, writers, filesystem behavior and Python remain tested or trust
 
 The deterministic four-route report is `tests/agent-eval/semantic-intent.json`. Complete-body,
 pointer-delta, direct-intent and Python-intent routes produce equal behavior, source, body, patch,
-undo and redo evidence. Filtered direct intent uses 8,678 measured bytes, versus 8,609 for the
-complete body and 10,357 for the pointer delta. Python intent uses 9,149 after counting its producer.
+undo and redo evidence. Filtered direct intent uses 8,592 measured bytes, versus 8,523 for the
+complete body and 10,271 for the pointer delta. Python intent uses 9,063 after counting its producer.
 
 The fresh Luna-low comparison is retained under
 `tests/agent-eval/results/2026-09-12-semantic-intent`. Both isolated arms avoid source reads, produce
@@ -230,8 +252,8 @@ Rust exhaustively agrees on 144 admission states and 1,584 task-target states.
 
 The deterministic evaluation applies both routes through behavior, patches, undo and redo. Their
 canonical intent, compiled change, semantic body and final source identities agree. The direct route
-uses two authoring commands and 4,244 counted bytes. The explicit route uses three commands and 5,387
-bytes. The reduction is 21.2% on this fixture.
+uses two authoring commands and 4,201 counted bytes. The explicit route uses three commands and 5,344
+bytes. The reduction is 21.4% on this fixture.
 
 The first fresh Luna-low pair produced correct code but exposed misleading skill order: the direct
 agent ran an unnecessary standalone query. Its digest-bound trace remains as diagnostic evidence.
@@ -1314,6 +1336,20 @@ rather than proved.
 ## Continuing agent-evaluation policy
 
 The agreed real-agent baseline is local `codex exec` with `gpt-5.6-luna`, `low` reasoning and the default service tier.
+The 2026-09-14 deferred-work diagnostic retained the first new pair after source-history compaction.
+Both scores failed: the `fr` arm could not infer the integer workflow input schema from an ambiguous
+reference, while a concurrent Cargo build changed the shared debug executable and stopped the file
+arm after its changed-state oracle passed. The harness now copies one read-only executable into each
+prepared experiment, fingerprints evaluator sources, shows an exact workflow manifest and returns
+field-specific manifest errors. Reruns belong in a separate cohort; the diagnostic remains immutable.
+The next isolated pair confirmed that correction and both arms passed the behavior and replay gates.
+Its `fr` arm still repeated one successful batch preview, so paired acceptance remained false. The
+instrument now refuses unchanged exact replays and directs the agent to its retained response.
+The third fresh pair passes every acceptance gate. The `fr` arm uses the coordinated saved batch and
+workflow in 42 calls and 17,711 measured context tokens. Files use 17 calls and 11,182 tokens. Both
+patches pass 1,060 independent project and receiver cases, exact undo/redo, ordered checks and index
+preservation. The accepted cohort and both diagnostics remain checksum-bound under
+`tests/agent-eval/results/2026-09-14-deferred-*`.
 Routine CI keeps deterministic replay and does not consume agent quota; real-agent smoke pairs and cohorts are explicit authenticated runs.
 Each fresh trial must ignore user configuration, retain Codex JSONL events and record the CLI catalog entry and complete model settings.
 A small Terra or Sol calibration is reserved for milestones where Luna failures could otherwise conflate model capability with workflow usability.
@@ -1569,3 +1605,116 @@ skill. The new `surfaces.md` route keeps every reference below 4 KiB and every c
 7 KiB; all 51 executable examples pass. Five retained deterministic context reports now bind the
 current binary, implementation and skill hashes. The full acceptance harness passes 15 tests with
 its one environment-dependent replay ignored.
+
+## Deferred-work closure
+
+The next milestone starts by closing two validation and storage gaps. `fr history compact` previews
+and applies a basis-bound retention window for ordinary source history. It removes old replay
+payloads only after review, retains checksum-bound audit summaries and refuses planned or pending
+records. Compacted IDs cannot later replay, export a patch or receive evidence. The newest requested
+records on both active stacks remain fully reversible. A Lean-anchored predicate proves the
+eligibility boundary and agrees with Rust over all sixteen boolean inputs.
+
+The formerly manual external regex replay now has one pinned script and runs from the scheduled deep
+audit. A local run on this branch passed all five retained cohorts in 550.08 seconds after exact
+dependency bootstrap. The complete deep gate had already passed 14 whole-repository command
+agreements, both runtime conformance cases, all round trips and all 79 Lean tests including the two
+full self-audits.
+
+Strict source correspondence now extends beyond Rust. JavaScript, TypeScript, TSX, Go, Java,
+Python, Zig, Bash and Lean declarations expose their parameter names and shared-IR types to
+`fr spec check --strict`; untyped positions remain explicit as `unknown`. The check prefers an exact
+qualified method before any unqualified fallback and refuses ambiguous IR matches. Rust keeps its
+source-spelled type maps, while generated model scaffolding keeps its existing conservative Rust
+body subset.
+
+The worktree lifecycle now closes its reversal gap. `git worktree undo-removal` reconstructs a
+completed removal from pinned Git blobs after binding the archive, retained branch, free endpoints,
+repository mode and complete registration set. It creates fresh private metadata and a completed
+ownership receipt instead of replaying stale inode identities. `redo-removal` accepts only that
+fresh receipt and the exact archived commit, then runs reviewed removal and returns the next archive
+for another cycle. Native tests cover regular, executable and symlink entries, exact repeated
+remove/undo/redo, source-index preservation and stale, occupied, drifted or dirty refusals. An
+anchored admission predicate and three abstract state theorems extend the Lean boundary.
+
+Git diff call analysis now supports bounded workspace context and transitive traversal. The command
+captures at most 256 eligible tracked source files and 64 MiB across the selected Git snapshots,
+builds independent before and after graphs, and returns only edges reachable from changed
+declarations through one to eight incoming or outgoing steps. Default, staged and commit-based
+tests cover two-edge Python dependency and caller chains, exclude unrelated captured code, preserve
+source-free responses and bind cursors to the full observation. An anchored Rust/Lean predicate
+covers file, byte and depth admission at machine boundaries; the existing finite reachability laws
+cover bounded graph rounds abstractly.
+
+Manifest discovery now gives Go and Python agents the same compact package entry point used for
+Cargo and npm. The Go reader reports module identity, language version, direct and indirect
+requirements, replacements and exclusions. The Python reader combines PEP 621 requirements,
+optional and dependency groups, build requirements, Poetry tables and uv workspace patterns while
+retaining each declaration's origin. Mixed-ecosystem tests cover literal constraints, local Go
+replacement metadata, Poetry object specifications and source-free output. A source-anchored
+inventory predicate caps a snapshot at 1,024 manifests and 65,536 declarations and agrees with Lean
+at its boundaries and machine limits. Local-link resolution remains explicitly scoped to Cargo/npm.
+
+Browser history now survives reloads without importing the native filesystem journal. The WASM API
+exports one canonical session containing current files, the compacted patch basis and retained undo
+and redo records. Restoration checks the SHA-256 envelope, schema, relative paths, transaction bases,
+stack partition, all resource limits and both live snapshot chains before it builds an index. The
+playground replaces one local-storage checkpoint only after a completed synchronous transition and
+restores it before its default network load. Storage refusal preserves the current edit and previous
+checkpoint while producing a visible warning.
+
+`compact_history(keep)` folds older applied transactions into the cumulative basis and discards old
+redo and abandoned payloads. It preserves the cumulative Git patch, newest requested stack entries
+and monotonic transaction identities. Host and real-wasm tests cover restoration, subsequent undo
+and redo, compaction, tampering, unsafe paths, malformed envelopes, file limits and quota failure.
+The production build now tolerates two targeted legacy diagnostics from the upstream Markdown
+allocator under Clang 23; wasi-sdk 34 builds all grammars and the 88-capability and patch suites pass.
+Lean anchors restoration and compaction admission, proves their finite bounds and agrees with Rust
+over Boolean and machine-size boundary cases.
+
+The next deferred-boundary checkpoint removes the need to read lockfile text. `project resolutions`
+captures Cargo, npm, Go, Poetry, uv and Pipenv entries under the project revision. It exposes bounded
+versions, origins, integrity metadata and explicit gaps, with manifest or lockfile filters and exact
+pagination. Lock changes invalidate handles, cursors and progressive actions. The cross-stack Merkle
+model now has a fifth package branch containing manifest declarations and captured resolutions.
+
+`FrKernels.Project.lockfileInventoryAllowed` caps 1,024 lockfiles and 262,144 combined evidence
+rows. Lean proves both bounds and Rust agrees at zero, adjacent limits and machine-sized samples.
+The model does not claim package solving or checksum authenticity; parsers and captured bytes remain
+integration-tested boundaries.
+
+The following checkpoint joins local service facts across inferred applications. A root-relative
+HTTP target now carries every exact-path route candidate in the selected project. Known methods must
+match; unknown methods preserve all path candidates. Rows distinguish unique, ambiguous, unresolved
+and nonlocal results, cap returned route IDs at sixteen and count omissions. This gives agents a
+source-free application dependency edge while keeping runtime dispatch claims out of the report.
+
+`FrKernels.Project.serviceRouteCandidate` proves that an emitted candidate requires a local target
+and equal path. It accepts either an unknown method or an equal known method. Rust and Lean agree on
+all sixteen Boolean states; cross-framework fixtures cover unique and ambiguous route sets.
+
+Dependency declarations now select the nearest ancestor lockfile of their own ecosystem. Cargo
+renames use the `package` identity, npm `npm:` aliases use the target package and Python names use
+case and punctuation normalization. Each declaration returns up to sixteen observed package and
+artifact candidates, the complete count and exact omissions. Workspace child manifests therefore
+reuse their owning root lock without reading it or invoking a package manager.
+
+`FrKernels.Project.dependencyResolutionCandidate` requires applicable lock ownership, equal
+ecosystems and equal normalized names. Lean proves the conjunction and its name-mismatch refusal.
+Rust agrees over all eight Boolean states; mixed fixtures cover all four ecosystems and aliases.
+
+Cargo manifests now expose a bounded, source-free feature activation graph through `project
+package-features`. Default and explicit roots reach local cycles safely; implicit optional features,
+`dep:name`, strong dependency-feature requests, weak requests and dependency-declared features have
+separate evidence. The default selection is committed inside the progressive project's package
+branch. Feature and direct-member inventories each stop at 65,536, with a source-anchored Lean
+predicate and machine-boundary correspondence. Target predicates, resolver versions and build
+scripts remain explicit unchecked fields rather than implied runtime claims.
+
+Offline artifact verification now connects supplied bytes to captured Cargo, npm, Go and Python
+checksums. Regular files support hexadecimal SHA-256 and SRI SHA-256/384/512. Extracted Go module
+directories use the `h1` tree hash with an explicit logical prefix, including the distinct `/go.mod`
+case. Inputs stop at 512 MiB, directory walks stop at 65,536 files and reports return digests rather
+than contents. The result separates absent entries, missing evidence, unsupported algorithms,
+mismatches and verified bytes. Lean models all eight status inputs; it does not claim cryptographic
+correctness or lockfile provenance.

@@ -28,6 +28,12 @@ CODEX_PROVENANCE_FILES = (
 )
 
 ROOT = Path(__file__).resolve().parent.parent
+EVALUATOR_PATHS = (
+    Path(__file__),
+    ROOT / "tools/agent_eval/oracle.py",
+    ROOT / "tools/agent_eval/regex_workspace.py",
+    ROOT / "tools/agent_eval/regex_escape_len.py",
+)
 ARCHIVE = ROOT / "tests/agent-eval/strsim-0.11.1.crate"
 ARCHIVE_SHA = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 TASKS = {
@@ -75,6 +81,16 @@ def upstream(root, task):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def evaluator_fingerprints():
+    return {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in EVALUATOR_PATHS}
+
+
+def verify_prepared_evaluator(config):
+    expected = config.get("evaluator_files")
+    if expected is not None and expected != evaluator_fingerprints():
+        raise ValueError("Trial evaluator changed after preparation")
 
 
 def save(path, value):
@@ -207,12 +223,18 @@ def prepare(out, binary, project="strsim", repetitions=1):
     names = trial_names(project, repetitions)
     if any((parent / "Cargo.toml").is_file() for parent in [out, *out.parents]):
         raise ValueError("Prepare outside Cargo projects, for example under /tmp, to avoid inherited workspace membership")
+    binary = binary.resolve()
+    if not binary.is_file():
+        raise ValueError(f"fr binary is not a regular file: {binary}")
     out.mkdir(parents=True, exist_ok=False)
+    frozen_binary = out / "fr-agent-eval-bin"
+    shutil.copyfile(binary, frozen_binary)
+    frozen_binary.chmod(0o555)
     save(out / "experiment.json", {"project": project, "repetitions": repetitions, "trials": [name for name, _, _, _ in names]})
     for name, task, arm, repeat in names:
         session = out / name
         session.mkdir()
-        prepare_trial(session, binary, task, arm, repeat)
+        prepare_trial(session, frozen_binary, task, arm, repeat)
     print(json.dumps({"sessions": [str(out / name) for name, _, _, _ in names]}))
 
 
@@ -242,6 +264,7 @@ def prepare_trial(session, binary, task, arm, repetition):
         "archive_sha256": selected["archive_sha256"], "upstream_commit": selected["upstream_commit"],
         "dependency_lock_sha256": selected.get("dependency_lock_sha256"),
         "fr": str(binary.resolve()), "binary_sha256": digest(binary.read_bytes()),
+        "evaluator_files": evaluator_fingerprints(),
         "original": snapshot(project), "index_sha256": digest((project / ".git/index").read_bytes()),
         "receiver_index_sha256": digest((receiver / ".git/index").read_bytes()),
         "source_bytes": sum(path.stat().st_size for path in source_files), "created_at": time.time(),
@@ -343,22 +366,39 @@ def coordinated_workflow_manifest(session, project, config, args):
     manifest = json.loads(manifest_path.read_text())
     expected_checks = required_checks(config["task"])
     checks = manifest.get("checks")
-    if (
-        manifest.get("schema") != 1
-        or type(manifest.get("transaction")) is not int
-        or manifest["transaction"] <= 0
-        or not isinstance(manifest.get("transaction-context-basis"), str)
-        or not isinstance(checks, dict)
-        or checks.get("names") != expected_checks
-        or not isinstance(checks.get("basis"), str)
-        or manifest.get("exercise-reversal") is not False
-        or manifest.get("patch") != {"output": ".fr-agent-change.patch"}
-        or manifest.get("check-output-bytes") != 2048
-    ):
+    expected = {
+        "schema": 1,
+        "transaction": "a positive integer",
+        "transaction-context-basis": "the frtb2: value returned by the saved batch",
+        "checks": {"basis": "the check listing basis", "names": expected_checks},
+        "exercise-reversal": False,
+        "patch": {"output": ".fr-agent-change.patch"},
+        "check-output-bytes": 2048,
+    }
+    mismatches = []
+    if manifest.get("schema") != 1:
+        mismatches.append("schema must be integer 1")
+    if type(manifest.get("transaction")) is not int or manifest.get("transaction", 0) <= 0:
+        mismatches.append("transaction must be a positive integer")
+    if not isinstance(manifest.get("transaction-context-basis"), str):
+        mismatches.append("transaction-context-basis must be a string")
+    if not isinstance(checks, dict):
+        mismatches.append("checks must be an object")
+    else:
+        if checks.get("names") != expected_checks:
+            mismatches.append(f"checks.names must equal {expected_checks}")
+        if not isinstance(checks.get("basis"), str):
+            mismatches.append("checks.basis must be a string")
+    if manifest.get("exercise-reversal") is not False:
+        mismatches.append("exercise-reversal must be false to disable bundled reversal")
+    if manifest.get("patch") != {"output": ".fr-agent-change.patch"}:
+        mismatches.append('patch must equal {"output": ".fr-agent-change.patch"}')
+    if manifest.get("check-output-bytes") != 2048:
+        mismatches.append("check-output-bytes must equal 2048")
+    if mismatches:
         raise ValueError(
-            "The coordinated workflow must identify the saved transaction and its context basis, select "
-            f"checks {expected_checks} under their basis, disable bundled reversal, deliver "
-            ".fr-agent-change.patch and use a 2048-byte check budget"
+            "Invalid coordinated workflow manifest: " + "; ".join(mismatches)
+            + ". Expected shape: " + json.dumps(expected, ensure_ascii=False)
         )
     return manifest
 
@@ -495,8 +535,11 @@ def step(session, request):
     before = snapshot(session / "project")
     started = time.time()
     try:
+        verify_prepared_evaluator(config)
         events_path = session / "events.jsonl"
         events = [json.loads(line) for line in events_path.read_text().splitlines()] if events_path.is_file() else []
+        if redundant_success(events, request):
+            raise ValueError("This exact request already succeeded; reuse its retained response")
         if source_mutation_requested(request) and not state_checked(
             events, config["original"], required_checks(config["task"])
         ):
@@ -623,6 +666,25 @@ def current_state_checked(events, state, required):
     return state_checked(events[mutations[-1] + 1:], state, required)
 
 
+def redundant_success(events, request):
+    """Return whether an exact request succeeded and none of its inputs changed afterward."""
+    for index in range(len(events) - 1, -1, -1):
+        event = events[index]
+        if event["request"] != request:
+            continue
+        payload = json.loads(event["visible"])
+        succeeded = payload.get("exit_code", 0) == 0 and "error" not in payload
+        if not succeeded:
+            return False
+        later = events[index + 1:]
+        inputs_changed = any(
+            entry["before"] != entry["after"] or entry["request"].get("tool") == "write"
+            for entry in later
+        )
+        return not inputs_changed
+    return False
+
+
 def coordinated_batch(events):
     saved = []
     for event in events:
@@ -701,6 +763,7 @@ def coordinated_batch(events):
 
 def score(session):
     config = json.loads((session / "session.json").read_text())
+    verify_prepared_evaluator(config)
     events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
     if not events:
         raise ValueError("A trial needs recorded tool events before scoring")
@@ -856,6 +919,11 @@ def record(sessions, directory, pilots=None, execution_note=None, implementation
             shutil.copyfile(patch, destination / "change.patch")
         trials.append(name)
     config = json.loads((sessions / expected[0] / "session.json").read_text())
+    prepared_evaluators = config.get("evaluator_files")
+    for name in expected[1:]:
+        other = json.loads((sessions / name / "session.json").read_text())
+        if other.get("evaluator_files") != prepared_evaluators:
+            raise ValueError("Prepared trials do not share one evaluator fingerprint set")
     selected = profile(config["task"])
     shutil.copytree(sessions / expected[0] / "skill", directory / "skill")
     save(directory / "experiment.json", design)
@@ -893,8 +961,7 @@ def record(sessions, directory, pilots=None, execution_note=None, implementation
         },
         "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted outside Cargo projects after preflight." if pilot_names else None, "included_in_scored_trials": False},
         "versions": {tool: subprocess.check_output([tool, "--version"], text=True).strip() for tool in ("rustc", "cargo", "git", "python3")},
-        "evaluator_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in
-                            [Path(__file__), ROOT / "tools/agent_eval/oracle.py", ROOT / "tools/agent_eval/regex_workspace.py", ROOT / "tools/agent_eval/regex_escape_len.py"]},
+        "evaluator_files": prepared_evaluators or evaluator_fingerprints(),
         "files": {str(path.relative_to(directory)): digest(path.read_bytes()) for path in sorted(directory.rglob("*")) if path.is_file()},
     })
     print(json.dumps({"recorded": str(directory), "trials": trials, "interrupted_pilots": pilot_names}))

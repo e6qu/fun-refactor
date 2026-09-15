@@ -5,15 +5,22 @@ Use explicit paths relative to the workspace selected by `-C`:
 ```sh
 fr -C /project file delete obsolete.txt empty.txt
 fr -C /project file delete obsolete.txt empty.txt --save-plan
+fr -C /project file move old/name.rs new/name.rs --save-plan
 fr -C /project history patch 1
 fr -C /project history apply 1 --write
 fr -C /project history undo 1 --write
 fr -C /project history redo 1 --write
+fr -C /project history compact --keep 100
 ```
 
 `fr file delete` removes complete regular text files. Empty files count as deletions.
 It does not inspect references or determine whether the project still builds.
 Use the existing symbol-level `fr delete` when its reference checks match the intended change.
+
+`fr file move SOURCE DESTINATION` moves one regular text file or UTF-8 symlink to an absent path.
+It preserves contents or link target, entry kind and the complete recorded regular-file mode. The
+source deletion and destination creation share one transaction, basis, patch and reversal history.
+It does not rewrite imports, references or package declarations.
 
 ## Executable permissions
 
@@ -40,14 +47,16 @@ Targets contain 1 through 1,023 UTF-8 bytes without NUL.
 
 ## Planning and reports
 
-Each command accepts 1 through 500 explicit paths and reports JSON in both output modes.
+Delete and executable commands accept 1 through 500 explicit paths. Move accepts one source and one
+destination, while symlink accepts one path. Every command reports JSON in both output modes.
 The default only previews. `--save-plan` records a plan; `--write` records and applies it.
 Those two flags are mutually exclusive.
 Use the returned transaction ID for history inspection, application, undo, redo, recovery and patch export.
 Running a fresh command after a preview observes the files again; applying a saved plan checks its recorded basis.
 
 The report includes `schema: 1`, `workspace_root`, `operation`, `set`, `target`, `mode_scope`, `validation`, `basis` and `transaction`.
-`set` and `mode_scope` are populated only for executable changes. `target` is populated only for symlink changes.
+`set` and `mode_scope` are populated only for executable changes. `target` is populated only for
+symlink changes. Move reports `source` and `destination`.
 `requested` counts selected paths; `changed` counts recorded changes.
 `applied` and `saved` describe completed actions. Both are false for a no-op, whose `transaction` is null.
 Sorted `entries` include path, changed status, before/after existence, entry kinds, Unix modes and original byte length.
@@ -66,7 +75,8 @@ These checks do not establish syntax, import, dependency, compilation or behavio
 
 Paths must use UTF-8 and remain relative to the selected workspace.
 Absolute paths, parent traversal, duplicate targets, parent symlinks and paths through `.git` or `.fr-history` cause refusal.
-Deletion selections must name existing regular files or UTF-8 symlinks. Executable changes require regular files.
+Deletion and move sources must name existing regular files or UTF-8 symlinks. A move destination
+must be absent and differ from its source. Executable changes require regular files.
 Directories, recursive deletion, binary regular files and missing deletion targets are unsupported.
 Explicit paths can name ignored files; scanner filters do not select or exclude file-operation targets.
 All selected paths must pass preflight checks before the command records or applies a batch.
@@ -76,6 +86,9 @@ Handled write failures restore the batch's starting state when recovery succeeds
 An interrupted operation leaves a pending transaction for `fr history recover ID --write`.
 Tests interrupt apply, undo and redo after every write in two-file deletion and executable batches, including empty files and special modes, and at the replacement boundary for regular-to-symlink transitions.
 The [native history guarantees](../CLI.md#write-guarantees) and their filesystem assumptions apply here too.
+Use a reviewed [`history compact`](../CLI.md#fr-history) operation to remove old replay payloads.
+Compaction keeps transaction summaries but
+permanently gives up replay and patch export for the selected IDs.
 Writes can expose intermediate files to concurrent observers and replace file inodes.
 Snapshots omit ownership, timestamps, extended attributes and symlink permission bits; deleting files does not remove their directories.
 
@@ -91,3 +104,10 @@ Further laws establish the requested projected Git mode and preservation of the 
 Shared execution compares 8,258 setter results between Rust and Lean.
 Snapshot checks reuse the existing anchored history predicate; [the verification guide](lean-specs.md#existing-kernels) records proof assumptions and correspondence limits.
 The file planner, filesystem observation and complete transaction implementation remain outside those proofs.
+The history compaction predicate is also Lean anchored. It proves and exhaustively checks that a
+record is eligible only when it has detail, is outside the retained stack window, is not pending and
+is not planned. Journal serialization, locking, hash collision resistance and durable replacement
+remain tested trust boundaries.
+The file-move admission predicate is also anchored. Lean proves that admission requires a present
+supported source, absent destination and distinct paths. Rust and Lean agree on all sixteen finite
+boundary cases. Snapshot transfer, locking and filesystem writes reuse the tested history engine.

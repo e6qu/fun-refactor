@@ -45,7 +45,7 @@ The [controlled workflow evaluation](docs/workflow-evaluation.md) measures the c
 the equivalent seven-call manual lifecycle and checks exact final-state equivalence.
 `fr task-change --from MANIFEST` joins task discovery, concrete authoring and checked delivery under one review basis.
 The [task-change evaluation](docs/task-change-evaluation.md) compares it with the composed five-call route.
-[Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
+[Development continuity](docs/continuity.md) records completed milestones, evidence and the current implementation handoff.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
 `project explore` gives agents a name-first route with server-enforced source, relationship and
@@ -318,8 +318,10 @@ Supported operations still report input-specific limitations and confidence.
 
 [PLAN.md](PLAN.md) is the active roadmap for agents: compact project understanding,
 reversible changes, Git patches, reusable Lean verification and hierarchical framework migration.
-The original implementation stages are complete. The new milestones remain active.
-LSP delegation stays outside the default engine; daemon/watch mode awaits a measured need.
+Every scheduled milestone and deferred-boundary checkpoint is complete. New scope starts from
+measured agent needs or a newly reproduced defect.
+The standalone engine excludes LSP delegation and daemon/watch state. Persistent cache, bounded
+request batching and concurrent-build coalescing cover the measured repeated-query workloads.
 
 The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
 The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
@@ -328,7 +330,9 @@ Add `--check` to compare the receiving files with the recorded starting state; `
 Use `--git-check` for Git's application verdict, with `--index` to include the index.
 Patch-basis, executable-mode and symlink-mode helpers have anchored Lean models with 63,784 shared execution comparisons.
 See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
-`fr file delete`, `fr file executable --set on|off` and `fr file symlink --target TARGET` add explicit entry operations with saved plans, undo/redo and patch export.
+`fr file delete`, `fr file move`, `fr file executable --set on|off` and
+`fr file symlink --target TARGET` add explicit entry operations with saved plans, undo/redo and
+patch export.
 See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
 `fr git status` pages through repository changes with filters, rename sources and continuation cursors.
 See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
@@ -338,6 +342,7 @@ See [repository change pages](docs/git-changes.md) for scope and metadata identi
 Add `--symbols` for changed declarations and their containing hierarchy, with snapshot checks and no source bodies.
 Add `--calls` for incoming and outgoing candidates within each file snapshot, retaining confidence and unresolved targets.
 Repeat `--include FILE` to add explicit caller and target context, with selected blob bases and checked raw working snapshots.
+Use `--workspace-context --depth N` for bounded transitive calls across tracked source snapshots without returning source bodies.
 See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
 `fr git stage PATH...` previews raw staging entries; `--basis TOKEN --write` applies them through a prepared index on Unix.
 See [staging semantics and limits](docs/git-staging.md) for raw byte and mode semantics.
@@ -354,12 +359,30 @@ See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts an
 `fr git worktree remove PATH` previews removal of a clean owned worktree; `--basis TOKEN --write` archives metadata and removes reviewed files.
 [Reviewed removal](docs/git-worktree-removal.md) retains the branch and refuses extra content.
 [Removal resumption](docs/git-worktree-removal-resumption.md) uses `fr git worktree resume-removal RECORD` to inspect partial removals and `--basis TOKEN --write` to finish them.
+`fr git worktree undo-removal RECORD` reconstructs a completed removed checkout from its retained commit.
+`redo-removal RECORD` removes that restored checkout and returns the next reversible archive.
 [Archive compaction](docs/git-worktree-archive-compaction.md) uses `fr git worktree compact-removal RECORD` to review discarding completed recovery records while retaining audit summaries.
 Its plural `compact-removals RECORD...` form applies the same checks to an explicit bulk-retention set.
-The browser records bounded in-memory transactions, supports checked one-step undo/redo and exports
-cumulative patches through the native Rust Git renderer; see [browser history](docs/browser-history.md).
+The browser records bounded transactions, supports checked undo, redo and compaction, and exports
+cumulative patches through the native Rust Git renderer. The playground restores content-bound
+checkpoints across reloads; see [browser history](docs/browser-history.md).
 `fr project` now provides compact hierarchy maps and bounded source inspection.
-Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
+Its package and dependency pages report Cargo, npm, Go module and Python project declarations with shared revision checks.
+`fr project resolutions` pages through captured Cargo, npm, Go and Python lock entries without
+returning lockfile text. Filters select one manifest or lockfile, and every cursor binds the exact
+lock snapshot. The report includes versions, available origins and integrity fields with explicit
+format gaps. It reads `Cargo.lock`, npm lockfiles, `go.sum`, Poetry, uv and Pipenv locks.
+Dependency rows select the nearest ancestor lock of the same ecosystem. Cargo and npm aliases map
+to their resolved package names, and Python names use normalized punctuation and case. Candidate
+versions remain bounded and keep ambiguity when a lock contains several versions.
+`fr project package-features --manifest Cargo.toml` evaluates the bounded local Cargo feature
+graph. It handles defaults, cycles, implicit optional-dependency features, `dep:`, strong and weak
+dependency-feature requests, and dependency-declared features without invoking Cargo. Default
+Progressive project disclosure also stores activation evidence beneath its packages branch.
+`fr project verify-artifact` checks caller-selected bytes against a captured lock entry without a
+network request. It supports Cargo and Python SHA-256, npm SRI SHA-256/384/512, and Go `h1` tree
+hashes over an extracted module directory. Reports expose computed digests and status without
+returning artifact contents.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.
@@ -379,7 +402,7 @@ the [cross-stack surface model](docs/cross-stack-surfaces.md).
 Editable rows return opaque revision-bound capabilities for exact CSS definitions, literal class
 tokens, Markdown headings and Mermaid nodes. `fr author edit-surface` previews and records those
 changes through the same undo, redo and Git patch history as function authoring.
-`fr project disclose HANDLE --view project` commits these reports and application facts as four
+`fr project disclose HANDLE --view project` commits these reports and application facts as five
 independently revealable Merkle branches.
 Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.
 Direct variable handlers expose initializer annotations. Nested app candidates retain captured npm dependency and package-boundary evidence.
@@ -396,6 +419,9 @@ FastAPI `Depends` and `Security` parameter markers become route execution depend
 Lifecycle children cover Next.js instrumentation exports and FastAPI lifespan or event declarations.
 Runtime configuration links environment declarations to application consumers without exposing values.
 Handler children include sanitized `fetch`, axios, requests and HTTPX service candidates; dynamic targets become gaps.
+Root-relative service targets link to every same-path route candidate in the selected project.
+Known HTTP methods narrow the candidates; unknown methods retain all path matches. Each link exposes
+its route IDs and omission count, so an agent can traverse application dependencies without source.
 Next.js pages also form features without API routes.
 Standalone React packages form features at root component files in the captured relative-import graph.
 Their React files include inherited Next.js layouts where applicable and bounded relative component imports.
@@ -418,7 +444,7 @@ Pinned FastAPI and Next.js fixtures register generated routes and execute real f
 The [feature migration contract](docs/feature-migration.md) states destination rules, coexistence behavior and current runtime limits.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Package aliases, framework runtime behavior and complete dependency graphs remain roadmap work.
+Framework runtime execution remains outside the static evidence model.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.

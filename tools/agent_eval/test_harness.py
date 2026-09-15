@@ -243,6 +243,66 @@ class AgentWorkflowV4Evidence(unittest.TestCase):
                               "receiver_index_unchanged", "receiver_matches"):
                     self.assertTrue(result[field])
 
+    def test_deferred_work_diagnostic_retains_both_failure_causes(self):
+        evidence = TOOLS.parent / "tests/agent-eval/results/2026-09-14-deferred-diagnostic"
+        manifest = json.loads((evidence / "manifest.json").read_text())
+        self.assertFalse(manifest["acceptance"]["passed"])
+        self.assertEqual(manifest["implementation_commit"],
+                         "9530d5b013d802c6fcbef447cbfc39f67b8fb7ba")
+        self.assertIn("ambiguous workflow input schema", manifest["agent_execution"])
+        self.assertIn("mutable prepared fr binary", manifest["agent_execution"])
+        for relative, sha256 in manifest["files"].items():
+            self.assertEqual(harness.digest(harness.within(evidence, relative).read_bytes()), sha256)
+        expected = {"fr": (False, 19252, 42), "files": (False, 12441, 23)}
+        for arm, values in expected.items():
+            result = json.loads(
+                (evidence / f"regex-escape-len-{arm}/result.json").read_text()
+            )
+            self.assertEqual(
+                (result["passed"], result["context_tokens"], result["tool_calls"]), values
+            )
+
+    def test_second_diagnostic_retains_behavior_success_and_protocol_failure(self):
+        evidence = TOOLS.parent / "tests/agent-eval/results/2026-09-14-deferred-diagnostic-2"
+        manifest = json.loads((evidence / "manifest.json").read_text())
+        self.assertFalse(manifest["acceptance"]["passed"])
+        self.assertEqual(manifest["implementation_commit"],
+                         "88d69ed5152890ab8ba0dbb07a227f6be5e1edd5")
+        for relative, sha256 in manifest["files"].items():
+            self.assertEqual(harness.digest(harness.within(evidence, relative).read_bytes()), sha256)
+        expected = {"fr": (False, 18358, 35), "files": (True, 11604, 21)}
+        for arm, values in expected.items():
+            result = json.loads(
+                (evidence / f"regex-escape-len-{arm}/result.json").read_text()
+            )
+            self.assertEqual(
+                (result["passed"], result["context_tokens"], result["tool_calls"]), values
+            )
+            self.assertTrue(result["oracle"]["passed"])
+            self.assertTrue(result["receiver_oracle"]["passed"])
+
+    def test_deferred_work_rerun_retains_a_complete_passing_pair(self):
+        evidence = TOOLS.parent / "tests/agent-eval/results/2026-09-14-deferred-final"
+        manifest = json.loads((evidence / "manifest.json").read_text())
+        self.assertTrue(manifest["acceptance"]["passed"])
+        self.assertEqual(manifest["implementation_commit"],
+                         "5839cded0226501294781f4a501e31e543b0f9f1")
+        for relative, sha256 in manifest["files"].items():
+            self.assertEqual(harness.digest(harness.within(evidence, relative).read_bytes()), sha256)
+        expected = {"fr": (True, 17711, 42), "files": (True, 11182, 17)}
+        for arm, values in expected.items():
+            result = json.loads(
+                (evidence / f"regex-escape-len-{arm}/result.json").read_text()
+            )
+            self.assertEqual(
+                (result["passed"], result["context_tokens"], result["tool_calls"]), values
+            )
+            for field in (
+                "undo_exact", "redo_exact", "workflow_ordered", "index_unchanged",
+                "receiver_index_unchanged", "receiver_matches",
+            ):
+                self.assertTrue(result[field])
+
 
 class ProjectBatchAgentEvidence(unittest.TestCase):
     def test_token_counts_canonicalize_opaque_identity_spellings(self):
@@ -394,6 +454,66 @@ class CheckPolicyEvidence(unittest.TestCase):
 
 
 class CoordinatedWorkspaceEvidence(unittest.TestCase):
+    def test_prepare_freezes_one_read_only_binary_for_every_arm(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            binary = root / "fr-source"
+            binary.write_bytes(b"evaluated binary")
+            binary.chmod(0o755)
+            sessions = root / "sessions"
+            with mock.patch.object(harness, "prepare_trial") as prepare_trial:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    harness.prepare(sessions, binary, "regex-coordinated", 1)
+
+            frozen = sessions / "fr-agent-eval-bin"
+            self.assertEqual(frozen.read_bytes(), b"evaluated binary")
+            self.assertEqual(frozen.stat().st_mode & 0o777, 0o555)
+            self.assertEqual(prepare_trial.call_count, 2)
+            self.assertEqual({call.args[1] for call in prepare_trial.call_args_list}, {frozen})
+
+            binary.write_bytes(b"later build")
+            self.assertEqual(frozen.read_bytes(), b"evaluated binary")
+
+    def test_prepare_refuses_a_missing_binary_before_creating_sessions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sessions = Path(tmp) / "sessions"
+            with self.assertRaisesRegex(ValueError, "not a regular file"):
+                harness.prepare(sessions, Path(tmp) / "missing", "regex-coordinated", 1)
+            self.assertFalse(sessions.exists())
+
+    def test_prepared_evaluator_fingerprints_refuse_harness_drift(self):
+        expected = {"tools/agent-eval.py": "a" * 64}
+        with mock.patch.object(harness, "evaluator_fingerprints", return_value=expected):
+            harness.verify_prepared_evaluator({"evaluator_files": expected})
+            with self.assertRaisesRegex(ValueError, "evaluator changed after preparation"):
+                harness.verify_prepared_evaluator({
+                    "evaluator_files": {"tools/agent-eval.py": "b" * 64},
+                })
+        harness.verify_prepared_evaluator({})
+
+    def test_redundant_success_refuses_only_unchanged_exact_replays(self):
+        request = {"tool": "fr", "args": ["author", "batch", "--from", "plan.json"]}
+
+        def event(selected=request, exit_code=0, changed=False):
+            return {
+                "request": selected,
+                "visible": json.dumps({"exit_code": exit_code, "result": {}}),
+                "before": {"source": "old"},
+                "after": {"source": "new" if changed else "old"},
+            }
+
+        self.assertTrue(harness.redundant_success([event()], request))
+        self.assertFalse(harness.redundant_success([event(exit_code=1)], request))
+        self.assertFalse(harness.redundant_success(
+            [event(), event({"tool": "write", "path": "plan.json", "text": "new"})], request
+        ))
+        self.assertFalse(harness.redundant_success(
+            [event(), event({"tool": "sentinel"}, changed=True)], request
+        ))
+        self.assertFalse(harness.redundant_success(
+            [event()], {"tool": "fr", "args": ["author", "guide"]}
+        ))
+
     def test_new_task_preserves_old_scopes_and_has_complete_pairs(self):
         task = harness.regex_escape_len.TASK
         self.assertEqual(harness.edit_paths(task), ("regex-syntax/src/lib.rs", "src/lib.rs"))
@@ -548,6 +668,40 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         broken = copy.deepcopy(events)
         broken[2]["request"]["args"][-1] = "frwb1:" + "b" * 64
         self.assertFalse(harness.coordinated_batch(broken))
+
+    def test_coordinated_workflow_manifest_reports_each_invalid_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            artifacts = session / "artifacts"
+            project.mkdir()
+            artifacts.mkdir()
+            manifest = artifacts / "workflow.json"
+            manifest.write_text(json.dumps({
+                "schema": "fr-workflow-1",
+                "transaction": {"id": 1},
+                "checks": {"names": ["minimal", "upstream"]},
+                "exercise-reversal": True,
+                "patch": {"output": "wrong.patch"},
+                "check-output-bytes": 4096,
+            }))
+            config = {"task": harness.regex_escape_len.TASK}
+            args = ["workflow", "--from", str(manifest)]
+            with self.assertRaises(ValueError) as rejected:
+                harness.coordinated_workflow_manifest(session, project, config, args)
+            message = str(rejected.exception)
+            for diagnostic in (
+                "schema must be integer 1",
+                "transaction must be a positive integer",
+                "transaction-context-basis must be a string",
+                "checks.names must equal ['upstream', 'minimal']",
+                "checks.basis must be a string",
+                "exercise-reversal must be false",
+                'patch must equal {"output": ".fr-agent-change.patch"}',
+                "check-output-bytes must equal 2048",
+            ):
+                self.assertIn(diagnostic, message)
+            self.assertIn('Expected shape: {"schema": 1', message)
 
     def test_nested_workflow_check_preserves_ordered_acceptance(self):
         original = {"src/lib.rs": {"sha256": "old"}}

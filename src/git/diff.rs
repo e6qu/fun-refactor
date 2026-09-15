@@ -45,9 +45,23 @@ pub struct Options {
         long,
         value_name = "FILE",
         requires = "calls",
+        conflicts_with = "workspace_context",
         help = "Include a literal file in call analysis; repeat for more files."
     )]
     include: Vec<PathBuf>,
+    #[arg(
+        long,
+        requires = "calls",
+        help = "Capture every eligible tracked source file for bounded call analysis."
+    )]
+    workspace_context: bool,
+    #[arg(
+        long,
+        requires = "calls",
+        default_value_t = 1,
+        help = "Follow resolved calls from changed declarations for 1 through 8 edges."
+    )]
+    depth: usize,
     #[arg(long, default_value_t = 50, help = "Maximum rows, from 1 to 500.")]
     limit: usize,
     #[arg(long, help = "Continue the same observed diff.")]
@@ -155,6 +169,9 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     if !(1..=500).contains(&options.limit) {
         bail!("limit must be between 1 and 500");
     }
+    if !crate::git::git_call_expansion_allowed(1, 0, options.depth) {
+        bail!("depth must be between 1 and 8");
+    }
     if options.path.as_os_str().is_empty()
         || options
             .path
@@ -180,15 +197,21 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         None
     };
     selection(&root, path, base.as_deref())?;
-    let context = if options.include.is_empty() {
+    let include = if options.workspace_context {
+        symbols::Context::workspace_paths(&root, path, base.as_deref())?
+    } else {
+        options.include.clone()
+    };
+    let context = if include.is_empty() {
         None
     } else {
         Some(symbols::Context::capture(
             &root,
             path,
-            &options.include,
+            &include,
             base.as_deref(),
             options.staged,
+            options.workspace_context,
         )?)
     };
     let scope = if options.staged {
@@ -269,6 +292,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             &observed,
             direction,
             context.as_ref(),
+            options.depth,
         )?)
     } else {
         None
@@ -280,14 +304,16 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
                 &revision,
                 view_name,
                 direction,
+                options.depth,
+                options.workspace_context,
                 env!("CARGO_PKG_VERSION"),
                 &view.entries,
                 &view.coverage,
             ))?)
         );
         let structure = json!({"revision": identity, "coverage": view.coverage,
-            "scope": if options.calls {"calls-touching-changed-declarations"} else {"changed-line-overlap"}, "hierarchy": "strict-span-containment", "locals": "omitted",
-            "cross_side_matching": "none", "relationships": if context.is_some() {"selected-file-call-candidates"} else if options.calls {"single-file-call-candidates"} else {"not-collected"}, "direction": direction, "text_bytes": 256});
+            "scope": if options.calls {"calls-reachable-from-changed-declarations"} else {"changed-line-overlap"}, "hierarchy": "strict-span-containment", "locals": "omitted",
+            "cross_side_matching": "none", "relationships": if options.workspace_context {"workspace-call-candidates"} else if context.is_some() {"selected-file-call-candidates"} else if options.calls {"single-file-call-candidates"} else {"not-collected"}, "direction": direction, "depth":options.calls.then_some(options.depth), "text_bytes": 256});
         (
             view.entries.len(),
             Some(structure),

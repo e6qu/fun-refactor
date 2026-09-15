@@ -866,6 +866,47 @@ fn history_snapshot_checks_match_lean_for_existence_content_and_modes() {
 }
 
 #[test]
+fn file_move_admission_matches_lean_for_every_boundary_case() {
+    use fun_refactor::history::files::move_admitted;
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-history-kernel", "file-move"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut expected = Vec::new();
+    for source_exists in [false, true] {
+        for destination_exists in [false, true] {
+            for distinct_paths in [false, true] {
+                for source_supported in [false, true] {
+                    expected.push(
+                        move_admitted(
+                            source_exists,
+                            destination_exists,
+                            distinct_paths,
+                            source_supported,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
+#[test]
 fn patch_modes_match_lean_across_permission_bits_and_u32_boundaries() {
     use fun_refactor::history::{git_mode, git_mode_change_supported};
     build_kernel();
@@ -997,6 +1038,86 @@ fn browser_history_transition_policy_matches_lean_exhaustively() {
                     )
                     .to_string(),
                 );
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
+fn browser_session_restore_policy_matches_lean_at_machine_boundaries() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("memory-restores")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for schema_matches in [false, true] {
+        for digest_matches in [false, true] {
+            for history_valid in [false, true] {
+                for files in [0, 4096, 4097, usize::MAX] {
+                    for payload_bytes in [0, 4 * 1024 * 1024, 4 * 1024 * 1024 + 1, usize::MAX] {
+                        expected.push(
+                            fun_refactor::transaction_kernel::memory_restore_allowed(
+                                schema_matches,
+                                digest_matches,
+                                history_valid,
+                                files,
+                                payload_bytes,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
+fn browser_history_compaction_bound_matches_lean_at_machine_boundaries() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("memory-compactions")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let expected = [0, 1, 255, 256, 257, usize::MAX]
+        .into_iter()
+        .map(fun_refactor::transaction_kernel::memory_compaction_allowed)
+        .map(|allowed| allowed.to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(observed, expected);
+}
+
+#[test]
+fn source_history_compaction_policy_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("record-compaction")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for detailed in [false, true] {
+        for pending in [false, true] {
+            for retained in [false, true] {
+                for planned in [false, true] {
+                    expected.push(
+                        fun_refactor::history::record_compactable(
+                            detailed, pending, retained, planned,
+                        )
+                        .to_string(),
+                    );
+                }
             }
         }
     }
@@ -2617,6 +2738,43 @@ fn git_call_selection_matches_lean_for_every_boolean_input() {
 }
 
 #[test]
+fn git_call_expansion_bounds_match_lean_at_machine_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("git-call-expansion")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let samples = [0u64, 1, 2, 255, 256, 257, u32::MAX.into(), u64::MAX];
+    let byte_samples = [0u64, 1, 67_108_863, 67_108_864, 67_108_865, u64::MAX];
+    let depths = [0u64, 1, 2, 7, 8, 9, u32::MAX.into(), u64::MAX];
+    let mut index = 0;
+    for files in samples {
+        for bytes in byte_samples {
+            for depth in depths {
+                if let (Ok(files), Ok(bytes), Ok(depth)) = (
+                    usize::try_from(files),
+                    usize::try_from(bytes),
+                    usize::try_from(depth),
+                ) {
+                    assert_eq!(
+                        fun_refactor::git::git_call_expansion_allowed(files, bytes, depth),
+                        actual[index]
+                    );
+                }
+                index += 1;
+            }
+        }
+    }
+    assert_eq!(index, actual.len());
+}
+
+#[test]
 fn staging_transition_matches_lean_for_every_boolean_input() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
@@ -3012,6 +3170,260 @@ fn worktree_archive_compaction_matches_lean_for_all_inputs() {
                         unlocked,
                     ));
                 }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn worktree_removal_reversal_matches_lean_for_all_inputs() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-removal-reversal")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for complete in [false, true] {
+        for checkout_absent in [false, true] {
+            for metadata_absent in [false, true] {
+                for branch_unoccupied in [false, true] {
+                    expected.push(fun_refactor::git::worktree_removal_reversal_allowed(
+                        complete,
+                        checkout_absent,
+                        metadata_absent,
+                        branch_unoccupied,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn manifest_inventory_bounds_match_lean_at_machine_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("manifest-inventory")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let manifests = [0u64, 1, 1023, 1024, 1025, u32::MAX.into(), u64::MAX];
+    let declarations = [0u64, 1, 65_535, 65_536, 65_537, u32::MAX.into(), u64::MAX];
+    let mut index = 0;
+    for manifests in manifests {
+        for declarations in declarations {
+            if let (Ok(manifests), Ok(declarations)) =
+                (usize::try_from(manifests), usize::try_from(declarations))
+            {
+                assert_eq!(
+                    fun_refactor::project::manifest_inventory_allowed(manifests, declarations),
+                    actual[index]
+                );
+            }
+            index += 1;
+        }
+    }
+    assert_eq!(index, actual.len());
+}
+
+#[test]
+fn lockfile_inventory_bounds_match_lean_at_machine_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("lockfile-inventory")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let lockfiles = [0u64, 1, 1023, 1024, 1025, u32::MAX.into(), u64::MAX];
+    let evidence = [
+        0u64,
+        1,
+        262_143,
+        262_144,
+        262_145,
+        u32::MAX.into(),
+        u64::MAX,
+    ];
+    let mut index = 0;
+    for lockfiles in lockfiles {
+        for evidence in evidence {
+            if let (Ok(lockfiles), Ok(evidence)) =
+                (usize::try_from(lockfiles), usize::try_from(evidence))
+            {
+                assert_eq!(
+                    fun_refactor::project::lockfile_inventory_allowed(lockfiles, evidence),
+                    actual[index]
+                );
+            }
+            index += 1;
+        }
+    }
+    assert_eq!(index, actual.len());
+}
+
+#[test]
+fn service_route_candidates_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("service-route-candidate")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for local_target in [false, true] {
+        for path_equal in [false, true] {
+            for method_known in [false, true] {
+                for method_equal in [false, true] {
+                    expected.push(
+                        fun_refactor::project::framework_kernel::service_route_candidate(
+                            local_target,
+                            path_equal,
+                            method_known,
+                            method_equal,
+                        ),
+                    );
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn dependency_resolution_candidates_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("dependency-resolution-candidate")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for lockfile_applies in [false, true] {
+        for ecosystem_equal in [false, true] {
+            for name_equal in [false, true] {
+                expected.push(fun_refactor::project::dependency_resolution_candidate(
+                    lockfile_applies,
+                    ecosystem_equal,
+                    name_equal,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn package_feature_inventory_matches_lean_at_machine_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("package-feature-inventory")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let samples = [0u64, 1, 65_535, 65_536, 65_537, u32::MAX.into(), u64::MAX];
+    let mut index = 0;
+    for features in samples {
+        for members in samples {
+            if let (Ok(features), Ok(members)) =
+                (usize::try_from(features), usize::try_from(members))
+            {
+                assert_eq!(
+                    fun_refactor::project::package_feature_inventory_allowed(features, members),
+                    actual[index]
+                );
+            }
+            index += 1;
+        }
+    }
+    assert_eq!(index, actual.len());
+}
+
+#[test]
+fn package_feature_dependency_requests_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("package-feature-dependency-request")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for source_active in [false, true] {
+        for dependency_known in [false, true] {
+            for weak in [false, true] {
+                for dependency_active in [false, true] {
+                    expected.push(fun_refactor::project::package_feature_dependency_request(
+                        source_active,
+                        dependency_known,
+                        weak,
+                        dependency_active,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn artifact_verification_statuses_match_lean_for_every_boolean_state() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("artifact-verification-status")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<usize>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for expectation_present in [false, true] {
+        for algorithm_supported in [false, true] {
+            for digest_equal in [false, true] {
+                expected.push(fun_refactor::project::artifact_verification_status(
+                    expectation_present,
+                    algorithm_supported,
+                    digest_equal,
+                ));
             }
         }
     }

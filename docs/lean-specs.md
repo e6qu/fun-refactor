@@ -17,13 +17,15 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
 | `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence and remaining obligations |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
-| `fr spec check --strict` | Require an explicit signature map beside every source anchor |
+| `fr spec check --strict` | Require an explicit signature map beside every source anchor from a readable code language |
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
 | `kernels/` | Executable edit, position, history, checks, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
 
-Strict signature maps currently require Rust source declarations.
+Strict signature maps cover Rust plus the shared IR readers for JavaScript, TypeScript, TSX, Go,
+Java, Python, Zig, Bash and Lean. Rust maps retain source type spelling. Other readers expose their
+language-independent IR types such as `string`, `int`, `float`, `list<T>` and `unknown`.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
 A changed source signature remains visible after hash synchronization.
 The complete agent-oriented route and its correspondence limits are documented in the
@@ -76,6 +78,9 @@ A theorem about a Lean model alone does not prove the Rust implementation refine
 Translation into Lean does not supply that proof either.
 Implementation correspondence needs its own argument or a justified verified generation path.
 Keep assumptions, accepted axioms and trusted components visible in any verification report.
+Markup, stylesheets, configuration and Markdown have no function signature surface in this check;
+their declarations can still use source anchors. Generated kernel planning and scaffolding retain
+their conservative Rust subset because those commands also translate executable function bodies.
 
 ## Existing kernels
 
@@ -95,14 +100,28 @@ It preserves the current snapshot at every unselected path, including an unrelat
 The inverse and mixed-recovery proofs use Lean’s propositional extensionality axiom. The two stack inverse proofs use no axioms.
 The selected-namespace proofs use no axioms. The model assumes durable journal checkpoints and atomic rename.
 Filesystem, path selection and full transaction implementation correspondence remain unproved. A Git-backed CLI test supplies concrete preservation evidence.
+Its source-history retention model admits compaction only for detailed, non-pending, non-retained,
+non-planned records. Lean proves retained and planned records cannot qualify, and shared execution
+compares all sixteen boolean states with Rust. Integration tests cover basis drift, stack windows,
+summary integrity, journal shrinkage and refusal to replay a compacted record.
+The file-move admission predicate adds sixteen shared cases. Lean proves that an admitted move has a
+present supported source, absent destination and distinct paths. The generic snapshot and replay
+laws then cover exact endpoint restoration; path resolution and filesystem operations remain tested
+implementation boundaries.
 
 `FrKernels.MemoryHistory` specializes the lifecycle boundary used by an in-memory WASM workspace.
 It proves that non-top and abandoned records cannot transition. Applied and undone records admit only
 their inverse action. A mismatched multi-snapshot basis refuses the whole abstract replacement, and
 apply followed by undo restores every selected snapshot. Its anchored transition predicate agrees
-with Rust for all 24 generated known/unknown status, action and stack-position cases. The list model
-does not prove that browser filesystem writes are atomic; Rust tests exercise the implementation's
-complete preflight and unchanged conflict result.
+with Rust for all 24 generated known/unknown status, action and stack-position cases.
+
+Two more anchored predicates cover browser session restoration and in-memory compaction. Restoration
+requires the schema, digest and history graph plus the 4,096-file and 4 MiB limits. Six theorems
+characterize each refusal and the accepted boundary. Compaction admits retention counts through 256;
+its list model proves the zero-retention and retain-all cases. Rust and Lean agree across every
+Boolean restoration input and selected machine-size boundaries. Host and wasm tests cover canonical
+hashing, path checks, graph reconstruction, exact patch preservation and retained transitions. The
+models do not prove browser storage, SHA-256 or complete Rust correspondence.
 
 `FrKernels.Patch` models Git regular, executable and symlink mode projection, supported permission changes and receiving patch-basis equality.
 Five Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.
@@ -561,6 +580,30 @@ cover result pagination and forward progress. Filesystem exclusivity, clock beha
 atomic rename, scheduler fairness, serialization, cryptographic identity and the Rust/Lean compiler
 relationship remain trusted or host-tested boundaries. Integration tests use independent cache
 handles and require one resolution owner, one consumer and identical resolved indexes.
+
+The project lockfile reader uses `lockfileInventoryAllowed` to cap captured files and the combined
+resolution and gap rows. Lean proves both bounds and rejects either first value beyond them. Rust
+and Lean agree at zero, both limits and machine-sized boundary samples. Format parsing, filesystem
+capture and checksum authenticity remain integration-tested assumptions.
+
+Dependency-to-lock joins use `dependencyResolutionCandidate`: a candidate qualifies only when
+the selected lock applies to the manifest and both ecosystem and full package identity agree. Lean
+proves that conjunction and refuses a mismatched identity; Rust and Lean agree on all eight Boolean
+states. Lock ownership, Cargo and npm alias interpretation, and Python name normalization remain
+parser-level rules covered by cross-ecosystem integration tests.
+
+Cargo feature extraction uses `packageFeatureInventoryAllowed` to cap both named local features and
+their direct members at 65,536. Lean proves both ceilings and rejects either adjacent overflow;
+Rust and Lean agree at the limits and machine-sized samples. Cargo feature grammar and closure
+interpretation remain covered by integration tests over defaults, cycles, optional dependencies,
+strong requests and weak requests. `packageFeatureDependencyRequest` separately proves that every
+request needs an active source and known dependency, while a weak request additionally needs the
+dependency to be active. Rust and Lean agree on all sixteen states.
+
+Artifact comparison uses `artifactVerificationStatus` to keep absent evidence, unsupported
+algorithms, digest mismatches and verified bytes distinct. Lean proves the status bound and that
+success requires all three positive inputs. Rust and Lean agree on all eight states. SHA-2 and Go
+tree-hash implementations remain cryptographic-library and integration-tested assumptions.
 
 ## Formalization order
 

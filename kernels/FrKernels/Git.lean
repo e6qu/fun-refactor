@@ -67,6 +67,27 @@ theorem swapping_sides_preserves_selection (incoming outgoing includeIncoming in
       callInSelection outgoing incoming includeOutgoing includeIncoming := by
   cases incoming <;> cases outgoing <;> cases includeIncoming <;> cases includeOutgoing <;> rfl
 
+-- fr:spec src/git.rs::git_call_expansion_allowed @ b80e08a125899c54a711c9430bf9dbffeabad86797d6d7eefd6c02a7cb300f97
+-- fr:signature files: usize => files: Nat; bytes: usize => bytes: Nat; depth: usize => depth: Nat; return: bool => return: Bool
+def gitCallExpansionAllowed (files : Nat) (bytes : Nat) (depth : Nat) : Bool :=
+  decide (1 ≤ files ∧ files ≤ 256 ∧ bytes ≤ 67108864 ∧ 1 ≤ depth ∧ depth ≤ 8)
+
+theorem git_call_expansion_bounds (files bytes depth : Nat)
+    (allowed : gitCallExpansionAllowed files bytes depth = true) :
+    1 ≤ files ∧ files ≤ 256 ∧ bytes ≤ 67108864 ∧ 1 ≤ depth ∧ depth ≤ 8 := by
+  simpa [gitCallExpansionAllowed] using allowed
+
+theorem git_call_expansion_accepts_smallest : gitCallExpansionAllowed 1 0 1 = true := by decide
+
+theorem git_call_expansion_refuses_empty (bytes depth : Nat) :
+    gitCallExpansionAllowed 0 bytes depth = false := by simp [gitCallExpansionAllowed]
+
+theorem git_call_expansion_refuses_excess_files (bytes depth : Nat) :
+    gitCallExpansionAllowed 257 bytes depth = false := by simp [gitCallExpansionAllowed]
+
+theorem git_call_expansion_refuses_excess_bytes (files depth : Nat) :
+    gitCallExpansionAllowed files 67108865 depth = false := by simp [gitCallExpansionAllowed]
+
 -- fr:spec src/git.rs::staging_transition_allowed @ 6efae259027fb6da965260dada7bb6817c1ffac1eb16b6527c99f2d25e4d10bc
 -- fr:signature matches_before: bool => matchesBefore: Bool; matches_after: bool => matchesAfter: Bool; recovery: bool => recovery: Bool; return: bool => return: Bool
 def stagingTransitionAllowed (matchesBefore : Bool) (matchesAfter : Bool) (recovery : Bool) : Bool :=
@@ -462,5 +483,44 @@ theorem archive_compaction_preserves_audit (archive : String × Option String) :
 
 theorem archive_compaction_is_idempotent (archive : String × Option String) :
     compactArchive (compactArchive archive) = compactArchive archive := by rfl
+
+-- fr:spec src/git.rs::worktree_removal_reversal_allowed @ 4bba03f1daa018c4e95bdb8ea38c67af11b20d3587381db56ed7ba5d1930a189
+-- fr:signature complete: bool => complete: Bool; checkout_absent: bool => checkoutAbsent: Bool; metadata_absent: bool => metadataAbsent: Bool; branch_unoccupied: bool => branchUnoccupied: Bool; return: bool => return: Bool
+def worktreeRemovalReversalAllowed (complete : Bool) (checkoutAbsent : Bool)
+    (metadataAbsent : Bool) (branchUnoccupied : Bool) : Bool :=
+  complete && checkoutAbsent && metadataAbsent && branchUnoccupied
+
+theorem removal_reversal_requires_complete_free_state
+    (complete checkoutAbsent metadataAbsent branchUnoccupied : Bool)
+    (allowed : worktreeRemovalReversalAllowed complete checkoutAbsent metadataAbsent branchUnoccupied = true) :
+    complete = true ∧ checkoutAbsent = true ∧ metadataAbsent = true ∧ branchUnoccupied = true := by
+  cases complete <;> cases checkoutAbsent <;> cases metadataAbsent <;> cases branchUnoccupied <;>
+    simp_all [worktreeRemovalReversalAllowed]
+
+def reverseRemoval (before : String → Option String) (destination commit : String) :
+    Option (String → Option String) :=
+  createFresh before destination commit
+
+theorem removal_undo_restores_selected_commit
+    (before after : String → Option String) (destination commit : String)
+    (restored : reverseRemoval before destination commit = some after) :
+    after destination = some commit := by
+  unfold reverseRemoval createFresh at restored
+  split at restored
+  · cases restored
+    simp
+  · contradiction
+
+theorem removal_undo_preserves_other
+    (before after : String → Option String) (destination commit path : String)
+    (restored : reverseRemoval before destination commit = some after) (other : path ≠ destination) :
+    after path = before path := by
+  exact worktree_creation_preserves_other before after destination commit path restored other
+
+theorem removal_redo_erases_restored_destination
+    (before after : String → Option String) (destination commit : String)
+    (_restored : reverseRemoval before destination commit = some after) :
+    removeSelected after [destination] destination = none := by
+  exact removal_erases_selected after [destination] destination (by simp)
 
 end FrKernels.Git

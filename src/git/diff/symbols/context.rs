@@ -27,19 +27,77 @@ pub(in crate::git::diff) struct Context {
     before: Inventory,
     working: Option<Inventory>,
     focus_text: Option<String>,
+    pub(super) workspace: bool,
 }
 
 impl Context {
+    pub(in crate::git::diff) fn workspace_paths(
+        root: &Path,
+        focus: &str,
+        base: Option<&str>,
+    ) -> Result<Vec<PathBuf>> {
+        let mut paths = BTreeSet::new();
+        let index = super::checked(
+            root,
+            &["--literal-pathspecs".into(), "ls-files".into(), "-z".into()],
+        )?;
+        for row in crate::git::status::records(&index)? {
+            paths.insert(
+                std::str::from_utf8(row)
+                    .context("workspace call paths must use UTF-8")?
+                    .to_owned(),
+            );
+        }
+        if let Some(base) = base {
+            let tree = super::checked(
+                root,
+                &[
+                    "ls-tree".into(),
+                    "-r".into(),
+                    "--name-only".into(),
+                    "-z".into(),
+                    base.into(),
+                ],
+            )?;
+            for row in crate::git::status::records(&tree)? {
+                paths.insert(
+                    std::str::from_utf8(row)
+                        .context("workspace call paths must use UTF-8")?
+                        .to_owned(),
+                );
+            }
+        }
+        let paths = paths
+            .into_iter()
+            .filter(|path| path != focus)
+            .filter(|path| {
+                super::language(Path::new(path))
+                    .is_some_and(|language| support(Capability::CallGraph, language).is_yes())
+            })
+            .map(PathBuf::from)
+            .collect::<Vec<_>>();
+        ensure!(
+            crate::git::git_call_expansion_allowed(paths.len() + 1, 0, 1),
+            "workspace call context exceeds 256 source files; use explicit --include paths."
+        );
+        Ok(paths)
+    }
+
     pub(in crate::git::diff) fn capture(
         root: &Path,
         focus: &str,
         include: &[PathBuf],
         base: Option<&str>,
         staged: bool,
+        workspace: bool,
     ) -> Result<Self> {
         ensure!(
-            include.len() <= 32,
+            workspace || include.len() <= 32,
             "include accepts at most 32 context paths."
+        );
+        ensure!(
+            !workspace || include.len() <= 255,
+            "workspace call context exceeds 256 source files."
         );
         let mut paths = BTreeSet::new();
         for path in include {
@@ -87,6 +145,7 @@ impl Context {
         let after = working.as_ref().unwrap_or(&index);
         let mut sides = [Vec::new(), Vec::new()];
         let mut coverage = Vec::new();
+        let mut source_bytes = 0usize;
         let parsers = Parsers::new();
         let mut extractor = Extractor::new();
         for path in &paths {
@@ -120,6 +179,14 @@ impl Context {
                 if text.contains('\0') {
                     bail!("binary call context is unsupported: {:?}.", path);
                 }
+                source_bytes = source_bytes
+                    .checked_add(text.len())
+                    .context("workspace call source size overflow")?;
+                ensure!(
+                    !workspace
+                        || crate::git::git_call_expansion_allowed(paths.len(), source_bytes, 1),
+                    "workspace call context exceeds 64 MiB of captured source."
+                );
                 let parsed = parsers.parse(language, &text)?;
                 let facts = extractor.extract(&parsed, path, &text)?;
                 entry[name] = json!({"status":if facts.gaps.is_empty() {"parsed"} else {"partial"},
@@ -141,13 +208,15 @@ impl Context {
             .transpose()?;
         Ok(Self {
             sides,
-            coverage: json!({"scope":if staged {"explicit-staged-files"} else {"explicit-working-files"},
-                "focus":focus,"files":coverage,"working_revision":working_revision}),
+            coverage: json!({"scope":match (workspace,staged) {(true,true)=>"workspace-staged-files",(true,false)=>"workspace-working-files",(false,true)=>"explicit-staged-files",(false,false)=>"explicit-working-files"},
+                "focus":focus,"files":coverage,"working_revision":working_revision,"file_limit":if workspace {256}else{33},
+                "source_bytes":source_bytes,"source_byte_limit":workspace.then_some(67_108_864usize)}),
             paths,
             index,
             before,
             working,
             focus_text: working_texts.remove(focus),
+            workspace,
         })
     }
 

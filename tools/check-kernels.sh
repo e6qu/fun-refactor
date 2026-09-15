@@ -15,6 +15,8 @@ cd "$(dirname "$0")/.."
     lake exe fr-history-kernel workflow-stages >/dev/null
     lake exe fr-history-kernel task-change-modes >/dev/null
     lake exe fr-history-kernel memory-transitions >/dev/null
+    lake exe fr-history-kernel memory-restores >/dev/null
+    lake exe fr-history-kernel memory-compactions >/dev/null
     lake exe fr-history-kernel patch-basis >/dev/null
     lake exe fr-history-kernel owner-executable >/dev/null
     lake exe fr-project-kernel >/dev/null

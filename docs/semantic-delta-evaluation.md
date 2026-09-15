@@ -12,12 +12,12 @@ identity. A separate fixture confirms that a stale body basis refuses before wri
 |---|---:|---:|
 | Change payload | 245 bytes | 1,081 bytes |
 | Semantic query | 2,066 bytes | 2,066 bytes |
-| Preview report | 3,038 bytes | 2,338 bytes |
-| Write report | 3,135 bytes | 2,435 bytes |
+| Preview report | 2,995 bytes | 2,295 bytes |
+| Write report | 3,092 bytes | 2,392 bytes |
 | Behavior, patch, undo and redo | pass | pass |
 
-The delta reduces the change payload by 77.3%. Its operation receipt makes the preview 29.9%
-larger and the write report 28.7% larger. An agent that retains the initial semantic query saves
+The delta reduces the change payload by 77.3%. Its operation receipt makes the preview 30.5%
+larger and the write report 29.3% larger. An agent that retains the initial semantic query saves
 836 authored bytes but receives 700 more result bytes from either authoring call. Compact delta
 receipts remain a possible optimization.
 

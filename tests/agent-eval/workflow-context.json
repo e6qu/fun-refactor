@@ -1,8 +1,8 @@
 {
   "schema": "fr-workflow-context-1",
   "passed": true,
-  "binary_sha256": "a4c1897cbad3029158f032f8945f7e9836ab4494e5dec810afc03d3485ab12c8",
-  "source_commit": "3bbf1059b2260e1a4046b3576c5e397d8522dcc8",
+  "binary_sha256": "0a981e7d590dc1819cf4d1ff129750fde81bf9db6d450b45d84e47a1cd11b58e",
+  "source_commit": "9e93def3d2a95906c0383b8a1993f6d1fdedb097",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
@@ -10,11 +10,11 @@
     "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
   },
   "measurement_files": {
-    "tools/workflow-context.py": "bdd5f6906975a867047e8f1eaf6aea69d06b328be392e57e8c8df9a191baa8d3",
+    "tools/workflow-context.py": "32e152499ee4f887562034bba1d53e90e197359700a6d9c87a9d7f692585efda",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
-    "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f",
+    "tools/agent-eval.py": "ae6c7414af559e4f23ab7a375e5b3bf3c5c2e50233449b3ee1f7434d1d9e081a",
     "src/workflow.rs": "58913a43576638e910c33d37e5fc3c5b88b1ebc31deb6d7ecaf6b2cf16a759a3",
-    "src/history.rs": "eb7bc3a682c1fa28b70f53e7a6688cb8541377cdc5b6971ba97fde1d549173bb",
+    "src/history.rs": "c5ba4383748f23e042e82d273700303f83d17e14b224aebe543136cadf5efff6",
     "src/checks.rs": "a64ed37ea4b4dd004311b43703152d35bba15bbc960b71d276a3c56041254311",
     "Cargo.lock": "4093af80a7d389783e783c3e8c5342d4197e13df91b5f38b4b3dce7efb9b506c"
   },
@@ -59,14 +59,14 @@
       "calls": 7,
       "median_context_bytes": 6368,
       "median_context_tokens": 2047,
-      "median_seconds": 0.2799804589012638
+      "median_seconds": 0.3744373750523664
     },
     "workflow": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 5556,
       "median_context_tokens": 1880,
-      "median_seconds": 0.2497540419572033
+      "median_seconds": 0.3096245829947293
     }
   },
   "runs": [
@@ -90,7 +90,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.2799804589012638,
+      "seconds": 0.3242758340202272,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -116,7 +116,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.2625677920295857,
+      "seconds": 0.3096245829947293,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -142,7 +142,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.2497540419572033,
+      "seconds": 0.3205350000062026,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -168,7 +168,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.27713091706391424,
+      "seconds": 0.3744373750523664,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -194,7 +194,7 @@
         "bytes": 6368,
         "tokens": 2047
       },
-      "seconds": 0.30749649892095476,
+      "seconds": 0.42083466792246327,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -220,7 +220,7 @@
         "bytes": 5556,
         "tokens": 1880
       },
-      "seconds": 0.2309704580111429,
+      "seconds": 0.21298424992710352,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",

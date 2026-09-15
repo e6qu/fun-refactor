@@ -1,6 +1,7 @@
 #![cfg(unix)]
 
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
@@ -47,6 +48,45 @@ fn report(root: &Path, args: &[&str]) -> Value {
         String::from_utf8_lossy(&out.stderr)
     );
     serde_json::from_slice(&out.stdout).unwrap()
+}
+fn worktree_report(root: &Path, command: &str, args: &[&str]) -> Value {
+    let out = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(root)
+        .args(["git", "worktree", command])
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{command} {args:?}: {} {}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    serde_json::from_slice(&out.stdout).unwrap()
+}
+
+fn worktree_error(root: &Path, command: &str, args: &[&str], expected: &str) {
+    let out = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(root)
+        .args(["git", "worktree", command])
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        !out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+    let value: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert!(
+        value["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains(expected),
+        "{value}"
+    );
 }
 fn error(root: &Path, args: &[&str], expected: &str) {
     let out = fr(root, args).output().unwrap();
@@ -100,6 +140,190 @@ fn create(root: &Path) -> Value {
     let result = invoke(&["--write", "--basis", preview["basis"].as_str().unwrap()]);
     assert_eq!(result["applied"], true, "{result}");
     result
+}
+
+#[test]
+fn undo_and_redo_reconstruct_the_owned_worktree_as_a_checked_cycle() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let temp = fixture();
+    let root = temp.path().join("main");
+    fs::create_dir(root.join("nested")).unwrap();
+    fs::write(root.join("nested/executable"), "#!/bin/sh\nexit 0\n").unwrap();
+    fs::set_permissions(
+        root.join("nested/executable"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    symlink("../file.txt", root.join("nested/link")).unwrap();
+    commit(&root);
+    create(&root);
+    let main_index = fs::read(root.join(".git/index")).unwrap();
+    let main_head = git(&root, &["rev-parse", "HEAD"]);
+    let removal_preview = report(&root, &["../owned"]);
+    let removal = report(
+        &root,
+        &[
+            "../owned",
+            "--basis",
+            removal_preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(removal["applied"], true, "{removal}");
+    let record = removal["removal_record"].as_str().unwrap();
+
+    let undo_preview = worktree_report(&root, "undo-removal", &[record]);
+    assert_eq!(undo_preview["applied"], false);
+    let undo = worktree_report(
+        &root,
+        "undo-removal",
+        &[
+            record,
+            "--basis",
+            undo_preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(undo["applied"], true, "{undo}");
+    let target = temp.path().join("owned");
+    assert_eq!(fs::read(target.join("file.txt")).unwrap(), b"base\n");
+    assert_eq!(
+        fs::read_link(target.join("nested/link")).unwrap(),
+        Path::new("../file.txt")
+    );
+    assert_ne!(
+        fs::metadata(target.join("nested/executable"))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o100,
+        0
+    );
+    assert!(Path::new(undo["ownership_record"].as_str().unwrap()).is_file());
+    assert_eq!(git(&root, &["rev-parse", "owned"]), main_head);
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), main_index);
+
+    let record_path = Path::new(record);
+    fs::remove_file(record_path.with_file_name("restored.json")).unwrap();
+    let restoring = serde_json::json!({
+        "schema":1,
+        "state":"restoring",
+        "record_digest":format!("{:x}", Sha256::digest(fs::read(record_path).unwrap())),
+        "destination":undo["destination"],
+        "branch":"owned",
+        "commit":String::from_utf8(main_head.clone()).unwrap().trim(),
+        "basis":undo_preview["basis"]
+    });
+    fs::write(
+        record_path.with_file_name("restoring.json"),
+        format!("{}\n", serde_json::to_string(&restoring).unwrap()),
+    )
+    .unwrap();
+    let confirmation = worktree_report(&root, "undo-removal", &[record]);
+    assert_eq!(confirmation["state"], "restoration-ready-to-confirm");
+    let confirmed = worktree_report(
+        &root,
+        "undo-removal",
+        &[
+            record,
+            "--basis",
+            confirmation["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(confirmed["applied"], true, "{confirmed}");
+
+    let redo_preview = worktree_report(&root, "redo-removal", &[record]);
+    let redo = worktree_report(
+        &root,
+        "redo-removal",
+        &[
+            record,
+            "--basis",
+            redo_preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(redo["applied"], true, "{redo}");
+    assert!(!target.exists());
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), main_index);
+    let next = redo["next_removal_record"].as_str().unwrap();
+    assert!(Path::new(next).is_file());
+    let second_undo_preview = worktree_report(&root, "undo-removal", &[next]);
+    let second_undo = worktree_report(
+        &root,
+        "undo-removal",
+        &[
+            next,
+            "--basis",
+            second_undo_preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(second_undo["applied"], true, "{second_undo}");
+    assert_eq!(fs::read(target.join("file.txt")).unwrap(), b"base\n");
+}
+
+#[test]
+fn removal_reversal_refuses_stale_occupied_and_changed_states() {
+    for kind in ["stale", "destination", "branch", "changed"] {
+        let temp = fixture();
+        let root = temp.path().join("main");
+        create(&root);
+        let preview = report(&root, &["../owned"]);
+        let removal = report(
+            &root,
+            &[
+                "../owned",
+                "--basis",
+                preview["basis"].as_str().unwrap(),
+                "--write",
+            ],
+        );
+        let record = removal["removal_record"].as_str().unwrap();
+        let undo_preview = worktree_report(&root, "undo-removal", &[record]);
+        match kind {
+            "stale" => worktree_error(
+                &root,
+                "undo-removal",
+                &[record, "--basis", "frwtdu1:stale", "--write"],
+                "stale worktree removal undo basis",
+            ),
+            "destination" => {
+                fs::write(temp.path().join("owned"), "occupied").unwrap();
+                worktree_error(
+                    &root,
+                    "undo-removal",
+                    &[record],
+                    "endpoints or branch registration are occupied",
+                );
+            }
+            "branch" => {
+                git(&root, &["branch", "-f", "owned", "HEAD~0"]);
+                fs::write(root.join("new"), "new\n").unwrap();
+                commit(&root);
+                git(&root, &["branch", "-f", "owned", "HEAD"]);
+                worktree_error(&root, "undo-removal", &[record], "branch changed");
+            }
+            "changed" => {
+                let undo = worktree_report(
+                    &root,
+                    "undo-removal",
+                    &[
+                        record,
+                        "--basis",
+                        undo_preview["basis"].as_str().unwrap(),
+                        "--write",
+                    ],
+                );
+                assert_eq!(undo["applied"], true, "{undo}");
+                fs::write(temp.path().join("owned/file.txt"), "changed\n").unwrap();
+                worktree_error(&root, "redo-removal", &[record], "ownership metadata file");
+            }
+            _ => unreachable!(),
+        }
+        assert!(fs::read(root.join(".git/index")).is_ok());
+    }
 }
 
 #[test]

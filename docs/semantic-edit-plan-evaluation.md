@@ -14,13 +14,13 @@ through redo, and reads the final source-free semantic identity.
 | Commands before lifecycle checks | 3 | 2 |
 | Query output | 1,478 bytes | 0 bytes |
 | Authored payload | 425 bytes | 0 bytes |
-| Preview output | 2,870 bytes | 3,627 bytes |
+| Preview output | 2,827 bytes | 3,584 bytes |
 | Compacted write output | 614 bytes | 617 bytes |
-| Counted authoring context | 5,387 bytes | 4,244 bytes |
+| Counted authoring context | 5,344 bytes | 4,201 bytes |
 | Behavior, patch, undo and redo | pass | pass |
 
 The direct route resolves the exact declaration below `.` during author preview and generates the
-intent internally. It removes one command and 1,143 counted bytes, a 21.2% reduction in this fixed
+intent internally. It removes one command and 1,143 counted bytes, a 21.4% reduction in this fixed
 sequence. Its preview is larger because it carries the complete generated intent as review
 evidence. Both routes have equal canonical `fri1:` intent, compiled-change, final semantic-body and
 source identities. Their raw input SHA-256 values differ because one input is caller-serialized and

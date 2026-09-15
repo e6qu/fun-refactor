@@ -21,16 +21,16 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 710 |
+| Defects fixed | 725 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
-| M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
-| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and Merkle-committed progressive disclosure | Make hierarchy, traces, impact and value-flow evidence independently verifiable and progressively navigable |
+| M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo, redo and reviewed native retention | Maintain the shared history invariant |
+| M2 compact project understanding | Complete | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests, Cargo workspace evidence, source-free semantic IR and independently verifiable Merkle disclosure for code maps, traces, impact and value flow | Extend from measured agent needs |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and twenty-eight passing autonomous trials | Make context use competitive across broader tasks and reduce repair calls |
+| M4 agent workflow | Complete | Portable skill, reviewed task changes, checked semantic intents, bounded authoring, checks and thirty passing autonomous trials | Maintain the bounded protocol and rerun cohorts after material workflow changes |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -41,7 +41,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Rename, extract, inline, move, signature changes, imports, deletion and structural rewrites.
 - Cross-language references, configuration provenance and configuration-to-code traces.
 - A shared translation IR with Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean readers and writers.
-- Bounded project views for Cargo/npm packages, local dependencies, Cargo ownership, calls, tests, routes, request/response contracts and selected schemas.
+- Bounded project views for Cargo, npm, Go and Python package declarations, Cargo/npm local links, Cargo ownership, calls, tests, routes, contracts and schemas.
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds within documented subsets.
 - Revision-bound migration plans for one-file Next.js/FastAPI route features, with endpoint agreement, explicit dispositions and reversible source-history writes.
 - Local recipes, expectations, workspace previews and canonical formatting.
@@ -53,13 +53,15 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
+- Basis-bound native history compaction that retains audit summaries while bounding replay payloads.
 - Bounded Git status, diff, changed-declaration and call-context views.
-- Unix staging previews and writes, durable staging undo/redo, reviewed commits and owned worktree creation, recovery, removal, resumption and archive compaction.
+- Bounded Git workspace call snapshots and transitive impact from changed declarations, without source in responses.
+- Unix staging previews and writes, durable staging undo/redo, reviewed commits and owned worktree creation, recovery, removal, resumption, undo/redo and archive compaction.
 - Native releases, a WASM API, and a browser playground with checked transaction undo/redo and shared Git patch downloads.
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Twenty-eight passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
+- Thirty passing autonomous trials across pinned strsim and regex snapshots and generic semantic fixtures, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
@@ -146,6 +148,13 @@ patches and exercises undo and redo. Three expanded disclosure responses total 1
 below their 16,384-byte bound; the author preview is 3,968 bytes. This is deterministic workflow
 evidence, not a live-model result or a proof of the trusted parser, writer, compiler or hash.
 
+The latest paired evaluation runs Codex CLI 0.154.0 with Luna at low effort against a frozen binary
+and evaluator. Both arms pass the complete coordinated regex task, including 1,060 project and
+receiver oracle cases, exact undo/redo, ordered checks and index preservation. The `fr` arm uses
+17,711 measured context tokens and 42 calls; files use 11,182 tokens and 17 calls. This single pair
+confirms workflow adoption after two retained diagnostic cohorts. Its 58.4% context premium remains
+an optimization target and does not establish a population result.
+
 ## Product contract
 
 An agent should move from bounded discovery to a Merkle-committed semantic skeleton, reveal only the
@@ -210,7 +219,11 @@ The first packaged roadmap is complete. Twenty merged pull requests established 
 | [PR 21](https://github.com/e6qu/fun-refactor/pull/284) | Merkle-Committed Progressive Agent Disclosure | Merged |
 | [PR 22](https://github.com/e6qu/fun-refactor/pull/285) | Disclosure-Bound Semantic Editing | Merged |
 | [PR 23](https://github.com/e6qu/fun-refactor/pull/287) | Disclosure-Bound IR Structure Editing | Merged |
-| PR 24 | Content-Addressed Progressive Project Evidence | Ready for review |
+| [PR 24](https://github.com/e6qu/fun-refactor/pull/288) | Content-Addressed Progressive Project Evidence | Merged |
+| [PR 25](https://github.com/e6qu/fun-refactor/pull/290) | Agent Formalization Workbench | Merged |
+| [PR 26](https://github.com/e6qu/fun-refactor/pull/291) | Agent Proof Companion | Merged |
+| [PR 27](https://github.com/e6qu/fun-refactor/pull/292) | Agent-Authored Formal Properties | Merged |
+| [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -355,8 +368,9 @@ Planned checkpoints:
 4. **Complete.** Add the portable workflow route and executable examples within its current byte budgets.
 5. **Complete.** Retain a controlled call, context and state-equivalence measurement. Its measured
    reduction warrants one fresh Luna-low adoption trial.
-6. **Deferred.** The deterministic evaluator and low-cost Luna configuration are ready. No fresh
-   external pair was launched, so PR 10 makes only the controlled workflow claim above.
+6. **Complete.** A fresh frozen Luna-low pair passes the coordinated workflow, project and receiver
+   oracles, exact reversal and index-preservation gates. Two preceding failed diagnostics remain
+   retained and identify the evaluator fixes that made the accepted rerun valid.
 
 ### PR 11. Browser Transaction History
 
@@ -753,7 +767,7 @@ Planned checkpoints:
 2. **Complete.** Implement workspace-scoped declaration resolution and project-independent planning.
 3. **Complete.** Add direct authoring plus batch, task and task-change integration.
 4. **Complete.** Add Python builders, Lean models, anchors and exhaustive correspondence.
-5. **Complete.** The deterministic comparison saves one command and 21.2% of counted bytes. The
+5. **Complete.** The deterministic comparison saves one command and 21.4% of counted bytes. The
    corrected fresh Luna-low pair passes both arms without source reads. The direct route removes the
    query and payload, with lower total, non-cached input and output in this one pair.
 6. **Complete.** The complete native, browser, documentation, capability and Lean gate passes.
@@ -1002,7 +1016,7 @@ Planned checkpoints:
 
 ### PR 23. Disclosure-Bound IR Structure Editing
 
-Status: ready for review.
+Status: merged as [PR 287](https://github.com/e6qu/fun-refactor/pull/287).
 
 Goal: let an agent replace a typed semantic node or change statement-list structure from a
 progressively revealed IR region. The route avoids reconstructing a JSON pointer or reading source.
@@ -1063,7 +1077,7 @@ Planned checkpoints:
 
 ### PR 24. Content-Addressed Progressive Project Evidence
 
-Status: ready for review.
+Status: merged as [PR 288](https://github.com/e6qu/fun-refactor/pull/288).
 
 Goal: make one bounded progressive-reveal protocol the agent-facing navigation layer for semantic
 IR, project hierarchy, call traces, impact and value-flow endpoints. Agents fetch only the relevant
@@ -1139,7 +1153,7 @@ Planned checkpoints:
 
 ### PR 25. Agent Formalization Workbench
 
-Status: proposed as [PR 290](https://github.com/e6qu/fun-refactor/pull/290).
+Status: merged as [PR 290](https://github.com/e6qu/fun-refactor/pull/290).
 
 Goal: let an agent discover conservative formalization candidates and inspect a source-free semantic
 plan. It can create a Lean kernel and solve one exact proof goal without ingesting or rewriting whole
@@ -1283,7 +1297,7 @@ Planned checkpoints:
 
 ### PR 28. Cross-Stack Agent Coverage
 
-Status: in progress.
+Status: merged as [PR 293](https://github.com/e6qu/fun-refactor/pull/293).
 
 Goal: give agents one bounded high-level project model for the requested web and service stack.
 It covers JavaScript, TypeScript, React, Next.js, Go, Python, FastAPI, HTML, CSS, Tailwind CSS,
@@ -1358,6 +1372,66 @@ Planned checkpoints:
    Rust and Lean agree across the generated finite domains. Native, portable-skill, strict proof and
    WASM gates pass with zero proof obligations or debts.
 
+### PR 29. Deferred Boundary Closure
+
+Status: proposed as [PR 295](https://github.com/e6qu/fun-refactor/pull/295).
+
+**Goal.** Close every concrete lifecycle, evaluator, context and manifest gap retained after the
+cross-stack milestone. Replace old roadmap qualifications with implemented, tested contracts.
+
+**Delivered scope.**
+
+- Compact native source history through a reviewed retention basis while preserving audit summaries.
+- Pin external agent replay, freeze trial inputs and reject redundant evaluator calls before quota use.
+- Extend strict source-signature correspondence across every readable programming language.
+- Undo and redo completed owned-worktree removals through retained Git objects and fresh metadata.
+- Expand Git change impact through bounded tracked workspace context and transitive call traversal.
+- Add source-free Go module and Python project manifest inventories with explicit declaration origins.
+- Persist, restore and compact browser history through a checked, content-bound local checkpoint.
+- Repair every adjacent defect found while exercising these flows, including current-Clang wasm builds.
+
+**Acceptance.**
+
+1. **Complete.** Native history compaction preserves retained replay and refuses pending or planned
+   records. Lean and Rust agree on the complete finite admission boundary.
+2. **Complete.** Agent evaluation binds immutable inputs, retains failed diagnostics and stops exact
+   repeated successful calls before execution.
+3. **Complete.** Strict checking validates explicit shared-IR signatures for all readable code
+   languages and rejects ambiguous source declarations.
+4. **Complete.** Worktree removal supports repeated remove, undo and redo cycles with fresh ownership
+   receipts, exact Git state checks and Lean-backed admission.
+5. **Complete.** Git diff call reports traverse one to eight steps over bounded tracked snapshots.
+   Reports return reachable structure and omit captured source bodies.
+6. **Complete.** Package views read Cargo, npm, Go and Python manifests under shared finite limits.
+7. **Complete.** Browser checkpoints validate schema, digest, paths, stacks and every live snapshot
+   chain. Compaction preserves cumulative patches and monotonic transaction identities.
+8. **Complete.** Native, browser, real-wasm, agent-skill, prose, site and formal correspondence gates
+   pass for the combined branch.
+9. **Complete.** Capture supported Cargo, npm, Go and Python lock entries as revision-bound,
+   source-free resolution evidence. The fifth progressive project branch exposes the same bounded
+   facts. Lean and Rust agree on file and combined evidence limits.
+10. **Complete.** Link root-relative HTTP dependencies across inferred applications through exact
+    paths and compatible methods. Feature rows expose bounded route IDs, ambiguity and omissions.
+    Lean proves the candidate admission rule over every Boolean state.
+11. **Complete.** Join dependency declarations to their nearest captured ecosystem lock. Resolve
+    Cargo and npm aliases plus normalized Python names while retaining every bounded version
+    candidate. Lean proves the three required identity conditions.
+12. **Complete.** Evaluate bounded Cargo manifest feature activation, including defaults, explicit
+    roots, cycles, implicit optional dependencies, strong and weak dependency feature requests and
+    dependency-declared features. Put default activation evidence in progressive project disclosure;
+    Lean and Rust agree on both graph ceilings and all strong/weak request admission states.
+13. **Complete.** Verify caller-selected artifacts offline against captured Cargo, npm, Go and
+    Python checksums. Bound files, directories and returned evidence; distinguish missing,
+    unsupported, mismatched and verified states. Lean and Rust agree on every status input.
+14. **Complete.** Audit source markers and active documentation. Classify external solvers,
+    runtimes, LSP delegation and daemon state as explicit architecture boundaries instead of
+    carrying them as deferred roadmap promises.
+15. **Complete.** Refresh every derived agent report and source fingerprint affected by the
+    combined branch. Tokenized retained evidence and documented byte-only audits both pass; the
+    latter no longer crash when token fields are intentionally absent.
+16. **Complete.** Make the external replay gate retry-safe with a unique owned scratch directory.
+    Interrupted dependency fetches no longer poison every later deep verification attempt.
+
 ## Formal verification policy
 
 Prioritize properties whose failure silently changes code or misleads an agent.
@@ -1405,16 +1479,33 @@ Each cohort records the CLI version, visible model catalog entry, model, effort,
 Availability and quota policy can change.
 The harness retains every attempted trial and keeps infrastructure failures separate from agent failures.
 
-## Known limits and deferred choices
+## Explicit boundaries
 
-- Complete dependency resolution, feature evaluation and package-manager semantics remain outside the current Cargo/npm subset.
-- Framework readers recognize selected static patterns; whole-application dependency and runtime behavior remains pending.
-- Native history needs retention and large-journal scaling. Browser history is session-only, bounded,
-  and records UTF-8 regular-file snapshots with mode `0644`; it does not provide crash recovery or persistence.
-- Strict signature maps currently accept Rust source declarations only.
+- Manifest readers cover Cargo, npm, Go modules and Python projects. Lock readers expose observed
+  versions and integrity fields from Cargo, npm, Go, Poetry, uv and Pipenv files. Cargo manifest
+  `fr` evaluates Cargo manifest feature activation with explicit target/resolver limits. Package-manager version
+  solving would duplicate environment-dependent package managers, so it is an explicit non-goal.
+  Offline verification compares supplied bytes with captured SHA-2, SRI or Go tree-hash evidence.
+  It does not authenticate the lockfile author.
+- Cargo workspace ownership covers literal and single-level wildcard members, exclusions, explicit
+  workspace pointers, inherited local dependencies and transitive automatic membership. Cargo
+  command default selection, parent-traversing or recursive package-manager globs and npm workspace
+  ownership stay outside this bounded static model. Reviewed package-manager commands provide that
+  evidence when a project requires it.
+- Framework readers recognize selected static patterns. Their feature hierarchy joins packages,
+  components, configuration, middleware, execution dependencies and local HTTP route candidates.
+  Static facts never claim runtime execution. Reviewed external checks supply runtime evidence when
+  a project needs it.
+- Native and browser history both have bounded replay retention. Browser checkpoints bind the
+  current UTF-8 regular files, transaction graph and cumulative patch basis across page reloads.
+  Browser snapshots project mode `0644`; executable files and symlinks require the native tool.
+- Strict signature maps cover all readable code languages. Non-Rust maps use canonical shared-IR
+  types; markup, stylesheets, configuration and Markdown have no function signature surface.
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
-- LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.
-- Daemon/watch mode remains deferred until cache and repeated-query measurements justify it.
+- The standalone architecture excludes LSP delegation. Language-specific parser gaps become explicit
+  evidence or checked external commands rather than an ambient server dependency.
+- The cache, request batching and concurrent-build coalescing satisfy the measured repeated-query
+  workloads. A daemon/watch process is a closed non-goal unless a new benchmark overturns that result.
 - Feature migration currently covers one route source file across Next.js App Router and FastAPI. Generated Next.js validation covers one direct body model built from primitive, optional, list, string-keyed map, tuple and acyclic local-record shapes. Explicit FastAPI registration checks one application file and its direct routes. Explicit cutover checks resolved external source references and keeps deletion reversible. Reviewed work includes framework coercion, aliases, custom validators, field constraints, strict and extra-field settings, composed-router conflicts, runtime imports and external callers. Projects provide the commands and assertions selected for transaction evidence.
 
 ## Further reading

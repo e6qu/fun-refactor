@@ -819,6 +819,12 @@ fr project tests '<ID>' --revision '<REVISION>' --depth 5
 fr project packages --limit 40
 fr project dependencies --manifest Cargo.toml --limit 40
 fr project dependencies --cursor '<NEXT>'
+fr project resolutions --manifest Cargo.toml --limit 40
+fr project resolutions --lockfile Cargo.lock --limit 40
+fr project package-features --manifest Cargo.toml --activate api,serde --limit 40
+fr project package-features --manifest Cargo.toml --no-default-features
+fr project verify-artifact --lockfile Cargo.lock --name serde --version 1.0.228 --artifact serde.crate
+fr project verify-artifact --lockfile go.sum --name example.test/mod --version v1.2.3 --artifact module-dir --go-prefix example.test/mod@v1.2.3
 fr project links --manifest Cargo.toml --limit 40
 fr project links --cursor '<NEXT>'
 fr project workspaces --limit 40
@@ -850,6 +856,20 @@ Maps default to 80 rows; other pages default to 40.
 Reuse the same query and fields with a cursor. The page size may change.
 Changed source, manifest content, inventory, scan options or query scope invalidates the corresponding handle or cursor.
 A short ID without its revision cannot identify a symbol for `show`.
+
+`package-features` computes Cargo's captured manifest feature closure. It includes implicit optional
+dependency features, `dep:name`, `name/feature`, `name?/feature`, dependency-declared features,
+cycles and default-feature selection. Rows distinguish local features from dependency requests and
+retain counts when member lists exceed sixteen entries. Target predicates, resolver-version effects,
+build scripts, version selection and compilation remain outside this static activation report.
+
+`verify-artifact` hashes at most 512 MiB of caller-selected bytes. Cargo and Python hexadecimal
+SHA-256 checksums and npm SRI SHA-256/384/512 values use regular files. Go `h1` checksums use the
+Go tree-hash algorithm over an extracted directory. `--go-prefix` supplies its canonical logical
+root. Lock entries ending in `/go.mod` select only that file. Reports distinguish absent lock entries,
+missing checksums, unsupported algorithms, mismatches and verified content. They never return file
+contents. A verified result proves equality with captured lock metadata; it does not authenticate
+the repository or lockfile author.
 
 `technologies` always states all thirteen web-stack surfaces, including surfaces absent from the
 selected scope. Detected rows contain no source text. Each evidence row carries its path, basis,
@@ -1446,7 +1466,7 @@ Cursors bind the revision, selection, depth, resulting rows and analysis metadat
 Page and depth limits do not bound workspace indexing or graph construction.
 Empty results and call paths do not establish runtime coverage. Catalog matching and reachability remain outside the confidence and paging model proofs.
 
-`packages` pages discovered `Cargo.toml` and `package.json` manifests.
+`packages` pages discovered `Cargo.toml`, `package.json`, `go.mod` and `pyproject.toml` manifests.
 Each row reports the manifest path, its directory root, ecosystem, declared name/version and declaration count.
 Virtual Cargo workspaces have `package_declared: false`.
 These roots describe manifest locations; they do not assign source ownership or establish workspace membership.
@@ -1461,6 +1481,9 @@ They retain aliases, version requirements, paths, Git selectors, registry names 
 Feature lists become `feature_count`; unknown dependency fields become `unreported_fields` counts.
 npm rows cover dependencies, devDependencies, peerDependencies and optionalDependencies.
 Requirements stay literal, including `file:` and `workspace:` strings.
+Go rows cover `require`, `replace` and `exclude`, including indirect requirements and local replacements.
+Python rows cover PEP 621 dependencies, optional groups, dependency groups, build requirements and Poetry dependency tables.
+They also retain uv workspace member and exclusion patterns as unexpanded declarations.
 Workspace member patterns remain separate rows with `expanded: false`.
 The reader includes Cargo exclude/default-member patterns and npm array or `workspaces.packages` forms.
 Names and versions cap at 160 UTF-8 bytes; patterns, selectors and requirements cap at 512.
@@ -1472,9 +1495,11 @@ Malformed manifests and unsupported shapes in inspected fields produce paged man
 Affected dependency rows carry `declaration_status: partial` or `unsupported`.
 `coverage.manifests` counts discovered manifests, parsed records and diagnostics.
 This reader extracts selected fields; it does not validate complete package-manager schemas.
-Pagination uses the existing Lean-checked page-length kernel. Manifest extraction has no formal proof yet.
+Pagination uses the existing Lean-checked page-length kernel.
+An anchored inventory predicate caps discovery at 1,024 manifests and 65,536 declarations; Lean proves both bounds and executable cases include machine limits.
+Manifest syntax interpretation and normalized dependency names remain tested parser boundaries.
 
-`links` pages local manifest links and workspace member-pattern matches.
+`links` pages Cargo/npm local manifest links and workspace member-pattern matches.
 It accepts the same `--manifest`, `--limit` and revision-bound `--cursor` options as `dependencies`.
 Matching uses full manifest values before clipping output; labels and paths retain the existing byte limits.
 Links use only manifests in the current snapshot. They do not run package managers or read additional dependency paths.
@@ -1531,8 +1556,11 @@ Missing definitions, unsupported overrides, nonlocal definitions and unresolved 
 Version compatibility and feature evaluation remain unchecked.
 These rules follow the [Cargo inheritance reference](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace).
 
-Default-member selection, member patterns with parent traversal, broader globs and npm workspace ownership remain pending.
-The membership closure has regression tests and Cargo metadata comparisons, but no formal proof yet.
+Default-member selection affects Cargo command defaults rather than workspace ownership. Member
+patterns with parent traversal, recursive package-manager globs and npm workspace ownership are
+outside this bounded static view. Use reviewed package-manager checks when those semantics matter.
+The supported membership closure has regression tests, Cargo metadata comparisons and a finite
+Lean reachability model; package-manager interpretation remains a tested integration boundary.
 
 #### `fr project find NAME`
 
@@ -1634,6 +1662,8 @@ fr history apply 1 --write
 fr history undo 1 --write
 fr history redo 1 --write
 fr history recover 1 --write        # only when an operation remains pending
+fr history compact --keep 100       # preview retention
+fr history compact --keep 100 --basis '<BASIS>' --write
 ```
 
 History uses schema 1 and numeric identities local to the workspace.
@@ -1664,7 +1694,17 @@ Its index entry remains intact, along with unrelated staged, unstaged and untrac
 
 Undo requires the latest applied ID. Redo requires the next ID on the redo stack.
 Saving a plan preserves the redo stack. Applying a new plan clears that stack and marks its old entries `abandoned`.
-Completed records keep their snapshots. There is no automatic pruning in schema 1.
+Completed records keep their snapshots until explicit compaction. `history compact --keep N`
+retains the newest `N` replayable records on each undo and redo stack, then selects every older
+applied, undone or abandoned payload. Planned and pending records are never eligible. The preview
+returns the exact candidate counts, projected journal size and a `frhistorycompact1:` basis without
+writing. A write requires that basis and refuses if the journal changed during review.
+
+Compaction removes stored source bodies and paths from selected records and removes selected active
+IDs from their stack. It retains ID, status, source and plan identities, validation, check metadata,
+path count and a checked summary digest. Compacted records remain listable and inspectable. Agents
+cannot apply, undo, redo or export them as patches, and cannot attach new check evidence. There is no
+automatic or time-based pruning in schema 1.
 The journal contains full source text, resides in a private directory and ignores its own contents in Git.
 Deleting `.fr-history` discards all saved plans and recovery data; retain it while an operation needs recovery.
 The workspace scanner excludes this directory even with `--no-ignore`.
@@ -1676,19 +1716,24 @@ History restores entry kinds, file contents or UTF-8 link targets, existence and
 ```sh
 fr file delete obsolete.txt empty.txt
 fr file delete obsolete.txt --save-plan
+
+fr file move old/name.rs new/name.rs --save-plan
 fr file executable scripts/build.sh --set on --write
 fr file executable scripts/build.sh --set off
 
 fr file symlink public/current --target releases/v2 --save-plan
 ```
 
-Preview or record deletion and owner-execute operations on up to 500 explicit entries, or create and replace one symlink.
+Preview or record deletion and owner-execute operations on up to 500 explicit entries.
+Move one file to an absent path, or create and replace one symlink.
 Both output modes print JSON metadata without source bodies. Paths sort before recording and reporting.
 The default previews without writing. `--save-plan` saves a transaction; `--write` records and applies it.
 Choose either flag. Apply a saved transaction with `fr history apply ID --write`.
 The same history commands provide undo, redo, recovery and Git patch export.
 
 `delete` removes whole files, including empty files, without checking references or project behavior.
+`move SOURCE DESTINATION` records source deletion and destination creation in one transaction. The
+destination must be absent. Contents, entry kind and complete regular-file mode move unchanged.
 `executable --set on|off` changes only the owner-execute bit and preserves content and all other permission bits.
 For example, setting `on` changes `0644` to `0744`; Git patches project that result to `100755`.
 `symlink PATH --target TARGET` creates or replaces a regular file or link without following the target.
@@ -1696,7 +1741,8 @@ The target may be relative, absolute or dangling and must contain 1 through 1,02
 Already-correct modes produce no transaction and leave any existing journal unchanged.
 The `file-snapshots` validation label covers existence, entry kind, complete contents or link target and recorded regular-file modes; it does not claim compilation or dependency validation.
 
-Absolute paths, parent traversal, duplicate targets, parent symlinks, directories, missing deletion targets, non-UTF-8 entries and NUL-containing contents cause refusal.
+Absolute paths, parent traversal, duplicate targets, parent symlinks, directories, missing deletion
+or move sources, occupied move destinations, non-UTF-8 entries and NUL-containing contents cause refusal.
 Executable changes require regular files. Reports use a null permission mode for symlinks.
 Targets cannot traverse `.git` or `.fr-history`. Explicit paths can name ignored files.
 Git is optional; operations preserve its index and use the native journal for checked writes.
@@ -1743,7 +1789,7 @@ fr git diff src/main.rs --symbols --since HEAD~1
 `--symbols` pages through declarations overlapping changed lines on each side, with containing declarations and explicit coverage gaps.
 It omits source bodies and requires each parsed snapshot to match Git's observed blob identity.
 Symbol cursors bind the declaration result and cannot continue ordinary line pages.
-This view reports direct line overlap; cross-file callers and transitive impact remain pending.
+This view reports direct line overlap. Use the call view with workspace context for cross-file transitive impact.
 ```sh
 fr git diff src/main.rs --calls --direction incoming
 fr git diff src/main.rs --calls --staged
@@ -1754,6 +1800,14 @@ fr git diff src/main.rs --calls --staged
 Containing declarations also select nested sites and targets, including unchanged sibling methods inside a changed class.
 Call analysis uses captured source and omits bodies. Without included context, each side analyzes one file.
 Cursors bind the call result and direction.
+
+```sh
+fr git diff src/main.rs --calls --workspace-context --depth 3
+```
+
+Workspace context captures up to 256 tracked source files and 64 MiB internally, then emits only calls reachable within one through eight edges.
+It supports default, staged and `--since` comparisons and conflicts with explicit `--include` paths.
+Rows report their distance from the changed selection; cursors bind the captured snapshots and depth.
 
 ```sh
 fr git diff src/main.rs --calls --staged --include src/api.rs
@@ -1876,6 +1930,15 @@ The command accepts partial checkout and private metadata deletion. Changed or r
 Inspection returns `can_resume`, bounded rows and full counts, with blockers first.
 Only `applied: true` confirms completion; inspect the same record again after an uncertain result.
 See [removal resumption](docs/git-worktree-removal-resumption.md) for archive validation and remaining limits.
+
+`fr git worktree undo-removal RECORD` previews reconstruction of a completed removed worktree.
+`--basis TOKEN --write` revalidates the archive, retained branch, absent endpoints and complete registration set.
+It then attaches the branch and copies raw blobs from the pinned commit.
+The write returns a fresh `ownership_record`; it never replays archived inode identities or stale private Git files.
+
+`fr git worktree redo-removal RECORD` previews removal of a checkout restored from that record.
+Its checked write requires the fresh receipt and exact archived commit, uses the ordinary reviewed-removal path, and returns `next_removal_record`.
+Use that new record for the next undo. See [reviewed worktree removal](docs/git-worktree-removal.md) for the full cycle and crash boundaries.
 
 `fr git worktree compact-removal RECORD` previews compaction of one completed removal archive.
 `--basis TOKEN --write` saves an audit summary before deleting the full recovery record.

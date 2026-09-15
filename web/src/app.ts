@@ -8,7 +8,7 @@
  * A workspace — the bundled sample, or a public repository fetched from GitHub — is
  * held in memory, handed to the analysis compiled as WebAssembly, and edited in
  * Monaco. There is no server: the tab holds the whole thing, and a refactoring here is
- * a real edit against real bytes that happens to be thrown away when you close it.
+ * a real edit against real bytes. The browser saves a checked local checkpoint.
  *
  * The actions are built from `actions.ts` and the answers rendered by `render.ts`, so
  * this file is the wiring: what is open, where the cursor is, what an action needs
@@ -25,6 +25,7 @@ import { installHelp, openHelp, livePages, PAGES } from "./help";
 import { decorate } from "./icons";
 import * as menu from "./menu";
 import { escapeHtml, render } from "./render";
+import { loadCheckpoint, saveCheckpoint } from "./session";
 import { installShell, setResizeHandler } from "./shell";
 import "./style.css";
 import { installTheme, onThemeChange, current as currentTheme, toggle as toggleTheme } from "./theme";
@@ -417,8 +418,15 @@ function highlightAstAt(line: number, col: number) {
 }
 
 /** Re-read every model from the workspace after an edit changed the bytes. */
-function syncFromWorkspace(changed: { path: string; after_exists?: boolean }[]) {
-  if (!workspace) return;
+function persistWorkspace(): string | null {
+  if (!workspace) return null;
+  const error = saveCheckpoint(localStorage, workspace, workspaceName);
+  if (error) console.warn("[fun-refactor] checkpoint:", error);
+  return error;
+}
+
+function syncFromWorkspace(changed: { path: string; after_exists?: boolean }[]): string | null {
+  if (!workspace) return null;
   let listChanged = false;
   for (const { path, after_exists = true } of changed) {
     if (!after_exists) {
@@ -455,6 +463,7 @@ function syncFromWorkspace(changed: { path: string; after_exists?: boolean }[]) 
   // is now about the old text.
   refreshCursor();
   refreshEditedState();
+  return persistWorkspace();
 }
 
 function refreshEditedState() {
@@ -564,7 +573,8 @@ async function run(action: Action) {
     return;
   }
 
-  if (action.mutates && value?.files) syncFromWorkspace(value.files);
+  const storageError = action.mutates && value?.files ? syncFromWorkspace(value.files) : null;
+  if (storageError) value.persistence_warning = storageError;
   show(render(value, current, action.empty), action.label);
 }
 
@@ -768,7 +778,7 @@ el<HTMLInputElement>("filter").addEventListener("input", (e) => {
 
 // --------------------------------------------------------------------- loading
 
-function adopt(loaded: Record<string, string>, name: string) {
+function adopt(loaded: Record<string, string>, name: string, restored?: Workspace): string | null {
   const wasOpen = current;
   files = { ...loaded };
   workspaceName = name;
@@ -783,7 +793,7 @@ function adopt(loaded: Record<string, string>, name: string) {
   // next allocation aborted the module with `unreachable`. In a tab that is not an
   // exception you can catch; it is the end of the workspace.
   workspace?.free();
-  workspace = new Workspace(files);
+  workspace = restored ?? new Workspace(files);
 
   renderFileList(el<HTMLInputElement>("filter").value);
   // Otherwise open something worth looking at: the largest indexed file beats
@@ -795,6 +805,7 @@ function adopt(loaded: Record<string, string>, name: string) {
   const open = files[wasOpen] !== undefined ? wasOpen : best?.path;
   if (open) openFile(open);
   refreshEditedState();
+  return persistWorkspace();
 }
 
 function loadSample() {
@@ -803,8 +814,11 @@ function loadSample() {
     loaded[key.replace("../sample/", "")] = text;
   }
   say(`Indexing the bundled sample (${Object.keys(loaded).length} files)…`, "busy");
-  adopt(loaded, "bundled sample");
-  say("Bundled sample — seventeen languages, no network needed.");
+  const storageError = adopt(loaded, "bundled sample");
+  say(
+    "Bundled sample — seventeen languages, no network needed." +
+      (storageError ? ` Checkpoint unavailable: ${storageError}.` : ""),
+  );
 }
 
 const presetSelect = el<HTMLSelectElement>("preset");
@@ -847,7 +861,7 @@ async function loadTarget(spec: string) {
     });
 
     say(`Indexing ${Object.keys(loaded.files).length} files…`, "busy");
-    adopt(loaded.files, `${target.owner}/${target.repo}`);
+    const storageError = adopt(loaded.files, `${target.owner}/${target.repo}`);
 
     const notes: string[] = [];
     if (loaded.skipped.length) {
@@ -855,6 +869,7 @@ async function loadTarget(spec: string) {
       console.info("[fun-refactor] left out:", loaded.skipped);
     }
     if (loaded.truncatedTree) notes.push("GitHub truncated the file listing");
+    if (storageError) notes.push(`checkpoint unavailable: ${storageError}`);
     say(
       `${target.owner}/${target.repo}@${loaded.ref}` +
         (notes.length ? ` · ${notes.join(" · ")}` : ""),
@@ -885,8 +900,11 @@ undoButton.addEventListener("click", () => {
     show(`<p class="err">${escapeHtml(transition.error)}</p>`, "Undo");
     return;
   }
-  syncFromWorkspace(transition.files);
-  say(`Undid transaction ${transaction}.`);
+  const storageError = syncFromWorkspace(transition.files);
+  say(
+    `Undid transaction ${transaction}.` +
+      (storageError ? ` Checkpoint unavailable: ${storageError}.` : ""),
+  );
   show(render(transition, current), "Undo");
 });
 
@@ -900,8 +918,11 @@ redoButton.addEventListener("click", () => {
     show(`<p class="err">${escapeHtml(transition.error)}</p>`, "Redo");
     return;
   }
-  syncFromWorkspace(transition.files);
-  say(`Redid transaction ${transaction}.`);
+  const storageError = syncFromWorkspace(transition.files);
+  say(
+    `Redid transaction ${transaction}.` +
+      (storageError ? ` Checkpoint unavailable: ${storageError}.` : ""),
+  );
   show(render(transition, current), "Redo");
 });
 
@@ -1092,7 +1113,8 @@ function openTranslateMenu(anchor: HTMLElement) {
         );
         return;
       }
-      syncFromWorkspace(applied.files);
+      const storageError = syncFromWorkspace(applied.files);
+      if (storageError) applied.persistence_warning = storageError;
       show(render(applied, current), `Rewrite as ${language}`);
       // The new file is the point; open it.
       const written = applied.files[0]?.path;
@@ -1220,6 +1242,21 @@ init({ module_or_path: wasmUrl })
     // one parameter meaning two different things depending on the mode would be a
     // trap for anyone sharing a link.
     const asked = new URLSearchParams(location.search).get("repo");
+    if (asked === null) {
+      const recovered = loadCheckpoint(localStorage, (session) =>
+        Workspace.from_session(session),
+      );
+      if (recovered.checkpoint) {
+        const restored = recovered.checkpoint.workspace;
+        const loaded = Object.fromEntries(
+          JSON.parse(restored.files()).map((file: { path: string }) => [file.path, restored.read(file.path)]),
+        );
+        adopt(loaded, recovered.checkpoint.name, restored);
+        say(`Restored ${recovered.checkpoint.name} with its checked undo and redo history.`);
+        return;
+      }
+      if (recovered.error) console.warn("[fun-refactor] checkpoint:", recovered.error);
+    }
     if (asked === "sample") {
       loadSample();
       return;

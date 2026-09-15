@@ -4,10 +4,43 @@ use crate::index::Index;
 use crate::lang::Language;
 use crate::model::FactGap;
 use crate::span::{LineCol, LineIndex, Span};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use wasm_bindgen::prelude::*;
+
+const MAX_SESSION_BYTES: usize = 4 * 1024 * 1024;
+const MAX_SESSION_FILES: usize = 4096;
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct SessionBody {
+    schema: String,
+    files: std::collections::BTreeMap<String, String>,
+    history: crate::memory_history::Snapshot,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct Session {
+    body: SessionBody,
+    digest: String,
+}
+
+fn session_digest(body: &SessionBody) -> Result<String, String> {
+    let encoded = serde_json::to_vec(body).map_err(|error| error.to_string())?;
+    Ok(format!("frbs1:{:x}", Sha256::digest(encoded)))
+}
+
+fn session_path(path: &str) -> bool {
+    let parsed = Path::new(path);
+    !path.is_empty()
+        && !path.contains('\0')
+        && parsed
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_)))
+        && parsed.components().collect::<PathBuf>().to_str() == Some(path)
+}
 
 /// A loaded repository, and the index over it.
 #[wasm_bindgen]
@@ -132,9 +165,83 @@ impl Workspace {
             .map_err(|e| JsValue::from_str(&format!("expected {{path: text}}: {e}")))?;
         Workspace::load(map).map_err(|e| JsValue::from_str(&e))
     }
+
+    pub fn from_session(encoded: &str) -> Result<Workspace, JsValue> {
+        Workspace::restore_session(encoded).map_err(|error| JsValue::from_str(&error))
+    }
 }
 
 impl Workspace {
+    pub fn restore_session(encoded: &str) -> Result<Workspace, String> {
+        if encoded.len() > MAX_SESSION_BYTES {
+            return Err("browser session exceeds its 4 MiB payload limit.".to_string());
+        }
+        let session: Session = serde_json::from_str(encoded)
+            .map_err(|error| format!("invalid browser session: {error}"))?;
+        let digest = session_digest(&session.body)?;
+        let schema_matches = session.body.schema == "fr-browser-session-1";
+        let digest_matches = session.digest == digest;
+        let history_changes = || {
+            session.body.history.base.iter().chain(
+                session
+                    .body
+                    .history
+                    .records
+                    .iter()
+                    .flat_map(|record| &record.changes),
+            )
+        };
+        let paths_valid = session.body.files.keys().all(|path| session_path(path))
+            && history_changes().all(|change| change.path.to_str().is_some_and(session_path));
+        if !paths_valid {
+            return Err("browser session contains an invalid workspace path.".to_string());
+        }
+        let session_paths = session
+            .body
+            .files
+            .keys()
+            .map(PathBuf::from)
+            .chain(history_changes().map(|change| change.path.clone()))
+            .collect::<std::collections::BTreeSet<_>>();
+        let files = session
+            .body
+            .files
+            .into_iter()
+            .map(|(path, text)| (PathBuf::from(path), text))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let restored = crate::memory_history::History::restore(session.body.history, &files);
+        let history_valid = restored.is_ok();
+        if !crate::transaction_kernel::memory_restore_allowed(
+            schema_matches,
+            digest_matches,
+            history_valid,
+            session_paths.len(),
+            encoded.len(),
+        ) {
+            if !schema_matches {
+                return Err("unsupported browser session schema.".to_string());
+            }
+            if !digest_matches {
+                return Err("browser session digest does not match its contents.".to_string());
+            }
+            if session_paths.len() > MAX_SESSION_FILES {
+                return Err("browser session exceeds its 4,096-file limit.".to_string());
+            }
+            if let Err(error) = restored {
+                return Err(error.to_string());
+            }
+            return Err("browser session exceeds a restoration limit.".to_string());
+        }
+        let mut workspace = Workspace::load(
+            files
+                .into_iter()
+                .map(|(path, text)| (path.display().to_string(), text))
+                .collect(),
+        )?;
+        workspace.history = restored.unwrap();
+        Ok(workspace)
+    }
+
     /// Load a repository from plain Rust values.
     pub fn load(map: std::collections::BTreeMap<String, String>) -> Result<Workspace, String> {
         // The grammars' scanners allocate through a bump allocator that starts at NULL until
@@ -440,6 +547,60 @@ impl Workspace {
     pub fn history(&self) -> String {
         self.enter();
         ok(&self.history.summary())
+    }
+
+    pub fn compact_history(&mut self, keep: usize) -> String {
+        self.enter();
+        match self.history.compact(keep) {
+            Ok(compacted) => ok(&compacted),
+            Err(error) => fail(error),
+        }
+    }
+
+    pub fn session(&self) -> String {
+        self.enter();
+        let files = self
+            .files
+            .borrow()
+            .iter()
+            .map(|(path, text)| (path.display().to_string(), text.clone()))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let history = self.history.snapshot();
+        let history_changes = || {
+            history
+                .base
+                .iter()
+                .chain(history.records.iter().flat_map(|record| &record.changes))
+        };
+        let session_paths = files
+            .keys()
+            .map(PathBuf::from)
+            .chain(history_changes().map(|change| change.path.clone()))
+            .collect::<std::collections::BTreeSet<_>>();
+        if session_paths.len() > MAX_SESSION_FILES
+            || files.keys().any(|path| !session_path(path))
+            || history_changes()
+                .any(|change| change.path.to_str().is_none_or(|path| !session_path(path)))
+        {
+            return fail("workspace cannot become a browser session.");
+        }
+        let body = SessionBody {
+            schema: "fr-browser-session-1".to_string(),
+            files,
+            history,
+        };
+        let digest = match session_digest(&body) {
+            Ok(digest) => digest,
+            Err(error) => return fail(error),
+        };
+        let encoded = match serde_json::to_string(&Session { body, digest }) {
+            Ok(encoded) => encoded,
+            Err(error) => return fail(error),
+        };
+        if encoded.len() > MAX_SESSION_BYTES {
+            return fail("browser session exceeds its 4 MiB payload limit.");
+        }
+        encoded
     }
 
     pub fn undo(&mut self, transaction: u32) -> String {
@@ -1506,4 +1667,33 @@ pub fn version() -> String {
 #[allow(dead_code)]
 fn _span_is_used(s: Span) -> usize {
     s.len()
+}
+
+#[cfg(test)]
+mod session_tests {
+    use super::*;
+
+    #[test]
+    fn a_resigned_session_with_an_inconsistent_live_snapshot_refuses() {
+        let mut workspace = Workspace::load(std::collections::BTreeMap::from([(
+            "a.py".to_string(),
+            "def add(x: int) -> int:\n    return x\n".to_string(),
+        )]))
+        .unwrap();
+        workspace.rename("a.py", 1, 5, "sum_one");
+        let mut session: Session = serde_json::from_str(&workspace.session()).unwrap();
+        session.body.files.insert(
+            "a.py".to_string(),
+            "def add(x: int) -> int:\n    return x\n".to_string(),
+        );
+        session.digest = session_digest(&session.body).unwrap();
+
+        let error = Workspace::restore_session(&serde_json::to_string(&session).unwrap())
+            .err()
+            .expect("an inconsistent live snapshot refuses");
+        assert!(
+            error.contains("does not match the restored workspace"),
+            "{error}"
+        );
+    }
 }

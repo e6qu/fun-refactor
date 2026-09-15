@@ -1,0 +1,74 @@
+{
+  "schema": "fr-agent-eval-evidence-1",
+  "trials": [
+    "regex-escape-len-fr",
+    "regex-escape-len-files"
+  ],
+  "project": "rust-lang/regex complete workspace snapshot, without Git history",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "implementation_commit": "5839cded0226501294781f4a501e31e543b0f9f1",
+  "agent_execution": "Two fresh isolated Codex CLI 0.154.0 trials used gpt-5.6-luna, low reasoning effort, default service tier, ephemeral sessions, one frozen read-only fr binary and no human intervention. Both arms passed every acceptance predicate. The fr arm used the coordinated saved batch and workflow route.",
+  "acceptance": {
+    "passed": true,
+    "failed_trials": []
+  },
+  "pilots": {
+    "interrupted": [],
+    "reason": null,
+    "included_in_scored_trials": false
+  },
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "git": "git version 2.55.0",
+    "python3": "Python 3.14.6"
+  },
+  "evaluator_files": {
+    "tools/agent-eval.py": "ae6c7414af559e4f23ab7a375e5b3bf3c5c2e50233449b3ee1f7434d1d9e081a",
+    "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+    "tools/agent_eval/regex_escape_len.py": "331700680ae35f2f41e94c93873011f417e82e6c71af3651895158a197d39a16"
+  },
+  "files": {
+    "experiment.json": "b7b891fa9a54cae496c2dafbad44a78a24ff42f774efc60716f0613d93418d1d",
+    "regex-escape-len-files/change.patch": "6dc4fc6de9461b1f165859f7189458b91b98503063d9ef3e3bec29e36a5306c1",
+    "regex-escape-len-files/codex-events.jsonl": "565577c8b5c173b5fe94d28dd83a5319a7b4d22e8b0655536b78a755e68a3a90",
+    "regex-escape-len-files/codex-final.txt": "339e16277640a5ae1e102c4ffa57f43c05f09f88be67db8d1eb03859d372c12c",
+    "regex-escape-len-files/codex-run.json": "ba2fad895f95c8f6ab39903989f53610a10e4ec61c5b8c0d62abb49ee5733e4e",
+    "regex-escape-len-files/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "regex-escape-len-files/events.jsonl": "d50ad7300a1aa22a7c3ac889b97f92650efb08c196fc5d1142bf66d292b13bd3",
+    "regex-escape-len-files/prompt.txt": "9085879e553cce2ed29a9efc748412e81106deaa9d673486bee5c22b7f5184fa",
+    "regex-escape-len-files/result.json": "bacddb8ec86af74248b2d1e5c227fbb68d8b3965a904c4ec0098ac7c734403d6",
+    "regex-escape-len-files/session.json": "b47ac8cb29fb05ecf75da0f9cc05ba2a623c54007361184c389e641d575bc52f",
+    "regex-escape-len-fr/change.patch": "620f83a465f10ad97e6a564a8218d0ecc726a939dd7a0839859b735e9b310f6d",
+    "regex-escape-len-fr/codex-events.jsonl": "76a24859a51b78a661334da7369dc7ad20c6a95c4be2d88cd25c47e7adcc8bbe",
+    "regex-escape-len-fr/codex-final.txt": "2511fe588076c4aafe5eaa890de164eaaba50090f45c429d2d9fc633db5ea743",
+    "regex-escape-len-fr/codex-run.json": "0635e0b848e6c51001804e57b894b497730dbbb0aa13fb0ded711a76223740e5",
+    "regex-escape-len-fr/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "regex-escape-len-fr/events.jsonl": "714f800e260493056b82056d67cf0b35bb931e4a8806b1f07c44c5e7ce2e9a90",
+    "regex-escape-len-fr/prompt.txt": "6f0893561a51e49432bc6e9a921ace1f4ca5d955b9519455e17aea87eb78d628",
+    "regex-escape-len-fr/result.json": "eeac158dd5b0d727a8efede410d487ea378e3d254e1946dc912d0db8b2dea089",
+    "regex-escape-len-fr/session.json": "7d5f3fc0b3418bbc66291f49bcdc9e937715433e3eca98408112fffe0b61fd3c",
+    "skill/SKILL.md": "73e975cc3cb42e571e0cae5506ad678995e2c6f9f6a2f4ca6cd27e0440bc0f73",
+    "skill/references/author.md": "5b0d5170ac77ceddf39655fbb67a03eeb2a52a96df22d8209e7fadf70671734a",
+    "skill/references/batch.md": "c8da3d4ee3697a0cf9dca759a611ee7aae01571ff75277fe5cfddf2713dd4625",
+    "skill/references/change.md": "fdb32e0a2b2ad9e9f47f7333a8c9d300d4bf242e0f657361909c226cf1eff6f8",
+    "skill/references/checks.md": "cbb02b7196c590d2cae243d765df19506b7030f34bf0a43a95ecd3d03d2ba34a",
+    "skill/references/disclosure.md": "754aaaa5bb575ec9c4ac86b7e3342a14cdefd3b4fdc57b57dde75644fd762027",
+    "skill/references/explore.md": "c815a732c9d3ac1e187f1252c80efbe5eba50a9d28d128b4af7e442cb6fcbe2c",
+    "skill/references/git-admin.md": "3e891eaa5b7ea068a8b8473e01236fb965ac900253c28e227ad1c62e4193392d",
+    "skill/references/git.md": "2c432ab7bd00c42451f197a9e9c484298fc6a565c8b0a1ae1d5a83a664ae8aa0",
+    "skill/references/history.md": "ede7ef59d0b667f148cfcafa79476eaa9e2a687eea7121415c51ad8ad222442f",
+    "skill/references/lean.md": "712803f46f05266b4f6d4110e017fe3d3d3b1c136bf643fe13d8414aa203c028",
+    "skill/references/recipes.md": "1a9da93e0ad4e22591ba80368383958cdd951d1eda0c1d978f1608d7cee01f68",
+    "skill/references/recovery.md": "a59b24bc256411f737b77e0532d25b308a34f614fa42a89f4c82ee539e576a4d",
+    "skill/references/semantic-change.md": "4778b312aa7e8ff258c60c6a6049e78e2847397ae1972664a3c8f5a57a259731",
+    "skill/references/semantic-intent.md": "648aa67da942d9056079fbf0e444b299d629c72dc80a1d08ea3ea805b8cc46b1",
+    "skill/references/semantic.md": "e41fdc8664bbf8d6a7e293043be489bd28153571927d990838f1ece529274d99",
+    "skill/references/surfaces.md": "57d313271f1caf8facbf6ec1a7eeb79ef10fce87de83262db8c10b207da2ee4c",
+    "skill/references/task.md": "e84481a0804d21dac3b12996e994b009d84b012d42a65bdf07b373a3ef474dfd",
+    "skill/references/workflow.md": "4a79439b7d9075f3ce343efb77b4572f30f4675291a0c4a88733d36f86328b92"
+  }
+}

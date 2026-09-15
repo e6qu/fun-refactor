@@ -28,6 +28,7 @@ pub struct PatchExport {
 pub fn export_patch(root: &Path, id: u64, reverse: bool) -> Result<PatchExport> {
     let history = History::read(root)?;
     let record = history.record(id)?;
+    record.ensure_replayable()?;
     Ok(PatchExport {
         id,
         status: record.status,
@@ -83,6 +84,7 @@ pub fn matches_patch_basis(actual: &Option<Snapshot>, expected: &Option<Snapshot
 }
 
 fn render(record: &Record, reverse: bool) -> Result<String> {
+    record.ensure_replayable()?;
     let changes = record
         .changes
         .iter()

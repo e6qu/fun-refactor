@@ -212,6 +212,100 @@ fn browser_edits_have_checked_stack_history_and_a_cumulative_patch() {
 }
 
 #[test]
+fn browser_session_restores_files_history_and_the_next_checked_transition() {
+    let mut ws = workspace(&[("a.py", "def add(x: int) -> int:\n    return x\n")]);
+    assert_eq!(json(&ws.rename("a.py", 1, 5, "sum_one"))["transaction"], 1);
+    assert_eq!(json(&ws.rename("a.py", 1, 5, "sum_two"))["transaction"], 2);
+    assert_eq!(json(&ws.undo(2))["status"], "undone");
+
+    let encoded = ws.session();
+    let mut restored = Workspace::restore_session(&encoded).expect("the checkpoint restores");
+    assert_eq!(restored.read("a.py"), ws.read("a.py"));
+    assert_eq!(json(&restored.history()), json(&ws.history()));
+    assert_eq!(json(&restored.patch()), json(&ws.patch()));
+    assert_eq!(json(&restored.redo(2))["status"], "applied");
+    assert!(restored.read("a.py").contains("sum_two"));
+    assert_eq!(json(&restored.undo(2))["status"], "undone");
+}
+
+#[test]
+fn browser_compaction_preserves_the_patch_and_retained_reversal_cycle() {
+    let mut ws = workspace(&[("a.py", "def add(x: int) -> int:\n    return x\n")]);
+    for name in ["sum_one", "sum_two", "sum_three"] {
+        let applied = json(&ws.rename("a.py", 1, 5, name));
+        assert!(applied["error"].is_null(), "{applied}");
+    }
+    let before = json(&ws.patch());
+    let compacted = json(&ws.compact_history(1));
+    assert_eq!(compacted["records_before"], 3);
+    assert_eq!(compacted["records_after"], 1);
+    assert_eq!(compacted["frozen_transactions"], 2);
+    assert_eq!(compacted["undo"], 3);
+    assert_eq!(json(&ws.patch()), before);
+    assert!(json(&ws.transaction_patch(1, false))["error"].is_string());
+
+    assert_eq!(json(&ws.undo(3))["status"], "undone");
+    let encoded = ws.session();
+    let mut restored = Workspace::restore_session(&encoded).expect("compacted state restores");
+    assert_eq!(json(&restored.redo(3))["status"], "applied");
+    assert_eq!(json(&restored.patch()), before);
+    assert_eq!(
+        json(&restored.rename("a.py", 1, 5, "sum_four"))["transaction"],
+        4
+    );
+}
+
+#[test]
+fn browser_session_refuses_tampering_unknown_fields_and_unsafe_paths() {
+    let mut ws = workspace(&[("a.py", "def add(x: int) -> int:\n    return x\n")]);
+    ws.rename("a.py", 1, 5, "sum_one");
+    let encoded = ws.session();
+
+    let changed = encoded.replace("sum_one", "sum_many");
+    let error = Workspace::restore_session(&changed)
+        .err()
+        .expect("tampering refuses");
+    assert!(error.contains("digest"), "{error}");
+
+    let mut value = json(&encoded);
+    value["extra"] = serde_json::json!(true);
+    let error = Workspace::restore_session(&value.to_string())
+        .err()
+        .expect("unknown fields refuse");
+    assert!(error.contains("unknown field"), "{error}");
+
+    let unsafe_path = encoded.replace("a.py", "../a.py");
+    let error = Workspace::restore_session(&unsafe_path)
+        .err()
+        .expect("unsafe paths refuse");
+    assert!(error.contains("invalid workspace path"), "{error}");
+}
+
+#[test]
+fn browser_session_refuses_a_workspace_beyond_its_file_cap() {
+    let files = (0..4097)
+        .map(|number| (format!("{number}.txt"), String::new()))
+        .collect::<BTreeMap<_, _>>();
+    let ws = Workspace::load(files).expect("the in-memory workspace loads");
+    let refused = json(&ws.session());
+    assert!(refused["error"].as_str().unwrap().contains("cannot become"));
+}
+
+#[test]
+fn browser_session_file_cap_includes_an_absent_redo_target() {
+    let mut files = (0..4095)
+        .map(|number| (format!("{number}.txt"), String::new()))
+        .collect::<BTreeMap<_, _>>();
+    files.insert("app/api/users/[id]/route.ts".to_string(), ROUTE.to_string());
+    let mut ws = Workspace::load(files).expect("the capped workspace loads");
+    let applied = json(&ws.translate("app/api/users/[id]/route.ts", "fastapi"));
+    assert_eq!(applied["transaction"], 1, "{applied}");
+    assert_eq!(json(&ws.undo(1))["status"], "undone");
+    let refused = json(&ws.session());
+    assert!(refused["error"].as_str().unwrap().contains("cannot become"));
+}
+
+#[test]
 fn a_noop_refactoring_does_not_create_a_browser_transaction() {
     let mut ws = workspace(&[("a.py", "def add(x: int) -> int:\n    return x\n")]);
     let applied = json(&ws.organize_imports("a.py"));

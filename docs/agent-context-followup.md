@@ -3,7 +3,8 @@
 Four fresh agents repeated the two strsim tasks after the M4i lookup, check-output and skill changes.
 All four passed. The fr trials retrieved 34.0% and 24.5% fewer tokens than the [first fr trials](agent-acceptance.md).
 The new ordinary-file trials also used less context, and fr still consumed more than those baselines.
-These results close this measured optimization milestone; broader context efficiency remains open.
+These results closed that measured optimization milestone. Later context protocols and agent cohorts
+are recorded in `PLAN.md` and `docs/continuity.md`.
 
 ## Changes evaluated
 

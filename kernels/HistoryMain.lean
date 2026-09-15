@@ -70,4 +70,27 @@ def main (args : List String) : IO Unit :=
         for action in List.range 3 do
           for atTop in [false, true] do
             IO.println (FrKernels.MemoryHistory.transitionAllowed status action atTop)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, memory-transitions or no arguments")
+  | ["memory-restores"] =>
+      for schemaMatches in [false, true] do
+        for digestMatches in [false, true] do
+          for historyValid in [false, true] do
+            for files in [0, 4096, 4097, 18446744073709551615] do
+              for payloadBytes in [0, 4194304, 4194305, 18446744073709551615] do
+                IO.println (FrKernels.MemoryHistory.restoreAllowed
+                  schemaMatches digestMatches historyValid files payloadBytes)
+  | ["memory-compactions"] =>
+      for keep in [0, 1, 255, 256, 257, 18446744073709551615] do
+        IO.println (FrKernels.MemoryHistory.compactionAllowed keep)
+  | ["record-compaction"] =>
+      for detailed in [false, true] do
+        for pending in [false, true] do
+          for retained in [false, true] do
+            for planned in [false, true] do
+              IO.println (recordCompactable detailed pending retained planned)
+  | ["file-move"] =>
+      for sourceExists in [false, true] do
+        for destinationExists in [false, true] do
+          for distinctPaths in [false, true] do
+            for sourceSupported in [false, true] do
+              IO.println (moveAdmitted sourceExists destinationExists distinctPaths sourceSupported)
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, task-change-modes, memory-transitions, memory-restores, memory-compactions, record-compaction, file-move or no arguments")

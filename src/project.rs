@@ -12,7 +12,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-2";
+const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-4";
 
 pub mod author;
 pub use author::{disclosed_edit_admitted, disclosed_ir_edit_admitted};
@@ -39,9 +39,11 @@ mod find;
 pub use crate::framework_kernel;
 pub use crate::surface_kernel;
 mod links;
+mod lockfiles;
 mod manifests;
 pub mod migration;
 mod next_routes;
+mod package_features;
 mod relationships;
 mod routes;
 mod schemas;
@@ -153,7 +155,7 @@ pub enum Command {
         )]
         depth: usize,
     },
-    #[command(about = "Page through Cargo and npm package manifest boundaries.")]
+    #[command(about = "Page through Cargo, npm, Go and Python package boundaries.")]
     Packages {
         #[arg(long, default_value_t = 40)]
         limit: usize,
@@ -169,6 +171,21 @@ pub enum Command {
         #[arg(long)]
         cursor: Option<String>,
     },
+    #[command(about = "Page through captured package lockfile resolutions.")]
+    Resolutions {
+        #[arg(long, help = "Select a manifest path relative to the project root.")]
+        manifest: Option<PathBuf>,
+        #[arg(long, help = "Select a lockfile path relative to the project root.")]
+        lockfile: Option<PathBuf>,
+        #[arg(long, default_value_t = 40)]
+        limit: usize,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+    #[command(about = "Evaluate bounded Cargo manifest feature activation.")]
+    PackageFeatures(package_features::Options),
+    #[command(about = "Verify artifact bytes against captured lockfile checksums.")]
+    VerifyArtifact(lockfiles::ArtifactOptions),
     #[command(about = "Page through local manifest links and workspace pattern matches.")]
     Links {
         #[arg(long, help = "Select a manifest path relative to the project root.")]
@@ -376,6 +393,7 @@ pub struct Project<'a> {
     symbol_nodes: BTreeMap<SymbolId, usize>,
     revision: String,
     manifests: manifests::Manifests,
+    lockfiles: lockfiles::Lockfiles,
 }
 
 struct ConstructionTimer<const ENABLED: bool> {
@@ -430,6 +448,51 @@ pub fn body_replacement_budget(before: usize, after: usize) -> bool {
 
 pub fn batch_section_fits(used: usize, next: usize, budget: usize) -> bool {
     used <= budget && next <= budget - used
+}
+
+pub fn manifest_inventory_allowed(manifests: usize, declarations: usize) -> bool {
+    manifests <= 1024 && declarations <= 65_536
+}
+
+pub fn lockfile_inventory_allowed(lockfiles: usize, evidence: usize) -> bool {
+    lockfiles <= 1024 && evidence <= 262_144
+}
+
+pub fn dependency_resolution_candidate(
+    lockfile_applies: bool,
+    ecosystem_equal: bool,
+    name_equal: bool,
+) -> bool {
+    lockfile_applies && ecosystem_equal && name_equal
+}
+
+pub fn package_feature_inventory_allowed(features: usize, members: usize) -> bool {
+    features <= 65_536 && members <= 65_536
+}
+
+pub fn package_feature_dependency_request(
+    source_active: bool,
+    dependency_known: bool,
+    weak: bool,
+    dependency_active: bool,
+) -> bool {
+    source_active && dependency_known && (!weak || dependency_active)
+}
+
+pub fn artifact_verification_status(
+    expectation_present: bool,
+    algorithm_supported: bool,
+    digest_equal: bool,
+) -> usize {
+    if !expectation_present {
+        0
+    } else if !algorithm_supported {
+        1
+    } else if !digest_equal {
+        2
+    } else {
+        3
+    }
 }
 
 /// Classify an exact-handle selection after resolving its revision-bound identity.
@@ -587,6 +650,7 @@ impl<'a> Project<'a> {
             selected.clone()
         };
         let manifests = manifests::Manifests::new(&selected, &root, options)?;
+        let lockfiles = lockfiles::Lockfiles::new(&selected, &root, options, &manifests.snapshots)?;
         timing.checkpoint("manifests");
         let mut project = Self {
             root,
@@ -600,6 +664,7 @@ impl<'a> Project<'a> {
             symbol_nodes: BTreeMap::new(),
             revision: String::new(),
             manifests,
+            lockfiles,
         };
         project.nodes.push(Node {
             name: ".".into(),
@@ -707,6 +772,7 @@ impl<'a> Project<'a> {
             &scanned.skipped_symlinks,
             &scanned.unsupported,
             &project.manifests.snapshots,
+            &project.lockfiles.snapshots,
         ))?;
         project.revision = digest.finish();
         timing.checkpoint("finish");
@@ -856,14 +922,19 @@ impl<'a> Project<'a> {
                 *gaps.entry(gap.cause()).or_insert(0usize) += 1;
             }
         }
-        json!({"indexed_files": self.index.file_count(), "skipped_files": self.index.skipped.len(),
+        let mut coverage = json!({"indexed_files": self.index.file_count(), "skipped_files": self.index.skipped.len(),
             "skipped_symlinks": self.scanned.skipped_symlinks.len(), "unsupported_files": self.scanned.unsupported.values().sum::<usize>(),
             "files_by_gap": gaps, "unresolved_references": self.index.references.iter().filter(|r| r.target.is_none()).count(),
             "respect_ignore": self.options.respect_ignore, "max_file_bytes": self.options.max_file_bytes,
             "hierarchy": "directories and lexical spans", "architecture": "not inferred",
             "manifests": {"discovered": self.manifests.snapshots.len(), "parsed": self.manifests.packages.len(),
-                "gaps": self.manifests.gaps.len(), "ecosystems": ["cargo", "npm"],
-                "scope": "selected scan root", "resolution": "not-attempted"}})
+                "gaps": self.manifests.gaps.len(), "ecosystems": 4,
+                "scope": "selected scan root"}});
+        if !self.lockfiles.snapshots.is_empty() {
+            coverage["lockfiles"] = json!({"discovered": self.lockfiles.snapshots.len(),
+                "resolutions": self.lockfiles.resolutions.len(), "gaps": self.lockfiles.gaps.len()});
+        }
+        coverage
     }
 
     fn envelope(&self, query: &str) -> Value {
@@ -1076,6 +1147,7 @@ impl<'a> Project<'a> {
 
     fn gaps(&self, limit: usize, cursor: Option<&str>) -> Result<Value> {
         let mut rows = self.manifests.gaps.clone();
+        rows.extend(self.lockfiles.gaps.clone());
         for (path, reason) in self
             .index
             .skipped
@@ -1141,8 +1213,27 @@ impl<'a> Project<'a> {
             .manifests
             .declarations
             .iter()
-            .filter(|(path, _)| selected.as_ref().is_none_or(|selected| path == selected))
-            .map(|(_, row)| row)
+            .filter(|declaration| {
+                selected
+                    .as_ref()
+                    .is_none_or(|selected| &declaration.manifest == selected)
+            })
+            .map(|declaration| {
+                let mut row = declaration.row.clone();
+                if let Some(resolution) = self.lockfiles.declaration_resolution(
+                    &self.root,
+                    &declaration.manifest,
+                    declaration.identity.as_deref(),
+                    &row,
+                ) {
+                    if let (Some(row), Some(resolution)) =
+                        (row.as_object_mut(), resolution.as_object())
+                    {
+                        row.extend(resolution.clone());
+                    }
+                }
+                row
+            })
             .collect();
         let key = format!(
             "frpc1:{}",
@@ -1152,8 +1243,140 @@ impl<'a> Project<'a> {
         let mut result = self.envelope("dependencies");
         result["items"] = json!(&rows[start..end]);
         result["page"] = page;
-        result["scope"] = json!("Declared constraints and patterns; no lockfile resolution, pattern expansion or inheritance.");
+        result["scope"] = json!("Declared constraints and patterns joined to captured nearest-lock candidates; no package solving, pattern expansion or feature activation.");
         Ok(result)
+    }
+
+    fn selected_lockfile(&self, lockfile: Option<&Path>) -> Result<Option<PathBuf>> {
+        lockfile
+            .map(|path| -> Result<PathBuf> {
+                let path = self
+                    .root
+                    .join(path)
+                    .canonicalize()
+                    .context("lockfile path cannot be resolved")?;
+                let relative = path
+                    .strip_prefix(&self.root)
+                    .context("lockfile is outside the project root")?;
+                if !self.lockfiles.snapshots.contains_key(&path) {
+                    bail!("lockfile was not discovered; check the selected root and scan options.");
+                }
+                Ok(relative.to_path_buf())
+            })
+            .transpose()
+    }
+
+    fn resolutions(
+        &self,
+        manifest: Option<&Path>,
+        lockfile: Option<&Path>,
+        limit: usize,
+        cursor: Option<&str>,
+    ) -> Result<Value> {
+        if manifest.is_some() && lockfile.is_some() {
+            bail!("choose either --manifest or --lockfile, not both.");
+        }
+        let selected_manifest = self.selected_manifest(manifest)?;
+        let selected_lockfile = self.selected_lockfile(lockfile)?;
+        let manifest_lockfile = selected_manifest
+            .as_deref()
+            .and_then(|manifest| self.lockfiles.applicable(&self.root, manifest));
+        let rows = self
+            .lockfiles
+            .resolutions
+            .iter()
+            .filter(|candidate| {
+                selected_manifest.as_ref().is_none_or(|_| {
+                    manifest_lockfile
+                        .as_ref()
+                        .is_some_and(|selected| &candidate.lockfile == selected)
+                }) && selected_lockfile
+                    .as_ref()
+                    .is_none_or(|selected| &candidate.lockfile == selected)
+            })
+            .map(|candidate| &candidate.row)
+            .collect::<Vec<_>>();
+        let key = format!(
+            "frpc1:{}",
+            &hash((
+                &self.revision,
+                "resolutions",
+                &selected_manifest,
+                &selected_lockfile,
+            ))?[..32]
+        );
+        let (start, end, page) = page(rows.len(), limit, cursor, &key)?;
+        let mut result = self.envelope("resolutions");
+        result["items"] = json!(&rows[start..end]);
+        result["page"] = page;
+        result["scope"] = json!("Versions and integrity fields captured from supported lockfile entries. Use project verify-artifact to compare supplied bytes; dependency solving is not attempted.");
+        Ok(result)
+    }
+
+    fn package_features(&self, options: &package_features::Options) -> Result<Value> {
+        check_limit(options.limit)?;
+        let manifest = self
+            .selected_manifest(Some(&options.manifest))?
+            .expect("a manifest option was supplied");
+        let evaluation = package_features::evaluate(
+            &self.manifests,
+            &manifest,
+            &options.activate,
+            options.no_default_features,
+        )?;
+        let key = format!(
+            "frpc1:{}",
+            &hash((
+                &self.revision,
+                "package-features",
+                &manifest,
+                &options.activate,
+                options.no_default_features,
+            ))?[..32]
+        );
+        let (start, end, page) = page(
+            evaluation.rows.len(),
+            options.limit,
+            options.cursor.as_deref(),
+            &key,
+        )?;
+        let mut result = self.envelope("package-features");
+        result["items"] = json!(&evaluation.rows[start..end]);
+        result["page"] = page;
+        result["activation"] = evaluation.summary;
+        Ok(result)
+    }
+
+    fn verify_artifact(&self, options: &lockfiles::ArtifactOptions) -> Result<Value> {
+        let lockfile = self
+            .selected_lockfile(Some(&options.lockfile))?
+            .expect("a lockfile option was supplied");
+        let artifact_input = if options.artifact.is_absolute() {
+            options.artifact.clone()
+        } else {
+            self.root.join(&options.artifact)
+        };
+        let metadata = std::fs::symlink_metadata(&artifact_input)
+            .context("artifact path cannot be inspected")?;
+        anyhow::ensure!(
+            !metadata.file_type().is_symlink()
+                && (metadata.file_type().is_file() || metadata.file_type().is_dir()),
+            "artifact path must be a regular file or directory and cannot be a symlink."
+        );
+        let artifact = artifact_input
+            .canonicalize()
+            .context("artifact path cannot be resolved")?;
+        let verification = self
+            .lockfiles
+            .verify_artifact(&lockfile, options, &artifact)?;
+        let mut report = self.envelope("verify-artifact");
+        report["artifact_verification_schema"] = verification["schema"].clone();
+        for (field, value) in verification.as_object().expect("verification is an object") {
+            if field != "schema" {
+                report[field] = value.clone();
+            }
+        }
+        Ok(report)
     }
 
     fn links(&self, manifest: Option<&Path>, limit: usize, cursor: Option<&str>) -> Result<Value> {
@@ -1239,6 +1462,19 @@ impl<'a> Project<'a> {
                 limit,
                 cursor,
             } => self.dependencies(manifest.as_deref(), *limit, cursor.as_deref()),
+            Command::Resolutions {
+                manifest,
+                lockfile,
+                limit,
+                cursor,
+            } => self.resolutions(
+                manifest.as_deref(),
+                lockfile.as_deref(),
+                *limit,
+                cursor.as_deref(),
+            ),
+            Command::PackageFeatures(options) => self.package_features(options),
+            Command::VerifyArtifact(options) => self.verify_artifact(options),
             Command::Links {
                 manifest,
                 limit,
@@ -1256,6 +1492,9 @@ impl<'a> Project<'a> {
     pub fn verify(&self, selected: &Path) -> Result<()> {
         if manifests::discover(selected, self.options)? != self.manifests.snapshots {
             bail!("manifest inventory or content changed during the project query; retry.");
+        }
+        if lockfiles::discover(selected, self.options)? != self.lockfiles.snapshots {
+            bail!("lockfile inventory or content changed during the project query; retry.");
         }
         for (path, source) in &self.sources {
             if crate::vfs::read_to_string(path).as_ref().ok() != Some(source) {

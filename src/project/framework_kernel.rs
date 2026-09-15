@@ -44,6 +44,15 @@ pub fn service_target_kind(absolute_http: bool, root_relative: bool) -> usize {
     }
 }
 
+pub fn service_route_candidate(
+    local_target: bool,
+    path_equal: bool,
+    method_known: bool,
+    method_equal: bool,
+) -> bool {
+    local_target && path_equal && (!method_known || method_equal)
+}
+
 pub fn service_redaction_flags(query_or_fragment: bool, credentials: bool) -> usize {
     usize::from(query_or_fragment) + 2 * usize::from(credentials)
 }

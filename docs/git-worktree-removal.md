@@ -64,9 +64,43 @@ These JSON outcomes exit successfully, so agents must inspect `applied`.
 A failure can leave missing committed files, empty directories or partially removed private metadata.
 The archive retains the reviewed metadata and identifies the retained source commit for inspection, checked resumption or manual reconstruction.
 Absence of a `complete` marker requires inspection; it does not establish which deletions occurred.
-[Removal inspection and checked resumption](git-worktree-removal-resumption.md) accept missing paths and matching survivors. Worktree undo/redo remains pending.
+[Removal inspection and checked resumption](git-worktree-removal-resumption.md) accept missing paths and matching survivors.
 Creation recovery refuses completed receipts and must not be used to reverse partial removal.
 Completed records support [reviewed archive compaction](git-worktree-archive-compaction.md), retaining a small audit summary and explicit bulk retention.
+
+## Undo and redo
+
+A completed, uncompacted archive can reconstruct its removed checkout:
+
+```sh
+fr git worktree undo-removal RECORD
+fr git worktree undo-removal RECORD --basis TOKEN --write
+```
+
+The preview requires an exact completion marker, the retained direct branch at the archived commit, absent checkout and private-metadata paths, matching repository configuration, readable pinned blobs, and no overlapping path or branch registration.
+The basis binds the archive identity and bytes plus the current complete registration snapshot.
+The writer holds the archive and branch leases, repeats those observations, attaches the existing branch with Git's no-checkout mode, and creates a fresh raw index, checkout and completed ownership receipt.
+It preserves committed regular-file bytes, executable bits and symlink targets.
+Private Git metadata and filesystem identities are reconstructed because archived inode identities cannot safely be reused.
+
+The same source archive can remove its restored checkout again:
+
+```sh
+fr git worktree redo-removal RECORD
+fr git worktree redo-removal RECORD --basis TOKEN --write
+```
+
+Redo requires the restoration marker and its named fresh ownership receipt.
+The checkout, index, branch, commit, tree and inventory must still equal the reconstructed state.
+The basis also binds a complete ordinary removal preview.
+The write delegates to reviewed removal and returns `next_removal_record`; that new complete archive is the input for a later undo.
+The source archive gains a `redone.json` marker and refuses another redo.
+Undo and redo preserve the invoking worktree's files and index and never update the retained branch.
+
+Undo publishes `restoring.json` before checkout mutation. A retry confirms a fully recovered checkout and publishes the missing restoration marker.
+A partial raw checkout returns `applied: null`; use creation recovery when its ownership or preparation evidence permits it, then retry undo confirmation.
+Redo inherits removal's durable archive and `applied: null` behavior.
+Neither direction is one atomic filesystem and Git transaction, and only `applied: true` confirms its requested endpoint.
 
 Locks coordinate cooperating Git and `fr` writers. Existing and replacement locks are preserved.
 Crashes can leave locks requiring manual ownership review. Readers do not take these locks.
@@ -79,4 +113,5 @@ The anchored deletion predicate requires matching identity, bytes and mode; Lean
 The shared configuration predicate also requires the reviewed repository mode and a regular per-worktree configuration file when present.
 A separate abstract namespace model proves that removing selected paths preserves unselected paths.
 Shared Rust/Lean cases cover every boolean predicate input.
+The reversal predicate requires a complete archive, absent checkout and metadata paths, and an unoccupied branch registration; Lean proves all four requirements and abstract destination restoration, unrelated-path preservation and repeated deletion.
 These results do not prove correspondence for filesystem observation, unlinking, Git transactions or crash durability.
