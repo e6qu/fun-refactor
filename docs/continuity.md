@@ -1,7 +1,8 @@
 # Development continuity
 
-PR 30 merged as [GitHub PR 296](https://github.com/e6qu/fun-refactor/pull/296). PR 31's implementation
-is complete and adds a structured Python runtime over the existing agent protocol. `FrClient` keeps project and
+PR 30 merged as [GitHub PR 296](https://github.com/e6qu/fun-refactor/pull/296). PR 31 is proposed as
+[GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297) and adds a structured Python runtime
+over the existing agent protocol. `FrClient` keeps project and
 disclosure reports as local data, selects only requested JSON Pointer values, follows exact
 server-issued reveal actions and carries canonical task-change bytes from review into execution.
 The binary still rechecks the complete basis before mutation.

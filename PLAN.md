@@ -242,7 +242,7 @@ The next completed milestone is awaiting review:
 | [PR 28](https://github.com/e6qu/fun-refactor/pull/293) | Cross-Stack Agent Coverage | Merged |
 | [PR 29](https://github.com/e6qu/fun-refactor/pull/295) | Deferred Boundary Closure | Merged |
 | [PR 30](https://github.com/e6qu/fun-refactor/pull/296) | Complete Reviewed Agent Change Sessions | Merged |
-| PR 31 | Structured Agent Runtime SDK | Implementation complete; PR pending |
+| [PR 31](https://github.com/e6qu/fun-refactor/pull/297) | Structured Agent Runtime SDK | Proposed |
 
 The second package applies the public semantic representation through checked, source-free
 operations. PRs 14 through 18 established the IR, SDK, delta, intent and direct unique-scalar routes.
@@ -1488,7 +1488,7 @@ requiring agents to read successful command streams.
 
 ### PR 31. Structured Agent Runtime SDK
 
-Status: implementation complete; PR pending.
+Status: proposed as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297).
 
 **Goal.** Let an agent keep bounded `fr` data inside a local Python process and progressively select
 needed high-level structures. Execute one reviewed change without copying complete JSON reports or
