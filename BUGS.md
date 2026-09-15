@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B888: **external replay warmup populated a Cargo home the offline oracle never read**. The
+  replay isolates dependencies under `target/cargo-home`, while its wrapper fetched into the
+  account-wide default. A clean checkout completed warmup and then refused the first locked crate.
+  Warmup and every replay now share the repository-local store.
+
 - [x] B887: **the Python context workspace could reveal the first requested evidence branch and
   then strand every sibling**. `ContextSession` retained actions only from its newest report, so a
   trace intent that reached `code_map` lost the earlier ancestor action needed to open

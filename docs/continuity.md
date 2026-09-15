@@ -39,7 +39,7 @@ bytes across 16 exchanges. The complete high-level program and its selected pack
 in one exchange, a 92.4% reduction. This measures fixed protocol bytes and does not run a model or
 claim tokens, billed quota, adoption or population behavior. B883 through B887 record the page,
 pointer, final-call, backend-verification and sibling-traversal defects fixed while dogfooding the
-new route.
+new route. B888 binds external dependency warmup to the same isolated Cargo home as offline replay.
 
 The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
 host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all
