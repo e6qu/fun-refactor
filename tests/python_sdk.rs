@@ -62,15 +62,22 @@ fn python_runtime_discovers_discloses_reviews_and_executes_without_json_glue() {
         .unwrap(),
     )
     .unwrap();
+    let objects = tempfile::tempdir().unwrap();
     let script = r#"# => complete structured agent runtime fixture
 import json, sys
-from fr_ir import FrClient, TaskChange, TaskDelivery, TaskTarget
+from fr_ir import DirectoryObjectStore, FrClient, TaskChange, TaskDelivery, TaskTarget
 
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 found = client.project('find', 'render', '--signature')
 handle = found.at('/rows/0/0')
-initial = client.disclose(handle, view='evidence', token_limit=4096)
-evidence = client.follow(initial.actions(domain='project-evidence')[0])
+session = client.context(
+    handle, view='evidence', token_limit=4096,
+    store=DirectoryObjectStore(sys.argv[3]),
+)
+code_map = session.materialize_section('code_map')
+packet = session.packet(
+    {'code_map': '/model/code_map'}, include_actions=False, max_bytes=4096,
+)
 change = TaskChange(
     [], [TaskTarget('render-body', handle, 'replace-body',
                     fragment='{ value.to_uppercase() }')],
@@ -81,7 +88,11 @@ change = TaskChange(
 review = client.review(change)
 result = client.execute(review)
 print(json.dumps({
-    'evidence_status': evidence.at('/status'),
+    'code_map_fields': len(code_map),
+    'code_map_mentions_target': 'render' in json.dumps(code_map),
+    'context_schema': packet.schema,
+    'context_calls': session.calls,
+    'cached_objects': len(session.cached_digests),
     'basis': review.task_change_basis,
     'passed': result.passed,
     'transaction_status': result.at('/workflow/transaction_status'),
@@ -91,6 +102,7 @@ print(json.dumps({
         .args(["-c", script])
         .arg(workspace.path())
         .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg(objects.path())
         .output()
         .unwrap();
     assert!(
@@ -99,7 +111,11 @@ print(json.dumps({
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["evidence_status"], "revealed");
+    assert!(report["code_map_fields"].as_u64().unwrap() >= 1);
+    assert_eq!(report["code_map_mentions_target"], true);
+    assert_eq!(report["context_schema"], "fr-agent-context-1");
+    assert!(report["context_calls"].as_u64().unwrap() >= 3);
+    assert!(report["cached_objects"].as_u64().unwrap() >= 1);
     assert_eq!(report["passed"], true);
     assert_eq!(report["transaction_status"], "applied");
     assert!(report["basis"].as_str().unwrap().starts_with("frtc1:"));
@@ -141,6 +157,83 @@ for state in range(3):
                         expected.push(
                             fun_refactor::project::task_change::agent_session_step(
                                 state, action, preview, manifest, basis,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
+fn python_context_admission_matches_rust_at_every_boundary() {
+    let script = r#"# => Python context-admission kernel corpus
+from fr_ir.context import _context_materialization_admitted, _object_store_admitted
+samples = [0, 1, 63, 64, 65, 2**64 - 1]
+for calls in samples:
+    for limit in samples:
+        for session in (False, True):
+            for complete in (False, True):
+                for digest in (False, True):
+                    print(str(_context_materialization_admitted(
+                        calls, limit, session, complete, digest)).lower())
+objects = [0, 1, 65535, 65536, 65537, 2**64 - 1]
+encoded = [0, 1, 67108863, 67108864, 67108865, 2**64 - 1]
+for count in objects:
+    for size in encoded:
+        for digest in (False, True):
+            for canonical in (False, True):
+                for root in (False, True):
+                    print(str(_object_store_admitted(
+                        count, size, digest, canonical, root)).lower())
+"#;
+    let output = python().args(["-c", script]).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let samples = [0, 1, 63, 64, 65, usize::MAX];
+    let object_samples = [0, 1, 65_535, 65_536, 65_537, usize::MAX];
+    let byte_samples = [0, 1, 67_108_863, 67_108_864, 67_108_865, usize::MAX];
+    let mut expected = Vec::new();
+    for calls in samples {
+        for limit in samples {
+            for session_matches in [false, true] {
+                for complete in [false, true] {
+                    for digest_matches in [false, true] {
+                        expected.push(
+                            fun_refactor::project::context_materialization_admitted(
+                                calls,
+                                limit,
+                                session_matches,
+                                complete,
+                                digest_matches,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+    for objects in object_samples {
+        for encoded_bytes in byte_samples {
+            for digest_matches in [false, true] {
+                for records_canonical in [false, true] {
+                    for root_present in [false, true] {
+                        expected.push(
+                            fun_refactor::project::object_store_admitted(
+                                objects,
+                                encoded_bytes,
+                                digest_matches,
+                                records_canonical,
+                                root_present,
                             )
                             .to_string(),
                         );
@@ -447,6 +540,31 @@ fn checked_agent_runtime_context_comparison_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join("tests/agent-eval/agent-runtime-context.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn checked_agent_context_workspace_comparison_is_reproducible() {
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/agent-context-workspace.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let expected: Value = serde_json::from_slice(
+        &fs::read(root().join("tests/agent-eval/agent-context-workspace.json")).unwrap(),
     )
     .unwrap();
     assert_eq!(actual, expected);

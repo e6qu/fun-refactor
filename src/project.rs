@@ -28,9 +28,9 @@ mod digest_tests;
 mod disclose;
 mod evidence;
 pub use disclose::{
-    disclosure_budget_admitted, disclosure_frontier_after, disclosure_proof_parent,
-    disclosure_proof_step_allowed, disclosure_transition_allowed, disclosure_view_admitted,
-    object_merkle,
+    context_materialization_admitted, disclosure_budget_admitted, disclosure_frontier_after,
+    disclosure_proof_parent, disclosure_proof_step_allowed, disclosure_transition_allowed,
+    disclosure_view_admitted, object_merkle, object_store_admitted,
 };
 mod explore;
 mod fast_routes;

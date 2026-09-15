@@ -67,6 +67,25 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B886: **a pluggable Merkle object backend could silently discard or alter writes**. The
+  context workspace treated successful `put` returns as durable evidence. It now reads every
+  immutable record back, compares canonical bytes and confirms the root before admitting the pack.
+
+- [x] B885: **a progressive reveal refused a target reached by its final permitted call**. The
+  loop checked the pointer only before following an action, turning an exact one-call traversal
+  into a false bound failure. It now accepts the returned target and shares the same total call
+  ceiling with recursive materialization.
+
+- [x] B884: **the Python runtime accepted a trailing tilde in a JSON Pointer**. RFC 6901 permits
+  only `~0` and `~1` escapes, but the validator checked a tilde only when another character
+  followed it. `FrReport.at()` and context traversal now refuse trailing and unknown escapes.
+
+- [x] B883: **the Python runtime discarded progressive-disclosure page continuations**. It extracted
+  nested `reveal` commands but ignored the top-level `continuation` command returned for another
+  page of wide object or array children. Agents could reach the first page and no later sibling.
+  `Disclosure.actions()` now returns the exact continuation with its reason and revealed-node
+  metadata, while rejecting extra fields and non-disclosure commands.
+
 - [x] B882: **the portable skill said that task-change preview writes**. The command has always kept
   preview read-only. Its top-level routing sentence read "Preview writes." The skill now says
   "Preview first." The task route retains the exact preview and execution commands.

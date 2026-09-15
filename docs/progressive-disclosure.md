@@ -14,6 +14,10 @@ boundaries; they are not a whole-program security-taint claim. `evidence_catalog
 four domains under the compact ceiling. Follow an available shortcut or reveal the tree root to
 obtain exact actions for the other branches.
 
+Python agents can use the [agent context workspace](agent-context-workspace.md) to follow those
+pages locally, verify and cache the selected Merkle subtree, and expose one bounded packet instead
+of receiving each intermediate report in their conversation.
+
 Use `--view project` with a full directory, file or declaration handle for the cross-stack model.
 Its five stable domains are `technologies`, `packages`, `applications`, `styles` and
 `documents_and_diagrams`. The package branch contains bounded manifest declarations, captured

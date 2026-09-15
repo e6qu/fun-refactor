@@ -17,6 +17,7 @@ from typing import Any, Mapping, Sequence, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from . import TaskChange
+    from .context import ContextSession, ObjectStore
 
 
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
@@ -52,9 +53,9 @@ def _pointer(value: Any, pointer: str) -> Any:
         raise FrRuntimeError("report pointer must be an RFC 6901 JSON Pointer")
     current = value
     for encoded in pointer[1:].split("/"):
-        part = encoded.replace("~1", "/").replace("~0", "~")
-        if "~" in part and re.search(r"~[^01]", encoded):
+        if re.search(r"~(?:[^01]|$)", encoded):
             raise FrRuntimeError("report pointer uses a non-canonical escape")
+        part = encoded.replace("~1", "/").replace("~0", "~")
         if isinstance(current, list):
             if not part.isascii() or not part.isdigit() or (part.startswith("0") and part != "0"):
                 raise FrRuntimeError(f"report pointer has an invalid array index at {encoded!r}")
@@ -98,17 +99,29 @@ class DisclosureAction:
     domain: str | None = None
     address: str | None = None
     object_digest: str | None = None
+    kind: str = "reveal"
+    reason: str | None = None
+    _session: tuple[str, str, str, str, str, str] | None = field(
+        default=None, repr=False, compare=False,
+    )
 
     def __post_init__(self) -> None:
         arguments = self.arguments
-        if (not isinstance(arguments, tuple) or not 3 <= len(arguments) <= 32
+        if (self.kind not in ("reveal", "continuation")
+                or not isinstance(arguments, tuple) or not 3 <= len(arguments) <= 32
                 or any(not isinstance(item, str) or "\0" in item for item in arguments)
                 or arguments[:2] != ("project", "disclose")
                 or "--reveal" not in arguments):
             raise FrRuntimeError("disclosure action is not an exact project disclose continuation")
 
     @classmethod
-    def from_data(cls, value: Any, metadata: Mapping[str, Any] | None = None) -> DisclosureAction:
+    def from_data(
+        cls,
+        value: Any,
+        metadata: Mapping[str, Any] | None = None,
+        *,
+        session: tuple[str, str, str, str, str, str] | None = None,
+    ) -> DisclosureAction:
         if not isinstance(value, Mapping) or set(value) != {"arguments"}:
             raise FrRuntimeError("disclosure action must contain only an arguments array")
         arguments = value["arguments"]
@@ -120,6 +133,31 @@ class DisclosureAction:
             meta.get("domain") if isinstance(meta.get("domain"), str) else None,
             meta.get("address") if isinstance(meta.get("address"), str) else None,
             meta.get("object_digest") if isinstance(meta.get("object_digest"), str) else None,
+            _session=session,
+        )
+
+    @classmethod
+    def from_continuation(
+        cls,
+        value: Any,
+        metadata: Mapping[str, Any] | None = None,
+        *,
+        session: tuple[str, str, str, str, str, str] | None = None,
+    ) -> DisclosureAction:
+        """Read one exact page continuation returned by ``fr``."""
+        if (not isinstance(value, Mapping) or not set(value) <= {"arguments", "reason"}
+                or "arguments" not in value or not isinstance(value["arguments"], list)
+                or ("reason" in value and not isinstance(value["reason"], str))):
+            raise FrRuntimeError("disclosure continuation has an unsupported shape")
+        meta = metadata or {}
+        return cls(
+            tuple(value["arguments"]),
+            meta.get("domain") if isinstance(meta.get("domain"), str) else None,
+            meta.get("address") if isinstance(meta.get("address"), str) else None,
+            meta.get("object_digest") if isinstance(meta.get("object_digest"), str) else None,
+            "continuation",
+            value.get("reason"),
+            session,
         )
 
 
@@ -143,12 +181,24 @@ class Disclosure(FrReport):
         """Return deduplicated exact continuations, optionally filtered by domain."""
         found: list[DisclosureAction] = []
         seen: set[tuple[str, ...]] = set()
+        session = self._session_identity(required=False)
+
+        continuation = self._value.get("continuation")
+        revealed = self._value.get("revealed")
+        if isinstance(continuation, Mapping):
+            metadata = revealed if isinstance(revealed, Mapping) else None
+            action = DisclosureAction.from_continuation(
+                continuation, metadata, session=session,
+            )
+            if domain is None or action.domain == domain:
+                seen.add(action.arguments)
+                found.append(action)
 
         def visit(node: Any) -> None:
             if isinstance(node, dict):
                 reveal = node.get("reveal")
                 if isinstance(reveal, Mapping):
-                    action = DisclosureAction.from_data(reveal, node)
+                    action = DisclosureAction.from_data(reveal, node, session=session)
                     if action.arguments not in seen and (domain is None or action.domain == domain):
                         seen.add(action.arguments)
                         found.append(action)
@@ -160,6 +210,31 @@ class Disclosure(FrReport):
 
         visit(self._value)
         return tuple(found)
+
+    def _session_identity(
+        self, *, required: bool,
+    ) -> tuple[str, str, str, str, str, str] | None:
+        commitment = self._value.get("commitment")
+        target = self._value.get("target")
+        values = (
+            self._value.get("revision"),
+            self._value.get("view_basis"),
+            commitment.get("object_root") if isinstance(commitment, Mapping) else None,
+            target.get("handle") if isinstance(target, Mapping) else None,
+            self._value.get("view"),
+            self._value.get("profile"),
+        )
+        if all(isinstance(value, str) and value for value in values):
+            return values  # type: ignore[return-value]
+        if required:
+            raise FrRuntimeError("disclosure report has no complete session identity")
+        return None
+
+    def session_identity(self) -> tuple[str, str, str, str, str, str]:
+        """Return the immutable revision, view and object identity for this session."""
+        identity = self._session_identity(required=True)
+        assert identity is not None
+        return identity
 
 
 def _session_step(
@@ -328,7 +403,30 @@ class FrClient:
         if not isinstance(action, DisclosureAction):
             raise FrRuntimeError("follow requires a DisclosureAction returned by a report")
         report = self.call(*action.arguments)
-        return Disclosure(report._value, report.arguments)
+        disclosure = Disclosure(report._value, report.arguments)
+        if action._session is not None and disclosure.session_identity() != action._session:
+            raise FrRuntimeError("disclosure continuation crossed its bound session")
+        return disclosure
+
+    def context(
+        self,
+        handle: str,
+        *,
+        view: str = "semantic",
+        profile: str = "compact",
+        depth: int = 3,
+        token_limit: int = 4_096,
+        proofs: bool = False,
+        store: ObjectStore | None = None,
+    ) -> ContextSession:
+        """Start one session-bound progressive context workspace."""
+        from .context import ContextSession
+
+        initial = self.disclose(
+            handle, view=view, profile=profile, depth=depth,
+            token_limit=token_limit, proofs=proofs,
+        )
+        return ContextSession(self, initial, store=store)
 
     def review(self, change: TaskChange) -> TaskReview:
         """Preview one typed task change and retain its exact canonical bytes."""

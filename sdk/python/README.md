@@ -8,17 +8,23 @@ Python objects. It invokes the local `fr` binary without a shell and exposes sel
 without printing the surrounding JSON:
 
 ```python
-from fr_ir import FrClient
+from fr_ir import DirectoryObjectStore, FrClient
 
 client = FrClient(".")
 found = client.project("find", "render", "--signature")
 handle = found.at("/rows/0/0")
-evidence = client.disclose(handle, view="evidence")
-revealed = client.follow(evidence.actions(domain="project-evidence")[0])
+session = client.context(
+    handle, view="evidence",
+    store=DirectoryObjectStore("/tmp/fr-objects"),
+)
+code_map = session.materialize_section("code_map")
+packet = session.packet({"code_map": "/model/code_map"}, max_bytes=4096)
 ```
 
-See [the runtime contract](../../docs/agent-runtime-sdk.md) for bounded calls and the reviewed
-session API.
+Keep a directory object store outside the analyzed project so cache creation does not invalidate
+its revision. See [the runtime contract](../../docs/agent-runtime-sdk.md) and
+[context workspace](../../docs/agent-context-workspace.md) for bounded calls, selected packets,
+storage adapters and the reviewed session API.
 
 `FormalPlan.from_json(...)` also mirrors `fr-formal-plan-1`, validates every nested field and
 independently recomputes its Merkle content address. Agents can inspect and store a plan without

@@ -13,6 +13,36 @@ pub(crate) const IR_EDIT_SCHEMA: &str = "fr-disclosed-ir-edit-1";
 const INLINE_SCALAR_BYTES: usize = 128;
 const MIN_TOKEN_LIMIT: usize = 1_024;
 
+#[doc = "Admission policy for a completed agent-context materialization."]
+pub fn context_materialization_admitted(
+    calls: usize,
+    call_limit: usize,
+    session_matches: bool,
+    complete: bool,
+    digest_matches: bool,
+) -> bool {
+    (1..=64).contains(&call_limit)
+        && calls <= call_limit
+        && session_matches
+        && complete
+        && digest_matches
+}
+
+#[doc = "Admission policy for one generated Merkle object pack."]
+pub fn object_store_admitted(
+    objects: usize,
+    encoded_bytes: usize,
+    digest_matches: bool,
+    records_canonical: bool,
+    root_present: bool,
+) -> bool {
+    (1..=65_536).contains(&objects)
+        && encoded_bytes <= 67_108_864
+        && digest_matches
+        && records_canonical
+        && root_present
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct EditRequest {

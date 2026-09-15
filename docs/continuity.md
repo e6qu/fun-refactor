@@ -1,31 +1,38 @@
 # Development continuity
 
-PR 30 merged as [GitHub PR 296](https://github.com/e6qu/fun-refactor/pull/296). PR 31 is proposed as
-[GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297) and adds a structured Python runtime
-over the existing agent protocol. `FrClient` keeps project and
-disclosure reports as local data, selects only requested JSON Pointer values, follows exact
-server-issued reveal actions and carries canonical task-change bytes from review into execution.
-The binary still rechecks the complete basis before mutation.
+PR 31 merged as [GitHub PR 297](https://github.com/e6qu/fun-refactor/pull/297). PR 32 is proposed as
+[GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298) and adds a content-addressed context
+workspace over that structured Python runtime. `client.context(...)`
+binds revision, view, commitment and target identity; follows exact server-issued reveal and page
+actions; reconstructs selected Merkle subtrees; and returns one bounded `fr-agent-context-1` packet.
+The same route reaches code maps, call traces, impact, sources and sinks, semantic IR and project
+evidence without exposing every intermediate report to the agent.
 
-The first checkpoint passes 22 zero-dependency Python tests. A real integration fixture discovers a
-Rust target, follows source-free evidence, previews and executes the complete checked reversal
-lifecycle and verifies the patch. `FrKernels.AgentSession` proves that execution requires reviewed
-state plus matching preview, manifest and basis evidence. Rust and Lean agree on all 48 finite
-inputs, and Python agrees with Rust on the same corpus. Python execution, serialization, subprocess
-behavior and the existing host boundaries remain outside the proof.
+Materialization now handles paged objects and arrays, empty containers, inline children and UTF-8
+strings paged by byte offset. It verifies stable page identity, exact coverage, child ordering and
+the final advertised digest. Memory and directory stores reuse the existing Merkle object shape.
+The directory backend uses bounded no-follow reads and immutable atomic publication. Every backend
+write is read back and compared before the root is admitted. Stores must live outside the analyzed
+project, or in an already excluded path, so cache creation does not stale the bound project handle.
 
-The controlled runtime comparison performs the same five internal `fr` calls in each arm and
-requires equal source, patch, history state and eight-stage lifecycle results. Direct JSON exposes
-17,689 request/response bytes across five agent-visible exchanges. The runtime exposes its complete
-Python program and compact result in one 1,864-byte exchange, an 89.5% reduction for this fixed
-task. It does not run a model or claim token, quota, adoption or population results.
+`FrKernels.AgentContext` proves the numeric and evidence requirements of the final materialization
+and object-pack admissions. Its Rust source anchors and signature maps are fresh. Rust and Lean
+agree on all 576 selected boundary cases; Python and Rust agree on the same corpus. The Python unit
+suite currently has 30 tests, including adversarial pagination, session, pointer, backend and call
+bound cases. The real Rust/Python integration traverses a paginated code map, caches it, creates a
+selected packet and then completes the reviewed change and patch lifecycle.
 
-The complete local default and WASM gates pass. The default gate includes 22 Python unit tests,
-15 Rust/Python integration tests, all 56 portable-skill examples, 311/311 capability cells and a
-68-job strict Lean build. The deep gate passes the repository-wide self-hosted relations, recipe,
-translation conformance and every retained round trip. All 93 Lean kernel cases pass. The pinned
-external workspace replay also passes its upstream oracles and exact reversal. B882 records the
-inaccurate skill wording found and fixed while dogfooding task-change preview.
+The deterministic PR 32 comparison makes the same 16 internal `fr` calls and retains the same
+normalized code map in both arms. Exposing all progressive requests and responses costs 59,825
+bytes across 16 exchanges. The complete high-level program and its selected packet cost 4,516 bytes
+in one exchange, a 92.5% reduction. This measures fixed protocol bytes and does not run a model or
+claim tokens, billed quota, adoption or population behavior. B883 through B886 record the page,
+pointer, final-call and backend-verification defects fixed while dogfooding the new route.
+
+The complete default gate passes native, Python, agent-harness, prose, capability, strict-Lean and
+host WASM coverage. The deep gate passes full-audit command agreement, runtime conformance, all
+translation and repository round trips, all 94 Lean correspondence and self-audit tests, and the
+pinned external patch replay with independent oracles and exact reversal.
 
 PR 29 merged as [GitHub PR 295](https://github.com/e6qu/fun-refactor/pull/295) and closed every
 concrete deferred boundary recorded in `PLAN.md`.
