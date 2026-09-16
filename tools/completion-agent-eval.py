@@ -145,7 +145,8 @@ FRJSON
 
 Tool requests:
 - `{{"tool":"guide","goal":GOAL}}` returns a guide ID, route, evidence and exact actions.
-- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"files":{{"name":"content"}}}}` executes one returned action. For a recipe or tactics file, write it through `files` and replace the placeholder with that same file name. For migration, copy the compatible feature ID from guide evidence.
+- `{{"tool":"follow","guide":ID,"action":INDEX}}` executes a returned action that has no `<...>` placeholder. Do not add `replace` or `files` to such an action.
+- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"files":{{"name":"content"}}}}` supplies only placeholders present in that exact action. For a recipe, copy `route.evidence.author_contract.template`, replace only `<lower-kebab-name>` and `<new name>`, write it through `files`, and replace `<recipe file>` with that same file name. For a tactics file, write the requested tactics through `files` and replace the returned placeholder with that same file name. For migration, copy the compatible feature ID from guide evidence.
 - `{{"tool":"finish","summary":"..."}}` finishes after every workflow and action succeeds.
 
 The harness records complete prompts, tool requests and responses, source identities and Codex events. It will reject direct project access, source mutation, missing workflows, repeated actions and mismatched output schemas. No human correction is available.
