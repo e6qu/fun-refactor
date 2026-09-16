@@ -86,6 +86,37 @@ class FrameworkMigrationOperation:
 
 
 @dataclass(frozen=True)
+class ApplicationMigrationOperation:
+    to: str
+    out: str
+    checks: tuple[str, ...]
+    delivery: TaskDelivery = TaskDelivery()
+    register_with: str | None = None
+    dependency_manifest: str | None = None
+    dependency_requirement: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        _checks(self.checks, self.delivery)
+        if self.to not in ("nextjs", "fastapi", "express", "go-net-http", "react"):
+            raise FrRuntimeError("application migration requires a supported adapter")
+        if not isinstance(self.out, str) or not self.out:
+            raise FrRuntimeError("application migration requires an output directory")
+        if (self.register_with is not None
+                and self.to not in ("fastapi", "express", "go-net-http")):
+            raise FrRuntimeError("application registration requires a backend adapter")
+        if self.to == "go-net-http" and (self.dependency_manifest is not None
+                                           or self.dependency_requirement):
+            raise FrRuntimeError("Go standard HTTP has no framework dependency edit")
+
+    def to_data(self) -> dict[str, Any]:
+        return {"kind": "application-migration", "to": self.to, "out": self.out,
+                "register_with": self.register_with,
+                "dependency_manifest": self.dependency_manifest,
+                "dependency_requirement": list(self.dependency_requirement),
+                "checks": list(self.checks), "delivery": self.delivery.to_data()}
+
+
+@dataclass(frozen=True)
 class FormalPlanOperation:
     properties: tuple[str, ...]
     agent_properties: tuple[AgentProperty, ...] = ()
@@ -224,13 +255,16 @@ class CapabilityOperation:
 
 
 IntentOperation = (TaskChangeOperation | AuthorBatchOperation | RecipeOperation
-                   | FrameworkMigrationOperation | FormalPlanOperation | ProofSubmissionOperation
+                   | FrameworkMigrationOperation | ApplicationMigrationOperation
+                   | FormalPlanOperation | ProofSubmissionOperation
                    | ProjectQueryOperation | SurfaceEditOperation | PropertyTaskOperation | ProofTaskOperation | CapabilityOperation)
 _OPERATION_TYPES = (TaskChangeOperation, AuthorBatchOperation, RecipeOperation,
-                    FrameworkMigrationOperation, FormalPlanOperation, ProofSubmissionOperation,
+                    FrameworkMigrationOperation, ApplicationMigrationOperation,
+                    FormalPlanOperation, ProofSubmissionOperation,
                     ProjectQueryOperation, SurfaceEditOperation, PropertyTaskOperation, ProofTaskOperation, CapabilityOperation)
 _OPERATION_CODES = {"task-change": 0, "author-batch": 1, "recipe": 2,
-                    "framework-migration": 3, "formal-plan": 4, "proof-submission": 5,
+                    "framework-migration": 3, "application-migration": 3,
+                    "formal-plan": 4, "proof-submission": 5,
                     "project-query": 6, "surface-edit": 7, "property-task": 8, "proof-task": 9}
 
 

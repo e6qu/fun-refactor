@@ -73,7 +73,8 @@ result = client.execute_intent(compiled)
 
 `TaskChangeOperation` permits the existing bounded requests and multiple targets. Other operation
 mirrors are `AuthorBatchOperation`, `RecipeOperation`, `CapabilityOperation`,
-`FrameworkMigrationOperation`, `ProjectQueryOperation`, `SurfaceEditOperation`,
+`FrameworkMigrationOperation`, `ApplicationMigrationOperation`, `ProjectQueryOperation`,
+`SurfaceEditOperation`,
 `PropertyTaskOperation`, `FormalPlanOperation`, `ProofTaskOperation` and
 `ProofSubmissionOperation`, all in `fr_ir.intent_actions`. Their fields match the public tagged IR.
 Formal plans write scaffolds only when a package, checks and delivery are supplied. Proof properties

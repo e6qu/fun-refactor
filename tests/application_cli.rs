@@ -130,6 +130,119 @@ fn application_fastapi_registration_and_dependencies_share_one_transaction() {
 }
 
 #[test]
+fn application_express_registration_and_npm_dependency_share_one_transaction() {
+    let dir = tempfile::tempdir().unwrap();
+    input(dir.path());
+    let application = "import express from \"express\";\nconst app = express();\n";
+    let manifest = "{\n  \"name\": \"sample\",\n  \"dependencies\": {}\n}\n";
+    fs::write(dir.path().join("app.ts"), application).unwrap();
+    fs::write(dir.path().join("package.json"), manifest).unwrap();
+    let args = [
+        "migrate",
+        "application",
+        "--ir",
+        "application.json",
+        "--to",
+        "express",
+        "--out",
+        "generated",
+        "--register-with",
+        "app.ts::app",
+        "--dependency-manifest",
+        "package.json",
+        "--dependency-requirement",
+        "express@5.2.1",
+        "--save-plan",
+    ];
+    let preview = ok(dir.path(), &args);
+    assert_eq!(preview["migration"]["integration"]["status"], "connected");
+    assert_eq!(
+        preview["migration"]["integration"]["dependencies"]["status"],
+        "updated"
+    );
+    let transaction = preview["transaction"].as_u64().unwrap().to_string();
+    ok(dir.path(), &["history", "apply", &transaction, "--write"]);
+    let updated = fs::read_to_string(dir.path().join("app.ts")).unwrap();
+    assert!(updated.contains("from \"./generated/routes\""));
+    assert!(updated.contains("app.use(fr_migrated_router);"));
+    assert_eq!(
+        serde_json::from_str::<Value>(
+            &fs::read_to_string(dir.path().join("package.json")).unwrap()
+        )
+        .unwrap()["dependencies"]["express"],
+        "5.2.1"
+    );
+    ok(dir.path(), &["history", "undo", &transaction, "--write"]);
+    assert_eq!(
+        fs::read_to_string(dir.path().join("app.ts")).unwrap(),
+        application
+    );
+    assert_eq!(
+        fs::read_to_string(dir.path().join("package.json")).unwrap(),
+        manifest
+    );
+    assert!(!dir.path().join("generated/routes.ts").exists());
+}
+
+#[test]
+fn application_go_registration_generates_a_reversible_module_mount() {
+    let dir = tempfile::tempdir().unwrap();
+    input(dir.path());
+    let application = "package main\n\nimport \"net/http\"\n\nvar mux = http.NewServeMux()\n\nfunc main() { _ = mux }\n";
+    fs::write(dir.path().join("main.go"), application).unwrap();
+    fs::write(
+        dir.path().join("go.mod"),
+        "module example.com/sample\n\ngo 1.22\n",
+    )
+    .unwrap();
+    let args = [
+        "migrate",
+        "application",
+        "--ir",
+        "application.json",
+        "--to",
+        "go-net-http",
+        "--out",
+        "generated",
+        "--register-with",
+        "main.go::mux",
+        "--save-plan",
+    ];
+    let preview = ok(dir.path(), &args);
+    assert_eq!(preview["migration"]["integration"]["status"], "connected");
+    assert_eq!(
+        preview["migration"]["integration"]["registration"]["framework"],
+        "go-net-http"
+    );
+    let transaction = preview["transaction"].as_u64().unwrap().to_string();
+    ok(dir.path(), &["history", "apply", &transaction, "--write"]);
+    assert!(dir.path().join("generated/routes.go").is_file());
+    assert!(
+        fs::read_to_string(dir.path().join("fr_application_mount.go"))
+            .unwrap()
+            .contains("example.com/sample/generated")
+    );
+    let output = Command::new("go")
+        .arg("test")
+        .arg("./...")
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    ok(dir.path(), &["history", "undo", &transaction, "--write"]);
+    assert_eq!(
+        fs::read_to_string(dir.path().join("main.go")).unwrap(),
+        application
+    );
+    assert!(!dir.path().join("generated/routes.go").exists());
+    assert!(!dir.path().join("fr_application_mount.go").exists());
+}
+
+#[test]
 fn application_nextjs_uses_captured_app_router_placement() {
     let dir = tempfile::tempdir().unwrap();
     input(dir.path());
@@ -545,4 +658,35 @@ fn static_react_and_nextjs_components_share_one_frontend_ir() {
             .any(|file| file["path"] == generated));
     }
     assert_eq!(normalized[0]["root"], normalized[1]["root"]);
+}
+
+#[test]
+fn static_component_entities_remain_an_explicit_manual_boundary() {
+    for source in [
+        "export default function App() { return <p>Tom &amp; Ada</p>; }\n",
+        "export default function App() { return <p title=\"Tom &amp; Ada\">Names</p>; }\n",
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{"dependencies":{"react":"19.3.0"}}"#,
+        )
+        .unwrap();
+        fs::write(dir.path().join("App.tsx"), source).unwrap();
+        let application = ok(dir.path(), &["project", "application"]);
+        fn component(node: &Value) -> Option<&Value> {
+            if node["kind"] == "component" {
+                return Some(node);
+            }
+            node["children"].as_array()?.iter().find_map(component)
+        }
+        let component = application["model"]["applications"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find_map(component)
+            .unwrap();
+        assert!(component.get("component").is_none());
+        assert_eq!(component["data"]["normalization"]["status"], "manual");
+    }
 }

@@ -42,7 +42,7 @@ Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
 PR 39 is in progress on `application_ir_transformations`, started directly from that main.
 Its current checkpoints add a bounded application hierarchy, Merkle disclosure,
 agent-authored HTTP IR, four framework writers, four conservative source normalizers,
-direct project conversion, checked FastAPI integration and recognized Next.js placement.
+direct project conversion, checked FastAPI/Express integration and recognized Next.js placement.
 Cross-adapter cutover and frontend planning still require completion.
 
 | Measure | Current value |
@@ -174,16 +174,20 @@ Implemented foundation:
   is rechecked; equivalent four-framework fixtures produce equal response IR.
 - `migrate application --project` performs the same conversion within one project snapshot. The
   guide selects it for compatible portable backend targets.
+- The tagged `application-migration` intent operation executes that selected common planner from
+  the exact intent handle, with checks, delivery, patch output and guide-basis validation.
 - FastAPI app registration and PEP 621 dependencies can join the generated files in one reversible
-  transaction. Captured Next.js App Router placement supplies checked integration evidence.
+  transaction. Express app/router registration and npm dependencies use the same history path.
+  Go generates an owning-package mount for an explicit ServeMux under a captured module. Captured
+  Next.js App Router placement supplies checked integration evidence.
 - React and Next.js normalize one bounded intrinsic JSX tree and write `App.tsx` or `page.tsx`.
   Props, hooks, events, styles, component calls and dynamic expressions remain manual.
 - Lean models cover admission, compatibility, JSON status safety, exact unique coverage and
   endpoint agreement. Parser/writer and pinned framework runtime tests remain separate.
 
-Next implementation work is remaining adapter registration/cutover and dynamic frontend boundaries.
-Express and Go registration remain manual. The bounded HTTP subset does not replace the richer
-Next.js/FastAPI feature planner.
+Next implementation work is an ownership-safe cutover boundary and published per-adapter capability
+rows. Dynamic frontend behavior remains explicit manual evidence. The bounded HTTP
+subset does not replace the richer Next.js/FastAPI feature planner.
 These are unfinished PR 39 deliverables, rather than completion claims.
 
 Deliverables:

@@ -514,6 +514,9 @@ fn literal_jsx_attribute(node: Node<'_>, source: &str) -> Option<(String, String
         return None;
     }
     let raw = text(value, source);
+    if raw.contains('&') {
+        return None;
+    }
     let value = if raw.starts_with('"') {
         serde_json::from_str(raw).ok()?
     } else {
@@ -541,7 +544,7 @@ fn static_jsx(
     }
     if node.kind() == "jsx_text" {
         let value = text(node, source);
-        if value.trim().is_empty() {
+        if value.trim().is_empty() || value.contains('&') {
             return None;
         }
         return Some(crate::application_ir::StaticNode::Text {

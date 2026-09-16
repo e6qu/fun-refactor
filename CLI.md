@@ -864,9 +864,14 @@ complete `project application` report. Its bounded IR has Next.js, FastAPI, Expr
 and Go HTTP readers and writers for literal JSON responses and path bindings.
 Use `--project TARGET` instead of `--ir FILE` to normalize and preview within one
 snapshot. FastAPI accepts explicit registration and PEP 621 dependency options;
-recognized Next.js App Router placement supplies checked integration evidence.
+Express accepts explicit TypeScript app/router registration and npm dependencies. Go accepts an
+explicit package-level ServeMux and generates a mount file using its captured module path.
+Recognized Next.js App Router placement supplies checked integration evidence.
 The same command converts one selected static intrinsic JSX component between React
 and Next.js; dynamic rendering remains an explicit manual boundary.
+When the guide selects this planner, it advertises an `application-migration`
+`fr-intent-action-2` operation so an agent can preview and execute the same plan from
+the selected handle without carrying source text.
 `fr project application` and `project disclose HANDLE --view application` expose the
 application hierarchy. See [the application IR contract](docs/application-ir.md) for
 schemas, SDK constructors, manual integration and formal/runtime evidence boundaries.

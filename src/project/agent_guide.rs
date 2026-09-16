@@ -1343,6 +1343,7 @@ impl Project<'_> {
             2 => &["recipe"],
             3..=5 => &["task-change", "author-batch"],
             6 => &["surface-edit"],
+            7 if evidence["planner"] == "application-ir" => &["application-migration"],
             7 => &["framework-migration"],
             8 => &["property-task", "formal-plan"],
             9 => &["proof-task", "proof-submission"],

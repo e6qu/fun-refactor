@@ -23,15 +23,18 @@ recomputed and checked.
 the application IR inside the migration snapshot. The guide chooses this common path
 for portable backend targets while retaining the richer Next.js/FastAPI feature
 planner when it applies. Explicit FastAPI application mounting and PEP 621 dependency
-updates share the generated-file transaction. Captured Next.js App Router placement
-is recognized as connected integration. Express and Go mounting and all common-source
-cutover remain manual.
+updates share the generated-file transaction. Express verifies an explicit TypeScript
+app/router, refuses direct endpoint conflicts and can add an exact npm dependency in
+the same history record. Go verifies an explicit package-level ServeMux beneath a
+captured `go.mod` and creates an owning-package mount for the generated handler.
+Captured Next.js App Router placement is recognized as connected integration. All
+common-source cutover remains manual.
 
 The frontend checkpoint adds a bounded static component IR. React and Next.js
 function components normalize only when they contain one intrinsic JSX tree with
 literal attributes and explicit text. Their roots agree across generic fixtures and
 write `App.tsx` or `page.tsx`. Dynamic expressions, props, hooks, events, styles,
-spreads and component calls remain manual. The SDK mirrors the tree. A Lean policy
+entities, spreads and component calls remain manual. The SDK mirrors the tree. A Lean policy
 now checks its 1024-node, depth-32 and 1 MiB resource bounds against Rust and Python.
 
 `fr-http-application-1` supplies agent-authored JSON responses and path parameters

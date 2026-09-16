@@ -45,8 +45,14 @@ props, hooks, events, styles, spreads and component calls stay manual. Select on
 feature branch before conversion when several components exist.
 
 Generation requires new owned paths. FastAPI can add one explicit app mount and PEP
-621 dependency edit in the transaction. Recognized Next.js `app` placement connects
-by convention. Express and Go mounts remain manual. Existing source remains.
+621 dependency edit in the transaction. Express can add a recognized TypeScript
+app/router mount and exact npm dependency. Go can generate an owning-package mount
+for an explicit package-level ServeMux beneath `go.mod`. Recognized Next.js `app`
+placement connects by convention. Existing source remains.
+
+For an admitted navigator route, use the advertised `application-migration` tagged
+intent operation. Its `to`, `out`, optional registration/dependency fields, checks
+and delivery mirror this command; the selected intent handle supplies `--project`.
 
 Paths use literal ASCII segments and unique `{name}` parameters. Overlapping routes,
 HEAD, bodyless statuses, floating-point literals and integers outside ±(2^53−1)

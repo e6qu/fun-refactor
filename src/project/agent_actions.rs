@@ -101,6 +101,18 @@ enum Operation {
         checks: Vec<String>,
         delivery: task_change::Delivery,
     },
+    ApplicationMigration {
+        to: crate::application_ir::Adapter,
+        out: PathBuf,
+        #[serde(default)]
+        register_with: Option<String>,
+        #[serde(default)]
+        dependency_manifest: Option<PathBuf>,
+        #[serde(default)]
+        dependency_requirement: Vec<String>,
+        checks: Vec<String>,
+        delivery: task_change::Delivery,
+    },
     FormalPlan {
         properties: Vec<String>,
         #[serde(default)]
@@ -137,7 +149,7 @@ impl Operation {
             Self::TaskChange { .. } => 0,
             Self::AuthorBatch { .. } => 1,
             Self::Recipe { .. } => 2,
-            Self::FrameworkMigration { .. } => 3,
+            Self::FrameworkMigration { .. } | Self::ApplicationMigration { .. } => 3,
             Self::FormalPlan { .. } => 4,
             Self::ProofSubmission { .. } => 5,
         }
@@ -153,6 +165,7 @@ impl Operation {
             Self::AuthorBatch { .. } => "author-batch",
             Self::Recipe { .. } => "recipe",
             Self::FrameworkMigration { .. } => "framework-migration",
+            Self::ApplicationMigration { .. } => "application-migration",
             Self::FormalPlan { .. } => "formal-plan",
             Self::ProofSubmission { .. } => "proof-submission",
         }
@@ -587,6 +600,41 @@ impl Project<'_> {
                 prepared.report["plan"] = plan.report;
                 prepared.delivery(&self.root, checks, delivery)?;
             }
+            Operation::ApplicationMigration {
+                to,
+                out,
+                register_with,
+                dependency_manifest,
+                dependency_requirement,
+                checks,
+                delivery,
+            } => {
+                let plan = self.migrate_application(&migration::ApplicationOptions {
+                    ir: None,
+                    project: Some(intent.target.clone()),
+                    revision: None,
+                    feature: None,
+                    to: *to,
+                    out: out.clone(),
+                    register_with: register_with.clone(),
+                    dependency_manifest: dependency_manifest.clone(),
+                    dependency_requirement: dependency_requirement.clone(),
+                    checks: checks.clone(),
+                    diff_bytes: action.diff_bytes,
+                    write: false,
+                })?;
+                prepared.edits(&plan.edits)?;
+                prepared
+                    .changes
+                    .extend(plan.connected_changes.into_iter().map(|change| Change {
+                        path: change.path,
+                        original: change.original,
+                        updated: change.updated,
+                    }));
+                prepared.targets.push(intent.target.clone());
+                prepared.report["plan"] = plan.report;
+                prepared.delivery(&self.root, checks, delivery)?;
+            }
             Operation::FormalPlan {
                 properties,
                 agent_properties,
@@ -890,10 +938,15 @@ impl Project<'_> {
             }
             (Some("surface-edit"), Operation::SurfaceEdit { .. }) => true,
             (Some("framework-migration"), Operation::FrameworkMigration { to, feature, .. }) => {
-                goal["to"] == serde_json::to_value(to)?
+                guide["route"]["evidence"]["planner"] == "feature"
+                    && goal["to"] == serde_json::to_value(to)?
                     && guide["route"]["evidence"]["compatible_features"]
                         .as_array()
                         .is_some_and(|features| features.iter().any(|item| item == feature))
+            }
+            (Some("framework-migration"), Operation::ApplicationMigration { to, .. }) => {
+                guide["route"]["evidence"]["planner"] == "application-ir"
+                    && goal["to"] == serde_json::to_value(to)?
             }
             (Some("formalize"), Operation::FormalPlan { .. } | Operation::PropertyTask {}) => true,
             (

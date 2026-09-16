@@ -253,7 +253,8 @@ class TestIntent:
 
 from fr_ir.intent import _wire
 from fr_ir.intent_actions import (
-    CapabilityOperation, AuthorBatchOperation, FormalPlanOperation, FrameworkMigrationOperation,
+    ApplicationMigrationOperation, CapabilityOperation, AuthorBatchOperation,
+    FormalPlanOperation, FrameworkMigrationOperation,
     ProjectQueryOperation, PropertyTaskOperation, ProofSubmissionOperation,
     ProofTaskOperation, RecipeOperation, SurfaceEditOperation, TaggedIntentAction,
 )
@@ -350,6 +351,7 @@ def test_tagged_operation_mirrors_and_purpose_admission():
         (AuthorBatchOperation({"operations":[]},("unit",)),"change","author-batch"),
         (RecipeOperation("schema 1",("unit",)),"change","recipe"),
         (FrameworkMigrationOperation("feature","fastapi","server.py",("unit",)),"migrate","framework-migration"),
+        (ApplicationMigrationOperation("express","generated",("unit",)),"migrate","application-migration"),
         (FormalPlanOperation(("identity",)),"prove","formal-plan"),
         (ProofSubmissionOperation("identity","rfl",("unit",)),"prove","proof-submission"),
         (ProjectQueryOperation((ProjectRequest("map",["code-map","target"]),)),"understand","project-query"),

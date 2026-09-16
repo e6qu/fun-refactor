@@ -105,24 +105,33 @@ complete `fr-application-report-1` response. For a report it recomputes and chec
 the model's object digest. Only normalized routes are generated; the report counts
 manual route boundaries, and source files remain preserved.
 
+The navigator advertises `application-migration` in `intent_action.operation_kinds`
+when this common planner is selected. Agents can author the matching
+`fr-intent-action-2` operation with `to`, `out`, optional registration/dependency
+fields, named checks and delivery. Preview and execution rebuild the application IR
+from the intent's exact revision-bound target; the action does not carry source text.
+
 Preview first; retain `plan_basis` for an unchanged saved-plan or write request.
 The input must be a JSON file captured in the analyzed project snapshot.
 Existing destinations and paths crossing symlinks refuse. Every output belongs
 to one strict-reparse transaction. `--check NAME` binds declared project checks.
-FastAPI can connect an existing application and dependency manifest in the same
+FastAPI can connect an existing application and PEP 621 manifest in the same
 transaction with `--register-with PATH::APP_SYMBOL`, `--dependency-manifest
-pyproject.toml` and an exact `--dependency-requirement`. Recognized Next.js `app`
-placement beneath a captured package with a `next` dependency is connected by
-placement. These edits share preview, review basis, apply, patch, undo and redo with
-the generated files. Express and Go registration remain explicit application-owner
-decisions.
+pyproject.toml` and an exact `--dependency-requirement`. Express accepts the same
+selector for a recognized TypeScript app/router and an exact `express@SPEC` for an
+owning `package.json`. Go accepts `PATH::MUX_SYMBOL` for a package-level
+`http.NewServeMux()` binding beneath a captured `go.mod`; it generates a small mount
+file in the owning package and imports the generated handler by module path.
+Recognized Next.js `app` placement beneath a captured package with a `next`
+dependency is connected by placement. These edits share preview, review basis,
+apply, patch, undo and redo with generated files.
 
 | Adapter | Output beneath `--out` | Explicit integration |
 |---|---|---|
 | Next.js | Route files following the IR path hierarchy | Choose the owning App Router directory and package |
 | FastAPI | `routes.py` exporting `router` | Include the router and declare FastAPI dependencies |
 | Express | `routes.ts` exporting a default Router | Mount the router and declare Express dependencies |
-| Go standard HTTP | `routes.go`, package `frgenerated`, exporting `Handler()` | Use its handler in the owning Go application |
+| Go standard HTTP | `routes.go`, package `frgenerated`, exporting `Handler()` | Generate a checked owning-package mount for an explicit ServeMux |
 | React | Refused for HTTP routes | React has no HTTP route writer |
 
 ## Static frontend components
@@ -140,9 +149,11 @@ invented page or component graph. The Python SDK mirrors `StaticComponent`,
 `StaticElement` and `StaticText`. Nodes admit depth 32, 1024 nodes and 1 MiB; unsafe
 event and raw-HTML attributes refuse. React-to-Next.js and Next.js-to-React fixtures
 produce the same static tree before generation.
+Entity-bearing source text and attributes also stay manual until the reader can
+decode and re-encode their exact JSX semantics without double escaping.
 
-The generated integration status is `connected` only for a checked explicit FastAPI
-mount or recognized Next.js placement. Other targets report `manual`. Existing
+The generated integration status is `connected` only for a checked explicit FastAPI,
+Express or Go mount, or recognized Next.js placement. Other targets report `manual`. Existing
 source remains preserved; application-IR migration does not perform source cutover.
 Generation is framework-independent JSON construction; there are no domain or
 fixture-name rules.

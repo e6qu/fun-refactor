@@ -1,7 +1,7 @@
 use super::{bounded_text, FeatureOptions, Project, RelationshipOptions};
 use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
-use crate::transpile::ir::{Item, Record, Type};
+use crate::transpile::ir::{Expr, Item, Record, Type};
 use crate::transpile::nextjs::Model;
 use anyhow::{ensure, Result};
 use clap::{Args, Subcommand, ValueEnum};
@@ -46,20 +46,20 @@ pub struct ApplicationOptions {
     pub out: PathBuf,
     #[arg(
         long,
-        help = "Mount generated FastAPI routes in an explicit PATH::APP_SYMBOL target."
+        help = "Mount generated routes in an explicit PATH::APP_SYMBOL target."
     )]
     pub register_with: Option<String>,
     #[arg(
         long,
         value_name = "PATH",
-        help = "Update one explicit PEP 621 pyproject.toml owning a FastAPI destination."
+        help = "Update one explicit PEP 621 or npm manifest owning the destination."
     )]
     pub dependency_manifest: Option<PathBuf>,
     #[arg(
         long,
         value_name = "SPEC",
         requires = "dependency_manifest",
-        help = "Exact FastAPI requirement to add when the selected manifest omits it."
+        help = "Exact missing requirement to add to the selected manifest."
     )]
     pub dependency_requirement: Vec<String>,
     #[arg(long = "check", value_delimiter = ',')]
@@ -363,7 +363,10 @@ fn fastapi_dependencies(
         dependencies.push(requirement);
     }
     let updated = document.to_string();
-    let relative = path.strip_prefix(&project.root).unwrap_or(&path);
+    let relative = path
+        .strip_prefix(&project.root)
+        .unwrap_or(&path)
+        .to_path_buf();
     Ok(DependencyPlan {
         change: (updated != original).then(|| ConnectedChange {
             path: path.clone(),
@@ -550,6 +553,375 @@ fn add_fastapi_registration(
             "basis": "explicit-recognized-fastapi-binding-and-direct-route-check",
         }),
         note: "FastAPI registration checks direct routes in the selected application file; included and mounted routers remain unchecked.".to_owned(),
+    })
+}
+
+fn express_registration_selector(root: &Path, selector: &str) -> Result<(PathBuf, String)> {
+    let (path, application) = selector
+        .rsplit_once("::")
+        .ok_or_else(|| anyhow::anyhow!("registration target must use PATH::APP_SYMBOL."))?;
+    let path = Path::new(path);
+    ensure!(
+        !path.as_os_str().is_empty()
+            && !path.is_absolute()
+            && path
+                .components()
+                .all(|part| matches!(part, Component::Normal(_)))
+            && matches!(
+                path.extension().and_then(|value| value.to_str()),
+                Some("ts" | "tsx")
+            )
+            && super::contracts::simple_name(application),
+        "Express registration must name one normalized TypeScript PATH::APP_SYMBOL."
+    );
+    Ok((root.join(path), application.to_owned()))
+}
+
+fn relative_typescript_module(from: &Path, to: &Path) -> Result<String> {
+    let from = from.parent().unwrap_or(Path::new(""));
+    let left = from.components().collect::<Vec<_>>();
+    let right = to.components().collect::<Vec<_>>();
+    let common = left
+        .iter()
+        .zip(&right)
+        .take_while(|(left, right)| left == right)
+        .count();
+    let mut parts = vec!["..".to_owned(); left.len().saturating_sub(common)];
+    parts.extend(
+        right[common..]
+            .iter()
+            .map(|part| part.as_os_str().to_str().map(str::to_owned))
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| anyhow::anyhow!("generated Express module path is not UTF-8."))?,
+    );
+    let last = parts
+        .last_mut()
+        .ok_or_else(|| anyhow::anyhow!("generated Express module path is empty."))?;
+    *last = Path::new(last)
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| anyhow::anyhow!("generated Express module path is invalid."))?
+        .to_owned();
+    let path = parts.join("/");
+    Ok(if path.starts_with('.') {
+        path
+    } else {
+        format!("./{path}")
+    })
+}
+
+fn add_express_registration(
+    project: &Project<'_>,
+    edits: &mut EditSet,
+    selector: &str,
+    out: &Path,
+    source: &Path,
+    endpoints: &[(String, String)],
+) -> Result<FastapiRegistration> {
+    let (path, application) = express_registration_selector(&project.root, selector)?;
+    ensure!(
+        path != source && path != project.root.join(out),
+        "registration target must be separate from the source and generated route."
+    );
+    let text = project.sources.get(&path).ok_or_else(|| {
+        anyhow::anyhow!("registration target is not a captured project source file.")
+    })?;
+    ensure!(
+        !text.starts_with("#!"),
+        "Express registration does not edit a shebang module."
+    );
+    let language = crate::lang::detect(&path)
+        .filter(|language| matches!(language, Language::TypeScript | Language::Tsx))
+        .ok_or_else(|| anyhow::anyhow!("Express registration target is not TypeScript."))?;
+    let parsed = crate::parse::Parsers::new().parse(language, text)?;
+    ensure!(
+        !parsed.has_errors(),
+        "registration target does not parse cleanly as TypeScript."
+    );
+    let module = crate::transpile::read_module(language, text, parsed.root())?;
+    let recognized = module.items.iter().any(|item| {
+        matches!(item, Item::Constant(constant) if constant.name == application
+            && matches!(&constant.value, Expr::Call { callee, args }
+                if args.is_empty() && matches!(&**callee, Expr::Name(name) if matches!(name.as_str(), "express" | "Router"))))
+    });
+    let conflicts = crate::transpile::routes::endpoints_of(text, language)
+        .map(|(_, existing)| {
+            existing.iter().any(|existing| {
+                endpoints
+                    .iter()
+                    .any(|(method, path)| existing.method == *method && existing.url == *path)
+            })
+        })
+        .unwrap_or(false);
+    ensure!(
+        recognized && !conflicts,
+        "registration target must contain one recognized Express app/router binding and no direct endpoint conflict."
+    );
+    let relative = path
+        .strip_prefix(&project.root)
+        .unwrap_or(&path)
+        .to_path_buf();
+    let module = relative_typescript_module(&relative, out)?;
+    let alias = fresh_registration_alias(text);
+    edits.add(
+        path.clone(),
+        Edit::new(
+            crate::span::Span::new(0, 0),
+            format!("import {alias} from {};\n", serde_json::to_string(&module)?),
+            "Import the generated Express router.",
+        ),
+    );
+    edits.add(
+        path.clone(),
+        Edit::new(
+            crate::span::Span::new(text.len(), text.len()),
+            format!("\n{application}.use({alias});\n"),
+            "Mount the generated Express router.",
+        ),
+    );
+    Ok(FastapiRegistration {
+        path: relative.to_path_buf(),
+        report: json!({"framework": "express", "root": relative.parent().filter(|path| !path.as_os_str().is_empty()).unwrap_or(Path::new(".")),
+            "entrypoint": relative, "application": application,
+            "basis": "explicit-recognized-express-binding-and-direct-route-check"}),
+        note: "Express registration preserves existing route and middleware order by mounting the generated router last.".into(),
+    })
+}
+
+fn go_registration_selector(root: &Path, selector: &str) -> Result<(PathBuf, String)> {
+    let (path, mux) = selector
+        .rsplit_once("::")
+        .ok_or_else(|| anyhow::anyhow!("registration target must use PATH::MUX_SYMBOL."))?;
+    let path = Path::new(path);
+    ensure!(
+        !path.as_os_str().is_empty()
+            && !path.is_absolute()
+            && path
+                .components()
+                .all(|part| matches!(part, Component::Normal(_)))
+            && path.extension().is_some_and(|value| value == "go")
+            && super::contracts::simple_name(mux),
+        "Go registration must name one normalized PATH::MUX_SYMBOL."
+    );
+    Ok((root.join(path), mux.to_owned()))
+}
+
+fn go_module(project: &Project<'_>, relative: &Path, out: &Path) -> Result<(PathBuf, String)> {
+    let mut directory = relative.parent().unwrap_or(Path::new(""));
+    loop {
+        let manifest = directory.join("go.mod");
+        if project.manifests.documents.contains_key(&manifest) {
+            let path = project.root.join(&manifest);
+            let metadata = std::fs::symlink_metadata(&path)?;
+            ensure!(
+                metadata.is_file() && !metadata.file_type().is_symlink(),
+                "go.mod must be a regular file."
+            );
+            let source = crate::vfs::read_to_string(&path)?;
+            let modules = source
+                .lines()
+                .filter_map(|line| line.trim().strip_prefix("module ").map(str::trim))
+                .filter(|name| !name.is_empty() && !name.chars().any(char::is_whitespace))
+                .collect::<Vec<_>>();
+            ensure!(
+                modules.len() == 1,
+                "go.mod must contain one valid module directive."
+            );
+            let suffix = out.strip_prefix(directory).map_err(|_| {
+                anyhow::anyhow!("generated Go output must be inside the registration module.")
+            })?;
+            ensure!(
+                !suffix.as_os_str().is_empty(),
+                "generated Go output must use a separate package directory."
+            );
+            let suffix = suffix
+                .components()
+                .map(|part| part.as_os_str().to_str())
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| anyhow::anyhow!("generated Go package path is not UTF-8."))?
+                .join("/");
+            return Ok((
+                directory.to_path_buf(),
+                format!("{}/{suffix}", modules[0].trim_end_matches('/')),
+            ));
+        }
+        let Some(parent) = directory.parent() else {
+            break;
+        };
+        directory = parent;
+    }
+    anyhow::bail!("Go registration requires one captured owning go.mod.")
+}
+
+fn add_go_registration(
+    project: &Project<'_>,
+    edits: &mut EditSet,
+    selector: &str,
+    out: &Path,
+    source: &Path,
+    endpoints: &[(String, String)],
+) -> Result<FastapiRegistration> {
+    let (path, mux) = go_registration_selector(&project.root, selector)?;
+    ensure!(
+        path != source,
+        "registration target must be separate from the IR input."
+    );
+    let text = project.sources.get(&path).ok_or_else(|| {
+        anyhow::anyhow!("registration target is not a captured project source file.")
+    })?;
+    let parsed = crate::parse::Parsers::new().parse(Language::Go, text)?;
+    ensure!(
+        !parsed.has_errors(),
+        "registration target does not parse cleanly as Go."
+    );
+    let module = crate::transpile::read_module(Language::Go, text, parsed.root())?;
+    let root = parsed.root();
+    let package = root
+        .named_children(&mut root.walk())
+        .find(|node| node.kind() == "package_clause")
+        .and_then(|node| text[node.byte_range()].split_whitespace().nth(1))
+        .filter(|name| super::contracts::simple_name(name))
+        .map(str::to_owned)
+        .ok_or_else(|| anyhow::anyhow!("Go registration target omitted its package name."))?;
+    let recognized = module.items.iter().any(|item| {
+        matches!(item, Item::Constant(constant) if constant.name == mux
+            && matches!(&constant.value, Expr::Call { callee, args } if args.is_empty()
+                && matches!(&**callee, Expr::Field { of, name } if name == "NewServeMux" && matches!(&**of, Expr::Name(name) if name == "http"))))
+    });
+    let conflicts = crate::transpile::routes::endpoints_of(text, Language::Go)
+        .map(|(_, existing)| {
+            existing.iter().any(|existing| {
+                endpoints
+                    .iter()
+                    .any(|(method, path)| existing.method == *method && existing.url == *path)
+            })
+        })
+        .unwrap_or(false);
+    ensure!(recognized && !conflicts, "registration target must contain one package-level http.NewServeMux binding and no direct endpoint conflict.");
+    let relative = path.strip_prefix(&project.root).unwrap_or(&path);
+    let (_module_root, import) = go_module(project, relative, out)?;
+    let directory = relative.parent().unwrap_or(Path::new(""));
+    ensure!(
+        out != directory,
+        "generated Go routes must use a package separate from the registration target."
+    );
+    let mount = directory.join("fr_application_mount.go");
+    let mount_absolute = project.root.join(&mount);
+    ensure!(
+        !mount_absolute.exists() && std::fs::symlink_metadata(&mount_absolute).is_err(),
+        "generated Go registration file already exists."
+    );
+    edits.add(
+        mount_absolute.clone(),
+        Edit::new(
+            crate::span::Span::new(0, 0),
+            format!("package {package}\n\nimport frgenerated {}\n\nfunc init() {{\n\t{mux}.Handle(\"/\", frgenerated.Handler())\n}}\n", serde_json::to_string(&import)?),
+            "Mount the generated Go HTTP handler.",
+        ),
+    );
+    edits.declare_language(mount_absolute, Language::Go);
+    Ok(FastapiRegistration {
+        path: mount.clone(),
+        report: json!({"framework": "go-net-http", "root": if directory.as_os_str().is_empty() { Path::new(".") } else { directory },
+            "entrypoint": mount, "application": mux,
+            "basis": "explicit-package-level-serve-mux-and-module-import"}),
+        note: "Go registration mounts the generated handler at / after refusing direct endpoint conflicts; broader ServeMux precedence requires project checks.".into(),
+    })
+}
+
+fn npm_dependencies(
+    project: &Project<'_>,
+    selected: Option<&Path>,
+    requirements: &[String],
+    out: &Path,
+    package: &str,
+) -> Result<DependencyPlan> {
+    let Some(selected) = selected else {
+        return Ok(DependencyPlan {
+            change: None,
+            report: json!({"status": "agent-decision", "manifest": null, "required": [package], "declared": [], "added": [], "basis": "generated-runtime-imports"}),
+            note: Some(format!(
+                "No explicit npm manifest proves the generated {package} import."
+            )),
+        });
+    };
+    let path = normalized_relative(&project.root, selected, "dependency manifest")?;
+    ensure!(
+        selected
+            .file_name()
+            .is_some_and(|name| name == "package.json"),
+        "the npm dependency manifest must name package.json."
+    );
+    let metadata = std::fs::symlink_metadata(&path)
+        .map_err(anyhow::Error::from)
+        .map_err(|error| error.context("reading the npm dependency manifest metadata"))?;
+    ensure!(
+        metadata.is_file() && !metadata.file_type().is_symlink(),
+        "the npm dependency manifest must be a regular file."
+    );
+    ensure!(
+        out.starts_with(path.parent().unwrap_or(&project.root)),
+        "the dependency manifest must be an ancestor of the generated destination."
+    );
+    let original = project
+        .sources
+        .get(&path)
+        .ok_or_else(|| anyhow::anyhow!("dependency manifest is not a captured project file."))?
+        .clone();
+    let mut document: Value = serde_json::from_str(&original)
+        .map_err(|_| anyhow::anyhow!("the npm dependency manifest is not valid JSON."))?;
+    let root = document
+        .as_object_mut()
+        .ok_or_else(|| anyhow::anyhow!("the npm dependency manifest must be an object."))?;
+    let dependencies = root.entry("dependencies").or_insert_with(|| json!({}));
+    let dependencies = dependencies
+        .as_object_mut()
+        .ok_or_else(|| anyhow::anyhow!("package.json dependencies must be an object."))?;
+    let declared = dependencies
+        .get(package)
+        .and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .map(str::to_owned);
+    let supplied = requirements
+        .iter()
+        .map(|requirement| {
+            let prefix = format!("{package}@");
+            let version = requirement
+                .strip_prefix(&prefix)
+                .filter(|value| {
+                    !value.is_empty() && value.len() <= 256 && !value.chars().any(char::is_control)
+                })
+                .ok_or_else(|| {
+                    anyhow::anyhow!("npm dependency requirement must use {package}@SPEC.")
+                })?;
+            Ok(version.to_owned())
+        })
+        .collect::<Result<Vec<_>>>()?;
+    ensure!(
+        declared.is_some() && supplied.is_empty() || declared.is_none() && supplied.len() == 1,
+        "dependency requirements must provide the one missing generated npm import exactly once."
+    );
+    let added = if declared.is_none() {
+        dependencies.insert(package.to_owned(), Value::String(supplied[0].clone()));
+        vec![format!("{package}@{}", supplied[0])]
+    } else {
+        Vec::new()
+    };
+    let updated = format!("{}\n", serde_json::to_string_pretty(&document)?);
+    let relative = path
+        .strip_prefix(&project.root)
+        .unwrap_or(&path)
+        .to_path_buf();
+    Ok(DependencyPlan {
+        change: (updated != original).then(|| ConnectedChange {
+            path,
+            original,
+            updated,
+        }),
+        report: json!({"status": if added.is_empty() { "satisfied" } else { "updated" }, "manifest": relative,
+            "required": [package], "declared": declared.into_iter().collect::<Vec<_>>(), "added": added,
+            "basis": "explicit-npm-dependencies"}),
+        note: None,
     })
 }
 
@@ -779,11 +1151,19 @@ impl Project<'_> {
             "diff byte limit must be between 0 and 65536."
         );
         ensure!(
-            options.to == crate::application_ir::Adapter::Fastapi
-                || options.register_with.is_none()
-                    && options.dependency_manifest.is_none()
+            matches!(
+                options.to,
+                crate::application_ir::Adapter::Fastapi
+                    | crate::application_ir::Adapter::Express
+                    | crate::application_ir::Adapter::GoNetHttp
+            ) || options.register_with.is_none(),
+            "explicit registration requires the FastAPI, Express or Go HTTP adapter."
+        );
+        ensure!(
+            options.to != crate::application_ir::Adapter::GoNetHttp
+                || options.dependency_manifest.is_none()
                     && options.dependency_requirement.is_empty(),
-            "explicit registration and dependency edits currently require the FastAPI adapter."
+            "Go standard HTTP requires no external framework dependency edit."
         );
         let out = destination(&self.root, &options.out)?;
         let direct_project = options.project.is_some();
@@ -987,7 +1367,7 @@ impl Project<'_> {
                 Edit::new(
                     crate::span::Span::new(0, 0),
                     source.clone(),
-                    "application IR HTTP adapter",
+                    "application IR adapter",
                 ),
             );
             files.push(json!({"path": options.out.join(relative), "status": "generated", "syntax": "reparse-strict"}));
@@ -999,15 +1379,32 @@ impl Project<'_> {
         let registration = options
             .register_with
             .as_deref()
-            .map(|selector| {
-                add_fastapi_registration(
+            .map(|selector| match options.to {
+                crate::application_ir::Adapter::Fastapi => add_fastapi_registration(
                     self,
                     &mut edits,
                     selector,
                     &options.out.join("routes.py"),
                     &input,
                     &endpoints,
-                )
+                ),
+                crate::application_ir::Adapter::Express => add_express_registration(
+                    self,
+                    &mut edits,
+                    selector,
+                    &options.out.join("routes.ts"),
+                    &input,
+                    &endpoints,
+                ),
+                crate::application_ir::Adapter::GoNetHttp => add_go_registration(
+                    self,
+                    &mut edits,
+                    selector,
+                    &options.out,
+                    &input,
+                    &endpoints,
+                ),
+                _ => unreachable!(),
             })
             .transpose()?;
         let next_application = (options.to == crate::application_ir::Adapter::Nextjs)
@@ -1021,15 +1418,40 @@ impl Project<'_> {
                 &out.join("routes.py"),
                 &["fastapi".to_owned()],
             )?,
-            crate::application_ir::Adapter::Nextjs => DependencyPlan {
-                change: None,
-                report: json!({"status": if next_application.is_some() { "satisfied" } else { "agent-decision" },
-                    "manifest": next_application.as_ref().and_then(|application| application["manifest"].as_str()),
-                    "required": ["next"], "declared": if next_application.is_some() { vec!["next"] } else { Vec::new() },
-                    "added": [], "basis": "captured-nextjs-dependency"}),
-                note: None,
-            },
-            _ => DependencyPlan {
+            crate::application_ir::Adapter::Nextjs
+                if options.dependency_manifest.is_none() && next_application.is_some() =>
+            {
+                DependencyPlan {
+                    change: None,
+                    report: json!({"status": "satisfied",
+                        "manifest": next_application.as_ref().and_then(|application| application["manifest"].as_str()),
+                        "required": ["next"], "declared": ["next"], "added": [],
+                        "basis": "captured-nextjs-dependency"}),
+                    note: None,
+                }
+            }
+            crate::application_ir::Adapter::Nextjs => npm_dependencies(
+                self,
+                options.dependency_manifest.as_deref(),
+                &options.dependency_requirement,
+                &out,
+                "next",
+            )?,
+            crate::application_ir::Adapter::Express => npm_dependencies(
+                self,
+                options.dependency_manifest.as_deref(),
+                &options.dependency_requirement,
+                &out.join("routes.ts"),
+                "express",
+            )?,
+            crate::application_ir::Adapter::React => npm_dependencies(
+                self,
+                options.dependency_manifest.as_deref(),
+                &options.dependency_requirement,
+                &out.join("App.tsx"),
+                "react",
+            )?,
+            crate::application_ir::Adapter::GoNetHttp => DependencyPlan {
                 change: None,
                 report: json!({"status": "adapter-owned", "manifest": null, "required": [], "declared": [], "added": [], "basis": "no-connected-dependency-edit"}),
                 note: None,
@@ -1041,9 +1463,9 @@ impl Project<'_> {
             .or(next_application);
         let integration_connected = target_application.is_some();
         let integration_reason = if registration.is_some() {
-            "The explicit FastAPI application mount joins this transaction; existing sources remain preserved."
+            "The explicit application mount joins this transaction; existing sources remain preserved."
         } else if integration_connected {
-            "The captured Next.js App Router placement owns generated routes; existing sources remain preserved."
+            "The captured Next.js App Router placement owns generated modules; existing sources remain preserved."
         } else {
             "Generated modules require explicit application registration. Existing applications retain their source."
         };
@@ -1065,7 +1487,7 @@ impl Project<'_> {
                         "dependencies": dependency_plan.report,
                         "reason": integration_reason},
                     "runtime_proved": false,
-                    "limitations": ["Only declared JSON responses and path parameters are modeled.", "Implicit methods, URL decoding, middleware, errors and deployment behavior require framework checks."]},
+                    "limitations": ["HTTP portability covers declared JSON responses and path parameters; frontend portability covers bounded literal intrinsic JSX.", "Implicit methods, URL decoding, middleware, errors, dynamic UI behavior and deployment behavior require framework checks."]},
                 "checks": selected.as_ref().map(|selection| &selection.checks),
                 "diff": "", "applied": false}))?);
         Ok(Plan {
