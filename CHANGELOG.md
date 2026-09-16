@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.24.0...fun-refactor-v0.25.0) (2026-09-16)
+
+
+### Features
+
+* **agent:** add language-aware workflow navigation and checked delivery ([#305](https://github.com/e6qu/fun-refactor/issues/305)) ([c0669dc](https://github.com/e6qu/fun-refactor/commit/c0669dc26dd13fe4a0aeb266bba72bb3fe69d1b9))
+
 ## [0.24.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.23.0...fun-refactor-v0.24.0) (2026-09-16)
 
 
