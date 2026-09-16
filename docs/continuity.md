@@ -1,5 +1,51 @@
 # Development continuity
 
+PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI
+jobs and its merged-main deep audit passed. PR 37 is ready for review on
+`general_intent_actions`, based on `origin/main` c0669dc.
+
+The current implementation adds `fr-intent-action-2` with tagged operations for tasks, author
+batches, recipes, direct capabilities, framework migrations, project queries, surfaces, property tasks, formal
+plans/scaffolds, proof tasks and submissions. It reuses the standalone planners and checked
+history/workflow engines. `fraa2:` commits the complete outer packet, exact-change commitment,
+checks, proof expectation and delivery. Packet admission precedes mutation for both protocols.
+Task references and secondary Merkle evidence resolve in one native project snapshot. File and
+scope evidence supplies structural hierarchy and bounded exact continuations to declaration
+analysis. Direct traces retain boundary kinds without literal source values. Capability goals
+accept bounded byte spans for extraction or local call/rewrite/flow positions. Guided intent input carries the original goal and basis, revalidated in that snapshot.
+
+Python operation classes mirror the tagged union and retain the existing empty package initializer.
+The SDK independently verifies outer identities, every target's Merkle selections, checked delivery
+and unchanged claims/receipts. Model and implementation expectations remain distinct; implementation
+expectations refuse without separate correspondence evidence. The agent authors properties and
+tactics. First scaffolds compose missing package initialization files into the same review.
+Proof modules and packages are staged in isolated bounded copies and pass strict source
+checks plus Lake before history creation. Named scaffold obligations remain explicit and are allowed
+as build warnings; the standalone strict verification gate retains its warning-as-error policy.
+
+B904 through B907 record packet-ordering, proof-inventory, recipe-target and VFS staging repairs.
+Binary package assets survive checked proof delivery; changed assets invalidate the retained review.
+The complete final default and WASM gates pass, with 311/311 supported capability cells exercised.
+Strict Lean builds all 76 jobs with 122 fresh source anchors and no obligations.
+All 24 native intent tests, 15 navigator tests, 76 Python tests, 28 Rust-driven SDK tests and
+two VFS regression tests pass; `ty` passes. Rust/Lean and Rust/Python policy comparisons each
+cover 6,612 shared cases.
+
+The deep gate passes 130 tests across agreement, conformance, round trips, self-translation,
+all 99 kernels and recorded external replay. That run precedes the final VFS-only repair,
+covered by the repeated final default/WASM gates and binary-asset regression tests.
+Retained evaluations reflect actual reruns, including the four reports whose shared-planner
+bindings changed and the three refreshed after the VFS repair.
+The portable skill has 1,225 entry bytes and at most 7,160 bytes per tested route.
+
+Dogfood: `compile_guided_intent` inspected the SDK `_review_mode` declaration through a typed
+capability goal, returned its parameter/type structure and stored one Merkle selection in an
+external `DirectoryObjectStore`, without a source text reveal or write. Full-repository cold
+discovery hit the default 120-second SDK timeout during parallel audits; the SDK subproject
+flow completed. This run establishes no performance, token, quota or live-agent saving.
+The production WASM and Vite builds and all six browser test programs pass.
+
+
 PR 35 merged as [GitHub PR 303](https://github.com/e6qu/fun-refactor/pull/303). The focused completion
 roadmap merged as [GitHub PR 304](https://github.com/e6qu/fun-refactor/pull/304).
 
@@ -28,7 +74,7 @@ writers, hashes and general implementation correspondence retain their explicit 
 The source-bound complete-program comparison runs compiler and 33-case behavioral oracles, emits
 equal patches and completes eight successful lifecycle stages in both arms. Manual discovery,
 review and write occupy 1,155 agent-visible bytes and three processes. Guided delivery occupies
-1,102 bytes and four processes, including its freshness read; internal traffic increases by 8,499
+1,102 bytes and four processes, including its freshness read; internal traffic increases by 9,027
 bytes. It runs no model and establishes no token, quota or population claim. B897 through B899
 record the navigator, delivery-contract and retained-evidence repairs. B900 updates obsolete
 capability-audit expectations to the merged focused roadmap while retaining its derived numeric checks.
@@ -39,7 +85,7 @@ checked JSON stdin delivery instead of OS arguments.
 
 The comparison also retains inline task discovery as the best existing process baseline. Its full
 program and packet occupy 1,217 bytes in two processes. Guided delivery saves 115 exposed bytes and
-adds two processes plus 8,984 internal bytes; all three arms reach identical checked outcomes.
+adds two processes plus 9,512 internal bytes; all three arms reach identical checked outcomes.
 These counts measure canonical protocol JSON rather than subprocess formatting whitespace.
 
 The skill entry occupies 1,191 bytes. All 57 shell examples execute, including the new goal route;
@@ -54,8 +100,7 @@ all 57 skill examples and its package validator pass. Strict Lean builds all 74 
 gate passes 129 tests across whole-project agreement, conformance, round trips, self-translation,
 all kernels and recorded external replays. Self-dogfooding returns a 3,130-byte source-free guide
 and follows its native code-map action. The global CLI audit includes a valid guided Go goal and
-checks command coverage, no panic and no write without authorization. GitHub CI remains separate
-from these local results; check PR 305 before merging.
+checks command coverage, no panic and no write without authorization. All four PR 305 GitHub CI jobs passed before PR 37 started.
 
 PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298), and PR 33 merged as
 [GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299). It adds declarative `understand`, `trace`, `change`, `migrate` and

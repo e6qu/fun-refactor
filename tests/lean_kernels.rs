@@ -4266,3 +4266,81 @@ fn proof_debt_ceiling_matches_lean_over_the_bounded_domain() {
         .collect::<Vec<_>>();
     assert_eq!(observed, expected);
 }
+
+#[test]
+fn general_intent_action_purposes_and_reviews_match_lean_exhaustively() {
+    build_kernel();
+    let cases = [
+        "intent-action-purposes",
+        "intent-review-modes",
+        "intent-review-completeness",
+    ];
+    for case in cases {
+        let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+            .arg(case)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        let mut expected = Vec::new();
+        if case == "intent-review-completeness" {
+            for targets in [0, 1, 2, 32, 33, usize::MAX] {
+                for evidence in [0, 1, 31, 32, usize::MAX] {
+                    for bits in 0..128 {
+                        let b = |index| bits & (1 << index) != 0;
+                        expected.push(
+                            fun_refactor::project::intent_review_complete(
+                                targets,
+                                evidence,
+                                b(6),
+                                b(5),
+                                b(4),
+                                b(3),
+                                b(2),
+                                b(1),
+                                b(0),
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        } else {
+            for purpose in 0..7 {
+                for operation in 0..12 {
+                    if case == "intent-action-purposes" {
+                        expected.push(
+                            fun_refactor::project::intent_action_purpose_allowed(
+                                purpose, operation,
+                            )
+                            .to_string(),
+                        );
+                    } else {
+                        for bits in 0..32 {
+                            let b = |index| bits & (1 << index) != 0;
+                            expected.push(
+                                fun_refactor::project::intent_review_mode(
+                                    purpose,
+                                    operation,
+                                    b(4),
+                                    b(3),
+                                    b(2),
+                                    b(1),
+                                    b(0),
+                                )
+                                .to_string(),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .lines()
+                .collect::<Vec<_>>(),
+            expected,
+            "{case}"
+        );
+    }
+}

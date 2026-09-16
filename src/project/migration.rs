@@ -5,7 +5,7 @@ use crate::transpile::ir::{Item, Record, Type};
 use crate::transpile::nextjs::Model;
 use anyhow::{ensure, Result};
 use clap::{Args, Subcommand, ValueEnum};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
@@ -69,7 +69,7 @@ pub struct Options {
     pub write: bool,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 pub enum Target {
     Fastapi,

@@ -330,6 +330,7 @@ pub struct ValidateSemanticOptions {
     pub canonical: bool,
 }
 
+#[derive(Clone)]
 pub struct Plan {
     pub edits: EditSet,
     pub report: Value,

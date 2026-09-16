@@ -77,6 +77,8 @@ enum Operation {
         capability: Capability,
         #[serde(default)]
         parameters: BTreeMap<String, String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        range: Option<crate::span::Span>,
     },
     Recipe {
         verb: String,
@@ -207,9 +209,13 @@ fn read_goal(root: &Path, path: &Path) -> Result<Goal> {
         );
         fs::File::open(path)?.take(65_537).read_to_end(&mut bytes)?;
     }
+    parse_goal(&bytes)
+}
+
+fn parse_goal(bytes: &[u8]) -> Result<Goal> {
     ensure!(bytes.len() <= 65_536, "agent goal exceeds 64 KiB.");
     let goal: Goal =
-        serde_json::from_slice(&bytes).context("agent goal must match fr-agent-goal-1.")?;
+        serde_json::from_slice(bytes).context("agent goal must match fr-agent-goal-1.")?;
     ensure!(
         goal.schema == GOAL_SCHEMA,
         "agent goal schema must be {GOAL_SCHEMA}."
@@ -258,6 +264,10 @@ fn read_goal(root: &Path, path: &Path) -> Result<Goal> {
         "goal checks must be at most 32 unique names."
     );
     Ok(goal)
+}
+
+pub(crate) fn normalized_goal(bytes: &[u8]) -> Result<Value> {
+    Ok(serde_json::to_value(parse_goal(bytes)?)?)
 }
 
 fn action(
@@ -358,7 +368,14 @@ impl Project<'_> {
     }
 
     pub(crate) fn agent_guide(&self, options: &Options) -> Result<Value> {
-        let goal = read_goal(&self.root, &options.from)?;
+        self.agent_guide_goal(read_goal(&self.root, &options.from)?)
+    }
+
+    pub(crate) fn agent_guide_bytes(&self, bytes: &[u8]) -> Result<Value> {
+        self.agent_guide_goal(parse_goal(bytes)?)
+    }
+
+    fn agent_guide_goal(&self, goal: Goal) -> Result<Value> {
         let selected = self.guide_selection(&goal)?;
         let mut report = json!({"schema":GUIDE_SCHEMA,"goal_schema":GOAL_SCHEMA,
             "revision":self.revision,"coverage":self.coverage(),"purpose":goal.purpose,
@@ -480,6 +497,7 @@ impl Project<'_> {
             Operation::Capability {
                 capability,
                 parameters,
+                range,
             } => {
                 route = 1;
                 route_name = "direct-capability";
@@ -504,7 +522,7 @@ impl Project<'_> {
                 }
                 evidence = json!({"predicate":"capabilities::support","capability":capability,"support":support,
                     "form":form.arguments,"source_required":source_required});
-                let known = BTreeMap::from([
+                let mut known = BTreeMap::from([
                     ("handle", handle.clone()),
                     ("path", path.clone()),
                     ("position", target["position"].as_str().unwrap_or("").into()),
@@ -513,6 +531,37 @@ impl Project<'_> {
                         language.map_or("", |language| language.name()).into(),
                     ),
                 ]);
+                if let Some(range) = range {
+                    ensure!(
+                        matches!(
+                            capability,
+                            Capability::ExtractVariable
+                                | Capability::ExtractFunction
+                                | Capability::InlineCall
+                                | Capability::MicroRewrites
+                                | Capability::Flow
+                        ),
+                        "this capability does not accept a byte range."
+                    );
+                    let source = &self.sources[&self.root.join(&node.path)];
+                    ensure!(
+                        range.start < range.end
+                            && range.end <= source.len()
+                            && source.is_char_boundary(range.start)
+                            && source.is_char_boundary(range.end),
+                        "capability goal range is invalid."
+                    );
+                    ensure!(
+                        symbol.is_none_or(|symbol| range.start >= symbol.full_span.start
+                            && range.end <= symbol.full_span.end),
+                        "capability goal range leaves the selected declaration."
+                    );
+                    let lines = crate::span::LineIndex::new(source);
+                    let start = lines.line_col(range.start, source);
+                    let end = lines.line_col(range.end, source);
+                    known.insert("position", format!("{path}:{start}"));
+                    known.insert("range", format!("{path}:{start}-{end}"));
+                }
                 let required = form
                     .arguments
                     .iter()
@@ -1198,6 +1247,21 @@ impl Project<'_> {
             8 | 9 => "lean",
             _ => unreachable!(),
         });
+        let operation_kinds: &[&str] = match route {
+            0 => &["project-query"],
+            1 => &["capability"],
+            2 => &["recipe"],
+            3..=5 => &["task-change", "author-batch"],
+            6 => &["surface-edit"],
+            7 => &["framework-migration"],
+            8 => &["property-task", "formal-plan"],
+            9 => &["proof-task", "proof-submission"],
+            _ => &[],
+        };
+        report["intent_action"] = json!({"schema":"fr-intent-action-2",
+            "operation_kinds":if admitted { operation_kinds } else { &[] },
+            "compile":"FrClient.compile_guided_intent", "execute":"FrClient.execute_intent",
+            "reference":"intents", "review_pointer":"/action/review", "basis_pointer":"/action/basis"});
         report["verification_ladder"] = json!([
             {"level":"reparse","state":"not-run","claim":"syntax only"},
             {"level":"compiler","state":"requires-declared-check","claim":"toolchain acceptance"},

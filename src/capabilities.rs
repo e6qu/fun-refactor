@@ -158,7 +158,11 @@ impl Capability {
             C::ChangeSignature => (&["signature", "{position}", "{change}"], true, false),
             C::MicroRewrites => (&["rewrite", "{position}", "{rewrite}"], true, false),
             C::OrganizeImports => (&["imports", "{path}"], true, false),
-            C::RemoveFlag => (&["remove-flag", "{position}"], true, false),
+            C::RemoveFlag => (
+                &["remove-flag", "{position}", "--value", "{value}"],
+                true,
+                false,
+            ),
             C::MoveToFile => (&["move", "{position}", "{destination}"], true, false),
             C::Stitch => (&["stitch"], false, false),
             C::Duplicates => (

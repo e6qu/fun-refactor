@@ -73,6 +73,10 @@ mod memory {
         })
     }
 
+    pub fn read(path: &Path) -> io::Result<Vec<u8>> {
+        read_to_string(path).map(String::into_bytes)
+    }
+
     pub fn write(path: &Path, contents: &str) -> io::Result<()> {
         ACTIVE.with(|a| {
             let handle = Rc::clone(&a.borrow());
@@ -120,6 +124,10 @@ mod backing {
 
     pub fn read_to_string(path: &Path) -> io::Result<String> {
         std::fs::read_to_string(path)
+    }
+
+    pub fn read(path: &Path) -> io::Result<Vec<u8>> {
+        std::fs::read(path)
     }
 
     pub fn write(path: &Path, contents: &str) -> io::Result<()> {
@@ -176,6 +184,12 @@ pub fn read_to_string(path: impl AsRef<Path>) -> io::Result<String> {
     let path = path.as_ref();
     through_memory!(read_to_string(path));
     backing::read_to_string(path)
+}
+
+pub fn read(path: impl AsRef<Path>) -> io::Result<Vec<u8>> {
+    let path = path.as_ref();
+    through_memory!(read(path));
+    backing::read(path)
 }
 
 /// Replace a file's text.

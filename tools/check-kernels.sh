@@ -20,6 +20,9 @@ cd "$(dirname "$0")/.."
     lake exe fr-history-kernel agent-context-admission >/dev/null
     lake exe fr-history-kernel agent-intent-admission >/dev/null
     lake exe fr-history-kernel agent-intent-sections >/dev/null
+    lake exe fr-history-kernel intent-action-purposes >/dev/null
+    lake exe fr-history-kernel intent-review-modes >/dev/null
+    lake exe fr-history-kernel intent-review-completeness >/dev/null
     lake exe fr-history-kernel memory-transitions >/dev/null
     lake exe fr-history-kernel memory-restores >/dev/null
     lake exe fr-history-kernel memory-compactions >/dev/null

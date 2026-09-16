@@ -47,7 +47,14 @@ fn python_package_keeps_explicit_module_boundaries() {
     let package = root().join("sdk/python/src/fr_ir");
     assert_eq!(fs::read(package.join("__init__.py")).unwrap(), b"");
     assert!(!package.join("__main__.py").exists());
-    for module in ["ir.py", "runtime.py", "context.py", "intent.py", "guide.py"] {
+    for module in [
+        "ir.py",
+        "runtime.py",
+        "context.py",
+        "intent.py",
+        "intent_actions.py",
+        "guide.py",
+    ] {
         let source = fs::read_to_string(package.join(module)).unwrap();
         assert!(!source.contains("__all__"), "{module} mutates __all__");
     }
@@ -1107,4 +1114,114 @@ fn retained_semantic_edit_plan_attempts_are_complete_and_digest_bound() {
     assert_eq!(direct["route"], "direct-scalar-plan");
     assert_eq!(direct["separate_query_avoided"], true);
     assert_eq!(direct["payload_bytes"], 0);
+}
+
+#[test]
+fn tagged_intent_sdk_verifies_multiple_evidence_roots_and_checked_delivery() {
+    let workspace = tempfile::tempdir().unwrap();
+    fs::create_dir_all(workspace.path().join("src")).unwrap();
+    fs::create_dir_all(workspace.path().join(".fr")).unwrap();
+    fs::create_dir_all(workspace.path().join("artifacts")).unwrap();
+    fs::write(workspace.path().join("src/lib.rs"),
+        "pub fn render(value: &str) -> String { value.to_owned() }\npub fn caller() -> String { render(\"ok\") }\n").unwrap();
+    fs::write(
+        workspace.path().join(".fr/checks.json"),
+        serde_json::to_vec(&serde_json::json!({
+        "schema":1,"checks":[{"name":"syntax","argv":["true"],"cwd":".",
+        "timeout_seconds":10,"covers":["syntax"]}]}))
+        .unwrap(),
+    )
+    .unwrap();
+    let script = include_str!("fixtures/tagged_intent_sdk.py");
+    let output = python()
+        .args(["-c", script])
+        .arg(workspace.path())
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["status"], "applied");
+    assert!(workspace.path().join("artifacts/tagged.patch").exists());
+}
+
+#[test]
+fn python_general_intent_review_policy_matches_rust_exhaustively() {
+    let script = r#"# => Python general intent kernel corpus
+from fr_ir.intent_actions import _action_purpose_allowed, _review_complete, _review_mode
+for purpose in range(7):
+    for operation in range(12):
+        print(str(_action_purpose_allowed(purpose, operation)).lower())
+        for bits in range(32):
+            b = lambda i: bool(bits & (1 << i))
+            print(_review_mode(purpose, operation, b(4), b(3), b(2), b(1), b(0)))
+for targets in (0,1,2,32,33,2**64-1):
+    for evidence in (0,1,31,32,2**64-1):
+        for bits in range(128):
+            b = lambda i: bool(bits & (1 << i))
+            print(str(_review_complete(targets, evidence, b(6), b(5), b(4), b(3), b(2), b(1), b(0))).lower())
+"#;
+    let output = python().args(["-c", script]).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut expected = Vec::new();
+    for purpose in 0..7 {
+        for operation in 0..12 {
+            expected.push(
+                fun_refactor::project::intent_action_purpose_allowed(purpose, operation)
+                    .to_string(),
+            );
+            for bits in 0..32 {
+                let b = |index| bits & (1 << index) != 0;
+                expected.push(
+                    fun_refactor::project::intent_review_mode(
+                        purpose,
+                        operation,
+                        b(4),
+                        b(3),
+                        b(2),
+                        b(1),
+                        b(0),
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
+    for targets in [0, 1, 2, 32, 33, usize::MAX] {
+        for evidence in [0, 1, 31, 32, usize::MAX] {
+            for bits in 0..128 {
+                let b = |index| bits & (1 << index) != 0;
+                expected.push(
+                    fun_refactor::project::intent_review_complete(
+                        targets,
+                        evidence,
+                        b(6),
+                        b(5),
+                        b(4),
+                        b(3),
+                        b(2),
+                        b(1),
+                        b(0),
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
 }

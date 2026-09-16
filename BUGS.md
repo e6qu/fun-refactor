@@ -67,6 +67,25 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B907: **intent proof staging bypassed the shared filesystem boundary**. Package reads and
+  staged text writes now use the VFS. Byte reads preserve binary assets and follow the active
+  workspace; proof reviews also bind package asset bytes and refuse changed assets before writing.
+
+- [x] B906: **recipe selectors could reinterpret an exact declaration target**. `in` uses substring
+  matching and equal names can occur in one file. Intent admission now asks the actual recipe
+  selector to resolve exactly the selected declaration and rejects names that the recipe identity
+  cannot distinguish. Exact task handles remain available for those declarations.
+
+- [x] B905: **intent proof planning could change the captured workspace inventory**. Lean checks
+  can create package metadata and caches. Intent scaffold and tactics planners now run in isolated
+  copies of captured source and package files. Strict correspondence and Lake check the planned
+  files there; package bytes join the outer review identity before the journal records source changes.
+
+- [x] B904: **legacy intent writes skipped final packet admission before history creation**.
+  Execution now constructs and admits the complete preview before invoking the checked transaction
+  workflow. Oversized action packets refuse without changing source or creating history. Tagged
+  actions use the same ordering; file and directory evidence now enables their high-level scopes.
+
 - [x] B903: **ready guidance included unexecutable source and scalar actions**. Workspace recipes
   now disclose a bounded structure map before asking for an exact file/declaration source handle;
   guides exclude directory nodes from source targets. NUL-containing scalar values refuse the

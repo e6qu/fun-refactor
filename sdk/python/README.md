@@ -58,10 +58,34 @@ uses one project snapshot and no progressive subprocess calls. Pass a `MemoryObj
 `DirectoryObjectStore` to verify and retain each selected subtree. `client.prepare` keeps the
 progressive action traversal available for protocol testing and parity checks.
 
-For one direct reviewed change, wrap a `TaskChange` in `IntentAction` and pass it to a `change`
-intent. Inspect `/action/review`, then call `client.execute_intent(compiled)`. The runtime retains
-the canonical manifest and preview digest; native execution accepts only the unchanged `fraa1:`
-basis and uses the ordinary checks, undo/redo and patch lifecycle.
+Use tagged actions for intent-bound planning and delivery:
+
+```python
+from fr_ir.intent_actions import TaggedIntentAction, TaskChangeOperation
+
+compiled = client.compile(AgentIntent(
+    handle, "change", packet_limit=65536,
+    action=TaggedIntentAction(TaskChangeOperation(change)),
+))
+# Inspect compiled.at("/action/review") before executing.
+result = client.execute_intent(compiled)
+```
+
+`TaskChangeOperation` permits the existing bounded requests and multiple targets. Other operation
+mirrors are `AuthorBatchOperation`, `RecipeOperation`, `CapabilityOperation`,
+`FrameworkMigrationOperation`, `ProjectQueryOperation`, `SurfaceEditOperation`,
+`PropertyTaskOperation`, `FormalPlanOperation`, `ProofTaskOperation` and
+`ProofSubmissionOperation`, all in `fr_ir.intent_actions`. Their fields match the public tagged IR.
+Formal plans write scaffolds only when a package, checks and delivery are supplied. Proof properties
+and tactics remain agent-authored; checked model theorems retain explicit implementation obligations.
+
+`client.compile_guided_intent(guide, TaggedIntentAction(operation))` binds an authored operation to
+its retained goal. Native compilation checks that goal and basis in the same snapshot as evidence.
+Every `fraa2:` review commits selected evidence, secondary targets, exact changes, check
+configuration, proof expectation and delivery. The SDK independently verifies those identities and
+stores all selected Merkle roots when given an object store. Execution preserves checks, requested
+undo/redo and patch delivery. Read-only plans cannot execute. The legacy `IntentAction` and `fraa1:`
+wire format remain available for one direct task target without project requests.
 
 The package root is deliberately empty. Import IR constructors from `fr_ir.ir`, the subprocess
 client from `fr_ir.runtime`, progressive storage from `fr_ir.context`, and high-level requests from

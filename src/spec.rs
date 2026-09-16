@@ -936,7 +936,7 @@ pub fn formal_plan_with_agent_properties(
     formal_plan_from_agent_specs(&root, target, property_kinds, &properties)
 }
 
-fn formal_plan_from_agent_specs(
+pub(crate) fn formal_plan_from_agent_specs(
     root: &Path,
     target: &str,
     property_kinds: &[String],
@@ -1034,6 +1034,14 @@ pub fn scaffold_formal(
         .with_context(|| format!("reading formal plan {}", plan_path.display()))?;
     let supplied: FormalPlan = serde_json::from_str(&text)
         .with_context(|| format!("parsing formal plan {}", plan_path.display()))?;
+    scaffold_formal_plan(root, supplied, requested_package)
+}
+
+pub(crate) fn scaffold_formal_plan(
+    root: &Path,
+    supplied: FormalPlan,
+    requested_package: &Path,
+) -> Result<FormalScaffoldPlan> {
     if supplied.schema != FORMAL_PLAN_SCHEMA {
         bail!("formal plan schema must be {FORMAL_PLAN_SCHEMA}.");
     }
@@ -2963,6 +2971,19 @@ pub fn check_strict(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Re
 }
 
 pub fn verify(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Verification> {
+    verify_with_warnings(root, inputs, respect_ignore, true)
+}
+
+pub(crate) fn verify_planned_package(root: &Path, inputs: &[PathBuf]) -> Result<Verification> {
+    verify_with_warnings(root, inputs, false, false)
+}
+
+fn verify_with_warnings(
+    root: &Path,
+    inputs: &[PathBuf],
+    respect_ignore: bool,
+    deny_warnings: bool,
+) -> Result<Verification> {
     let report = check_strict(root, inputs, respect_ignore)?;
     if !report.ok() {
         return Ok(Verification {
@@ -2978,8 +2999,12 @@ pub fn verify(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<V
     let packages = packages
         .into_iter()
         .map(|package| {
-            let output = Command::new("lake")
-                .args(["build", "--wfail"])
+            let mut command = Command::new("lake");
+            command.arg("build");
+            if deny_warnings {
+                command.arg("--wfail");
+            }
+            let output = command
                 .current_dir(&package)
                 .output()
                 .with_context(|| format!("running lake in {}", package.display()))?;

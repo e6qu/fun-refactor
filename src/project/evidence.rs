@@ -87,6 +87,25 @@ impl Project<'_> {
         })
     }
 
+    pub(super) fn evidence_trace_for_intent(
+        &self,
+        graph: &crate::analysis::call_graph::CallGraph,
+        symbol: crate::model::SymbolId,
+        callers: bool,
+        depth: usize,
+    ) -> Value {
+        self.evidence_trace(
+            graph,
+            symbol,
+            if callers {
+                crate::analysis::call_graph::Direction2::Callers
+            } else {
+                crate::analysis::call_graph::Direction2::Callees
+            },
+            depth,
+        )
+    }
+
     fn evidence_trace(
         &self,
         graph: &crate::analysis::call_graph::CallGraph,
@@ -128,7 +147,7 @@ impl Project<'_> {
         })
     }
 
-    fn evidence_flow_steps(&self, result: &crate::analysis::flow::FlowResult) -> Value {
+    pub(super) fn evidence_flow_steps(&self, result: &crate::analysis::flow::FlowResult) -> Value {
         let steps = result
             .steps
             .iter()
@@ -181,9 +200,26 @@ impl Project<'_> {
             disclosure_view_admitted(1, depth),
             "evidence disclosure depth must be at most 8."
         );
-        let symbol_id = self.nodes[selected]
-            .symbol
-            .context("evidence disclosure requires a declaration handle")?;
+        let Some(symbol_id) = self.nodes[selected].symbol else {
+            let hierarchy = self.evidence_hierarchy(selected, depth);
+            let candidates = self
+                .nodes
+                .iter()
+                .enumerate()
+                .filter(|(id, node)| self.within(*id, selected) && node.symbol.is_some())
+                .collect::<Vec<_>>();
+            let next = candidates.iter().take(32).map(|(id, _)| json!({
+                "target": self.handle(*id),
+                "arguments": ["project", "disclose", self.handle(*id), "--view", "evidence"],
+            })).collect::<Vec<_>>();
+            let narrow = json!({"status":"requires-declaration",
+                "reason":"select an exact declaration for calls, impact and value flow; scope rows are structural evidence.",
+                "candidates":next,"omitted_candidates":candidates.len().saturating_sub(32)});
+            return Ok(
+                json!({"schema":"fr-project-evidence-1", "target":hierarchy["target"],
+                "code_map":hierarchy,"call_traces":narrow,"impact":narrow,"sources_and_sinks":narrow}),
+            );
+        };
         let symbol = self
             .index
             .symbol(symbol_id)
