@@ -872,6 +872,10 @@ and Next.js; dynamic rendering remains an explicit manual boundary.
 When the guide selects this planner, it advertises an `application-migration`
 `fr-intent-action-2` operation so an agent can preview and execute the same plan from
 the selected handle without carrying source text.
+With `--project`, `--cutover` can remove one recognized whole-file source feature
+after connected integration and external-reference checks. Mixed application files
+refuse. `project application` includes the complete adapter-pair/feature capability
+matrix and a reason for every unsupported cell.
 `fr project application` and `project disclose HANDLE --view application` expose the
 application hierarchy. See [the application IR contract](docs/application-ir.md) for
 schemas, SDK constructors, manual integration and formal/runtime evidence boundaries.

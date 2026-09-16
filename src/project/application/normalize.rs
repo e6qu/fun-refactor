@@ -107,7 +107,7 @@ fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
     }
 }
 
-fn call<'a>(expr: &'a Expr) -> Option<(&'a Expr, &'a [Expr])> {
+fn call(expr: &Expr) -> Option<(&Expr, &[Expr])> {
     match expr {
         Expr::Call { callee, args } => Some((callee, args)),
         _ => None,

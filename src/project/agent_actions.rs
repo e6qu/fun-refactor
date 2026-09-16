@@ -110,6 +110,8 @@ enum Operation {
         dependency_manifest: Option<PathBuf>,
         #[serde(default)]
         dependency_requirement: Vec<String>,
+        #[serde(default)]
+        cutover: bool,
         checks: Vec<String>,
         delivery: task_change::Delivery,
     },
@@ -606,6 +608,7 @@ impl Project<'_> {
                 register_with,
                 dependency_manifest,
                 dependency_requirement,
+                cutover,
                 checks,
                 delivery,
             } => {
@@ -620,6 +623,7 @@ impl Project<'_> {
                     dependency_manifest: dependency_manifest.clone(),
                     dependency_requirement: dependency_requirement.clone(),
                     checks: checks.clone(),
+                    cutover: *cutover,
                     diff_bytes: action.diff_bytes,
                     write: false,
                 })?;
@@ -630,6 +634,12 @@ impl Project<'_> {
                         path: change.path,
                         original: change.original,
                         updated: change.updated,
+                    }));
+                prepared
+                    .removals
+                    .extend(plan.source_removal.into_iter().map(|removal| Removal {
+                        path: removal.path,
+                        original: removal.original,
                     }));
                 prepared.targets.push(intent.target.clone());
                 prepared.report["plan"] = plan.report;

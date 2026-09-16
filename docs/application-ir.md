@@ -111,6 +111,11 @@ when this common planner is selected. Agents can author the matching
 fields, named checks and delivery. Preview and execution rebuild the application IR
 from the intent's exact revision-bound target; the action does not carry source text.
 
+`project application` publishes a complete 5×5×3 source/target/feature matrix for
+the five adapters and three admitted feature kinds. Supported cells cite the checked
+compatibility policy. Every refused cell names an identical-adapter, missing-reader
+or missing-writer reason and retains `runtime_proved: false`.
+
 Preview first; retain `plan_basis` for an unchanged saved-plan or write request.
 The input must be a JSON file captured in the analyzed project snapshot.
 Existing destinations and paths crossing symlinks refuse. Every output belongs
@@ -125,6 +130,14 @@ file in the owning package and imports the generated handler by module path.
 Recognized Next.js `app` placement beneath a captured package with a `next`
 dependency is connected by placement. These edits share preview, review basis,
 apply, patch, undo and redo with generated files.
+
+`--cutover` is available only with `--project`. It removes exactly one source file
+when the selected model contains one portable feature, the source has a recognized
+whole-file ownership shape, target integration is connected, and the project index
+has no resolved external reference to the source. This currently admits Next.js App
+Router route modules and single default-export static React/Next components. Mixed
+FastAPI, Express and Go application files refuse. The deletion shares the generated
+files' preview, basis, checks, history, patch, undo and redo transaction.
 
 | Adapter | Output beneath `--out` | Explicit integration |
 |---|---|---|
@@ -154,7 +167,7 @@ decode and re-encode their exact JSX semantics without double escaping.
 
 The generated integration status is `connected` only for a checked explicit FastAPI,
 Express or Go mount, or recognized Next.js placement. Other targets report `manual`. Existing
-source remains preserved; application-IR migration does not perform source cutover.
+source remains preserved by default; only the explicit guarded cutover above removes it.
 Generation is framework-independent JSON construction; there are no domain or
 fixture-name rules.
 

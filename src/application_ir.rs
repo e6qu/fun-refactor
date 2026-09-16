@@ -130,6 +130,14 @@ impl FeatureKind {
     pub fn code(self) -> usize {
         self as usize
     }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::JsonRoute => "json-route",
+            Self::PathJsonRoute => "path-json-route",
+            Self::StaticComponent => "static-component",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]

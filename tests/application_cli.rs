@@ -243,6 +243,79 @@ fn application_go_registration_generates_a_reversible_module_mount() {
 }
 
 #[test]
+fn application_cutover_removes_only_one_owned_connected_source() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/api/signals/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    let source = "export async function GET() { return Response.json({ healthy: true }); }\n";
+    fs::write(&route, source).unwrap();
+    let application = "from fastapi import FastAPI\n\napp = FastAPI()\n";
+    fs::write(dir.path().join("api.py"), application).unwrap();
+    let args = [
+        "migrate",
+        "application",
+        "--project",
+        "app/api/signals/route.ts",
+        "--to",
+        "fastapi",
+        "--out",
+        "generated",
+        "--register-with",
+        "api.py::app",
+        "--cutover",
+        "--save-plan",
+    ];
+    let preview = ok(dir.path(), &args);
+    assert_eq!(preview["migration"]["coexistence"]["cutover_planned"], true);
+    let transaction = preview["transaction"].as_u64().unwrap().to_string();
+    ok(dir.path(), &["history", "apply", &transaction, "--write"]);
+    assert!(!route.exists());
+    assert!(dir.path().join("generated/routes.py").is_file());
+    assert!(fs::read_to_string(dir.path().join("api.py"))
+        .unwrap()
+        .contains("include_router"));
+    ok(dir.path(), &["history", "undo", &transaction, "--write"]);
+    assert_eq!(fs::read_to_string(route).unwrap(), source);
+    assert_eq!(
+        fs::read_to_string(dir.path().join("api.py")).unwrap(),
+        application
+    );
+}
+
+#[test]
+fn application_cutover_refuses_sources_without_whole_file_ownership() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(dir.path().join("api.ts"), "import express from 'express';\nconst app = express();\nfunction signal(_req: Request, res: Response) { return res.status(200).json({ healthy: true }); }\napp.get('/signals', signal);\n").unwrap();
+    fs::write(
+        dir.path().join("target.py"),
+        "from fastapi import FastAPI\napp = FastAPI()\n",
+    )
+    .unwrap();
+    let (passed, report) = run(
+        dir.path(),
+        &[
+            "migrate",
+            "application",
+            "--project",
+            "api.ts",
+            "--to",
+            "fastapi",
+            "--out",
+            "generated",
+            "--register-with",
+            "target.py::app",
+            "--cutover",
+        ],
+    );
+    assert!(!passed);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("wholly owned source file"));
+    assert!(dir.path().join("api.ts").is_file());
+}
+
+#[test]
 fn application_nextjs_uses_captured_app_router_placement() {
     let dir = tempfile::tempdir().unwrap();
     input(dir.path());
@@ -303,6 +376,60 @@ fn application_migration_can_normalize_the_project_snapshot_without_an_ir_file()
     );
     assert_eq!(report["migration"]["manual_boundaries"], 0);
     assert!(!dir.path().join("generated").exists());
+}
+
+#[test]
+fn application_report_publishes_every_adapter_feature_pair_and_refusal() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("App.tsx"),
+        "export default function App() { return <main>Ready</main>; }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("package.json"),
+        r#"{"dependencies":{"react":"19.3.0"}}"#,
+    )
+    .unwrap();
+    let report = ok(dir.path(), &["project", "application"]);
+    let adapters = report["adapters"].as_array().unwrap();
+    assert_eq!(adapters.len(), 5);
+    assert!(adapters.iter().all(|source| {
+        source["targets"].as_array().is_some_and(|targets| {
+            targets.len() == 5
+                && targets.iter().all(|target| {
+                    target["features"]
+                        .as_array()
+                        .is_some_and(|features| features.len() == 3)
+                })
+        })
+    }));
+    let feature = |source: &str, target: &str, name: &str| {
+        adapters.iter().find(|row| row["source"] == source).unwrap()["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["target"] == target)
+            .unwrap()["features"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["feature"] == name)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(
+        feature("react", "nextjs", "static-component")["status"],
+        "supported"
+    );
+    assert_eq!(
+        feature("react", "fastapi", "json-route")["reason"],
+        "source-reader-does-not-model-json-route"
+    );
+    assert_eq!(
+        feature("nextjs", "react", "path-json-route")["reason"],
+        "target-writer-does-not-model-path-json-route"
+    );
 }
 
 #[test]

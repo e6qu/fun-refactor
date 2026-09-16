@@ -115,12 +115,68 @@ fn hierarchy(rows: Vec<Value>) -> Result<Vec<ApplicationNode>> {
 }
 
 pub fn adapter_contracts() -> Value {
-    json!(Adapter::ALL.into_iter().map(|adapter| {
-        let route_features: Vec<_> = [FeatureKind::JsonRoute, FeatureKind::PathJsonRoute].into_iter().filter(|feature| crate::framework_kernel::application_adapter_supports(adapter.code(), feature.code())).collect();
-        json!({"adapter": adapter, "http_writer_features": route_features,
-            "registration": "explicit integration required", "runtime_proved": false,
-            "excluded": ["request bodies", "query validation", "middleware", "authentication", "service calls", "dynamic rendering", "implicit HTTP methods", "runtime configuration"]})
-    }).collect::<Vec<_>>())
+    json!(Adapter::ALL
+        .into_iter()
+        .map(|source| {
+            let reader_features = FeatureKind::ALL
+                .into_iter()
+                .filter(|feature| {
+                    crate::framework_kernel::application_adapter_supports(
+                        source.code(),
+                        feature.code(),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let targets = Adapter::ALL
+                .into_iter()
+                .map(|target| {
+                    let features = FeatureKind::ALL
+                        .into_iter()
+                        .map(|feature| {
+                            let source_support =
+                                crate::framework_kernel::application_adapter_supports(
+                                    source.code(),
+                                    feature.code(),
+                                );
+                            let target_support =
+                                crate::framework_kernel::application_adapter_supports(
+                                    target.code(),
+                                    feature.code(),
+                                );
+                            let admitted =
+                                crate::framework_kernel::application_adapters_compatible(
+                                    source.code(),
+                                    target.code(),
+                                    feature.code(),
+                                );
+                            let reason = if admitted {
+                                Value::Null
+                            } else if source == target {
+                                json!("source-and-target-adapters-are-identical")
+                            } else if !source_support {
+                                json!(format!(
+                                    "source-reader-does-not-model-{}",
+                                    feature.name()
+                                ))
+                            } else if !target_support {
+                                json!(format!(
+                                    "target-writer-does-not-model-{}",
+                                    feature.name()
+                                ))
+                            } else {
+                                json!("adapter-compatibility-policy-refused")
+                            };
+                            json!({"feature": feature, "status": if admitted { "supported" } else { "unsupported" },
+                                "reason": reason, "runtime_proved": false})
+                        })
+                        .collect::<Vec<_>>();
+                    json!({"target": target, "features": features})
+                })
+                .collect::<Vec<_>>();
+            json!({"source": source, "reader_features": reader_features, "targets": targets,
+                "excluded": ["request bodies", "query validation", "middleware", "authentication", "service calls", "dynamic rendering", "implicit HTTP methods", "runtime configuration"]})
+        })
+        .collect::<Vec<_>>())
 }
 
 impl Project<'_> {

@@ -94,6 +94,7 @@ class ApplicationMigrationOperation:
     register_with: str | None = None
     dependency_manifest: str | None = None
     dependency_requirement: tuple[str, ...] = ()
+    cutover: bool = False
 
     def __post_init__(self) -> None:
         _checks(self.checks, self.delivery)
@@ -107,12 +108,15 @@ class ApplicationMigrationOperation:
         if self.to == "go-net-http" and (self.dependency_manifest is not None
                                            or self.dependency_requirement):
             raise FrRuntimeError("Go standard HTTP has no framework dependency edit")
+        if not isinstance(self.cutover, bool):
+            raise FrRuntimeError("application migration cutover must be a boolean")
 
     def to_data(self) -> dict[str, Any]:
         return {"kind": "application-migration", "to": self.to, "out": self.out,
                 "register_with": self.register_with,
                 "dependency_manifest": self.dependency_manifest,
                 "dependency_requirement": list(self.dependency_requirement),
+                "cutover": self.cutover,
                 "checks": list(self.checks), "delivery": self.delivery.to_data()}
 
 

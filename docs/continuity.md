@@ -27,8 +27,16 @@ updates share the generated-file transaction. Express verifies an explicit TypeS
 app/router, refuses direct endpoint conflicts and can add an exact npm dependency in
 the same history record. Go verifies an explicit package-level ServeMux beneath a
 captured `go.mod` and creates an owning-package mount for the generated handler.
-Captured Next.js App Router placement is recognized as connected integration. All
-common-source cutover remains manual.
+Captured Next.js App Router placement is recognized as connected integration. Source
+preservation remains the default.
+
+The next checkpoint closes that blanket cutover gap conservatively. Common application
+migration accepts explicit cutover only for one portable feature in a recognized
+whole-file Next.js route or default-export static component, after connected target
+integration and a no-resolved-external-reference check. The deletion is part of the
+same patch and reversible history transaction. Mixed backend application files refuse.
+The application report also publishes all 75 adapter-feature compatibility cells with
+specific missing-reader, missing-writer or identical-adapter refusal reasons.
 
 The frontend checkpoint adds a bounded static component IR. React and Next.js
 function components normalize only when they contain one intrinsic JSX tree with

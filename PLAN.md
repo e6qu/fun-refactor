@@ -41,9 +41,10 @@ structural model coverage and independent source/IR/model identities. Its PR CI 
 Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
 PR 39 is in progress on `application_ir_transformations`, started directly from that main.
 Its current checkpoints add a bounded application hierarchy, Merkle disclosure,
-agent-authored HTTP IR, four framework writers, four conservative source normalizers,
-direct project conversion, checked FastAPI/Express integration and recognized Next.js placement.
-Cross-adapter cutover and frontend planning still require completion.
+agent-authored HTTP IR, four framework writers and source normalizers, static React/Next conversion,
+direct project conversion, native intent execution, checked registration for four backend targets,
+capability rows and guarded whole-file cutover. Implementation is complete; retained reports and
+the full native/WASM/deep validation gates are being refreshed.
 
 | Measure | Current value |
 |---|---:|
@@ -133,10 +134,11 @@ saving from internal composition alone.
    and model properties. Source
    anchors and signature maps identify the modeled declaration, while tests cover selected cases.
    The parser, IR extraction and lowering are still trusted or integration-tested boundaries.
-3. **Framework transformation remains partial.** The shared application IR now normalizes and writes
-   the bounded literal JSON/path subset across four backend adapters and static intrinsic JSX between
-   React and Next.js. Remaining registration, cutover, request schemas and dynamic rendering need
-   common planning.
+3. **Framework transformation has a deliberate semantic boundary.** The shared application IR
+   normalizes and writes literal JSON/path behavior across four backend adapters and static intrinsic
+   JSX between React and Next.js. Registration and guarded whole-file cutover are connected.
+   Request bodies, query validation, middleware, authentication, service calls and dynamic rendering
+   remain named unsupported features rather than inferred behavior.
 4. **Support is uneven across languages.** Basic structure is broad; semantic authoring, call
    analysis, translation, framework migration and formalization have smaller support matrices.
 5. **The live-agent context target is unmet.** The retained live comparison predates unified
@@ -153,7 +155,7 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 39 | Generic Hierarchical Framework Transformation | In progress; backend source/target IR path implemented |
+| PR 39 | Generic Hierarchical Framework Transformation | Implementation complete; final validation in progress |
 | PR 40 | Completion Audit and Agent Validation | Planned |
 
 ### PR 39. Generic Hierarchical Framework Transformation
@@ -182,25 +184,27 @@ Implemented foundation:
   Next.js App Router placement supplies checked integration evidence.
 - React and Next.js normalize one bounded intrinsic JSX tree and write `App.tsx` or `page.tsx`.
   Props, hooks, events, styles, component calls and dynamic expressions remain manual.
+- Application reports publish all 75 adapter-pair/feature cells with deterministic refusal reasons.
+  Explicit cutover is reversible for one recognized whole-file route or static component after
+  connected integration and external-reference checks; mixed application files refuse.
 - Lean models cover admission, compatibility, JSON status safety, exact unique coverage and
   endpoint agreement. Parser/writer and pinned framework runtime tests remain separate.
 
-Next implementation work is an ownership-safe cutover boundary and published per-adapter capability
-rows. Dynamic frontend behavior remains explicit manual evidence. The bounded HTTP
-subset does not replace the richer Next.js/FastAPI feature planner.
-These are unfinished PR 39 deliverables, rather than completion claims.
+Remaining PR 39 work is completion auditing, retained agent evaluation and final gate repair.
+Dynamic frontend behavior remains explicit manual evidence. The bounded HTTP subset does not
+replace the richer Next.js/FastAPI feature planner.
 
 Deliverables:
 
-- Define a versioned application IR for packages, modules, routes, handlers, request and response
-  schemas, middleware, dependencies, configuration, components, pages, styles and service calls.
+- Define a versioned hierarchy that preserves package, module, route, handler, schema, dependency,
+  component and configuration facts, with executable IR only for admitted routes and components.
 - Derive the IR from the existing React, Next.js, Express.js, FastAPI and Go HTTP evidence. Preserve
   unknown runtime behavior and unsupported framework constructs as explicit dispositions.
 - Replace direct pair logic with adapters that read and write the common hierarchy. Keep adapters
   independent of fixture names, endpoint names and domain examples.
 - Support checked transformations among the advertised frontend and backend adapters when their
   feature subsets overlap. Never infer a pair from a shared host language alone.
-- Plan registration, dependencies, imports, configuration and cutover as one revision-bound
+- Plan registration, dependencies, imports and guarded cutover as one revision-bound
   multi-file transaction. Preserve unrelated files and existing user changes.
 - Validate generated projects with pinned framework toolchains and generic runtime fixtures. Check
   route, method, path, schema and response behavior rather than only syntax.

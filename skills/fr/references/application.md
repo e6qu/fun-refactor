@@ -53,6 +53,11 @@ placement connects by convention. Existing source remains.
 For an admitted navigator route, use the advertised `application-migration` tagged
 intent operation. Its `to`, `out`, optional registration/dependency fields, checks
 and delivery mirror this command; the selected intent handle supplies `--project`.
+Use `cutover=True` only for one recognized wholly owned source feature after target
+integration and external-reference checks. Mixed application files refuse.
+
+The application report's adapter rows cover every source, target and feature cell.
+Inspect `status` and `reason`; do not infer support from a shared host language.
 
 Paths use literal ASCII segments and unique `{name}` parameters. Overlapping routes,
 HEAD, bodyless statuses, floating-point literals and integers outside ±(2^53−1)
