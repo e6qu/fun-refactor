@@ -3215,11 +3215,12 @@ mod python {
                 return match build {
                     0 => Type::List(Box::new(named_or_scalar(inner))),
                     1 => Type::Optional(Box::new(named_or_scalar(inner))),
-                    _ => match inner.split_once(',') {
-                        Some((k, v)) => {
-                            Type::Map(Box::new(named_or_scalar(k)), Box::new(named_or_scalar(v)))
-                        }
-                        None => named_with_args(trimmed, &named_or_scalar),
+                    _ => match super::comma_parts(inner).as_slice() {
+                        [key, value] => Type::Map(
+                            Box::new(named_or_scalar(key)),
+                            Box::new(named_or_scalar(value)),
+                        ),
+                        _ => named_with_args(trimmed, &named_or_scalar),
                     },
                 };
             }
@@ -10912,8 +10913,11 @@ mod typescript {
             .strip_prefix("Record<")
             .and_then(|s| s.strip_suffix('>'))
         {
-            if let Some((k, v)) = inner.split_once(',') {
-                return Type::Map(Box::new(named_or_scalar(k)), Box::new(named_or_scalar(v)));
+            if let [key, value] = super::comma_parts(inner).as_slice() {
+                return Type::Map(
+                    Box::new(named_or_scalar(key)),
+                    Box::new(named_or_scalar(value)),
+                );
             }
         }
         for suffix in [" | null", " | undefined"] {
