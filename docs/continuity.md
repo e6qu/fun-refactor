@@ -1,78 +1,37 @@
 # Development continuity
 
 PR 38 merged as [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309).
-All four PR checks passed. Release PR 310 advances main to
-`31c62e659a05889cec6d85903f7d893958888f1b`, version 0.27.0. The active PR 39 branch
-`application_ir_transformations` starts directly from that main; no stale squash history is carried.
+Release PR 310 advances main to `31c62e659a05889cec6d85903f7d893958888f1b`,
+version 0.27.0. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311) is PR 39 on
+`application_ir_transformations`, based directly on that main.
 
-The PR 39 foundation adds `src/application_ir.rs` and its HTTP writer module,
-`project application`, application Merkle disclosure and `migrate application`.
-The project model drains feature pages and checks exact unique identity coverage,
-parent completeness, cycles, depth and encoded size. It preserves source confidence,
-gaps and reader omissions. Route/component normalization boundaries remain explicit.
+PR 39 adds `project application`, Merkle disclosure and `migrate application` around a bounded
+common IR. Conservative readers normalize literal JSON responses and path bindings from Next.js,
+FastAPI, Express and Go `net/http`. Deterministic writers target the same four adapters. React and
+Next.js also share a bounded static intrinsic JSX tree. Dynamic rendering and effectful handlers
+remain explicit manual boundaries.
 
-The next checkpoint normalizes the shared literal JSON/path subset from Next.js,
-FastAPI, Express and Go standard HTTP handlers. It uses the existing semantic IR,
-not source-text templates. Equivalent generic fixtures produce equal response IR;
-effectful handlers retain manual dispositions. The Go route reader now recognizes
-method-aware standard-library `ServeMux.HandleFunc` declarations. A captured complete
-application report feeds the common migration writers after its object digest is
-recomputed and checked.
+Agents can author `fr-http-application-1`, migrate directly from a project snapshot and execute the
+same planner through an `application-migration` intent operation. Checked FastAPI, Express, Go and
+Next.js integration joins generated files, owned dependency edits, declared checks and Git patch
+delivery in one reversible transaction. Guarded cutover removes one recognized wholly owned source
+only after connected integration and external-reference checks. The application report publishes
+all 75 adapter-feature cells with a reason for every refusal.
 
-`migrate application --project TARGET` removes the intermediate-file step and builds
-the application IR inside the migration snapshot. The guide chooses this common path
-for portable backend targets while retaining the richer Next.js/FastAPI feature
-planner when it applies. Explicit FastAPI application mounting and PEP 621 dependency
-updates share the generated-file transaction. Express verifies an explicit TypeScript
-app/router, refuses direct endpoint conflicts and can add an exact npm dependency in
-the same history record. Go verifies an explicit package-level ServeMux beneath a
-captured `go.mod` and creates an owning-package mount for the generated handler.
-Captured Next.js App Router placement is recognized as connected integration. Source
-preservation remains the default.
+Rust, Python and Lean agree on application admission, compatibility, resource, disclosure and
+cutover policies. Pinned runtime fixtures execute generated Next.js, React, FastAPI, Express and Go
+behavior. The Python suite passes 116 tests and `ty check sdk/python/src` passes. Fourteen retained
+reports were regenerated from immutable binary SHA-256
+`11c9beae6a37c9465f81b38fb363b66fea32520d1a88b14f7e7717050eb564e5`; all dedicated auditors pass.
 
-The next checkpoint closes that blanket cutover gap conservatively. Common application
-migration accepts explicit cutover only for one portable feature in a recognized
-whole-file Next.js route or default-export static component, after connected target
-integration and a no-resolved-external-reference check. The deletion is part of the
-same patch and reversible history transaction. Mixed backend application files refuse.
-The application report also publishes all 75 adapter-feature compatibility cells with
-specific missing-reader, missing-writer or identical-adapter refusal reasons.
+The final default and WASM gates pass with 311/311 supported capability cells and 81 Lean build jobs.
+The deep audit passes command agreement, conformance, all round trips, self-translation and all 101
+Lean tests. Five external replay archives pass their checks, independent behavior oracles and exact
+reversal. B918 and B919 record the disclosure-depth and floating Merkle repairs. Final audit also
+fixed shared-VFS bypasses, nested Python/TypeScript generic maps and minimal WASM feature gating.
 
-The frontend checkpoint adds a bounded static component IR. React and Next.js
-function components normalize only when they contain one intrinsic JSX tree with
-literal attributes and explicit text. Their roots agree across generic fixtures and
-write `App.tsx` or `page.tsx`. Dynamic expressions, props, hooks, events, styles,
-entities, spreads and component calls remain manual. The SDK mirrors the tree. A Lean policy
-now checks its 1024-node, depth-32 and 1 MiB resource bounds against Rust and Python.
-
-`fr-http-application-1` supplies agent-authored JSON responses and path parameters
-through Next.js, FastAPI, Express and Go standard HTTP writers. The Python
-`fr_ir.application` constructors mirror the IR. New outputs use the existing
-strict-reparse preview, plan basis, saved history, declared checks, patch export and
-undo/redo workflow. Unrecognized registration and source cutover remain manual; the
-richer existing feature planner remains available.
-
-Focused tests cover reserved keys, import-shadowing path names, ambiguous matchers,
-safe integers, bodyless statuses and resource limits. Lean models prove critical
-policy laws; 1,034 finite cases agree across Rust, Python and Lean. The complete
-Python suite passes 116 tests and `ty check sdk/python/src` passes. Pinned
-real-framework fixtures compare generated values/statuses with independent IR
-evaluation, and pinned React 19 renders equal generated React and Next.js trees.
-Full gate results will be recorded after the checkpoint finishes verification.
-
-B918 fixes a reproduced CLI/model mismatch: project disclosure accepted depth 9
-although the Lean policy and SDK refused it. View construction now invokes the
-shared admission predicate. A pagination regression also checks more than 500
-feature facts against the assembled hierarchy's exact identities.
-
-B919 fixes native/SDK floating-point Merkle disagreement. Python now follows native
-fixed/scientific spelling before hashing. Boundary and deterministic IEEE bit cases
-compare scalar addresses and independently restore their object packs.
-
-Next work stays within PR 39: remaining adapter registration and cutover planning,
-compatible frontend transformations, navigator completion and
-complete acceptance. `PLAN.md` retains those unfinished deliverables. No new live
-Codex quota use or general source-equivalence result is claimed.
+PR 40 is next. It performs the completion audit and fresh live-agent validation without widening
+the explicit application semantics described in `PLAN.md`.
 
 Merged PR 38 implementation and evidence follow:
 
@@ -123,9 +82,8 @@ patches according to `git range-diff`. Post-rebase formatting, locked workspace 
 release-evidence normalization pass; all nine workspace packages use 0.26.0. The rebased branch
 triggers a new GitHub check run.
 
-PR 39 is active: generic hierarchical framework transformation through a common
-application IR and adapters, with checked multi-file delivery, progressive disclosure and Lean
-admission/compatibility policies. PR 40 closes the completion audit and live-agent validation gaps.
+PR 39 implementation is complete in [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311).
+PR 40 closes the completion audit and live-agent validation gaps.
 
 PR 37 merged implementation and validation follow:
 

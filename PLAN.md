@@ -39,11 +39,11 @@ The project has merged PRs 0 through 38. The latest implementation is
 [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309), with typed pure formalization,
 structural model coverage and independent source/IR/model identities. Its PR CI passed.
 Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
-PR 39 is in progress on `application_ir_transformations`, started directly from that main.
-Its current checkpoints add a bounded application hierarchy, Merkle disclosure and
-agent-authored HTTP IR. Four framework writers and source normalizers support project conversion.
-Native intent execution, checked registration, capability rows and guarded whole-file cutover
-complete the implementation. Retained reports and the full validation gates are being refreshed.
+[GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311) is PR 39 on
+`application_ir_transformations`, based directly on that main. It adds the bounded application
+hierarchy, Merkle disclosure, agent-authored HTTP IR and four framework adapters. Native intent,
+checked registration, capability rows and guarded whole-file cutover complete the implementation.
+All local native, WASM, deep, runtime, retained-evidence and formal verification gates pass.
 
 | Measure | Current value |
 |---|---:|
@@ -155,7 +155,7 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 39 | Generic Hierarchical Framework Transformation | Implementation complete; final validation in progress |
+| PR 39 | Generic Hierarchical Framework Transformation | [PR 311](https://github.com/e6qu/fun-refactor/pull/311) open; local acceptance complete |
 | PR 40 | Completion Audit and Agent Validation | Planned |
 
 ### PR 39. Generic Hierarchical Framework Transformation
@@ -190,9 +190,9 @@ Implemented foundation:
 - Lean models cover admission, compatibility, JSON status safety, exact unique coverage and
   endpoint agreement. Parser/writer and pinned framework runtime tests remain separate.
 
-Remaining PR 39 work is completion auditing, retained agent evaluation and final gate repair.
-Dynamic frontend behavior remains explicit manual evidence. The bounded HTTP subset does not
-replace the richer Next.js/FastAPI feature planner.
+PR 39 implementation and local acceptance are complete. Dynamic frontend behavior remains
+explicit manual evidence. The bounded HTTP subset does not replace the richer Next.js/FastAPI
+feature planner.
 
 Deliverables:
 
