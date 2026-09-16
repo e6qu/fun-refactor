@@ -112,7 +112,7 @@ fn default_report_bytes() -> usize {
     65_536
 }
 
-fn read_input(root: &Path, path: &Path) -> Result<Vec<u8>> {
+pub(crate) fn read_input(root: &Path, path: &Path) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
     if path == Path::new("-") {
         io::stdin()

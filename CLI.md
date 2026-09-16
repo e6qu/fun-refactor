@@ -555,6 +555,7 @@ may write.
 ```
 fr spec init [PATH] [--write]
 
+fr spec kernel --from REQUEST [--report-bytes BYTES]
 fr spec candidates [PATH...] [--limit COUNT]
 fr spec property-task SOURCE::SYMBOL [--token-limit BYTES]
 fr spec plan SOURCE::SYMBOL [--property KIND]... [--property-from FILE]...
@@ -584,6 +585,18 @@ refuses stale or modified plans and requires Lean to elaborate the exact generat
 catalogs and selected details fit their declared serialized-byte ceiling. Proof writes replace one
 named generated region and participate in source history, undo, redo and patch export. The agent
 authors the property and tactics; `fr` validates and renders them without inventing either.
+
+`kernel` evaluates `fr-pure-kernel-1` terms without reading project source or writing history.
+Its report states checked signed-64 arithmetic, partiality and indexed binding policies.
+`--from -` reads stdin; request and result byte ceilings apply separately.
+Evaluation failures return a successful report with `passed: false` and a failure tag.
+Malformed requests and oversized reports fail the command.
+
+Generated plans admit typed pure declarations from the shared imperative readers.
+Declarative sources use `PATH::__fr_structure__`, with explicit retained-fact limits and omissions.
+`retained-facts-wellformed` proves structural validity; `ir-model` relates Boolean models to the reviewed evaluator.
+The agent supplies the tactics. `evidence.kernel_correspondence` names checked relations and their independent identities.
+Source implementation equivalence remains a separate obligation.
 
 `init` plans a minimal Lake package at `specs/`, or at the selected workspace-relative
 path. It pins the supported Lean toolchain and creates `lakefile.toml` plus the

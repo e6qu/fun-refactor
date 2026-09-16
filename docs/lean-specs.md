@@ -10,7 +10,8 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 |---|---|
 | Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
 | `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
-| `fr spec scaffold` | Select a Rust function and create an anchored, strictly mapped model obligation in that target |
+| `fr spec scaffold` | Manually select a Rust function and create an anchored, strictly mapped model obligation in that target |
+| `fr spec kernel` | Evaluate bounded shared terms with explicit checked arithmetic and partial failures |
 | `fr spec candidates` / `property-task` / `plan` | Discover the conservative generated-kernel subset and emit source-free, Merkle-addressed built-in or agent-authored property plans |
 | `fr spec scaffold --from` | Revalidate a plan against current source and generate proof-preserving definitions and theorem regions |
 | `fr spec goals` / `proof-task` / `proof-check` / `prove` | Progressively disclose one content-addressed goal, check agent tactics and edit its exact proof region through history |
@@ -28,6 +29,10 @@ Java, Python, Zig, Bash and Lean. Rust maps retain source type spelling. Other r
 language-independent IR types such as `string`, `int`, `float`, `list<T>` and `unknown`.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
 A changed source signature remains visible after hash synchronization.
+Structural file anchors use `PATH::__fr_structure__` and hash the complete declarative source.
+Their maps expose a Boolean validity model, with explicit fact omissions and provenance limits.
+Checked IR/model theorems appear separately in `evidence.kernel_correspondence`.
+They establish no source implementation equivalence.
 The complete agent-oriented route and its correspondence limits are documented in the
 [agent formalization workbench](agent-formalization.md).
 

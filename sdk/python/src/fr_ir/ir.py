@@ -12,7 +12,10 @@ import hashlib
 import json
 from pathlib import Path
 import re
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .formal_kernel import KernelEvidence
 
 SCHEMA = "fr-semantic-body-1"
 CHANGE_SCHEMA = "fr-semantic-change-1"
@@ -1101,11 +1104,15 @@ def _exact_mapping(value: Any, keys: set[str], description: str) -> Mapping[str,
 
 @dataclass(frozen=True)
 class FormalBinding:
-    """One Rust-to-Lean name and type mapping in a formal plan."""
+    """One source-to-Lean binding; the schema retains its legacy wire field."""
 
     name: str
     rust_type: str
     lean_type: str
+
+    @property
+    def source_type(self) -> str:
+        return self.rust_type
 
     @classmethod
     def from_data(cls, value: Any) -> FormalBinding:
@@ -1521,12 +1528,14 @@ class FormalKernel:
     output: FormalBinding
     semantic_ir: Any
     lean_definition: str
+    evaluation: KernelEvidence | None = None
 
     @classmethod
     def from_data(cls, value: Any) -> FormalKernel:
+        from .formal_kernel import KernelEvidence
         value = _exact_mapping(
             value,
-            {"module", "model", "inputs", "output", "semantic_ir", "lean_definition"},
+            {"module", "model", "inputs", "output", "semantic_ir", "lean_definition"} | ({"evaluation"} if isinstance(value, Mapping) and "evaluation" in value else set()),
             "formal kernel",
         )
         if not isinstance(value["inputs"], list):
@@ -1534,15 +1543,23 @@ class FormalKernel:
         if not all(isinstance(value[key], str) and value[key]
                    for key in ("module", "model", "lean_definition")):
             raise IrError("formal kernel names and definition must be non-empty strings")
+        inputs = tuple(FormalBinding.from_data(item) for item in value["inputs"])
+        output = FormalBinding.from_data(value["output"])
+        evaluation = None
+        if "evaluation" in value:
+            evaluation = KernelEvidence.from_data(value["evaluation"], value["semantic_ir"], value["lean_definition"])
+            expected = [{"name": binding.name, "source_type": binding.source_type, "lean_type": binding.lean_type} for binding in (*inputs, output)]
+            if [binding.to_data() for binding in evaluation.bindings] != expected:
+                raise IrError("formal evaluation bindings differ from the model signature")
         return cls(
             value["module"], value["model"],
-            tuple(FormalBinding.from_data(item) for item in value["inputs"]),
-            FormalBinding.from_data(value["output"]), value["semantic_ir"],
+            inputs, output, value["semantic_ir"],
             value["lean_definition"],
+            evaluation,
         )
 
     def to_data(self) -> dict[str, Any]:
-        return {
+        data = {
             "module": self.module,
             "model": self.model,
             "inputs": [item.to_data() for item in self.inputs],
@@ -1550,6 +1567,9 @@ class FormalKernel:
             "semantic_ir": self.semantic_ir,
             "lean_definition": self.lean_definition,
         }
+        if self.evaluation is not None:
+            data["evaluation"] = self.evaluation.to_data()
+        return data
 
 
 @dataclass(frozen=True)
@@ -1680,7 +1700,7 @@ class ProofTask:
         goal = _exact_mapping(value["goal"], {
             "id", "name", "spec", "line", "theorem", "source_anchor", "signature_map",
             "proof_region", "object_digest", "prove_template", "verify",
-        }, "proof task goal")
+        } | ({"model_context_digest"} if isinstance(value["goal"], Mapping) and "model_context_digest" in value["goal"] else set()), "proof task goal")
         for key in ("id", "name", "spec", "theorem", "proof_region", "object_digest"):
             if not isinstance(goal[key], str) or not goal[key]:
                 raise IrError("proof task goal fields must be non-empty strings")
@@ -1691,6 +1711,12 @@ class ProofTask:
         if not all(goal[key] is None or isinstance(goal[key], str)
                    for key in ("source_anchor", "signature_map")):
             raise IrError("proof task goal anchors must be strings or null")
+        if "model_context_digest" in goal:
+            if not _is_digest(goal["model_context_digest"]):
+                raise IrError("proof model context requires a canonical digest")
+            addressed = {key: goal[key] for key in ("name", "spec", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
+            if merkle_object_digest(addressed) != goal["id"] or goal["object_digest"] != goal["id"]:
+                raise IrError("proof goal differs from its model context identity")
         _string_vector(goal["prove_template"], "proof task goal prove template")
         _string_vector(goal["verify"], "proof task goal verify action")
         contract = _exact_mapping(value["contract"], {

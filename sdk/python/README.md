@@ -266,3 +266,9 @@ can retain or evict branches independently. Equal subtrees deduplicate automatic
 `verify_disclosure_commitment` checks an advertised object digest against an opt-in
 `project disclose --proofs` path;
 `verify_disclosure_proof` hashes a complete fetched value before checking the same path.
+
+The bounded formal evaluator lives in `fr_ir.formal_kernel`. `KernelValue`, `KernelTerm` and
+`KernelRequest` mirror the native tagged IR; `FrClient.kernel` returns a validated `KernelResult`.
+`KernelEvidence` and `SourceBinding` expose separate IR, term, model and language-neutral signature identities.
+`FormalBinding.source_type` aliases the retained legacy wire field.
+See [formalization](../../docs/agent-formalization.md) for structural targets and agent-written correspondence proofs.

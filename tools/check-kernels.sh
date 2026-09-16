@@ -33,6 +33,7 @@ cd "$(dirname "$0")/.."
     lake exe fr-project-kernel source-slices >/dev/null
     lake exe fr-project-kernel source-pages >/dev/null
     lake exe fr-digest-kernel >/dev/null
+    lake exe fr-pure-kernel >/dev/null
     lake exe fr-project-kernel body-replacement-budget >/dev/null
     lake exe fr-project-kernel plan-basis >/dev/null
     lake exe fr-project-kernel handle-selection >/dev/null

@@ -321,3 +321,14 @@ lets `rustc` type-check the translation against it.
 - [RECIPES.md](RECIPES.md), whose `translate` verb runs this under a plan.
 - [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md), which references cross a language
   boundary and which do not.
+
+## Pure formal kernel
+
+`fr-pure-kernel-1` uses tagged values and terms with nearest-first indexed bindings.
+Values cover unit, Boolean, signed-64 integer, string, tuple, list, record, option and result.
+Terms add bindings, conditionals, unary/binary operations, constructors, field access and indexing.
+Checked arithmetic and explicit partial failures distinguish this evaluator from mathematical source models.
+Use `fr spec kernel --from FILE` or the matching Python classes in `fr_ir.formal_kernel`.
+Formal plans carry independent IR, term and model identities through optional `kernel.evaluation`.
+Structural snapshots use `fr-structural-kernel-1` and record retained facts, omissions and provenance constraints.
+See [formalization](docs/agent-formalization.md) for exact limits, supported source subsets and proof boundaries.

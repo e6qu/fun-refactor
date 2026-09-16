@@ -652,21 +652,32 @@ enum RecipeCommand {
             help = "Replace the recipe file instead of writing its canonical form to standard output"
         )]
         write: bool,
-        #[arg(long, help = "Exit unsuccessfully when the recipe needs formatting")]
+        #[arg(long, help = "Exit unsuccessfully when the recipe needs formatting.")]
         check: bool,
     },
 }
 
 #[derive(Subcommand)]
 enum SpecCommand {
+    #[command(
+        about = "Evaluate a bounded, source-free pure kernel with explicit arithmetic and partiality."
+    )]
+    Kernel {
+        #[arg(long, value_name = "FILE")]
+        from: PathBuf,
+        #[arg(long, default_value_t = 65_536, value_name = "BYTES")]
+        report_bytes: usize,
+    },
     #[command(about = "Find deterministic Lean kernel candidates.")]
     Candidates {
-        #[arg(help = "Rust files or directories; defaults to the workspace.")]
+        #[arg(help = "Readable source files or directories; defaults to the workspace.")]
         paths: Vec<PathBuf>,
         #[arg(long, default_value_t = 32, value_name = "COUNT")]
         limit: usize,
     },
-    #[command(about = "Create a content-addressed formalization plan for one Rust function.")]
+    #[command(
+        about = "Create a content-addressed formalization plan for one admitted source function."
+    )]
     Plan {
         #[arg(help = "Target as path::symbol.")]
         target: String,
@@ -1212,6 +1223,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             ),
         },
         Command::Spec { command } => match command {
+            SpecCommand::Kernel { from, report_bytes } => cmd_spec_kernel(cli, from, *report_bytes),
             SpecCommand::Candidates { paths, limit } => cmd_spec_candidates(cli, paths, *limit),
             SpecCommand::Plan {
                 target,
@@ -1336,6 +1348,35 @@ fn dispatch(cli: &Cli) -> Result<()> {
             unreachable,
         } => cmd_entrypoints(cli, kind.as_deref(), catalogs.as_deref(), *unreachable),
     }
+}
+
+fn cmd_spec_kernel(cli: &Cli, from: &std::path::Path, report_bytes: usize) -> Result<()> {
+    anyhow::ensure!(
+        (256..=65_536).contains(&report_bytes),
+        "kernel report ceiling must be between 256 and 65536 bytes."
+    );
+    let bytes = crate::project::agent_intent::read_input(&workspace_root(cli), from)?;
+    let request: crate::formal_kernel::Request = serde_json::from_slice(&bytes)?;
+    anyhow::ensure!(
+        request.schema == crate::formal_kernel::SCHEMA,
+        "pure kernel schema must be {}.",
+        crate::formal_kernel::SCHEMA
+    );
+    let outcome = crate::formal_kernel::evaluate(&request.term, &request.environment, request.fuel);
+    let request_digest = crate::project::object_merkle(&serde_json::to_value(&request)?)?;
+    let core = serde_json::json!({"schema":"fr-pure-kernel-result-1", "request_digest":request_digest,
+        "semantics":{"arithmetic":"checked-signed-64", "division":"truncate-toward-zero", "remainder":"dividend-sign", "partiality":"explicit-failure", "bindings":"de-bruijn-nearest-first", "source_correspondence":false},
+        "passed":outcome.is_ok(), "value":outcome.as_ref().ok(), "failure":outcome.as_ref().err()});
+    let digest = crate::project::object_merkle(&core)?;
+    let mut report = core;
+    report["object_digest"] = serde_json::json!(digest);
+    let output = serde_json::to_string_pretty(&report)?;
+    anyhow::ensure!(
+        output.len() <= report_bytes,
+        "pure kernel report exceeds its complete response ceiling; no files changed."
+    );
+    println!("{output}");
+    Ok(())
 }
 
 fn cmd_spec_candidates(cli: &Cli, paths: &[PathBuf], limit: usize) -> Result<()> {

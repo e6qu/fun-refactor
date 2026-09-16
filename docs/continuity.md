@@ -1,8 +1,57 @@
 # Development continuity
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI
-jobs and its merged-main deep audit passed. PR 37 is ready for review on
-`general_intent_actions`, based on `origin/main` c0669dc.
+jobs and its merged-main deep audit passed. PR 37 merged as
+[GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), after release PR 306.
+
+PR 38 is [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
+`cross_language_formalization`, based on `origin/main`
+`cd3b6bba6bf714386c8a40ec82c5d3aca438c35f` (release PR 308, version 0.26.0).
+Implementation checkpoint `95c7d8d0` adds the
+bounded pure IR evaluator, matching Python types, typed formalization across eight reader surfaces,
+and structural snapshots for all ten declarative language classes. Follow-up commits `faefcc50`,
+`4cff7708` and `a2c63604` bind proof context, satisfy strict assertion linting and identify whole-file
+structural anchors. JavaScript/JSX, Bash and async
+framework cases retain explicit refusals when they lack the admitted semantics or signature.
+
+The agent writes properties and tactics. Boolean `ir-model` obligations relate executable Lean
+kernel evaluation at fuel 256 to the exact current generated model. Evidence names each checked
+relation with independent source, IR, term, model and library identities; source implementation
+proofs remain false. Strict checks pin the copied semantic library. Structural models check retained
+byte spans, name containment and ordered immediate parents, with 32 facts per kind and explicit omissions.
+
+All 13 focused formalization/kernel tests and 15 guide tests pass. The workflows cover typed and
+structural scaffolds, proof checks, regeneration, drift and reversal. Source-toolchain truth tables
+cover Rust, Go, Java, Python, TypeScript, Zig and Lean. The 913-case pure execution corpus agrees
+with Lean; 135 limit cases agree across Rust, Python and Lean. All 94 Python tests and `ty` pass.
+Strict Lean builds 81 jobs; actual `fr spec sync kernels --write` renewed two anchors in transaction 69.
+The 123 anchors are fresh with no obligations. B908 through B917 record quotation, type/scope,
+candidate discovery, proof-marker, grouped-binder, bounded-goal, syntax-refusal and structural-name repairs.
+Large structural terms use named definitions; 4,096-byte proof tasks remain sufficient.
+Goal identities bind the selected model module outside generated proof bodies and the reviewed library. The portable skill passes 57 shell
+examples, retaining 1,225 entry bytes and a maximum tested route of 7,160 bytes.
+
+Ten retained reports reflect actual reruns against an immutable native binary copy, including the
+skill reading routes. Historical live-agent artifacts remain unchanged; no new live-agent, token,
+latency or quota saving follows from these policy and workflow tests.
+The full WASM gate passes 441 library tests and 17 API/native integration tests, including strict
+no-CLI compilation. Production WASM, Vite and all six browser test programs pass.
+The complete native gate passes, with 311/311 supported capability cells exercised, all 13
+formalization tests, 28 Rust-driven SDK tests and the strict 81-job Lean build.
+The deep gate passes 14 agreement, two conformance, seven round-trip, seven self-translation and
+100 Lean kernel tests. All five retained external replay archives pass checks, behavior oracles and
+exact reversal; the complete deep gate passes 131 tests. PR 38 is ready for review. GitHub title,
+WASM and playground checks pass at source commit `95ef0663`; its native check remains pending.
+Release PR 308 landed after these gates. The conflict-free rebase preserves all four implementation
+patches according to `git range-diff`. Post-rebase formatting, locked workspace metadata and
+release-evidence normalization pass; all nine workspace packages use 0.26.0. The rebased branch
+triggers a new GitHub check run.
+
+PR 39 is next after this PR merges: generic hierarchical framework transformation through a common
+application IR and adapters, with checked multi-file delivery, progressive disclosure and Lean
+admission/compatibility policies. PR 40 closes the completion audit and live-agent validation gaps.
+
+PR 37 merged implementation and validation follow:
 
 The current implementation adds `fr-intent-action-2` with tagged operations for tasks, author
 batches, recipes, direct capabilities, framework migrations, project queries, surfaces, property tasks, formal

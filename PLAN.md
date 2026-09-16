@@ -35,10 +35,13 @@ construct, or claiming general source equivalence from a translated Lean model.
 
 ## Current state
 
-The project has merged PRs 0 through 36. The latest checkpoint is
-[GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305), which adds the language-aware workflow navigator.
-PR 37 is ready for review on `general_intent_actions`. It adds unified tagged operations,
+The project has merged PRs 0 through 37. The latest checkpoint is
+[GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), with unified tagged operations,
 multi-target Merkle evidence and checked agent-authored proof delivery through the existing planners.
+PR 38 is [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
+`cross_language_formalization`, rebased onto release-main commit `cd3b6bba` (PR 308, version 0.26.0).
+Its complete local acceptance gates pass. The release-only rebase preserves the implementation
+patches; formatting, locked metadata and release-evidence checks pass. The PR is ready for review.
 
 | Measure | Current value |
 |---|---:|
@@ -47,7 +50,7 @@ multi-target Merkle evidence and checked agent-authored proof delivery through t
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 753 |
+| Fixed defects | 763 |
 | Open defects | 1 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -99,7 +102,7 @@ surfaces rather than parser-language aliases.
 | Semantic body authoring | Rust, Go, Java, Python, JavaScript, TypeScript and TSX | Other language writers use narrower structural operations |
 | Shared executable translation IR | Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean | Unsupported constructs carry explicit gaps |
 | Framework features | React, Next.js, Express.js, FastAPI, CSS/Tailwind and Markdown/Mermaid project evidence | Checked feature migration is currently Next.js and FastAPI route focused |
-| Generated formalization | A pure, explicitly typed Rust function subset | General source/model equivalence and other source languages remain open work |
+| Generated formalization | Typed pure declarations from eight reader surfaces and structural snapshots from ten declarative classes | Numeric, dynamic and framework runtime semantics remain separate; source equivalence remains unproved |
 
 ### Current evidence
 
@@ -118,10 +121,12 @@ saving from internal composition alone.
 
 ## Remaining gaps
 
-1. **Proof support is not language-wide.** Generated model and property plans currently cover a
-   conservative Rust subset. Other languages can use manual Lean specifications and strict anchors,
-   but do not receive the same source-free generated workflow.
-2. **Implementation correspondence remains limited.** Lean proves properties of the model. Source
+1. **Formalization has an explicit semantic boundary.** The generated workflow now covers typed pure
+   declarations and retained structural snapshots across the advertised language cells. Untyped,
+   async, dynamic, effectful and unsupported numeric constructs receive exact refusals.
+   Expanding those semantics requires separate reviewed models and correspondence evidence.
+2. **Implementation correspondence remains limited.** Lean checks named Boolean IR/model relations
+   and model properties. Source
    anchors and signature maps identify the modeled declaration, while tests cover selected cases.
    The parser, IR extraction and lowering are still trusted or integration-tested boundaries.
 3. **Framework transformation is not yet generic.** The project model covers the requested web stack,
@@ -142,8 +147,7 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 37 | General Intent Actions and Proof Delivery | Ready for review |
-| PR 38 | Cross-Language Formalization and Correspondence | Planned |
+| PR 38 | Cross-Language Formalization and Correspondence | Ready for review (#309) |
 | PR 39 | Generic Hierarchical Framework Transformation | Planned |
 | PR 40 | Completion Audit and Agent Validation | Planned |
 
@@ -152,44 +156,28 @@ its public contract changes.
 Goal: make Lean formal verification adoptable through one bounded workflow for each applicable
 language. Tighten the connection between source, shared IR and generated models.
 
-Deliverables:
+Implemented work:
 
-- Define an executable semantics for a deliberately small shared IR kernel. Cover pure values,
-  bindings, conditionals, returns, tuples, records, lists, options/results and selected arithmetic
-  with explicit overflow and partiality policies.
-- Prove general laws used by extraction and lowering, including name resolution, precedence,
-  substitution, capture avoidance and deterministic evaluation for the admitted subset.
-- Add source-free formalization candidates wherever an imperative parser can produce the kernel.
-  Cover Rust, Go, Zig, Java, JavaScript/TypeScript, TSX/JSX, Python, Bash and Lean.
-- Give declarative languages structural and provenance properties over their high-level models rather
-  than pretending they share function semantics.
-- Generate language-specific source anchors and canonical signature maps, then lower admitted
-  semantic IR into one reviewed Lean model and property workflow.
-- Report every excluded construct with its semantic reason. Effects, concurrency, reflection,
-  dynamic dispatch, undefined behavior, exceptions and framework runtime behavior remain separate
-  until modeled explicitly.
-- Add differential execution for finite generated inputs where both the source toolchain and Lean
-  model can run. Keep tests distinct from a proof of general implementation equivalence.
-- Add correspondence proofs or a justified verified-generation path for the first complete kernel.
-  Evidence reports must identify exactly which declarations reach that stronger level.
-- Preserve custom properties, proof tasks, proof checking, proof-region writes, regeneration, debt
-  ratchets, CI, undo, redo and Git patches across every admitted language.
-- Extend the Python SDK with language-neutral formal plan and evidence types that mirror the public
-  protocol.
+- Bounded executable pure IR in Rust and Lean, with matching Python constructors and direct CLI
+  evaluation. Values, binders, branches, products and arithmetic carry explicit resource and
+  partiality policies.
+- General kernel laws for resolution, shadowing, lifted indices, literal substitution, lazy
+  branches, arithmetic bounds and determinism. Parser precedence and lowering remain separately
+  integration-tested boundaries.
+- Typed pure declaration workflows for Rust, Go, Java, Python, TypeScript, TSX, Zig and Lean;
+  bounded structural/provenance models for all ten declarative language classes. Each excluded
+  construct receives its semantic refusal reason.
+- Language-neutral signatures and independent source, IR, term, model and library identities.
+  Named Boolean kernel/model theorems retain agent-written tactics and explicit source-equivalence
+  limits. Named terms keep large proof tasks small; goal identities bind their model context.
+- Scaffolds, custom properties, proof checks, preserved regions, drift, strict verification, CI,
+  history and Git delivery reuse the checked lifecycle. The portable skill and SDK explain the
+  workflow without generating the agent's properties or tactics.
 
-Acceptance:
-
-1. Every advertised formalization-language cell completes candidate, plan, scaffold, property,
-   proof, drift, verify and reversal fixtures, or reports an exact unsupported boundary.
-2. Generated Lean elaborates before source-history mutation and remains stable under unchanged input.
-3. Source, shared IR, model, property and proof identities change independently when their own
-   material changes.
-4. Evidence distinguishes anchor freshness, signature correspondence, model theorem, differential
-   execution and implementation correspondence.
-5. Lean proves the shared semantic laws. Rust and Python agree with executable Lean policies and
-   independent canonical identities.
-6. No source language receives a general-equivalence claim from translation or testing alone.
-7. The full native, language-toolchain, WASM, strict-proof and deep audit gates pass.
+Acceptance status lives in [development continuity](docs/continuity.md). The complete native and
+WASM gates, strict Lean build, source-toolchain fixtures and Python checks pass. Deep agreement,
+conformance, round trips, self-translation and all 100 Lean tests and all five retained external replay archives pass. Source implementation equivalence
+remains unproved.
 
 ### PR 39. Generic Hierarchical Framework Transformation
 

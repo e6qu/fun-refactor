@@ -557,6 +557,17 @@ fn formalization_and_surface_goals_load_only_relevant_workbenches() {
     assert_eq!(formal["reference"], "lean");
     follow(root.path(), &formal["actions"][0]);
     std::fs::write(root.path().join("app.css"), ".app { color: red; }\n").unwrap();
+    let structural = guide(
+        root.path(),
+        &goal(
+            "prove",
+            json!({"path":"app.css"}),
+            json!({"kind":"formalize"}),
+        ),
+    );
+    assert_eq!(structural["state"], "ready", "{structural}");
+    let property = follow(root.path(), &structural["actions"][0]);
+    assert_eq!(property["target"]["symbol"], "__fr_structure__");
     let surface = guide(
         root.path(),
         &goal(

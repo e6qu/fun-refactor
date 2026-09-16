@@ -191,6 +191,17 @@ class TestIr:
         }
         parsed_task = ProofTask.from_data(task)
         assert parsed_task.to_data() == task
+        bound = json.loads(json.dumps(task))
+        bound["goal"]["model_context_digest"] = merkle_object_digest("current model module")
+        addressed = {key: bound["goal"][key] for key in ("name", "spec", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
+        bound["goal"]["id"] = bound["goal"]["object_digest"] = merkle_object_digest(addressed)
+        core = {key: bound[key] for key in ("schema", "goal", "contract", "templates")}
+        bound["object_digest"] = merkle_object_digest(core)
+        assert ProofTask.from_data(bound).to_data() == bound
+        bound["goal"]["model_context_digest"] = merkle_object_digest("changed model module")
+        bound["object_digest"] = merkle_object_digest({key: bound[key] for key in ("schema", "goal", "contract", "templates")})
+        with pytest.raises(IrError, match="model context identity"):
+            ProofTask.from_data(bound)
         changed_task = json.loads(json.dumps(task))
         changed_task["goal"]["theorem"] = "changed"
         with pytest.raises(IrError, match="Merkle content address"):
