@@ -129,6 +129,47 @@ fn agent_formalization_plan_scaffold_disclose_prove_and_history_flow() {
     std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
     let obligation = revealed["revealed"]["name"].as_str().unwrap();
     let target = format!("specs/FrSpecs/SrcLibRsKeep.lean::{obligation}");
+    let request = serde_json::json!({"schema":"fr-agent-goal-1","purpose":"prove",
+        "selector":{"path":"specs/FrSpecs/SrcLibRsKeep.lean"},
+        "operation":{"kind":"proof","obligation":obligation}});
+    std::fs::write(
+        workspace.path().join("goal.json"),
+        serde_json::to_vec(&request).unwrap(),
+    )
+    .unwrap();
+    let guided = run(
+        workspace.path(),
+        &["--json", "guide", "--from", "goal.json"],
+    );
+    assert!(
+        guided.status.success(),
+        "{}",
+        String::from_utf8_lossy(&guided.stderr)
+    );
+    let guided: serde_json::Value = serde_json::from_slice(&guided.stdout).unwrap();
+    assert_eq!(guided["state"], "ready", "{guided}");
+    assert_eq!(guided["route"]["id"], "proof");
+    let arguments = guided["actions"][0]["arguments"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .collect::<Vec<_>>();
+    let followed = run(
+        workspace.path(),
+        &[&["--json"], arguments.as_slice()].concat(),
+    );
+    assert!(
+        followed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&followed.stderr)
+    );
+    let followed: serde_json::Value = serde_json::from_slice(&followed.stdout).unwrap();
+    assert_eq!(followed["schema"], "fr-proof-task-1");
+    assert_eq!(
+        followed["object_digest"],
+        guided["route"]["evidence"]["task_digest"]
+    );
     let proof_task = run(workspace.path(), &["--json", "spec", "proof-task", &target]);
     assert!(
         proof_task.status.success(),

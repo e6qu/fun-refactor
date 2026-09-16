@@ -1,10 +1,10 @@
 //! What this tool can do, for each language.
 
 use crate::lang::{Language, LanguageClass};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Something the tool can be asked to do.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Capability {
     Symbols,
@@ -121,6 +121,77 @@ impl Capability {
             Capability::DeclaredType => "fr type",
         }
     }
+
+    pub fn agent_form(self) -> AgentForm {
+        use Capability as C;
+        let (arguments, writes, source_required): (&[&str], bool, bool) = match self {
+            C::Symbols => (&["project", "show", "{handle}"], false, false),
+            C::Rename => (&["rename", "{position}", "{new_name}"], true, false),
+            C::SafeDelete => (&["delete", "{position}"], true, false),
+            C::Impact => (&["impact", "{position}"], false, false),
+            C::Restructure => (
+                &[
+                    "restructure",
+                    "{pattern}",
+                    "{template}",
+                    "--lang",
+                    "{language}",
+                ],
+                true,
+                true,
+            ),
+            C::CallGraph => (
+                &["project", "calls", "{handle}", "--limit", "8"],
+                false,
+                false,
+            ),
+            C::Flow | C::Provenance => (
+                &["flow", "back", "{position}", "--depth", "3"],
+                false,
+                false,
+            ),
+            C::EntryPoints => (&["entrypoints"], false, false),
+            C::ExtractVariable => (&["extract", "{range}", "{name}"], true, true),
+            C::ExtractFunction => (&["extract", "{range}", "{name}", "--function"], true, true),
+            C::InlineVariable => (&["inline", "{position}"], true, false),
+            C::InlineCall => (&["inline", "{position}", "--call"], true, false),
+            C::ChangeSignature => (&["signature", "{position}", "{change}"], true, false),
+            C::MicroRewrites => (&["rewrite", "{position}", "{rewrite}"], true, false),
+            C::OrganizeImports => (&["imports", "{path}"], true, false),
+            C::RemoveFlag => (&["remove-flag", "{position}"], true, false),
+            C::MoveToFile => (&["move", "{position}", "{destination}"], true, false),
+            C::Stitch => (&["stitch"], false, false),
+            C::Duplicates => (
+                &["duplicates", "--lang", "{language}", "--path", "{path}"],
+                false,
+                false,
+            ),
+            C::DeadCode => (
+                &["unused", "--lang", "{language}", "--path", "{path}"],
+                false,
+                false,
+            ),
+            C::Translate => (&["translate", "{path}", "{target_language}"], true, false),
+            C::Openapi => (
+                &["project", "contracts", "{handle}", "--limit", "8"],
+                false,
+                false,
+            ),
+            C::DeclaredType => (&["type", "{position}"], false, false),
+        };
+        AgentForm {
+            arguments,
+            writes,
+            source_required,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct AgentForm {
+    pub arguments: &'static [&'static str],
+    pub writes: bool,
+    pub source_required: bool,
 }
 
 /// Whether a capability applies to a language, and why not when it does not.

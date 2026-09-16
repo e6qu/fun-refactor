@@ -24,6 +24,29 @@ files prints a unified diff and exits. Pass `--write` to apply it. `--save-plan`
 or for an input, the tool says which and why. It exits non-zero, does not do
 half the work, and does not do nothing quietly.
 
+## Structured workflow guidance
+
+```sh
+fr guide --from GOAL.json
+fr guide --from -
+```
+
+`guide` accepts `fr-agent-goal-1`: a purpose, optional full handle or exact selector, operation,
+constraints, checks, proof expectation, context ceilings and optional task delivery policy. It
+returns compact `fr-agent-guide-1` JSON in both output modes. It selects an existing language-aware
+read or preview route and lists exact argument arrays, stdin input, output contracts and fields
+the agent must author. Ambiguous selections and unsupported routes contain no actionable commands.
+
+No guide action writes source or saves a plan. Exact scalar goals with checks contain one complete
+task-change preview; other routes lead through direct refactoring, recipe, semantic, surface,
+migration or proof contracts. Source requires explicit permission and a bounded reveal. The guide
+binds the project revision, normalized goal, live capability forms/support, recipe vocabulary and
+semantic catalog in a `frag1:` basis. Review the underlying complete preview before execution.
+
+The Python `FrClient.guide` and `follow_guide` methods retain data, verify
+the Merkle report identity, check response ceilings and revalidate guidance before following a ready
+action. See [the goal, route and SDK contract](docs/agent-workflow-guide.md).
+
 ## Write guarantees
 
 Native source editing commands record a transaction in `.fr-history/state.json` before changing source.

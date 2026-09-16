@@ -6,6 +6,7 @@ import FrKernels.TaskChange
 import FrKernels.AgentSession
 import FrKernels.AgentContext
 import FrKernels.AgentIntent
+import FrKernels.AgentGuide
 
 open FrKernels.History
 
@@ -75,6 +76,24 @@ def main (args : List String) : IO Unit :=
             for manifestMatches in [false, true] do
               for basisMatches in [false, true] do
                 IO.println (FrKernels.AgentSession.step state action previewValid manifestMatches basisMatches)
+  | ["agent-guide-routes"] =>
+      for purpose in [0:7] do
+        for languageClass in [0:3] do
+          for targetKind in [0:4] do
+            for route in [0:12] do
+              for supported in [false, true] do
+                for sourceRequired in [false, true] do
+                  for sourceAllowed in [false, true] do
+                    for proofExpectation in [0:4] do
+                      IO.println (FrKernels.AgentGuide.routeAdmitted purpose languageClass
+                        targetKind route supported sourceRequired sourceAllowed proofExpectation)
+  | ["agent-guide-steps"] =>
+      for state in [0:7] do
+        for action in [0:6] do
+          for ready in [false, true] do
+            for completeReview in [false, true] do
+              for basisMatches in [false, true] do
+                IO.println (FrKernels.AgentGuide.step state action ready completeReview basisMatches)
   | ["agent-context-admission"] => do
       for calls in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do
         for limit in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do

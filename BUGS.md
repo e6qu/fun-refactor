@@ -67,6 +67,20 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B897: **agents needed separate command, vocabulary and proof-route discovery**. A structured
+  goal now resolves one exact target and returns language-aware actions, authored fields, support,
+  omissions, bounded identities and an explicit verification ladder. Exact scalar goals with checks
+  reuse the complete native task preview and reviewed reversal/patch lifecycle. CLI language and
+  refusal fixtures, SDK identity tests and exhaustive Rust/Python/Lean policies pin the boundary.
+- [x] B898: **navigator delivery contracts admitted an incorrect migration schema and omitted setup**.
+  Both generic framework directions now advertise the actual project response schema. Formalization
+  guidance checks package initialization and supplies a non-writing setup preview when required.
+  Recipe guidance checks target-kind/language support and supplies relevant live selector forms.
+- [x] B899: **new workflow and skill contracts left retained evidence bindings stale**. Regenerated
+  affected deterministic comparisons from their implementing tools and checked fixtures.
+  Full agent programs retain request/response accounting, compiler/behavior oracles and exact output
+  equality. The report identifies the additional guide freshness costs.
+
 - [x] B896: **a high-level change intent stopped before its reviewed change lifecycle**. Agents had
   to carry the target and context into a separate task-change review. Their declared purpose,
   evidence and mutation therefore lacked one checked basis. A change intent now binds one direct

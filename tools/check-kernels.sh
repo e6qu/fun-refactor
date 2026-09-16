@@ -15,6 +15,8 @@ cd "$(dirname "$0")/.."
     lake exe fr-history-kernel workflow-stages >/dev/null
     lake exe fr-history-kernel task-change-modes >/dev/null
     lake exe fr-history-kernel agent-session-steps >/dev/null
+    lake exe fr-history-kernel agent-guide-routes >/dev/null
+    lake exe fr-history-kernel agent-guide-steps >/dev/null
     lake exe fr-history-kernel agent-context-admission >/dev/null
     lake exe fr-history-kernel agent-intent-admission >/dev/null
     lake exe fr-history-kernel agent-intent-sections >/dev/null

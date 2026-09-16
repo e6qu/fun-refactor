@@ -140,6 +140,8 @@ enum Command {
     },
     #[command(about = "Compile one declarative agent intent in a single project snapshot.")]
     Intent(crate::project::agent_intent::Options),
+    #[command(about = "Choose a bounded language-aware workflow from one structured agent goal.")]
+    Guide(crate::project::agent_guide::Options),
     #[command(about = "Inspect bounded project maps and revision-bound source details.")]
     Project {
         #[command(subcommand)]
@@ -1070,6 +1072,12 @@ fn dispatch(cli: &Cli) -> Result<()> {
             Ok(())
         }
         Command::Intent(options) => cmd_intent(cli, options),
+        Command::Guide(options) => with_project(cli, |project, root| {
+            let report = project.agent_guide(options)?;
+            project.verify(root)?;
+            println!("{}", serde_json::to_string(&report)?);
+            Ok(())
+        }),
         Command::Project { command } => cmd_project(cli, command),
         Command::TaskChange(options) => cmd_task_change(cli, options),
         Command::Workflow(options) => {
@@ -7496,6 +7504,28 @@ mod tests {
     fn cli_parses_expected_invocations() {
         use clap::CommandFactory;
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn every_live_agent_capability_form_is_accepted_by_the_same_cli() {
+        for capability in crate::capabilities::Capability::ALL {
+            let form = capability.agent_form();
+            let arguments = std::iter::once("fr".to_owned())
+                .chain(form.arguments.iter().map(|argument| match *argument {
+                    "{position}" => "app.rs:1:1".into(),
+                    "{handle}" => "frp1:revision:node".into(),
+                    "{range}" => "app.rs:1:1-1:2".into(),
+                    "{language}" => "rust".into(),
+                    "{rewrite}" => crate::refactor::rewrite::Rewrite::ALL[0].as_str().into(),
+                    "{change}" => "remove:0".into(),
+                    value => value.replace(['{', '}'], ""),
+                }))
+                .collect::<Vec<_>>();
+            assert!(
+                Cli::try_parse_from(&arguments).is_ok(),
+                "{capability:?}: {arguments:?}"
+            );
+        }
     }
 
     #[test]

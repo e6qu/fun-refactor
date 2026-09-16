@@ -19,6 +19,7 @@ import FrKernels.AgentDiscovery
 import FrKernels.AgentSession
 import FrKernels.AgentContext
 import FrKernels.AgentIntent
+import FrKernels.AgentGuide
 import FrKernels.Disclosure
 import FrKernels.DisclosedEdit
 import FrKernels.DisclosedIrEdit

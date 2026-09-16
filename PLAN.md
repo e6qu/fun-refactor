@@ -45,7 +45,7 @@ The project has merged PRs 0 through 35. The latest checkpoint is
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 742 |
+| Fixed defects | 745 |
 | Open defects | 1 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -116,9 +116,9 @@ saving from internal composition alone.
 
 ## Remaining gaps
 
-1. **No unified workflow navigator.** `fr intent` compiles a manifest after the agent has already
-   chosen projections and a change shape. `fr author guide`, recipe vocabulary, disclosure actions,
-   migration reports and proof tasks are separate protocols. The portable skill joins them in prose.
+1. **Navigator delivery is not unified with execution.** PR 36 implements structured goal selection
+   and language-aware read/preview guidance. Exact scalar goals with checks reuse task delivery;
+   other routes still retain their existing authoring and review protocols until PR 37.
 2. **Intent actions cover one direct task change.** They do not yet bind recipes, framework
    migrations or proof work. Multi-target selections also lack the same intent and review identity.
 3. **Proof support is not language-wide.** Generated model and property plans currently cover a
@@ -145,7 +145,7 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 36 | Language-Aware Agent Workflow Navigator | Next |
+| PR 36 | Language-Aware Agent Workflow Navigator | In progress |
 | PR 37 | General Intent Actions and Proof Delivery | Planned |
 | PR 38 | Cross-Language Formalization and Correspondence | Planned |
 | PR 39 | Generic Hierarchical Framework Transformation | Planned |
@@ -155,6 +155,13 @@ its public contract changes.
 
 Goal: let an agent state a structured outcome and receive the smallest valid end-to-end route. The
 agent should not need to learn the command tree, DSL, semantic schemas or proof workbench first.
+
+The implementation now includes native `guide`, Python goal/guide mirrors, source-free targeted
+route contracts, fresh action following and direct checked scalar delivery. Generic framework
+previews, actual Lean proof tasks and all parser-language structural guides have executable fixtures.
+Rust, Python and Lean compare 32,256 admission cases and 336 lifecycle cases. The fixed complete
+program comparison saves 53 exposed bytes and adds one process plus 8,077 internal bytes.
+Broader agent-context and general delivery improvements remain PR 37 and PR 40 work.
 
 Deliverables:
 

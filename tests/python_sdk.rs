@@ -47,10 +47,88 @@ fn python_package_keeps_explicit_module_boundaries() {
     let package = root().join("sdk/python/src/fr_ir");
     assert_eq!(fs::read(package.join("__init__.py")).unwrap(), b"");
     assert!(!package.join("__main__.py").exists());
-    for module in ["ir.py", "runtime.py", "context.py", "intent.py"] {
+    for module in ["ir.py", "runtime.py", "context.py", "intent.py", "guide.py"] {
         let source = fs::read_to_string(package.join(module)).unwrap();
         assert!(!source.contains("__all__"), "{module} mutates __all__");
     }
+}
+
+#[test]
+fn checked_agent_guide_context_comparison_is_reproducible() {
+    let evidence = root().join("tests/agent-eval/agent-guide-context.json");
+    let output = python()
+        .arg(root().join("tools/agent-guide-context.py"))
+        .arg("--audit")
+        .arg(&evidence)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&fs::read(evidence).unwrap()).unwrap();
+    assert_eq!(report["guided"]["process_calls"], 4);
+    assert_eq!(report["manual"]["process_calls"], 3);
+    assert!(report["equality"]
+        .as_object()
+        .unwrap()
+        .values()
+        .all(|value| value == true));
+}
+
+#[test]
+fn python_guide_delivers_an_exact_scalar_goal_and_refuses_stale_guidance() {
+    let workspace = tempfile::tempdir().unwrap();
+    fs::create_dir_all(workspace.path().join(".fr")).unwrap();
+    fs::create_dir_all(workspace.path().join("artifacts")).unwrap();
+    fs::write(
+        workspace.path().join("app.rs"),
+        "pub fn calculate(value: i64) -> i64 { value + 7 }\n",
+    )
+    .unwrap();
+    fs::write(workspace.path().join(".fr/checks.json"),serde_json::to_vec(&serde_json::json!({"schema":1,"checks":[{"name":"syntax","argv":["true"],"cwd":".","timeout_seconds":10,"covers":["fixture state"]}]})).unwrap()).unwrap();
+    let output=python().arg("-c").arg(r#"# => executable guided scalar fixture
+import json, sys
+from pathlib import Path
+from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
+from fr_ir.ir import TaskDelivery
+from fr_ir.runtime import FrClient, FrRuntimeError, TaskReview
+client=FrClient(sys.argv[1], executable=sys.argv[2])
+goal=AgentGoal('change',selector=GoalSelector(name='calculate'),
+    operation=GoalOperation('semantic-scalar', {'operation':'set-int','from':'7','to':'9'}),
+    checks=('syntax',),delivery=TaskDelivery(patch='artifacts/change.patch',check_output_bytes=256))
+guide=client.guide(goal)
+assert len(guide.actions()) == 1
+review=client.follow_guide(guide.actions()[0])
+assert isinstance(review, TaskReview)
+assert '+ 9' in review.at('/author/diff')
+result=client.execute(review)
+assert result.passed
+assert Path(sys.argv[1], 'artifacts/change.patch').is_file()
+assert '+ 9' in Path(sys.argv[1], 'app.rs').read_text()
+transaction=result.at('/transaction')
+client.call('history','undo',str(transaction),'--write')
+assert '+ 7' in Path(sys.argv[1], 'app.rs').read_text()
+client.call('history','redo',str(transaction),'--write')
+assert '+ 9' in Path(sys.argv[1], 'app.rs').read_text()
+try:
+    client.follow_guide(guide.actions()[0])
+except FrRuntimeError:
+    pass
+else:
+    raise AssertionError('stale guidance accepted')
+print(json.dumps({'passed':result.passed,'stages':len(result.at('/workflow/stages')),'guide_bytes':guide.at('/serialized_bytes')}))
+"#).arg(workspace.path()).arg(env!("CARGO_BIN_EXE_fr")).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["stages"], 8);
 }
 
 #[test]

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .ir import TaskChange
     from .context import ContextSession, ObjectStore
     from .intent import AgentIntent, CompiledIntent, IntentResult, PreparedIntent
+    from .guide import AgentGoal, AgentGuide, GuideAction
 
 
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
@@ -374,6 +375,16 @@ class FrClient:
     def project(self, *arguments: str) -> FrReport:
         """Run one structured project query."""
         return self.call("project", *arguments)
+
+    def guide(self, goal: AgentGoal) -> AgentGuide:
+        """Choose a deterministic workflow without exposing intermediate project reports."""
+        from .guide import guide_goal
+        return guide_goal(self, goal)
+
+    def follow_guide(self, action: GuideAction) -> FrReport:
+        """Run one ready read/preview action retained by an authoritative guide."""
+        from .guide import follow_guide
+        return follow_guide(self, action)
 
     def disclose(
         self,
