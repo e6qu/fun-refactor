@@ -80,6 +80,22 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
     assert!(!refused.status.success());
     assert!(String::from_utf8_lossy(&refused.stderr).contains("--confirm-agent-spend"));
 
+    std::fs::write(
+        session.join("codex-events.jsonl"),
+        "{\"type\":\"turn.completed\",\"usage\":{}}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        session.join("codex-stderr.txt"),
+        "2026-09-17T00:00:00Z ERROR codex_core::tools::router: transient failure\n",
+    )
+    .unwrap();
+    std::fs::write(session.join("codex-final.txt"), "finished\n").unwrap();
+    std::fs::write(
+        session.join("codex-run.json"),
+        "{\"exit_code\":0,\"timed_out\":false}\n",
+    )
+    .unwrap();
     let structured = sessions.join("structured");
     let proof = step(
         root,
@@ -112,6 +128,23 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
         "proof.lean"
     );
     assert_eq!(reused["response"]["schema"], 1);
+    std::fs::write(
+        structured.join("codex-events.jsonl"),
+        "{\"type\":\"turn.completed\",\"usage\":{}}\n",
+    )
+    .unwrap();
+    std::fs::write(structured.join("codex-stderr.txt"), "").unwrap();
+    std::fs::write(structured.join("codex-final.txt"), "finished\n").unwrap();
+    std::fs::write(
+        structured.join("codex-run.json"),
+        "{\"exit_code\":0,\"timed_out\":false}\n",
+    )
+    .unwrap();
+    let output = script(root).arg("score").arg(&sessions).output().unwrap();
+    assert!(output.status.success());
+    let scored: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(scored["results"][0]["codex"]["infrastructure_errors"], 1);
+    assert_eq!(scored["results"][0]["passed"], false);
 }
 
 #[test]
@@ -132,5 +165,15 @@ fn retained_failed_cohort_replays_only_as_diagnostic_evidence() {
         let report: Value = serde_json::from_slice(&output.stdout).unwrap();
         assert_eq!(report["verified"], true);
         assert_eq!(report["passed"], false);
+        assert_eq!(report["acceptance_evidence"], false);
     }
+
+    let evidence = root
+        .join("tests/agent-eval/results")
+        .join("2026-09-17-completion-diagnostic-4");
+    let output = script(root).arg("replay").arg(evidence).output().unwrap();
+    assert!(output.status.success());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["acceptance_evidence"], false);
 }

@@ -247,6 +247,9 @@ Implemented on the current branch:
 - A third diagnostic completed all seven routes without direct project access or exploratory calls.
   Three rejected transport and artifact references remain diagnostic evidence. Complete request
   handoffs and session-scoped authored artifacts remove those harness ambiguities.
+- A fourth diagnostic completed every route and recorded command, but Codex stderr exposed one
+  internal process error. Infrastructure failures are now separate from agent-command failures,
+  both must be zero, and diagnostic recordings can never become acceptance evidence.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

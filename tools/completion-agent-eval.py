@@ -469,11 +469,17 @@ def codex_observation(session: Path) -> dict[str, object]:
         for item in commands
         if allowed not in item["command"] or " step " not in item["command"]
     ]
+    stderr = (session / "codex-stderr.txt").read_text()
+    infrastructure_errors = [
+        line for line in stderr.splitlines() if " ERROR " in line
+    ]
     return {
         "usage": usage,
         "command_executions": len(commands),
         "failed_command_executions": sum(item.get("exit_code") != 0 for item in commands),
         "direct_project_commands": direct_access,
+        "infrastructure_errors": len(infrastructure_errors),
+        "stderr_bytes": len(stderr.encode()),
         "event_bytes": (session / "codex-events.jsonl").stat().st_size,
         "final_bytes": (session / "codex-final.txt").stat().st_size,
         "billed_quota": {"available": False, "value": None},
@@ -524,6 +530,7 @@ def score(session: Path) -> dict[str, object]:
         and result["source_unchanged"]
         and not observation["direct_project_commands"]
         and observation["failed_command_executions"] == 0
+        and observation["infrastructure_errors"] == 0
         and config["manual_corrections"] == 0
     )
     save(session / "result.json", result)
@@ -565,7 +572,7 @@ def record(directory: Path, destination: Path, diagnostic: bool = False) -> dict
         for name in RETAINED_FILES:
             shutil.copyfile(directory / group / name, target / name)
             files[f"{group}/{name}"] = digest((target / name).read_bytes())
-    report["acceptance_evidence"] = bool(report.get("passed"))
+    report["acceptance_evidence"] = bool(report.get("passed")) and not diagnostic
     report["files"] = files
     save(destination / "manifest.json", report)
     return report
@@ -583,11 +590,13 @@ def replay(directory: Path) -> dict[str, object]:
     actual = all(result.get("passed") for result in results)
     if bool(manifest.get("passed")) != actual:
         raise ValueError("retained completion-agent outcome is inconsistent")
-    if bool(manifest.get("acceptance_evidence")) != actual:
+    acceptance = bool(manifest.get("acceptance_evidence"))
+    if acceptance and not actual:
         raise ValueError("retained completion-agent evidence classification is inconsistent")
     return {
         "verified": True,
         "passed": actual,
+        "acceptance_evidence": acceptance,
         "sessions": len(results),
         "workflow_families": 7,
     }

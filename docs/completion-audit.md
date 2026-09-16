@@ -97,3 +97,9 @@ correction. Strict scoring rejected two malformed JSON transports and one proof 
 reattach its previously authored tactics file. Complete guide requests now remove JSON-envelope
 reconstruction. Authored artifacts also remain addressable by their bounded plain names for later
 actions in the same session.
+
+The fourth [retained diagnostic](../tests/agent-eval/results/2026-09-17-completion-diagnostic-4/manifest.json)
+completed every route with no failed completed command. Codex stderr nevertheless records one
+internal tool-router process error, so the run remains diagnostic evidence. Scoring now reports
+infrastructure errors separately and requires zero for acceptance. A diagnostic recording can
+never become acceptance evidence, even when its workflow result otherwise passes.
