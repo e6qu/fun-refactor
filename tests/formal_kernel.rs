@@ -858,8 +858,7 @@ fn structural_target_names_do_not_change_imperative_function_semantics() {
     assert!(candidates.candidates[0].eligible);
     assert!(!candidates.candidates[0]
         .suggested_properties
-        .iter()
-        .any(|kind| *kind == "retained-facts-wellformed"));
+        .contains(&"retained-facts-wellformed"));
     let target = "reserved.rs::__fr_structure__";
     let plan =
         fun_refactor::spec::formal_plan(workspace.path(), target, &["identity".into()]).unwrap();
