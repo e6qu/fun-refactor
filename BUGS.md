@@ -5,27 +5,32 @@ stage.
 
 Format: `- [ ] B<N>: <symptom>`, then where it happens, then status and notes.
 
-Open entries describe known limitations and the reports that expose them.
-The list does not establish the absence of other defects.
+Open entries describe actionable defects. Boundary entries describe behavior that available static
+evidence cannot settle. The list does not establish the absence of other defects.
 
-A test pins every open entry, so a claim that stops being true fails a build instead of
-sitting here. B11 said `@content` was a gap after it had stopped being one, and
-nothing noticed. `tests/known_grammar_gaps.rs` pins the grammar limits from both sides,
-the failing form and the neighbouring forms that work. `tests/open_defects.rs` pins the
-ones that are this tool's own behaviour. Each asserts the whole entry:
+A test pins every open entry and analysis boundary. A stale claim therefore fails a build.
+B11 said `@content` was a gap after it had stopped being one, and nothing noticed.
+`tests/known_grammar_gaps.rs` pins both sides of grammar limits. It covers the failing form and its
+working neighbors. `tests/analysis_boundaries.rs` pins the limits in this tool's behavior. Each
+asserts the whole entry:
 what the tool does not do, and what it reports instead. Every one of these stands on the
 second half. A test that checked only the first would pass just as well if the report went
 away.
 
 ## Open
 
-Re-triaged against this branch. The entries below still reproduce. Where a published
+No actionable implementation defect is currently known. A passing completion audit does not
+establish the absence of undiscovered defects.
+
+## Analysis boundaries
+
+Re-triaged against this branch. The boundary below still reproduces. Where a published
 grammar could not read source the language accepts, this build compiles a patched copy
 instead of recording the gap: `grammars/` holds one for Go, Python, Sass, SCSS,
 TypeScript and Zig, each with its upstream pin, licence, patch and the measurement that
 shows the patch additive. What remains below is a limit of the available source evidence.
 
-- [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
+- [x] B5: `find_unused` and the call graph follow what the source shows, and no further.
   A call whose receiver nothing types is fanned out to the definitions the workspace
   admits. Four declarations each fan such a call out to every implementation:
 

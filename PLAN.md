@@ -35,15 +35,10 @@ construct, or claiming general source equivalence from a translated Lean model.
 
 ## Current state
 
-The project has merged PRs 0 through 38. The latest implementation is
-[GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309), with typed pure formalization,
-structural model coverage and independent source/IR/model identities. Its PR CI passed.
-Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
-[GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311) is PR 39 on
-`application_ir_transformations`, based directly on that main. It adds the bounded application
-hierarchy, Merkle disclosure, agent-authored HTTP IR and four framework adapters. Native intent,
-checked registration, capability rows and guarded whole-file cutover complete the implementation.
-All local native, WASM, deep, runtime, retained-evidence and formal verification gates pass.
+The project has merged PRs 0 through 39. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311)
+adds the bounded application hierarchy, Merkle disclosure, agent-authored HTTP IR and four backend
+adapters. It also adds static React and Next.js conversion. Current `origin/main` is `37b35f0b`.
+PR 40 is in progress on `completion_audit_agent_validation` from that exact main.
 
 | Measure | Current value |
 |---|---:|
@@ -52,8 +47,8 @@ All local native, WASM, deep, runtime, retained-evidence and formal verification
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 765 |
-| Open defects | 1 |
+| Fixed defects | 766 |
+| Open defects | 0 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
 carries a reason. A supported cell can still refuse a particular input when its syntax, identity,
@@ -143,9 +138,8 @@ saving from internal composition alone.
    analysis, translation, framework migration and formalization have smaller support matrices.
 5. **The live-agent context target is unmet.** The retained live comparison predates unified
    delivery. No live-agent result establishes the new routes' context benefit.
-6. **One source-evidence defect remains open.** B5 covers indirect calls and dead-code conclusions
-   that source cannot settle. Actionable inference gaps should close; inherently dynamic cases must
-   remain explicit uncertainty rather than false precision.
+6. **Static source has a tested analysis boundary.** B5 now records indirect calls and dead-code
+   conclusions that source cannot settle. The report preserves these cases as uncertainty.
 
 ## Active delivery sequence
 
@@ -155,8 +149,8 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 39 | Generic Hierarchical Framework Transformation | [PR 311](https://github.com/e6qu/fun-refactor/pull/311) open; local acceptance complete |
-| PR 40 | Completion Audit and Agent Validation | Planned |
+| PR 39 | Generic Hierarchical Framework Transformation | [PR 311](https://github.com/e6qu/fun-refactor/pull/311) merged |
+| PR 40 | Completion Audit and Agent Validation | In progress |
 
 ### PR 39. Generic Hierarchical Framework Transformation
 
@@ -230,6 +224,17 @@ Acceptance:
 
 Goal: close remaining defects and prove that the finished guided workflow is usable, bounded and
 honest across the advertised product surface.
+
+Implemented on the current branch:
+
+- `fr audit` publishes a bounded content-addressed summary with progressive capability, workflow,
+  recipe, semantic, framework, proof and boundary sections.
+- The report derives its 456 capability cells and 75 application cells from live predicates. It
+  names executable acceptance targets without treating an unrun test as passing evidence.
+- The report separates support, behavioral validation, model theorems, implementation
+  correspondence and runtime framework evidence.
+- B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
+  actionable defect remains open.
 
 Deliverables:
 

@@ -17,6 +17,8 @@ pub mod workflow;
 extern crate fun_refactor_wasm_libc;
 
 pub mod application_ir;
+#[cfg(feature = "cli")]
+pub mod audit;
 pub mod edit;
 pub mod extract;
 #[path = "project/framework_kernel.rs"]

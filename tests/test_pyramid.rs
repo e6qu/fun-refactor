@@ -76,6 +76,7 @@ fn run(root: &Path, cache: &Path, args: &[&str]) -> Outcome {
 /// One representative invocation per subcommand.
 fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
+        ("audit", vec!["audit"]),
         ("capabilities", vec!["capabilities"]),
         ("cache", vec!["cache"]),
         ("history", vec!["history"]),

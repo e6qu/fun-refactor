@@ -1,9 +1,8 @@
 # Development continuity
 
-PR 38 merged as [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309).
-Release PR 310 advances main to `31c62e659a05889cec6d85903f7d893958888f1b`,
-version 0.27.0. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311) is PR 39 on
-`application_ir_transformations`, based directly on that main.
+PR 39 merged as [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311). Current main is
+`37b35f0b77529c249003cdf039227ae624f5058e`. PR 40 is in progress on
+`completion_audit_agent_validation` from that exact main.
 
 PR 39 adds `project application`, Merkle disclosure and `migrate application` around a bounded
 common IR. Conservative readers normalize literal JSON responses and path bindings from Next.js,
@@ -30,8 +29,12 @@ Lean tests. Five external replay archives pass their checks, independent behavio
 reversal. B918 and B919 record the disclosure-depth and floating Merkle repairs. Final audit also
 fixed shared-VFS bypasses, nested Python/TypeScript generic maps and minimal WASM feature gating.
 
-PR 40 is next. It performs the completion audit and fresh live-agent validation without widening
-the explicit application semantics described in `PLAN.md`.
+The first PR 40 slice adds `fr audit`. Its small content-addressed summary discloses seven bounded
+detail sections. Live predicates supply every capability and application cell. Live catalogs supply
+recipe and semantic counts. Proof schemas and analysis boundaries retain their narrower claims.
+The workflow section names executable acceptance tests but treats them as obligations until they run.
+B5 now describes a tested static-analysis boundary after earlier work closed its actionable gaps.
+`BUGS.md` currently has no known actionable defect.
 
 Merged PR 38 implementation and evidence follow:
 

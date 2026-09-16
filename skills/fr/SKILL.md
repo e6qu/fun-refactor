@@ -4,8 +4,8 @@ description: Use fr for bounded inspection, structural edits, history, Git patch
 ---
 # Work with fr
 
-Run at the root or pass `-C`. Start a structured task with `fr guide --from GOAL` or
-`FrClient.guide(AgentGoal(...))`; follow ready actions and load the returned specialized reference.
+Run at the root or pass `-C`. Use `fr audit` when support is unclear. For a task, run
+`fr guide --from GOAL` or `FrClient.guide(AgentGoal(...))`; follow ready actions and their reference.
 Read [Guide](references/guide.md) for goal authoring. For direct discovery:
 ```sh
 fr project find greet --signature

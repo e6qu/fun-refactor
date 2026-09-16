@@ -121,6 +121,8 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Inspect bounded source-derived support and trust evidence.")]
+    Audit(crate::audit::Options),
     #[command(about = "Inspect or execute checks explicitly declared by the project.")]
     Checks(crate::checks::Options),
     #[command(about = "Author bounded structural changes through project handles.")]
@@ -1082,6 +1084,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             );
             Ok(())
         }
+        Command::Audit(options) => cmd_audit(cli, options),
         Command::Intent(options) => cmd_intent(cli, options),
         Command::Guide(options) => with_project(cli, |project, root| {
             let report = project.agent_guide(options)?;
@@ -6970,6 +6973,41 @@ fn cmd_capabilities(
          (of {} capability x language pairs)",
         yes + not_applicable + refused
     );
+    Ok(())
+}
+
+fn cmd_audit(cli: &Cli, options: &crate::audit::Options) -> Result<()> {
+    let report = crate::audit::report(options.section)?;
+    if cli.json || options.section != crate::audit::Section::Summary {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    let counts = &report["report"]["counts"];
+    println!(
+        "fr completion audit ({})",
+        report["object_root"].as_str().unwrap_or("")
+    );
+    println!(
+        "{} parser languages; {} capabilities; {} supported of {} cells",
+        counts["parser_languages"],
+        counts["capabilities"],
+        counts["supported_capability_cells"],
+        counts["capability_cells"]
+    );
+    println!(
+        "{} guided routes; {} recipe verbs; {} supported of {} application cells",
+        counts["workflow_routes"],
+        counts["recipe_verbs"],
+        counts["supported_application_cells"],
+        counts["application_cells"]
+    );
+    println!("\nReveal one bounded section with `fr --json audit <section>`:");
+    if let Some(items) = report["report"]["reveal"].as_array() {
+        for item in items {
+            println!("  {}", item["section"].as_str().unwrap_or(""));
+        }
+    }
     Ok(())
 }
 
