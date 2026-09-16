@@ -47,6 +47,16 @@ each reference path stays within the existing 7 KiB ceiling. Remaining milestone
 intent actions, cross-language formalization, generic framework adapters and completion/live-agent
 validation in PRs 37 through 40.
 
+PR 36 passes the complete default and WASM gates locally, with 311/311 supported capability cells
+exercised. Fresh production WASM passes 88 API, six patch, seven session and five style cases,
+TypeScript checking and the playground build. Python has 60 passing tests and a clean `ty` check;
+all 57 skill examples and its package validator pass. Strict Lean builds all 74 jobs. The deep
+gate passes 129 tests across whole-project agreement, conformance, round trips, self-translation,
+all kernels and recorded external replays. Self-dogfooding returns a 3,130-byte source-free guide
+and follows its native code-map action. The global CLI audit includes a valid guided Go goal and
+checks command coverage, no panic and no write without authorization. GitHub CI remains separate
+from these local results; check PR 305 before merging.
+
 PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298), and PR 33 merged as
 [GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299). It adds declarative `understand`, `trace`, `change`, `migrate` and
 `prove` requests over the content-addressed context workspace. `AgentIntent` expands each purpose

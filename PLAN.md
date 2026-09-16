@@ -145,7 +145,7 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 36 | Language-Aware Agent Workflow Navigator | Draft [PR 305](https://github.com/e6qu/fun-refactor/pull/305) |
+| PR 36 | Language-Aware Agent Workflow Navigator | In review: [PR 305](https://github.com/e6qu/fun-refactor/pull/305) |
 | PR 37 | General Intent Actions and Proof Delivery | Planned |
 | PR 38 | Cross-Language Formalization and Correspondence | Planned |
 | PR 39 | Generic Hierarchical Framework Transformation | Planned |
@@ -162,6 +162,8 @@ previews, actual Lean proof tasks and all parser-language structural guides have
 Rust, Python and Lean compare 32,256 admission cases and 336 lifecycle cases. The fixed complete
 program comparison saves 115 exposed bytes against inline task discovery while adding two processes
 and 8,984 internal bytes.
+Default, WASM, fresh production browser, Python/`ty`, skill, prose, strict Lean, deep and replay
+gates pass locally; the default run exercises all 311 supported capability cells.
 Broader agent-context and general delivery improvements remain PR 37 and PR 40 work.
 
 Deliverables:
