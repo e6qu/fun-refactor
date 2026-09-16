@@ -638,6 +638,8 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
     );
     assert!(success, "{result}");
     let model = root.path().join("specs/FrSpecs/SrcLibRsRender.lean");
+    let asset = root.path().join("specs/asset.bin");
+    std::fs::write(&asset, [0, 255, 128, 10]).unwrap();
     let before = std::fs::read_to_string(&model).unwrap();
     let (success, goals) = run(root.path(), &["spec", "goals", "specs"], None);
     assert!(success, "{goals}");
@@ -681,6 +683,15 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
     );
     assert_eq!(std::fs::read_to_string(&model).unwrap(), before);
     let basis = preview["action"]["basis"].as_str().unwrap();
+    std::fs::write(&asset, [1, 255, 128, 10]).unwrap();
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(!success, "{refused}");
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), before);
+    std::fs::write(&asset, [0, 255, 128, 10]).unwrap();
     let lakefile = root.path().join("specs/lakefile.toml");
     let lake_original = std::fs::read_to_string(&lakefile).unwrap();
     std::fs::write(
@@ -704,6 +715,7 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
     assert!(success, "{result}");
     assert_eq!(result["claims"]["model_theorem_checked"], true);
     assert_eq!(result["claims"]["implementation_correspondence"], false);
+    assert_eq!(std::fs::read(&asset).unwrap(), [0, 255, 128, 10]);
     assert!(!std::fs::read_to_string(model).unwrap().contains("sorry"));
     assert!(result["proof"]["receipt"].is_string());
 }

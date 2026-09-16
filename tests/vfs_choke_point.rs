@@ -89,3 +89,17 @@ fn source_is_read_only_through_the_vfs() {
         offences.join("\n")
     );
 }
+
+#[test]
+fn byte_reads_preserve_disk_content_and_follow_the_active_workspace() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("asset.bin");
+    std::fs::write(&path, [0, 255, 128, 10]).unwrap();
+    assert_eq!(fun_refactor::vfs::read(&path).unwrap(), [0, 255, 128, 10]);
+    let handle = fun_refactor::vfs::new_handle([(path.clone(), "workspace λ".to_owned())]);
+    fun_refactor::vfs::activate(&handle);
+    let result = fun_refactor::vfs::read(&path);
+    fun_refactor::vfs::use_filesystem();
+    assert_eq!(result.unwrap(), "workspace λ".as_bytes());
+    assert_eq!(fun_refactor::vfs::read(&path).unwrap(), [0, 255, 128, 10]);
+}

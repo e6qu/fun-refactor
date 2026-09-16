@@ -620,7 +620,7 @@ impl Project<'_> {
                                 .parent()
                                 .context("initialization file has no parent")?,
                         )?;
-                        std::fs::write(&file.path, file.content)?;
+                        crate::vfs::write(&file.path, file.content)?;
                         prepared.changes.push(Change {
                             path: self.root.join(file.path.strip_prefix(&snapshot_root)?),
                             original: String::new(),
@@ -952,7 +952,7 @@ impl Project<'_> {
             ensure!(total <= 67_108_864, "proof snapshot exceeds 64 MiB.");
             let dest = scratch.path().join(path.strip_prefix(&self.root)?);
             std::fs::create_dir_all(dest.parent().context("source has no parent")?)?;
-            std::fs::write(dest, source)?;
+            crate::vfs::write(dest, source)?;
         }
         fn copy_package(
             from: &Path,
@@ -961,18 +961,18 @@ impl Project<'_> {
             files: &mut usize,
         ) -> Result<()> {
             std::fs::create_dir_all(to)?;
-            for entry in std::fs::read_dir(from)? {
-                let entry = entry?;
-                if matches!(entry.file_name().to_str(), Some(".lake" | ".git")) {
+            for entry in crate::vfs::read_dir(from)? {
+                let name = entry.file_name().context("package entry has no name")?;
+                if matches!(name.to_str(), Some(".lake" | ".git")) {
                     continue;
                 }
-                let metadata = std::fs::symlink_metadata(entry.path())?;
+                let metadata = std::fs::symlink_metadata(&entry)?;
                 ensure!(
                     !metadata.file_type().is_symlink(),
                     "proof package contains a symlink."
                 );
                 if metadata.is_dir() {
-                    copy_package(&entry.path(), &to.join(entry.file_name()), total, files)?;
+                    copy_package(&entry, &to.join(name), total, files)?;
                 } else {
                     ensure!(
                         metadata.is_file(),
@@ -986,7 +986,7 @@ impl Project<'_> {
                         *files <= 4096 && *total <= 67_108_864,
                         "proof snapshot exceeds its file or byte bound."
                     );
-                    std::fs::copy(entry.path(), to.join(entry.file_name()))?;
+                    std::fs::copy(&entry, to.join(name))?;
                 }
             }
             Ok(())
@@ -1004,7 +1004,7 @@ impl Project<'_> {
         for change in changes {
             let path = scratch.path().join(change.path.strip_prefix(&self.root)?);
             std::fs::create_dir_all(path.parent().context("proof change has no parent")?)?;
-            std::fs::write(path, &change.updated)?;
+            crate::vfs::write(path, &change.updated)?;
         }
         Ok(scratch)
     }
@@ -1017,18 +1017,13 @@ impl Project<'_> {
             base: &Path,
             entries: &mut std::collections::BTreeMap<String, String>,
         ) -> Result<()> {
-            for entry in std::fs::read_dir(path)? {
-                let entry = entry?;
-                if entry.file_type()?.is_dir() {
-                    digest_files(&entry.path(), base, entries)?;
+            for entry in crate::vfs::read_dir(path)? {
+                if std::fs::symlink_metadata(&entry)?.is_dir() {
+                    digest_files(&entry, base, entries)?;
                 } else {
                     entries.insert(
-                        entry
-                            .path()
-                            .strip_prefix(base)?
-                            .to_string_lossy()
-                            .into_owned(),
-                        hex::encode(Sha256::digest(std::fs::read(entry.path())?)),
+                        entry.strip_prefix(base)?.to_string_lossy().into_owned(),
+                        hex::encode(Sha256::digest(crate::vfs::read(&entry)?)),
                     );
                 }
             }
