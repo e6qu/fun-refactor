@@ -813,7 +813,7 @@ fn add_go_registration(
     let mount = directory.join("fr_application_mount.go");
     let mount_absolute = project.root.join(&mount);
     ensure!(
-        !mount_absolute.exists() && std::fs::symlink_metadata(&mount_absolute).is_err(),
+        !crate::vfs::exists(&mount_absolute) && std::fs::symlink_metadata(&mount_absolute).is_err(),
         "generated Go registration file already exists."
     );
     edits.add(
@@ -1437,7 +1437,7 @@ impl Project<'_> {
         for (relative, source) in &outputs {
             let path = out.join(relative);
             ensure!(
-                !path.exists() && std::fs::symlink_metadata(&path).is_err(),
+                !crate::vfs::exists(&path) && std::fs::symlink_metadata(&path).is_err(),
                 "generated destination already exists: {}",
                 path.display()
             );
