@@ -4,10 +4,14 @@ PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). 
 jobs and its merged-main deep audit passed. PR 37 merged as
 [GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), after release PR 306.
 
-PR 38 is in progress on `cross_language_formalization`, based on `origin/main`
-`3b5b610d653740c2d91f0e74f3aa0170893e85d8`. Implementation checkpoint `1498bbe7` adds the
+PR 38 is [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
+`cross_language_formalization`, based on `origin/main`
+`cd3b6bba6bf714386c8a40ec82c5d3aca438c35f` (release PR 308, version 0.26.0).
+Implementation checkpoint `95c7d8d0` adds the
 bounded pure IR evaluator, matching Python types, typed formalization across eight reader surfaces,
-and structural snapshots for all ten declarative language classes. JavaScript/JSX, Bash and async
+and structural snapshots for all ten declarative language classes. Follow-up commits `faefcc50`,
+`4cff7708` and `a2c63604` bind proof context, satisfy strict assertion linting and identify whole-file
+structural anchors. JavaScript/JSX, Bash and async
 framework cases retain explicit refusals when they lack the admitted semantics or signature.
 
 The agent writes properties and tactics. Boolean `ir-model` obligations relate executable Lean
@@ -30,8 +34,22 @@ examples, retaining 1,225 entry bytes and a maximum tested route of 7,160 bytes.
 Ten retained reports reflect actual reruns against an immutable native binary copy, including the
 skill reading routes. Historical live-agent artifacts remain unchanged; no new live-agent, token,
 latency or quota saving follows from these policy and workflow tests.
-Full default, WASM, production-browser and deep acceptance gates remain in progress.
-Complete them and refresh this checkpoint before publishing PR 38.
+The full WASM gate passes 441 library tests and 17 API/native integration tests, including strict
+no-CLI compilation. Production WASM, Vite and all six browser test programs pass.
+The complete native gate passes, with 311/311 supported capability cells exercised, all 13
+formalization tests, 28 Rust-driven SDK tests and the strict 81-job Lean build.
+The deep gate passes 14 agreement, two conformance, seven round-trip, seven self-translation and
+100 Lean kernel tests. All five retained external replay archives pass checks, behavior oracles and
+exact reversal; the complete deep gate passes 131 tests. PR 38 is ready for review. GitHub title,
+WASM and playground checks pass at source commit `95ef0663`; its native check remains pending.
+Release PR 308 landed after these gates. The conflict-free rebase preserves all four implementation
+patches according to `git range-diff`. Post-rebase formatting, locked workspace metadata and
+release-evidence normalization pass; all nine workspace packages use 0.26.0. The rebased branch
+triggers a new GitHub check run.
+
+PR 39 is next after this PR merges: generic hierarchical framework transformation through a common
+application IR and adapters, with checked multi-file delivery, progressive disclosure and Lean
+admission/compatibility policies. PR 40 closes the completion audit and live-agent validation gaps.
 
 PR 37 merged implementation and validation follow:
 
