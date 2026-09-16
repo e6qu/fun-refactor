@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.26.0...fun-refactor-v0.27.0) (2026-09-16)
+
+
+### Features
+
+* add cross-language pure IR formalization and checked model correspondence ([#309](https://github.com/e6qu/fun-refactor/issues/309)) ([ef01c59](https://github.com/e6qu/fun-refactor/commit/ef01c592f7ac5bb057e26a7a24d27ec3586bedaa))
+
 ## [0.26.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.25.0...fun-refactor-v0.26.0) (2026-09-16)
 
 
