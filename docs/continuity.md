@@ -1,8 +1,26 @@
 # Development continuity
 
 PR 39 merged as [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311). Current main is
-`37b35f0b77529c249003cdf039227ae624f5058e`. PR 40 is in progress on
-`completion_audit_agent_validation` from that exact main.
+`37b35f0b77529c249003cdf039227ae624f5058e`. PR 40 implementation and local acceptance are complete
+on `completion_audit_agent_validation` from that exact main.
+
+PR 40 adds the source-derived `fr audit` surface, a deterministic seven-family guided workflow
+sweep and a strict two-session live Codex cohort. The final retained Luna/low cohort completes all
+seven families through twenty actions. It has no failed command, infrastructure error, direct
+project access, exploratory call, mutation or human correction. Seven earlier cohorts remain
+immutable diagnostic evidence. Their failures produced exact structured-goal handoffs, reusable
+authored artifacts, line-safe file transport, infrastructure-error scoring and byte-exact
+placeholders.
+
+Final local validation passes `tools/check.sh default`, `tools/check.sh wasm` and
+`tools/check.sh deep`. The default gate exercises 311/311 supported capability cells and builds all
+81 Lean jobs. The deep gate passes fourteen whole-repository agreement tests, two translation
+conformance tests, seven round trips, seven self-translations and all 101 Lean kernel tests. It also
+passes the pinned external replay with independent oracles and exact reversal. A source-current production
+WASM build passes TypeScript, Vite and all six browser programs: 88 API cases, six patch cases, seven
+session cases, five style cases, five rendering cases and the scale sweep. The scale sweep samples
+forty definitions and reports no rename-fidelity defect. Python's 28 Rust-driven SDK tests pass with
+the declared pytest 9.1.1 extra, and the default gate includes its `ty` check.
 
 PR 39 adds `project application`, Merkle disclosure and `migrate application` around a bounded
 common IR. Conservative readers normalize literal JSON responses and path bindings from Next.js,
@@ -84,7 +102,7 @@ The seventh diagnostic passed fundamentals with the line-safe recipe path. The s
 then put a line array under the older `files` key for two proof attempts. The final handoff uses
 `file_lines` as the only authored-file representation for both recipes and proof tactics.
 
-The next fresh cohort is retained as `2026-09-17-completion-acceptance`. Both isolated sessions
+The passing fresh cohort is retained as `2026-09-17-completion-acceptance`. Both isolated sessions
 pass all seven families through twenty commands with no failed command, infrastructure error,
 direct project access, exploratory call, mutation or human correction. The agents used Luna at low
 effort and the default tier under Codex CLI 0.154.0.

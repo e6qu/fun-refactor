@@ -38,7 +38,8 @@ construct, or claiming general source equivalence from a translated Lean model.
 The project has merged PRs 0 through 39. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311)
 adds the bounded application hierarchy, Merkle disclosure, agent-authored HTTP IR and four backend
 adapters. It also adds static React and Next.js conversion. Current `origin/main` is `37b35f0b`.
-PR 40 is in progress on `completion_audit_agent_validation` from that exact main.
+PR 40 implementation and local acceptance are complete on `completion_audit_agent_validation` from
+that exact main. It is the final scheduled implementation PR in this plan.
 
 | Measure | Current value |
 |---|---:|
@@ -115,8 +116,10 @@ These deterministic measurements do not establish model-token or population beha
 retained live Codex comparison still shows an `fr` context premium. The `fr` route uses 17,711
 measured context tokens and 42 calls; direct files use 11,182 tokens and 17 calls. PR 35 reduces an intent-bound change
 from three processes to two, while its complete request and response traffic is 272 bytes larger.
-The next milestones must improve route selection and exposed interaction count rather than infer a
-saving from internal composition alone.
+PR 40's passing guided cohort establishes route completion rather than a direct-file comparison. Its
+two sessions complete seven workflow families through twenty actions with 369,267 input tokens,
+318,976 cached input tokens, 3,896 output tokens and 430 reasoning-output tokens. Future context
+claims require a matched direct-file cohort rather than an inference from internal composition.
 
 ## Remaining gaps
 
@@ -136,8 +139,9 @@ saving from internal composition alone.
    remain named unsupported features rather than inferred behavior.
 4. **Support is uneven across languages.** Basic structure is broad; semantic authoring, call
    analysis, translation, framework migration and formalization have smaller support matrices.
-5. **The live-agent context target is unmet.** The retained live comparison predates unified
-   delivery. No live-agent result establishes the new routes' context benefit.
+5. **Live-agent context savings remain unproved.** The completed guided cohort validates routing,
+   bounded handoffs and previews. It does not compare those sessions against matched direct-file
+   agents, so it establishes no token or quota saving.
 6. **Static source has a tested analysis boundary.** B5 now records indirect calls and dead-code
    conclusions that source cannot settle. The report preserves these cases as uncertainty.
 
@@ -150,7 +154,7 @@ its public contract changes.
 | PR | Outcome | Status |
 |---|---|---|
 | PR 39 | Generic Hierarchical Framework Transformation | [PR 311](https://github.com/e6qu/fun-refactor/pull/311) merged |
-| PR 40 | Completion Audit and Agent Validation | In progress |
+| PR 40 | Completion Audit and Agent Validation | Implementation and local acceptance complete |
 
 ### PR 39. Generic Hierarchical Framework Transformation
 
@@ -263,6 +267,10 @@ Implemented on the current branch:
   It retains complete prompts, events, byte counts and tokenizer usage; billed quota is unavailable.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
+- Final local validation passes the default and WASM gates and all 101 exhaustive Lean kernel tests.
+  It passes fourteen repository agreement audits, translation conformance, seven round trips, seven
+  self-translations and the pinned external replay. A fresh production WASM build passes TypeScript,
+  Vite and all six browser programs, including forty rename-fidelity scale checks with no defect.
 
 Deliverables:
 
@@ -297,6 +305,10 @@ Acceptance:
 5. Capability, proof and framework reports make no stronger claim than their evidence supports.
 6. Default, WASM, playground, every pinned language toolchain, Python, strict Lean, deep audit,
    external replay, prose and documentation gates pass on the final review head.
+
+PR 40 satisfies these acceptance conditions locally. CI remains the independent clean-run evidence
+for the review head. After it merges, the numbered roadmap is complete; the remaining gaps above are
+explicit semantic or evidentiary boundaries and require new scoped proposals before implementation.
 
 ## Product invariants
 
