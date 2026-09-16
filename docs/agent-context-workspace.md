@@ -95,6 +95,12 @@ session and completeness evidence are all true. Rust and Lean agree on 32,768 bo
 Python and Rust agree on the same corpus. A real three-section trace test exercises the Python
 compiler against `fr`, including sibling traversal and content-addressed storage.
 
+`FrKernels.AgentIntent.actionMode` models intent-bound change admission. Preview requires the
+`change` purpose, a complete action and no write or basis. Execution requires the same purpose and
+action plus write intent and an exact supplied basis. Lean proves both characterizations, and Rust
+agrees over all 112 public-purpose and Boolean cases. Task planning, source verification, checks,
+history and filesystems remain integration-tested boundaries.
+
 ## Controlled comparison
 
 The retained generic fixture materializes the same code map in both arms with 16 internal `fr`

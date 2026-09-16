@@ -293,6 +293,22 @@ compact JSON bytes. It performs no progressive-disclosure subprocess calls. Miss
 handles, cross-purpose sections, unknown fields and packets beyond the requested 1–64 KiB limit
 refuse without returning a partial selection.
 
+A `change` intent may also carry one direct reviewed task change under `action.task_change`. Its
+`requests` array must be empty, it must contain exactly one target and that literal target must equal
+the intent target. `action.diff_bytes` defaults to 4,096; `action.report_bytes` defaults to 65,536.
+Preview returns the evidence selections and an `fr-agent-action-1` review under the same packet
+ceiling:
+
+```json
+{"schema":"fr-agent-intent-1","target":"frp1:...","purpose":"change","needs":[{"name":"map","section":"code_map","pointer":"/target"}],"token_limit":4096,"call_limit":192,"packet_limit":65536,"action":{"task_change":{"schema":"fr-task-change-1","requests":[],"targets":[{"id":"body","handle":"frp1:...","op":"replace-body-semantic","fragment":"{\"schema\":\"fr-semantic-body-1\",...}"}],"postconditions":{"files-changed":1,"changed-operations":1},"checks":["unit"],"delivery":{"check-original":true,"compact-success":true,"exercise-reversal":true,"patch":"artifacts/change.patch","check-output-bytes":2048}},"diff_bytes":4096,"report_bytes":65536}}
+```
+
+Execute the unchanged review with `fr --json intent --from INTENT.json --write --basis <FRAA1>`.
+The outer basis commits the exact intent and task-change basis. Preview remains read-only. Write
+rebuilds all evidence before the established task-change lifecycle records history, runs declared
+checks, exercises requested undo/redo and delivers the Git patch. Wrong purposes, indirect targets,
+stale source, changed manifests and mismatched bases refuse before history creation.
+
 ## Finding work
 
 ### `fr duplicates`

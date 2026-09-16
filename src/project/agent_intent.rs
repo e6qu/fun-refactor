@@ -20,6 +20,14 @@ pub struct Options {
         help = "Declarative fr-agent-intent-1 path, or - for standard input; at most 64 KiB."
     )]
     from: PathBuf,
+    #[arg(long, help = "Execute one unchanged reviewed change intent.")]
+    pub(crate) write: bool,
+    #[arg(
+        long,
+        requires = "write",
+        help = "Complete intent-action basis returned by preview."
+    )]
+    pub(crate) basis: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -44,7 +52,7 @@ impl Purpose {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Need {
     pub(super) name: String,
@@ -53,7 +61,7 @@ pub(super) struct Need {
     pub(super) pointer: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Manifest {
     schema: String,
@@ -63,14 +71,37 @@ pub(super) struct Manifest {
     pub(super) token_limit: usize,
     pub(super) call_limit: usize,
     pub(super) packet_limit: usize,
+    #[serde(default)]
+    action: Option<Action>,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct Action {
+    task_change: Value,
+    #[serde(default = "default_diff_bytes")]
+    diff_bytes: usize,
+    #[serde(default = "default_report_bytes")]
+    report_bytes: usize,
 }
 
 pub(crate) struct Compiled {
     pub(crate) report: Value,
+    pub(crate) action: Option<super::task_change::Prepared>,
+    pub(crate) action_diff_bytes: usize,
+    pub(crate) purpose: usize,
     needs: usize,
     sections: usize,
     call_limit: usize,
     packet_limit: usize,
+}
+
+fn default_diff_bytes() -> usize {
+    4_096
+}
+
+fn default_report_bytes() -> usize {
+    65_536
 }
 
 fn read_input(root: &Path, path: &Path) -> Result<Vec<u8>> {
@@ -186,6 +217,32 @@ impl Manifest {
             sections.len() <= 8,
             "agent intent reaches at most eight evidence sections."
         );
+        if let Some(action) = &self.action {
+            ensure!(
+                matches!(self.purpose, Purpose::Change),
+                "agent intent actions require purpose 'change'."
+            );
+            let requests = action.task_change["requests"].as_array();
+            let targets = action.task_change["targets"].as_array();
+            ensure!(
+                requests.is_some_and(Vec::is_empty)
+                    && targets.is_some_and(|targets| targets.len() == 1),
+                "agent intent action requires one direct task-change target and no project requests."
+            );
+            ensure!(
+                targets.and_then(|targets| targets[0]["handle"].as_str())
+                    == Some(self.target.as_str()),
+                "agent intent action target must equal the intent target."
+            );
+            ensure!(
+                action.diff_bytes <= 65_536,
+                "agent intent action diff limit must be at most 65536 bytes."
+            );
+            ensure!(
+                (256..=1_048_576).contains(&action.report_bytes),
+                "agent intent action report limit must be 256 through 1048576 bytes."
+            );
+        }
         Ok(sections.len())
     }
 }
@@ -205,13 +262,47 @@ impl Project<'_> {
         let sections = manifest.validate()?;
         let manifest_sha256 = hex::encode(Sha256::digest(&input));
         let report = self.native_intent_packet(&manifest, &manifest_sha256)?;
+        let action = manifest
+            .action
+            .as_ref()
+            .map(|action| {
+                let bytes = serde_json::to_vec(&action.task_change)?;
+                self.task_change_bytes(&bytes, action.diff_bytes, action.report_bytes)
+            })
+            .transpose()?;
         Ok(Compiled {
             report,
+            action,
+            action_diff_bytes: manifest
+                .action
+                .as_ref()
+                .map_or(0, |action| action.diff_bytes),
+            purpose: manifest.purpose.code(),
             needs: manifest.needs.len(),
             sections,
             call_limit: manifest.call_limit,
             packet_limit: manifest.packet_limit,
         })
+    }
+}
+
+pub fn agent_action_mode(
+    purpose: usize,
+    action_complete: bool,
+    write: bool,
+    basis_supplied: bool,
+    basis_matches: bool,
+) -> usize {
+    match (
+        purpose,
+        action_complete,
+        write,
+        basis_supplied,
+        basis_matches,
+    ) {
+        (2, true, false, false, _) => 0,
+        (2, true, true, true, true) => 1,
+        _ => 2,
     }
 }
 

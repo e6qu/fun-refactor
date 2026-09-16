@@ -1,0 +1,118 @@
+{
+  "bindings": {
+    "sdk/python/src/fr_ir/intent.py": "06ab029f47201185ed0be32983900b9e3e9c3298f6d6ef574e856fdfdecc38a4",
+    "sdk/python/src/fr_ir/runtime.py": "5328f85491c6c57cec025e25733a68b4cefc99903ca6a2d28f9339db1c2c601f",
+    "src/cli.rs": "d44e5a0dfcda96ead4271702303668e8bd9d027a5d0e0d9fe392502ab340ac93",
+    "src/project/agent_intent.rs": "70dd9e2f9e417066ae154666714521ba73cf4219079456a8826477c21b9c185f",
+    "src/project/task_change.rs": "60d325f2e459ebe9f77903742749702ecba42170155ba551307e69b796af14ee",
+    "tools/intent-action-context.py": "38a708d500269e293636713815f58143f677c8994384ff58b5b7d612fc2e0b80"
+  },
+  "claim": "Deterministic process and serialized-byte comparison; no model, token, quota or population claim.",
+  "composed": {
+    "basis_kind": "frtc1",
+    "exchange_bytes": 11549,
+    "patch_sha256": "e6e9afc7a87f3ba463e73a3db8a9f182eade925f88bb81c27bbb8a65a62fc7ba",
+    "process_calls": 3,
+    "request_bytes": 1385,
+    "response_bytes": 10164,
+    "source_sha256": "6941f4ad290389afadf1814f82aa6124285a6993733fc5d5c5478229bcee6822",
+    "stages": [
+      {
+        "stage": "check-original",
+        "status": "passed"
+      },
+      {
+        "stage": "apply",
+        "status": "passed"
+      },
+      {
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "stage": "undo",
+        "status": "passed"
+      },
+      {
+        "stage": "check-restored",
+        "status": "passed"
+      },
+      {
+        "stage": "redo",
+        "status": "passed"
+      },
+      {
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "stage": "deliver-patch",
+        "status": "passed"
+      }
+    ],
+    "transaction_status": "applied"
+  },
+  "cost": {
+    "exchange_bytes": 272,
+    "request_bytes": 354
+  },
+  "equality": {
+    "patch_sha256": true,
+    "source_sha256": true,
+    "stages": true,
+    "transaction_status": true
+  },
+  "fixture": {
+    "purpose": "change",
+    "source_sha256": "19619304366e75a6d7d510b7905700aa416f527321a8bf324217ffa2883106cf"
+  },
+  "intent_action": {
+    "basis_kind": "fraa1",
+    "exchange_bytes": 11821,
+    "patch_sha256": "e6e9afc7a87f3ba463e73a3db8a9f182eade925f88bb81c27bbb8a65a62fc7ba",
+    "process_calls": 2,
+    "request_bytes": 1739,
+    "response_bytes": 10082,
+    "source_sha256": "6941f4ad290389afadf1814f82aa6124285a6993733fc5d5c5478229bcee6822",
+    "stages": [
+      {
+        "stage": "check-original",
+        "status": "passed"
+      },
+      {
+        "stage": "apply",
+        "status": "passed"
+      },
+      {
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "stage": "undo",
+        "status": "passed"
+      },
+      {
+        "stage": "check-restored",
+        "status": "passed"
+      },
+      {
+        "stage": "redo",
+        "status": "passed"
+      },
+      {
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "stage": "deliver-patch",
+        "status": "passed"
+      }
+    ],
+    "transaction_status": "applied"
+  },
+  "reduction": {
+    "process_calls": 1,
+    "response_bytes": 82
+  },
+  "schema": "fr-intent-action-context-1"
+}

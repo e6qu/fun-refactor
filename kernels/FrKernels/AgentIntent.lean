@@ -72,4 +72,35 @@ theorem admitted_intent_matches_all_evidence
   simp [admitted] at accepted
   exact ⟨accepted.1.1.2, accepted.1.2, accepted.2⟩
 
+-- fr:spec src/project/agent_intent.rs::agent_action_mode @ f8c5adf9fedce1bb11b50eb60b690833549f6e91724cf59bb17d065ed612fc7c
+-- fr:signature purpose: usize => purpose: Nat; action_complete: bool => actionComplete: Bool; write: bool => write: Bool; basis_supplied: bool => basisSupplied: Bool; basis_matches: bool => basisMatches: Bool; return: usize => return: Nat
+def actionMode
+    (purpose : Nat)
+    (actionComplete : Bool)
+    (write : Bool)
+    (basisSupplied : Bool)
+    (basisMatches : Bool) : Nat :=
+  if purpose == 2 && actionComplete && !write && !basisSupplied then 0
+  else if purpose == 2 && actionComplete && write && basisSupplied && basisMatches then 1
+  else 2
+
+theorem action_preview_is_exact
+    (purpose : Nat)
+    (actionComplete write basisSupplied basisMatches : Bool) :
+    actionMode purpose actionComplete write basisSupplied basisMatches = 0 ↔
+      purpose = 2 ∧ actionComplete = true ∧ write = false ∧ basisSupplied = false := by
+  by_cases h : purpose = 2 <;>
+    cases actionComplete <;> cases write <;> cases basisSupplied <;> cases basisMatches <;>
+      simp_all [actionMode]
+
+theorem action_execution_is_exact
+    (purpose : Nat)
+    (actionComplete write basisSupplied basisMatches : Bool) :
+    actionMode purpose actionComplete write basisSupplied basisMatches = 1 ↔
+      purpose = 2 ∧ actionComplete = true ∧ write = true ∧
+        basisSupplied = true ∧ basisMatches = true := by
+  by_cases h : purpose = 2 <;>
+    cases actionComplete <;> cases write <;> cases basisSupplied <;> cases basisMatches <;>
+      simp_all [actionMode]
+
 end FrKernels.AgentIntent
