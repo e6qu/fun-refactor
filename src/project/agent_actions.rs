@@ -363,13 +363,10 @@ impl Project<'_> {
                 prepared.delivery(&self.root, checks, delivery)?;
             }
             Operation::PropertyTask {} => {
-                ensure!(
-                    node.symbol.is_some(),
-                    "property task intent requires a declaration target."
-                );
+                let target = self.formal_intent_target(&intent.target)?;
                 prepared.report["plan"] = serde_json::to_value(crate::spec::property_task(
                     &self.root,
-                    &format!("{}::{}", node.path.display(), node.name),
+                    &target,
                     intent.token_limit,
                 )?)?;
                 prepared.targets.push(intent.target.clone());
@@ -597,11 +594,7 @@ impl Project<'_> {
                 checks,
                 delivery,
             } => {
-                ensure!(
-                    node.symbol.is_some(),
-                    "formal plan intent requires a declaration target."
-                );
-                let target = format!("{}::{}", node.path.display(), node.name);
+                let target = self.formal_intent_target(&intent.target)?;
                 let plan = crate::spec::formal_plan_from_agent_specs(
                     &self.root,
                     &target,
@@ -914,6 +907,22 @@ impl Project<'_> {
             "authored intent operation differs from its navigator goal."
         );
         Ok(())
+    }
+
+    fn formal_intent_target(&self, target: &str) -> Result<String> {
+        let node = &self.nodes[self.resolve_handle(target)?];
+        let name = if node.kind == "file"
+            && crate::lang::detect(&node.path)
+                .is_some_and(|language| language.class() == crate::lang::LanguageClass::Config)
+        {
+            "__fr_structure__".into()
+        } else {
+            node.symbol
+                .and_then(|id| self.index.symbol(id))
+                .context("formal intent requires a declaration or a declarative file target")?
+                .qualified_name()
+        };
+        Ok(format!("{}::{name}", node.path.display()))
     }
 
     fn require_intent_path(&self, target: &str, paths: &[PathBuf]) -> Result<()> {

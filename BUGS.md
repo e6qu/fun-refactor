@@ -67,6 +67,31 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B913: **explicit Lean signature maps treated grouped binders as one name**. The checker
+  now expands each identifier with its shared type, matching the shared Lean reader.
+  The resource-policy anchor and grouped Boolean signature regression exercise this surface.
+
+- [x] B912: **proof replacement removed end-marker indentation**. The planner now replaces complete
+  content lines and preserves the following marker line. Unchanged regeneration stays byte-identical
+  after checked proofs, including undo and redo fixtures across typed source languages.
+
+- [x] B911: **formalization merged equal static method names across Java classes**. Selected Java
+  declarations and signatures now parse inside an isolated enclosing class. Non-Rust generated model
+  names include their module identity, allowing equal names from different language files in one package.
+
+- [x] B910: **candidate discovery silently discarded failed imperative reads**. Discovery now retains
+  extracted declarations and reports their exact semantic refusal. Declarative files get explicit
+  structural targets with bounded facts, omissions and provenance constraints.
+
+- [x] B909: **pure model generation accepted external names and inconsistent expression types**.
+  Indexed binding compilation and static checks reject unbound names, duplicate parameters and
+  mismatched operators or returns before generated model writes.
+
+- [x] B908: **JSON string escaping could emit invalid Lean escapes**. Reviewed Lean quotation now
+  encodes control characters with Unicode escapes, including record field names. Executable Lean
+  corpus fixtures cover controls, literal backslashes and Unicode without changing their values.
+
+
 - [x] B907: **intent proof staging bypassed the shared filesystem boundary**. Package reads and
   staged text writes now use the VFS. Byte reads preserve binary assets and follow the active
   workspace; proof reviews also bind package asset bytes and refuse changed assets before writing.

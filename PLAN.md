@@ -35,10 +35,11 @@ construct, or claiming general source equivalence from a translated Lean model.
 
 ## Current state
 
-The project has merged PRs 0 through 36. The latest checkpoint is
-[GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305), which adds the language-aware workflow navigator.
-PR 37 is ready for review on `general_intent_actions`. It adds unified tagged operations,
+The project has merged PRs 0 through 37. The latest checkpoint is
+[GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), with unified tagged operations,
 multi-target Merkle evidence and checked agent-authored proof delivery through the existing planners.
+PR 38 is in progress on `cross_language_formalization`, rebased onto merged main commit `3b5b610d`.
+The complete PR 38 acceptance gates below remain the delivery requirements.
 
 | Measure | Current value |
 |---|---:|
@@ -47,7 +48,7 @@ multi-target Merkle evidence and checked agent-authored proof delivery through t
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 753 |
+| Fixed defects | 759 |
 | Open defects | 1 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -142,8 +143,8 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 37 | General Intent Actions and Proof Delivery | Ready for review |
-| PR 38 | Cross-Language Formalization and Correspondence | Planned |
+| PR 37 | General Intent Actions and Proof Delivery | Merged (#307) |
+| PR 38 | Cross-Language Formalization and Correspondence | In progress |
 | PR 39 | Generic Hierarchical Framework Transformation | Planned |
 | PR 40 | Completion Audit and Agent Validation | Planned |
 

@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from .intent import AgentIntent, CompiledIntent, IntentResult, PreparedIntent
     from .guide import AgentGoal, AgentGuide, GuideAction
     from .intent_actions import TaggedIntentAction
+    from .formal_kernel import KernelRequest, KernelResult
 
 
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
@@ -376,6 +377,13 @@ class FrClient:
     def project(self, *arguments: str) -> FrReport:
         """Run one structured project query."""
         return self.call("project", *arguments)
+
+    def kernel(self, request: KernelRequest, *, report_bytes: int = 65_536) -> KernelResult:
+        from .formal_kernel import KernelResult
+        data = request.to_data()
+        result = self.call("spec", "kernel", "--from", "-", "--report-bytes", str(report_bytes),
+                           input_bytes=json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+        return KernelResult.from_data(result.to_data(), request)
 
     def guide(self, goal: AgentGoal) -> AgentGuide:
         """Choose a deterministic workflow without exposing intermediate project reports."""

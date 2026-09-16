@@ -8,6 +8,7 @@ pub mod capabilities;
 pub mod checks;
 #[cfg(feature = "cli")]
 pub mod cli;
+pub mod formal_kernel;
 pub mod vfs;
 #[cfg(feature = "cli")]
 pub mod workflow;

@@ -127,6 +127,53 @@ fn build_kernel() {
 }
 
 #[test]
+fn pure_kernel_limit_policy_matches_rust_python_and_lean() {
+    build_kernel();
+    let mut expected = Vec::new();
+    for fuel in [0, 1, 64, 256, 257] {
+        for environment in [0, 64, 65] {
+            for nodes in [0, 4096, 4097] {
+                for depth in [0, 64, 65] {
+                    expected.push(
+                        fun_refactor::formal_kernel::kernel_limits_admitted(
+                            fuel,
+                            environment,
+                            nodes,
+                            depth,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-pure-kernel"))
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+    let output = Command::new("python3").args(["-c", "from itertools import product\nfrom fr_ir.formal_kernel import kernel_limits_admitted\nfor case in product([0,1,64,256,257],[0,64,65],[0,4096,4097],[0,64,65]):\n print(str(kernel_limits_admitted(*case)).lower())\n"]).env("PYTHONPATH", root().join("sdk/python/src")).output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
+#[test]
 fn formal_plan_admission_matches_lean_for_every_boolean_case() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

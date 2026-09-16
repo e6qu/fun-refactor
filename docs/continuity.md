@@ -1,8 +1,16 @@
 # Development continuity
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI
-jobs and its merged-main deep audit passed. PR 37 is ready for review on
-`general_intent_actions`, based on `origin/main` c0669dc.
+jobs and its merged-main deep audit passed. PR 37 merged as
+[GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), after release PR 306.
+
+PR 38 work in progress is on `cross_language_formalization`. Its current base is
+`origin/main` commit `3b5b610d653740c2d91f0e74f3aa0170893e85d8`, including both merges.
+The rebase excluded the four PR 37 commits that GitHub had already squash-merged.
+Tracked and untracked changes survived the temporary stash without conflicts.
+The new bounded IR evaluator, Python mirror, cross-language formalization and structural
+model work remain uncommitted. Complete PR 38 acceptance, full gates, public documentation,
+defect records and retained source-bound evaluations before publishing.
 
 The current implementation adds `fr-intent-action-2` with tagged operations for tasks, author
 batches, recipes, direct capabilities, framework migrations, project queries, surfaces, property tasks, formal

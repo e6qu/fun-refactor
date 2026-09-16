@@ -1,22 +1,79 @@
 # Agent formalization workbench
 
-`fr spec` can turn a deliberately small Rust function into a source-free, content-addressed
-formalization plan and a checked Lean proof workspace. The workflow is designed for agents: each
-step returns structured data, exact next commands and only the proof context selected by digest.
+`fr spec` turns admitted declarations or structural snapshots into source-free, content-addressed
+formalization plans and a checked Lean workspace. Each step returns structured data, exact actions
+and selected proof context. The agent writes the properties and proof tactics.
 
 ## Supported kernel
 
-Candidate generation currently admits top-level, synchronous Rust functions with explicit
-parameter and return types. Their bodies may contain pure expressions, immutable `let` bindings,
-complete `if` expressions and returns. Literals, names, tuples, lists, Boolean operators,
-comparisons, addition, subtraction and multiplication map to Lean. Calls, effects, mutation,
-unsafe code, partial indexing, division, remainder and implicit types refuse with a specific
-boundary instead of producing a speculative model.
+Typed, synchronous pure functions can formalize from Rust, Go, Java static methods, Python,
+TypeScript, TSX, Zig and Lean. Bodies admit immutable bindings, complete conditionals, returns,
+Boolean operations, selected integer arithmetic, strings, tuples and homogeneous lists.
+Candidate discovery retains refusals for untyped JavaScript/JSX, Bash, async handlers and other
+excluded declarations. Calls, effects, implicit receivers, mutation, defaults, floating-point
+coercion, partial source access and division policies require separate models.
 
-The generated model is deterministic for this subset. That establishes how `fr` translated its
-semantic IR; it does not by itself prove equivalence to the compiled Rust function. The plan keeps
-source identity, signature correspondence, model generation and implementation/model
-correspondence as separate evidence fields.
+The direct `fr-pure-kernel-1` evaluator additionally represents records, options, results, field
+access and indexing. It uses nearest-first indexed bindings and checked signed-64 arithmetic.
+Division truncates toward zero; remainder follows the dividend sign. Overflow, division by zero,
+missing bindings, type errors and missing fields/indexes produce explicit failures.
+Fuel ranges from 1 to 256, with 64 environment values, 4,096 input nodes and depth 64.
+Request and response ceilings limit serialized bytes separately.
+
+Generated source models use mathematical Lean `Int` or `Nat` arithmetic. Numeric source widths,
+overflow and language coercion remain separate obligations. Evaluation and translation alone
+supply no implementation equivalence proof.
+
+## Structural targets
+
+For HTML, CSS, SCSS, Sass, HCL, JSON, YAML, Helm, XML and Markdown, use
+`PATH::__fr_structure__`. The model checks retained byte spans, name containment and ordered
+immediate parent links. Each fact kind retains at most 32 rows; gap diagnostics retain 16.
+The IR records omitted counts, clipped names, confidence and its provenance policy.
+Parser completeness, omitted facts, rendering, configuration behavior and embedded execution remain unproved.
+Markdown containing Mermaid and HTML carrying Tailwind classes use this structural boundary.
+A file selector with a `formalize` guide goal selects this same workflow.
+
+Choose `retained-facts-wellformed` to create the structural validity obligation. Choose `ir-model`
+to relate the reviewed evaluator to the generated model. Both require agent-written tactics.
+
+## Kernel/model correspondence
+
+`ir-model` accepts at most eight Boolean inputs and a Boolean output, including structural snapshots.
+Its theorem states that Lean's reviewed kernel evaluator at fuel 256 returns the generated model's value.
+The package includes the exact reviewed semantic library. Scaffolding elaborates before history writes;
+proof checking needs no manual dependency build. Regeneration preserves the written proof regions.
+Strict checks refuse a changed semantic library.
+
+`spec evidence` reports `kernel_correspondence` rows with separate source, IR, term, model and
+semantic-library identities. A row reaches `checked_by_lean` only when the checked package retains
+the current generated definition and exact correspondence proposition.
+`source_implementation_proved` remains false. Parser extraction and source semantics still require evidence.
+General Lean laws cover binding resolution, shadowing, lifted indices, literal substitution,
+evaluation determinism, short-circuit behavior, arithmetic bounds and operator-tree grouping.
+Execution tests compare finite cases with executable Lean and installed source toolchains.
+They do not prove general source implementation equivalence.
+
+## Direct evaluation and Python mirror
+
+```python
+from fr_ir.formal_kernel import KernelRequest, KernelTerm, KernelValue
+from fr_ir.runtime import FrClient
+
+term = KernelTerm.let(
+    KernelTerm.literal(KernelValue("int", 3)),
+    KernelTerm.binary("add", KernelTerm.bound(0), KernelTerm.bound(1)),
+)
+result = FrClient(".").kernel(KernelRequest(term, (KernelValue("int", 7),)))
+assert result.passed and result.value == KernelValue("int", 10)
+```
+
+`fr spec kernel --from REQUEST --report-bytes 65536` accepts a regular JSON file or stdin (`-`).
+It reads no project source and writes no history. An admitted evaluation failure returns
+`passed: false` and a tagged failure; malformed requests or response ceilings fail the command.
+The SDK checks exact fields, native value bounds, policies, request identity and result identity.
+`FormalKernel.evaluation` mirrors language-neutral `SourceBinding` and `KernelEvidence` metadata.
+The legacy `FormalBinding.rust_type` wire field remains available through the `source_type` alias.
 
 ## Agent workflow
 

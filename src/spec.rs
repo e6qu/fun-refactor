@@ -83,7 +83,24 @@ pub struct Evidence {
     pub axiom_analysis: &'static str,
     pub trusted_components: Vec<&'static str>,
     pub correspondence: CorrespondenceEvidence,
+    pub kernel_correspondence: Vec<KernelCorrespondenceEvidence>,
     pub remaining_obligations: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct KernelCorrespondenceEvidence {
+    pub spec: PathBuf,
+    pub source: PathBuf,
+    pub symbol: String,
+    pub theorem: String,
+    pub source_hash: String,
+    pub ir_digest: String,
+    pub term_digest: String,
+    pub model_digest: String,
+    pub semantic_library_digest: String,
+    pub relation: &'static str,
+    pub status: &'static str,
+    pub source_implementation_proved: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -149,6 +166,31 @@ pub struct FormalKernel {
     pub output: FormalBinding,
     pub semantic_ir: serde_json::Value,
     pub lean_definition: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evaluation: Option<FormalEvaluation>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormalEvaluation {
+    pub schema: String,
+    pub source_language: String,
+    pub term: crate::formal_kernel::Term,
+    pub bindings: Vec<SourceBinding>,
+    pub ir_digest: String,
+    pub term_digest: String,
+    pub model_digest: String,
+    pub evaluator_arithmetic: String,
+    pub lean_arithmetic: String,
+    pub source_correspondence: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourceBinding {
+    pub name: String,
+    pub source_type: String,
+    pub lean_type: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -488,13 +530,13 @@ pub struct ProofAttemptActions {
 }
 
 pub fn formal_candidate_admitted(
-    source_is_rust: bool,
+    source_readable: bool,
     top_level: bool,
     typed: bool,
     pure: bool,
     body_supported: bool,
 ) -> bool {
-    source_is_rust && top_level && typed && pure && body_supported
+    source_readable && top_level && typed && pure && body_supported
 }
 
 pub fn formal_property_admitted(
@@ -843,33 +885,63 @@ pub fn formal_candidates(
         for entry in walker {
             let entry = entry?;
             let path = entry.path();
-            if !entry.file_type().is_some_and(|kind| kind.is_file())
-                || path.extension().is_none_or(|extension| extension != "rs")
-            {
+            if !entry.file_type().is_some_and(|kind| kind.is_file()) || detect(path).is_none() {
                 continue;
             }
-            let module = match crate::transpile::read_file(path) {
-                Ok(module) => module,
-                Err(_) => continue,
-            };
             let relative = path.strip_prefix(&root)?.to_path_buf();
-            for item in module.items {
-                let crate::transpile::ir::Item::Function(function) = item else {
-                    continue;
-                };
-                let target = format!("{}::{}", relative.display(), function.name);
-                let hash = declaration_hash(
-                    &mut Parsers::new(),
-                    &mut Extractor::new(),
-                    path,
-                    &function.name,
-                )?;
+            let source = crate::vfs::read_to_string(path)?;
+            let parsed = Parsers::new().parse(
+                detect(path).context("candidate language is missing")?,
+                &source,
+            )?;
+            let facts = Extractor::new().extract(&parsed, path, &source)?;
+            let module = crate::transpile::read_file(path);
+            let ir_names = module
+                .as_ref()
+                .map(|module| {
+                    formal_ir_functions(module)
+                        .into_iter()
+                        .map(|(_, function)| function.name.clone())
+                        .collect::<BTreeSet<_>>()
+                })
+                .unwrap_or_default();
+            let mut names = facts
+                .symbols
+                .iter()
+                .filter(|symbol| {
+                    symbol.kind.is_callable()
+                        || (symbol.kind == crate::model::SymbolKind::Variable
+                            && symbol.container.is_none()
+                            && ir_names.contains(&symbol.name))
+                })
+                .map(|symbol| symbol.qualified_name())
+                .collect::<Vec<_>>();
+            if detect(path)
+                .is_some_and(|language| language.class() == crate::lang::LanguageClass::Config)
+                || (names.is_empty() && module.is_err())
+            {
+                names.push("__fr_structure__".into());
+            }
+            for name in names {
+                let target = format!("{}::{name}", relative.display());
+                let hash =
+                    declaration_hash(&mut Parsers::new(), &mut Extractor::new(), path, &name)
+                        .unwrap_or_else(|_| hex::encode(Sha256::digest(source.as_bytes())));
                 let result = formal_function(&root, &target);
                 let (eligible, reason, suggested_properties) = match result {
                     Ok(formal) => (
                         true,
-                        "typed pure body maps to the deterministic Lean kernel subset".to_string(),
-                        suggested_properties(&formal.inputs, &formal.output),
+                        if name == "__fr_structure__" {
+                            "retained structural facts map to a provenance-bounded Lean model."
+                        } else {
+                            "typed pure body maps to the deterministic Lean kernel subset."
+                        }
+                        .to_string(),
+                        if name == "__fr_structure__" {
+                            vec!["retained-facts-wellformed", "ir-model"]
+                        } else {
+                            suggested_properties(&formal.inputs, &formal.output)
+                        },
                     ),
                     Err(error) => (false, error.to_string(), Vec::new()),
                 };
@@ -977,18 +1049,29 @@ pub(crate) fn formal_plan_from_agent_specs(
         output: formal.output,
         semantic_ir: formal.semantic_ir,
         lean_definition: formal.lean_definition,
+        evaluation: formal.evaluation,
     };
     let correspondence = FormalCorrespondence {
         source_identity: "sha256-anchored-declaration".into(),
-        signature_surface: "strict-rust-lean-map".into(),
+        signature_surface: if target.symbol == "__fr_structure__" {
+            "retained-structure-bool-map".into()
+        } else if detect(&target.source) == Some(crate::lang::Language::Rust) {
+            "strict-rust-lean-map".into()
+        } else {
+            "strict-source-ir-lean-map".into()
+        },
         model_generation: "deterministic-supported-semantic-ir".into(),
         implementation_model: "generated-model-with-executable-comparison-required".into(),
     };
-    let assumptions = vec![
-        "Rust parsing, semantic IR extraction and SHA-256 remain trusted.".into(),
+    let mut assumptions = vec![
+        format!("{} parsing, semantic IR extraction and SHA-256 remain trusted.", detect(&target.source).context("formal target has no source language")?),
         "The supported kernel excludes effects, mutation, calls, unsafe code and partial operations."
             .into(),
+        "Numeric widths, source overflow, floating-point coercion and native arithmetic require separate correspondence evidence; Int and Nat models use Lean arithmetic.".into(),
     ];
+    if target.symbol == "__fr_structure__" {
+        assumptions.push("The model checks retained byte spans and parent provenance only; omitted facts, parser completeness, style, rendering, configuration and embedded language execution are not proved.".into());
+    }
     let obligations = properties
         .iter()
         .map(|property| property.name.clone())
@@ -1097,7 +1180,40 @@ pub(crate) fn scaffold_formal_plan(
     if parsed.has_errors() {
         bail!("generated formal kernel did not parse as Lean; no files changed.");
     }
-    check_generated_formal_module(&package_plan.package, &updated)?;
+    let needs_kernel = expected
+        .properties
+        .iter()
+        .any(|property| property.kind == "ir-model");
+    let mut kernel_files = Vec::new();
+    let checker = if needs_kernel {
+        let path = package_plan.package.join("FrSpecs/PureKernel.lean");
+        let original = match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_file() => crate::vfs::read_to_string(&path)?,
+            Ok(_) => bail!("formal semantic library must be a regular file."),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(error) => return Err(error.into()),
+        };
+        if !original.is_empty() && original != crate::formal_kernel::LEAN_SOURCE {
+            bail!("existing formal semantic library differs from the reviewed fr kernel.");
+        }
+        if original != crate::formal_kernel::LEAN_SOURCE {
+            kernel_files.push(ScaffoldFile {
+                path,
+                original,
+                updated: crate::formal_kernel::LEAN_SOURCE.into(),
+            });
+        }
+        format!(
+            "{}\n{}",
+            crate::formal_kernel::LEAN_SOURCE,
+            updated
+                .strip_prefix("import FrSpecs.PureKernel\n")
+                .context("IR correspondence module is missing its semantic import")?
+        )
+    } else {
+        updated.clone()
+    };
+    check_generated_formal_module(&package_plan.package, &checker)?;
     let root_path = package_plan.package.join("FrSpecs.lean");
     let root_original = crate::vfs::read_to_string(&root_path)?;
     let import = format!("import FrSpecs.{}", expected.kernel.module);
@@ -1106,6 +1222,20 @@ pub(crate) fn scaffold_formal_plan(
     } else {
         format!("{import}\n{root_original}")
     };
+    let regenerated = !original.is_empty();
+    let mut files = vec![
+        ScaffoldFile {
+            path: model_path,
+            original,
+            updated,
+        },
+        ScaffoldFile {
+            path: root_path,
+            original: root_original,
+            updated: root_updated,
+        },
+    ];
+    files.extend(kernel_files);
     Ok(FormalScaffoldPlan {
         plan_digest: expected.object_digest,
         source: expected.target.source,
@@ -1113,20 +1243,9 @@ pub(crate) fn scaffold_formal_plan(
         model: expected.kernel.model,
         module: expected.kernel.module,
         obligations: expected.properties.len(),
-        regenerated: !original.is_empty(),
+        regenerated,
         proof_bytes_preserved,
-        files: vec![
-            ScaffoldFile {
-                path: model_path,
-                original,
-                updated,
-            },
-            ScaffoldFile {
-                path: root_path,
-                original: root_original,
-                updated: root_updated,
-            },
-        ],
+        files,
     })
 }
 
@@ -1480,8 +1599,11 @@ fn prepare_proof(root: &Path, target: &str, proof_path: &Path) -> Result<ProofPl
         .map(|offset| starts[0].0 + offset + 1)
         .context("proof begin marker needs a following line")?;
     let content_end = original[..ends[0].0]
-        .rfind("  -- fr:proof-end")
-        .unwrap_or(ends[0].0);
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    if !original[content_end..ends[0].0].trim().is_empty() {
+        bail!("proof end marker must occupy its own line.");
+    }
     let rendered = proof
         .lines()
         .map(|line| format!("  {line}\n"))
@@ -1515,13 +1637,12 @@ fn check_prepared_proof(
     token_limit: usize,
 ) -> Result<ProofAttempt> {
     let package = checked_proof_package(root, &prepared.spec)?;
+    let checker_source = reviewed_kernel_context(&package, &prepared.updated)?;
     let mut scratch = tempfile::Builder::new()
         .prefix("fr-proof-check-")
         .suffix(".lean")
         .tempfile()?;
-    scratch
-        .as_file_mut()
-        .write_all(prepared.updated.as_bytes())?;
+    scratch.as_file_mut().write_all(checker_source.as_bytes())?;
     scratch.as_file_mut().flush()?;
     let output = Command::new("lake")
         .args(["env", "lean"])
@@ -1632,14 +1753,31 @@ fn check_generated_formal_module(package: &Path, source: &str) -> Result<()> {
         .output()
         .context("running Lean property elaboration")?;
     if !output.status.success() {
-        let diagnostic = String::from_utf8_lossy(&output.stderr)
-            .replace(&scratch.path().display().to_string(), "<PROPERTY_CHECK>")
-            .chars()
-            .take(2_048)
-            .collect::<String>();
+        let diagnostic = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+        .replace(&scratch.path().display().to_string(), "<PROPERTY_CHECK>")
+        .chars()
+        .take(2_048)
+        .collect::<String>();
         bail!("generated formal property failed Lean elaboration: {diagnostic}");
     }
     Ok(())
+}
+
+fn reviewed_kernel_context(package: &Path, source: &str) -> Result<String> {
+    let Some(model) = source.strip_prefix("import FrSpecs.PureKernel\n") else {
+        return Ok(source.into());
+    };
+    let path = package.join("FrSpecs/PureKernel.lean");
+    if !std::fs::symlink_metadata(&path)?.is_file()
+        || crate::vfs::read_to_string(&path)? != crate::formal_kernel::LEAN_SOURCE
+    {
+        bail!("formal semantic library differs from the reviewed fr kernel.");
+    }
+    Ok(format!("{}\n{model}", crate::formal_kernel::LEAN_SOURCE))
 }
 
 fn checked_proof_package(root: &Path, spec: &Path) -> Result<PathBuf> {
@@ -1812,6 +1950,7 @@ pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result
     let files = spec_files(root, inputs, respect_ignore)?;
     let mut properties = Vec::new();
     let mut declared_assumptions = Vec::new();
+    let mut kernel_correspondence = Vec::new();
     let parsers = Parsers::new();
     let mut extractor = Extractor::new();
     for spec in files {
@@ -1824,6 +1963,57 @@ pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result
             .iter()
             .find(|report| report.package == package)
             .is_some_and(|report| report.passed);
+        if source.starts_with("import FrSpecs.PureKernel\n") {
+            for (_, path, symbol, _) in anchors_in(&source)? {
+                let target = format!("{}::{symbol}", path.display());
+                let Ok(formal) = formal_function(root, &target) else {
+                    continue;
+                };
+                let Ok(property) = formal_property("ir-model", &formal) else {
+                    continue;
+                };
+                let Some(evaluation) = formal.evaluation.as_ref() else {
+                    continue;
+                };
+                let expected = format!("theorem {} {} := by", property.name, property.proposition);
+                let exact_theorem = facts.symbols.iter().any(|symbol| {
+                    symbol.kind.is_callable()
+                        && symbol
+                            .full_span
+                            .text(&source)
+                            .trim_start()
+                            .starts_with(&expected)
+                });
+                let exact_model = facts.symbols.iter().any(|symbol| {
+                    symbol
+                        .full_span
+                        .text(&source)
+                        .trim_start()
+                        .starts_with(&formal.lean_definition)
+                        && symbol.full_span.text(&source).trim() == formal.lean_definition
+                });
+                kernel_correspondence.push(KernelCorrespondenceEvidence {
+                    spec: spec.clone(),
+                    source: path,
+                    symbol,
+                    theorem: format!("FrSpecs.{}", property.name),
+                    source_hash: formal.source_hash,
+                    ir_digest: evaluation.ir_digest.clone(),
+                    term_digest: evaluation.term_digest.clone(),
+                    model_digest: evaluation.model_digest.clone(),
+                    semantic_library_digest: crate::project::object_merkle(&serde_json::json!(
+                        crate::formal_kernel::LEAN_SOURCE
+                    ))?,
+                    relation: "reviewed-kernel-evaluation-equals-generated-model",
+                    status: if package_passed && exact_theorem && exact_model {
+                        "checked_by_lean"
+                    } else {
+                        "unchecked"
+                    },
+                    source_implementation_proved: false,
+                });
+            }
+        }
         for symbol in facts.symbols {
             let declaration = symbol.full_span.text(&source).trim_start();
             let keyword = declaration.split_whitespace().next().unwrap_or("");
@@ -1869,7 +2059,7 @@ pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result
         })
         .collect::<Vec<_>>();
     remaining_obligations.push(
-        "No proof currently connects each Rust implementation to its Lean model.".to_string(),
+        "No proof currently connects each source implementation to its Lean model.".to_string(),
     );
     Ok(Evidence {
         schema: 1,
@@ -1889,6 +2079,7 @@ pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result
             tested_implementation_model: false,
             proved_implementation_model: false,
         },
+        kernel_correspondence,
         remaining_obligations,
     })
 }
@@ -1985,13 +2176,215 @@ struct FormalFunction {
     output: FormalBinding,
     semantic_ir: serde_json::Value,
     lean_definition: String,
+    evaluation: Option<FormalEvaluation>,
+}
+
+fn structural_formal_function(
+    source: &Path,
+    path: &Path,
+    language: crate::lang::Language,
+) -> Result<FormalFunction> {
+    use crate::formal_kernel::{Operator, Term, Value};
+    let text = crate::vfs::read_to_string(path)?;
+    let parsed = Parsers::new().parse(language, &text)?;
+    if parsed.has_errors() {
+        bail!("structural formalization requires a syntax-valid source; embedded execution requires its own model.");
+    }
+    let facts = Extractor::new().extract(&parsed, path, &text)?;
+    let mut spans = Vec::new();
+    let mut provenance_checks = Vec::new();
+    let symbols = facts.symbols.iter().take(32).map(|symbol| {
+        spans.push(symbol.full_span);
+        spans.push(symbol.name_span);
+        provenance_checks.extend([(symbol.full_span.start, symbol.name_span.start), (symbol.name_span.end, symbol.full_span.end)]);
+        serde_json::json!({"id": symbol.id.0, "kind": symbol.kind, "name": symbol.name.chars().take(256).collect::<String>(), "name_omitted_characters": symbol.name.chars().count().saturating_sub(256), "span": symbol.full_span, "name_span": symbol.name_span, "container": symbol.container, "scope": symbol.scope})
+    }).collect::<Vec<_>>();
+    let references = facts.references.iter().take(32).map(|reference| {
+        spans.push(reference.span);
+        serde_json::json!({"span": reference.span, "scope": reference.scope, "target": reference.target, "confidence": reference.confidence, "kind": reference.kind})
+    }).collect::<Vec<_>>();
+    let mut provenance = true;
+    let scopes = facts.scopes.iter().take(32).map(|scope| {
+        spans.push(scope.span);
+        let parent = scope.parent.and_then(|parent| facts.scopes.iter().find(|candidate| candidate.id == parent));
+        if scope.parent.is_some() && parent.is_none() { provenance = false; }
+        if let Some(parent) = parent {
+            spans.push(parent.span);
+            provenance_checks.extend([(parent.span.start, scope.span.start), (scope.span.end, parent.span.end), (parent.id.0 as usize + 1, scope.id.0 as usize)]);
+        }
+        serde_json::json!({"id": scope.id, "span": scope.span, "parent": scope.parent, "parent_span": parent.map(|parent| parent.span)})
+    }).collect::<Vec<_>>();
+    let imports = facts
+        .imports
+        .iter()
+        .take(32)
+        .map(|import| {
+            spans.push(import.span);
+            serde_json::json!({"span": import.span})
+        })
+        .collect::<Vec<_>>();
+    if text.len() > i64::MAX as usize
+        || spans.iter().any(|span| {
+            span.start > span.end
+                || span.end > text.len()
+                || !text.is_char_boundary(span.start)
+                || !text.is_char_boundary(span.end)
+        })
+        || !provenance
+        || provenance_checks.iter().any(|(left, right)| left > right)
+    {
+        bail!("retained facts have invalid byte spans or immediate-parent provenance; no structural model generated.");
+    }
+    let semantic_ir = serde_json::json!({"schema": "fr-structural-kernel-1", "source_bytes": text.len(), "symbols": symbols, "references": references, "scopes": scopes, "imports": imports, "omitted": {"symbols": facts.symbols.len().saturating_sub(32), "references": facts.references.len().saturating_sub(32), "scopes": facts.scopes.len().saturating_sub(32), "imports": facts.imports.len().saturating_sub(32), "gaps": facts.gaps.len().saturating_sub(16)}, "gaps": facts.gaps.iter().take(16).map(|gap| format!("{gap:?}").chars().take(256).collect::<String>()).collect::<Vec<_>>(), "parser_completeness": false, "runtime_semantics": false, "provenance_checks": provenance_checks, "provenance_policy": "retained-name-containment-and-ordered-immediate-parents", "fact_limit_per_kind": 32});
+    let literal = |value| Term::Value {
+        value: Value::Int(value),
+    };
+    let comparison = |left, right| Term::Binary {
+        operator: Operator::Le,
+        left: Box::new(literal(left)),
+        right: Box::new(literal(right)),
+    };
+    let mut terms = spans
+        .iter()
+        .flat_map(|span| {
+            [
+                comparison(span.start as i64, span.end as i64),
+                comparison(span.end as i64, text.len() as i64),
+            ]
+        })
+        .collect::<Vec<_>>();
+    terms.extend(
+        provenance_checks
+            .iter()
+            .map(|(left, right)| comparison(*left as i64, *right as i64)),
+    );
+    terms.push(Term::Value {
+        value: Value::Bool(provenance),
+    });
+    while terms.len() > 1 {
+        terms = terms
+            .chunks(2)
+            .map(|pair| {
+                if pair.len() == 1 {
+                    pair[0].clone()
+                } else {
+                    Term::Binary {
+                        operator: Operator::And,
+                        left: Box::new(pair[0].clone()),
+                        right: Box::new(pair[1].clone()),
+                    }
+                }
+            })
+            .collect();
+    }
+    let term = terms.pop().context("structural term is empty")?;
+    crate::formal_kernel::evaluate(&term, &[], 64).map_err(|failure| {
+        anyhow::anyhow!("structural term exceeds the executable kernel boundary: {failure:?}")
+    })?;
+    let model = format!(
+        "{}Model",
+        lower_identifier(&scaffold_module(source, "__fr_structure__"))
+    );
+    let span_list = spans
+        .iter()
+        .map(|span| format!("({}, {})", span.start, span.end))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let provenance_list = provenance_checks
+        .iter()
+        .map(|(left, right)| format!("({left}, {right})"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let lean_definition = format!("def {model} : Bool :=\n  ([{span_list}] : List (Nat × Nat)).all (fun span => decide (span.1 ≤ span.2 ∧ span.2 ≤ {})) && ([{provenance_list}] : List (Nat × Nat)).all (fun pair => decide (pair.1 ≤ pair.2))", text.len());
+    let output = FormalBinding {
+        name: "return".into(),
+        rust_type: "bool".into(),
+        lean_type: "Bool".into(),
+    };
+    let evaluation = FormalEvaluation {
+        schema: "fr-formal-evaluation-1".into(),
+        source_language: language.to_string(),
+        term_digest: crate::project::object_merkle(&serde_json::to_value(&term)?)?,
+        term,
+        bindings: vec![SourceBinding {
+            name: output.name.clone(),
+            source_type: output.rust_type.clone(),
+            lean_type: output.lean_type.clone(),
+        }],
+        ir_digest: crate::project::object_merkle(&semantic_ir)?,
+        model_digest: crate::project::object_merkle(&serde_json::json!(&lean_definition))?,
+        evaluator_arithmetic: "checked-signed-64".into(),
+        lean_arithmetic: "mathematical-Int-and-Nat".into(),
+        source_correspondence: false,
+    };
+    Ok(FormalFunction {
+        source: source.into(),
+        symbol: "__fr_structure__".into(),
+        source_hash: hex::encode(Sha256::digest(text.as_bytes())),
+        module: scaffold_module(source, "__fr_structure__"),
+        model,
+        inputs: Vec::new(),
+        output,
+        semantic_ir,
+        lean_definition,
+        evaluation: Some(evaluation),
+    })
+}
+
+fn formal_ir_functions(
+    module: &crate::transpile::ir::Module,
+) -> Vec<(String, &crate::transpile::ir::Function)> {
+    use crate::transpile::ir::Item;
+    module
+        .items
+        .iter()
+        .flat_map(|item| match item {
+            Item::Function(function) => vec![(
+                function.receiver.as_ref().map_or_else(
+                    || function.name.clone(),
+                    |owner| format!("{owner}::{}", function.name),
+                ),
+                function,
+            )],
+            Item::Record(record) => record
+                .methods
+                .iter()
+                .map(|function| (format!("{}::{}", record.name, function.name), function))
+                .collect(),
+            _ => Vec::new(),
+        })
+        .collect()
+}
+
+fn formal_ir_type_to_lean(ty: &crate::transpile::ir::Type) -> Result<String> {
+    use crate::transpile::ir::Type;
+    Ok(match ty {
+        Type::Unit => "Unit".into(),
+        Type::Bool => "Bool".into(),
+        Type::Int => "Int".into(),
+        Type::String => "String".into(),
+        Type::List(inner) => format!("List ({})", formal_ir_type_to_lean(inner)?),
+        Type::Optional(inner) => format!("Option ({})", formal_ir_type_to_lean(inner)?),
+        Type::Tuple(parts) if parts.len() >= 2 => format!(
+            "({})",
+            parts
+                .iter()
+                .map(formal_ir_type_to_lean)
+                .collect::<Result<Vec<_>>>()?
+                .join(" × ")
+        ),
+        _ => bail!("shared IR type `{ty}` needs an explicit formal semantic policy."),
+    })
 }
 
 fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
     let (source, symbol) = target.split_once("::").ok_or_else(|| {
         anyhow::anyhow!("a formal target needs `<source-path>::<top-level-function>`.")
     })?;
-    if source.is_empty() || symbol.is_empty() || symbol.contains("::") {
+    if source.is_empty()
+        || symbol.is_empty()
+        || symbol.split("::").any(|part| !lean_identifier(part))
+    {
         bail!("a formal target needs `<source-path>::<top-level-function>`.");
     }
     let source = PathBuf::from(source);
@@ -1999,35 +2392,51 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
         || source
             .components()
             .any(|part| !matches!(part, Component::Normal(_)))
-        || source.extension().is_none_or(|extension| extension != "rs")
     {
-        bail!("a formal target must name a workspace-relative Rust source.");
+        bail!("a formal target must name a workspace-relative readable source.");
     }
     let source_path = root.join(&source);
+    let language =
+        detect(&source_path).context("formal target has no supported source language")?;
+    if symbol == "__fr_structure__" && language.class() == crate::lang::LanguageClass::Config {
+        return structural_formal_function(&source, &source_path, language);
+    }
+    if !crate::transpile::can_be_read(language) {
+        bail!("{language} has no imperative shared IR reader; use structural specifications.");
+    }
     let declaration = declaration_text(&source_path, symbol)?;
     let header = declaration
         .split_once('{')
         .map_or(declaration.as_str(), |(header, _)| header);
-    if header
-        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
-        .any(|token| token == "unsafe")
+    if language == crate::lang::Language::Rust
+        && header
+            .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+            .any(|token| token == "unsafe")
     {
         bail!("unsafe functions stay outside generated formal kernels.");
     }
-    let module = crate::transpile::read_file(&source_path)?;
-    let matches = module
-        .items
+    let module = if language == crate::lang::Language::Java {
+        let selected = format!("class FrFormalSelection {{ {declaration} }}");
+        let parsed = Parsers::new().parse(language, &selected)?;
+        if parsed.has_errors() {
+            bail!("selected Java declaration needs an explicit enclosing model.");
+        }
+        crate::transpile::read_module(language, &selected, parsed.root())?
+    } else {
+        crate::transpile::read_file(&source_path)?
+    };
+    let matches = formal_ir_functions(&module)
         .into_iter()
-        .filter_map(|item| match item {
-            crate::transpile::ir::Item::Function(function) if function.name == symbol => {
-                Some(function)
-            }
-            _ => None,
+        .filter(|(name, _)| {
+            name == symbol
+                || (language == crate::lang::Language::Java
+                    && name == symbol.rsplit("::").next().unwrap_or(symbol))
         })
+        .map(|(_, function)| function)
         .collect::<Vec<_>>();
     let [function] = matches.as_slice() else {
         bail!(
-            "{} names {} top-level Rust functions called {symbol}.",
+            "{} names {} shared IR functions called {symbol}.",
             source.display(),
             matches.len()
         );
@@ -2037,20 +2446,23 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
         .iter()
         .all(|parameter| parameter.ty.is_some())
         && function.returns.is_some();
+    let receiver_free = function.receiver.is_none()
+        || (language == crate::lang::Language::Java
+            && header.split_whitespace().any(|token| token == "static"));
     let pure = !function.is_async
-        && function.receiver.is_none()
+        && !function.is_constructor
+        && !function.is_property
+        && receiver_free
         && function.params.iter().all(|parameter| {
             parameter.default.is_none() && parameter.kind == crate::transpile::ir::ParamKind::Normal
         });
-    let expression = lean_kernel_block(&function.body);
-    if !formal_candidate_admitted(
-        true,
-        function.receiver.is_none(),
-        typed,
-        pure,
-        expression.is_ok(),
-    ) {
-        if function.receiver.is_some() {
+    let term = crate::formal_kernel::compile(function);
+    let expression = term
+        .as_ref()
+        .map_err(|error| anyhow::anyhow!("{error}"))
+        .and_then(|_| lean_kernel_block(&function.body));
+    if !formal_candidate_admitted(true, receiver_free, typed, pure, expression.is_ok()) {
+        if !receiver_free {
             bail!("methods need an explicit receiver model before kernel generation.");
         }
         if !typed {
@@ -2062,14 +2474,26 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
         return expression.map(|_| unreachable!());
     }
     let expression = expression?;
-    let signature = rust_signature(&source_path, symbol)?;
+    let term = term?;
+    let signature = source_signature(&source_path, symbol)?;
+    let ir_types = function
+        .params
+        .iter()
+        .filter_map(|parameter| parameter.ty.as_ref())
+        .chain(function.returns.iter())
+        .collect::<Vec<_>>();
     let mapped = signature
         .iter()
-        .map(|part| {
+        .zip(ir_types)
+        .map(|(part, ty)| {
             Ok(FormalBinding {
                 name: part.name.clone(),
                 rust_type: part.ty.clone(),
-                lean_type: rust_type_to_lean(&part.ty)?,
+                lean_type: if language == crate::lang::Language::Rust {
+                    rust_type_to_lean(&part.ty)?
+                } else {
+                    formal_ir_type_to_lean(ty)?
+                },
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -2079,7 +2503,12 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
     if inputs.iter().any(|input| !lean_identifier(&input.name)) {
         bail!("formal kernel parameters need simple Lean-compatible identifiers.");
     }
-    let model = format!("{}Model", lower_identifier(symbol));
+    let model_identifier = if language == crate::lang::Language::Rust {
+        symbol.to_string()
+    } else {
+        scaffold_module(&source, symbol)
+    };
+    let model = format!("{}Model", lower_identifier(&model_identifier));
     let parameters = inputs
         .iter()
         .map(|input| format!(" ({} : {})", input.name, input.lean_type))
@@ -2094,6 +2523,26 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
         &source_path,
         symbol,
     )?;
+    let semantic_ir = serde_json::to_value(&function.body)?;
+    let evaluation = FormalEvaluation {
+        schema: "fr-formal-evaluation-1".into(),
+        source_language: language.to_string(),
+        term_digest: crate::project::object_merkle(&serde_json::to_value(&term)?)?,
+        term,
+        bindings: mapped
+            .iter()
+            .map(|binding| SourceBinding {
+                name: binding.name.clone(),
+                source_type: binding.rust_type.clone(),
+                lean_type: binding.lean_type.clone(),
+            })
+            .collect(),
+        ir_digest: crate::project::object_merkle(&semantic_ir)?,
+        model_digest: crate::project::object_merkle(&serde_json::json!(lean_definition))?,
+        evaluator_arithmetic: "checked-signed-64".into(),
+        lean_arithmetic: "mathematical-Int-and-Nat".into(),
+        source_correspondence: false,
+    };
     Ok(FormalFunction {
         source,
         symbol: symbol.into(),
@@ -2102,8 +2551,9 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
         model,
         inputs: inputs.to_vec(),
         output: output.clone(),
-        semantic_ir: serde_json::to_value(&function.body)?,
+        semantic_ir,
         lean_definition,
+        evaluation: Some(evaluation),
     })
 }
 
@@ -2161,7 +2611,7 @@ fn lean_kernel_expr(expression: &crate::transpile::ir::Expr) -> Result<String> {
         {
             Ok(value.clone())
         }
-        Expr::Str(value) => Ok(serde_json::to_string(value)?),
+        Expr::Str(value) => Ok(crate::formal_kernel::quote_string(value)),
         Expr::Bool(value) => Ok(value.to_string()),
         Expr::Name(name) if lean_identifier(name) => Ok(name.clone()),
         Expr::Binary { op, left, right } => {
@@ -2625,10 +3075,66 @@ fn suggested_properties(inputs: &[FormalBinding], output: &FormalBinding) -> Vec
     if boolean {
         properties.extend(["preserves-true", "preserves-false"]);
     }
+    if inputs.len() <= 8
+        && inputs.iter().all(|input| input.lean_type == "Bool")
+        && output.lean_type == "Bool"
+    {
+        properties.push("ir-model");
+    }
     properties
 }
 
 fn formal_property(kind: &str, function: &FormalFunction) -> Result<FormalProperty> {
+    if kind == "retained-facts-wellformed" {
+        if function.symbol != "__fr_structure__" {
+            bail!("retained-facts-wellformed requires a structural file target.");
+        }
+        return Ok(FormalProperty {
+            kind: kind.into(),
+            name: format!("{}_wellformed", function.model),
+            proposition: format!(": {} = true", function.model),
+            proof_status: "unproved".into(),
+            agent_spec: None,
+        });
+    }
+    if kind == "ir-model" {
+        if function.inputs.len() > 8
+            || function
+                .inputs
+                .iter()
+                .any(|input| input.lean_type != "Bool")
+            || function.output.lean_type != "Bool"
+        {
+            bail!(
+                "IR correspondence currently requires at most eight Bool inputs and a Bool output."
+            );
+        }
+        let evaluation = function
+            .evaluation
+            .as_ref()
+            .context("IR correspondence requires executable kernel evidence.")?;
+        let parameters = function
+            .inputs
+            .iter()
+            .map(|input| format!("({} : Bool)", input.name))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let arguments = function
+            .inputs
+            .iter()
+            .map(|input| input.name.clone())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let environment = function
+            .inputs
+            .iter()
+            .map(|input| format!("(FrPureKernel.Value.bool {})", input.name))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Ok(FormalProperty { kind: kind.into(), name: format!("{}_ir_model", function.model),
+            proposition: format!("{parameters} : FrPureKernel.eval 256 [{environment}] {} = some (FrPureKernel.Value.bool ({} {arguments}))", crate::formal_kernel::quote_term(&evaluation.term), function.model),
+            proof_status: "unproved".into(), agent_spec: None });
+    }
     let known_kind = matches!(
         kind,
         "identity" | "idempotent" | "involutive" | "preserves-true" | "preserves-false"
@@ -2723,6 +3229,13 @@ fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) ->
         mapping,
         plan.kernel.lean_definition
     );
+    if plan
+        .properties
+        .iter()
+        .any(|property| property.kind == "ir-model")
+    {
+        text.insert_str(0, "import FrSpecs.PureKernel\n");
+    }
     for property in &plan.properties {
         let proof = proofs
             .get(&property.name)
@@ -3054,6 +3567,9 @@ fn check_with(
     for spec in files {
         let text = crate::vfs::read_to_string(&spec)
             .with_context(|| format!("reading {}", spec.display()))?;
+        if text.starts_with("import FrSpecs.PureKernel\n") {
+            reviewed_kernel_context(&lean_package(root, &spec)?, &text)?;
+        }
         debts.extend(debts_in(&spec, &text));
         for (line, source, symbol, expected) in anchors_in(&text)? {
             let source = crate::vfs::normalise(root.join(source));
@@ -3369,6 +3885,9 @@ fn declaration_text_with(
         .ok_or_else(|| anyhow::anyhow!("{} has no language this build reads", path.display()))?;
     let source =
         crate::vfs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    if wanted == "__fr_structure__" && language.class() == crate::lang::LanguageClass::Config {
+        return Ok(source);
+    }
     let parsed = parsers.parse(language, &source)?;
     let facts = extractor.extract(&parsed, path, &source)?;
     let matches = facts
@@ -3452,13 +3971,29 @@ fn mapped_signature(
 fn source_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
     let language = detect(path)
         .ok_or_else(|| anyhow::anyhow!("{} has no language this build reads", path.display()))?;
+    if wanted == "__fr_structure__" && language.class() == crate::lang::LanguageClass::Config {
+        return Ok(vec![SignaturePart {
+            name: "return".into(),
+            ty: "bool".into(),
+        }]);
+    }
     if language == crate::lang::Language::Rust {
         return rust_signature(path, wanted);
     }
     if !crate::transpile::can_be_read(language) {
         bail!("explicit signature maps require a readable imperative source declaration");
     }
-    let module = crate::transpile::read_file(path)?;
+    let module = if language == crate::lang::Language::Java {
+        let declaration = declaration_text(path, wanted)?;
+        let selected = format!("class FrFormalSelection {{ {declaration} }}");
+        let parsed = Parsers::new().parse(language, &selected)?;
+        if parsed.has_errors() {
+            bail!("selected Java signature needs an explicit enclosing model.");
+        }
+        crate::transpile::read_module(language, &selected, parsed.root())?
+    } else {
+        crate::transpile::read_file(path)?
+    };
     let mut exact = Vec::new();
     let mut fallback = Vec::new();
     let bare = wanted.rsplit("::").next().unwrap_or(wanted);
@@ -3597,7 +4132,16 @@ fn lean_signature(spec: &str, anchor_line: usize) -> Result<Vec<SignaturePart>> 
             .context("a mapped Lean parameter needs `(`")?;
         let close = matching_delimiter(rest, open, '(', ')')
             .context("an explicit Lean parameter needs `)`")?;
-        parts.push(signature_part(&rest[open + 1..close])?);
+        let group = signature_part(&rest[open + 1..close])?;
+        for name in group.name.split_whitespace() {
+            if !lean_identifier(name) {
+                bail!("a mapped Lean binder needs explicit identifier names");
+            }
+            parts.push(SignaturePart {
+                name: name.into(),
+                ty: group.ty.clone(),
+            });
+        }
         rest = &rest[close + 1..];
     }
     let return_type = rest
@@ -3609,6 +4153,30 @@ fn lean_signature(spec: &str, anchor_line: usize) -> Result<Vec<SignaturePart>> 
         ty: compact_type(return_type),
     });
     Ok(parts)
+}
+
+#[cfg(test)]
+#[test]
+fn grouped_lean_signature_binders_preserve_each_name_and_shared_type() {
+    let signature =
+        lean_signature("def both (left right : Bool) : Bool := left && right\n", 0).unwrap();
+    assert_eq!(
+        signature,
+        vec![
+            SignaturePart {
+                name: "left".into(),
+                ty: "Bool".into()
+            },
+            SignaturePart {
+                name: "right".into(),
+                ty: "Bool".into()
+            },
+            SignaturePart {
+                name: "return".into(),
+                ty: "Bool".into()
+            }
+        ]
+    );
 }
 
 trait SplitTopLevel {
@@ -3759,6 +4327,7 @@ mod tests {
             },
             semantic_ir: serde_json::json!({}),
             lean_definition: String::new(),
+            evaluation: None,
         };
         let proposition = AgentProposition::Equals {
             left: AgentTerm::Variable { name: "xs".into() },

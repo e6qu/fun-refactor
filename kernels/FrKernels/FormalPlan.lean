@@ -1,18 +1,28 @@
 namespace FrKernels.FormalPlan
 
--- fr:spec src/spec.rs::formal_candidate_admitted @ 2b6192b9d49327ea5f42382902dc27e31d619bbd9d9acea85c098e607c1bbcca
--- fr:signature source_is_rust: bool => sourceIsRust: Bool; top_level: bool => topLevel: Bool; typed: bool => typed: Bool; pure: bool => pure: Bool; body_supported: bool => bodySupported: Bool; return: bool => return: Bool
+-- fr:spec src/formal_kernel.rs::kernel_limits_admitted @ 2deba90669ef455d8ab30c1a0afaef2d41b81f9b8cc5c7ed0a4f4da98cd7fb40
+-- fr:signature fuel: usize => fuel: Nat; environment: usize => environment: Nat; nodes: usize => nodes: Nat; depth: usize => depth: Nat; return: bool => return: Bool
+def kernelLimitsAdmitted (fuel environment nodes depth : Nat) : Bool :=
+  1 ≤ fuel && fuel ≤ 256 && environment ≤ 64 && nodes ≤ 4096 && depth ≤ 64
+
+theorem admitted_kernel_limits_are_bounded (fuel environment nodes depth : Nat) :
+    kernelLimitsAdmitted fuel environment nodes depth = true ↔
+      1 ≤ fuel ∧ fuel ≤ 256 ∧ environment ≤ 64 ∧ nodes ≤ 4096 ∧ depth ≤ 64 := by
+  simp [kernelLimitsAdmitted, and_assoc]
+
+-- fr:spec src/spec.rs::formal_candidate_admitted @ a2a70cb5812b1e252b565ab23e8a15a09b80e1d25a726e898b9b29d2f92f0be2
+-- fr:signature source_readable: bool => sourceReadable: Bool; top_level: bool => topLevel: Bool; typed: bool => typed: Bool; pure: bool => pure: Bool; body_supported: bool => bodySupported: Bool; return: bool => return: Bool
 def candidateAdmitted
-    (sourceIsRust : Bool)
+    (sourceReadable : Bool)
     (topLevel : Bool)
     (typed : Bool)
     (pure : Bool)
     (bodySupported : Bool) : Bool :=
-  sourceIsRust && topLevel && typed && pure && bodySupported
+  sourceReadable && topLevel && typed && pure && bodySupported
 
-theorem candidate_admitted_iff (sourceIsRust topLevel typed pure bodySupported : Bool) :
-    candidateAdmitted sourceIsRust topLevel typed pure bodySupported = true ↔
-      sourceIsRust = true ∧ topLevel = true ∧ typed = true ∧ pure = true ∧ bodySupported = true := by
+theorem candidate_admitted_iff (sourceReadable topLevel typed pure bodySupported : Bool) :
+    candidateAdmitted sourceReadable topLevel typed pure bodySupported = true ↔
+      sourceReadable = true ∧ topLevel = true ∧ typed = true ∧ pure = true ∧ bodySupported = true := by
   simp [candidateAdmitted, and_assoc]
 
 -- fr:spec src/spec.rs::formal_property_admitted @ 9006f0951da3b6c99f7ab603ac581dbed9a1526c64da758159f5e06b9fc1ffb7

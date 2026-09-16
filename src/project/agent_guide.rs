@@ -1046,19 +1046,23 @@ impl Project<'_> {
             Operation::Formalize => {
                 route = 8;
                 route_name = "formalization";
-                let formal_target =
-                    symbol.map(|symbol| format!("{}::{}", node.path.display(), symbol.name));
+                let formal_target = if node.kind == "file"
+                    && crate::lang::detect(&node.path).is_some_and(|language| {
+                        language.class() == crate::lang::LanguageClass::Config
+                    }) {
+                    Some(format!("{}::__fr_structure__", node.path.display()))
+                } else {
+                    symbol.map(|symbol| {
+                        format!("{}::{}", node.path.display(), symbol.qualified_name())
+                    })
+                };
                 let formal = formal_target
                     .as_ref()
                     .map(|target| crate::spec::formal_plan(&self.root, target, &[]));
-                supported = language == Some(Language::Rust)
-                    && formal.as_ref().is_some_and(|formal| formal.is_ok());
-                evidence = json!({"predicate":"spec::formal_plan","plan_digest":formal.as_ref().and_then(|formal|formal.as_ref().ok()).map(|formal|&formal.object_digest),"generated_language":"rust"});
+                supported = formal.as_ref().is_some_and(|formal| formal.is_ok());
+                evidence = json!({"predicate":"spec::formal_plan","plan_digest":formal.as_ref().and_then(|formal|formal.as_ref().ok()).map(|formal|&formal.object_digest),"generated_language":language});
                 if let Some(Err(error)) = &formal {
                     refusals.push(error.to_string());
-                }
-                if language != Some(Language::Rust) {
-                    refusals.push("generated formalization currently admits only the conservative pure Rust subset; other languages need a manual model.".into());
                 }
                 if let Some(target) = formal_target {
                     actions.push(action(
