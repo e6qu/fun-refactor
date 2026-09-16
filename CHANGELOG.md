@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.25.0...fun-refactor-v0.26.0) (2026-09-16)
+
+
+### Features
+
+* unify intent operations and agent-authored proof delivery ([#307](https://github.com/e6qu/fun-refactor/issues/307)) ([3b5b610](https://github.com/e6qu/fun-refactor/commit/3b5b610d653740c2d91f0e74f3aa0170893e85d8))
+
 ## [0.25.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.24.0...fun-refactor-v0.25.0) (2026-09-16)
 
 
