@@ -1700,7 +1700,7 @@ class ProofTask:
         goal = _exact_mapping(value["goal"], {
             "id", "name", "spec", "line", "theorem", "source_anchor", "signature_map",
             "proof_region", "object_digest", "prove_template", "verify",
-        }, "proof task goal")
+        } | ({"model_context_digest"} if isinstance(value["goal"], Mapping) and "model_context_digest" in value["goal"] else set()), "proof task goal")
         for key in ("id", "name", "spec", "theorem", "proof_region", "object_digest"):
             if not isinstance(goal[key], str) or not goal[key]:
                 raise IrError("proof task goal fields must be non-empty strings")
@@ -1711,6 +1711,12 @@ class ProofTask:
         if not all(goal[key] is None or isinstance(goal[key], str)
                    for key in ("source_anchor", "signature_map")):
             raise IrError("proof task goal anchors must be strings or null")
+        if "model_context_digest" in goal:
+            if not _is_digest(goal["model_context_digest"]):
+                raise IrError("proof model context requires a canonical digest")
+            addressed = {key: goal[key] for key in ("name", "spec", "line", "theorem", "source_anchor", "signature_map", "proof_region", "model_context_digest")}
+            if merkle_object_digest(addressed) != goal["id"] or goal["object_digest"] != goal["id"]:
+                raise IrError("proof goal differs from its model context identity")
         _string_vector(goal["prove_template"], "proof task goal prove template")
         _string_vector(goal["verify"], "proof task goal verify action")
         contract = _exact_mapping(value["contract"], {

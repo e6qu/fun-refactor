@@ -790,6 +790,11 @@ fn untyped_script_and_framework_constructs_report_their_formal_boundary() {
     let workspace = tempfile::tempdir().unwrap();
     for (path, source, reason) in [
         (
+            "broken.rs",
+            "pub fn broken(value: bool) -> bool { value\n",
+            "syntax errors",
+        ),
+        (
             "script.js",
             "export function keep(value) { return value; }\n",
             "explicit supported type",
@@ -836,4 +841,112 @@ fn untyped_script_and_framework_constructs_report_their_formal_boundary() {
             report.candidates
         );
     }
+}
+
+#[test]
+fn structural_target_names_do_not_change_imperative_function_semantics() {
+    let workspace = tempfile::tempdir().unwrap();
+    std::fs::write(
+        workspace.path().join("reserved.rs"),
+        "pub fn __fr_structure__(value: bool) -> bool { value }\n",
+    )
+    .unwrap();
+    let candidates =
+        fun_refactor::spec::formal_candidates(workspace.path(), &["reserved.rs".into()], 128, true)
+            .unwrap();
+    assert_eq!(candidates.candidates.len(), 1);
+    assert!(candidates.candidates[0].eligible);
+    assert!(!candidates.candidates[0]
+        .suggested_properties
+        .iter()
+        .any(|kind| *kind == "retained-facts-wellformed"));
+    let target = "reserved.rs::__fr_structure__";
+    let plan =
+        fun_refactor::spec::formal_plan(workspace.path(), target, &["identity".into()]).unwrap();
+    assert_eq!(
+        plan.correspondence.signature_surface,
+        "strict-rust-lean-map"
+    );
+    assert!(fun_refactor::spec::formal_plan(
+        workspace.path(),
+        target,
+        &["retained-facts-wellformed".into()]
+    )
+    .is_err());
+}
+
+#[test]
+fn large_structural_terms_keep_proof_tasks_small_and_model_edits_invalidate_goals() {
+    let workspace = tempfile::tempdir().unwrap();
+    run(workspace.path(), &["spec", "init", "--write"]);
+    let data = (0..64)
+        .map(|index| {
+            (
+                format!("field{index}"),
+                serde_json::json!({"enabled": true}),
+            )
+        })
+        .collect::<serde_json::Map<_, _>>();
+    std::fs::write(
+        workspace.path().join("data.json"),
+        serde_json::to_vec(&data).unwrap(),
+    )
+    .unwrap();
+    let plan = fun_refactor::spec::formal_plan(
+        workspace.path(),
+        "data.json::__fr_structure__",
+        &["ir-model".into()],
+    )
+    .unwrap();
+    assert!(
+        fun_refactor::formal_kernel::quote_term(&plan.kernel.evaluation.as_ref().unwrap().term)
+            .len()
+            > 16_384
+    );
+    std::fs::write(
+        workspace.path().join("plan.json"),
+        serde_json::to_vec(&plan).unwrap(),
+    )
+    .unwrap();
+    run(
+        workspace.path(),
+        &["spec", "scaffold", "--from", "plan.json", "--write"],
+    );
+    let model = format!("specs/FrSpecs/{}.lean", plan.kernel.module);
+    let target = format!("{model}::{}", plan.properties[0].name);
+    let task = fun_refactor::spec::proof_task(workspace.path(), &target, 4096, true).unwrap();
+    assert!(serde_json::to_vec_pretty(&task).unwrap().len() <= 4096);
+    let path = workspace.path().join(&model);
+    let original = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(
+        &path,
+        original.replace("end FrSpecs", "def extraModelValue : Nat := 1\nend FrSpecs"),
+    )
+    .unwrap();
+    let changed = fun_refactor::spec::proof_task(workspace.path(), &target, 4096, true).unwrap();
+    assert_ne!(
+        task.goal.model_context_digest,
+        changed.goal.model_context_digest
+    );
+    assert_ne!(task.goal.id, changed.goal.id);
+    let stale = fun_refactor::spec::formal_goals(
+        workspace.path(),
+        &[model.clone().into()],
+        Some(&task.goal.id),
+        32,
+        4096,
+        true,
+    );
+    assert!(stale.is_err());
+    std::fs::write(&path, original).unwrap();
+    std::fs::write(workspace.path().join("proof.lean"), "rfl\n").unwrap();
+    run(
+        workspace.path(),
+        &["spec", "prove", &target, "--from", "proof.lean", "--write"],
+    );
+    let evidence = run(workspace.path(), &["spec", "evidence", "specs"]);
+    assert_eq!(
+        evidence["kernel_correspondence"][0]["status"],
+        "checked_by_lean"
+    );
 }

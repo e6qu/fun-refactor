@@ -48,7 +48,7 @@ The complete PR 38 acceptance gates below remain the delivery requirements.
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 759 |
+| Fixed defects | 763 |
 | Open defects | 1 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -100,7 +100,7 @@ surfaces rather than parser-language aliases.
 | Semantic body authoring | Rust, Go, Java, Python, JavaScript, TypeScript and TSX | Other language writers use narrower structural operations |
 | Shared executable translation IR | Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean | Unsupported constructs carry explicit gaps |
 | Framework features | React, Next.js, Express.js, FastAPI, CSS/Tailwind and Markdown/Mermaid project evidence | Checked feature migration is currently Next.js and FastAPI route focused |
-| Generated formalization | A pure, explicitly typed Rust function subset | General source/model equivalence and other source languages remain open work |
+| Generated formalization | Typed pure declarations from eight reader surfaces and structural snapshots from ten declarative classes | Numeric, dynamic and framework runtime semantics remain separate; source equivalence remains unproved |
 
 ### Current evidence
 
@@ -119,10 +119,12 @@ saving from internal composition alone.
 
 ## Remaining gaps
 
-1. **Proof support is not language-wide.** Generated model and property plans currently cover a
-   conservative Rust subset. Other languages can use manual Lean specifications and strict anchors,
-   but do not receive the same source-free generated workflow.
-2. **Implementation correspondence remains limited.** Lean proves properties of the model. Source
+1. **Formalization has an explicit semantic boundary.** The generated workflow now covers typed pure
+   declarations and retained structural snapshots across the advertised language cells. Untyped,
+   async, dynamic, effectful and unsupported numeric constructs receive exact refusals.
+   Expanding those semantics requires separate reviewed models and correspondence evidence.
+2. **Implementation correspondence remains limited.** Lean checks named Boolean IR/model relations
+   and model properties. Source
    anchors and signature maps identify the modeled declaration, while tests cover selected cases.
    The parser, IR extraction and lowering are still trusted or integration-tested boundaries.
 3. **Framework transformation is not yet generic.** The project model covers the requested web stack,
@@ -158,8 +160,9 @@ Deliverables:
 - Define an executable semantics for a deliberately small shared IR kernel. Cover pure values,
   bindings, conditionals, returns, tuples, records, lists, options/results and selected arithmetic
   with explicit overflow and partiality policies.
-- Prove general laws used by extraction and lowering, including name resolution, precedence,
-  substitution, capture avoidance and deterministic evaluation for the admitted subset.
+- Prove binding resolution, shadowing, index lifting, literal substitution, lazy branch selection,
+  arithmetic bounds and deterministic evaluation for the executable kernel. Check parser precedence
+  separately through source/IR fixtures; a kernel grouping theorem does not verify parser lowering.
 - Add source-free formalization candidates wherever an imperative parser can produce the kernel.
   Cover Rust, Go, Zig, Java, JavaScript/TypeScript, TSX/JSX, Python, Bash and Lean.
 - Give declarative languages structural and provenance properties over their high-level models rather

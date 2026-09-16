@@ -441,6 +441,7 @@ pub struct FormalGoalDetail {
     pub theorem: String,
     pub source_anchor: Option<String>,
     pub signature_map: Option<String>,
+    pub model_context_digest: String,
     pub proof_region: String,
     pub object_digest: String,
     pub prove_template: Vec<String>,
@@ -927,17 +928,43 @@ pub fn formal_candidates(
                 let hash =
                     declaration_hash(&mut Parsers::new(), &mut Extractor::new(), path, &name)
                         .unwrap_or_else(|_| hex::encode(Sha256::digest(source.as_bytes())));
-                let result = formal_function(&root, &target);
+                let result = if parsed.has_errors() {
+                    Err(anyhow::anyhow!(
+                        "source syntax errors exclude generated formalization."
+                    ))
+                } else if name == "__fr_structure__"
+                    && module.is_err()
+                    && detect(path).is_some_and(crate::transpile::can_be_read)
+                {
+                    Err(anyhow::anyhow!(
+                        "shared IR read failed: {}",
+                        module
+                            .as_ref()
+                            .err()
+                            .map(ToString::to_string)
+                            .unwrap_or_else(|| "no callable declaration was extracted".into())
+                    ))
+                } else {
+                    formal_function(&root, &target)
+                };
                 let (eligible, reason, suggested_properties) = match result {
                     Ok(formal) => (
                         true,
-                        if name == "__fr_structure__" {
+                        if name == "__fr_structure__"
+                            && detect(path).is_some_and(|language| {
+                                language.class() == crate::lang::LanguageClass::Config
+                            })
+                        {
                             "retained structural facts map to a provenance-bounded Lean model."
                         } else {
                             "typed pure body maps to the deterministic Lean kernel subset."
                         }
                         .to_string(),
-                        if name == "__fr_structure__" {
+                        if name == "__fr_structure__"
+                            && detect(path).is_some_and(|language| {
+                                language.class() == crate::lang::LanguageClass::Config
+                            })
+                        {
                             vec!["retained-facts-wellformed", "ir-model"]
                         } else {
                             suggested_properties(&formal.inputs, &formal.output)
@@ -1037,6 +1064,8 @@ pub(crate) fn formal_plan_from_agent_specs(
     if unique_names.len() != properties.len() {
         bail!("a formal plan cannot repeat a theorem name.");
     }
+    let structural = detect(&formal.source)
+        .is_some_and(|language| language.class() == crate::lang::LanguageClass::Config);
     let target = FormalTarget {
         source: formal.source,
         symbol: formal.symbol,
@@ -1053,7 +1082,7 @@ pub(crate) fn formal_plan_from_agent_specs(
     };
     let correspondence = FormalCorrespondence {
         source_identity: "sha256-anchored-declaration".into(),
-        signature_surface: if target.symbol == "__fr_structure__" {
+        signature_surface: if structural {
             "retained-structure-bool-map".into()
         } else if detect(&target.source) == Some(crate::lang::Language::Rust) {
             "strict-rust-lean-map".into()
@@ -1069,7 +1098,7 @@ pub(crate) fn formal_plan_from_agent_specs(
             .into(),
         "Numeric widths, source overflow, floating-point coercion and native arithmetic require separate correspondence evidence; Int and Nat models use Lean arithmetic.".into(),
     ];
-    if target.symbol == "__fr_structure__" {
+    if structural {
         assumptions.push("The model checks retained byte spans and parent provenance only; omitted facts, parser completeness, style, rendering, configuration and embedded language execution are not proved.".into());
     }
     let obligations = properties
@@ -1298,6 +1327,23 @@ pub fn formal_goals(
             .strip_prefix(&root)
             .unwrap_or(&debt.spec)
             .to_path_buf();
+        let mut context = String::new();
+        let mut in_proof = false;
+        for line in source.split_inclusive('\n') {
+            if line.trim().starts_with("-- fr:proof-begin ") {
+                in_proof = true;
+                context.push_str(line);
+            } else if line.trim().starts_with("-- fr:proof-end ") {
+                in_proof = false;
+                context.push_str(line);
+            } else if !in_proof {
+                context.push_str(line);
+            }
+        }
+        if source.starts_with("import FrSpecs.PureKernel\n") {
+            context.push_str(crate::formal_kernel::LEAN_SOURCE);
+        }
+        let model_context_digest = crate::project::object_merkle(&serde_json::json!(context))?;
         let addressed = serde_json::json!({
             "name": name,
             "spec": spec,
@@ -1305,6 +1351,7 @@ pub fn formal_goals(
             "theorem": theorem,
             "source_anchor": source_anchor,
             "signature_map": signature_map,
+            "model_context_digest": model_context_digest,
             "proof_region": name,
         });
         let id = crate::project::object_merkle(&addressed)?;
@@ -1316,6 +1363,7 @@ pub fn formal_goals(
             theorem,
             source_anchor,
             signature_map,
+            model_context_digest,
             proof_region: name.clone(),
             object_digest: id,
             prove_template: vec![
@@ -1992,6 +2040,11 @@ pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result
                         .starts_with(&formal.lean_definition)
                         && symbol.full_span.text(&source).trim() == formal.lean_definition
                 });
+                let term_definition = kernel_term_definition(&formal.model, &evaluation.term);
+                let exact_term = facts
+                    .symbols
+                    .iter()
+                    .any(|symbol| symbol.full_span.text(&source).trim() == term_definition);
                 kernel_correspondence.push(KernelCorrespondenceEvidence {
                     spec: spec.clone(),
                     source: path,
@@ -2005,7 +2058,7 @@ pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result
                         crate::formal_kernel::LEAN_SOURCE
                     ))?,
                     relation: "reviewed-kernel-evaluation-equals-generated-model",
-                    status: if package_passed && exact_theorem && exact_model {
+                    status: if package_passed && exact_theorem && exact_model && exact_term {
                         "checked_by_lean"
                     } else {
                         "unchecked"
@@ -2403,6 +2456,13 @@ fn formal_function(root: &Path, target: &str) -> Result<FormalFunction> {
     }
     if !crate::transpile::can_be_read(language) {
         bail!("{language} has no imperative shared IR reader; use structural specifications.");
+    }
+    let original_source = crate::vfs::read_to_string(&source_path)?;
+    if Parsers::new()
+        .parse(language, &original_source)?
+        .has_errors()
+    {
+        bail!("source syntax errors exclude generated formalization.");
     }
     let declaration = declaration_text(&source_path, symbol)?;
     let header = declaration
@@ -3086,7 +3146,9 @@ fn suggested_properties(inputs: &[FormalBinding], output: &FormalBinding) -> Vec
 
 fn formal_property(kind: &str, function: &FormalFunction) -> Result<FormalProperty> {
     if kind == "retained-facts-wellformed" {
-        if function.symbol != "__fr_structure__" {
+        if detect(&function.source)
+            .is_none_or(|language| language.class() != crate::lang::LanguageClass::Config)
+        {
             bail!("retained-facts-wellformed requires a structural file target.");
         }
         return Ok(FormalProperty {
@@ -3109,7 +3171,7 @@ fn formal_property(kind: &str, function: &FormalFunction) -> Result<FormalProper
                 "IR correspondence currently requires at most eight Bool inputs and a Bool output."
             );
         }
-        let evaluation = function
+        function
             .evaluation
             .as_ref()
             .context("IR correspondence requires executable kernel evidence.")?;
@@ -3132,7 +3194,7 @@ fn formal_property(kind: &str, function: &FormalFunction) -> Result<FormalProper
             .collect::<Vec<_>>()
             .join(", ");
         return Ok(FormalProperty { kind: kind.into(), name: format!("{}_ir_model", function.model),
-            proposition: format!("{parameters} : FrPureKernel.eval 256 [{environment}] {} = some (FrPureKernel.Value.bool ({} {arguments}))", crate::formal_kernel::quote_term(&evaluation.term), function.model),
+            proposition: format!("{parameters} : FrPureKernel.eval 256 [{environment}] {}Term = some (FrPureKernel.Value.bool ({} {arguments}))", function.model, function.model),
             proof_status: "unproved".into(), agent_spec: None });
     }
     let known_kind = matches!(
@@ -3235,6 +3297,15 @@ fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) ->
         .any(|property| property.kind == "ir-model")
     {
         text.insert_str(0, "import FrSpecs.PureKernel\n");
+        let evaluation = plan
+            .kernel
+            .evaluation
+            .as_ref()
+            .context("IR correspondence requires executable kernel evidence")?;
+        text.push_str(&format!(
+            "\n{}\n",
+            kernel_term_definition(&plan.kernel.model, &evaluation.term)
+        ));
     }
     for property in &plan.properties {
         let proof = proofs
@@ -3254,6 +3325,13 @@ fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) ->
     }
     text.push_str("-- fr:generated-end formal-kernel\n\n-- fr:handwritten-begin additional-models-and-proofs\n-- fr:handwritten-end additional-models-and-proofs\n\nend FrSpecs\n");
     Ok(text)
+}
+
+fn kernel_term_definition(model: &str, term: &crate::formal_kernel::Term) -> String {
+    format!(
+        "def {model}Term : FrPureKernel.Term :=\n  {}",
+        crate::formal_kernel::quote_term(term)
+    )
 }
 
 fn scaffold_module(source: &Path, symbol: &str) -> String {

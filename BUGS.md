@@ -67,6 +67,22 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B917: **a structural target name changed imperative function metadata**. Structural classification
+  now requires a declarative language class. A Rust function with the same name retains its typed
+  signature and receives no structural property suggestion.
+
+- [x] B916: **failed formalization reads reported a nonexistent structural declaration**. Malformed
+  imperative sources now report syntax errors; parser-valid read failures retain the shared IR reason.
+  Syntax-invalid source cannot enter generated formalization.
+
+- [x] B915: **proof goal identities omitted their model context**. Goals now bind the selected module
+  outside generated proof bodies and the reviewed semantic library. Model edits invalidate old goal
+  selections; the Python SDK independently checks the inner context identity.
+
+- [x] B914: **admitted structural terms could exceed the proof-task ceiling**. Generated correspondence
+  theorems now reference named term definitions. Large structural fixtures complete proof submission
+  through a 4,096-byte task; evidence separately checks the exact named term definition.
+
 - [x] B913: **explicit Lean signature maps treated grouped binders as one name**. The checker
   now expands each identifier with its shared type, matching the shared Lean reader.
   The resource-policy anchor and grouped Boolean signature regression exercise this surface.

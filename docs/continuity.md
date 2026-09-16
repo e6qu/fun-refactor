@@ -4,13 +4,36 @@ PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). 
 jobs and its merged-main deep audit passed. PR 37 merged as
 [GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), after release PR 306.
 
-PR 38 work in progress is on `cross_language_formalization`. Its current base is
-`origin/main` commit `3b5b610d653740c2d91f0e74f3aa0170893e85d8`, including both merges.
-The rebase excluded the four PR 37 commits that GitHub had already squash-merged.
-Tracked and untracked changes survived the temporary stash without conflicts.
-The new bounded IR evaluator, Python mirror, cross-language formalization and structural
-model work remain uncommitted. Complete PR 38 acceptance, full gates, public documentation,
-defect records and retained source-bound evaluations before publishing.
+PR 38 is in progress on `cross_language_formalization`, based on `origin/main`
+`3b5b610d653740c2d91f0e74f3aa0170893e85d8`. Implementation checkpoint `1498bbe7` adds the
+bounded pure IR evaluator, matching Python types, typed formalization across eight reader surfaces,
+and structural snapshots for all ten declarative language classes. JavaScript/JSX, Bash and async
+framework cases retain explicit refusals when they lack the admitted semantics or signature.
+
+The agent writes properties and tactics. Boolean `ir-model` obligations relate executable Lean
+kernel evaluation at fuel 256 to the exact current generated model. Evidence names each checked
+relation with independent source, IR, term, model and library identities; source implementation
+proofs remain false. Strict checks pin the copied semantic library. Structural models check retained
+byte spans, name containment and ordered immediate parents, with 32 facts per kind and explicit omissions.
+
+All 13 focused formalization/kernel tests and 15 guide tests pass. The workflows cover typed and
+structural scaffolds, proof checks, regeneration, drift and reversal. Source-toolchain truth tables
+cover Rust, Go, Java, Python, TypeScript, Zig and Lean. The 913-case pure execution corpus agrees
+with Lean; 135 limit cases agree across Rust, Python and Lean. All 94 Python tests and `ty` pass.
+Strict Lean builds 81 jobs; actual `fr spec sync kernels --write` renewed two anchors in transaction 69.
+The 123 anchors are fresh with no obligations. B908 through B917 record quotation, type/scope,
+candidate discovery, proof-marker, grouped-binder, bounded-goal, syntax-refusal and structural-name repairs.
+Large structural terms use named definitions; 4,096-byte proof tasks remain sufficient.
+Goal identities bind the selected model module outside generated proof bodies and the reviewed library. The portable skill passes 57 shell
+examples, retaining 1,225 entry bytes and a maximum tested route of 7,160 bytes.
+
+Ten retained reports reflect actual reruns against an immutable native binary copy, including the
+skill reading routes. Historical live-agent artifacts remain unchanged; no new live-agent, token,
+latency or quota saving follows from these policy and workflow tests.
+Full default, WASM, production-browser and deep acceptance gates remain in progress.
+Complete them and refresh this checkpoint before publishing PR 38.
+
+PR 37 merged implementation and validation follow:
 
 The current implementation adds `fr-intent-action-2` with tagged operations for tasks, author
 batches, recipes, direct capabilities, framework migrations, project queries, surfaces, property tasks, formal

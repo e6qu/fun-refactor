@@ -41,16 +41,19 @@ to relate the reviewed evaluator to the generated model. Both require agent-writ
 
 `ir-model` accepts at most eight Boolean inputs and a Boolean output, including structural snapshots.
 Its theorem states that Lean's reviewed kernel evaluator at fuel 256 returns the generated model's value.
+Named term definitions keep the theorem context small for large admitted snapshots.
+Goal identities include the selected model module outside generated proof bodies and the reviewed library.
 The package includes the exact reviewed semantic library. Scaffolding elaborates before history writes;
 proof checking needs no manual dependency build. Regeneration preserves the written proof regions.
 Strict checks refuse a changed semantic library.
 
 `spec evidence` reports `kernel_correspondence` rows with separate source, IR, term, model and
 semantic-library identities. A row reaches `checked_by_lean` only when the checked package retains
-the current generated definition and exact correspondence proposition.
+the current generated model, named term definition and exact correspondence proposition.
 `source_implementation_proved` remains false. Parser extraction and source semantics still require evidence.
 General Lean laws cover binding resolution, shadowing, lifted indices, literal substitution,
-evaluation determinism, short-circuit behavior, arithmetic bounds and operator-tree grouping.
+evaluation determinism, short-circuit behavior and arithmetic bounds. A conditional multiplication/addition
+law and a concrete grouping fixture cover operator-tree evaluation; parser lowering remains separate.
 Execution tests compare finite cases with executable Lean and installed source toolchains.
 They do not prove general source implementation equivalence.
 
@@ -200,7 +203,9 @@ remains the authority for strict anchors and a warnings-as-errors Lake build.
 ## Verification boundary
 
 `FrKernels.FormalPlan` proves the Boolean admission policies and abstract property operator and
-relation rules. The Rust test compares all 574 finite inputs with the Lean executable. Integration tests cover candidate exclusions,
+relation rules. The Rust test compares 574 finite admission inputs with the Lean executable.
+The resource-policy comparison adds 135 shared Rust/Python/Lean inputs.
+The pure evaluator corpus adds 913 Rust/Lean executions, including arithmetic edges and structured values. Integration tests cover candidate exclusions,
 plan addressing, plan tampering and drift, source-free output, proof preservation, bounded goal
 disclosure, agent-authored multi-input properties, failed and corrected proof attempts, exact proof
 replacement, undo and redo. Python independently recomputes plan, property-task, proof-task and
@@ -208,7 +213,7 @@ receipt addresses and rejects mutation.
 
 Lean checks the proposition over the generated Lean definition. Source anchors check declaration
 identity, signature maps check the declared type surface, and executable cases can test selected
-Rust/model inputs. Parser correctness, semantic-IR extraction, Rust-to-Lean lowering, SHA-256,
-Lean's implementation, the Rust compiler and filesystem operations remain trusted or tested
+Rust/model inputs. Parser correctness, semantic-IR extraction, source-to-Lean lowering, SHA-256,
+Lean's implementation, source compilers and filesystem operations remain trusted or tested
 components. General implementation equivalence remains an explicit obligation until a verified
 generation or correspondence proof covers it.
