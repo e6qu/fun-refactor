@@ -238,8 +238,6 @@ fn endpoint_nodes<'a>(root: Node<'a>, source: &str) -> Vec<(String, String, Node
     found
 }
 
-/// Route handlers recovered from captured FastAPI syntax for conservative
-/// application-IR normalization.
 pub(crate) fn route_functions(source: &str) -> Result<Vec<(String, String, Function)>> {
     let parsed = Parsers::new().parse(Language::Python, source)?;
     if parsed.has_errors() {

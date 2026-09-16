@@ -569,50 +569,22 @@ fn application_normalizes_the_shared_literal_http_subset_across_frameworks() {
     .unwrap();
     fs::write(
         dir.path().join("app/next/[id]/route.ts"),
-        r#"export async function GET(_request: Request, context: {params: Promise<{id: string}>}) {
-  const params = await context.params;
-  return Response.json({id: params["id"], framework: "portable"}, {status: 201});
-}
-"#,
+        include_str!("application-fixtures/portable_next.ts"),
     )
     .unwrap();
     fs::write(
         dir.path().join("api.py"),
-        r#"from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-app = FastAPI()
-@app.get('/fast/{id}')
-def show_fast(id: str):
-    return JSONResponse(content={"id": id, "framework": "portable"}, status_code=201)
-"#,
+        include_str!("application-fixtures/portable_fastapi.py"),
     )
     .unwrap();
     fs::write(
         dir.path().join("express.ts"),
-        r#"function showExpress(req: Request, res: Response) {
-  return res.status(201).json({id: req.params["id"], framework: "portable"});
-}
-app.get('/express/:id', showExpress);
-"#,
+        include_str!("application-fixtures/portable_express.ts"),
     )
     .unwrap();
     fs::write(
         dir.path().join("server.go"),
-        r#"package sample
-import (
-    "encoding/json"
-    "net/http"
-)
-func showGo(w http.ResponseWriter, r *http.Request) {
-    w.WriteHeader(201)
-    json.NewEncoder(w).Encode(map[string]any{"id": r.PathValue("id"), "framework": "portable"})
-}
-func routes() http.Handler {
-    mux := http.NewServeMux()
-    mux.HandleFunc("GET /go/{id}", showGo)
-    return mux
-}
-"#,
+        include_str!("application-fixtures/portable_go.go"),
     )
     .unwrap();
 
@@ -705,7 +677,7 @@ fn application_keeps_effectful_handlers_as_explicit_manual_boundaries() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(
         dir.path().join("api.py"),
-        "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/records/{id}')\ndef show(id: str):\n    return load_record(id)\n",
+        include_str!("application-fixtures/effectful_fastapi.py"),
     )
     .unwrap();
     let report = ok(dir.path(), &["project", "application"]);

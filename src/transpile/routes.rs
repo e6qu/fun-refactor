@@ -399,7 +399,6 @@ fn gin(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework, Ve
     Some((Framework::Gin, found))
 }
 
-/// Go 1.22 `ServeMux.HandleFunc("GET /pets/{id}", handler)` declarations.
 fn net_http(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework, Vec<Endpoint>)> {
     if !source.contains("\"net/http\"") {
         return None;

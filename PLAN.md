@@ -40,11 +40,10 @@ The project has merged PRs 0 through 38. The latest implementation is
 structural model coverage and independent source/IR/model identities. Its PR CI passed.
 Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
 PR 39 is in progress on `application_ir_transformations`, started directly from that main.
-Its current checkpoints add a bounded application hierarchy, Merkle disclosure,
-agent-authored HTTP IR, four framework writers and source normalizers, static React/Next conversion,
-direct project conversion, native intent execution, checked registration for four backend targets,
-capability rows and guarded whole-file cutover. Implementation is complete; retained reports and
-the full native/WASM/deep validation gates are being refreshed.
+Its current checkpoints add a bounded application hierarchy, Merkle disclosure and
+agent-authored HTTP IR. Four framework writers and source normalizers support project conversion.
+Native intent execution, checked registration, capability rows and guarded whole-file cutover
+complete the implementation. Retained reports and the full validation gates are being refreshed.
 
 | Measure | Current value |
 |---|---:|
@@ -135,8 +134,9 @@ saving from internal composition alone.
    anchors and signature maps identify the modeled declaration, while tests cover selected cases.
    The parser, IR extraction and lowering are still trusted or integration-tested boundaries.
 3. **Framework transformation has a deliberate semantic boundary.** The shared application IR
-   normalizes and writes literal JSON/path behavior across four backend adapters and static intrinsic
-   JSX between React and Next.js. Registration and guarded whole-file cutover are connected.
+   normalizes and writes literal JSON/path behavior across four backend adapters.
+   It also converts static intrinsic JSX between React and Next.js.
+   Registration and guarded whole-file cutover are connected.
    Request bodies, query validation, middleware, authentication, service calls and dynamic rendering
    remain named unsupported features rather than inferred behavior.
 4. **Support is uneven across languages.** Basic structure is broad; semantic authoring, call
@@ -196,8 +196,8 @@ replace the richer Next.js/FastAPI feature planner.
 
 Deliverables:
 
-- Define a versioned hierarchy that preserves package, module, route, handler, schema, dependency,
-  component and configuration facts, with executable IR only for admitted routes and components.
+- Define a versioned hierarchy that preserves package, module, route, handler, schema and dependency
+  facts. Preserve component and configuration facts. Limit executable IR to admitted features.
 - Derive the IR from the existing React, Next.js, Express.js, FastAPI and Go HTTP evidence. Preserve
   unknown runtime behavior and unsupported framework constructs as explicit dispositions.
 - Replace direct pair logic with adapters that read and write the common hierarchy. Keep adapters
