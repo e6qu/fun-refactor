@@ -36,6 +36,12 @@ The workflow section names executable acceptance tests but treats them as obliga
 B5 now describes a tested static-analysis boundary after earlier work closed its actionable gaps.
 `BUGS.md` currently has no known actionable defect.
 
+`tools/completion-workflows.py` now runs the seven completion families against isolated copies of
+one prepared fixture. Each guide executes at least one read or preview action and leaves source
+unchanged. The retained report measures fourteen manual discovery calls and zero exploratory calls
+after guidance. It binds the evaluator and implementation sources and excludes model-token and
+quota claims.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

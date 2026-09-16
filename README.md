@@ -23,6 +23,7 @@ uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
 For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 `fr audit` gives the agent a small content-addressed support and trust summary. The agent then
 reveals only the capability, workflow, recipe, semantic, framework, proof or boundary section it needs.
+The [completion audit](docs/completion-audit.md) explains its claims and retained seven-family sweep.
 The [language-aware workflow guide](docs/agent-workflow-guide.md) turns one structured goal into
 bounded exact read/preview actions, named authoring fields and separate verification levels.
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.

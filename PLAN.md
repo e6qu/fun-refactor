@@ -233,6 +233,8 @@ Implemented on the current branch:
   names executable acceptance targets without treating an unrun test as passing evidence.
 - The report separates support, behavioral validation, model theorems, implementation
   correspondence and runtime framework evidence.
+- A source-bound deterministic sweep exercises all seven required workflow families. Guidance
+  removes fourteen exploratory calls and makes no token or quota claim.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

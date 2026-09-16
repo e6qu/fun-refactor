@@ -41,6 +41,7 @@ commands for revealing the `capabilities`, `workflows`, `recipes`, `semantic`, `
 adapter. Exact inputs can still refuse. Named acceptance tests remain obligations
 until they run on the reported revision, and model theorems remain separate from runtime behavior
 and implementation correspondence.
+See [the completion audit contract and deterministic sweep](docs/completion-audit.md).
 
 ### `fr guide`
 

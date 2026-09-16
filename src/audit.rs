@@ -197,6 +197,13 @@ fn workflow_report() -> Value {
         "delivery_invariants": ["complete-preview", "reviewed-basis", "unchanged-input",
             "declared-original-checks", "declared-final-checks", "patch-verification", "exact-undo-redo"],
         "validation_state": "Acceptance targets name executable tests. This report does not claim that an unrun test passed.",
+        "deterministic_evaluation": {
+            "schema":"fr-completion-workflows-1",
+            "auditor":"python3 tools/completion-workflows.py --audit tests/agent-eval/completion-workflows.json",
+            "retained":"tests/agent-eval/completion-workflows.json",
+            "families":["understanding","tracing","direct-change","recipe","semantic-edit","framework-migration","proof"],
+            "claim":"The retained run executes every guided preview without exploratory calls after guidance. It records protocol bytes and makes no model-token or quota claim."
+        },
     })
 }
 
