@@ -42,6 +42,12 @@ unchanged. The retained report measures fourteen manual discovery calls and zero
 after guidance. It binds the evaluator and implementation sources and excludes model-token and
 quota claims.
 
+The opt-in completion-agent runner groups the same seven families into two fresh sessions. It pins
+`gpt-5.6-luna`, low effort, the default tier, ephemeral mode and ignored user configuration. The
+instrumented surface exposes only guide, follow and finish. Scoring rejects direct project commands,
+source mutation, missing routes, repeated actions and schema mismatches. Recording requires both
+sessions to pass.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

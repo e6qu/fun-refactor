@@ -51,3 +51,30 @@ python3 tools/completion-workflows.py \
 The report binds the evaluator and implementing source files by SHA-256. Its auditor refuses stale
 bindings, missing workflow families, source changes, absent action execution or overstated context
 claims.
+
+## Fresh agent cohort
+
+`tools/completion-agent-eval.py` prepares two isolated sessions around a frozen `fr` binary. The
+fundamentals session covers understanding, tracing, direct change and recipes. The structured
+session covers semantic editing, framework migration and proof submission. Agents can call only
+the instrumented guide, follow and finish operations.
+
+The harness rejects source mutation, repeated actions, missing route families, output-schema drift
+and any Codex command that bypasses its instrumented step. It retains the prompt, tool events,
+Codex JSONL, stderr, final answer, source identities, exact model settings and score for failures as
+well as successes. Codex JSONL supplies model-token usage. The report marks billed quota unavailable
+because the CLI does not expose it.
+
+Real sessions require the explicit spend flag. The agreed economical configuration remains
+`gpt-5.6-luna`, low reasoning effort and the default service tier for this installed CLI.
+
+```sh
+python3 tools/completion-agent-eval.py prepare /tmp/fr-completion-agent \
+  --fr target/debug/fr
+python3 tools/completion-agent-eval.py run /tmp/fr-completion-agent \
+  --confirm-agent-spend
+python3 tools/completion-agent-eval.py score /tmp/fr-completion-agent
+```
+
+`record` accepts only a passing cohort. `replay` verifies the retained file hashes and both passing
+session results without contacting Codex.

@@ -235,6 +235,9 @@ Implemented on the current branch:
   correspondence and runtime framework evidence.
 - A source-bound deterministic sweep exercises all seven required workflow families. Guidance
   removes fourteen exploratory calls and makes no token or quota claim.
+- A two-session Codex harness freezes the binary and records prompts, tool traffic, Codex events,
+  token usage, source identities and failures. It rejects direct project access and cannot record a
+  failing cohort as acceptance evidence.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 
