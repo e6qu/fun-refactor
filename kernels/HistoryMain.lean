@@ -5,6 +5,7 @@ import FrKernels.Workflow
 import FrKernels.TaskChange
 import FrKernels.AgentSession
 import FrKernels.AgentContext
+import FrKernels.IntentActions
 import FrKernels.AgentIntent
 import FrKernels.AgentGuide
 
@@ -133,6 +134,30 @@ def main (args : List String) : IO Unit :=
               for basisMatches in [false, true] do
                 IO.println (FrKernels.AgentIntent.actionMode purpose actionComplete write
                   basisSupplied basisMatches)
+  | ["intent-action-purposes"] =>
+      for purpose in [0:7] do
+        for operation in [0:12] do
+          IO.println (FrKernels.IntentActions.purposeAllowed purpose operation)
+  | ["intent-review-modes"] =>
+      for purpose in [0:7] do
+        for operation in [0:12] do
+          for completeReview in [false, true] do
+            for writable in [false, true] do
+              for write in [false, true] do
+                for supplied in [false, true] do
+                  for matching in [false, true] do
+                    IO.println (FrKernels.IntentActions.mode purpose operation completeReview writable write supplied matching)
+  | ["intent-review-completeness"] =>
+      for targets in ([0, 1, 2, 32, 33, 18446744073709551615] : List Nat) do
+        for evidence in ([0, 1, 31, 32, 18446744073709551615] : List Nat) do
+          for checks in [false, true] do
+            for writable in [false, true] do
+              for required in [false, true] do
+                for checked in [false, true] do
+                  for requested in [false, true] do
+                    for correspondence in [false, true] do
+                      for diff in [false, true] do
+                        IO.println (FrKernels.IntentActions.complete targets evidence checks writable required checked requested correspondence diff)
   | ["memory-transitions"] =>
       for status in List.range 4 do
         for action in List.range 3 do

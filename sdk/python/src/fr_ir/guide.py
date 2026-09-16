@@ -1,7 +1,7 @@
 """IR-shaped structured goals and deterministic, read/preview-only workflow guides."""
 
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import hashlib
 import json
 import re
@@ -10,6 +10,9 @@ from typing import Any, Mapping, TYPE_CHECKING
 from .context import merkle_object_digest
 from .runtime import FrReport, FrRuntimeError
 from .ir import TaskDelivery
+from .intent_actions import TaggedIntentAction
+from .context import ObjectStore
+from .intent import CompiledIntent
 
 if TYPE_CHECKING:
     from .runtime import FrClient
@@ -68,7 +71,7 @@ class GoalOperation:
             "surface-edit": ("surface",), "framework-migration": ("to",),
             "formalize": (), "proof": ("obligation",),
         }
-        optional = {"capability": ("parameters",), "semantic-scalar": ("from", "to")}
+        optional = {"capability": ("parameters", "range"), "semantic-scalar": ("from", "to")}
         if (self.kind not in _KINDS or not isinstance(self.fields, Mapping)
                 or not set(required[self.kind]) <= set(self.fields)
                 or not set(self.fields) <= set(required[self.kind] + optional.get(self.kind, ()))):
@@ -77,6 +80,11 @@ class GoalOperation:
         for name in required[self.kind]:
             _bounded(value[name], f"operation {name}", 4096)
         if self.kind == "capability":
+            span = value.get("range")
+            if "range" in value and (not isinstance(span, dict) or set(span) != {"start", "end"}
+                    or any(isinstance(item, bool) or not isinstance(item, int) for item in span.values())
+                    or not 0 <= span["start"] < span["end"]):
+                raise FrRuntimeError("capability goal range must be a nonempty byte span")
             parameters = value.setdefault("parameters", {})
             if not isinstance(parameters, dict):
                 raise FrRuntimeError("capability parameters must be a string map")
@@ -288,3 +296,48 @@ def follow_guide(client: FrClient, action: GuideAction) -> FrReport:
         return TaskReview(report.to_data(), report.arguments, manifest,
                           hashlib.sha256(manifest).hexdigest(), basis)
     return report
+
+
+def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedIntentAction,
+                          *, store: ObjectStore | None = None) -> CompiledIntent:
+    """Bind an authored operation to a fresh navigator target and its snapshot."""
+    from .intent import AgentIntent, IntentNeed
+    from .intent_actions import IntentGuideBinding, TaggedIntentAction
+    if not isinstance(guide, AgentGuide) or not isinstance(action, TaggedIntentAction):
+        raise FrRuntimeError("guided intent requires a retained guide and TaggedIntentAction")
+    if hashlib.sha256(_canonical(guide.to_data())).hexdigest() != guide.report_sha256:
+        raise FrRuntimeError("guide changed after receipt")
+    route = guide.at("/route")
+    allowed = {
+        "evidence": ("project-query",),
+        "direct-capability": ("capability",),
+        "recipe": ("recipe",),
+        "semantic-scalar": ("task-change", "author-batch"),
+        "semantic-change": ("task-change", "author-batch"),
+        "semantic-body": ("task-change", "author-batch"),
+        "surface-edit": ("surface-edit",),
+        "framework-migration": ("framework-migration",),
+        "formalization": ("property-task", "formal-plan"),
+        "proof": ("proof-task", "proof-submission"),
+    }
+    operation = action.operation.to_data()
+    if route.get("admitted") is not True or operation["kind"] not in allowed.get(route.get("id"), ()):
+        raise FrRuntimeError("intent operation does not match its admitted navigator route")
+    action = replace(action, guide=IntentGuideBinding(guide.goal.to_data(),guide.at("/basis")))
+    if action.proof_expectation != guide.goal.proof:
+        raise FrRuntimeError("intent proof expectation differs from its goal")
+    checks = operation.get("checks", ())
+    delivery = operation.get("delivery")
+    if operation["kind"] == "task-change":
+        checks, delivery = operation["task_change"]["checks"], operation["task_change"]["delivery"]
+    if checks and guide.goal.checks and set(checks) != set(guide.goal.checks):
+        raise FrRuntimeError("intent checks differ from its goal")
+    if delivery is not None and guide.goal.delivery is not None and delivery != guide.goal.delivery.to_data():
+        raise FrRuntimeError("intent delivery differs from its goal")
+    compiled = client.compile(AgentIntent(guide.at("/target/handle"), guide.goal.purpose,
+        needs=(IntentNeed("map", "code_map", "/target"),),
+        token_limit=guide.goal.context.token_limit, packet_limit=guide.goal.context.packet_limit,
+        action=action), store=store)
+    if compiled.at("/revision") != guide.at("/revision"):
+        raise FrRuntimeError("project changed between navigator and intent snapshots")
+    return compiled

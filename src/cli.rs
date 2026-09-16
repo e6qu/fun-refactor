@@ -2695,6 +2695,11 @@ fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Res
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
         let mut compiled = project.compile_agent_intent(options)?;
+        if let Some(action) = compiled.tagged_action.take() {
+            anyhow::ensure!(cli.context_basis.is_none(), "an intent action carries its complete context and does not accept --context-basis.");
+            context.apply(&mut compiled.report)?;
+            return run_tagged_intent(project, root, compiled, action, options);
+        }
         if let Some(action) = compiled.action.take() {
             anyhow::ensure!(
                 cli.context_basis.is_none(),
@@ -2704,6 +2709,23 @@ fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Res
                 .as_str()
                 .context("compiled intent has no basis")?
                 .to_owned();
+            if options.write {
+                let preview = run_task_change(
+                    cli,
+                    project,
+                    root,
+                    action.clone(),
+                    TaskChangeRequest {
+                        diff_bytes: compiled.action_diff_bytes,
+                        write: false,
+                        supplied_basis: None,
+                        outer_intent: Some((compiled.purpose, &intent_basis)),
+                    },
+                )?;
+                decorate_legacy_intent(&mut compiled.report, preview.report, &preview.basis);
+                context.apply(&mut compiled.report)?;
+                compiled.finalize()?;
+            }
             let outcome = run_task_change(
                 cli,
                 project,
@@ -2732,24 +2754,7 @@ fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Res
                 }
                 return Ok(());
             }
-            let mut action_review = outcome.report;
-            for field in [
-                "revision",
-                "coverage",
-                "task_basis",
-                "task_resolution_basis",
-                "requests",
-            ] {
-                action_review.as_object_mut().unwrap().remove(field);
-            }
-            action_review["intent_context_inherited"] = serde_json::json!(["revision", "coverage"]);
-            action_review["basis_committed_omitted"] =
-                serde_json::json!(["task_basis", "task_resolution_basis", "requests"]);
-            compiled.report["action"] = serde_json::json!({
-                "schema": "fr-agent-action-1",
-                "basis": outcome.basis,
-                "review": action_review,
-            });
+            decorate_legacy_intent(&mut compiled.report, outcome.report, &outcome.basis);
         } else {
             anyhow::ensure!(
                 !options.write && options.basis.is_none(),
@@ -2762,6 +2767,201 @@ fn cmd_intent(cli: &Cli, options: &crate::project::agent_intent::Options) -> Res
         println!("{}", serde_json::to_string(&compiled.report)?);
         Ok(())
     })
+}
+
+fn decorate_legacy_intent(
+    packet: &mut serde_json::Value,
+    mut review: serde_json::Value,
+    basis: &str,
+) {
+    for field in [
+        "revision",
+        "coverage",
+        "task_basis",
+        "task_resolution_basis",
+        "requests",
+    ] {
+        review.as_object_mut().unwrap().remove(field);
+    }
+    review["intent_context_inherited"] = serde_json::json!(["revision", "coverage"]);
+    review["basis_committed_omitted"] =
+        serde_json::json!(["task_basis", "task_resolution_basis", "requests"]);
+    packet["action"] =
+        serde_json::json!({"schema":"fr-agent-action-1", "basis":basis, "review":review});
+}
+
+fn run_tagged_intent(
+    project: &crate::project::Project<'_>,
+    root: &Path,
+    mut compiled: crate::project::agent_intent::Compiled,
+    mut prepared: crate::project::agent_actions::Prepared,
+    options: &crate::project::agent_intent::Options,
+) -> Result<()> {
+    project.verify(root)?;
+    let changes = prepared
+        .changes
+        .iter()
+        .map(|change| crate::edit::FileChange {
+            path: &change.path,
+            original: &change.original,
+            updated: &change.updated,
+        })
+        .collect::<Vec<_>>();
+    let removals = prepared
+        .removals
+        .iter()
+        .map(|removal| crate::history::FileRemoval {
+            path: &removal.path,
+            original: &removal.original,
+        })
+        .collect::<Vec<_>>();
+    let mut paths = std::collections::BTreeSet::new();
+    anyhow::ensure!(
+        changes
+            .iter()
+            .map(|change| change.path)
+            .chain(removals.iter().map(|removal| removal.path))
+            .all(|path| paths.insert(path)),
+        "intent action has duplicate or conflicting source paths."
+    );
+    let diff = changes
+        .iter()
+        .map(|change| {
+            crate::edit::unified_diff(
+                change.original,
+                change.updated,
+                &shown_path(root, change.path),
+            )
+        })
+        .chain(removals.iter().map(|removal| {
+            crate::edit::unified_diff(removal.original, "", &shown_path(root, removal.path))
+        }))
+        .collect::<String>();
+    anyhow::ensure!(
+        diff.len() <= compiled.action_diff_bytes,
+        "intent action requires a complete untruncated diff; raise the action diff limit."
+    );
+    if let Some(output) = prepared
+        .delivery
+        .as_ref()
+        .and_then(|delivery| delivery.patch.as_ref())
+    {
+        crate::workflow::validate_patch_output(root, output)?;
+        anyhow::ensure!(
+            !paths.contains(&root.join(output).as_path()),
+            "intent patch output conflicts with a source target."
+        );
+    }
+    prepared.report["diff"] = serde_json::json!(diff);
+    prepared.report["exact_changes_sha256"] = serde_json::json!(hex::encode(Sha256::digest(
+        serde_json::to_vec(&exact_plan_changes(root, &changes, &removals))?
+    )));
+    prepared.report["targets"] = serde_json::json!(prepared.targets);
+    prepared.report["writable"] = serde_json::json!(prepared.delivery.is_some());
+    prepared.report["stages"] = serde_json::json!(prepared
+        .delivery
+        .as_ref()
+        .map(|delivery| crate::workflow::planned_stage_names(
+            delivery.check_original,
+            delivery.exercise_reversal,
+            delivery.patch.is_some()
+        ))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|stage| serde_json::json!({"stage":stage, "status":"pending"}))
+        .collect::<Vec<_>>());
+    anyhow::ensure!(
+        serde_json::to_vec(&prepared.report)?.len() <= prepared.report_bytes,
+        "intent operation review exceeds the action report byte limit."
+    );
+    compiled.report["action"] =
+        serde_json::json!({"schema": "fr-agent-action-2", "review": prepared.report});
+    let basis = crate::project::agent_actions::review_basis(&compiled.report)?;
+    compiled.report["action"]["basis"] = serde_json::json!(&basis);
+    compiled.finalize()?;
+    let complete = crate::project::intent_review_complete(
+        prepared.targets.len(),
+        compiled.report["additional_evidence"]
+            .as_array()
+            .context("intent review has no secondary evidence")?
+            .len(),
+        prepared.checks.is_some(),
+        prepared.delivery.is_some(),
+        prepared.operation == 5,
+        compiled.report["action"]["review"]["proof"]["receipt"].is_string()
+            && compiled.report["action"]["review"]["proof_validation"]["lake_build"] == true,
+        compiled.report["action"]["review"]["proof_expectation"] == "implementation",
+        compiled.report["action"]["review"]["claims"]["implementation_correspondence"] == true,
+        compiled.report["action"]["review"]["diff"].is_string(),
+    );
+    let mode = crate::project::intent_review_mode(
+        compiled.purpose,
+        prepared.operation,
+        complete,
+        prepared.delivery.is_some(),
+        options.write,
+        options.basis.is_some(),
+        options.basis.as_deref() == Some(basis.as_str()),
+    );
+    if mode == 0 {
+        println!("{}", serde_json::to_string(&compiled.report)?);
+        return Ok(());
+    }
+    anyhow::ensure!(
+        mode == 1,
+        "stale, read-only or conflicting intent-action basis; review the complete current preview."
+    );
+    let checks = prepared
+        .checks
+        .context("writing intent action has no checks")?;
+    let delivery = prepared
+        .delivery
+        .context("writing intent action has no delivery")?;
+    let requirement = crate::history::CheckRequirement {
+        configuration_basis: checks.configuration_basis.clone(),
+        checks: checks.checks.clone(),
+    };
+    let recorded = crate::history::record_with_removals_status(
+        root,
+        &changes,
+        &removals,
+        false,
+        "intent-action-checked",
+        Some(&requirement),
+    )?
+    .context("intent action produced no recordable transaction")?;
+    let workflow = crate::workflow::Manifest {
+        schema: 1,
+        transaction: recorded.id,
+        transaction_context_basis: crate::history::record_context_basis(root, recorded.id)?,
+        checks: crate::workflow::CheckRequest {
+            basis: checks.configuration_basis,
+            names: checks.checks,
+        },
+        check_original: delivery.check_original,
+        compact_success: delivery.compact_success,
+        exercise_reversal: delivery.exercise_reversal,
+        patch: delivery
+            .patch
+            .map(|output| crate::workflow::PatchRequest { output }),
+        check_output_bytes: delivery.check_output_bytes,
+    };
+    let outcome = crate::workflow::run_manifest(root, workflow, true)?;
+    let report = serde_json::json!({
+        "schema": "fr-agent-action-result-2", "intent_basis": compiled.report["intent"]["basis"],
+        "action_basis": basis, "kind": compiled.report["action"]["review"]["kind"],
+        "reviewed_context_omitted": true, "executed": true, "passed": outcome.passed,
+        "claims": compiled.report["action"]["review"]["claims"],
+        "proof": compiled.report["action"]["review"]["proof"],
+        "proof_validation": compiled.report["action"]["review"]["proof_validation"],
+        "transaction": recorded.id, "saved": recorded.created,
+        "reused_transaction": !recorded.created, "workflow": outcome.report,
+    });
+    println!("{}", serde_json::to_string(&report)?);
+    if !outcome.passed {
+        std::process::exit(1);
+    }
+    Ok(())
 }
 
 fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Result<()> {

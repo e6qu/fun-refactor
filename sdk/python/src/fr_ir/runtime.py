@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .context import ContextSession, ObjectStore
     from .intent import AgentIntent, CompiledIntent, IntentResult, PreparedIntent
     from .guide import AgentGoal, AgentGuide, GuideAction
+    from .intent_actions import TaggedIntentAction
 
 
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
@@ -380,6 +381,12 @@ class FrClient:
         """Choose a deterministic workflow without exposing intermediate project reports."""
         from .guide import guide_goal
         return guide_goal(self, goal)
+
+    def compile_guided_intent(self, guide: AgentGuide, action: TaggedIntentAction,
+                              *, store: ObjectStore | None = None) -> CompiledIntent:
+        """Compile an authored intent using its retained, freshness-checked guide."""
+        from .guide import compile_guided_intent
+        return compile_guided_intent(self, guide, action, store=store)
 
     def follow_guide(self, action: GuideAction) -> FrReport:
         """Run one ready read/preview action retained by an authoritative guide."""

@@ -63,6 +63,9 @@ def test_goal_wire_shape_preserves_tagged_ir_and_explicit_limits():
     lambda: GoalOperation("capability", {"capability": "rename", "extra": 1}),
     lambda: GoalOperation("semantic-scalar", {"operation": "set-int", "to": "9"}),
     lambda: AgentGoal("trace", checks=("x", "x")),
+    lambda: GoalOperation("capability", {"capability":"inline-call", "range":{"start":True,"end":2}}),
+    lambda: GoalOperation("capability", {"capability":"inline-call", "range":{"start":3,"end":2}}),
+    lambda: GoalOperation("capability", {"capability":"inline-call", "range":{"start":0,"end":2,"extra":3}}),
 ])
 def test_invalid_goals_refuse_before_subprocess_work(build):
     with pytest.raises(FrRuntimeError):
@@ -97,3 +100,10 @@ def test_changed_retained_guide_cannot_be_followed():
     guide.report._value["actions"][0]["arguments"].append("--write")
     with pytest.raises(FrRuntimeError):
         follow_guide(client, guide.actions()[0])
+
+
+def test_capability_byte_range_matches_the_public_span_shape():
+    span = {"start":17,"end":22}
+    goal = AgentGoal("change", selector=GoalSelector(name="caller"),
+        operation=GoalOperation("capability", {"capability":"inline-call", "range":span}))
+    assert goal.to_data()["operation"]["range"] == span

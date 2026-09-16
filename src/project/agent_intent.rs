@@ -61,7 +61,7 @@ pub(super) struct Need {
     pub(super) pointer: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Manifest {
     schema: String,
@@ -75,9 +75,16 @@ pub(super) struct Manifest {
     action: Option<Action>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+enum Action {
+    Legacy(LegacyAction),
+    Tagged(Box<super::agent_actions::Action>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Action {
+struct LegacyAction {
     task_change: Value,
     #[serde(default = "default_diff_bytes")]
     diff_bytes: usize,
@@ -89,6 +96,7 @@ pub(crate) struct Compiled {
     pub(crate) report: Value,
     pub(crate) action: Option<super::task_change::Prepared>,
     pub(crate) action_diff_bytes: usize,
+    pub(crate) tagged_action: Option<super::agent_actions::Prepared>,
     pub(crate) purpose: usize,
     needs: usize,
     sections: usize,
@@ -217,7 +225,10 @@ impl Manifest {
             sections.len() <= 8,
             "agent intent reaches at most eight evidence sections."
         );
-        if let Some(action) = &self.action {
+        if let Some(Action::Tagged(action)) = &self.action {
+            action.validate(self.purpose.code())?;
+        }
+        if let Some(Action::Legacy(action)) = &self.action {
             ensure!(
                 matches!(self.purpose, Purpose::Change),
                 "agent intent actions require purpose 'change'."
@@ -261,22 +272,44 @@ impl Project<'_> {
             serde_json::from_slice(&input).context("agent intent must match fr-agent-intent-1.")?;
         let sections = manifest.validate()?;
         let manifest_sha256 = hex::encode(Sha256::digest(&input));
-        let report = self.native_intent_packet(&manifest, &manifest_sha256)?;
-        let action = manifest
-            .action
-            .as_ref()
-            .map(|action| {
-                let bytes = serde_json::to_vec(&action.task_change)?;
-                self.task_change_bytes(&bytes, action.diff_bytes, action.report_bytes)
-            })
-            .transpose()?;
+        let mut report = self.native_intent_packet(&manifest, &manifest_sha256)?;
+        let (action, tagged_action, action_diff_bytes) = match &manifest.action {
+            Some(Action::Legacy(action)) => (
+                Some(self.task_change_bytes(
+                    &serde_json::to_vec(&action.task_change)?,
+                    action.diff_bytes,
+                    action.report_bytes,
+                )?),
+                None,
+                action.diff_bytes,
+            ),
+            Some(Action::Tagged(action)) => {
+                let prepared = self.prepare_intent_action(action, &manifest)?;
+                let mut evidence = Vec::new();
+                for target in &prepared.targets {
+                    if target == &manifest.target {
+                        continue;
+                    }
+                    let mut projection = manifest.clone();
+                    projection.target = target.clone();
+                    projection.action = None;
+                    let packet = self.native_intent_packet(&projection, &manifest_sha256)?;
+                    evidence.push(serde_json::json!({
+                        "target": packet["target"], "view_basis": packet["view_basis"],
+                        "object_root": packet["object_root"], "selected": packet["selected"],
+                        "object_digests": packet["object_digests"],
+                    }));
+                }
+                report["additional_evidence"] = serde_json::json!(evidence);
+                (None, Some(prepared), action.diff_bytes)
+            }
+            None => (None, None, 0),
+        };
         Ok(Compiled {
             report,
             action,
-            action_diff_bytes: manifest
-                .action
-                .as_ref()
-                .map_or(0, |action| action.diff_bytes),
+            tagged_action,
+            action_diff_bytes,
             purpose: manifest.purpose.code(),
             needs: manifest.needs.len(),
             sections,

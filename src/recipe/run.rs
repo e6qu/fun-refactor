@@ -1118,6 +1118,22 @@ fn select(
     select_subjects(&step.selector, step.line, by_file, index, changed, options)
 }
 
+#[cfg(feature = "cli")]
+pub(crate) fn intent_step_symbols(
+    step: &Step,
+    index: &Index,
+    options: &Options,
+) -> Result<Vec<SymbolId>> {
+    select(step, index, &BTreeSet::new(), options)?
+        .iter()
+        .map(|subject| {
+            subject
+                .resolve(index)
+                .ok_or_else(|| anyhow::anyhow!("declaration intent recipe selected a file"))
+        })
+        .collect()
+}
+
 fn select_subjects(
     selector: &[Predicate],
     line: usize,

@@ -9,6 +9,7 @@ from typing import Any, Mapping, TYPE_CHECKING
 
 from .context import ContextSession, ObjectStore, merkle_object_digest, store_merkle_value
 from .ir import TaskChange
+from .intent_actions import TaggedIntentAction, _operation_code, _action_purpose_allowed, _review_complete, _CAPABILITY_WRITES
 from .runtime import FrReport, FrRuntimeError
 
 if TYPE_CHECKING:
@@ -92,7 +93,7 @@ class AgentIntent:
     token_limit: int = 4_096
     call_limit: int = 192
     packet_limit: int = 8_192
-    action: IntentAction | None = None
+    action: IntentAction | TaggedIntentAction | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.target, str) or not self.target or len(self.target.encode()) > 16_384:
@@ -116,7 +117,11 @@ class AgentIntent:
                                         (self.packet_limit, 1_024, 65_536, "packet")):
             if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
                 raise FrRuntimeError(f"agent intent {label} bound is invalid")
-        if self.action is not None:
+        if isinstance(self.action, TaggedIntentAction):
+            operation = self.action.operation.to_data()
+            if (self.action.proof_expectation == "model" and self.purpose != "prove") or not _action_purpose_allowed(_PURPOSE_CODES[self.purpose], _operation_code(operation)):
+                raise FrRuntimeError("intent action kind is outside its declared purpose")
+        elif self.action is not None:
             if not isinstance(self.action, IntentAction):
                 raise FrRuntimeError("agent intent action must be an IntentAction")
             if self.purpose != "change":
@@ -202,13 +207,21 @@ class IntentResult:
 
     def __post_init__(self) -> None:
         value = self.report.to_data()
-        if (value.get("schema") != "fr-agent-action-result-1"
+        if (value.get("schema") != ("fr-agent-action-result-2" if isinstance(
+                self.compiled.intent.action, TaggedIntentAction) else "fr-agent-action-result-1")
                 or value.get("intent_basis") != self.compiled.at("/intent/basis")
                 or value.get("action_basis") != self.compiled.action_basis
                 or value.get("reviewed_context_omitted") is not True
                 or value.get("executed") is not True
                 or value.get("passed") is not True):
             raise FrRuntimeError("intent action result does not match its reviewed intent")
+
+        if isinstance(self.compiled.intent.action, TaggedIntentAction):
+            review = self.compiled.at("/action/review")
+            if (value.get("kind") != review["kind"] or value.get("claims") != review["claims"]
+                    or value.get("proof") != review.get("proof")
+                    or value.get("proof_validation") != review.get("proof_validation")):
+                raise FrRuntimeError("intent action result changed its reviewed claims or proof evidence")
 
     @property
     def passed(self) -> bool:
@@ -229,6 +242,26 @@ def _action_complete(intent: AgentIntent, action: Any) -> bool:
     review = action.get("review")
     if not isinstance(review, Mapping):
         return False
+    if isinstance(intent.action, TaggedIntentAction):
+        expected = intent.action.to_data()
+        targets = review.get("targets")
+        return (
+            action.get("schema") == "fr-agent-action-2"
+            and isinstance(action.get("basis"), str)
+            and re.fullmatch(r"fraa2:[0-9a-f]{64}", action["basis"]) is not None
+            and review.get("schema") == "fr-intent-operation-review-2"
+            and len(_wire(review)) <= intent.action.report_bytes
+            and review.get("kind") == expected["operation"]["kind"]
+            and review.get("input_sha256") == hashlib.sha256(_wire(expected)).hexdigest()
+            and review.get("ready") is True and review.get("executed") is False
+            and isinstance(targets, list) and 1 <= len(targets) <= 32
+            and all(isinstance(target, str) for target in targets)
+            and len(set(targets)) == len(targets) and intent.target in targets
+            and isinstance(review.get("diff"), str)
+            and len(review["diff"].encode("utf-8")) <= intent.action.diff_bytes
+            and isinstance(review.get("claims"), Mapping)
+            and review["claims"].get("implementation_correspondence") is False
+        )
     task = intent.action.task_change
     task_bytes = json.dumps(task.to_data(), ensure_ascii=False, sort_keys=True,
                             separators=(",", ":"), allow_nan=False).encode("utf-8")
@@ -246,6 +279,79 @@ def _action_complete(intent: AgentIntent, action: Any) -> bool:
         and isinstance(targets[0], Mapping)
         and targets[0].get("handle") == intent.target
     )
+
+
+def _wire(value: Any) -> bytes:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
+def _tagged_evidence_complete(intent: AgentIntent, packet: Mapping[str, Any]) -> bool:
+    if not isinstance(intent.action, TaggedIntentAction):
+        return "additional_evidence" not in packet
+    action = packet.get("action")
+    if not isinstance(action, Mapping) or not isinstance(action.get("review"), Mapping):
+        return False
+    evidence = packet.get("additional_evidence")
+    targets = action["review"].get("targets")
+    if (not isinstance(evidence, list) or not isinstance(targets, list)
+            or len(evidence) != len(targets) - 1):
+        return False
+    expected = [target for target in targets if target != intent.target]
+    names = {need.name for need in intent.needs}
+    for entry, target in zip(evidence, expected, strict=True):
+        if not isinstance(entry, Mapping):
+            return False
+        selected, digests = entry.get("selected"), entry.get("object_digests")
+        if (not isinstance(entry.get("target"), Mapping) or entry["target"].get("handle") != target
+                or any(not isinstance(entry.get(key), str) or not entry[key]
+                       for key in ("view_basis", "object_root"))
+                or not isinstance(selected, Mapping) or set(selected) != names
+                or not isinstance(digests, Mapping) or set(digests) != names
+                or any(merkle_object_digest(selected[name]) != digests[name] for name in names)):
+            return False
+    review = action["review"]
+    writable = review.get("writable")
+    claims, checks = review.get("claims"), review.get("checks")
+    proof, validation = review.get("proof"), review.get("proof_validation")
+    expectation = intent.action.proof_expectation
+    operation = intent.action.operation.to_data()
+    expected_writable = (operation["kind"] in ("task-change", "author-batch", "recipe", "framework-migration", "proof-submission", "surface-edit")
+                         or (operation["kind"] == "formal-plan" and operation.get("package") is not None)
+                         or (operation["kind"] == "capability" and operation["capability"] in _CAPABILITY_WRITES))
+    if (writable is not expected_writable or not isinstance(claims, Mapping)
+            or not isinstance(claims.get("model_theorem_checked"), bool)
+            or review.get("proof_expectation") != expectation):
+        return False
+    proof_checked = (isinstance(proof, Mapping) and isinstance(proof.get("receipt"), str)
+                     and bool(proof["receipt"]) and isinstance(validation, Mapping)
+                     and validation.get("lake_build") is True
+                     and validation.get("strict_correspondence") is True
+                     and validation.get("implementation_correspondence") is False
+                     and claims.get("model_theorem_checked") is True)
+    expected_checks = operation.get("checks")
+    expected_delivery = operation.get("delivery")
+    if operation["kind"] == "task-change":
+        expected_checks = operation["task_change"]["checks"]
+        expected_delivery = operation["task_change"]["delivery"]
+    checked = (isinstance(checks, Mapping) and isinstance(checks.get("names"), list)
+               and all(isinstance(name, str) for name in checks["names"])
+               and isinstance(expected_checks, list) and bool(expected_checks)
+               and set(checks["names"]) == set(expected_checks)
+               and len(checks["names"]) == len(expected_checks)
+               and isinstance(checks.get("configuration_basis"), str)
+               and review.get("delivery") == expected_delivery)
+    if not _review_complete(len(targets), len(evidence), checked, writable,
+                            operation["kind"] == "proof-submission" or expectation == "model",
+                            proof_checked, expectation == "implementation",
+                            claims.get("implementation_correspondence") is True,
+                            isinstance(review.get("diff"), str)):
+        return False
+    normalized = dict(packet)
+    normalized["serialized_bytes"] = 0
+    normalized["action"] = {key: value for key, value in action.items() if key != "basis"}
+    basis = "fraa2:" + hashlib.sha256(_wire(["fr-agent-action-review-2", normalized])).hexdigest()
+    return action.get("basis") == basis
 
 
 def compile_intent(client: FrClient, intent: AgentIntent,
@@ -285,6 +391,7 @@ def compile_intent(client: FrClient, intent: AgentIntent,
         and limits == {"packet_bytes": intent.packet_limit,
                        "progressive_disclosure_calls": intent.call_limit}
         and _action_complete(intent, action)
+        and _tagged_evidence_complete(intent, value)
         and isinstance(selected, Mapping) and set(selected) == expected_names
         and isinstance(digests, Mapping) and set(digests) == expected_names
         and all(isinstance(digests[name], str)
@@ -314,6 +421,11 @@ def compile_intent(client: FrClient, intent: AgentIntent,
             ).digest)
     action_basis = action.get("basis") if isinstance(action, Mapping) else None
     preview_sha256 = hashlib.sha256(serialized).hexdigest()
+    if store is not None and isinstance(intent.action, TaggedIntentAction):
+        for evidence in value["additional_evidence"]:
+            for name in sorted(expected_names):
+                stored.append(store_merkle_value(store, evidence["selected"][name],
+                    expected_digest=evidence["object_digests"][name]).digest)
     return CompiledIntent(intent, report, tuple(stored), manifest,
                           preview_sha256, action_basis)
 

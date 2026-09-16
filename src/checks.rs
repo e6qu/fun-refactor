@@ -71,6 +71,7 @@ struct Check {
     covers: Vec<String>,
 }
 
+#[derive(Clone)]
 pub(crate) struct Selection {
     pub configuration_basis: String,
     pub checks: Vec<String>,

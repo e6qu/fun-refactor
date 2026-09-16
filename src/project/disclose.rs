@@ -1192,10 +1192,10 @@ impl Project<'_> {
             "project disclose requires a full revision-bound declaration handle."
         );
         let id = self.resolve_handle(&options.target)?;
-        if options.view != DisclosureView::Project {
+        if options.view == DisclosureView::Semantic {
             ensure!(
                 self.nodes[id].symbol.is_some(),
-                "semantic and evidence disclosure require a declaration handle."
+                "semantic disclosure requires a declaration handle."
             );
         }
         let semantic = if options.view == DisclosureView::Semantic {

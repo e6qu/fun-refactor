@@ -338,3 +338,774 @@ fn change_intent_refuses_wrong_purpose_target_basis_and_unreviewed_execution() {
     );
     assert!(!success, "{refused}");
 }
+
+fn tagged(target: &str, purpose: &str, operation: Value) -> Value {
+    json!({"schema":"fr-agent-intent-1", "target":target, "purpose":purpose,
+        "needs":[{"name":"map", "section":"code_map", "pointer":"/target"}],
+        "token_limit":4096,"call_limit":192,"packet_limit":65536,
+        "action":{"schema":"fr-intent-action-2", "operation":operation,
+                  "diff_bytes":65536,"report_bytes":65536}})
+}
+fn preview_value(root: &Path, input: &Value) -> (bool, Value) {
+    run(
+        root,
+        &["intent", "--from", "-"],
+        Some(&serde_json::to_vec(input).unwrap()),
+    )
+}
+fn delivery() -> Value {
+    json!({"check-original":true,"exercise-reversal":true,"compact-success":true,
+        "patch":"artifacts/tagged.patch","check-output-bytes":256})
+}
+
+#[test]
+fn tagged_task_resolves_multiple_targets_and_binds_secondary_evidence() {
+    let root = fixture();
+    let anchor = handle(root.path());
+    let mut legacy: Value = serde_json::from_slice(&change_intent(&anchor, "change")).unwrap();
+    let task = &mut legacy["action"]["task_change"];
+    task["requests"] = json!([{"id":"caller","arguments":["find","caller","--signature"]}]);
+    task["targets"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"id":"caller-body",
+        "handle":{"request":"caller","pointer":"/rows/0/0"},"op":"replace-body",
+        "fragment":"{ render(\"changed\") }\n"}));
+    task["postconditions"]["edits"] = json!(2);
+    task["postconditions"]["changed-operations"] = json!(2);
+    let input = tagged(
+        &anchor,
+        "change",
+        json!({"kind":"task-change","task_change":task}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(preview["execution"]["project_snapshots"], 1);
+    assert_eq!(
+        preview["action"]["review"]["targets"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    let secondary = &preview["additional_evidence"][0];
+    assert_eq!(secondary["target"]["name"], "caller");
+    assert_eq!(
+        secondary["object_digests"]["map"],
+        object_merkle(&secondary["selected"]["map"]).unwrap()
+    );
+    assert!(!root.path().join(".fr-history").exists());
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let mut undersized = input.clone();
+    undersized["packet_limit"] = json!(1024);
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&undersized).unwrap()),
+    );
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    assert_eq!(result["schema"], "fr-agent-action-result-2");
+    assert_eq!(result["passed"], true);
+    assert_eq!(result["claims"]["implementation_correspondence"], false);
+    assert!(root.path().join("artifacts/change.patch").exists());
+    let source = std::fs::read_to_string(root.path().join("src/lib.rs")).unwrap();
+    assert!(source.contains("to_uppercase") && source.contains("changed"));
+    assert_eq!(result["workflow"]["stages"].as_array().unwrap().len(), 8);
+}
+
+#[test]
+fn tagged_actions_refuse_changed_secondary_target_checks_delivery_and_purpose() {
+    let root = fixture();
+    let anchor = handle(root.path());
+    let legacy: Value = serde_json::from_slice(&change_intent(&anchor, "change")).unwrap();
+    let input = tagged(
+        &anchor,
+        "change",
+        json!({"kind":"task-change","task_change":legacy["action"]["task_change"]}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    for field in ["fragment", "checks", "delivery", "purpose"] {
+        let mut changed = input.clone();
+        match field {
+            "fragment" => {
+                changed["action"]["operation"]["task_change"]["targets"][0]["fragment"] =
+                    json!("{ value.to_lowercase() }\n")
+            }
+            "checks" => changed["action"]["operation"]["task_change"]["checks"] = json!([]),
+            "delivery" => {
+                changed["action"]["operation"]["task_change"]["delivery"]["patch"] =
+                    json!("artifacts/other.patch")
+            }
+            _ => changed["purpose"] = json!("prove"),
+        }
+        let (success, refused) = run(
+            root.path(),
+            &["intent", "--from", "-", "--write", "--basis", basis],
+            Some(&serde_json::to_vec(&changed).unwrap()),
+        );
+        assert!(!success, "{field}: {refused}");
+        assert!(!root.path().join(".fr-history").exists());
+    }
+    std::fs::write(
+        root.path().join("src/lib.rs"),
+        "pub fn render(value: &str) -> String { value.into() }\n",
+    )
+    .unwrap();
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
+fn tagged_author_batch_matches_the_standalone_planner_and_delivers() {
+    let root = fixture();
+    let anchor = handle(root.path());
+    std::fs::write(
+        root.path().join(".fr/body.rs"),
+        "{ value.to_uppercase() }\n",
+    )
+    .unwrap();
+    let batch = json!({"operations":[{"op":"replace-body","handle":anchor,
+        "from":".fr/body.rs"}],
+        "postconditions":{"files-changed":1,"edits":1,"changed-operations":1}});
+    std::fs::write(
+        root.path().join(".fr/batch.json"),
+        serde_json::to_vec(&batch).unwrap(),
+    )
+    .unwrap();
+    let (success, standalone) = run(
+        root.path(),
+        &[
+            "author",
+            "batch",
+            "--from",
+            ".fr/batch.json",
+            "--diff-bytes",
+            "65536",
+        ],
+        None,
+    );
+    assert!(success, "{standalone}");
+    let input = tagged(
+        &anchor,
+        "change",
+        json!({"kind":"author-batch","author_batch":batch,
+        "checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(
+        preview["action"]["review"]["plan"]["operations"],
+        standalone["operations"]
+    );
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, applied) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{applied}");
+    assert!(root.path().join("artifacts/tagged.patch").exists());
+}
+
+#[test]
+fn tagged_recipe_requires_anchored_selector_and_matches_standalone_plan() {
+    let root = fixture();
+    let recipe = "schema 1\nrecipe rename-render {\n rename to \"display\" where name=\"render\" in=\"src/lib.rs\"\n expect matched = 1\n expect refusals = 0\n}\n";
+    std::fs::write(root.path().join("rename.fr"), recipe).unwrap();
+    let anchor = handle(root.path());
+    let input = tagged(
+        &anchor,
+        "change",
+        json!({"kind":"recipe","recipe":recipe,
+        "checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, standalone) = run(root.path(), &["recipe", "rename.fr"], None);
+    assert!(success, "{standalone}");
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(preview["action"]["review"]["plan"], standalone);
+    let mut broad = input.clone();
+    broad["action"]["operation"]["recipe"] = json!(recipe.replace(" in=\"src/lib.rs\"", ""));
+    let (success, refused) = preview_value(root.path(), &broad);
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("display(\"ok\")"));
+}
+
+#[test]
+fn tagged_formal_plan_is_source_free_read_only_and_matches_standalone() {
+    let root = fixture();
+    std::fs::write(
+        root.path().join("src/lib.rs"),
+        "pub fn render(value: bool) -> bool { value }\n",
+    )
+    .unwrap();
+    let anchor = handle(root.path());
+    let input = tagged(
+        &anchor,
+        "prove",
+        json!({"kind":"formal-plan","properties":["identity"]}),
+    );
+    let (success, standalone) = run(
+        root.path(),
+        &[
+            "spec",
+            "plan",
+            "src/lib.rs::render",
+            "--property",
+            "identity",
+        ],
+        None,
+    );
+    assert!(success, "{standalone}");
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(preview["action"]["review"]["plan"], standalone);
+    assert_eq!(preview["action"]["review"]["writable"], false);
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
+fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
+    let root = fixture();
+    std::fs::write(
+        root.path().join("src/lib.rs"),
+        "pub fn render(value: bool) -> bool { value }\n",
+    )
+    .unwrap();
+    let (success, initialized) = run(root.path(), &["spec", "init", "--write"], None);
+    assert!(success, "{initialized}");
+    let anchor = handle(root.path());
+    let task_input = tagged(&anchor, "prove", json!({"kind":"property-task"}));
+    let (success, task) = preview_value(root.path(), &task_input);
+    assert!(success, "{task}");
+    assert_eq!(
+        task["action"]["review"]["plan"]["schema"],
+        "fr-property-task-1"
+    );
+    let input = tagged(
+        &anchor,
+        "prove",
+        json!({"kind":"formal-plan","properties":["identity"],
+        "package":"specs","checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(
+        preview["action"]["review"]["proof_validation"]["lake_build"],
+        true
+    );
+    assert_eq!(
+        preview["action"]["review"]["claims"]["model_theorem_checked"],
+        false
+    );
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    let model = root.path().join("specs/FrSpecs/SrcLibRsRender.lean");
+    let before = std::fs::read_to_string(&model).unwrap();
+    let (success, goals) = run(root.path(), &["spec", "goals", "specs"], None);
+    assert!(success, "{goals}");
+    let name = goals["catalog"][0]["name"].as_str().unwrap();
+    let (success, found) = run(root.path(), &["project", "find", name, "--signature"], None);
+    assert!(success, "{found}");
+    let proof_anchor = found["rows"][0][0].as_str().unwrap();
+    let task_input = tagged(
+        proof_anchor,
+        "prove",
+        json!({"kind":"proof-task","obligation":name}),
+    );
+    let (success, task) = preview_value(root.path(), &task_input);
+    assert!(success, "{task}");
+    assert_eq!(
+        task["action"]["review"]["plan"]["schema"],
+        "fr-proof-task-1"
+    );
+    let mut proof_delivery = delivery();
+    proof_delivery["patch"] = json!("artifacts/proof.patch");
+    let input = tagged(
+        proof_anchor,
+        "prove",
+        json!({"kind":"proof-submission","obligation":name,
+        "tactics":"rfl\n","checks":["syntax"],"delivery":proof_delivery}),
+    );
+    let mut wrong = input.clone();
+    wrong["action"]["operation"]["tactics"] = json!("exact false\n");
+    let (success, refused) = preview_value(root.path(), &wrong);
+    assert!(!success, "{refused}");
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), before);
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(
+        preview["action"]["review"]["proof_validation"]["strict_correspondence"],
+        true
+    );
+    assert_eq!(
+        preview["action"]["review"]["claims"]["model_theorem_checked"],
+        true
+    );
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), before);
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let lakefile = root.path().join("specs/lakefile.toml");
+    let lake_original = std::fs::read_to_string(&lakefile).unwrap();
+    std::fs::write(
+        &lakefile,
+        format!("{lake_original}\n# changed review configuration\n"),
+    )
+    .unwrap();
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(!success, "{refused}");
+    assert_eq!(std::fs::read_to_string(&model).unwrap(), before);
+    std::fs::write(&lakefile, lake_original).unwrap();
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    assert_eq!(result["claims"]["model_theorem_checked"], true);
+    assert_eq!(result["claims"]["implementation_correspondence"], false);
+    assert!(!std::fs::read_to_string(model).unwrap().contains("sorry"));
+    assert!(result["proof"]["receipt"].is_string());
+}
+
+#[test]
+fn tagged_migration_matches_standalone_and_exports_creation_patch() {
+    let root = fixture();
+    let route = root.path().join("app/api/entries/route.ts");
+    std::fs::create_dir_all(route.parent().unwrap()).unwrap();
+    std::fs::write(
+        &route,
+        "export async function GET() { return Response.json([{ label: \"first\" }]); }\n",
+    )
+    .unwrap();
+    let (success, features) = run(
+        root.path(),
+        &["project", "features", "--limit", "500"],
+        None,
+    );
+    assert!(success, "{features}");
+    let feature = features["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["kind"] == "feature")
+        .unwrap()["id"]
+        .as_str()
+        .unwrap();
+    let (success, selected) = run(
+        root.path(),
+        &["project", "find", "GET", "--signature"],
+        None,
+    );
+    assert!(success, "{selected}");
+    let anchor = selected["rows"][0][0].as_str().unwrap();
+    let (success, standalone) = run(
+        root.path(),
+        &[
+            "migrate",
+            "feature",
+            feature,
+            "--to",
+            "fastapi",
+            "--out",
+            "backend/entries.py",
+            "--check",
+            "syntax",
+            "--diff-bytes",
+            "65536",
+        ],
+        None,
+    );
+    assert!(success, "{standalone}");
+    let input = tagged(
+        anchor,
+        "migrate",
+        json!({"kind":"framework-migration","feature":feature,
+        "to":"fastapi","out":"backend/entries.py","checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(
+        preview["action"]["review"]["plan"]["migration"],
+        standalone["migration"]
+    );
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    assert!(root.path().join("backend/entries.py").exists());
+    assert!(
+        std::fs::read_to_string(root.path().join("artifacts/tagged.patch"))
+            .unwrap()
+            .contains("new file mode")
+    );
+}
+
+#[test]
+fn tagged_query_and_surface_action_preserve_the_selected_file() {
+    let root = fixture();
+    std::fs::write(root.path().join("style.css"), ".card { color: red; }\n").unwrap();
+    let selection = serde_json::to_vec(&json!({"schema":"fr-agent-goal-1","purpose":"understand",
+        "selector":{"path":"style.css"}}))
+    .unwrap();
+    let (success, selected) = run(root.path(), &["guide", "--from", "-"], Some(&selection));
+    assert!(success, "{selected}");
+    let anchor = selected["target"]["handle"].as_str().unwrap();
+    let query = tagged(
+        anchor,
+        "understand",
+        json!({"kind":"project-query",
+        "requests":[{"id":"styles","arguments":["styles",anchor]}]}),
+    );
+    let (success, preview) = preview_value(root.path(), &query);
+    assert!(success, "{preview}");
+    assert_eq!(preview["action"]["review"]["writable"], false);
+    let (success, styles) = run(root.path(), &["project", "styles", anchor], None);
+    assert!(success, "{styles}");
+    let edit = styles["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(|row| row["edit"]["id"].as_str().or_else(|| row["edit"].as_str()))
+        .unwrap();
+    let input = tagged(
+        anchor,
+        "change",
+        json!({"kind":"surface-edit","edit":edit,"to":"panel",
+        "checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("style.css")).unwrap(),
+        ".panel { color: red; }\n"
+    );
+}
+
+#[test]
+fn legacy_write_checks_complete_packet_admission_before_history() {
+    let root = fixture();
+    let anchor = handle(root.path());
+    let mut input: Value = serde_json::from_slice(&change_intent(&anchor, "change")).unwrap();
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    input["packet_limit"] = json!(1024);
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("to_owned"));
+}
+
+#[test]
+fn direct_capability_intent_reuses_rename_planner_and_checks_unchanged_goal() {
+    let root = fixture();
+    let anchor = handle(root.path());
+    let goal = json!({"schema":"fr-agent-goal-1","purpose":"change","target":anchor,
+        "operation":{"kind":"capability","capability":"rename","parameters":{"new_name":"display"}},
+        "checks":["syntax"]});
+    let (success, guide) = run(
+        root.path(),
+        &["guide", "--from", "-"],
+        Some(&serde_json::to_vec(&goal).unwrap()),
+    );
+    assert!(success, "{guide}");
+    let mut input = tagged(
+        &anchor,
+        "change",
+        json!({"kind":"capability","capability":"rename",
+        "parameters":{"new_name":"display"},"checks":["syntax"],"delivery":delivery()}),
+    );
+    input["action"]["guide"] = json!({"goal":goal,"basis":guide["basis"]});
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(preview["action"]["review"]["guide_basis"], guide["basis"]);
+    let position = guide["target"]["position"].as_str().unwrap();
+    let (success, standalone) = run(root.path(), &["rename", position, "display"], None);
+    assert!(success, "{standalone}");
+    assert_eq!(
+        preview["action"]["review"]["diff"],
+        standalone["changes"][0]["diff"]
+    );
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let mut changed = input.clone();
+    changed["action"]["operation"]["parameters"]["new_name"] = json!("other");
+    let (success, refused) = preview_value(root.path(), &changed);
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("display(\"ok\")"));
+}
+
+#[test]
+fn recipe_intents_reject_path_substrings_and_duplicate_declaration_names() {
+    let root = fixture();
+    let extra = root.path().join("copy/src/lib.rs");
+    std::fs::create_dir_all(extra.parent().unwrap()).unwrap();
+    std::fs::write(extra, "pub fn render() {}\n").unwrap();
+    let (success, found) = run(
+        root.path(),
+        &["project", "find", "render", "--signature"],
+        None,
+    );
+    assert!(success, "{found}");
+    let anchor = found["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row[3] == "src/lib.rs")
+        .unwrap_or(&found["rows"][0])[0]
+        .as_str()
+        .unwrap();
+    let input = tagged(
+        anchor,
+        "change",
+        json!({"kind":"recipe",
+        "recipe":"schema 1\nrecipe rename-render { rename to \"display\" where name=\"render\" in=\"src/lib.rs\" }",
+        "checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, refused) = preview_value(root.path(), &input);
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
+fn direct_read_capabilities_return_structure_without_history() {
+    let root = fixture();
+    let anchor = handle(root.path());
+    for capability in [
+        "symbols",
+        "impact",
+        "call-graph",
+        "flow",
+        "entry-points",
+        "stitch",
+        "duplicates",
+        "dead-code",
+        "declared-type",
+    ] {
+        let input = tagged(
+            &anchor,
+            "understand",
+            json!({"kind":"capability", "capability":capability}),
+        );
+        let (success, preview) = preview_value(root.path(), &input);
+        assert!(success, "{capability}: {preview}");
+        assert_eq!(preview["action"]["review"]["writable"], false);
+        let basis = preview["action"]["basis"].as_str().unwrap();
+        let (success, refused) = run(
+            root.path(),
+            &["intent", "--from", "-", "--write", "--basis", basis],
+            Some(&serde_json::to_vec(&input).unwrap()),
+        );
+        assert!(!success, "{capability}: {refused}");
+    }
+    std::fs::write(
+        root.path().join("style.css"),
+        ":root { --accent: red; --foreground: var(--accent); }\n",
+    )
+    .unwrap();
+    let (success, found) = run(
+        root.path(),
+        &["project", "find", "--signature", "--", "--foreground"],
+        None,
+    );
+    assert!(success, "{found}");
+    let anchor = found["rows"][0][0].as_str().unwrap();
+    let input = tagged(
+        anchor,
+        "trace",
+        json!({"kind":"capability", "capability":"provenance"}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert!(preview["action"]["review"]["plan"]["planner"]["hops"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|hop| hop["kind"] == "var()"));
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
+fn direct_call_and_extraction_ranges_remain_inside_the_retained_declaration() {
+    let root = fixture();
+    std::fs::write(
+        root.path().join("src/lib.rs"),
+        "fn add(a: i32, b: i32) -> i32 { a + b }\nfn caller() -> i32 { add(1, 2) }\n",
+    )
+    .unwrap();
+    let (success, found) = run(
+        root.path(),
+        &["project", "find", "caller", "--signature"],
+        None,
+    );
+    assert!(success, "{found}");
+    let anchor = found["rows"][0][0].as_str().unwrap();
+    let source = std::fs::read_to_string(root.path().join("src/lib.rs")).unwrap();
+    let start = source.rfind("add(1, 2)").unwrap();
+    let input = tagged(
+        anchor,
+        "change",
+        json!({"kind":"capability", "capability":"inline-call",
+        "range":{"start":start,"end":start+3}, "checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert!(preview["action"]["review"]["diff"]
+        .as_str()
+        .unwrap()
+        .contains("1 + 2"));
+    let goal = json!({"schema":"fr-agent-goal-1","purpose":"change","target":anchor,
+        "operation":{"kind":"capability","capability":"inline-call",
+            "range":{"start":start,"end":start+3}},"checks":["syntax"]});
+    let (success, guide) = run(
+        root.path(),
+        &["guide", "--from", "-"],
+        Some(&serde_json::to_vec(&goal).unwrap()),
+    );
+    assert!(success, "{guide}");
+    assert_eq!(guide["actions"][0]["arguments"][1], "src/lib.rs:2:22");
+    let mut guided = input.clone();
+    guided["action"]["guide"] = json!({"goal":goal,"basis":guide["basis"]});
+    let (success, preview) = preview_value(root.path(), &guided);
+    assert!(success, "{preview}");
+    let mut changed = input.clone();
+    changed["action"]["operation"]["range"] = json!({"start":0,"end":2});
+    let (success, refused) = preview_value(root.path(), &changed);
+    assert!(!success, "{refused}");
+    let mut extract = input;
+    extract["action"]["operation"]["capability"] = json!("extract-variable");
+    extract["action"]["operation"]["parameters"] = json!({"name":"answer"});
+    extract["action"]["operation"]["range"] = json!({"start":start,"end":start+9});
+    let goal = json!({"schema":"fr-agent-goal-1","purpose":"change","target":anchor,
+        "operation":{"kind":"capability","capability":"extract-variable",
+            "parameters":{"name":"answer", "range":"src/lib.rs:2:22-2:31"}},
+        "constraints":{"allow_source":true},"checks":["syntax"]});
+    let (success, guide) = run(
+        root.path(),
+        &["guide", "--from", "-"],
+        Some(&serde_json::to_vec(&goal).unwrap()),
+    );
+    assert!(success, "{guide}");
+    extract["action"]["guide"] = json!({"goal":goal,"basis":guide["basis"]});
+    let (success, preview) = preview_value(root.path(), &extract);
+    assert!(success, "{preview}");
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
+fn automatic_prove_guide_keeps_its_inferred_formalization_route() {
+    let root = fixture();
+    std::fs::write(
+        root.path().join("src/lib.rs"),
+        "pub fn render(value: u64) -> u64 { value }\n",
+    )
+    .unwrap();
+    let anchor = handle(root.path());
+    let goal = json!({"schema":"fr-agent-goal-1","purpose":"prove","target":anchor});
+    let (success, guide) = run(
+        root.path(),
+        &["guide", "--from", "-"],
+        Some(&serde_json::to_vec(&goal).unwrap()),
+    );
+    assert!(success, "{guide}");
+    assert_eq!(guide["route"]["id"], "formalization");
+    let mut input = tagged(&anchor, "prove", json!({"kind":"property-task"}));
+    input["action"]["guide"] = json!({"goal":goal,"basis":guide["basis"]});
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    input["action"]["operation"] =
+        json!({"kind":"project-query", "requests":[{"id":"show","arguments":["show",anchor]}]});
+    let (success, refused) = preview_value(root.path(), &input);
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
+fn tagged_review_byte_ceiling_refuses_before_source_history() {
+    let root = fixture();
+    let anchor = handle(root.path());
+    let mut input = tagged(
+        &anchor,
+        "change",
+        json!({"kind":"capability","capability":"rename",
+        "parameters":{"new_name":"display"},"checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    input["action"]["report_bytes"] = json!(256);
+    let (success, refused) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(!success, "{refused}");
+    assert!(!root.path().join(".fr-history").exists());
+    assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("render"));
+}

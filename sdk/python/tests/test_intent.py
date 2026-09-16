@@ -250,3 +250,117 @@ class TestIntent:
             evidence = [True, True, True]
             evidence[missing] = False
             assert not _intent_admitted(1, 1, 0, 1, 1024, 1024, *evidence)
+
+from fr_ir.intent import _wire
+from fr_ir.intent_actions import (
+    CapabilityOperation, AuthorBatchOperation, FormalPlanOperation, FrameworkMigrationOperation,
+    ProjectQueryOperation, PropertyTaskOperation, ProofSubmissionOperation,
+    ProofTaskOperation, RecipeOperation, SurfaceEditOperation, TaggedIntentAction,
+)
+
+
+class FakeTaggedClient(FakeNativeClient):
+    def __init__(self, mutate=None, *, rebind=False):
+        super().__init__()
+        self.change_packet = mutate
+        self.rebind = rebind
+
+    def call(self, *arguments, input_bytes=None):
+        intent = json.loads(input_bytes)
+        digest = hashlib.sha256(input_bytes).hexdigest()
+        if "--write" in arguments:
+            return FrReport({"schema":"fr-agent-action-result-2",
+                "intent_basis":f"frai1:{digest}","action_basis":arguments[-1],
+                "reviewed_context_omitted":True,"executed":True,"passed":True,
+                "kind":"task-change","claims":{"model_theorem_checked":False,
+                "implementation_correspondence":False},"proof":None,"proof_validation":None},arguments)
+        action = intent.pop("action")
+        packet = super().call(*arguments, input_bytes=_wire(intent)).to_data()
+        packet["intent"].update(manifest_sha256=digest,basis=f"frai1:{digest}")
+        task = action["operation"]["task_change"]
+        packet["action"] = {"schema":"fr-agent-action-2","review":{
+            "schema":"fr-intent-operation-review-2","kind":"task-change",
+            "input_sha256":hashlib.sha256(_wire(action)).hexdigest(),
+            "ready":True,"executed":False,"targets":[intent["target"],"secondary"],
+            "diff":"complete diff","writable":True,"proof_expectation":"none",
+            "checks":{"names":task["checks"],"configuration_basis":"configuration"},
+            "delivery":task["delivery"],"claims":{"model_theorem_checked":False,
+                "implementation_correspondence":False}}}
+        selected = {need["name"]:{"secondary":need["section"]} for need in intent["needs"]}
+        packet["additional_evidence"] = [{"target":{"handle":"secondary"},
+            "view_basis":"secondary-view","object_root":"secondary-root","selected":selected,
+            "object_digests":{name:merkle_object_digest(value) for name,value in selected.items()}}]
+        def rebind():
+            normalized = dict(packet)
+            normalized["serialized_bytes"] = 0
+            normalized["action"] = {key:value for key,value in packet["action"].items() if key != "basis"}
+            packet["action"]["basis"] = "fraa2:"+hashlib.sha256(_wire(["fr-agent-action-review-2",normalized])).hexdigest()
+        rebind()
+        if self.change_packet:
+            self.change_packet(packet)
+            if self.rebind:
+                rebind()
+        for _ in range(4):
+            packet["serialized_bytes"] = len(_wire(packet))
+        return FrReport(packet,arguments)
+
+
+def tagged_multi_intent():
+    from fr_ir.intent_actions import TaskChangeOperation
+    change = TaskChange([], [TaskTarget("a","target","replace-body",fragment="{ 1 }"),
+        TaskTarget("b","secondary","replace-body",fragment="{ 2 }")],
+        {"files-changed":1,"edits":2,"changed-operations":2},["unit"])
+    return AgentIntent("target","change",packet_limit=65536,
+        action=TaggedIntentAction(TaskChangeOperation(change)))
+
+
+def test_tagged_multi_review_stores_every_target_and_executes_unchanged_claims():
+    intent = tagged_multi_intent()
+    store = MemoryObjectStore()
+    compiled = compile_intent(FakeTaggedClient(),intent,store=store)
+    assert len(compiled.stored_digests) == 2 * len(intent.needs)
+    assert execute_intent(FakeTaggedClient(),compiled).passed
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda p:p["additional_evidence"].clear(),
+    lambda p:p["additional_evidence"][0]["target"].update(handle="other"),
+    lambda p:p["additional_evidence"][0]["selected"].update(code_map="tampered"),
+    lambda p:p["action"]["review"].update(targets=["target","target"]),
+    lambda p:p["action"]["review"].update(targets=["target",{}]),
+    lambda p:p["action"]["review"].update(ready=False),
+    lambda p:p["action"]["review"].update(claims={"implementation_correspondence":True}),
+    lambda p:p["action"]["review"].update(checks={"names":[],"configuration_basis":"x"}),
+    lambda p:p["action"]["review"]["delivery"].update(patch="changed.patch"),
+])
+def test_tagged_incomplete_review_refuses_even_with_recomputed_outer_hash(mutate):
+    with pytest.raises(FrRuntimeError):
+        compile_intent(FakeTaggedClient(mutate,rebind=True),tagged_multi_intent())
+
+
+def test_tagged_outer_hash_binds_evidence_and_claims():
+    with pytest.raises(FrRuntimeError):
+        compile_intent(FakeTaggedClient(lambda p:p["action"]["review"].update(diff="changed")),
+                       tagged_multi_intent())
+
+
+def test_tagged_operation_mirrors_and_purpose_admission():
+    operations = (
+        (CapabilityOperation("rename",{"new_name":"display"},checks=("unit",),delivery=TaskDelivery()),"change","capability"),
+        (AuthorBatchOperation({"operations":[]},("unit",)),"change","author-batch"),
+        (RecipeOperation("schema 1",("unit",)),"change","recipe"),
+        (FrameworkMigrationOperation("feature","fastapi","server.py",("unit",)),"migrate","framework-migration"),
+        (FormalPlanOperation(("identity",)),"prove","formal-plan"),
+        (ProofSubmissionOperation("identity","rfl",("unit",)),"prove","proof-submission"),
+        (ProjectQueryOperation((ProjectRequest("map",["code-map","target"]),)),"understand","project-query"),
+        (SurfaceEditOperation("frse1:"+"0"*32,"panel",("unit",)),"change","surface-edit"),
+        (PropertyTaskOperation(),"prove","property-task"),
+        (ProofTaskOperation("identity"),"prove","proof-task"),
+    )
+    for operation,purpose,kind in operations:
+        action = TaggedIntentAction(operation)
+        assert AgentIntent("target",purpose,action=action).to_data()["action"]["operation"]["kind"] == kind
+        with pytest.raises(FrRuntimeError):
+            AgentIntent("target","trace" if purpose != "understand" else "unknown",action=action)
+    with pytest.raises(FrRuntimeError):
+        TaggedIntentAction(PropertyTaskOperation(),proof_expectation="implementation")

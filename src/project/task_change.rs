@@ -126,6 +126,7 @@ fn batch_operation(operation: task::AuthorOperation) -> author::BatchOperation {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct Prepared {
     pub plan: author::Plan,
     pub report: Value,

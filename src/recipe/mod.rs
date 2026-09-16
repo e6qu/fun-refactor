@@ -15,6 +15,8 @@ pub use parse::{
 // re-export is an unused import the wasm build refuses.
 #[cfg(feature = "cli")]
 pub(crate) use run::distance;
+#[cfg(feature = "cli")]
+pub(crate) use run::intent_step_symbols;
 pub use run::{
     run, run_file, ExpectReport, Options, Refusal, Report, Sources, StepReport, StepWarning,
     WorkspaceReport, FILE_PREDICATES, PREDICATES,

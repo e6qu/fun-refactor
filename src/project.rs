@@ -16,11 +16,16 @@ const PROJECT_REVISION_SCHEMA: &str = "fr-project-revision-4";
 
 pub mod author;
 pub use author::{disclosed_edit_admitted, disclosed_ir_edit_admitted};
+pub(crate) mod agent_actions;
 pub(crate) mod agent_intent;
+pub use agent_actions::{
+    intent_action_purpose_allowed, intent_review_complete, intent_review_mode,
+};
 pub use agent_intent::{agent_action_mode, agent_intent_section_allowed};
 pub(crate) mod agent_guide;
 pub use agent_guide::{agent_guide_route_admitted, agent_guide_step};
 mod batch;
+mod capability_action;
 mod components;
 mod configuration;
 mod context;
