@@ -87,15 +87,29 @@ def prompt(session: Path, group: str, proof_path: str, obligation: str) -> str:
 2. Preview migration of app/api/signals/route.ts to FastAPI at converted/signals.py.
 3. Check the proof workflow for obligation {obligation} in {proof_path}. Use tactics `rfl`.""",
     }[group]
+    operation_shapes = {
+        "fundamentals": (
+            'Use these operation objects in task order: {"kind":"automatic"}, '
+            '{"kind":"automatic"}, {"kind":"capability","capability":"rename",'
+            '"parameters":{"new_name":"compute"}}, and {"kind":"recipe","verb":"rename"}.'
+        ),
+        "structured": (
+            'Use these operation objects in task order: {"kind":"semantic-scalar",'
+            '"operation":"set-int","from":"7","to":"9"}, '
+            '{"kind":"framework-migration","to":"fastapi"}, and the proof object in task 3.'
+        ),
+    }[group]
     return f"""You are an independent acceptance-test agent using fr on an unfamiliar project.
 
 {tasks}
+
+{operation_shapes}
 
 Express each task as one `fr-agent-goal-1` object and start it with the instrumented `guide` tool. Follow every returned action that is ready or becomes executable after you supply its named placeholders. Use only the instrumented tool. Do not inspect project files with shell, file, search or Git commands. Do not call help, vocabulary, schema or audit commands. Do not add `--write`; every requested operation is a read or preview. Do not repeat a successful call. Stop on a refusal and report it honestly.
 
 Invoke the tool through functions.exec / tools.exec_command with this stdin form:
 python3 {ROOT / 'tools/completion-agent-eval.py'} step {session} --request-stdin <<'FRJSON'
-{{"tool":"guide","goal":{{"schema":"fr-agent-goal-1","purpose":"understand","selector":{{"name":"calculate"}},"operation":{{"kind":"automatic"}},"context":{{"token_limit":4096,"packet_limit":65536}}}}}}
+{{"tool":"guide","goal":GOAL}}
 FRJSON
 
 Tool requests:
@@ -404,16 +418,21 @@ def codex_observation(session: Path) -> dict[str, object]:
         None,
     )
     commands = [
-        row["item"]["command"]
+        row["item"]
         for row in rows
         if row.get("type") == "item.completed"
         and row.get("item", {}).get("type") == "command_execution"
     ]
     allowed = str(ROOT / "tools/completion-agent-eval.py")
-    direct_access = [command for command in commands if allowed not in command or " step " not in command]
+    direct_access = [
+        item["command"]
+        for item in commands
+        if allowed not in item["command"] or " step " not in item["command"]
+    ]
     return {
         "usage": usage,
         "command_executions": len(commands),
+        "failed_command_executions": sum(item.get("exit_code") != 0 for item in commands),
         "direct_project_commands": direct_access,
         "event_bytes": (session / "codex-events.jsonl").stat().st_size,
         "final_bytes": (session / "codex-final.txt").stat().st_size,
@@ -464,6 +483,8 @@ def score(session: Path) -> dict[str, object]:
         and finished
         and result["source_unchanged"]
         and not observation["direct_project_commands"]
+        and observation["failed_command_executions"] == 0
+        and observation["command_executions"] == len(rows)
         and config["manual_corrections"] == 0
     )
     save(session / "result.json", result)
@@ -488,9 +509,9 @@ def score_all(directory: Path) -> dict[str, object]:
     return report
 
 
-def record(directory: Path, destination: Path) -> dict[str, object]:
+def record(directory: Path, destination: Path, diagnostic: bool = False) -> dict[str, object]:
     report = json.loads((directory / "manifest.json").read_text())
-    if not report.get("passed"):
+    if not report.get("passed") and not diagnostic:
         raise ValueError("only a passing completion-agent cohort can become acceptance evidence")
     if destination.exists():
         raise ValueError("retained completion-agent destination already exists")
@@ -505,6 +526,7 @@ def record(directory: Path, destination: Path) -> dict[str, object]:
         for name in RETAINED_FILES:
             shutil.copyfile(directory / group / name, target / name)
             files[f"{group}/{name}"] = digest((target / name).read_bytes())
+    report["acceptance_evidence"] = bool(report.get("passed"))
     report["files"] = files
     save(destination / "manifest.json", report)
     return report
@@ -519,9 +541,17 @@ def replay(directory: Path) -> dict[str, object]:
         if digest((directory / name).read_bytes()) != expected:
             raise ValueError(f"retained completion-agent file changed: {name}")
     results = [json.loads((directory / group / "result.json").read_text()) for group in GROUPS]
-    if not manifest.get("passed") or not all(result.get("passed") for result in results):
-        raise ValueError("retained completion-agent cohort did not pass")
-    return {"passed": True, "sessions": len(results), "workflow_families": 7}
+    actual = all(result.get("passed") for result in results)
+    if bool(manifest.get("passed")) != actual:
+        raise ValueError("retained completion-agent outcome is inconsistent")
+    if bool(manifest.get("acceptance_evidence")) != actual:
+        raise ValueError("retained completion-agent evidence classification is inconsistent")
+    return {
+        "verified": True,
+        "passed": actual,
+        "sessions": len(results),
+        "workflow_families": 7,
+    }
 
 
 def request_from(arguments) -> dict[str, object]:
@@ -555,6 +585,7 @@ def main() -> None:
     record_parser = subparsers.add_parser("record")
     record_parser.add_argument("directory", type=Path)
     record_parser.add_argument("destination", type=Path)
+    record_parser.add_argument("--diagnostic", action="store_true")
     replay_parser = subparsers.add_parser("replay")
     replay_parser.add_argument("directory", type=Path)
     arguments = parser.parse_args()
@@ -584,7 +615,7 @@ def main() -> None:
         elif arguments.command == "score":
             result = score_all(arguments.directory)
         elif arguments.command == "record":
-            result = record(arguments.directory, arguments.destination)
+            result = record(arguments.directory, arguments.destination, arguments.diagnostic)
         else:
             result = replay(arguments.directory)
     except (OSError, ValueError, KeyError, json.JSONDecodeError, RuntimeError) as error:

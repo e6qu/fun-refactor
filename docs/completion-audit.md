@@ -78,3 +78,10 @@ python3 tools/completion-agent-eval.py score /tmp/fr-completion-agent
 
 `record` accepts only a passing cohort. `replay` verifies the retained file hashes and both passing
 session results without contacting Codex.
+
+The first [retained diagnostic](../tests/agent-eval/results/2026-09-17-completion-diagnostic-1/manifest.json)
+failed. Its fundamentals agent eventually completed four routes after repeated recipe grammar
+guesses. Its structured agent copied an unrelated example, submitted the invalid `semantic` kind
+and stopped. The follow-up adds the recipe file envelope to the live guide contract, removes the
+unrelated example and counts every failed Codex command. The diagnostic remains non-acceptance
+evidence.

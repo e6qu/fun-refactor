@@ -48,6 +48,12 @@ instrumented surface exposes only guide, follow and finish. Scoring rejects dire
 source mutation, missing routes, repeated actions and schema mismatches. Recording requires both
 sessions to pass.
 
+The first fresh cohort remains under `2026-09-17-completion-diagnostic-1`. The fundamentals agent
+completed its routes only after repeated recipe grammar guesses. The structured agent copied an
+unrelated prompt example, invented the `semantic` operation and stopped. B920 adds the recipe file
+envelope and required expectations to the live guide response. The revised prompt gives each cohort
+only its exact operation shapes, and scoring now rejects every failed Codex command.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

@@ -47,7 +47,7 @@ PR 40 is in progress on `completion_audit_agent_validation` from that exact main
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 766 |
+| Fixed defects | 767 |
 | Open defects | 0 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -238,6 +238,9 @@ Implemented on the current branch:
 - A two-session Codex harness freezes the binary and records prompts, tool traffic, Codex events,
   token usage, source identities and failures. It rejects direct project access and cannot record a
   failing cohort as acceptance evidence.
+- The first fresh diagnostic exposed an underspecified recipe envelope and a prompt example that
+  biased the wrong cohort. B920 adds the missing live recipe contract. The revised harness scores
+  every failed Codex command and retains the failed cohort as diagnostic evidence.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

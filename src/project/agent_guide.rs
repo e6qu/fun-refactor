@@ -661,9 +661,11 @@ impl Project<'_> {
                 evidence = json!({"predicate":"recipe::vocabulary+capabilities::support","verb":selected_verb,
                     "capabilities":matching.iter().map(|capability|json!({"capability":capability,"support":language.map(|language|capabilities::support(**capability, language))})).collect::<Vec<_>>(),
                     "author_contract":{"language":language,"target_handle":handle,
+                        "file":{"schema_line":"schema 1","open":"recipe <lower-kebab-name> {","close":"}"},
                         "selector_fields":predicates.iter().filter(|predicate|matches!(**predicate,"name"|"kind"|"lang"|"file")).collect::<Vec<_>>(),
                         "target_values":{"name":symbol.map(|symbol|&symbol.name),"kind":symbol.map(|symbol|symbol.kind.as_str()),"lang":language,"file":path},
                         "expectations":vocabulary.expectations.iter().filter(|form|form.starts_with("matched ") || form.starts_with("refusals ")).collect::<Vec<_>>(),
+                        "required_expectations":["expect matched = 1","expect changed = 1 files","expect refusals = 0"],
                         "required_review":"constrain the selected target and require exact matched count before delivery."}});
                 if selected_verb.is_none() {
                     refusals.push("recipe verb is not in the live vocabulary.".into());

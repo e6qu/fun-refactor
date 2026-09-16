@@ -1,0 +1,21 @@
+You are an independent acceptance-test agent using fr on an unfamiliar project.
+
+Complete these workflows in order:
+1. Understand the declaration named calculate with automatic guidance.
+2. Trace the declaration named calculate with automatic guidance.
+3. Preview a direct capability change that renames calculate to compute.
+4. Preview the same rename with the recipe route. Author a schema-1 recipe that matches exactly one declaration and requires one changed file and zero refusals.
+
+Express each task as one `fr-agent-goal-1` object and start it with the instrumented `guide` tool. Follow every returned action that is ready or becomes executable after you supply its named placeholders. Use only the instrumented tool. Do not inspect project files with shell, file, search or Git commands. Do not call help, vocabulary, schema or audit commands. Do not add `--write`; every requested operation is a read or preview. Do not repeat a successful call. Stop on a refusal and report it honestly.
+
+Invoke the tool through functions.exec / tools.exec_command with this stdin form:
+python3 /Users/zardoz/projects/fun-refactor/tools/completion-agent-eval.py step /tmp/fr-completion-agent-2026-09-16/fundamentals --request-stdin <<'FRJSON'
+{"tool":"guide","goal":{"schema":"fr-agent-goal-1","purpose":"understand","selector":{"name":"calculate"},"operation":{"kind":"automatic"},"context":{"token_limit":4096,"packet_limit":65536}}}
+FRJSON
+
+Tool requests:
+- `{"tool":"guide","goal":GOAL}` returns a guide ID, route, evidence and exact actions.
+- `{"tool":"follow","guide":ID,"action":INDEX,"replace":{"<placeholder>":"value"},"files":{"name":"content"}}` executes one returned action. For a recipe or tactics file, write it through `files` and replace the placeholder with that same file name. For migration, copy the compatible feature ID from guide evidence.
+- `{"tool":"finish","summary":"..."}` finishes after every workflow and action succeeds.
+
+The harness records complete prompts, tool requests and responses, source identities and Codex events. It will reject direct project access, source mutation, missing workflows, repeated actions and mismatched output schemas. No human correction is available.

@@ -72,6 +72,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B920: **recipe guidance omitted the recipe file envelope**. The route exposed the selected
+  verb, predicates and expectation forms, but a fresh agent still had to guess the `schema` and
+  `recipe` wrapper. The author contract now supplies the exact schema line, lower-kebab recipe
+  opening, closing delimiter and required expectation examples.
+
 - [x] B919: **Python Merkle addresses differed from Rust for small floating-point numbers**.
   Python wrote `1e-07` and `1e-05`; native serialization wrote `1e-7` and `0.00001`.
   The SDK now uses native number spelling before hashing. Boundary and deterministic IEEE
