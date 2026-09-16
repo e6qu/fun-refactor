@@ -1,3 +1,4 @@
+use clap::ValueEnum;
 use fun_refactor::project::object_merkle;
 use serde_json::{json, Value};
 use std::io::Write;
@@ -173,6 +174,140 @@ fn recipe_guidance_exposes_only_live_targeted_forms_and_runs_the_authored_previe
 }
 
 #[test]
+fn workspace_recipe_reveals_structure_before_authoring_a_real_source_target() {
+    let root = fixture();
+    let request = json!({"schema":"fr-agent-goal-1","purpose":"change","operation":{"kind":"recipe","verb":"restructure"},"constraints":{"allow_source":true}});
+    let report = guide(root.path(), &request);
+    assert_eq!(report["state"], "ready", "{report}");
+    assert_eq!(report["actions"][0]["id"], "structure");
+    follow(root.path(), &report["actions"][0]);
+    let reveal = &report["actions"][1];
+    assert_eq!(reveal["ready"], false);
+    assert_eq!(reveal["author_fields"][0]["name"], "source-handle");
+    let file = guide(
+        root.path(),
+        &goal(
+            "understand",
+            json!({"path":"app.rs"}),
+            json!({"kind":"automatic"}),
+        ),
+    );
+    let arguments = args_for(
+        reveal,
+        &[(
+            "<source-handle>",
+            file["target"]["handle"].as_str().unwrap(),
+        )],
+    );
+    let (passed, source) = run(root.path(), &arguments, None);
+    assert!(passed, "{source}");
+    assert_eq!(source["schema"], reveal["output_schema"]);
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
+fn nul_string_values_require_json_stdin_delivery_and_never_enter_argv() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("app.rs"),
+        "pub fn label() -> &'static str { \"safe\" }\n",
+    )
+    .unwrap();
+    let mut request = goal(
+        "change",
+        json!({"name":"label"}),
+        json!({"kind":"semantic-scalar","operation":"set-string","from":"safe","to":"a\0b"}),
+    );
+    let refused = guide(root.path(), &request);
+    assert_eq!(refused["state"], "unsupported", "{refused}");
+    assert!(refused.to_string().contains("JSON stdin"));
+    assert_eq!(refused["actions"], json!([]));
+    std::fs::create_dir(root.path().join(".fr")).unwrap();
+    std::fs::write(root.path().join(".fr/checks.json"), serde_json::to_vec(&json!({"schema":1,"checks":[{"name":"compiler","argv":["rustc","--version"],"cwd":".","timeout_seconds":30,"covers":["compiler identity"]}]})).unwrap()).unwrap();
+    request["checks"] = json!(["compiler"]);
+    let report = guide(root.path(), &request);
+    assert_eq!(report["state"], "ready", "{report}");
+    assert_eq!(report["alternatives"], json!([]));
+    assert!(report["actions"][0]["arguments"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|argument| !argument.as_str().unwrap().contains('\0')));
+    follow(root.path(), &report["actions"][0]);
+    assert!(std::fs::read_to_string(root.path().join("app.rs"))
+        .unwrap()
+        .contains("safe"));
+}
+
+#[test]
+fn capability_parameters_cannot_supply_execution_or_plan_persistence_options() {
+    let root = fixture();
+    for value in ["--write", "--save-plan", "--write=true", "--save-plan=true"] {
+        let request = goal(
+            "change",
+            json!({"name":"allowed"}),
+            json!({"kind":"capability","capability":"rename","parameters":{"new_name":value}}),
+        );
+        let (passed, report) = run(
+            root.path(),
+            &["guide".into(), "--from".into(), "-".into()],
+            Some(&request),
+        );
+        assert!(!passed, "{report}");
+        assert!(report.to_string().contains("persistence"), "{report}");
+        assert!(!root.path().join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn scalar_action_arrays_preserve_option_like_data_and_refuse_signed_scalar_categories() {
+    for (source, operation, from, to) in [
+        (
+            "pub fn calculate(value: i64) -> i64 { value + 7 }\n",
+            "set-int",
+            "7",
+            "-9",
+        ),
+        (
+            "pub fn calculate() -> &'static str { \"--write\" }\n",
+            "set-string",
+            "--write",
+            "--save-plan",
+        ),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("app.rs"), source).unwrap();
+        let request = goal(
+            "change",
+            json!({"name":"calculate"}),
+            json!({"kind":"semantic-scalar","operation":operation,"from":from,"to":to}),
+        );
+        let report = guide(root.path(), &request);
+        if operation == "set-int" {
+            assert_eq!(report["state"], "unsupported", "{report}");
+            assert!(
+                report.to_string().contains("portable decimal integer"),
+                "{report}"
+            );
+            assert_eq!(report["actions"], json!([]));
+        } else {
+            assert_eq!(
+                report["route"]["evidence"]["scalar_contract"]["scalar"],
+                "string"
+            );
+            assert_eq!(report["state"], "ready", "{report}");
+            follow(root.path(), &report["actions"][0]);
+            follow(root.path(), &report["actions"][1]);
+        }
+        assert_eq!(
+            std::fs::read_to_string(root.path().join("app.rs")).unwrap(),
+            source
+        );
+        assert!(!root.path().join(".fr-history").exists());
+    }
+}
+
+#[test]
 fn guide_refuses_ambiguous_scalar_and_enforces_the_complete_packet_ceiling() {
     let root = fixture();
     std::fs::write(
@@ -229,6 +364,28 @@ fn guide_resolves_names_and_compiles_source_free_evidence_deterministically() {
         identity.as_object_mut().unwrap().remove(field);
     }
     assert_eq!(report["object_root"], object_merkle(&identity).unwrap());
+    let mut contracts = vec![
+        run(
+            root.path(),
+            &["author".into(), "semantic-schema".into()],
+            None,
+        )
+        .1,
+    ];
+    for section in fun_refactor::project::semantic_ir::Section::value_variants() {
+        let name = section.to_possible_value().unwrap().get_name().to_owned();
+        let (passed, contract) = run(
+            root.path(),
+            &["author".into(), "semantic-schema".into(), name],
+            None,
+        );
+        assert!(passed, "{contract}");
+        contracts.push(contract);
+    }
+    assert_eq!(
+        report["catalog_digest"],
+        object_merkle(&json!(contracts)).unwrap()
+    );
     assert!(!report.to_string().contains("value + 7"));
     let evidence = follow(root.path(), &report["actions"][0]);
     assert_eq!(evidence["target"]["handle"], report["target"]["handle"]);

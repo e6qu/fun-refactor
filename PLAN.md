@@ -45,7 +45,7 @@ The project has merged PRs 0 through 35. The latest checkpoint is
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 745 |
+| Fixed defects | 749 |
 | Open defects | 1 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -160,7 +160,8 @@ The implementation now includes native `guide`, Python goal/guide mirrors, sourc
 route contracts, fresh action following and direct checked scalar delivery. Generic framework
 previews, actual Lean proof tasks and all parser-language structural guides have executable fixtures.
 Rust, Python and Lean compare 32,256 admission cases and 336 lifecycle cases. The fixed complete
-program comparison saves 53 exposed bytes and adds one process plus 8,077 internal bytes.
+program comparison saves 115 exposed bytes against inline task discovery while adding two processes
+and 8,984 internal bytes.
 Broader agent-context and general delivery improvements remain PR 37 and PR 40 work.
 
 Deliverables:

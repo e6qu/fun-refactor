@@ -27,9 +27,19 @@ writers, hashes and general implementation correspondence retain their explicit 
 The source-bound complete-program comparison runs compiler and 33-case behavioral oracles, emits
 equal patches and completes eight successful lifecycle stages in both arms. Manual discovery,
 review and write occupy 1,155 agent-visible bytes and three processes. Guided delivery occupies
-1,102 bytes and four processes, including its freshness read; internal traffic increases by 8,077
+1,102 bytes and four processes, including its freshness read; internal traffic increases by 8,499
 bytes. It runs no model and establishes no token, quota or population claim. B897 through B899
-record the navigator, delivery-contract and retained-evidence repairs.
+record the navigator, delivery-contract and retained-evidence repairs. B900 updates obsolete
+capability-audit expectations to the merged focused roadmap while retaining its derived numeric checks.
+B901 rejects capability scalar values that would inject execution or plan-persistence options.
+B902 binds complete live catalog variant contracts and exposes an independently checked catalog digest.
+B903 makes workspace source selection explicit and routes NUL-containing scalar values through
+checked JSON stdin delivery instead of OS arguments.
+
+The comparison also retains inline task discovery as the best existing process baseline. Its full
+program and packet occupy 1,217 bytes in two processes. Guided delivery saves 115 exposed bytes and
+adds two processes plus 8,984 internal bytes; all three arms reach identical checked outcomes.
+These counts measure canonical protocol JSON rather than subprocess formatting whitespace.
 
 The skill entry occupies 1,191 bytes. All 57 shell examples execute, including the new goal route;
 each reference path stays within the existing 7 KiB ceiling. Remaining milestones cover general

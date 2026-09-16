@@ -26,6 +26,8 @@ half the work, and does not do nothing quietly.
 
 ## Structured workflow guidance
 
+### `fr guide`
+
 ```sh
 fr guide --from GOAL.json
 fr guide --from -

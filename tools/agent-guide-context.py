@@ -29,6 +29,18 @@ review = client.review(TaskChange([], [TaskTarget(
 result = client.execute(review)
 packet = {"passed": result.passed, "workflow": result.at("/workflow")}
 '''
+INLINE_MANUAL = '''from fr_ir.ir import ProjectReference, ProjectRequest, ScalarRequest, TaskChange, TaskDelivery, TaskTarget
+from fr_ir.runtime import FrClient
+client = FrClient(WORKSPACE, executable=FR)
+review = client.review(TaskChange(
+    [ProjectRequest("target", ["find", "calculate", "--signature"])], [TaskTarget(
+    "scalar", ProjectReference("target", "/rows/0/0"), "edit-body-scalar", scalar=ScalarRequest("set-int", "7", "9"),
+)], {"files-changed": 1, "edits": 1, "changed-operations": 1,
+    "paths-changed": ["src/lib.rs"]}, ["compiler"],
+    TaskDelivery(patch="artifacts/change.patch", check_output_bytes=256)))
+result = client.execute(review)
+packet = {"passed": result.passed, "workflow": result.at("/workflow")}
+'''
 GUIDED = '''from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
 from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient
@@ -134,19 +146,23 @@ def measure(executable: str) -> dict:
         root = Path(directory)
         prepare(root / "manual")
         shutil.copytree(root / "manual", root / "guided")
+        shutil.copytree(root / "manual", root / "inline-manual")
         manual = run_arm(root / "manual", executable, MANUAL)
+        inline = run_arm(root / "inline-manual", executable, INLINE_MANUAL)
         guided = run_arm(root / "guided", executable, GUIDED)
         return {"schema": "fr-agent-guide-context-1", "bindings": bindings(),
-                "manual": manual, "guided": guided,
+                "manual": manual, "inline_manual": inline, "guided": guided,
                 "equality": {key: manual[key] == guided[key] for key in ("source_sha256", "patch_sha256", "agent_packet")},
+                "inline_equality": {key: inline[key] == guided[key] for key in ("source_sha256", "patch_sha256", "agent_packet")},
                 "difference": {key: guided[key] - manual[key] for key in ("agent_exchange_bytes", "process_calls", "internal_exchange_bytes")},
+                "inline_difference": {key: guided[key] - inline[key] for key in ("agent_exchange_bytes", "process_calls", "internal_exchange_bytes")},
                 "claim": "Fixed complete agent programs and serialized protocol bytes; no model, token, quota or population claim."}
 
 
 def audit(value: dict) -> None:
     if value.get("schema") != "fr-agent-guide-context-1" or value.get("bindings") != bindings():
         raise RuntimeError("guide comparison schema or source bindings are stale")
-    for name, program, count in (("manual", MANUAL, 3), ("guided", GUIDED, 4)):
+    for name, program, count in (("manual", MANUAL, 3), ("inline_manual", INLINE_MANUAL, 2), ("guided", GUIDED, 4)):
         row = value[name]
         if row["program"] != program or row["program_sha256"] != digest(program.encode()):
             raise RuntimeError("retained agent program is changed")
@@ -171,6 +187,11 @@ def audit(value: dict) -> None:
             raise RuntimeError("manual and guided outputs differ")
     if value["difference"] != {key: value["guided"][key] - value["manual"][key] for key in ("agent_exchange_bytes", "process_calls", "internal_exchange_bytes")}:
         raise RuntimeError("guide comparison differences are inconsistent")
+    for key in ("source_sha256", "patch_sha256", "agent_packet"):
+        if not value["inline_equality"].get(key) or value["inline_manual"][key] != value["guided"][key]:
+            raise RuntimeError("inline manual and guided outputs differ")
+    if value["inline_difference"] != {key: value["guided"][key] - value["inline_manual"][key] for key in ("agent_exchange_bytes", "process_calls", "internal_exchange_bytes")}:
+        raise RuntimeError("inline guide comparison differences are inconsistent")
 
 
 def main() -> None:

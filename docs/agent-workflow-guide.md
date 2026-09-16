@@ -57,6 +57,8 @@ Recipe guidance includes only its live verb, relevant selector fields, target va
 matched/refusal expectation forms. Target-kind and language incompatibility refuses before authoring.
 
 Exact scalar goals with declared checks produce one complete `fr-task-change-1` preview input.
+Integer/float scalars follow the live unsigned-decimal contract; negatives use explicit unary IR
+nodes. Option-like string values use equals-form arguments so the CLI preserves their data role.
 The native task planner checks uniqueness, scalar category, writer admission and postconditions
 before the guide advertises it. Python returns the preview as `TaskReview`; the existing `execute`
 method runs original checks, apply, checks, reversal, restored checks, redo, final checks and optional
@@ -115,6 +117,19 @@ The retained [complete-program comparison](../tests/agent-eval/agent-guide-conte
 generic Rust scalar, runs compiler and finite behavioral checks, emits an identical patch and
 completes all eight lifecycle stages in both arms. The manual program and final packet occupy
 1,155 bytes; the guided program and packet occupy 1,102 bytes. Manual discovery/review/write uses
-three processes. Guide/freshness/review/write uses four and carries 8,077 additional internal
+three processes. Guide/freshness/review/write uses four and carries 8,499 additional internal
 request/response bytes. This fixture measures protocol bytes and process counts; it runs no model
 and establishes no token, quota or population result.
+
+The existing inline-discovery task route supplies a stronger process baseline: its complete program
+and packet occupy 1,217 bytes and use two processes. Guided delivery saves 115 exposed bytes while
+adding two processes and 8,984 internal bytes. All three arms pass the same compiler, behavioral,
+source, patch and lifecycle oracles. Counts use canonical JSON and retain every complete agent
+program, environment-binding form, internal request, response and final packet size.
+
+The freshness read and following preview use separate subprocesses. Execution still requires
+review of the complete authoritative preview and its unchanged basis.
+
+Workspace source-dependent recipes first return a bounded structure map, then ask for an exact
+file or declaration handle for source disclosure. NUL-containing scalar values require complete
+checked task delivery through JSON stdin; unchecked CLI scalar actions refuse them explicitly.

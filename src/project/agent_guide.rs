@@ -3,7 +3,7 @@ use crate::capabilities::{self, Capability};
 use crate::lang::Language;
 use crate::model::SymbolKind;
 use anyhow::{ensure, Context, Result};
-use clap::Args;
+use clap::{Args, ValueEnum};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -280,6 +280,13 @@ fn action(
 fn args(values: &[&str]) -> Vec<String> {
     values.iter().map(|value| (*value).into()).collect()
 }
+fn scalar_option(flag: &str, value: &str) -> Vec<String> {
+    if value.starts_with('-') {
+        vec![format!("{flag}={value}")]
+    } else {
+        args(&[flag, value])
+    }
+}
 fn author(name: &str, shape: &str) -> Value {
     json!({"name":name,"shape":shape})
 }
@@ -524,6 +531,13 @@ impl Project<'_> {
                         && !value.contains('\0')),
                     "capability parameter values must be bounded nonempty strings."
                 );
+                ensure!(
+                    parameters.values().all(|value| !matches!(
+                        value.split('=').next(),
+                        Some("--write" | "--save-plan")
+                    )),
+                    "capability parameters cannot request write or plan persistence."
+                );
                 let mut authors = Vec::new();
                 let arguments = form
                     .arguments
@@ -548,7 +562,7 @@ impl Project<'_> {
                     })
                     .collect();
                 if source_required {
-                    actions.push(self.guide_source(&handle, goal.context.token_limit));
+                    actions.extend(self.guide_source_actions(selected, goal.context.token_limit));
                 }
                 actions.push(action(
                     if form.writes { "preview" } else { "inspect" },
@@ -610,7 +624,7 @@ impl Project<'_> {
                     );
                 }
                 if source_required {
-                    actions.push(self.guide_source(&handle, goal.context.token_limit));
+                    actions.extend(self.guide_source_actions(selected, goal.context.token_limit));
                 }
                 actions.push(action(
                     "recipe-preview",
@@ -630,8 +644,17 @@ impl Project<'_> {
             } => {
                 route = 3;
                 route_name = "semantic-scalar";
+                let forms = super::semantic_ir::catalog(&super::semantic_ir::SchemaOptions {
+                    section: Some(super::semantic_ir::Section::Intent),
+                    kind: None,
+                })?;
+                let scalar_contract = forms["contract"]["operations"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|form| form["op"] == *operation);
                 ensure!(
-                    super::semantic_intent::OPERATION_NAMES.contains(&operation.as_str()),
+                    scalar_contract.is_some(),
                     "scalar operation must be in the live semantic intent catalog."
                 );
                 let semantic = self.guide_semantic(selected);
@@ -639,12 +662,20 @@ impl Project<'_> {
                     .as_ref()
                     .is_ok_and(|report| report["body_identity"]["status"] == "available")
                     && self.guide_body_candidate(selected, 7);
-                evidence = json!({"predicate":"task_author_target_candidate+semantic-body-identity","operation":operation,
+                evidence = json!({"predicate":"task_author_target_candidate+semantic-body-identity","operation":operation,"scalar_contract":scalar_contract,
                     "body_identity":semantic.as_ref().ok().map(|report|&report["body_identity"])});
                 if let Err(error) = semantic {
                     refusals.push(error.to_string());
                 }
                 let complete_delivery = from.is_some() && to.is_some() && !goal.checks.is_empty();
+                let argv_scalars = from
+                    .iter()
+                    .chain(to.iter())
+                    .all(|value| !value.contains('\0'));
+                if !argv_scalars && !complete_delivery {
+                    supported = false;
+                    refusals.push("NUL-containing scalar values require checked task delivery through JSON stdin; CLI arguments cannot contain them.".into());
+                }
                 if let (Some(from), Some(to)) = (from, to) {
                     let exact = self.semantic(&semantic::Options {
                         target: handle.clone(),
@@ -707,7 +738,18 @@ impl Project<'_> {
                             vec![],
                         ));
                         report["delivery"] = json!({"route":"reviewed-task-change","execution":"FrClient.execute(TaskReview)","requires":"complete returned task-change review and its unchanged basis."});
-                        report["alternatives"] = json!([{"route":"direct-scalar-preview","arguments":["author","edit-body-scalar",handle,"--operation",operation,"--from",from,"--to",to],"reason":"preview only; checked lifecycle would require a separate task manifest."}]);
+                        let mut direct = args(&[
+                            "author",
+                            "edit-body-scalar",
+                            &handle,
+                            "--operation",
+                            operation,
+                        ]);
+                        direct.extend(scalar_option("--from", from));
+                        direct.extend(scalar_option("--to", to));
+                        if argv_scalars {
+                            report["alternatives"] = json!([{"route":"direct-scalar-preview","arguments":direct,"reason":"preview only; checked lifecycle would require a separate task manifest."}]);
+                        }
                     }
                 }
                 if !complete_delivery {
@@ -723,7 +765,7 @@ impl Project<'_> {
                         "--minimal",
                     ]);
                     if let Some(from) = from {
-                        arguments.extend(args(&["--locator-from", from]));
+                        arguments.extend(scalar_option("--locator-from", from));
                     }
                     let mut authors = Vec::new();
                     if from.is_none() {
@@ -734,7 +776,7 @@ impl Project<'_> {
                             from.is_some(),
                             "a requested scalar value needs its exact current value."
                         );
-                        arguments.extend(args(&["--intent-to", to]));
+                        arguments.extend(scalar_option("--intent-to", to));
                     } else {
                         arguments.extend(args(&["--locators", "--locators-only"]));
                         authors.push(author("to", "new scalar of the returned category"));
@@ -747,23 +789,16 @@ impl Project<'_> {
                         vec![],
                     ));
                     actions.last_mut().unwrap()["schema_field"] = json!("semantic_schema");
-                    actions.push(action(
-                        "preview",
-                        args(&[
-                            "author",
-                            "edit-body-scalar",
-                            &handle,
-                            "--operation",
-                            operation,
-                            "--from",
-                            from.as_deref().unwrap_or("<from>"),
-                            "--to",
-                            to.as_deref().unwrap_or("<to>"),
-                        ]),
-                        "fr-author-1",
-                        None,
-                        authors,
-                    ));
+                    let mut preview = args(&[
+                        "author",
+                        "edit-body-scalar",
+                        &handle,
+                        "--operation",
+                        operation,
+                    ]);
+                    preview.extend(scalar_option("--from", from.as_deref().unwrap_or("<from>")));
+                    preview.extend(scalar_option("--to", to.as_deref().unwrap_or("<to>")));
+                    actions.push(action("preview", preview, "fr-author-1", None, authors));
                 }
             }
             Operation::SemanticChange | Operation::SemanticBody => {
@@ -1175,6 +1210,29 @@ impl Project<'_> {
         self.finish_guide(&goal, report)
     }
 
+    fn guide_source_actions(&self, selected: usize, limit: usize) -> Vec<Value> {
+        let handle = self.handle(selected);
+        if self
+            .sources
+            .contains_key(&self.root.join(&self.nodes[selected].path))
+        {
+            return vec![self.guide_source(&handle, limit)];
+        }
+        let mut reveal = self.guide_source("<source-handle>", limit);
+        reveal["ready"] = json!(false);
+        reveal["author_fields"] = json!([author("source-handle", "exact file or declaration handle from the bounded project map; directories have no source text.")]);
+        vec![
+            action(
+                "structure",
+                args(&["project", "map", &handle, "--depth", "2", "--limit", "8"]),
+                "fr-project-1",
+                None,
+                vec![],
+            ),
+            reveal,
+        ]
+    }
+
     fn guide_source(&self, handle: &str, limit: usize) -> Value {
         action(
             "source-reveal",
@@ -1232,10 +1290,22 @@ impl Project<'_> {
             }
         }
         let vocabulary = crate::recipe::vocabulary();
-        let catalog = super::semantic_ir::catalog(&super::semantic_ir::SchemaOptions {
-            section: None,
-            kind: None,
-        })?;
+        let mut catalog = vec![super::semantic_ir::catalog(
+            &super::semantic_ir::SchemaOptions {
+                section: None,
+                kind: None,
+            },
+        )?];
+        for section in super::semantic_ir::Section::value_variants() {
+            catalog.push(super::semantic_ir::catalog(
+                &super::semantic_ir::SchemaOptions {
+                    section: Some(*section),
+                    kind: None,
+                },
+            )?);
+        }
+        let catalog = serde_json::to_value(catalog)?;
+        report["catalog_digest"] = json!(super::object_merkle(&catalog)?);
         let capability_material=Capability::ALL.iter().map(|capability|json!({"capability":capability,"form":capability.agent_form().arguments,"writes":capability.agent_form().writes,"source_required":capability.agent_form().source_required,
             "support":Language::ALL.iter().map(|language|json!([language,capabilities::support(*capability,*language)])).collect::<Vec<_>>()})).collect::<Vec<_>>();
         let canonical = serde_json::to_vec(&serde_json::to_value(goal)?)?;

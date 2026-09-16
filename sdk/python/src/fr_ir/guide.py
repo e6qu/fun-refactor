@@ -83,6 +83,8 @@ class GoalOperation:
             for name, item in parameters.items():
                 _bounded(name, "parameter name")
                 _bounded(item, "parameter value", 4096)
+                if item.split("=", 1)[0] in ("--write", "--save-plan"):
+                    raise FrRuntimeError("capability parameters cannot request execution or plan persistence")
         if self.kind == "semantic-scalar":
             value.setdefault("from", None)
             value.setdefault("to", None)

@@ -8,6 +8,12 @@ from fr_ir.guide import (AgentGoal, AgentGuide, GoalConstraints, GoalLimits, Goa
 from fr_ir.runtime import FrReport, FrRuntimeError
 
 
+@pytest.mark.parametrize("value", ["--write", "--save-plan", "--write=true", "--save-plan=true"])
+def test_capability_scalar_parameters_cannot_request_execution(value):
+    with pytest.raises(FrRuntimeError):
+        GoalOperation("capability", {"capability": "rename", "parameters": {"new_name": value}})
+
+
 class FakeClient:
     def __init__(self, mutate=None):
         self.mutate = mutate
