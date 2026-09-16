@@ -145,7 +145,7 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 36 | Language-Aware Agent Workflow Navigator | In progress |
+| PR 36 | Language-Aware Agent Workflow Navigator | Draft [PR 305](https://github.com/e6qu/fun-refactor/pull/305) |
 | PR 37 | General Intent Actions and Proof Delivery | Planned |
 | PR 38 | Cross-Language Formalization and Correspondence | Planned |
 | PR 39 | Generic Hierarchical Framework Transformation | Planned |

@@ -32,6 +32,7 @@ fn workspace() -> tempfile::TempDir {
             "metadata:\n  name: \"{{ .Values.appName }}\"\n  tag: \"{{ .Values.image.tag }}\"\n",
         ),
         ("README.md", "# Demo\n\nSee [the service](svc/a.go).\n"),
+        ("guide.goal", r#"{"schema":"fr-agent-goal-1","purpose":"understand","selector":{"name":"Helper","language":"go"}}"#),
         // A recipe, so `fr recipe` has something to run in the shared fixture.
         (
             "tidy.recipe",
@@ -81,6 +82,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("file", vec!["file", "delete", "svc/a.go"]),
         ("git", vec!["git", "status"]),
         ("intent", vec!["intent", "--from", "missing.intent"]),
+        ("guide", vec!["guide", "--from", "guide.goal"]),
         ("project", vec!["project", "map"]),
         (
             "migrate",

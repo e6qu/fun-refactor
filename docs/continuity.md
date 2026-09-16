@@ -3,7 +3,8 @@
 PR 35 merged as [GitHub PR 303](https://github.com/e6qu/fun-refactor/pull/303). The focused completion
 roadmap merged as [GitHub PR 304](https://github.com/e6qu/fun-refactor/pull/304).
 
-PR 36 implements `fr guide --from` and the Python `AgentGoal`/`AgentGuide` mirrors. One immutable
+PR 36 is [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). It implements `fr guide --from`
+and the Python `AgentGoal`/`AgentGuide` mirrors. One immutable
 snapshot resolves selectors and supplies capability, technology, recipe, semantic, migration and
 proof admission evidence. Actions contain exact arguments, output contracts, stdin and only the
 required authored fields. Ambiguous or unsupported selections contain no actions. Source remains
