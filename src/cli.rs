@@ -3007,18 +3007,24 @@ fn run_tagged_intent(
 
 fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Result<()> {
     use crate::project::migration::Command;
-    let Command::Feature(options) = command;
+    let (write, cutover, diff_bytes) = match command {
+        Command::Feature(options) => (options.write, options.cutover, options.diff_bytes),
+        Command::Application(options) => (options.write, false, options.diff_bytes),
+    };
     anyhow::ensure!(
-        !(options.write && cli.save_plan),
+        !(write && cli.save_plan),
         "choose --save-plan or --write, not both."
     );
     anyhow::ensure!(
-        cli.plan_basis.is_none() || options.write || cli.save_plan,
+        cli.plan_basis.is_none() || write || cli.save_plan,
         "--plan-basis requires --save-plan or --write."
     );
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
-        let mut plan = project.migrate_feature(options)?;
+        let mut plan = match command {
+            Command::Feature(options) => project.migrate_feature(options)?,
+            Command::Application(options) => project.migrate_application(options)?,
+        };
         let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
         project.verify(root)?;
         for change in &plan.connected_changes {
@@ -3046,7 +3052,7 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
             let shown = shown_path(root, &removal.path);
             diff.push_str(&crate::edit::unified_diff(&removal.original, "", &shown));
         }
-        plan.set_diff(&diff, options.diff_bytes);
+        plan.set_diff(&diff, diff_bytes);
         let mut changes = outcomes
             .iter()
             .map(crate::edit::FileChange::from)
@@ -3073,12 +3079,12 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
             &exact_plan_changes(root, &changes, &removals),
             cli.plan_basis.as_deref(),
         )?;
-        let recorded = if options.write || cli.save_plan {
+        let recorded = if write || cli.save_plan {
             crate::history::record_with_removals_status(
                 &cli.root,
                 &changes,
                 &removals,
-                options.write,
+                write,
                 "feature-migration-reparse-strict",
                 plan.required_checks.as_ref(),
             )?
@@ -3087,9 +3093,9 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
         };
         let transaction = recorded.map(|result| result.id);
         plan.report["transaction"] = serde_json::json!(transaction);
-        plan.report["applied"] = serde_json::json!(options.write && transaction.is_some());
+        plan.report["applied"] = serde_json::json!(write && transaction.is_some());
         plan.report["migration"]["coexistence"]["cutover_applied"] =
-            serde_json::json!(options.cutover && options.write && transaction.is_some());
+            serde_json::json!(cutover && write && transaction.is_some());
         plan.report["saved"] =
             serde_json::json!(cli.save_plan && recorded.is_some_and(|result| result.created));
         if recorded.is_some_and(|result| !result.created) {

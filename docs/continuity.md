@@ -1,10 +1,45 @@
 # Development continuity
 
+PR 38 merged as [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309).
+Release PR 310 advances main to `31c62e659a05889cec6d85903f7d893958888f1b`,
+version 0.27.0. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311) is PR 39 on
+`application_ir_transformations`, based directly on that main.
+
+PR 39 adds `project application`, Merkle disclosure and `migrate application` around a bounded
+common IR. Conservative readers normalize literal JSON responses and path bindings from Next.js,
+FastAPI, Express and Go `net/http`. Deterministic writers target the same four adapters. React and
+Next.js also share a bounded static intrinsic JSX tree. Dynamic rendering and effectful handlers
+remain explicit manual boundaries.
+
+Agents can author `fr-http-application-1`, migrate directly from a project snapshot and execute the
+same planner through an `application-migration` intent operation. Checked FastAPI, Express, Go and
+Next.js integration joins generated files, owned dependency edits, declared checks and Git patch
+delivery in one reversible transaction. Guarded cutover removes one recognized wholly owned source
+only after connected integration and external-reference checks. The application report publishes
+all 75 adapter-feature cells with a reason for every refusal.
+
+Rust, Python and Lean agree on application admission, compatibility, resource, disclosure and
+cutover policies. Pinned runtime fixtures execute generated Next.js, React, FastAPI, Express and Go
+behavior. The Python suite passes 116 tests and `ty check sdk/python/src` passes. Fourteen retained
+reports were regenerated from immutable binary SHA-256
+`11c9beae6a37c9465f81b38fb363b66fea32520d1a88b14f7e7717050eb564e5`; all dedicated auditors pass.
+
+The final default and WASM gates pass with 311/311 supported capability cells and 81 Lean build jobs.
+The deep audit passes command agreement, conformance, all round trips, self-translation and all 101
+Lean tests. Five external replay archives pass their checks, independent behavior oracles and exact
+reversal. B918 and B919 record the disclosure-depth and floating Merkle repairs. Final audit also
+fixed shared-VFS bypasses, nested Python/TypeScript generic maps and minimal WASM feature gating.
+
+PR 40 is next. It performs the completion audit and fresh live-agent validation without widening
+the explicit application semantics described in `PLAN.md`.
+
+Merged PR 38 implementation and evidence follow:
+
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI
 jobs and its merged-main deep audit passed. PR 37 merged as
 [GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), after release PR 306.
 
-PR 38 is [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
+PR 38 was [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
 `cross_language_formalization`, based on `origin/main`
 `cd3b6bba6bf714386c8a40ec82c5d3aca438c35f` (release PR 308, version 0.26.0).
 Implementation checkpoint `95c7d8d0` adds the
@@ -40,16 +75,15 @@ The complete native gate passes, with 311/311 supported capability cells exercis
 formalization tests, 28 Rust-driven SDK tests and the strict 81-job Lean build.
 The deep gate passes 14 agreement, two conformance, seven round-trip, seven self-translation and
 100 Lean kernel tests. All five retained external replay archives pass checks, behavior oracles and
-exact reversal; the complete deep gate passes 131 tests. PR 38 is ready for review. GitHub title,
+exact reversal; the complete deep gate passed 131 tests before merge. GitHub title,
 WASM and playground checks pass at source commit `95ef0663`; its native check remains pending.
 Release PR 308 landed after these gates. The conflict-free rebase preserves all four implementation
 patches according to `git range-diff`. Post-rebase formatting, locked workspace metadata and
 release-evidence normalization pass; all nine workspace packages use 0.26.0. The rebased branch
 triggers a new GitHub check run.
 
-PR 39 is next after this PR merges: generic hierarchical framework transformation through a common
-application IR and adapters, with checked multi-file delivery, progressive disclosure and Lean
-admission/compatibility policies. PR 40 closes the completion audit and live-agent validation gaps.
+PR 39 implementation is complete in [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311).
+PR 40 closes the completion audit and live-agent validation gaps.
 
 PR 37 merged implementation and validation follow:
 

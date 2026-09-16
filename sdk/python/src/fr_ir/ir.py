@@ -70,6 +70,23 @@ def _object_binary_root(level: Sequence[str]) -> str:
     return current[0]
 
 
+def _merkle_number(value: int | float) -> str:
+    if isinstance(value, int):
+        return str(value)
+    if value != value or value in (float("inf"), float("-inf")):
+        raise IrError("Merkle numbers must be finite JSON numbers")
+    written = repr(value)
+    if "e" not in written:
+        return written
+    significand, exponent = written.split("e")
+    position = int(exponent)
+    if position == -5:
+        sign = "-" if significand.startswith("-") else ""
+        digits = significand.lstrip("-").replace(".", "")
+        return sign + "0.0000" + digits
+    return significand + "e" + ("+" if position >= 0 else "-") + str(abs(position))
+
+
 def merkle_object_digest(value: Any) -> str:
     """Return the content address for one JSON value."""
     if value is None:
@@ -77,9 +94,7 @@ def merkle_object_digest(value: Any) -> str:
     if isinstance(value, bool):
         return _tagged_hash(MERKLE_OBJECT_SCHEMA, "bool", value)
     if isinstance(value, (int, float)):
-        if isinstance(value, float) and (value != value or value in (float("inf"), float("-inf"))):
-            raise IrError("Merkle numbers must be finite JSON numbers")
-        written = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        written = _merkle_number(value)
         return _tagged_hash(MERKLE_OBJECT_SCHEMA, "number", written)
     if isinstance(value, str):
         return _tagged_hash(MERKLE_OBJECT_SCHEMA, "string", value)

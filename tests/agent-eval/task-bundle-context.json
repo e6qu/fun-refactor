@@ -1,9 +1,9 @@
 {
   "schema": "fr-task-bundle-context-1",
   "passed": true,
-  "binary_sha256": "d8180cfca86132ed7f84ed7cee5493da2fa73bfbf371bdbbe8f2edbed1052e4a",
-  "source_commit": "1498bbe7d89ff43520e1b98cf6c4fc9f69e80e6c",
-  "repetitions": 3,
+  "binary_sha256": "11c9beae6a37c9465f81b38fb363b66fea32520d1a88b14f7e7717050eb564e5",
+  "source_commit": "7a90a8af8438a60f62ad03f5394603c15526f1fc",
+  "repetitions": 1,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
     "python": "3.14.6",
@@ -86,12 +86,7 @@
       "patch": "artifacts/change.patch"
     }
   },
-  "tokenizer": {
-    "package": "tiktoken",
-    "version": "0.12.0",
-    "encoding": "o200k_base",
-    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
-  },
+  "tokenizer": null,
   "token_normalization": {
     "pattern": "isolated lowercase hexadecimal identities of length 32 or 64",
     "representatives": {
@@ -101,18 +96,18 @@
   },
   "summary": {
     "separate": {
-      "samples": 3,
+      "samples": 1,
       "calls": 4,
       "median_context_bytes": 6803,
-      "median_context_tokens": 1836,
-      "median_seconds": 0.20190016692504287
+      "median_context_tokens": null,
+      "median_seconds": 0.12195383396465331
     },
     "task": {
-      "samples": 3,
+      "samples": 1,
       "calls": 1,
       "median_context_bytes": 4715,
-      "median_context_tokens": 1504,
-      "median_seconds": 0.08170899999095127
+      "median_context_tokens": null,
+      "median_seconds": 0.05467170907650143
     }
   },
   "runs": [
@@ -120,139 +115,47 @@
       "repetition": 1,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "f28dbbaa2a2292878d6d33ecd791c182c75ea26a7cf6ef0015be3625a855cfa7",
+      "semantic_sha256": "dc553fbcc1e73266f5a30af35454fe0c9d434862ace5082b606dfd79440fb195",
       "stdout": {
         "bytes": 6486,
-        "tokens": 1728
+        "tokens": null
       },
       "requests": {
         "bytes": 317,
-        "tokens": 108
+        "tokens": null
       },
       "artifact": {
         "bytes": 0,
-        "tokens": 0
+        "tokens": null
       },
       "context": {
         "bytes": 6803,
-        "tokens": 1836
+        "tokens": null
       },
-      "seconds": 0.1944495010538958
+      "seconds": 0.12195383396465331
     },
     {
       "repetition": 1,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "f28dbbaa2a2292878d6d33ecd791c182c75ea26a7cf6ef0015be3625a855cfa7",
+      "semantic_sha256": "dc553fbcc1e73266f5a30af35454fe0c9d434862ace5082b606dfd79440fb195",
       "stdout": {
         "bytes": 4176,
-        "tokens": 1353
+        "tokens": null
       },
       "requests": {
         "bytes": 93,
-        "tokens": 30
+        "tokens": null
       },
       "artifact": {
         "bytes": 446,
-        "tokens": 121
+        "tokens": null
       },
       "context": {
         "bytes": 4715,
-        "tokens": 1504
+        "tokens": null
       },
-      "seconds": 0.08395975001621991
-    },
-    {
-      "repetition": 2,
-      "arm": "task",
-      "calls": 1,
-      "semantic_sha256": "f28dbbaa2a2292878d6d33ecd791c182c75ea26a7cf6ef0015be3625a855cfa7",
-      "stdout": {
-        "bytes": 4176,
-        "tokens": 1353
-      },
-      "requests": {
-        "bytes": 93,
-        "tokens": 30
-      },
-      "artifact": {
-        "bytes": 446,
-        "tokens": 121
-      },
-      "context": {
-        "bytes": 4715,
-        "tokens": 1504
-      },
-      "seconds": 0.0799057079711929
-    },
-    {
-      "repetition": 2,
-      "arm": "separate",
-      "calls": 4,
-      "semantic_sha256": "f28dbbaa2a2292878d6d33ecd791c182c75ea26a7cf6ef0015be3625a855cfa7",
-      "stdout": {
-        "bytes": 6486,
-        "tokens": 1728
-      },
-      "requests": {
-        "bytes": 317,
-        "tokens": 108
-      },
-      "artifact": {
-        "bytes": 0,
-        "tokens": 0
-      },
-      "context": {
-        "bytes": 6803,
-        "tokens": 1836
-      },
-      "seconds": 0.20190016692504287
-    },
-    {
-      "repetition": 3,
-      "arm": "separate",
-      "calls": 4,
-      "semantic_sha256": "f28dbbaa2a2292878d6d33ecd791c182c75ea26a7cf6ef0015be3625a855cfa7",
-      "stdout": {
-        "bytes": 6486,
-        "tokens": 1728
-      },
-      "requests": {
-        "bytes": 317,
-        "tokens": 108
-      },
-      "artifact": {
-        "bytes": 0,
-        "tokens": 0
-      },
-      "context": {
-        "bytes": 6803,
-        "tokens": 1836
-      },
-      "seconds": 0.20961483399150893
-    },
-    {
-      "repetition": 3,
-      "arm": "task",
-      "calls": 1,
-      "semantic_sha256": "f28dbbaa2a2292878d6d33ecd791c182c75ea26a7cf6ef0015be3625a855cfa7",
-      "stdout": {
-        "bytes": 4176,
-        "tokens": 1353
-      },
-      "requests": {
-        "bytes": 93,
-        "tokens": 30
-      },
-      "artifact": {
-        "bytes": 446,
-        "tokens": 121
-      },
-      "context": {
-        "bytes": 4715,
-        "tokens": 1504
-      },
-      "seconds": 0.08170899999095127
+      "seconds": 0.05467170907650143
     }
   ],
   "source_unchanged": true,

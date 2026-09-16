@@ -11,6 +11,89 @@ use std::sync::Once;
 static KERNEL_IS_BUILT: Once = Once::new();
 
 #[test]
+fn application_adapter_policies_agree_with_lean_and_python() {
+    use fun_refactor::framework_kernel::*;
+    build_kernel();
+    let mut expected = Vec::new();
+    for adapter in 0..7 {
+        for feature in 0..5 {
+            expected.push(application_adapter_supports(adapter, feature).to_string());
+        }
+    }
+    for source in 0..7 {
+        for target in 0..7 {
+            for feature in 0..5 {
+                expected.push(application_adapters_compatible(source, target, feature).to_string());
+            }
+        }
+    }
+    for status in 0..602 {
+        expected.push(application_json_status_admitted(status).to_string());
+    }
+    for input in [0, 1, 2, 256, 4096] {
+        for assigned in [0, 1, 2, 256, 4096] {
+            for unique in [false, true] {
+                for exact_ids in [false, true] {
+                    expected.push(
+                        application_dispositions_complete(input, assigned, unique, exact_ids)
+                            .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    for method in [false, true] {
+        for path in [false, true] {
+            for status in [false, true] {
+                for response in [false, true] {
+                    expected.push(
+                        application_endpoint_agreement(method, path, status, response).to_string(),
+                    );
+                }
+            }
+        }
+    }
+    for nodes in [0, 1, 1024, 1025] {
+        for depth in [0, 32, 33] {
+            for encoded_bytes in [0, 1_048_576, 1_048_577] {
+                expected.push(
+                    application_static_resources_admitted(nodes, depth, encoded_bytes).to_string(),
+                );
+            }
+        }
+    }
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("application-adapters")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+    let python = Command::new("python3")
+        .env("PYTHONPATH", root().join("sdk/python/src"))
+        .args(["-c", include_str!("application-runtime/policies.py")])
+        .output()
+        .unwrap();
+    assert!(
+        python.status.success(),
+        "{}",
+        String::from_utf8_lossy(&python.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(python.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
+#[test]
 fn agent_guide_policy_matches_rust_python_and_lean_exhaustively() {
     build_kernel();
     let mut expected = Vec::new();

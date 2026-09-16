@@ -32,6 +32,7 @@ supported bodies, checked deltas and role-based scalar intents through the same 
 Reviewed semantic edit plans resolve one exact declaration and scalar below a workspace path.
 Agents can preview or write the generated intent without reading source or building JSON.
 The [agent IR SDK evaluation](docs/agent-ir-sdk-evaluation.md) compares direct JSON and typed Python construction under deterministic and fresh-agent checks.
+The [application IR](docs/application-ir.md) carries bounded application hierarchies and checked HTTP route bundles between supported framework adapters.
 The [agent runtime SDK](docs/agent-runtime-sdk.md) keeps bounded project, disclosure and reviewed
 change reports as Python objects. It follows server-issued continuations and executes an unchanged
 reviewed manifest and basis.

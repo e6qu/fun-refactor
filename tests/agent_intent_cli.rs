@@ -797,6 +797,58 @@ fn tagged_migration_matches_standalone_and_exports_creation_patch() {
 }
 
 #[test]
+fn tagged_application_migration_executes_the_common_ir_planner() {
+    let root = fixture();
+    let source = "function signal(req: Request, res: Response) {\n  return res.status(200).json({id: req.params['id']});\n}\napp.get('/signals/:id', signal);\n";
+    std::fs::write(root.path().join("api.ts"), source).unwrap();
+    let goal = json!({"schema":"fr-agent-goal-1","purpose":"migrate",
+        "selector":{"path":"api.ts"},
+        "operation":{"kind":"framework-migration","to":"go-net-http"},
+        "checks":["syntax"]});
+    let (success, guide) = run(
+        root.path(),
+        &["guide", "--from", "-"],
+        Some(&serde_json::to_vec(&goal).unwrap()),
+    );
+    assert!(success, "{guide}");
+    assert_eq!(
+        guide["intent_action"]["operation_kinds"],
+        json!(["application-migration"])
+    );
+    let anchor = guide["target"]["handle"].as_str().unwrap();
+    let mut input = tagged(
+        anchor,
+        "migrate",
+        json!({"kind":"application-migration","to":"go-net-http","out":"generated",
+            "checks":["syntax"],"delivery":delivery()}),
+    );
+    input["action"]["guide"] = json!({"goal":goal,"basis":guide["basis"]});
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert_eq!(
+        preview["action"]["review"]["plan"]["migration"]["source_kind"],
+        "project-snapshot"
+    );
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(success, "{result}");
+    assert!(root.path().join("generated/routes.go").is_file());
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("api.ts")).unwrap(),
+        source
+    );
+    assert!(
+        std::fs::read_to_string(root.path().join("artifacts/tagged.patch"))
+            .unwrap()
+            .contains("generated/routes.go")
+    );
+}
+
+#[test]
 fn tagged_query_and_surface_action_preserve_the_selected_file() {
     let root = fixture();
     std::fs::write(root.path().join("style.css"), ".card { color: red; }\n").unwrap();

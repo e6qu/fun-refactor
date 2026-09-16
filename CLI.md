@@ -858,6 +858,27 @@ fr migrate feature <FEATURE-ID> --to nextjs --out web/app
 ```
 
 Plan one route-centered migration from a revision-bound `fr project features` ID.
+`fr migrate application --ir FILE --to ADAPTER --out DIRECTORY` authors or converts
+bounded JSON HTTP behavior. `FILE` may contain a route bundle, application model, or
+complete `project application` report. Its bounded IR has Next.js, FastAPI, Express
+and Go HTTP readers and writers for literal JSON responses and path bindings.
+Use `--project TARGET` instead of `--ir FILE` to normalize and preview within one
+snapshot. FastAPI accepts explicit registration and PEP 621 dependency options;
+Express accepts explicit TypeScript app/router registration and npm dependencies. Go accepts an
+explicit package-level ServeMux and generates a mount file using its captured module path.
+Recognized Next.js App Router placement supplies checked integration evidence.
+The same command converts one selected static intrinsic JSX component between React
+and Next.js; dynamic rendering remains an explicit manual boundary.
+When the guide selects this planner, it advertises an `application-migration`
+`fr-intent-action-2` operation. An agent can preview and execute the same plan from
+the selected handle without carrying source text.
+With `--project`, `--cutover` can remove one recognized whole-file source feature
+after connected integration and external-reference checks. Mixed application files
+refuse. `project application` includes the complete adapter-pair/feature capability
+matrix and a reason for every unsupported cell.
+`fr project application` and `project disclose HANDLE --view application` expose the
+application hierarchy. See [the application IR contract](docs/application-ir.md) for
+schemas, SDK constructors, manual integration and formal/runtime evidence boundaries.
 The current subset supports Next.js App Router to FastAPI and FastAPI to Next.js when every selected method shares one source file.
 A FastAPI destination names one `.py` file. A Next.js destination names an `app` directory, beneath which the command creates route files.
 

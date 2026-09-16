@@ -412,7 +412,7 @@ class FrClient:
         proofs: bool = False,
     ) -> Disclosure:
         """Start a bounded progressive-disclosure session."""
-        if view not in ("semantic", "evidence", "project") or profile not in ("compact", "expanded"):
+        if view not in ("semantic", "evidence", "project", "application") or profile not in ("compact", "expanded"):
             raise FrRuntimeError("disclosure view or profile is unsupported")
         if (isinstance(depth, bool) or not isinstance(depth, int) or not 0 <= depth <= 8
                 or isinstance(token_limit, bool) or not isinstance(token_limit, int)

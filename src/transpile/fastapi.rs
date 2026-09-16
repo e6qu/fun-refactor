@@ -238,6 +238,24 @@ fn endpoint_nodes<'a>(root: Node<'a>, source: &str) -> Vec<(String, String, Node
     found
 }
 
+#[cfg(feature = "cli")]
+pub(crate) fn route_functions(source: &str) -> Result<Vec<(String, String, Function)>> {
+    let parsed = Parsers::new().parse(Language::Python, source)?;
+    if parsed.has_errors() {
+        bail!("FastAPI source does not parse cleanly.");
+    }
+    endpoint_nodes(parsed.root(), source)
+        .into_iter()
+        .map(|(method, path, node)| {
+            Ok((
+                method.to_uppercase(),
+                path,
+                super::read::function_at(Language::Python, source, node)?,
+            ))
+        })
+        .collect()
+}
+
 /// The method and URL a decorator names, when it names both.
 fn route_decorator(text: &str) -> Option<(String, String)> {
     let text = text.trim().strip_prefix('@')?;

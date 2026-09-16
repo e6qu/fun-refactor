@@ -137,6 +137,7 @@ func routes(r *gin.Engine) {
 \tr.POST(\"/pets\", createPet)
 \tr.DELETE(\"/pets/:petId\", deletePet)
 }
+
 ";
     assert_eq!(framework_of(source, Language::Go), Framework::Gin);
     assert_eq!(
@@ -149,6 +150,30 @@ func routes(r *gin.Engine) {
                 "/pets/{petId}".into(),
                 Some("deletePet".into())
             ),
+        ]
+    );
+}
+
+#[test]
+fn go_serve_mux_uses_method_aware_standard_library_patterns() {
+    let source = "\
+package main
+
+import \"net/http\"
+
+func routes() http.Handler {
+\tmux := http.NewServeMux()
+\tmux.HandleFunc(\"GET /pets/{petId}\", showPet)
+\tmux.HandleFunc(\"POST /pets\", createPet)
+\treturn mux
+}
+";
+    assert_eq!(framework_of(source, Language::Go), Framework::GoNetHttp);
+    assert_eq!(
+        found(source, Language::Go),
+        vec![
+            ("GET".into(), "/pets/{petId}".into(), Some("showPet".into())),
+            ("POST".into(), "/pets".into(), Some("createPet".into())),
         ]
     );
 }

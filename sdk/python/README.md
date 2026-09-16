@@ -73,7 +73,8 @@ result = client.execute_intent(compiled)
 
 `TaskChangeOperation` permits the existing bounded requests and multiple targets. Other operation
 mirrors are `AuthorBatchOperation`, `RecipeOperation`, `CapabilityOperation`,
-`FrameworkMigrationOperation`, `ProjectQueryOperation`, `SurfaceEditOperation`,
+`FrameworkMigrationOperation`, `ApplicationMigrationOperation`, `ProjectQueryOperation`,
+`SurfaceEditOperation`,
 `PropertyTaskOperation`, `FormalPlanOperation`, `ProofTaskOperation` and
 `ProofSubmissionOperation`, all in `fr_ir.intent_actions`. Their fields match the public tagged IR.
 Formal plans write scaffolds only when a package, checks and delivery are supplied. Proof properties
@@ -91,6 +92,14 @@ The package root is deliberately empty. Import IR constructors from `fr_ir.ir`, 
 client from `fr_ir.runtime`, progressive storage from `fr_ir.context`, and high-level requests from
 `fr_ir.intent`, with workflow goals in `fr_ir.guide`. The package has no `__main__.py` and publishes
 no mutable `__all__` registry.
+
+For language-neutral HTTP authoring, `fr_ir.application` provides `RouteBundle`,
+`HttpRoute`, `Literal`, `Path`, `Object` and `Array`. Its exclusive IR-file write feeds
+the reviewed `migrate application` planner. Application hierarchies also support
+`FrClient.context(handle, view="application")` and checked Merkle subtree storage.
+`StaticComponent`, `StaticElement` and `StaticText` mirror the bounded React/Next.js
+intrinsic JSX subset.
+See [the application IR contract](../../docs/application-ir.md) for exact boundaries.
 
 Install the current test extra and run the suite with pytest:
 

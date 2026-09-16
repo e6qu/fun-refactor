@@ -84,3 +84,27 @@ fn a_python_bare_tuple_return_crosses() {
         "and the annotation crosses as a tuple type:\n{out}"
     );
 }
+
+#[test]
+fn nested_tuple_and_list_types_remain_inside_a_python_map() {
+    let tmp = tempfile::tempdir().unwrap();
+    let source =
+        "def use(cache: dict[tuple[PathBuf, str], list[Function]]) -> int:\n    return 0\n";
+    let out = translated(tmp.path(), "cache.py", source, Language::Rust);
+    assert!(
+        out.contains("std::collections::HashMap<(PathBuf, String), Vec<Function>>"),
+        "nested generic arguments stay separate:\n{out}"
+    );
+}
+
+#[test]
+fn nested_tuple_and_list_types_remain_inside_a_typescript_map() {
+    let tmp = tempfile::tempdir().unwrap();
+    let source =
+        "function use(cache: Record<[PathBuf, string], Function[]>): number { return 0; }\n";
+    let out = translated(tmp.path(), "cache.ts", source, Language::Rust);
+    assert!(
+        out.contains("std::collections::HashMap<(PathBuf, String), Vec<Function>>"),
+        "nested generic arguments stay separate:\n{out}"
+    );
+}

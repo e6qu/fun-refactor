@@ -5,9 +5,8 @@
 # for the site, so none of it belongs in the history — a committed 10 MB wasm would
 # be a new copy every time a query file changed.
 /web/src/wasm/
-/web/node_modules/
+node_modules/
 /docs/playground/
 __pycache__/
-/tests/typesafety/typescript/node_modules/
-/tests/migration-runtime/nextjs-framework/node_modules/
 /tests/migration-runtime/nextjs-framework/.fr-runtime-*/
+/tests/migration-runtime/nextjs-framework/.fr-application-runtime-*/

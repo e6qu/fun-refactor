@@ -9,32 +9,32 @@
       "explicit_change_equivalent": true,
       "behavior": "7",
       "disclosure_responses": 5,
-      "disclosure_bytes": 28251,
-      "preview_bytes": 3088
+      "disclosure_bytes": 30838,
+      "preview_bytes": 3045
     },
     "delete": {
       "identity_independently_verified": true,
       "explicit_change_equivalent": true,
       "behavior": "1",
       "disclosure_responses": 4,
-      "disclosure_bytes": 24354,
-      "preview_bytes": 3043
+      "disclosure_bytes": 26302,
+      "preview_bytes": 3000
     },
     "insert-before": {
       "identity_independently_verified": true,
       "explicit_change_equivalent": true,
       "behavior": "1",
       "disclosure_responses": 4,
-      "disclosure_bytes": 24354,
-      "preview_bytes": 3121
+      "disclosure_bytes": 26302,
+      "preview_bytes": 3078
     },
     "append-empty": {
       "identity_independently_verified": true,
       "explicit_change_equivalent": true,
       "behavior": "1",
       "disclosure_responses": 8,
-      "disclosure_bytes": 56870,
-      "preview_bytes": 3123
+      "disclosure_bytes": 61125,
+      "preview_bytes": 3080
     }
   },
   "identity": {
@@ -51,8 +51,8 @@
   "budget": {
     "limit": 16384,
     "disclosure_responses": 21,
-    "maximum_disclosure_response_bytes": 15507,
-    "disclosure_bytes": 133829
+    "maximum_disclosure_response_bytes": 16229,
+    "disclosure_bytes": 144567
   },
   "scope": "Generated generic Rust fixture with independent capability and Merkle calculation, explicit semantic-change equivalence, rustc behavior checks and exact history checks; SHA-256 collision resistance, parser, writer, compiler and filesystem behavior remain trusted or tested boundaries."
 }
