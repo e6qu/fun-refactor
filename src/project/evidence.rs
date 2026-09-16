@@ -147,7 +147,7 @@ impl Project<'_> {
         })
     }
 
-    fn evidence_flow_steps(&self, result: &crate::analysis::flow::FlowResult) -> Value {
+    pub(super) fn evidence_flow_steps(&self, result: &crate::analysis::flow::FlowResult) -> Value {
         let steps = result
             .steps
             .iter()

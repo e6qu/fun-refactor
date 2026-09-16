@@ -57,6 +57,8 @@ BOUND_FILES = (
     "src/project/agent_guide.rs", "src/project/task_change.rs",
     "sdk/python/src/fr_ir/guide.py", "sdk/python/src/fr_ir/ir.py",
     "sdk/python/src/fr_ir/runtime.py", "kernels/FrKernels/AgentGuide.lean",
+    "src/project/agent_actions.rs", "src/project/capability_action.rs",
+    "sdk/python/src/fr_ir/intent_actions.py",
 )
 STAGES = ["check-original", "apply", "check-applied", "undo", "check-restored", "redo", "check-applied", "deliver-patch"]
 def canonical(value: object) -> bytes:

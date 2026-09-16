@@ -16,7 +16,7 @@ Read coverage, omissions and statuses. Missing or clipped rows do not prove abse
 stale identities refuse.
 
 Load the guide's returned reference only when needed. Direct routes: [Explore](references/explore.md),
-[Runtime](references/runtime.md), [Author](references/author.md),
+[Runtime](references/runtime.md), [Intents](references/intents.md), [Author](references/author.md),
 [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md),
 [Git](references/git.md), or [Lean](references/lean.md).
 

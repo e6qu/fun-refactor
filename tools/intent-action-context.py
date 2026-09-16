@@ -26,6 +26,8 @@ BOUND_FILES = (
     "src/project/task_change.rs",
     "sdk/python/src/fr_ir/intent.py",
     "sdk/python/src/fr_ir/runtime.py",
+    "src/project/agent_actions.rs", "src/project/capability_action.rs",
+    "sdk/python/src/fr_ir/intent_actions.py",
 )
 SOURCE = "pub fn render(value: &str) -> String { value.to_owned() }\n"
 

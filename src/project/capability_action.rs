@@ -276,10 +276,7 @@ impl Project<'_> {
             }
             C::Flow => {
                 let flow = crate::analysis::flow::backward(self.index, &file, offset()?, 3)?;
-                result.report["planner"] = json!({"steps":flow.steps.iter().map(|step|json!({
-                    "symbol":step.symbol,"file":step.file.strip_prefix(&self.root).unwrap_or(&step.file),
-                    "span":step.span,"depth":step.depth,"confidence":step.confidence.as_str()})).collect::<Vec<_>>(),
-                    "stops":flow.stops.iter().map(|(depth,reason)|json!({"depth":depth,"reason":reason.to_string()})).collect::<Vec<_>>()});
+                result.report["planner"] = self.evidence_flow_steps(&flow);
             }
             C::Provenance => {
                 let trace = crate::analysis::provenance::provenance(self.index, symbol()?, 3)?;
@@ -288,8 +285,23 @@ impl Project<'_> {
                     "span":hop.span,"line":hop.line,"depth":hop.depth,"confidence":hop.confidence.as_str()})).collect::<Vec<_>>(),
                     "competitions":trace.competitions.iter().map(|competition|json!({"subject":competition.subject,"model":competition.model,
                         "decided":competition.decided,"sources":competition.sources.iter().map(|source|json!({"symbol":source.hop.symbol,
-                            "kind":source.hop.kind.as_str(),"precedence":source.precedence.label,"wins":source.wins,"reason":source.reason})).collect::<Vec<_>>() })).collect::<Vec<_>>(),
-                    "stops":trace.stops.iter().map(|(depth,reason)|json!({"depth":depth,"reason":reason.to_string()})).collect::<Vec<_>>()});
+                            "kind":source.hop.kind.as_str(),"precedence":source.precedence.label,"wins":source.wins})).collect::<Vec<_>>() })).collect::<Vec<_>>(),
+                    "stops":trace.stops.iter().map(|(depth,reason)| {
+                        use crate::analysis::provenance::StopReason;
+                        let kind = match reason {
+                            StopReason::Origin(_) => "origin",
+                            StopReason::ExternalInput { .. } => "external-input",
+                            StopReason::Unresolved(_) => "unresolved",
+                            StopReason::DepthLimit => "depth-limit",
+                            StopReason::RenderDependent(_) => "render-dependent",
+                            StopReason::Conditional { .. } => "conditional",
+                            StopReason::ComputedAtApply(_) => "computed-at-apply",
+                            StopReason::PrecedenceUndetermined(_) => "precedence-undetermined",
+                            StopReason::DecidedGivenInputs { .. } => "decided-given-inputs",
+                            StopReason::NotAValue(_) => "not-a-value",
+                        };
+                        json!({"depth":depth,"kind":kind})
+                    }).collect::<Vec<_>>()});
             }
             C::EntryPoints => {
                 let entries = crate::analysis::entrypoints::Catalog::builtin()?.detect(self.index);

@@ -1247,6 +1247,21 @@ impl Project<'_> {
             8 | 9 => "lean",
             _ => unreachable!(),
         });
+        let operation_kinds: &[&str] = match route {
+            0 => &["project-query"],
+            1 => &["capability"],
+            2 => &["recipe"],
+            3..=5 => &["task-change", "author-batch"],
+            6 => &["surface-edit"],
+            7 => &["framework-migration"],
+            8 => &["property-task", "formal-plan"],
+            9 => &["proof-task", "proof-submission"],
+            _ => &[],
+        };
+        report["intent_action"] = json!({"schema":"fr-intent-action-2",
+            "operation_kinds":if admitted { operation_kinds } else { &[] },
+            "compile":"FrClient.compile_guided_intent", "execute":"FrClient.execute_intent",
+            "reference":"intents", "review_pointer":"/action/review", "basis_pointer":"/action/basis"});
         report["verification_ladder"] = json!([
             {"level":"reparse","state":"not-run","claim":"syntax only"},
             {"level":"compiler","state":"requires-declared-check","claim":"toolchain acceptance"},

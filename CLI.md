@@ -304,7 +304,7 @@ from the code. Every cell that is not supported carries its reason.
 
 `fr --json intent --from INTENT.json` compiles one `fr-agent-intent-1` request directly from one
 verified project snapshot. Pass `-` to read at most 64 KiB from standard input. The manifest names
-one full declaration handle, an `understand`, `trace`, `change`, `migrate` or `prove` purpose, and
+one full file, directory or declaration handle, an `understand`, `trace`, `change`, `migrate` or `prove` purpose, and
 one through 32 named evidence projections:
 
 ```json
@@ -333,6 +333,49 @@ The outer basis commits the exact intent and task-change basis. Preview remains 
 rebuilds all evidence before the established task-change lifecycle records history, runs declared
 checks, exercises requested undo/redo and delivers the Git patch. Wrong purposes, indirect targets,
 stale source, changed manifests and mismatched bases refuse before history creation.
+
+Tagged actions use `action.schema = "fr-intent-action-2"` and
+`action.operation = {"kind": KIND, ...}`. `diff_bytes` and `report_bytes` keep the existing bounds;
+`proof_expectation` is `none` or `model`. Implementation expectations refuse without separate evidence.
+
+| Kind | Purpose | Authored fields |
+|---|---|---|
+| `task-change` | `change` | `task_change`: existing manifest; 0–16 requests and 1–32 targets |
+| `author-batch` | `change` | `author_batch`, `checks`, `delivery` |
+| `recipe` | `change` | Inline `recipe` DSL, `checks`, `delivery` |
+| `capability` | Any for reads; `change` for writes | `capability`, scalar `parameters`, optional byte `range`, writing `checks`/`delivery` |
+| `framework-migration` | `migrate` | `feature`, `to`, `out`, `checks`, `delivery`; optional registration, dependency and cutover fields |
+| `project-query` | Any | 1–16 existing project-batch `requests`, including the exact intent target |
+| `surface-edit` | `change` | Returned `edit` ID, `to`, `checks`, `delivery` |
+| `property-task` | `prove` | No additional fields |
+| `formal-plan` | `prove` | `properties`, optional typed `agent_properties`; writing `package`, `checks`, `delivery` |
+| `proof-task` | `prove` | Exact `obligation` |
+| `proof-submission` | `prove` | Exact `obligation`, agent-written `tactics`, `checks`, `delivery` |
+
+A capability range is the public `{"start": BYTE, "end": BYTE}` span and must lie in the selected
+source/declaration. Extraction uses the full span; call inlining, rewrites and flow use its start.
+Direct capabilities use the existing planners and retain their original scope:
+restructuring, entry-point discovery and stitching can cover the workspace. Recipes anchored to a
+declaration must resolve only the selected declaration through the recipe selector. Equal names that the
+DSL cannot distinguish refuse; task and capability actions retain exact handles.
+
+Optional `action.guide = {"goal": ORIGINAL_GOAL, "basis": GUIDE_BASIS}` binds a navigator route.
+Native compilation revalidates goal, admission, target, purpose and authored operation in the same
+snapshot. Capability goals accept a byte `range` for extraction or a call/rewrite/flow position.
+Each secondary task target has `additional_evidence` with its exact view identity,
+selected values and Merkle digests, under the same final packet ceiling. File/directory evidence
+returns structural code maps and exact declaration continuations for calls, impact and value flow.
+
+Preview returns `fr-agent-action-2` under `/action`. Its `fraa2:` identity commits the complete
+outer packet, exact-change commitment, checks, proof expectation and delivery. Execute unchanged
+input with `--write --basis FRAA2`; the normalized `fr-agent-action-result-2` includes checked
+workflow evidence and explicit claims. Read-only plans and task packets cannot execute.
+
+Lean must accept agent tactics before history creation. Formal scaffolds and proofs additionally
+pass strict source/signature checks and a Lake build of their planned package in an isolated copy.
+Named scaffold obligations remain explicit build warnings. `fr spec verify` still treats warnings
+as errors. Proof receipts establish acceptance of the submitted theorem; implementation
+correspondence remains false; the report lists remaining obligations.
 
 ## Finding work
 

@@ -603,8 +603,7 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
         "pub fn render(value: bool) -> bool { value }\n",
     )
     .unwrap();
-    let (success, initialized) = run(root.path(), &["spec", "init", "--write"], None);
-    assert!(success, "{initialized}");
+    assert!(!root.path().join("specs").exists());
     let anchor = handle(root.path());
     let task_input = tagged(&anchor, "prove", json!({"kind":"property-task"}));
     let (success, task) = preview_value(root.path(), &task_input);
@@ -629,6 +628,8 @@ fn tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history() {
         preview["action"]["review"]["claims"]["model_theorem_checked"],
         false
     );
+    assert!(!root.path().join("specs").exists());
+    assert!(!root.path().join(".fr-history").exists());
     let basis = preview["action"]["basis"].as_str().unwrap();
     let (success, result) = run(
         root.path(),
@@ -1073,6 +1074,10 @@ fn automatic_prove_guide_keeps_its_inferred_formalization_route() {
     );
     assert!(success, "{guide}");
     assert_eq!(guide["route"]["id"], "formalization");
+    assert_eq!(
+        guide["intent_action"]["operation_kinds"],
+        json!(["property-task", "formal-plan"])
+    );
     let mut input = tagged(&anchor, "prove", json!({"kind":"property-task"}));
     input["action"]["guide"] = json!({"goal":goal,"basis":guide["basis"]});
     let (success, preview) = preview_value(root.path(), &input);
@@ -1108,4 +1113,141 @@ fn tagged_review_byte_ceiling_refuses_before_source_history() {
     assert!(std::fs::read_to_string(root.path().join("src/lib.rs"))
         .unwrap()
         .contains("render"));
+}
+
+#[test]
+fn guided_flag_actions_preserve_both_explicit_boolean_choices() {
+    for value in ["true", "false"] {
+        let root = fixture();
+        std::fs::write(
+            root.path().join("src/lib.rs"),
+            "const USE_NEW: bool = true;\nfn render() -> u64 { if USE_NEW { 7 } else { 9 } }\n",
+        )
+        .unwrap();
+        let (success, found) = run(
+            root.path(),
+            &["project", "find", "USE_NEW", "--signature"],
+            None,
+        );
+        assert!(success, "{found}");
+        let anchor = found["rows"][0][0].as_str().unwrap();
+        let goal = json!({"schema":"fr-agent-goal-1","purpose":"change","target":anchor,
+            "operation":{"kind":"capability","capability":"remove-flag","parameters":{"value":value}},"checks":["syntax"]});
+        let (success, guide) = run(
+            root.path(),
+            &["guide", "--from", "-"],
+            Some(&serde_json::to_vec(&goal).unwrap()),
+        );
+        assert!(success, "{guide}");
+        let mut input = tagged(
+            anchor,
+            "change",
+            json!({"kind":"capability","capability":"remove-flag",
+            "parameters":{"value":value},"checks":["syntax"],"delivery":delivery()}),
+        );
+        input["action"]["guide"] = json!({"goal":goal,"basis":guide["basis"]});
+        let (success, preview) = preview_value(root.path(), &input);
+        assert!(success, "{preview}");
+        let basis = preview["action"]["basis"].as_str().unwrap();
+        let (success, result) = run(
+            root.path(),
+            &["intent", "--from", "-", "--write", "--basis", basis],
+            Some(&serde_json::to_vec(&input).unwrap()),
+        );
+        assert!(success, "{result}");
+        let updated = std::fs::read_to_string(root.path().join("src/lib.rs")).unwrap();
+        assert!(!updated.contains("USE_NEW"));
+        assert!(updated.contains(if value == "true" { "7" } else { "9" }));
+        assert!(!updated.contains(if value == "true" { "9" } else { "7" }));
+    }
+}
+
+#[test]
+fn direct_value_traces_keep_literal_source_behind_explicit_reveal() {
+    let root = fixture();
+    std::fs::write(
+        root.path().join("src/lib.rs"),
+        "fn render() -> &'static str { let hidden = \"must-stay-hidden\"; hidden }\n",
+    )
+    .unwrap();
+    let (success, found) = run(
+        root.path(),
+        &["project", "find", "hidden", "--signature", "--locals"],
+        None,
+    );
+    assert!(success, "{found}");
+    let anchor = found["rows"][0][0].as_str().unwrap();
+    let input = tagged(
+        anchor,
+        "trace",
+        json!({"kind":"capability","capability":"flow"}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert!(!preview.to_string().contains("must-stay-hidden"));
+    assert_eq!(
+        preview["action"]["review"]["plan"]["planner"]["boundaries"][0]["kind"],
+        "origin"
+    );
+    std::fs::write(
+        root.path().join("style.css"),
+        ":root { --hidden: must-stay-hidden; }\n",
+    )
+    .unwrap();
+    let (success, found) = run(
+        root.path(),
+        &["project", "find", "--signature", "--", "--hidden"],
+        None,
+    );
+    assert!(success, "{found}");
+    let anchor = found["rows"][0][0].as_str().unwrap();
+    let input = tagged(
+        anchor,
+        "trace",
+        json!({"kind":"capability","capability":"provenance"}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    assert!(!preview.to_string().contains("must-stay-hidden"));
+}
+
+#[test]
+fn tagged_failed_original_checks_preserve_normalized_evidence_and_recovery() {
+    let root = fixture();
+    std::fs::write(
+        root.path().join(".fr/checks.json"),
+        serde_json::to_vec(&json!({"schema":1,
+        "checks":[{"name":"syntax","argv":["false"],"cwd":".","timeout_seconds":10,
+        "covers":["original source gate"]}]}))
+        .unwrap(),
+    )
+    .unwrap();
+    let original = std::fs::read_to_string(root.path().join("src/lib.rs")).unwrap();
+    let anchor = handle(root.path());
+    let input = tagged(
+        &anchor,
+        "change",
+        json!({"kind":"capability","capability":"rename",
+        "parameters":{"new_name":"display"},"checks":["syntax"],"delivery":delivery()}),
+    );
+    let (success, preview) = preview_value(root.path(), &input);
+    assert!(success, "{preview}");
+    let basis = preview["action"]["basis"].as_str().unwrap();
+    let (success, result) = run(
+        root.path(),
+        &["intent", "--from", "-", "--write", "--basis", basis],
+        Some(&serde_json::to_vec(&input).unwrap()),
+    );
+    assert!(!success, "{result}");
+    assert_eq!(result["schema"], "fr-agent-action-result-2");
+    assert_eq!(result["passed"], false);
+    assert_eq!(result["workflow"]["transaction_status"], "planned");
+    assert_eq!(result["workflow"]["stages"][0]["status"], "failed");
+    assert_eq!(result["workflow"]["stages"][1]["status"], "pending");
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("src/lib.rs")).unwrap(),
+        original
+    );
+    assert!(!root.path().join("artifacts/tagged.patch").exists());
+    assert!(result["transaction"].is_number());
 }

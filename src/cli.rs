@@ -7718,6 +7718,7 @@ mod tests {
                     "{language}" => "rust".into(),
                     "{rewrite}" => crate::refactor::rewrite::Rewrite::ALL[0].as_str().into(),
                     "{change}" => "remove:0".into(),
+                    "{value}" => "true".into(),
                     value => value.replace(['{', '}'], ""),
                 }))
                 .collect::<Vec<_>>();

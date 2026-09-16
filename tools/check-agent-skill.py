@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills/fr"
 ROUTES = {
     "guide": ["SKILL.md", "references/guide.md"],
+    "intent": ["SKILL.md", "references/intents.md"],
+    "guided-intent": ["SKILL.md", "references/guide.md", "references/intents.md"],
+    "runtime-intent": ["SKILL.md", "references/runtime.md", "references/intents.md"],
     "targeted-author": ["SKILL.md", "references/author.md", "references/checks.md",
                         "references/history.md", "references/git.md"],
     "built-in-change": ["SKILL.md", "references/change.md", "references/checks.md",

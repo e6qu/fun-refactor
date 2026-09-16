@@ -28,11 +28,9 @@ bounded `CompiledIntent` and a Merkle object digest for each selection. Use expl
 pointer suffixes when the default section values would exceed the packet budget. Use
 `client.prepare` only to exercise the progressive action protocol or compare both implementations.
 
-To join evidence and one reviewed write, wrap a direct `TaskChange` in `IntentAction`, pass it to a
-`change` intent and inspect `/action/review/author/diff`. Then call
-`client.execute_intent(compiled)`. The task must have no project requests and its only literal
-target must equal the intent target. Native `fr` accepts only the unchanged returned `fraa1:` basis
-before it runs checks, requested reversal and patch delivery.
+For intent-bound operations, read [Intents](intents.md). Use `TaggedIntentAction` from
+`fr_ir.intent_actions` to bind tasks, recipes, direct capabilities, migration and proof delivery.
+The untagged `IntentAction` remains the legacy one-direct-target wire format.
 
 Construct `TaskChange`, `TaskTarget` and `TaskDelivery` as shown in [Task](task.md). Preview with
 `review = client.review(change)`, inspect selected values with `review.at(POINTER)`, then call

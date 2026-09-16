@@ -24,3 +24,8 @@ Allow source through `constraints.allow_source` only when the route requires an 
 reveal. Keep the six verification levels separate. An agent writes every property and tactic;
 generated Rust model theorems do not establish implementation correspondence. Full wire contracts:
 `docs/agent-workflow-guide.md`.
+
+Read `intent_action` for admitted operation kinds and review/basis pointers. For delivery, use `client.compile_guided_intent(guide,
+TaggedIntentAction(OPERATION))`. Read [Intents](intents.md) for the operation mirrors. Native
+compilation revalidates the original goal and basis in the same snapshot as its evidence; do not
+reconstruct a different target from a name or a position.

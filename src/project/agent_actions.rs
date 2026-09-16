@@ -612,19 +612,42 @@ impl Project<'_> {
                 prepared.report["plan"] = serde_json::to_value(&plan)?;
                 if let Some(package) = package {
                     let snapshot = self.stage_intent_proof_package(package, &[])?;
+                    let snapshot_root = snapshot.path().canonicalize()?;
+                    let initialized = crate::spec::init(&snapshot_root, package)?;
+                    for file in initialized.files.into_iter().filter(|file| !file.existing) {
+                        std::fs::create_dir_all(
+                            file.path
+                                .parent()
+                                .context("initialization file has no parent")?,
+                        )?;
+                        std::fs::write(&file.path, file.content)?;
+                        prepared.changes.push(Change {
+                            path: self.root.join(file.path.strip_prefix(&snapshot_root)?),
+                            original: String::new(),
+                            updated: file.content.to_owned(),
+                        });
+                    }
                     let scaffold =
                         crate::spec::scaffold_formal_plan(snapshot.path(), plan, package)?;
-                    let snapshot_root = snapshot.path().canonicalize()?;
                     for file in scaffold
                         .files
                         .into_iter()
                         .filter(|file| file.original != file.updated)
                     {
-                        prepared.changes.push(Change {
-                            path: self.root.join(file.path.strip_prefix(&snapshot_root)?),
-                            original: file.original,
-                            updated: file.updated,
-                        });
+                        let path = self.root.join(file.path.strip_prefix(&snapshot_root)?);
+                        if let Some(change) = prepared
+                            .changes
+                            .iter_mut()
+                            .find(|change| change.path == path)
+                        {
+                            change.updated = file.updated;
+                        } else {
+                            prepared.changes.push(Change {
+                                path,
+                                original: file.original,
+                                updated: file.updated,
+                            });
+                        }
                     }
                     prepared.delivery(
                         &self.root,
@@ -968,12 +991,16 @@ impl Project<'_> {
             }
             Ok(())
         }
-        copy_package(
-            &self.root.join(package),
-            &scratch.path().join(package),
-            &mut total,
-            &mut 0,
-        )?;
+        if self.root.join(package).try_exists()? {
+            copy_package(
+                &self.root.join(package),
+                &scratch.path().join(package),
+                &mut total,
+                &mut 0,
+            )?;
+        } else {
+            std::fs::create_dir_all(scratch.path().join(package))?;
+        }
         for change in changes {
             let path = scratch.path().join(change.path.strip_prefix(&self.root)?);
             std::fs::create_dir_all(path.parent().context("proof change has no parent")?)?;
@@ -1019,7 +1046,14 @@ impl Project<'_> {
         let verification = crate::spec::verify_planned_package(scratch.path(), &inputs)?;
         ensure!(
             verification.report.ok() && verification.packages.iter().all(|package| package.passed),
-            "planned proof package failed Lake build."
+            "planned proof package failed Lake build: {}",
+            verification
+                .packages
+                .iter()
+                .filter(|package| !package.passed)
+                .map(|package| package.output.chars().take(4096).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
         );
         Ok(
             json!({"schema": "fr-intent-proof-validation-1", "checked_snapshot": "planned", "snapshot_sha256": snapshot_sha256,

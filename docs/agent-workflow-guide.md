@@ -113,17 +113,17 @@ parsing, serialization, SHA-256, target construction, planners, writers, subproc
 proof completeness and general implementation correspondence remain separate tested/trusted
 boundaries.
 
-The retained [complete-program comparison](../tests/agent-eval/agent-guide-context.json) changes a
+The retained compatibility [complete-program comparison](../tests/agent-eval/agent-guide-context.json) changes a
 generic Rust scalar, runs compiler and finite behavioral checks, emits an identical patch and
 completes all eight lifecycle stages in both arms. The manual program and final packet occupy
 1,155 bytes; the guided program and packet occupy 1,102 bytes. Manual discovery/review/write uses
-three processes. Guide/freshness/review/write uses four and carries 8,499 additional internal
+three processes. Guide/freshness/review/write uses four and carries 9,027 additional internal
 request/response bytes. This fixture measures protocol bytes and process counts; it runs no model
 and establishes no token, quota or population result.
 
 The existing inline-discovery task route supplies a stronger process baseline: its complete program
 and packet occupy 1,217 bytes and use two processes. Guided delivery saves 115 exposed bytes while
-adding two processes and 8,984 internal bytes. All three arms pass the same compiler, behavioral,
+adding two processes and 9,512 internal bytes. All three arms pass the same compiler, behavioral,
 source, patch and lifecycle oracles. Counts use canonical JSON and retain every complete agent
 program, environment-binding form, internal request, response and final packet size.
 
@@ -133,3 +133,23 @@ review of the complete authoritative preview and its unchanged basis.
 Workspace source-dependent recipes first return a bounded structure map, then ask for an exact
 file or declaration handle for source disclosure. NUL-containing scalar values require complete
 checked task delivery through JSON stdin; unchecked CLI scalar actions refuse them explicitly.
+
+## Retaining the guide through delivery
+
+`intent_action` names the versioned action schema, the operation kinds admitted for this route,
+the SDK compile/execute methods and review/basis pointers. Unsupported routes offer no action kinds.
+Read `skills/fr/references/intents.md` for operation inputs.
+
+Author a matching `TaggedIntentAction` from `fr_ir.intent_actions`, then call
+`client.compile_guided_intent(guide, action)`. Native compilation binds the retained goal and guide
+basis to the same snapshot as the intent evidence. Inspect `/action/review` and execute the unchanged
+compiled action with `client.execute_intent`. Every write uses declared checks and the existing
+recoverable history/workflow engine. File/directory evidence provides bounded declaration continuations.
+
+Capability goals can include a `range` with `start`/`end` byte offsets inside the selected source.
+Extraction uses the full span; call inlining, rewrites and flow use its start. The guide derives
+exact CLI positions from that range. Separate SDK action parameters from the range itself.
+
+Formal scaffold actions initialize missing package files in their isolated planned snapshot and
+review those files with the model. The agent authors properties and tactics; strict source checks
+and Lake acceptance preserve explicit model claims and remaining obligations.
