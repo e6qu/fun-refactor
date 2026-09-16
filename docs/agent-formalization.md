@@ -45,7 +45,8 @@ Named term definitions keep the theorem context small for large admitted snapsho
 Goal identities include the selected model module outside generated proof bodies and the reviewed library.
 The package includes the exact reviewed semantic library. Scaffolding elaborates before history writes;
 proof checking needs no manual dependency build. Regeneration preserves the written proof regions.
-Strict checks refuse a changed semantic library.
+Strict checks refuse a changed semantic library. Typed targets anchor declarations; structural targets
+anchor the complete source file.
 
 `spec evidence` reports `kernel_correspondence` rows with separate source, IR, term, model and
 semantic-library identities. A row reaches `checked_by_lean` only when the checked package retains

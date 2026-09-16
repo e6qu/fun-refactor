@@ -69,7 +69,8 @@ shows the patch additive. What remains below is a limit of the available source 
 
 - [x] B917: **a structural target name changed imperative function metadata**. Structural classification
   now requires a declarative language class. A Rust function with the same name retains its typed
-  signature and receives no structural property suggestion.
+  signature and receives no structural property suggestion. Structural models explicitly name their
+  whole-file anchor identity.
 
 - [x] B916: **failed formalization reads reported a nonexistent structural declaration**. Malformed
   imperative sources now report syntax errors; parser-valid read failures retain the shared IR reason.

@@ -1081,7 +1081,11 @@ pub(crate) fn formal_plan_from_agent_specs(
         evaluation: formal.evaluation,
     };
     let correspondence = FormalCorrespondence {
-        source_identity: "sha256-anchored-declaration".into(),
+        source_identity: if structural {
+            "sha256-anchored-file".into()
+        } else {
+            "sha256-anchored-declaration".into()
+        },
         signature_surface: if structural {
             "retained-structure-bool-map".into()
         } else if detect(&target.source) == Some(crate::lang::Language::Rust) {

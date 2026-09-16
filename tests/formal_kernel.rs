@@ -719,6 +719,7 @@ fn declarative_languages_complete_structural_proof_and_history_workflows() {
             plan.correspondence.signature_surface,
             "retained-structure-bool-map"
         );
+        assert_eq!(plan.correspondence.source_identity, "sha256-anchored-file");
         assert_eq!(plan.kernel.semantic_ir["runtime_semantics"], false);
         std::fs::write(
             workspace.path().join("structural-plan.json"),
