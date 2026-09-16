@@ -244,6 +244,9 @@ Implemented on the current branch:
 - A second diagnostic completed every required route and preview, but only after many invalid goal
   guesses. The final handoff supplies exact structured goals generated from the same deterministic
   case registry. The agent still follows and authors each returned action.
+- A third diagnostic completed all seven routes without direct project access or exploratory calls.
+  Three rejected transport and artifact references remain diagnostic evidence. Complete request
+  handoffs and session-scoped authored artifacts remove those harness ambiguities.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

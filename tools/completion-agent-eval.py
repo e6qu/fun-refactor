@@ -125,16 +125,16 @@ def prompt(session: Path, group: str, proof_path: str, obligation: str) -> str:
             ),
         ],
     }[group]
-    exact_goals = "\n".join(
-        f"Goal {index}: {json.dumps(value, separators=(',', ':'))}"
+    exact_requests = "\n".join(
+        f"Request {index}: {json.dumps({'tool': 'guide', 'goal': value}, separators=(',', ':'))}"
         for index, value in enumerate(goal_rows, 1)
     )
     return f"""You are an independent acceptance-test agent using fr on an unfamiliar project.
 
 {tasks}
 
-Submit these structured goals verbatim and in order. They are the deterministic intent handoff:
-{exact_goals}
+Submit these complete guide requests verbatim and in order. They are the deterministic intent handoff; do not reconstruct their JSON:
+{exact_requests}
 
 Express each task as one `fr-agent-goal-1` object and start it with the instrumented `guide` tool. Follow every returned action that is ready or becomes executable after you supply its named placeholders. Use only the instrumented tool. Do not inspect project files with shell, file, search or Git commands. Do not call help, vocabulary, schema or audit commands. Do not add `--write`; every requested operation is a read or preview. Do not repeat a successful call. Stop on a refusal and report it honestly.
 
@@ -146,7 +146,7 @@ FRJSON
 Tool requests:
 - `{{"tool":"guide","goal":GOAL}}` returns a guide ID, route, evidence and exact actions.
 - `{{"tool":"follow","guide":ID,"action":INDEX}}` executes a returned action that has no `<...>` placeholder. Do not add `replace` or `files` to such an action.
-- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"files":{{"name":"content"}}}}` supplies only placeholders present in that exact action. For a recipe, copy `route.evidence.author_contract.template`, replace only `<lower-kebab-name>` and `<new name>`, write it through `files`, and replace `<recipe file>` with that same file name. For a tactics file, write the requested tactics through `files` and replace the returned placeholder with that same file name. For migration, copy the compatible feature ID from guide evidence.
+- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"files":{{"name":"content"}}}}` supplies only placeholders present in that exact action. JSON string values must escape newlines as `\\n`; never put a raw newline inside a JSON string. For a recipe, copy `route.evidence.author_contract.template`, replace only `<lower-kebab-name>` and `<new name>`, write it through `files`, and replace `<recipe file>` with that same file name. For a tactics file, write the requested tactics through `files` once; later actions can reuse its plain file name. For migration, copy the compatible feature ID from guide evidence.
 - `{{"tool":"finish","summary":"..."}}` finishes after every workflow and action succeeds.
 
 The harness records complete prompts, tool requests and responses, source identities and Codex events. It will reject direct project access, source mutation, missing workflows, repeated actions and mismatched output schemas. No human correction is available.
@@ -308,10 +308,18 @@ def step(session: Path, request: dict[str, object]) -> dict[str, object]:
             path.write_text(content)
             written[name] = str(path)
         normalized = {}
+        artifact_paths = {path: name for name, path in written.items()}
         for placeholder, value in replacements.items():
             if placeholder not in arguments or not isinstance(value, str):
                 raise ValueError("replacement must name one exact returned placeholder")
-            normalized[placeholder] = written.get(value, value)
+            artifact = session / "artifacts" / value
+            if value in written:
+                normalized[placeholder] = written[value]
+            elif Path(value).name == value and artifact.is_file():
+                normalized[placeholder] = str(artifact)
+                artifact_paths[str(artifact)] = value
+            else:
+                normalized[placeholder] = value
         arguments = [normalized.get(value, value) for value in arguments]
         if any(value.startswith("<") and value.endswith(">") for value in arguments):
             raise ValueError("follow still has an authored placeholder")
@@ -324,7 +332,7 @@ def step(session: Path, request: dict[str, object]) -> dict[str, object]:
             raise ValueError("follow output does not match the guide schema")
         visible = {
             "followed": {"guide": guide_id, "action": action_id},
-            "arguments": [Path(value).name if value in written.values() else value for value in arguments],
+            "arguments": [artifact_paths.get(value, value) for value in arguments],
             "response": output_summary(full),
             "response_sha256": command_event["response_sha256"],
             "response_bytes": command_event["response_bytes"],

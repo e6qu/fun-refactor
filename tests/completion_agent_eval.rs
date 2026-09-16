@@ -51,6 +51,7 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
     let structured_prompt =
         std::fs::read_to_string(sessions.join("structured/prompt.txt")).unwrap();
     assert!(structured_prompt.contains("semantic-scalar"));
+    assert!(structured_prompt.contains(r#"Request 1: {"tool":"guide","goal":{"#));
     assert!(!structured_prompt.contains(r#"\"purpose\":\"understand\""#));
     let guide = step(
         root,
@@ -78,6 +79,39 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
     let refused = script(root).arg("run").arg(&sessions).output().unwrap();
     assert!(!refused.status.success());
     assert!(String::from_utf8_lossy(&refused.stderr).contains("--confirm-agent-spend"));
+
+    let structured = sessions.join("structured");
+    let proof = step(
+        root,
+        &structured,
+        json!({"tool":"guide","goal":{"schema":"fr-agent-goal-1","purpose":"prove",
+            "selector":{"path":"specs/FrSpecs/SrcLibRsKeep.lean"},
+            "operation":{"kind":"proof","obligation":"keepModel_identity"},
+            "context":{"token_limit":4096,"packet_limit":65536}}}),
+    );
+    assert_eq!(proof["route"]["id"], "proof");
+    step(
+        root,
+        &structured,
+        json!({"tool":"follow","guide":0,"action":0}),
+    );
+    step(
+        root,
+        &structured,
+        json!({"tool":"follow","guide":0,"action":1,
+            "replace":{"<tactics-file>":"proof.lean"},"files":{"proof.lean":"rfl"}}),
+    );
+    let reused = step(
+        root,
+        &structured,
+        json!({"tool":"follow","guide":0,"action":2,
+            "replace":{"<tactics-file>":"proof.lean"}}),
+    );
+    assert_eq!(
+        reused["arguments"].as_array().unwrap().last().unwrap(),
+        "proof.lean"
+    );
+    assert_eq!(reused["response"]["schema"], 1);
 }
 
 #[test]
@@ -86,6 +120,7 @@ fn retained_failed_cohort_replays_only_as_diagnostic_evidence() {
     for name in [
         "2026-09-17-completion-diagnostic-1",
         "2026-09-17-completion-diagnostic-2",
+        "2026-09-17-completion-diagnostic-3",
     ] {
         let evidence = root.join("tests/agent-eval/results").join(name);
         let output = script(root).arg("replay").arg(evidence).output().unwrap();

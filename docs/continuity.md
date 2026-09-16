@@ -59,6 +59,12 @@ calls while reconstructing the complete goal envelope. It also remains non-accep
 The next prompt supplies exact goals from the deterministic case registry. The live recipe contract
 now includes a target-specific file template.
 
+The third diagnostic completed all seven routes with no direct project command, exploratory call,
+mutation or human correction. Strict scoring still rejected two malformed JSON transports and one
+proof follow that omitted the tactics payload written by the preceding action. The next handoff
+supplies complete guide requests, calls out JSON newline escaping and lets later actions reuse a
+bounded authored artifact by plain name. The retained diagnostic remains non-acceptance evidence.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI
