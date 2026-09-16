@@ -70,6 +70,11 @@ exposed one internal tool-router process error that the first score did not coun
 reports infrastructure errors separately and requires zero. Diagnostic recording also forces a
 non-acceptance classification even when all workflow fields pass.
 
+The fifth diagnostic again completed all seven routes. A prompt typo changed the recipe action's
+hyphenated placeholder to a spaced name, and the structured session had another unrecorded router
+failure. The prompt now requires exact returned placeholder bytes and a complete command in every
+exec call. The result remains non-acceptance evidence.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

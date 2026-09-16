@@ -103,3 +103,8 @@ completed every route with no failed completed command. Codex stderr nevertheles
 internal tool-router process error, so the run remains diagnostic evidence. Scoring now reports
 infrastructure errors separately and requires zero for acceptance. A diagnostic recording can
 never become acceptance evidence, even when its workflow result otherwise passes.
+
+The fifth [retained diagnostic](../tests/agent-eval/results/2026-09-17-completion-diagnostic-5/manifest.json)
+again completed every route. It exposed one prompt typo in a recipe placeholder and one unrecorded
+Codex tool-router failure. The prompt now requires byte-exact returned placeholders and complete
+nonempty exec commands. Both failure classes remain independently visible in its retained score.

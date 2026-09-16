@@ -250,6 +250,9 @@ Implemented on the current branch:
 - A fourth diagnostic completed every route and recorded command, but Codex stderr exposed one
   internal process error. Infrastructure failures are now separate from agent-command failures,
   both must be zero, and diagnostic recordings can never become acceptance evidence.
+- A fifth diagnostic found one misleading recipe placeholder in the harness prompt and another
+  internal router failure. The handoff now requires byte-exact returned placeholders and complete
+  nonempty exec invocations.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

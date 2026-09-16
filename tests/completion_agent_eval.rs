@@ -154,6 +154,7 @@ fn retained_failed_cohort_replays_only_as_diagnostic_evidence() {
         "2026-09-17-completion-diagnostic-1",
         "2026-09-17-completion-diagnostic-2",
         "2026-09-17-completion-diagnostic-3",
+        "2026-09-17-completion-diagnostic-5",
     ] {
         let evidence = root.join("tests/agent-eval/results").join(name);
         let output = script(root).arg("replay").arg(evidence).output().unwrap();

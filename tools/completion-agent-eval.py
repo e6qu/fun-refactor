@@ -138,7 +138,7 @@ Submit these complete guide requests verbatim and in order. They are the determi
 
 Express each task as one `fr-agent-goal-1` object and start it with the instrumented `guide` tool. Follow every returned action that is ready or becomes executable after you supply its named placeholders. Use only the instrumented tool. Do not inspect project files with shell, file, search or Git commands. Do not call help, vocabulary, schema or audit commands. Do not add `--write`; every requested operation is a read or preview. Do not repeat a successful call. Stop on a refusal and report it honestly.
 
-Invoke the tool through functions.exec / tools.exec_command with this stdin form:
+Invoke the tool through functions.exec / tools.exec_command with this stdin form. Every exec call must contain this complete command; never invoke exec_command without a command:
 python3 {ROOT / 'tools/completion-agent-eval.py'} step {session} --request-stdin <<'FRJSON'
 {{"tool":"guide","goal":GOAL}}
 FRJSON
@@ -146,7 +146,7 @@ FRJSON
 Tool requests:
 - `{{"tool":"guide","goal":GOAL}}` returns a guide ID, route, evidence and exact actions.
 - `{{"tool":"follow","guide":ID,"action":INDEX}}` executes a returned action that has no `<...>` placeholder. Do not add `replace` or `files` to such an action.
-- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"files":{{"name":"content"}}}}` supplies only placeholders present in that exact action. JSON string values must escape newlines as `\\n`; never put a raw newline inside a JSON string. For a recipe, copy `route.evidence.author_contract.template`, replace only `<lower-kebab-name>` and `<new name>`, write it through `files`, and replace `<recipe file>` with that same file name. For a tactics file, write the requested tactics through `files` once; later actions can reuse its plain file name. For migration, copy the compatible feature ID from guide evidence.
+- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"files":{{"name":"content"}}}}` supplies only placeholders present in that exact action. Copy each placeholder byte-for-byte from the returned action; do not change spaces, hyphens or spelling. JSON string values must escape newlines as `\\n`; never put a raw newline inside a JSON string. For a recipe, copy `route.evidence.author_contract.template`, replace only `<lower-kebab-name>` and `<new name>`, write it through `files`, and map the action's recipe-file placeholder to that same file name. For a tactics file, write the requested tactics through `files` once; later actions can reuse its plain file name. For migration, copy the compatible feature ID from guide evidence.
 - `{{"tool":"finish","summary":"..."}}` finishes after every workflow and action succeeds.
 
 The harness records complete prompts, tool requests and responses, source identities and Codex events. It will reject direct project access, source mutation, missing workflows, repeated actions and mismatched output schemas. No human correction is available.
