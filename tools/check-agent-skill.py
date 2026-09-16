@@ -14,6 +14,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills/fr"
 ROUTES = {
+    "guide": ["SKILL.md", "references/guide.md"],
     "targeted-author": ["SKILL.md", "references/author.md", "references/checks.md",
                         "references/history.md", "references/git.md"],
     "built-in-change": ["SKILL.md", "references/change.md", "references/checks.md",
@@ -514,6 +515,23 @@ def lean_workflow(exercise, root):
     assert any(not package["passed"] for package in failed["packages"])
 
 
+def guide_workflow(exercise, root):
+    (root / "app.rs").write_text("pub fn allowed(value: bool) -> bool { value }\n")
+    (root / "goal.json").write_text(json.dumps({"schema": "fr-agent-goal-1", "purpose": "understand",
+        "selector": {"name": "allowed"}, "operation": {"kind": "capability", "capability": "symbols"}}))
+    exercise.values["<GOAL>"] = "goal.json"
+    path = SKILL / "references/guide.md"
+    for command in commands(path):
+        value = exercise.example(root, path, command)
+        assert value["state"] == "ready" and value["route"]["admitted"]
+        assert value["serialized_bytes"] <= value["limits"]["packet_bytes"]
+        action = value["actions"][0]
+        assert action["ready"] and not action["writes"]
+        assert "--write" not in action["arguments"] and "--save-plan" not in action["arguments"]
+        evidence, _ = exercise.run(root, action["arguments"])
+        assert evidence["schema"] == action["output_schema"]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fr", required=True, type=Path, help="Built fr binary to validate.")
@@ -528,6 +546,7 @@ def main():
         (root / "disclosure").mkdir()
         (root / "task").mkdir()
         (root / "workflow").mkdir()
+        (root / "guide").mkdir()
         source_bytes = source_workflow(exercise, root / "source")
         checks_workflow(exercise, root / "source")
         author_workflow(exercise, root / "author")
@@ -535,6 +554,7 @@ def main():
         task_workflow(exercise, root / "task")
         verified_workflow(exercise, root / "workflow")
         lean_workflow(exercise, root / "proof")
+        guide_workflow(exercise, root / "guide")
     expected = [(path, tuple(command)) for path in files for command in commands(path)]
     assert sorted(exercise.executed) == sorted(expected), "Every fenced shell example must execute."
     assert exercise.exploration_bytes < source_bytes

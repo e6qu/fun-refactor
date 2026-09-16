@@ -27,7 +27,23 @@ its revision. See [the runtime contract](../../docs/agent-runtime-sdk.md) and
 [context workspace](../../docs/agent-context-workspace.md) for bounded calls, selected packets,
 storage adapters and the reviewed session API.
 
-Declare a high-level evidence goal instead of manually sequencing section traversal:
+Start with a structured goal when the agent has not chosen a command or protocol:
+
+```python
+from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
+
+guide = client.guide(AgentGoal("understand", selector=GoalSelector(name="render")))
+evidence = client.follow_guide(guide.actions()[0])
+```
+
+`AgentGoal` mirrors `fr-agent-goal-1`, including operation, constraints, checks, proof expectations,
+context limits and delivery. `AgentGuide` verifies the goal identity and Merkle report; following an
+action first revalidates its basis and then checks the exact response contract and byte ceiling.
+Exact semantic scalar goals with checks return a `TaskReview` for the existing `execute` lifecycle.
+See [the language-aware route contract](../../docs/agent-workflow-guide.md) for authored fields,
+specialized workflows and the measured freshness cost.
+
+Declare a high-level evidence projection after selecting its exact target:
 
 ```python
 from fr_ir.intent import AgentIntent
@@ -49,7 +65,8 @@ basis and uses the ordinary checks, undo/redo and patch lifecycle.
 
 The package root is deliberately empty. Import IR constructors from `fr_ir.ir`, the subprocess
 client from `fr_ir.runtime`, progressive storage from `fr_ir.context`, and high-level requests from
-`fr_ir.intent`. The package has no `__main__.py` and publishes no mutable `__all__` registry.
+`fr_ir.intent`, with workflow goals in `fr_ir.guide`. The package has no `__main__.py` and publishes
+no mutable `__all__` registry.
 
 Install the current test extra and run the suite with pytest:
 

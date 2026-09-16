@@ -30,7 +30,7 @@ pub struct Options {
     pub(crate) basis: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub(super) enum Purpose {
     Understand,

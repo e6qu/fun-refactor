@@ -213,7 +213,7 @@ fn the_published_totals_match_the_matrix() {
             &["capability × language pairs marked \"refused\"; the tool marks the other REST not applicable"]
                 [..],
         ),
-        ("PLAN.md", &["YES of TOTAL capability ×"][..]),
+        ("PLAN.md", &["| Supported cells | YES |", "| Capability and language cells | TOTAL |", "REST cells refuse or are inapplicable with reasons"][..]),
     ] {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         let text = std::fs::read_to_string(&path).expect("the file is readable");
@@ -225,8 +225,7 @@ fn the_published_totals_match_the_matrix() {
             assert!(
                 text.contains(&needle),
                 "{name} does not say `{needle}`. The matrix has {yes} supported and \
-                 {rest} not applicable out of {total}: regenerate the sentence as well \
-                 as the table, or update the phrasing here if it changed."
+                 {rest} not applicable out of {total}. Update the table and count statements together."
             );
         }
     }
@@ -255,7 +254,7 @@ fn the_published_language_count_matches_the_list() {
             &["what each of the N languages supports"][..],
         ),
         ("EXAMPLES.md", &["across all WORD languages at once"][..]),
-        ("PLAN.md", &["The core reads N languages."][..]),
+        ("PLAN.md", &["| Parsed languages | N |"][..]),
         (
             "docs/index.html",
             &[
@@ -317,17 +316,15 @@ fn the_status_table_in_the_plan_is_derived_from_the_code() {
     for row in [
         format!("| Query sets | {query_sets} |"),
         format!("| Entry-point catalogs | {catalogs} |"),
+        format!("| Parsed languages | {} |", Language::ALL.len()),
         format!(
-            "| Capabilities × languages | {} × {} |",
-            Capability::ALL.len(),
-            Language::ALL.len()
+            "| Capability and language cells | {} |",
+            Capability::ALL.len() * Language::ALL.len()
         ),
-        format!(
-            "| Supported pairs | {supported} of {}, every other one carrying its reason |",
-            supported + rest
-        ),
-        format!("| Defects fixed | {fixed} |"),
-        format!("| Defects open | {open} |"),
+        format!("| Supported cells | {supported} |"),
+        format!("{} cells refuse or are inapplicable with reasons", rest),
+        format!("| Fixed defects | {fixed} |"),
+        format!("| Open defects | {open} |"),
     ] {
         assert!(
             plan.contains(&row),

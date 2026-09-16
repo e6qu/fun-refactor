@@ -10,6 +10,102 @@ use std::sync::Once;
 
 static KERNEL_IS_BUILT: Once = Once::new();
 
+#[test]
+fn agent_guide_policy_matches_rust_python_and_lean_exhaustively() {
+    build_kernel();
+    let mut expected = Vec::new();
+    for purpose in 0..7 {
+        for language_class in 0..3 {
+            for target_kind in 0..4 {
+                for route in 0..12 {
+                    for supported in [false, true] {
+                        for source_required in [false, true] {
+                            for source_allowed in [false, true] {
+                                for proof in 0..4 {
+                                    expected.push(
+                                        fun_refactor::project::agent_guide_route_admitted(
+                                            purpose,
+                                            language_class,
+                                            target_kind,
+                                            route,
+                                            supported,
+                                            source_required,
+                                            source_allowed,
+                                            proof,
+                                        )
+                                        .to_string(),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let observed = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-guide-routes")
+        .output()
+        .unwrap();
+    assert!(observed.status.success());
+    assert_eq!(
+        String::from_utf8(observed.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+    let steps = (0..7)
+        .flat_map(|state| {
+            (0..6).flat_map(move |action| {
+                [false, true].into_iter().flat_map(move |ready| {
+                    [false, true].into_iter().flat_map(move |review| {
+                        [false, true].into_iter().map(move |basis| {
+                            fun_refactor::project::agent_guide_step(
+                                state, action, ready, review, basis,
+                            )
+                            .to_string()
+                        })
+                    })
+                })
+            })
+        })
+        .collect::<Vec<_>>();
+    let observed = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-guide-steps")
+        .output()
+        .unwrap();
+    assert!(observed.status.success());
+    assert_eq!(
+        String::from_utf8(observed.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        steps
+    );
+    expected.extend(steps);
+    let observed=Command::new("python3").arg("-c").arg(r#"# => Rust, Python and Lean finite policy corpus
+from fr_ir.guide import _guide_route_admitted, _guide_step
+from itertools import product
+for case in product(range(7), range(3), range(4), range(12), (False, True), (False, True), (False, True), range(4)):
+    print(str(_guide_route_admitted(*case)).lower())
+for case in product(range(7), range(6), (False, True), (False, True), (False, True)):
+    print(_guide_step(*case))
+"#).env("PYTHONPATH",root().join("sdk/python/src")).output().unwrap();
+    assert!(
+        observed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&observed.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(observed.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }

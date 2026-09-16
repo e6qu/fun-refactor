@@ -67,6 +67,43 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B903: **ready guidance included unexecutable source and scalar actions**. Workspace recipes
+  now disclose a bounded structure map before asking for an exact file/declaration source handle;
+  guides exclude directory nodes from source targets. NUL-containing scalar values refuse the
+  argv route and use JSON stdin only with complete checked task delivery. Executable regressions
+  follow both repaired paths without changing source.
+
+- [x] B902: **navigator schema identity bound catalog counts instead of complete variant contracts**.
+  The guide basis now commits the catalog summary and every live section contract. A separately
+  Merkle-addressed catalog digest allows an independent CLI corpus check. Scalar guidance includes
+  only its selected live operation/target/value contract, preserving source-free bounded disclosure.
+
+- [x] B901: **a guide could return execution flags supplied as capability scalar parameters**.
+  Native and Python goal validation now reject write/save-plan option values, including equals
+  forms, before returning actions. Option-like semantic string data use equals-form arguments,
+  preventing flag ambiguity. Signed numbers retain the catalog's explicit unary-node contract.
+  Adversarial CLI and pytest cases preserve the
+  preview-only contract and assert that no history exists after refusal or accepted preview.
+
+- [x] B900: **the capability audit still required removed roadmap sentences and table labels**.
+  The focused roadmap exposes parser, capability, support and defect counts in its current table.
+  Tests now derive and check those rows plus the exact unsupported count; their numeric guarantees
+  remain unchanged. The complete native gate found the obsolete expectations after the doc cleanup.
+
+- [x] B897: **agents needed separate command, vocabulary and proof-route discovery**. A structured
+  goal now resolves one exact target and returns language-aware actions, authored fields, support,
+  omissions, bounded identities and an explicit verification ladder. Exact scalar goals with checks
+  reuse the complete native task preview and reviewed reversal/patch lifecycle. CLI language and
+  refusal fixtures, SDK identity tests and exhaustive Rust/Python/Lean policies pin the boundary.
+- [x] B898: **navigator delivery contracts admitted an incorrect migration schema and omitted setup**.
+  Both generic framework directions now advertise the actual project response schema. Formalization
+  guidance checks package initialization and supplies a non-writing setup preview when required.
+  Recipe guidance checks target-kind/language support and supplies relevant live selector forms.
+- [x] B899: **new workflow and skill contracts left retained evidence bindings stale**. Regenerated
+  affected deterministic comparisons from their implementing tools and checked fixtures.
+  Full agent programs retain request/response accounting, compiler/behavior oracles and exact output
+  equality. The report identifies the additional guide freshness costs.
+
 - [x] B896: **a high-level change intent stopped before its reviewed change lifecycle**. Agents had
   to carry the target and context into a separate task-change review. Their declared purpose,
   evidence and mutation therefore lacked one checked basis. A change intent now binds one direct

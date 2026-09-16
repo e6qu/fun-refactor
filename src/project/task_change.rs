@@ -1,7 +1,7 @@
 use super::{author, batch, task, Project};
 use anyhow::{ensure, Context, Result};
 use clap::Args;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -68,7 +68,7 @@ struct Target {
     disclosed_ir: Option<super::disclose::IrEditRequest>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(crate) struct Delivery {
     #[serde(default)]

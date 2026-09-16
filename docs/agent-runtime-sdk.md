@@ -1,5 +1,12 @@
 # Agent runtime SDK
 
+Start unfamiliar structured tasks with `FrClient.guide(AgentGoal(...))`. The language-aware guide
+selects an existing read/preview route and returns exact actions with only the required authored
+fields. `follow_guide` revalidates freshness and output identity before returning local report data;
+exact scalar goals with checks return the existing `TaskReview`. See the
+[goal and workflow contract](agent-workflow-guide.md) for schemas, proof boundaries and complete
+guided-versus-manual process and byte accounting.
+
 The zero-dependency Python package can retain `fr` reports as data instead of copying command JSON
 through an agent's conversation. `FrClient` runs the local binary without a shell, fixes one project
 root, bounds arguments, input, output and time, and returns `FrReport` objects. The Rust binary

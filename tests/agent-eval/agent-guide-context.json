@@ -1,0 +1,316 @@
+{
+  "schema": "fr-agent-guide-context-1",
+  "bindings": {
+    "tools/agent-guide-context.py": "aebccb5f30ef9bd6f20a94765cabfa713515675bf4a008e36cc20e200b1bfcef",
+    "src/cli.rs": "a58882e67f8e73e1c055c6c15af7592d343ade6e1dc72e915f6e71e825e70957",
+    "src/capabilities.rs": "e85a96971dbd229c3ee5ad572095d11945e9f2713af7f508c5a45115a1f77b09",
+    "src/project/agent_guide.rs": "ac73f94716786653abecba64b575fe81732c26174b55c67714b84a5455951ea6",
+    "src/project/task_change.rs": "4cae9a27c1b4f4a4ab167f35c12d02278acc7137cbee7225f3d5c6607958055d",
+    "sdk/python/src/fr_ir/guide.py": "0a1bdaf4fd2a95f111e2b23cb03113510434fa129a2c44fcded097f533d2a2e2",
+    "sdk/python/src/fr_ir/ir.py": "1c9b7eaacc06cb8e5520a165f4eb6f68ead9fb49963a0f258baf457ca9fdef53",
+    "sdk/python/src/fr_ir/runtime.py": "d08698c77cacb3269945fb7d2a59c89ceacef75649901f44d9417f935a8bd9f2",
+    "kernels/FrKernels/AgentGuide.lean": "1cc6763490c1fbd5c022f000fc2a5325a8fe5ce540ea7b272087277ff7f66eae"
+  },
+  "manual": {
+    "program": "from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nhandle = client.project(\"find\", \"calculate\", \"--signature\").at(\"/rows/0/0\")\nreview = client.review(TaskChange([], [TaskTarget(\n    \"scalar\", handle, \"edit-body-scalar\", scalar=ScalarRequest(\"set-int\", \"7\", \"9\"),\n)], {\"files-changed\": 1, \"edits\": 1, \"changed-operations\": 1,\n    \"paths-changed\": [\"src/lib.rs\"]}, [\"compiler\"],\n    TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+    "program_sha256": "d4ffbe6c23b025c63b3cb28725075d1d18c8063f3bb4103d5a8c01d63d7cf575",
+    "agent_request": {
+      "program": "from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nhandle = client.project(\"find\", \"calculate\", \"--signature\").at(\"/rows/0/0\")\nreview = client.review(TaskChange([], [TaskTarget(\n    \"scalar\", handle, \"edit-body-scalar\", scalar=ScalarRequest(\"set-int\", \"7\", \"9\"),\n)], {\"files-changed\": 1, \"edits\": 1, \"changed-operations\": 1,\n    \"paths-changed\": [\"src/lib.rs\"]}, [\"compiler\"],\n    TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+      "bindings": {
+        "WORKSPACE": "<workspace>",
+        "FR": "<fr>"
+      }
+    },
+    "agent_packet": {
+      "passed": true,
+      "transaction_status": "applied",
+      "stages": [
+        {
+          "stage": "check-original",
+          "status": "passed"
+        },
+        {
+          "stage": "apply",
+          "status": "passed"
+        },
+        {
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "stage": "undo",
+          "status": "passed"
+        },
+        {
+          "stage": "check-restored",
+          "status": "passed"
+        },
+        {
+          "stage": "redo",
+          "status": "passed"
+        },
+        {
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "stage": "deliver-patch",
+          "status": "passed"
+        }
+      ]
+    },
+    "agent_request_bytes": 770,
+    "agent_response_bytes": 385,
+    "agent_exchange_bytes": 1155,
+    "agent_exchanges": 1,
+    "process_calls": 3,
+    "calls": [
+      {
+        "arguments": [
+          "project",
+          "find",
+          "calculate",
+          "--signature"
+        ],
+        "request_bytes": 58,
+        "response_bytes": 1044
+      },
+      {
+        "arguments": [
+          "task-change",
+          "--from",
+          "-"
+        ],
+        "request_bytes": 505,
+        "response_bytes": 5201
+      },
+      {
+        "arguments": [
+          "task-change",
+          "--from",
+          "-",
+          "--write",
+          "--basis",
+          "frtc1:0b17fb41ce1afc66190d7cb67c0ed12cfac9154c1321c226a3b1f3a8de17a69d"
+        ],
+        "request_bytes": 598,
+        "response_bytes": 4176
+      }
+    ],
+    "internal_request_bytes": 1161,
+    "internal_response_bytes": 10421,
+    "internal_exchange_bytes": 11582,
+    "source_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
+    "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596",
+    "behavior_oracle_cases": 33
+  },
+  "inline_manual": {
+    "program": "from fr_ir.ir import ProjectReference, ProjectRequest, ScalarRequest, TaskChange, TaskDelivery, TaskTarget\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nreview = client.review(TaskChange(\n    [ProjectRequest(\"target\", [\"find\", \"calculate\", \"--signature\"])], [TaskTarget(\n    \"scalar\", ProjectReference(\"target\", \"/rows/0/0\"), \"edit-body-scalar\", scalar=ScalarRequest(\"set-int\", \"7\", \"9\"),\n)], {\"files-changed\": 1, \"edits\": 1, \"changed-operations\": 1,\n    \"paths-changed\": [\"src/lib.rs\"]}, [\"compiler\"],\n    TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+    "program_sha256": "37d8ac8ed17d4c509fd81e44c815e13552589de4c351e91449e4f18d667dcc1b",
+    "agent_request": {
+      "program": "from fr_ir.ir import ProjectReference, ProjectRequest, ScalarRequest, TaskChange, TaskDelivery, TaskTarget\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nreview = client.review(TaskChange(\n    [ProjectRequest(\"target\", [\"find\", \"calculate\", \"--signature\"])], [TaskTarget(\n    \"scalar\", ProjectReference(\"target\", \"/rows/0/0\"), \"edit-body-scalar\", scalar=ScalarRequest(\"set-int\", \"7\", \"9\"),\n)], {\"files-changed\": 1, \"edits\": 1, \"changed-operations\": 1,\n    \"paths-changed\": [\"src/lib.rs\"]}, [\"compiler\"],\n    TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+      "bindings": {
+        "WORKSPACE": "<workspace>",
+        "FR": "<fr>"
+      }
+    },
+    "agent_packet": {
+      "passed": true,
+      "transaction_status": "applied",
+      "stages": [
+        {
+          "stage": "check-original",
+          "status": "passed"
+        },
+        {
+          "stage": "apply",
+          "status": "passed"
+        },
+        {
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "stage": "undo",
+          "status": "passed"
+        },
+        {
+          "stage": "check-restored",
+          "status": "passed"
+        },
+        {
+          "stage": "redo",
+          "status": "passed"
+        },
+        {
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "stage": "deliver-patch",
+          "status": "passed"
+        }
+      ]
+    },
+    "agent_request_bytes": 832,
+    "agent_response_bytes": 385,
+    "agent_exchange_bytes": 1217,
+    "agent_exchanges": 1,
+    "process_calls": 2,
+    "calls": [
+      {
+        "arguments": [
+          "task-change",
+          "--from",
+          "-"
+        ],
+        "request_bytes": 568,
+        "response_bytes": 5692
+      },
+      {
+        "arguments": [
+          "task-change",
+          "--from",
+          "-",
+          "--write",
+          "--basis",
+          "frtc1:cfe9ccd61ffee325c5897945afa2852afac13fe921115836df8e665d141496d4"
+        ],
+        "request_bytes": 661,
+        "response_bytes": 4176
+      }
+    ],
+    "internal_request_bytes": 1229,
+    "internal_response_bytes": 9868,
+    "internal_exchange_bytes": 11097,
+    "source_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
+    "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596",
+    "behavior_oracle_cases": 33
+  },
+  "guided": {
+    "program": "from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector\nfrom fr_ir.ir import TaskDelivery\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nguide = client.guide(AgentGoal(\"change\", selector=GoalSelector(name=\"calculate\"),\n    operation=GoalOperation(\"semantic-scalar\", {\"operation\": \"set-int\", \"from\": \"7\", \"to\": \"9\"}),\n    checks=(\"compiler\",), delivery=TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nreview = client.follow_guide(guide.actions()[0])\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+    "program_sha256": "bbe749a656eaa7eed07da5913330a468d5d92a8ba39be280e7e6ef0a08979b49",
+    "agent_request": {
+      "program": "from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector\nfrom fr_ir.ir import TaskDelivery\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nguide = client.guide(AgentGoal(\"change\", selector=GoalSelector(name=\"calculate\"),\n    operation=GoalOperation(\"semantic-scalar\", {\"operation\": \"set-int\", \"from\": \"7\", \"to\": \"9\"}),\n    checks=(\"compiler\",), delivery=TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nreview = client.follow_guide(guide.actions()[0])\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+      "bindings": {
+        "WORKSPACE": "<workspace>",
+        "FR": "<fr>"
+      }
+    },
+    "agent_packet": {
+      "passed": true,
+      "transaction_status": "applied",
+      "stages": [
+        {
+          "stage": "check-original",
+          "status": "passed"
+        },
+        {
+          "stage": "apply",
+          "status": "passed"
+        },
+        {
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "stage": "undo",
+          "status": "passed"
+        },
+        {
+          "stage": "check-restored",
+          "status": "passed"
+        },
+        {
+          "stage": "redo",
+          "status": "passed"
+        },
+        {
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "stage": "deliver-patch",
+          "status": "passed"
+        }
+      ]
+    },
+    "agent_request_bytes": 717,
+    "agent_response_bytes": 385,
+    "agent_exchange_bytes": 1102,
+    "agent_exchanges": 1,
+    "process_calls": 4,
+    "calls": [
+      {
+        "arguments": [
+          "guide",
+          "--from",
+          "-"
+        ],
+        "request_bytes": 544,
+        "response_bytes": 4236
+      },
+      {
+        "arguments": [
+          "guide",
+          "--from",
+          "-"
+        ],
+        "request_bytes": 544,
+        "response_bytes": 4236
+      },
+      {
+        "arguments": [
+          "task-change",
+          "--from",
+          "-",
+          "--diff-bytes",
+          "4096",
+          "--report-bytes",
+          "16384"
+        ],
+        "request_bytes": 550,
+        "response_bytes": 5199
+      },
+      {
+        "arguments": [
+          "task-change",
+          "--from",
+          "-",
+          "--write",
+          "--basis",
+          "frtc1:5639d32833bf1d110ca6ecad7d7c7c2ea5a456b02b0dc9fbc9baf7d07ab6ffd7"
+        ],
+        "request_bytes": 596,
+        "response_bytes": 4176
+      }
+    ],
+    "internal_request_bytes": 2234,
+    "internal_response_bytes": 17847,
+    "internal_exchange_bytes": 20081,
+    "source_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
+    "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596",
+    "behavior_oracle_cases": 33
+  },
+  "equality": {
+    "source_sha256": true,
+    "patch_sha256": true,
+    "agent_packet": true
+  },
+  "inline_equality": {
+    "source_sha256": true,
+    "patch_sha256": true,
+    "agent_packet": true
+  },
+  "difference": {
+    "agent_exchange_bytes": -53,
+    "process_calls": 1,
+    "internal_exchange_bytes": 8499
+  },
+  "inline_difference": {
+    "agent_exchange_bytes": -115,
+    "process_calls": 2,
+    "internal_exchange_bytes": 8984
+  },
+  "claim": "Fixed complete agent programs and serialized protocol bytes; no model, token, quota or population claim."
+}

@@ -1,5 +1,62 @@
 # Development continuity
 
+PR 35 merged as [GitHub PR 303](https://github.com/e6qu/fun-refactor/pull/303). The focused completion
+roadmap merged as [GitHub PR 304](https://github.com/e6qu/fun-refactor/pull/304).
+
+PR 36 is [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). It implements `fr guide --from`
+and the Python `AgentGoal`/`AgentGuide` mirrors. One immutable
+snapshot resolves selectors and supplies capability, technology, recipe, semantic, migration and
+proof admission evidence. Actions contain exact arguments, output contracts, stdin and only the
+required authored fields. Ambiguous or unsupported selections contain no actions. Source remains
+behind explicit permission and a bounded reveal; guides never recommend a write or plan save.
+
+Exact scalar goals with checks reuse the actual native task planner and produce one complete
+preview input, including delivery policy. Python retains the resulting `TaskReview` for the existing
+original-check, apply, check, undo, restored-check, redo, final-check and patch lifecycle. Every
+follow revalidates the goal basis, preventing stale direct positional guidance. Independent Merkle
+verification binds the normalized goal and complete packet. Route identity additionally commits
+the revision, live capability forms/support, recipe vocabulary and semantic catalog.
+
+Generic Next.js/FastAPI fixtures preview both supported directions and refuse same-framework and
+Express routes. Formalization checks conservative Rust eligibility and package initialization;
+generated Lean obligations use the existing bounded proof-task and checked agent-written tactics
+protocol. Implementation proof expectations refuse explicitly. `FrKernels.AgentGuide` proves route
+support, purpose/source admission and complete unchanged-review execution requirements. Rust,
+Python and Lean agree over 32,256 admission cases and 336 lifecycle cases. Parsers, extraction,
+writers, hashes and general implementation correspondence retain their explicit trust boundaries.
+
+The source-bound complete-program comparison runs compiler and 33-case behavioral oracles, emits
+equal patches and completes eight successful lifecycle stages in both arms. Manual discovery,
+review and write occupy 1,155 agent-visible bytes and three processes. Guided delivery occupies
+1,102 bytes and four processes, including its freshness read; internal traffic increases by 8,499
+bytes. It runs no model and establishes no token, quota or population claim. B897 through B899
+record the navigator, delivery-contract and retained-evidence repairs. B900 updates obsolete
+capability-audit expectations to the merged focused roadmap while retaining its derived numeric checks.
+B901 rejects capability scalar values that would inject execution or plan-persistence options.
+B902 binds complete live catalog variant contracts and exposes an independently checked catalog digest.
+B903 makes workspace source selection explicit and routes NUL-containing scalar values through
+checked JSON stdin delivery instead of OS arguments.
+
+The comparison also retains inline task discovery as the best existing process baseline. Its full
+program and packet occupy 1,217 bytes in two processes. Guided delivery saves 115 exposed bytes and
+adds two processes plus 8,984 internal bytes; all three arms reach identical checked outcomes.
+These counts measure canonical protocol JSON rather than subprocess formatting whitespace.
+
+The skill entry occupies 1,191 bytes. All 57 shell examples execute, including the new goal route;
+each reference path stays within the existing 7 KiB ceiling. Remaining milestones cover general
+intent actions, cross-language formalization, generic framework adapters and completion/live-agent
+validation in PRs 37 through 40.
+
+PR 36 passes the complete default and WASM gates locally, with 311/311 supported capability cells
+exercised. Fresh production WASM passes 88 API, six patch, seven session and five style cases,
+TypeScript checking and the playground build. Python has 60 passing tests and a clean `ty` check;
+all 57 skill examples and its package validator pass. Strict Lean builds all 74 jobs. The deep
+gate passes 129 tests across whole-project agreement, conformance, round trips, self-translation,
+all kernels and recorded external replays. Self-dogfooding returns a 3,130-byte source-free guide
+and follows its native code-map action. The global CLI audit includes a valid guided Go goal and
+checks command coverage, no panic and no write without authorization. GitHub CI remains separate
+from these local results; check PR 305 before merging.
+
 PR 32 merged as [GitHub PR 298](https://github.com/e6qu/fun-refactor/pull/298), and PR 33 merged as
 [GitHub PR 299](https://github.com/e6qu/fun-refactor/pull/299). It adds declarative `understand`, `trace`, `change`, `migrate` and
 `prove` requests over the content-addressed context workspace. `AgentIntent` expands each purpose
@@ -24,7 +81,7 @@ also carries the project coverage envelope. This measurement covers deterministi
 costs and makes no model, token, quota or population claim. B894 and B895 record the orchestration
 and purpose-boundary defects fixed by this checkpoint.
 
-PR 35 is in review as [GitHub PR 303](https://github.com/e6qu/fun-refactor/pull/303). It lets a
+PR 35 merged as [GitHub PR 303](https://github.com/e6qu/fun-refactor/pull/303). It lets a
 `change` intent carry one direct typed task change whose literal
 target must equal the evidence target. Native preview compiles both from one project snapshot and
 returns one `fraa1:` basis over the intent and task review. Native write accepts only the unchanged

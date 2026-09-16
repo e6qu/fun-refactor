@@ -4,7 +4,9 @@ description: Use fr for bounded inspection, structural edits, history, Git patch
 ---
 # Work with fr
 
-Run at the root or pass `-C`. Request source when needed:
+Run at the root or pass `-C`. Start a structured task with `fr guide --from GOAL` or
+`FrClient.guide(AgentGoal(...))`; follow ready actions and load the returned specialized reference.
+Read [Guide](references/guide.md) for goal authoring. For direct discovery:
 ```sh
 fr project find greet --signature
 fr project select greet render validate --signature --source --bytes 2048
@@ -13,11 +15,8 @@ fr project map --depth 2 --limit 12
 Read coverage, omissions and statuses. Missing or clipped rows do not prove absence. Retain bases;
 stale identities refuse.
 
-Load only the needed route: [Task](references/task.md), [Explore](references/explore.md),
-[Surfaces](references/surfaces.md),
-[Runtime](references/runtime.md),
-[Disclosure](references/disclosure.md), [Semantic](references/semantic.md), [Semantic intent](references/semantic-intent.md),
-[Semantic change](references/semantic-change.md), [Author](references/author.md), [Change](references/change.md),
+Load the guide's returned reference only when needed. Direct routes: [Explore](references/explore.md),
+[Runtime](references/runtime.md), [Author](references/author.md),
 [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md),
 [Git](references/git.md), or [Lean](references/lean.md).
 

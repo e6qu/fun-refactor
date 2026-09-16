@@ -21,6 +21,8 @@ New here? Read [docs/terminology.md](docs/terminology.md) for the words this pro
 uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
 
 For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
+The [language-aware workflow guide](docs/agent-workflow-guide.md) turns one structured goal into
+bounded exact read/preview actions, named authoring fields and separate verification levels.
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
 The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. The [v2](docs/agent-context-v2-evaluation.md), [v3](docs/agent-context-v3-evaluation.md), and [prescribed v4 workflow](docs/agent-workflow-v4-evaluation.md) evaluations report fixed-workflow reductions, exact change boundaries and the latest passing comparison.
 The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
