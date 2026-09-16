@@ -84,6 +84,15 @@ The seventh diagnostic passed fundamentals with the line-safe recipe path. The s
 then put a line array under the older `files` key for two proof attempts. The final handoff uses
 `file_lines` as the only authored-file representation for both recipes and proof tactics.
 
+The next fresh cohort is retained as `2026-09-17-completion-acceptance`. Both isolated sessions
+pass all seven families through twenty commands with no failed command, infrastructure error,
+direct project access, exploratory call, mutation or human correction. The agents used Luna at low
+effort and the default tier under Codex CLI 0.154.0.
+
+The cohort records 369,267 input tokens, of which 318,976 were cached, plus 3,896 output tokens and
+430 reasoning-output tokens. Complete prompts occupy 7,264 bytes. The CLI exposes no billed quota.
+This validates the guided fixtures without claiming a context saving against direct file access.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

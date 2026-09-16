@@ -119,3 +119,13 @@ The seventh [retained diagnostic](../tests/agent-eval/results/2026-09-17-complet
 passed fundamentals cleanly. Its structured agent used the new line-array value under the old
 `files` key for two proof attempts. The handoff now has one authored-file representation:
 `file_lines` for recipes and tactics alike.
+
+The final [retained acceptance cohort](../tests/agent-eval/results/2026-09-17-completion-acceptance/manifest.json)
+passes both fresh sessions and all seven families. Its twenty commands include seven guides,
+eleven follows and two finishes. It records zero failed commands, infrastructure errors, direct
+project commands, exploratory calls, mutations and human corrections.
+
+Codex reports 369,267 input tokens, including 318,976 cached input tokens, plus 3,896 output tokens
+and 430 reasoning-output tokens. The complete prompts occupy 7,264 bytes; instrumented requests and
+responses occupy 2,933 and 16,175 bytes. Billed quota remains unavailable. This cohort establishes
+guided usability for these fixtures; it does not establish a saving against a direct-file cohort.

@@ -205,4 +205,13 @@ fn retained_failed_cohort_replays_only_as_diagnostic_evidence() {
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["passed"], true);
     assert_eq!(report["acceptance_evidence"], false);
+
+    let evidence = root
+        .join("tests/agent-eval/results")
+        .join("2026-09-17-completion-acceptance");
+    let output = script(root).arg("replay").arg(evidence).output().unwrap();
+    assert!(output.status.success());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["acceptance_evidence"], true);
 }

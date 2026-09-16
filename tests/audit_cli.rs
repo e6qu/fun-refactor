@@ -48,6 +48,12 @@ fn trust_sections_keep_support_tests_and_proofs_distinct() {
         assert!(!route["predicate"].as_str().unwrap().is_empty());
         assert!(route["acceptance_target"].as_str().unwrap().contains("::"));
     }
+    assert_eq!(workflows["report"]["live_evaluation"]["sessions"], 2);
+    assert_eq!(workflows["report"]["live_evaluation"]["families"], 7);
+    assert_eq!(
+        workflows["report"]["live_evaluation"]["model"],
+        "gpt-5.6-luna"
+    );
 
     let proofs = audit("proofs");
     let classes = proofs["report"]["evidence_classes"].as_array().unwrap();

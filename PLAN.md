@@ -258,6 +258,9 @@ Implemented on the current branch:
   `file_lines` and performs newline joining itself.
 - A seventh diagnostic passed fundamentals but mixed the new line-array value with the old file
   key during proof authoring. The agent handoff now uses `file_lines` for every authored file.
+- The final fresh Luna/low cohort passes all seven families with zero failed command,
+  infrastructure error, direct project command, exploratory call, mutation or human correction.
+  It retains complete prompts, events, byte counts and tokenizer usage; billed quota is unavailable.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

@@ -1,0 +1,43 @@
+{
+  "schema": "fr-completion-agent-session-1",
+  "group": "structured",
+  "routes": [
+    "semantic-scalar",
+    "framework-migration",
+    "proof"
+  ],
+  "workflow_ids": [
+    "semantic-edit",
+    "framework-migration",
+    "proof"
+  ],
+  "proof_path": "specs/FrSpecs/SrcLibRsKeep.lean",
+  "obligation": "keepModel_identity",
+  "binary": "/tmp/fr-completion-agent-2026-09-17-acceptance-5/fr-completion-agent-bin",
+  "binary_sha256": "8cee1a005e7affa557cd497808e60ef03db7169ab82ce20afe452e2941170552",
+  "source_bindings": {
+    "tools/completion-agent-eval.py": "c33aea01015e9d3cb219ced2bc3ebabdf2c689d94e3a998aadb49be54bfbb55d",
+    "tools/completion-workflows.py": "4a88f05802e07e57e9964427178664ce2fb20e2f4373f5ff3db9b05d965982b2",
+    "src/audit.rs": "f745f58697a0e6b62d619a161b786581e47d8c8fad94fed7e8e046f0958cf1b0",
+    "src/project/agent_guide.rs": "62a0261e528403fe1961a12ce61db499cc808262b0afb5217dab3720bb73a9db",
+    "src/project/agent_intent.rs": "312f67460946cd58329414f464a124aec859b2918f07e7ec69d75ea438694320",
+    "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
+    "src/project/migration.rs": "36f005991aa2ac0e5363a794d61f22b61d42882b5c9c96f2852941c5e9486121",
+    "src/spec.rs": "7b0addafe36323feb0809a4df4fc41e990e7816d19c6386c3ae3ddb85d73daff",
+    "skills/fr/SKILL.md": "eadc09b4fb8055177f387857ea95c245e27a35bf7c2362486700774152a3b5a5"
+  },
+  "original_source": {
+    "Cargo.toml": "434e102c861f994d2aace9114d392dbc162190e00be8fe357d472150ca439614",
+    "app/api/signals/route.ts": "b9a7cac12c61a6a65855c5a7e01a10f48a02f7baf3a0cd3c6c07f17c94e56838",
+    "formal-plan.json": "37b5037d31eeb40f231884296ef04ed032ea0b14c8f815654416baa69a019ed0",
+    "proof.lean": "10896888cad7b91cfc9f4bea90213a34cf597b54b69ab6c228171db5668cfe88",
+    "rename.recipe": "fc20bebcc02f00dd0d2ccf0304e2f23c1119a44dff349c14b50c6aeaf91c94d3",
+    "specs/FrSpecs/SrcLibRsKeep.lean": "cccd729dc633b30d7498f69942b8cf82c0eb08c3ec99a203db49c129a48805f5",
+    "specs/FrSpecs.lean": "5fe8bf5a6ec1160fec5fbd2e485c72cc08f0aa8fa942b19716b7ffb3017b35b6",
+    "specs/lake-manifest.json": "823948133e4485ef420505d1d8065898b9310cc3096721f11cfb2b9ded3bf467",
+    "specs/lakefile.toml": "0ef98cfa67bdd435d22268ec0f2122cb4893c7025f0ac3ae981f4f3ea569a672",
+    "specs/lean-toolchain": "db7bb24b756d745bbde83fe92718b51bd3625dae3701ba0f598d0eedcd3f3028",
+    "src/lib.rs": "9a0cbf531ca3e0f7f11a14892b33dd10667d86530740f657db887d21e335143c"
+  },
+  "manual_corrections": 0
+}

@@ -204,6 +204,16 @@ fn workflow_report() -> Value {
             "families":["understanding","tracing","direct-change","recipe","semantic-edit","framework-migration","proof"],
             "claim":"The retained run executes every guided preview without exploratory calls after guidance. It records protocol bytes and makes no model-token or quota claim."
         },
+        "live_evaluation": {
+            "schema":"fr-completion-agent-manifest-1",
+            "auditor":"python3 tools/completion-agent-eval.py replay tests/agent-eval/results/2026-09-17-completion-acceptance",
+            "retained":"tests/agent-eval/results/2026-09-17-completion-acceptance",
+            "model":"gpt-5.6-luna",
+            "reasoning_effort":"low",
+            "sessions":2,
+            "families":7,
+            "claim":"The retained fresh cohort passed every guided preview. It had zero failed commands, infrastructure errors, direct project commands, exploratory calls, mutations and human corrections. Billed quota is unavailable."
+        },
     })
 }
 
