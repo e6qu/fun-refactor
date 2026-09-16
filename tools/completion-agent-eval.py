@@ -146,7 +146,7 @@ FRJSON
 Tool requests:
 - `{{"tool":"guide","goal":GOAL}}` returns a guide ID, route, evidence and exact actions.
 - `{{"tool":"follow","guide":ID,"action":INDEX}}` executes a returned action that has no `<...>` placeholder. Do not add `replace` or `files` to such an action.
-- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"files":{{"name":"content"}}}}` supplies only placeholders present in that exact action. Copy each placeholder byte-for-byte from the returned action; do not change spaces, hyphens or spelling. JSON string values must escape newlines as `\\n`; never put a raw newline inside a JSON string. For a recipe, copy `route.evidence.author_contract.template`, replace only `<lower-kebab-name>` and `<new name>`, write it through `files`, and map the action's recipe-file placeholder to that same file name. For a tactics file, write the requested tactics through `files` once; later actions can reuse its plain file name. For migration, copy the compatible feature ID from guide evidence.
+- `{{"tool":"follow","guide":ID,"action":INDEX,"replace":{{"<placeholder>":"value"}},"file_lines":{{"name":["line 1","line 2"]}}}}` supplies only placeholders present in that exact action. Copy each placeholder byte-for-byte from the returned action; do not change spaces, hyphens or spelling. For a recipe, copy `route.evidence.author_contract.template_lines`, replace only `<lower-kebab-name>` and `<new name>`, pass those separate strings through `file_lines`, and map the action's recipe-file placeholder to that same file name. Never put a raw newline inside a JSON string. For a tactics file, use `files` once; later actions can reuse its plain file name. For migration, copy the compatible feature ID from guide evidence.
 - `{{"tool":"finish","summary":"..."}}` finishes after every workflow and action succeeds.
 
 The harness records complete prompts, tool requests and responses, source identities and Codex events. It will reject direct project access, source mutation, missing workflows, repeated actions and mismatched output schemas. No human correction is available.
@@ -300,6 +300,15 @@ def step(session: Path, request: dict[str, object]) -> dict[str, object]:
         files = request.get("files", {})
         if not isinstance(files, dict) or len(files) > 2:
             raise ValueError("follow files must be an object with at most two entries")
+        file_lines = request.get("file_lines", {})
+        if not isinstance(file_lines, dict) or len(file_lines) > 2:
+            raise ValueError("follow file_lines must be an object with at most two entries")
+        if files and file_lines:
+            raise ValueError("follow accepts files or file_lines, not both")
+        for name, lines in file_lines.items():
+            if not isinstance(lines, list) or not all(isinstance(line, str) for line in lines):
+                raise ValueError("authored file_lines must be arrays of strings")
+            files[name] = "\n".join(lines) + "\n"
         written = {}
         for name, content in files.items():
             if Path(name).name != name or not isinstance(content, str) or len(content.encode()) > 16_384:

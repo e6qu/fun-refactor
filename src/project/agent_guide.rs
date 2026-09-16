@@ -677,11 +677,15 @@ impl Project<'_> {
                         verb.form, selector
                     )
                 });
+                let recipe_template_lines = recipe_template
+                    .as_ref()
+                    .map(|template| template.lines().map(str::to_owned).collect::<Vec<String>>());
                 evidence = json!({"predicate":"recipe::vocabulary+capabilities::support","verb":selected_verb,
                     "capabilities":matching.iter().map(|capability|json!({"capability":capability,"support":language.map(|language|capabilities::support(**capability, language))})).collect::<Vec<_>>(),
                     "author_contract":{"language":language,"target_handle":handle,
                         "file":{"schema_line":"schema 1","open":"recipe <lower-kebab-name> {","close":"}"},
                         "template":recipe_template,
+                        "template_lines":recipe_template_lines,
                         "selector_fields":predicates.iter().filter(|predicate|matches!(**predicate,"name"|"kind"|"lang"|"file")).collect::<Vec<_>>(),
                         "target_values":{"name":symbol.map(|symbol|&symbol.name),"kind":symbol.map(|symbol|symbol.kind.as_str()),"lang":language,"file":path},
                         "expectations":vocabulary.expectations.iter().filter(|form|form.starts_with("matched ") || form.starts_with("refusals ")).collect::<Vec<_>>(),

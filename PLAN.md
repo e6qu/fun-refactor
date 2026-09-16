@@ -253,6 +253,9 @@ Implemented on the current branch:
 - A fifth diagnostic found one misleading recipe placeholder in the harness prompt and another
   internal router failure. The handoff now requires byte-exact returned placeholders and complete
   nonempty exec invocations.
+- A sixth diagnostic passed the structured cohort but exposed raw multiline recipe JSON in the
+  fundamentals cohort. Recipe guidance now supplies `template_lines`; the harness accepts bounded
+  `file_lines` and performs newline joining itself.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

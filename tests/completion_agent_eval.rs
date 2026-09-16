@@ -52,6 +52,7 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
         std::fs::read_to_string(sessions.join("structured/prompt.txt")).unwrap();
     assert!(structured_prompt.contains("semantic-scalar"));
     assert!(structured_prompt.contains(r#"Request 1: {"tool":"guide","goal":{"#));
+    assert!(structured_prompt.contains("template_lines"));
     assert!(!structured_prompt.contains(r#"\"purpose\":\"understand\""#));
     let guide = step(
         root,
@@ -75,6 +76,31 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
     );
     assert_eq!(finished["finished"], true);
     assert!(!session.join("project/.fr-history").exists());
+
+    let recipe = step(
+        root,
+        &session,
+        json!({"tool":"guide","goal":{"schema":"fr-agent-goal-1","purpose":"change",
+            "selector":{"name":"calculate"},"operation":{"kind":"recipe","verb":"rename"},
+            "context":{"token_limit":4096,"packet_limit":65536}}}),
+    );
+    assert_eq!(recipe["route"]["id"], "recipe");
+    let preview = step(
+        root,
+        &session,
+        json!({"tool":"follow","guide":1,"action":0,
+        "replace":{"<recipe-file>":"rename.recipe"},
+        "file_lines":{"rename.recipe":[
+            "schema 1",
+            "recipe rename-calculate {",
+            "  rename to \"compute\" where name=\"calculate\"",
+            "  expect matched = 1",
+            "  expect changed = 1 files",
+            "  expect refusals = 0",
+            "}"
+        ]}}),
+    );
+    assert_eq!(preview["response"]["schema"], 1);
 
     let refused = script(root).arg("run").arg(&sessions).output().unwrap();
     assert!(!refused.status.success());
@@ -155,6 +181,7 @@ fn retained_failed_cohort_replays_only_as_diagnostic_evidence() {
         "2026-09-17-completion-diagnostic-2",
         "2026-09-17-completion-diagnostic-3",
         "2026-09-17-completion-diagnostic-5",
+        "2026-09-17-completion-diagnostic-6",
     ] {
         let evidence = root.join("tests/agent-eval/results").join(name);
         let output = script(root).arg("replay").arg(evidence).output().unwrap();

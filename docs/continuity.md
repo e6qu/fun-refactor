@@ -75,6 +75,11 @@ hyphenated placeholder to a spaced name, and the structured session had another 
 failure. The prompt now requires exact returned placeholder bytes and a complete command in every
 exec call. The result remains non-acceptance evidence.
 
+The sixth diagnostic had clean infrastructure and a passing structured session. The fundamentals
+agent still placed raw recipe newlines inside JSON before retrying. Recipe guidance now publishes
+the exact template as separate lines, and the instrumented handoff joins a bounded `file_lines`
+array. This removes JSON newline escaping from the agent's job.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

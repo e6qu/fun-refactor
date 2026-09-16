@@ -108,3 +108,9 @@ The fifth [retained diagnostic](../tests/agent-eval/results/2026-09-17-completio
 again completed every route. It exposed one prompt typo in a recipe placeholder and one unrecorded
 Codex tool-router failure. The prompt now requires byte-exact returned placeholders and complete
 nonempty exec commands. Both failure classes remain independently visible in its retained score.
+
+The sixth [retained diagnostic](../tests/agent-eval/results/2026-09-17-completion-diagnostic-6/manifest.json)
+completed the structured cohort without a failure. Its fundamentals agent still embedded raw
+newlines in one JSON string before correcting the request. Recipe guidance now provides
+`template_lines`; the harness accepts that string array as `file_lines` and performs the bounded
+join itself.
