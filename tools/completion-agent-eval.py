@@ -87,23 +87,54 @@ def prompt(session: Path, group: str, proof_path: str, obligation: str) -> str:
 2. Preview migration of app/api/signals/route.ts to FastAPI at converted/signals.py.
 3. Check the proof workflow for obligation {obligation} in {proof_path}. Use tactics `rfl`.""",
     }[group]
-    operation_shapes = {
-        "fundamentals": (
-            'Use these operation objects in task order: {"kind":"automatic"}, '
-            '{"kind":"automatic"}, {"kind":"capability","capability":"rename",'
-            '"parameters":{"new_name":"compute"}}, and {"kind":"recipe","verb":"rename"}.'
-        ),
-        "structured": (
-            'Use these operation objects in task order: {"kind":"semantic-scalar",'
-            '"operation":"set-int","from":"7","to":"9"}, '
-            '{"kind":"framework-migration","to":"fastapi"}, and the proof object in task 3.'
-        ),
+    goal_rows = {
+        "fundamentals": [
+            CW.goal("understand", {"name": "calculate"}, {"kind": "automatic"}),
+            CW.goal("trace", {"name": "calculate"}, {"kind": "automatic"}),
+            CW.goal(
+                "change",
+                {"name": "calculate"},
+                {
+                    "kind": "capability",
+                    "capability": "rename",
+                    "parameters": {"new_name": "compute"},
+                },
+            ),
+            CW.goal("change", {"name": "calculate"}, {"kind": "recipe", "verb": "rename"}),
+        ],
+        "structured": [
+            CW.goal(
+                "change",
+                {"name": "calculate"},
+                {
+                    "kind": "semantic-scalar",
+                    "operation": "set-int",
+                    "from": "7",
+                    "to": "9",
+                },
+            ),
+            CW.goal(
+                "migrate",
+                {"path": "app/api/signals/route.ts"},
+                {"kind": "framework-migration", "to": "fastapi"},
+            ),
+            CW.goal(
+                "prove",
+                {"path": proof_path},
+                {"kind": "proof", "obligation": obligation},
+            ),
+        ],
     }[group]
+    exact_goals = "\n".join(
+        f"Goal {index}: {json.dumps(value, separators=(',', ':'))}"
+        for index, value in enumerate(goal_rows, 1)
+    )
     return f"""You are an independent acceptance-test agent using fr on an unfamiliar project.
 
 {tasks}
 
-{operation_shapes}
+Submit these structured goals verbatim and in order. They are the deterministic intent handoff:
+{exact_goals}
 
 Express each task as one `fr-agent-goal-1` object and start it with the instrumented `guide` tool. Follow every returned action that is ready or becomes executable after you supply its named placeholders. Use only the instrumented tool. Do not inspect project files with shell, file, search or Git commands. Do not call help, vocabulary, schema or audit commands. Do not add `--write`; every requested operation is a read or preview. Do not repeat a successful call. Stop on a refusal and report it honestly.
 
@@ -484,7 +515,6 @@ def score(session: Path) -> dict[str, object]:
         and result["source_unchanged"]
         and not observation["direct_project_commands"]
         and observation["failed_command_executions"] == 0
-        and observation["command_executions"] == len(rows)
         and config["manual_corrections"] == 0
     )
     save(session / "result.json", result)

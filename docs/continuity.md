@@ -54,6 +54,11 @@ unrelated prompt example, invented the `semantic` operation and stopped. B920 ad
 envelope and required expectations to the live guide response. The revised prompt gives each cohort
 only its exact operation shapes, and scoring now rejects every failed Codex command.
 
+The second diagnostic completed all seven routes, but the weak agents made 32 invalid instrumented
+calls while reconstructing the complete goal envelope. It also remains non-acceptance evidence.
+The next prompt supplies exact goals from the deterministic case registry. The live recipe contract
+now includes a target-specific file template.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

@@ -241,6 +241,9 @@ Implemented on the current branch:
 - The first fresh diagnostic exposed an underspecified recipe envelope and a prompt example that
   biased the wrong cohort. B920 adds the missing live recipe contract. The revised harness scores
   every failed Codex command and retains the failed cohort as diagnostic evidence.
+- A second diagnostic completed every required route and preview, but only after many invalid goal
+  guesses. The final handoff supplies exact structured goals generated from the same deterministic
+  case registry. The agent still follows and authors each returned action.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

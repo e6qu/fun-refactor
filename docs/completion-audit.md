@@ -85,3 +85,8 @@ guesses. Its structured agent copied an unrelated example, submitted the invalid
 and stopped. The follow-up adds the recipe file envelope to the live guide contract, removes the
 unrelated example and counts every failed Codex command. The diagnostic remains non-acceptance
 evidence.
+
+The second [retained diagnostic](../tests/agent-eval/results/2026-09-17-completion-diagnostic-2/manifest.json)
+eventually completed every route, migration preview and proof check. Both agents first made many
+invalid goal-schema guesses, so the strict scorer rejected them. The final handoff now includes
+exact task-specific goal objects. The guide also returns a target-specific recipe template.

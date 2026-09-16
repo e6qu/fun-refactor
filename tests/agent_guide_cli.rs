@@ -215,6 +215,10 @@ fn recipe_guidance_exposes_only_live_targeted_forms_and_runs_the_authored_previe
     assert_eq!(contract["file"]["schema_line"], "schema 1");
     assert_eq!(contract["file"]["open"], "recipe <lower-kebab-name> {");
     assert_eq!(contract["required_expectations"][0], "expect matched = 1");
+    assert!(contract["template"]
+        .as_str()
+        .unwrap()
+        .contains("where name=\"allowed\""));
     assert_eq!(contract["target_values"]["name"], "allowed");
     assert_eq!(report["route"]["evidence"]["verb"]["name"], "rename");
     assert_eq!(

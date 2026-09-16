@@ -83,14 +83,19 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
 #[test]
 fn retained_failed_cohort_replays_only_as_diagnostic_evidence() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let evidence = root.join("tests/agent-eval/results/2026-09-17-completion-diagnostic-1");
-    let output = script(root).arg("replay").arg(evidence).output().unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["verified"], true);
-    assert_eq!(report["passed"], false);
+    for name in [
+        "2026-09-17-completion-diagnostic-1",
+        "2026-09-17-completion-diagnostic-2",
+    ] {
+        let evidence = root.join("tests/agent-eval/results").join(name);
+        let output = script(root).arg("replay").arg(evidence).output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["verified"], true);
+        assert_eq!(report["passed"], false);
+    }
 }

@@ -658,10 +658,30 @@ impl Project<'_> {
                 } else {
                     &vocabulary.predicates
                 };
+                let recipe_template = selected_verb.map(|verb| {
+                    let selector = match verb.acts_on {
+                        "symbol" => symbol.map_or_else(String::new, |symbol| {
+                            format!(
+                                " where name={}",
+                                serde_json::to_string(&symbol.name).unwrap()
+                            )
+                        }),
+                        "file" => format!(
+                            " where file={}",
+                            serde_json::to_string(&path).unwrap()
+                        ),
+                        _ => String::new(),
+                    };
+                    format!(
+                        "schema 1\nrecipe <lower-kebab-name> {{\n  {}{}\n  expect matched = 1\n  expect changed = 1 files\n  expect refusals = 0\n}}\n",
+                        verb.form, selector
+                    )
+                });
                 evidence = json!({"predicate":"recipe::vocabulary+capabilities::support","verb":selected_verb,
                     "capabilities":matching.iter().map(|capability|json!({"capability":capability,"support":language.map(|language|capabilities::support(**capability, language))})).collect::<Vec<_>>(),
                     "author_contract":{"language":language,"target_handle":handle,
                         "file":{"schema_line":"schema 1","open":"recipe <lower-kebab-name> {","close":"}"},
+                        "template":recipe_template,
                         "selector_fields":predicates.iter().filter(|predicate|matches!(**predicate,"name"|"kind"|"lang"|"file")).collect::<Vec<_>>(),
                         "target_values":{"name":symbol.map(|symbol|&symbol.name),"kind":symbol.map(|symbol|symbol.kind.as_str()),"lang":language,"file":path},
                         "expectations":vocabulary.expectations.iter().filter(|form|form.starts_with("matched ") || form.starts_with("refusals ")).collect::<Vec<_>>(),
