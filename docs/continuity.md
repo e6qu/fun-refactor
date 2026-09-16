@@ -80,6 +80,10 @@ agent still placed raw recipe newlines inside JSON before retrying. Recipe guida
 the exact template as separate lines, and the instrumented handoff joins a bounded `file_lines`
 array. This removes JSON newline escaping from the agent's job.
 
+The seventh diagnostic passed fundamentals with the line-safe recipe path. The structured agent
+then put a line array under the older `files` key for two proof attempts. The final handoff uses
+`file_lines` as the only authored-file representation for both recipes and proof tactics.
+
 Merged PR 38 implementation and evidence follow:
 
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI

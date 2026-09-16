@@ -256,6 +256,8 @@ Implemented on the current branch:
 - A sixth diagnostic passed the structured cohort but exposed raw multiline recipe JSON in the
   fundamentals cohort. Recipe guidance now supplies `template_lines`; the harness accepts bounded
   `file_lines` and performs newline joining itself.
+- A seventh diagnostic passed fundamentals but mixed the new line-array value with the old file
+  key during proof authoring. The agent handoff now uses `file_lines` for every authored file.
 - B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
   actionable defect remains open.
 

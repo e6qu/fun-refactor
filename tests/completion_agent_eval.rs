@@ -141,7 +141,7 @@ fn prepared_agent_session_exposes_only_guide_follow_and_finish() {
         root,
         &structured,
         json!({"tool":"follow","guide":0,"action":1,
-            "replace":{"<tactics-file>":"proof.lean"},"files":{"proof.lean":"rfl"}}),
+            "replace":{"<tactics-file>":"proof.lean"},"file_lines":{"proof.lean":["rfl"]}}),
     );
     let reused = step(
         root,
@@ -182,6 +182,7 @@ fn retained_failed_cohort_replays_only_as_diagnostic_evidence() {
         "2026-09-17-completion-diagnostic-3",
         "2026-09-17-completion-diagnostic-5",
         "2026-09-17-completion-diagnostic-6",
+        "2026-09-17-completion-diagnostic-7",
     ] {
         let evidence = root.join("tests/agent-eval/results").join(name);
         let output = script(root).arg("replay").arg(evidence).output().unwrap();

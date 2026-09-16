@@ -114,3 +114,8 @@ completed the structured cohort without a failure. Its fundamentals agent still 
 newlines in one JSON string before correcting the request. Recipe guidance now provides
 `template_lines`; the harness accepts that string array as `file_lines` and performs the bounded
 join itself.
+
+The seventh [retained diagnostic](../tests/agent-eval/results/2026-09-17-completion-diagnostic-7/manifest.json)
+passed fundamentals cleanly. Its structured agent used the new line-array value under the old
+`files` key for two proof attempts. The handoff now has one authored-file representation:
+`file_lines` for recipes and tactics alike.
