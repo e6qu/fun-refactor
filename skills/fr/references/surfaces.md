@@ -9,6 +9,9 @@ Use `project styles` for CSS definitions and direct HTML/JSX class relationships
 `project diagrams` for Markdown headings and embedded Mermaid graph hierarchy. Follow source handles
 only when the high-level fact or explicit gap is insufficient.
 
+Read [Application IR](application.md) when the task needs the nested application
+model, its bounded Merkle view or agent-authored HTTP behavior across framework writers.
+
 When a row has `edit.schema = fr-surface-edit-1`, execute its exact preview arguments after replacing
 only `<VALUE>`. Review the diff before repeating with `--write`; retain the transaction for undo, redo
 and patch export. Rows without that capability are read-only boundaries.

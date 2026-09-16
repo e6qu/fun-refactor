@@ -16,6 +16,7 @@ pub mod workflow;
 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 extern crate fun_refactor_wasm_libc;
 
+pub mod application_ir;
 pub mod edit;
 pub mod extract;
 #[path = "project/framework_kernel.rs"]

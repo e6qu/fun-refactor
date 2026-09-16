@@ -165,6 +165,7 @@ enum DisclosureView {
     Semantic,
     Evidence,
     Project,
+    Application,
 }
 
 pub fn disclosure_budget_admitted(
@@ -208,7 +209,7 @@ pub fn disclosure_proof_parent(width: usize, index: usize) -> Option<(usize, usi
 }
 
 pub fn disclosure_view_admitted(view: usize, depth: usize) -> bool {
-    view == 0 || ((view == 1 || view == 2) && depth <= 8)
+    view == 0 || ((view == 1 || view == 2 || view == 3) && depth <= 8)
 }
 
 #[derive(Clone)]
@@ -626,8 +627,14 @@ fn project_shortcuts(view: &View, options: &Options) -> Result<Vec<Value>> {
         .model
         .as_object()
         .context("cross-stack project root is not an object")?;
-    PROJECT_DOMAINS
-        .into_iter()
+    let domains: &[&str] = if view.kind == DisclosureView::Application {
+        &["applications", "omissions"]
+    } else {
+        &PROJECT_DOMAINS
+    };
+    domains
+        .iter()
+        .copied()
         .filter_map(|name| object.get(name).map(|value| (name, value)))
         .take(options.profile.row_limit())
         .map(|(name, value)| {
@@ -794,13 +801,14 @@ fn arguments(options: &Options, hole: &str, cursor: Option<&str>) -> Vec<String>
     }
     if matches!(
         options.view,
-        DisclosureView::Evidence | DisclosureView::Project
+        DisclosureView::Evidence | DisclosureView::Project | DisclosureView::Application
     ) {
         args.extend([
             "--view".into(),
             match options.view {
                 DisclosureView::Evidence => "evidence".into(),
                 DisclosureView::Project => "project".into(),
+                DisclosureView::Application => "application".into(),
                 DisclosureView::Semantic => unreachable!(),
             },
             "--depth".into(),
@@ -821,6 +829,7 @@ fn tree_domain(view: &View) -> &'static str {
         DisclosureView::Semantic => "semantic-ir",
         DisclosureView::Evidence => "project-evidence",
         DisclosureView::Project => "cross-stack-project",
+        DisclosureView::Application => "application-ir",
     }
 }
 
@@ -1188,6 +1197,10 @@ impl Project<'_> {
 
     fn disclosure_view(&self, options: &Options) -> Result<View> {
         ensure!(
+            disclosure_view_admitted(options.view as usize, options.depth),
+            "analysis disclosure depth must be between 0 and 8."
+        );
+        ensure!(
             options.target.starts_with("frp1:"),
             "project disclose requires a full revision-bound declaration handle."
         );
@@ -1239,6 +1252,20 @@ impl Project<'_> {
                         &self.revision,
                         &options.target,
                         options.depth,
+                        object_merkle(&model)?
+                    ))?
+                );
+                (model, basis)
+            }
+            None if options.view == DisclosureView::Application => {
+                let model =
+                    serde_json::to_value(self.application_model(&options.target, None, None)?)?;
+                let basis = format!(
+                    "frpa1:{}",
+                    hash((
+                        crate::application_ir::SCHEMA,
+                        &self.revision,
+                        &options.target,
                         object_merkle(&model)?
                     ))?
                 );
@@ -1326,7 +1353,10 @@ impl Project<'_> {
                 }
             }
         }
-        let source = if options.view == DisclosureView::Project {
+        let source = if matches!(
+            options.view,
+            DisclosureView::Project | DisclosureView::Application
+        ) {
             String::new()
         } else {
             let (source, span) = self.source(id)?;
@@ -1362,7 +1392,7 @@ impl Project<'_> {
                 options.view,
                 options.depth,
             ))?,
-            DisclosureView::Project => hash((
+            DisclosureView::Project | DisclosureView::Application => hash((
                 SCHEMA,
                 &self.revision,
                 &options.target,
@@ -1401,7 +1431,10 @@ impl Project<'_> {
             None => {
                 ensure!(options.cursor.is_none(), "--cursor requires --reveal.");
                 report["status"] = json!("frontier");
-                report["frontier"] = if options.view == DisclosureView::Project {
+                report["frontier"] = if matches!(
+                    options.view,
+                    DisclosureView::Project | DisclosureView::Application
+                ) {
                     json!([semantic_hole(&view, options, "/model", &view.model)?])
                 } else {
                     json!([
@@ -1413,11 +1446,13 @@ impl Project<'_> {
                     DisclosureView::Semantic => semantic_shortcuts(&view, options)?,
                     DisclosureView::Evidence => evidence_shortcuts(&view, options)?,
                     DisclosureView::Project => project_shortcuts(&view, options)?,
+                    DisclosureView::Application => project_shortcuts(&view, options)?,
                 };
                 let shortcut_field = match options.view {
                     DisclosureView::Semantic => "semantic_shortcuts",
                     DisclosureView::Evidence => "evidence_shortcuts",
                     DisclosureView::Project => "project_shortcuts",
+                    DisclosureView::Application => "application_shortcuts",
                 };
                 report[shortcut_field] = json!(shortcuts);
                 if options.view == DisclosureView::Evidence {
@@ -1429,6 +1464,7 @@ impl Project<'_> {
                     DisclosureView::Semantic => json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Structural IR descriptors require the expanded profile. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary."),
                     DisclosureView::Evidence => json!("Prefer a relevant evidence_shortcuts action for code_map, call_traces, impact or sources_and_sinks. Object digests address reusable Merkle subtrees. Follow exact returned actions and reveal exact source only when structured evidence is insufficient; request --proofs only when independently verifying a subtree."),
                     DisclosureView::Project => json!("Prefer a relevant project_shortcuts action for technologies, packages, applications, styles or documents_and_diagrams. Follow exact returned actions and reveal exact source only when a high-level fact or explicit gap is insufficient."),
+                    DisclosureView::Application => json!("Follow application_shortcuts to application children or reader omissions. Fact identities, confidence and conversion boundaries are retained. Request only relevant descendants; object digests address reusable Merkle objects. The view supplies no source text or runtime proof."),
                 };
                 report["shortcut_budget"] = json!({
                     "limit": options.profile.row_limit(),

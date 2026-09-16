@@ -45,6 +45,7 @@ cd "$(dirname "$0")/.."
     lake exe fr-project-kernel agent-discovery >/dev/null
     lake exe fr-project-kernel progressive-disclosure >/dev/null
     lake exe fr-project-kernel framework-boundaries >/dev/null
+    lake exe fr-project-kernel application-adapters >/dev/null
     lake exe fr-project-kernel line-ranges >/dev/null
     lake exe fr-project-kernel call-selection >/dev/null
     lake exe fr-project-kernel staging-transition >/dev/null

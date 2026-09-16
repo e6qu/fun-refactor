@@ -67,6 +67,16 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B919: **Python Merkle addresses differed from Rust for small floating-point numbers**.
+  Python wrote `1e-07` and `1e-05`; native serialization wrote `1e-7` and `0.00001`.
+  The SDK now uses native number spelling before hashing. Boundary and deterministic IEEE
+  bit cases compare native digests with Python and round-trip their object packs.
+
+- [x] B918: **project disclosure skipped the proven depth admission policy**. The CLI accepted
+  project-view depth 9 while the Lean policy and Python SDK refused it. View construction
+  now applies the shared admission predicate before building a model. Regression tests cover
+  project and application views at 8, 9 and the maximum unsigned integer.
+
 - [x] B917: **a structural target name changed imperative function metadata**. Structural classification
   now requires a declarative language class. A Rust function with the same name retains its typed
   signature and receives no structural property suggestion. Structural models explicitly name their

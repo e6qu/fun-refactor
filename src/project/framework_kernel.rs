@@ -2,6 +2,38 @@ pub fn framework_emitted(total: usize, limit: usize) -> usize {
     total.min(limit)
 }
 
+pub fn application_adapter_supports(adapter: usize, feature: usize) -> bool {
+    (feature <= 1 && adapter <= 3) || (feature == 2 && (adapter == 0 || adapter == 4))
+}
+
+pub fn application_adapters_compatible(source: usize, target: usize, feature: usize) -> bool {
+    source != target
+        && application_adapter_supports(source, feature)
+        && application_adapter_supports(target, feature)
+}
+
+pub fn application_json_status_admitted(status: usize) -> bool {
+    (200..=599).contains(&status) && status != 204 && status != 205 && status != 304
+}
+
+pub fn application_dispositions_complete(
+    input: usize,
+    assigned: usize,
+    unique: bool,
+    exact_ids: bool,
+) -> bool {
+    input == assigned && unique && exact_ids
+}
+
+pub fn application_endpoint_agreement(
+    method: bool,
+    path: bool,
+    status: bool,
+    response: bool,
+) -> bool {
+    method && path && status && response
+}
+
 pub fn framework_omitted(total: usize, limit: usize) -> usize {
     total.saturating_sub(limit)
 }

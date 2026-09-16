@@ -14,8 +14,26 @@ const FEATURE_FACT_LIMIT: usize = 500;
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Author HTTP modules from one bounded, language-neutral application IR.")]
+    Application(ApplicationOptions),
     #[command(about = "Plan or apply one revision-bound framework feature migration.")]
     Feature(Options),
+}
+
+#[derive(Args)]
+pub struct ApplicationOptions {
+    #[arg(long, help = "Workspace-relative fr-http-application-1 JSON file.")]
+    pub ir: PathBuf,
+    #[arg(long, value_enum)]
+    pub to: crate::application_ir::Adapter,
+    #[arg(long, help = "Workspace-relative directory for new generated modules.")]
+    pub out: PathBuf,
+    #[arg(long = "check", value_delimiter = ',')]
+    pub checks: Vec<String>,
+    #[arg(long, default_value_t = 4096)]
+    pub diff_bytes: usize,
+    #[arg(long)]
+    pub write: bool,
 }
 
 #[derive(Args)]
@@ -720,6 +738,89 @@ fn source_has_external_references(project: &Project<'_>, source: &Path) -> bool 
 }
 
 impl Project<'_> {
+    pub fn migrate_application(&self, options: &ApplicationOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff byte limit must be between 0 and 65536."
+        );
+        let input = normalized_relative(&self.root, &options.ir, "IR input")?;
+        let out = destination(&self.root, &options.out)?;
+        let bytes = self
+            .sources
+            .get(&input)
+            .ok_or_else(|| {
+                anyhow::anyhow!("IR input must be a JSON file observed in the project snapshot.")
+            })?
+            .as_bytes();
+        ensure!(
+            bytes.len() <= 1_048_576,
+            "HTTP application input exceeds its byte bound."
+        );
+        let bundle: crate::application_ir::RouteBundle = serde_json::from_slice(bytes)?;
+        bundle.validate().map_err(anyhow::Error::msg)?;
+        let outputs = crate::application_ir::write_routes(&bundle.routes, options.to)
+            .map_err(anyhow::Error::msg)?;
+        let mut edits = EditSet::new();
+        let mut files = Vec::new();
+        for (relative, source) in &outputs {
+            let path = out.join(relative);
+            ensure!(
+                !path.exists() && std::fs::symlink_metadata(&path).is_err(),
+                "generated destination already exists: {}",
+                path.display()
+            );
+            let mut parent = path.parent();
+            while let Some(directory) = parent {
+                if directory == self.root {
+                    break;
+                }
+                if let Ok(metadata) = std::fs::symlink_metadata(directory) {
+                    ensure!(
+                        metadata.is_dir() && !metadata.file_type().is_symlink(),
+                        "generated destination crosses a symlink or non-directory: {}.",
+                        directory.display()
+                    );
+                }
+                parent = directory.parent();
+            }
+            edits.add(
+                path,
+                Edit::new(
+                    crate::span::Span::new(0, 0),
+                    source.clone(),
+                    "application IR HTTP adapter",
+                ),
+            );
+            files.push(json!({"path": options.out.join(relative), "status": "generated", "syntax": "reparse-strict"}));
+        }
+        let selected = crate::checks::select(&self.root, &options.checks)?;
+        let required_checks = selected
+            .as_ref()
+            .map(|selection| crate::history::CheckRequirement {
+                configuration_basis: selection.configuration_basis.clone(),
+                checks: selection.checks.clone(),
+            });
+        let model = serde_json::to_value(&bundle)?;
+        let mut report = self.envelope("migration");
+        report.as_object_mut().unwrap().extend(serde_json::from_value::<serde_json::Map<String, Value>>(json!({"schema": "fr-application-migration-1",
+                "migration": {"source": "application-ir", "target": options.to,
+                    "ir_object_digest": super::object_merkle(&model)?, "input_basis": format!("frha1:{}", super::hash(("fr-http-application-input-1", bytes))?),
+                    "files": files, "endpoints": bundle.routes,
+                    "coexistence": {"source_preserved": true, "cutover_applied": false},
+                    "integration": {"status": "manual", "reason": "Generated modules require explicit application registration and framework dependencies. Existing applications retain their source."},
+                    "runtime_proved": false,
+                    "limitations": ["Only declared JSON responses and path parameters are modeled.", "Implicit methods, URL decoding, middleware, errors and deployment behavior require framework checks."]},
+                "checks": selected.as_ref().map(|selection| &selection.checks),
+                "diff": "", "applied": false}))?);
+        Ok(Plan {
+            edits,
+            connected_changes: Vec::new(),
+            source_removal: None,
+            required_checks,
+            report,
+        })
+    }
+
     pub fn migrate_feature(&self, options: &Options) -> Result<Plan> {
         ensure!(
             options.diff_bytes <= 65_536,

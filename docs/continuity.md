@@ -1,10 +1,51 @@
 # Development continuity
 
+PR 38 merged as [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309).
+All four PR checks passed. Release PR 310 advances main to
+`31c62e659a05889cec6d85903f7d893958888f1b`, version 0.27.0. The active PR 39 branch
+`application_ir_transformations` starts directly from that main; no stale squash history is carried.
+
+The PR 39 foundation adds `src/application_ir.rs` and its HTTP writer module,
+`project application`, application Merkle disclosure and `migrate application`.
+The project model drains feature pages and checks exact unique identity coverage,
+parent completeness, cycles, depth and encoded size. It preserves source confidence,
+gaps and reader omissions. Route/component normalization boundaries remain explicit.
+
+`fr-http-application-1` supplies agent-authored JSON responses and path parameters
+through Next.js, FastAPI, Express and Go standard HTTP writers. The Python
+`fr_ir.application` constructors mirror the IR. New outputs use the existing
+strict-reparse preview, plan basis, saved history, declared checks, patch export and
+undo/redo workflow. Registration, dependencies and source cutover remain manual in
+this authored subset; the richer existing feature planner remains available.
+
+Focused tests cover reserved keys, import-shadowing path names, ambiguous matchers,
+safe integers, bodyless statuses and resource limits. Lean models prove critical
+policy laws, with shared finite Rust/Python/Lean cases. The complete Python suite
+passes 115 tests and `ty check sdk/python/src` passes. Pinned real-framework fixtures
+compare generated values/statuses with independent IR evaluation. Full gate results
+will be recorded after the checkpoint finishes verification.
+
+B918 fixes a reproduced CLI/model mismatch: project disclosure accepted depth 9
+although the Lean policy and SDK refused it. View construction now invokes the
+shared admission predicate. A pagination regression also checks more than 500
+feature facts against the assembled hierarchy's exact identities.
+
+B919 fixes native/SDK floating-point Merkle disagreement. Python now follows native
+fixed/scientific spelling before hashing. Boundary and deterministic IEEE bit cases
+compare scalar addresses and independently restore their object packs.
+
+Next work stays within PR 39: source normalization and common adapters, connected
+application migration, compatible frontend transformations, navigator routing and
+complete acceptance. `PLAN.md` retains those unfinished deliverables. No new live
+Codex quota use or general source-equivalence result is claimed.
+
+Merged PR 38 implementation and evidence follow:
+
 PR 36 merged as [GitHub PR 305](https://github.com/e6qu/fun-refactor/pull/305). All four GitHub CI
 jobs and its merged-main deep audit passed. PR 37 merged as
 [GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), after release PR 306.
 
-PR 38 is [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
+PR 38 was [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
 `cross_language_formalization`, based on `origin/main`
 `cd3b6bba6bf714386c8a40ec82c5d3aca438c35f` (release PR 308, version 0.26.0).
 Implementation checkpoint `95c7d8d0` adds the
@@ -40,14 +81,14 @@ The complete native gate passes, with 311/311 supported capability cells exercis
 formalization tests, 28 Rust-driven SDK tests and the strict 81-job Lean build.
 The deep gate passes 14 agreement, two conformance, seven round-trip, seven self-translation and
 100 Lean kernel tests. All five retained external replay archives pass checks, behavior oracles and
-exact reversal; the complete deep gate passes 131 tests. PR 38 is ready for review. GitHub title,
+exact reversal; the complete deep gate passed 131 tests before merge. GitHub title,
 WASM and playground checks pass at source commit `95ef0663`; its native check remains pending.
 Release PR 308 landed after these gates. The conflict-free rebase preserves all four implementation
 patches according to `git range-diff`. Post-rebase formatting, locked workspace metadata and
 release-evidence normalization pass; all nine workspace packages use 0.26.0. The rebased branch
 triggers a new GitHub check run.
 
-PR 39 is next after this PR merges: generic hierarchical framework transformation through a common
+PR 39 is active: generic hierarchical framework transformation through a common
 application IR and adapters, with checked multi-file delivery, progressive disclosure and Lean
 admission/compatibility policies. PR 40 closes the completion audit and live-agent validation gaps.
 

@@ -35,13 +35,14 @@ construct, or claiming general source equivalence from a translated Lean model.
 
 ## Current state
 
-The project has merged PRs 0 through 37. The latest checkpoint is
-[GitHub PR 307](https://github.com/e6qu/fun-refactor/pull/307), with unified tagged operations,
-multi-target Merkle evidence and checked agent-authored proof delivery through the existing planners.
-PR 38 is [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309) on
-`cross_language_formalization`, rebased onto release-main commit `cd3b6bba` (PR 308, version 0.26.0).
-Its complete local acceptance gates pass. The release-only rebase preserves the implementation
-patches; formatting, locked metadata and release-evidence checks pass. The PR is ready for review.
+The project has merged PRs 0 through 38. The latest implementation is
+[GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309), with typed pure formalization,
+structural model coverage and independent source/IR/model identities. Its PR CI passed.
+Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
+PR 39 is in progress on `application_ir_transformations`, started directly from that main.
+Its first checkpoint adds a bounded application hierarchy, Merkle disclosure and
+agent-authored HTTP IR with four framework writers. Existing-source adapter conversion
+and connected application migration still require completion.
 
 | Measure | Current value |
 |---|---:|
@@ -50,7 +51,7 @@ patches; formatting, locked metadata and release-evidence checks pass. The PR is
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 763 |
+| Fixed defects | 765 |
 | Open defects | 1 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -83,6 +84,8 @@ confidence or requested effect falls outside the checked contract.
   compact successful evidence.
 - Lean kernels for critical admission and transition policies, strict Rust-to-Lean source anchors,
   signature maps, proof-debt ratchets and exhaustive shared Rust/Lean cases.
+- Bounded executable pure IR and Python constructors, typed formalization across eight readers,
+  and retained structural/provenance snapshots for ten declarative language classes.
 - An external-project formalization workbench with source-free property plans and bounded goal
   disclosure. It provides proof-preserving scaffolds, agent-written tactics, checked proof writes,
   generated CI and verification evidence.
@@ -147,42 +150,28 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 38 | Cross-Language Formalization and Correspondence | Ready for review (#309) |
-| PR 39 | Generic Hierarchical Framework Transformation | Planned |
+| PR 39 | Generic Hierarchical Framework Transformation | In progress; shared IR foundation implemented |
 | PR 40 | Completion Audit and Agent Validation | Planned |
-
-### PR 38. Cross-Language Formalization and Correspondence
-
-Goal: make Lean formal verification adoptable through one bounded workflow for each applicable
-language. Tighten the connection between source, shared IR and generated models.
-
-Implemented work:
-
-- Bounded executable pure IR in Rust and Lean, with matching Python constructors and direct CLI
-  evaluation. Values, binders, branches, products and arithmetic carry explicit resource and
-  partiality policies.
-- General kernel laws for resolution, shadowing, lifted indices, literal substitution, lazy
-  branches, arithmetic bounds and determinism. Parser precedence and lowering remain separately
-  integration-tested boundaries.
-- Typed pure declaration workflows for Rust, Go, Java, Python, TypeScript, TSX, Zig and Lean;
-  bounded structural/provenance models for all ten declarative language classes. Each excluded
-  construct receives its semantic refusal reason.
-- Language-neutral signatures and independent source, IR, term, model and library identities.
-  Named Boolean kernel/model theorems retain agent-written tactics and explicit source-equivalence
-  limits. Named terms keep large proof tasks small; goal identities bind their model context.
-- Scaffolds, custom properties, proof checks, preserved regions, drift, strict verification, CI,
-  history and Git delivery reuse the checked lifecycle. The portable skill and SDK explain the
-  workflow without generating the agent's properties or tactics.
-
-Acceptance status lives in [development continuity](docs/continuity.md). The complete native and
-WASM gates, strict Lean build, source-toolchain fixtures and Python checks pass. Deep agreement,
-conformance, round trips, self-translation and all 100 Lean tests and all five retained external replay archives pass. Source implementation equivalence
-remains unproved.
 
 ### PR 39. Generic Hierarchical Framework Transformation
 
 Goal: translate supported application features through a common hierarchy rather than through
 example-specific or pair-specific source templates.
+
+Implemented foundation:
+
+- `project application` preserves the complete bounded feature-fact hierarchy and exact identities.
+  Reader gaps remain explicit; route/component semantics retain normalization boundaries.
+- Application IR supports revision-bound Merkle reveal and existing object-store sessions.
+- Agent-authored `fr-http-application-1` behavior has deterministic Next.js, FastAPI, Express and
+  Go HTTP writers, matching Python constructors and checked new-file history delivery.
+- Lean models cover admission, compatibility, JSON status safety, exact unique coverage and
+  endpoint agreement. Parser/writer and pinned framework runtime tests remain separate.
+
+Next implementation work is existing-source normalization and adapters, then connected
+registration/dependencies/cutover and compatible frontend conversion. The authored HTTP subset
+currently requires manual integration and does not replace the richer Next.js/FastAPI feature planner.
+These are unfinished PR 39 deliverables, rather than completion claims.
 
 Deliverables:
 

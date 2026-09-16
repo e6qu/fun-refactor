@@ -858,6 +858,11 @@ fr migrate feature <FEATURE-ID> --to nextjs --out web/app
 ```
 
 Plan one route-centered migration from a revision-bound `fr project features` ID.
+`fr migrate application --ir FILE --to ADAPTER --out DIRECTORY` authors JSON HTTP behavior.
+Its bounded IR has Next.js, FastAPI, Express and Go HTTP writers.
+`fr project application` and `project disclose HANDLE --view application` expose the
+application hierarchy. See [the application IR contract](docs/application-ir.md) for
+schemas, SDK constructors, manual integration and formal/runtime evidence boundaries.
 The current subset supports Next.js App Router to FastAPI and FastAPI to Next.js when every selected method shares one source file.
 A FastAPI destination names one `.py` file. A Next.js destination names an `app` directory, beneath which the command creates route files.
 

@@ -132,6 +132,15 @@ impl Drop for RunningNext {
 }
 
 fn run_nextjs_route(runtime: &NextRuntime, root: &Path, payloads: &[Value]) -> Vec<Value> {
+    run_nextjs_route_at(runtime, root, payloads, "/events")
+}
+
+fn run_nextjs_route_at(
+    runtime: &NextRuntime,
+    root: &Path,
+    payloads: &[Value],
+    path: &str,
+) -> Vec<Value> {
     let web = root.join("web");
     #[cfg(unix)]
     std::os::unix::fs::symlink(runtime.root.join("node_modules"), web.join("node_modules"))
@@ -168,7 +177,7 @@ fn run_nextjs_route(runtime: &NextRuntime, root: &Path, payloads: &[Value]) -> V
         command
             .current_dir(&web)
             .arg(runner)
-            .arg(format!("http://127.0.0.1:{port}/events"));
+            .arg(format!("http://127.0.0.1:{port}{path}"));
         for payload in payloads {
             command.arg(payload.to_string());
         }
@@ -195,6 +204,53 @@ fn fr(root: &Path, args: &[&str]) -> Value {
     });
     let stdout = assert_success(output);
     serde_json::from_str(&stdout).unwrap_or_else(|error| panic!("{error}: {stdout}"))
+}
+
+#[test]
+fn common_application_ir_runs_through_real_nextjs() {
+    use fun_refactor::application_ir::{write_routes, Adapter, HttpRoute};
+    let Some(runtime) = nextjs_runtime() else {
+        return;
+    };
+    let dir = tempfile::Builder::new()
+        .prefix(".fr-application-runtime-")
+        .tempdir_in(&runtime.root)
+        .unwrap();
+    let route: HttpRoute = serde_json::from_value(serde_json::json!({
+        "method": "POST", "path": "/records/{JSONResponse}", "status": 201,
+        "response": {"kind": "object", "fields": {
+            "__proto__": {"kind": "object", "fields": {"safe": {"kind": "literal", "value": true}}},
+            "id": {"kind": "path", "name": "JSONResponse"},
+            "nested": {"kind": "array", "items": [{"kind": "literal", "value": null}, {"kind": "literal", "value": "é\n\"\\"}, {"kind": "literal", "value": -9007199254740991_i64}]}
+        }}
+    })).unwrap();
+    for (path, source) in write_routes(std::slice::from_ref(&route), Adapter::Nextjs).unwrap() {
+        let destination = dir.path().join("web/app").join(path);
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(destination, source).unwrap();
+    }
+    fs::write(
+        dir.path().join("web/package.json"),
+        include_str!("migration-runtime/nextjs-framework/package.json"),
+    )
+    .unwrap();
+    let results = run_nextjs_route_at(
+        &runtime,
+        dir.path(),
+        &[serde_json::json!({})],
+        "/records/chosen",
+    );
+    let expected = route
+        .response
+        .evaluate(&std::collections::BTreeMap::from([(
+            "JSONResponse".into(),
+            "chosen".into(),
+        )]))
+        .unwrap();
+    assert_eq!(
+        results,
+        vec![serde_json::json!({"status":201, "body": expected})]
+    );
 }
 
 fn feature(root: &Path) -> String {

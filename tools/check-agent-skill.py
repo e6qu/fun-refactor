@@ -14,6 +14,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills/fr"
 ROUTES = {
+    "application": ["SKILL.md", "references/surfaces.md", "references/application.md"],
     "guide": ["SKILL.md", "references/guide.md"],
     "intent": ["SKILL.md", "references/intents.md"],
     "guided-intent": ["SKILL.md", "references/guide.md", "references/intents.md"],

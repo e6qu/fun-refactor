@@ -24,6 +24,7 @@ pub use agent_actions::{
 pub use agent_intent::{agent_action_mode, agent_intent_section_allowed};
 pub(crate) mod agent_guide;
 pub use agent_guide::{agent_guide_route_admitted, agent_guide_step};
+mod application;
 mod batch;
 mod capability_action;
 mod components;
@@ -75,6 +76,8 @@ pub use task::task_author_target_candidate;
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Read a versioned application hierarchy with explicit semantic boundaries.")]
+    Application(application::Options),
     #[command(about = "Run several bounded read queries against one verified project snapshot.")]
     Batch(batch::Options),
     #[command(
@@ -1458,6 +1461,7 @@ impl<'a> Project<'a> {
             Command::Routes(selection) => self.routes(selection, false, false),
             Command::Contracts { selection, types } => self.routes(selection, true, *types),
             Command::Features(options) => self.features(options),
+            Command::Application(options) => self.application(options),
             Command::Technologies(options) => self.technologies(options),
             Command::Styles(selection) => self.styles(selection),
             Command::Diagrams(selection) => self.diagrams(selection),

@@ -2,6 +2,73 @@ import Init.Data.List.Sort.Lemmas
 
 namespace FrKernels.Project
 
+-- fr:spec src/project/framework_kernel.rs::application_adapter_supports @ 316cfe76f5e124f7a5889e234ad0512c0055b1a96c21d72cd574331079177fe8
+-- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdapterSupports (adapter feature : Nat) : Bool :=
+  decide ((feature ≤ 1 ∧ adapter ≤ 3) ∨ (feature = 2 ∧ (adapter = 0 ∨ adapter = 4)))
+
+theorem http_adapters_require_http_features (feature : Nat) (adapter : Nat)
+    (http : adapter ≤ 3) (notNext : adapter ≠ 0)
+    (accepted : applicationAdapterSupports adapter feature = true) : feature ≤ 1 := by
+  simp only [applicationAdapterSupports, decide_eq_true_eq] at accepted
+  omega
+
+theorem react_refuses_http_routes (feature : Nat) (http : feature ≤ 1) :
+    applicationAdapterSupports 4 feature = false := by
+  simp only [applicationAdapterSupports, decide_eq_false_iff_not]
+  omega
+
+-- fr:spec src/project/framework_kernel.rs::application_adapters_compatible @ df8055a18f59bbc685aa469aac19b0ee215d7d6115e7d501abc1d0a994bc298b
+-- fr:signature source: usize => source: Nat; target: usize => target: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdaptersCompatible (source target feature : Nat) : Bool :=
+  decide (source ≠ target) && applicationAdapterSupports source feature &&
+    applicationAdapterSupports target feature
+
+theorem compatible_adapters_require_both_contracts (source target feature : Nat) :
+    applicationAdaptersCompatible source target feature = true ↔
+      source ≠ target ∧ applicationAdapterSupports source feature = true ∧
+        applicationAdapterSupports target feature = true := by
+  simp [applicationAdaptersCompatible, and_assoc]
+
+theorem adapter_conversion_is_irreflexive (adapter feature : Nat) :
+    applicationAdaptersCompatible adapter adapter feature = false := by
+  simp [applicationAdaptersCompatible]
+
+theorem adapter_conversion_is_symmetric (source target feature : Nat) :
+    applicationAdaptersCompatible source target feature =
+      applicationAdaptersCompatible target source feature := by
+  simp [applicationAdaptersCompatible, ne_comm, Bool.and_comm, Bool.and_left_comm, Bool.and_assoc]
+
+-- fr:spec src/project/framework_kernel.rs::application_json_status_admitted @ 6ae20783a53d601db4758776aa07a5f1bb755d9288167edbc32ad6d627ac1c3b
+-- fr:signature status: usize => status: Nat; return: bool => return: Bool
+def applicationJsonStatusAdmitted (status : Nat) : Bool :=
+  decide (200 ≤ status ∧ status ≤ 599 ∧ status ≠ 204 ∧ status ≠ 205 ∧ status ≠ 304)
+
+theorem portable_json_status_has_a_body (status : Nat) :
+    applicationJsonStatusAdmitted status = true ↔
+      200 ≤ status ∧ status ≤ 599 ∧ status ≠ 204 ∧ status ≠ 205 ∧ status ≠ 304 := by
+  simp [applicationJsonStatusAdmitted]
+
+-- fr:spec src/project/framework_kernel.rs::application_dispositions_complete @ 104eda39f60597ea715d07cee34f543df68e8ef558ad587dea53daae1d3b7d56
+-- fr:signature input: usize => input: Nat; assigned: usize => assigned: Nat; unique: bool => unique: Bool; exact_ids: bool => exactIds: Bool; return: bool => return: Bool
+def applicationDispositionsComplete (input assigned : Nat) (unique exactIds : Bool) : Bool :=
+  decide (input = assigned) && unique && exactIds
+
+theorem dispositions_require_exact_unique_coverage (input assigned : Nat) (unique exactIds : Bool) :
+    applicationDispositionsComplete input assigned unique exactIds = true ↔
+      input = assigned ∧ unique = true ∧ exactIds = true := by
+  simp [applicationDispositionsComplete, and_assoc]
+
+-- fr:spec src/project/framework_kernel.rs::application_endpoint_agreement @ 4b5e2f227f3ebec5cd647b07077bb5195393ce5236a8ea82dc27af6834a5d2bd
+-- fr:signature method: bool => method: Bool; path: bool => path: Bool; status: bool => status: Bool; response: bool => response: Bool; return: bool => return: Bool
+def applicationEndpointAgreement (method path status response : Bool) : Bool :=
+  method && path && status && response
+
+theorem endpoint_agreement_requires_every_observation (method path status response : Bool) :
+    applicationEndpointAgreement method path status response = true ↔
+      method = true ∧ path = true ∧ status = true ∧ response = true := by
+  simp [applicationEndpointAgreement, and_assoc]
+
 -- fr:spec src/project/framework_kernel.rs::framework_emitted @ 9afa46708862e53eb40bf7e4c5f732cf57c9007874e05a1efe18fe61d5b80ac7
 -- fr:signature total: usize => total: Nat; limit: usize => limit: Nat; return: usize => return: Nat
 def frameworkEmitted (total : Nat) (limit : Nat) : Nat := min total limit
