@@ -1,9 +1,9 @@
 {
   "schema": "fr-workflow-context-1",
   "passed": true,
-  "binary_sha256": "d8180cfca86132ed7f84ed7cee5493da2fa73bfbf371bdbbe8f2edbed1052e4a",
-  "source_commit": "1498bbe7d89ff43520e1b98cf6c4fc9f69e80e6c",
-  "repetitions": 3,
+  "binary_sha256": "11c9beae6a37c9465f81b38fb363b66fea32520d1a88b14f7e7717050eb564e5",
+  "source_commit": "7a90a8af8438a60f62ad03f5394603c15526f1fc",
+  "repetitions": 1,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
     "python": "3.14.6",
@@ -39,12 +39,7 @@
       ]
     }
   },
-  "tokenizer": {
-    "package": "tiktoken",
-    "version": "0.12.0",
-    "encoding": "o200k_base",
-    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
-  },
+  "tokenizer": null,
   "token_normalization": {
     "pattern": "temporary roots, elapsed milliseconds and isolated lowercase hexadecimal identities",
     "representatives": {
@@ -55,18 +50,18 @@
   },
   "summary": {
     "manual": {
-      "samples": 3,
+      "samples": 1,
       "calls": 7,
       "median_context_bytes": 6368,
-      "median_context_tokens": 2047,
-      "median_seconds": 0.28802041604649276
+      "median_context_tokens": null,
+      "median_seconds": 0.2451511649414897
     },
     "workflow": {
-      "samples": 3,
+      "samples": 1,
       "calls": 2,
       "median_context_bytes": 5638,
-      "median_context_tokens": 1896,
-      "median_seconds": 0.28420424996875226
+      "median_context_tokens": null,
+      "median_seconds": 0.20487916690763086
     }
   },
   "runs": [
@@ -76,21 +71,21 @@
       "calls": 7,
       "stdout": {
         "bytes": 5324,
-        "tokens": 1636
+        "tokens": null
       },
       "requests": {
         "bytes": 1044,
-        "tokens": 411
+        "tokens": null
       },
       "artifact": {
         "bytes": 0,
-        "tokens": 0
+        "tokens": null
       },
       "context": {
         "bytes": 6368,
-        "tokens": 2047
+        "tokens": null
       },
-      "seconds": 0.41971029399428517,
+      "seconds": 0.2451511649414897,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -102,125 +97,21 @@
       "calls": 2,
       "stdout": {
         "bytes": 5167,
-        "tokens": 1723
+        "tokens": null
       },
       "requests": {
         "bytes": 153,
-        "tokens": 48
+        "tokens": null
       },
       "artifact": {
         "bytes": 318,
-        "tokens": 125
+        "tokens": null
       },
       "context": {
         "bytes": 5638,
-        "tokens": 1896
+        "tokens": null
       },
-      "seconds": 0.2976393750286661,
-      "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
-      "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
-      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
-      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
-    },
-    {
-      "repetition": 2,
-      "arm": "workflow",
-      "calls": 2,
-      "stdout": {
-        "bytes": 5167,
-        "tokens": 1723
-      },
-      "requests": {
-        "bytes": 153,
-        "tokens": 48
-      },
-      "artifact": {
-        "bytes": 318,
-        "tokens": 125
-      },
-      "context": {
-        "bytes": 5638,
-        "tokens": 1896
-      },
-      "seconds": 0.28420424996875226,
-      "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
-      "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
-      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
-      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
-    },
-    {
-      "repetition": 2,
-      "arm": "manual",
-      "calls": 7,
-      "stdout": {
-        "bytes": 5324,
-        "tokens": 1636
-      },
-      "requests": {
-        "bytes": 1044,
-        "tokens": 411
-      },
-      "artifact": {
-        "bytes": 0,
-        "tokens": 0
-      },
-      "context": {
-        "bytes": 6368,
-        "tokens": 2047
-      },
-      "seconds": 0.28802041604649276,
-      "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
-      "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
-      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
-      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
-    },
-    {
-      "repetition": 3,
-      "arm": "manual",
-      "calls": 7,
-      "stdout": {
-        "bytes": 5324,
-        "tokens": 1636
-      },
-      "requests": {
-        "bytes": 1044,
-        "tokens": 411
-      },
-      "artifact": {
-        "bytes": 0,
-        "tokens": 0
-      },
-      "context": {
-        "bytes": 6368,
-        "tokens": 2047
-      },
-      "seconds": 0.2712172899628058,
-      "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
-      "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
-      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
-      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
-    },
-    {
-      "repetition": 3,
-      "arm": "workflow",
-      "calls": 2,
-      "stdout": {
-        "bytes": 5167,
-        "tokens": 1723
-      },
-      "requests": {
-        "bytes": 153,
-        "tokens": 48
-      },
-      "artifact": {
-        "bytes": 318,
-        "tokens": 125
-      },
-      "context": {
-        "bytes": 5638,
-        "tokens": 1896
-      },
-      "seconds": 0.2154601250658743,
+      "seconds": 0.20487916690763086,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",

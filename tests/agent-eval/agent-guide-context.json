@@ -2,17 +2,17 @@
   "schema": "fr-agent-guide-context-1",
   "bindings": {
     "tools/agent-guide-context.py": "4e63530ce66178352ad08f5327048d8029d9dccb3f9adac1921ffc29a5e52750",
-    "src/cli.rs": "c9472b6f0fefbd82f72b50f3bf3c9ecb27c617eae647edd6c71dd3b447413ac7",
+    "src/cli.rs": "cba3c3ee20d8f92d76686febda9e3eff952a3f991af18446461f5569097e988c",
     "src/capabilities.rs": "e221fca5fcf5227206a7eea7a3cff2b1222badd7b6f5ba9cec2969d7ba1b6a3e",
-    "src/project/agent_guide.rs": "450f9b0ddc3f844f13abc3c5ddd99e23de77aa2a2d9bb87e1979b4181debb038",
+    "src/project/agent_guide.rs": "ca2f140dfdb29a10cd0a2faf226d2107fc0ba2203390ad9aa0c1f2d47f2ec521",
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
     "sdk/python/src/fr_ir/guide.py": "e3ee9f05c61d339daae74ac11c1498ab4fa654289924e65fc5238bc5416c8167",
-    "sdk/python/src/fr_ir/ir.py": "8dff7d0abb001927ec60ce219b78fb8f1fb79df3ef5f75e1de3cdfc6d049d344",
-    "sdk/python/src/fr_ir/runtime.py": "749daee67fbdae92ddd79ad9a745f065aae23cecf02e2e521ccbecebc00783bd",
+    "sdk/python/src/fr_ir/ir.py": "9d16f0040919c05061b324d7d9d903a9668f22d81d4e111be6cf0c8d33bace09",
+    "sdk/python/src/fr_ir/runtime.py": "066330b686c9d6207ed41a08b202cb81296d413a9174fdc0d97e1c9e6420f7bf",
     "kernels/FrKernels/AgentGuide.lean": "1cc6763490c1fbd5c022f000fc2a5325a8fe5ce540ea7b272087277ff7f66eae",
-    "src/project/agent_actions.rs": "94bae0cea7c598036999245d3f82ff5c8d15071acb306cb7ee0f25e8244b69e4",
+    "src/project/agent_actions.rs": "0b7145488186b6e1b84430cc6c5e92b4da12f69c9c833e7c46639e0e17ef963a",
     "src/project/capability_action.rs": "0015847105a8f4857c698c7f398f70c30064de630a79cb51ee28286211c9c66b",
-    "sdk/python/src/fr_ir/intent_actions.py": "ff53a044b84107f0c6f71b37017ef37033b1909edcf7382707db81983a3f1426"
+    "sdk/python/src/fr_ir/intent_actions.py": "c8c29c1e6bf251f14ca8a8d644bf753c5a7eb932cf6480da5ffd018839c85d42"
   },
   "manual": {
     "program": "from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nhandle = client.project(\"find\", \"calculate\", \"--signature\").at(\"/rows/0/0\")\nreview = client.review(TaskChange([], [TaskTarget(\n    \"scalar\", handle, \"edit-body-scalar\", scalar=ScalarRequest(\"set-int\", \"7\", \"9\"),\n)], {\"files-changed\": 1, \"edits\": 1, \"changed-operations\": 1,\n    \"paths-changed\": [\"src/lib.rs\"]}, [\"compiler\"],\n    TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
@@ -94,7 +94,7 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:39358a600d5e1f7f2f50470daa165ce20596ba06c8c102ed3c21d1834a20780b"
+          "frtc1:f1f98c60b913d755600106271c87dbc1a4dff38e38795d70590310e1513678fb"
         ],
         "request_bytes": 598,
         "response_bytes": 4176
@@ -177,7 +177,7 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:58c1c8fb9386b2bbffb7e2e8e681f4d2fd61410444f01d5faac3312bc6cac691"
+          "frtc1:5fe03eedc5fd8c10fe026b52823e69c2b65e453fc69c4de797bd05432f4b3f8f"
         ],
         "request_bytes": 661,
         "response_bytes": 4176
@@ -282,7 +282,7 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:6fba154f10e316b2858d8e8fe84a127ededf7f8c0ae042e71238ad0b66584d85"
+          "frtc1:8e49d45d19380055b4a106380fa21fb10284ff7a7477400120c4b70a29e5f0b6"
         ],
         "request_bytes": 596,
         "response_bytes": 4176
