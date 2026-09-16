@@ -11,6 +11,14 @@ The project model drains feature pages and checks exact unique identity coverage
 parent completeness, cycles, depth and encoded size. It preserves source confidence,
 gaps and reader omissions. Route/component normalization boundaries remain explicit.
 
+The next checkpoint normalizes the shared literal JSON/path subset from Next.js,
+FastAPI, Express and Go standard HTTP handlers. It uses the existing semantic IR,
+not source-text templates. Equivalent generic fixtures produce equal response IR;
+effectful handlers retain manual dispositions. The Go route reader now recognizes
+method-aware standard-library `ServeMux.HandleFunc` declarations. A captured complete
+application report feeds the common migration writers after its object digest is
+recomputed and checked.
+
 `fr-http-application-1` supplies agent-authored JSON responses and path parameters
 through Next.js, FastAPI, Express and Go standard HTTP writers. The Python
 `fr_ir.application` constructors mirror the IR. New outputs use the existing
@@ -34,8 +42,8 @@ B919 fixes native/SDK floating-point Merkle disagreement. Python now follows nat
 fixed/scientific spelling before hashing. Boundary and deterministic IEEE bit cases
 compare scalar addresses and independently restore their object packs.
 
-Next work stays within PR 39: source normalization and common adapters, connected
-application migration, compatible frontend transformations, navigator routing and
+Next work stays within PR 39: connected application registration, dependency and
+cutover planning, compatible frontend transformations, navigator routing and
 complete acceptance. `PLAN.md` retains those unfinished deliverables. No new live
 Codex quota use or general source-equivalence result is claimed.
 

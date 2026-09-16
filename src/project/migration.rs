@@ -22,7 +22,10 @@ pub enum Command {
 
 #[derive(Args)]
 pub struct ApplicationOptions {
-    #[arg(long, help = "Workspace-relative fr-http-application-1 JSON file.")]
+    #[arg(
+        long,
+        help = "Workspace-relative route bundle, application IR, or application report JSON file."
+    )]
     pub ir: PathBuf,
     #[arg(long, value_enum)]
     pub to: crate::application_ir::Adapter,
@@ -753,13 +756,74 @@ impl Project<'_> {
             })?
             .as_bytes();
         ensure!(
-            bytes.len() <= 1_048_576,
-            "HTTP application input exceeds its byte bound."
+            bytes.len() <= 4_194_304,
+            "application IR input exceeds its byte bound."
         );
-        let bundle: crate::application_ir::RouteBundle = serde_json::from_slice(bytes)?;
-        bundle.validate().map_err(anyhow::Error::msg)?;
-        let outputs = crate::application_ir::write_routes(&bundle.routes, options.to)
-            .map_err(anyhow::Error::msg)?;
+        let mut value: Value = serde_json::from_slice(bytes)?;
+        let report_input =
+            value.get("schema").and_then(Value::as_str) == Some("fr-application-report-1");
+        if report_input {
+            let model = value
+                .get("model")
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("application report omitted its model."))?;
+            let digest = super::object_merkle(&model)?;
+            ensure!(
+                value.get("object_digest").and_then(Value::as_str) == Some(digest.as_str()),
+                "application report model does not match its object digest."
+            );
+            value = model;
+        }
+        let schema = value.get("schema").and_then(Value::as_str);
+        let (routes, model, source_kind, manual_boundaries) = match schema {
+            Some("fr-http-application-1") => {
+                let bundle: crate::application_ir::RouteBundle = serde_json::from_value(value)?;
+                bundle.validate().map_err(anyhow::Error::msg)?;
+                let model = serde_json::to_value(&bundle)?;
+                (bundle.routes, model, "route-bundle", 0usize)
+            }
+            Some(crate::application_ir::SCHEMA) => {
+                let application: crate::application_ir::ApplicationIr =
+                    serde_json::from_value(value)?;
+                application.validate().map_err(anyhow::Error::msg)?;
+                fn collect(
+                    node: &crate::application_ir::ApplicationNode,
+                    routes: &mut Vec<crate::application_ir::HttpRoute>,
+                    manual: &mut usize,
+                ) {
+                    if node.kind == "route" {
+                        if let Some(route) = &node.route {
+                            routes.push(route.clone());
+                        } else {
+                            *manual += 1;
+                        }
+                    }
+                    for child in &node.children {
+                        collect(child, routes, manual);
+                    }
+                }
+                let mut routes = Vec::new();
+                let mut manual = 0;
+                for node in &application.applications {
+                    collect(node, &mut routes, &mut manual);
+                }
+                crate::application_ir::validate_routes(&routes).map_err(anyhow::Error::msg)?;
+                let model = serde_json::to_value(&application)?;
+                (
+                    routes,
+                    model,
+                    if report_input {
+                        "project-application-report"
+                    } else {
+                        "project-application"
+                    },
+                    manual,
+                )
+            }
+            _ => anyhow::bail!("IR input must use fr-http-application-1 or fr-application-ir-1."),
+        };
+        let outputs =
+            crate::application_ir::write_routes(&routes, options.to).map_err(anyhow::Error::msg)?;
         let mut edits = EditSet::new();
         let mut files = Vec::new();
         for (relative, source) in &outputs {
@@ -800,12 +864,11 @@ impl Project<'_> {
                 configuration_basis: selection.configuration_basis.clone(),
                 checks: selection.checks.clone(),
             });
-        let model = serde_json::to_value(&bundle)?;
         let mut report = self.envelope("migration");
         report.as_object_mut().unwrap().extend(serde_json::from_value::<serde_json::Map<String, Value>>(json!({"schema": "fr-application-migration-1",
-                "migration": {"source": "application-ir", "target": options.to,
-                    "ir_object_digest": super::object_merkle(&model)?, "input_basis": format!("frha1:{}", super::hash(("fr-http-application-input-1", bytes))?),
-                    "files": files, "endpoints": bundle.routes,
+                "migration": {"source": "application-ir", "source_kind": source_kind, "target": options.to,
+                    "ir_object_digest": super::object_merkle(&model)?, "input_basis": format!("frha1:{}", super::hash(("fr-application-input-1", bytes))?),
+                    "files": files, "endpoints": routes, "manual_boundaries": manual_boundaries,
                     "coexistence": {"source_preserved": true, "cutover_applied": false},
                     "integration": {"status": "manual", "reason": "Generated modules require explicit application registration and framework dependencies. Existing applications retain their source."},
                     "runtime_proved": false,

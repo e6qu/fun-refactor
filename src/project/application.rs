@@ -5,6 +5,8 @@ use clap::Args;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod normalize;
+
 #[derive(Args)]
 pub struct Options {
     #[arg(
@@ -168,10 +170,12 @@ impl Project<'_> {
                 "feature pagination repeated a continuation."
             );
         }
+        let mut applications = hierarchy(rows)?;
+        normalize::routes(self, &mut applications)?;
         let ir = ApplicationIr {
             schema: SCHEMA.into(),
             revision: self.revision.clone(),
-            applications: hierarchy(rows)?,
+            applications,
             omissions: analysis,
             runtime_proved: false,
         };

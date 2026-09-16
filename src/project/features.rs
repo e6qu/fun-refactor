@@ -531,6 +531,7 @@ impl Project<'_> {
                     };
                     (root, basis, manifest)
                 }
+                "go-net-http" => (route["path"].clone(), "go-net-http-route-file", None),
                 _ => continue,
             };
             let app_key = key(&json!([framework, root]));
@@ -1540,7 +1541,10 @@ impl Project<'_> {
         }
         for route in items.iter().filter(|row| row["kind"] == "route") {
             let framework = route["framework_candidate"].as_str().unwrap_or("unknown");
-            if matches!(framework, "nextjs-app" | "fastapi" | "express") {
+            if matches!(
+                framework,
+                "nextjs-app" | "fastapi" | "express" | "go-net-http"
+            ) {
                 continue;
             }
             unsupported_framework_routes += 1;

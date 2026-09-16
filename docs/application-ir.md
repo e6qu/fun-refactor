@@ -12,10 +12,14 @@ admits at most 4096 nodes, depth 64 and 4 MiB of encoded JSON. Reader omissions
 remain explicit in `omissions`; draining output pages cannot recover evidence
 omitted by a source reader. Narrow the scope when those omissions matter.
 
-Route and component nodes currently retain a `boundary` instead of an executable
-program. Captured syntax evidence does not establish response or rendering behavior.
-The application projection does not automatically migrate an existing project.
-The earlier checked Next.js/FastAPI feature migration remains available.
+Route nodes carry a portable `route` when their handler is exactly the admitted
+literal JSON and path-binding subset. The normalizer reads the shared semantic IR,
+then recognizes explicit response wrappers for Next.js, FastAPI, Express and Go
+standard HTTP. Equivalent admitted handlers produce the same response expression.
+Calls, request bodies, queries, middleware, authentication, errors and other effects
+remain `manual` in `data.normalization`; their source evidence stays intact. Component
+nodes retain a rendering boundary. The richer checked Next.js/FastAPI feature
+migration remains available for request and response schema cases outside this subset.
 
 ## Bounded access and object storage
 
@@ -79,6 +83,18 @@ fr history undo TRANSACTION --write
 fr history redo TRANSACTION --write
 ```
 
+An existing project can use the same writer without an agent rebuilding the IR:
+
+```sh
+fr --json project application > application-report.json
+fr migrate application --ir application-report.json --to express --out generated
+```
+
+The migration accepts a route bundle, a bare `fr-application-ir-1` model, or the
+complete `fr-application-report-1` response. For a report it recomputes and checks
+the model's object digest. Only normalized routes are generated; the report counts
+manual route boundaries, and source files remain preserved.
+
 Preview first; retain `plan_basis` for an unchanged saved-plan or write request.
 The input must be a JSON file captured in the analyzed project snapshot.
 Existing destinations and paths crossing symlinks refuse. Every output belongs
@@ -122,5 +138,8 @@ request schemas and deployment behavior remain outside this subset.
 Lean proves adapter admission, compatibility, JSON status safety, exact unique
 disposition coverage and endpoint agreement policies. Shared finite Rust, Python
 and Lean cases check the executable policies. These are model and policy results.
-Parser extraction and generated code behavior remain separate integration tests;
+Parser extraction and generated code behavior remain separate integration tests.
+An integration fixture checks that equivalent Next.js, FastAPI, Express and Go
+handlers normalize to equal response IR before writing. These checks do not prove
+parser correctness.
 `runtime_proved` is false.

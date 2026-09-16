@@ -1,4 +1,4 @@
-//! What URLs a file serves, in the five frameworks that are not Next.js.
+//! What URLs a file serves in framework route declarations outside Next.js.
 
 use crate::lang::Language;
 use crate::parse::Parsers;
@@ -29,6 +29,7 @@ pub enum Framework {
     Flask,
     Axum,
     Gin,
+    GoNetHttp,
     Spring,
 }
 
@@ -39,6 +40,7 @@ impl std::fmt::Display for Framework {
             Framework::Flask => "flask",
             Framework::Axum => "axum",
             Framework::Gin => "gin",
+            Framework::GoNetHttp => "go-net-http",
             Framework::Spring => "spring",
         };
         f.write_str(name)
@@ -63,7 +65,7 @@ pub fn endpoints_of(source: &str, language: Language) -> Option<(Framework, Vec<
         Language::TypeScript | Language::Tsx => express(root, source, &lines),
         Language::Python => flask(root, source, &lines),
         Language::Rust => axum(root, source, &lines),
-        Language::Go => gin(root, source, &lines),
+        Language::Go => net_http(root, source, &lines).or_else(|| gin(root, source, &lines)),
         Language::Java => spring(root, source, &lines),
         _ => return None,
     };
@@ -395,6 +397,93 @@ fn gin(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework, Ve
         });
     }
     Some((Framework::Gin, found))
+}
+
+/// Go 1.22 `ServeMux.HandleFunc("GET /pets/{id}", handler)` declarations.
+fn net_http(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework, Vec<Endpoint>)> {
+    if !source.contains("\"net/http\"") {
+        return None;
+    }
+    let mut receivers = std::collections::BTreeSet::from(["http".to_owned()]);
+    for node in walk(root) {
+        if node.kind() != "short_var_declaration" {
+            continue;
+        }
+        let text = source[node.byte_range()].trim();
+        let Some((binding, value)) = text.split_once(":=") else {
+            continue;
+        };
+        let binding = binding.trim();
+        let compact: String = value
+            .chars()
+            .filter(|character| !character.is_whitespace())
+            .collect();
+        if !binding.is_empty()
+            && binding.bytes().enumerate().all(|(index, byte)| {
+                byte.is_ascii_alphabetic() || byte == b'_' || index > 0 && byte.is_ascii_digit()
+            })
+            && compact == "http.NewServeMux()"
+        {
+            receivers.insert(binding.to_owned());
+        }
+    }
+    let mut found = Vec::new();
+    for node in walk(root) {
+        if node.kind() != "call_expression" {
+            continue;
+        }
+        let Some(callee) = node.child_by_field_name("function") else {
+            continue;
+        };
+        if callee.kind() != "selector_expression" {
+            continue;
+        }
+        let Some(field) = callee.child_by_field_name("field") else {
+            continue;
+        };
+        if &source[field.byte_range()] != "HandleFunc" {
+            continue;
+        }
+        let Some(operand) = callee.child_by_field_name("operand") else {
+            continue;
+        };
+        if !receivers.contains(source[operand.byte_range()].trim()) {
+            continue;
+        }
+        let Some(arguments) = node.child_by_field_name("arguments") else {
+            continue;
+        };
+        let mut cursor = arguments.walk();
+        let given: Vec<Node> = arguments
+            .children(&mut cursor)
+            .filter(|child| child.is_named())
+            .collect();
+        let Some(pattern) = given
+            .first()
+            .and_then(|value| quoted(&source[value.byte_range()]))
+        else {
+            continue;
+        };
+        let Some((method, path)) = pattern.split_once(' ') else {
+            continue;
+        };
+        if !METHODS.contains(&method.to_ascii_lowercase().as_str()) || !path.starts_with('/') {
+            continue;
+        }
+        let path = if path == "/{$}" { "/" } else { path };
+        if path.contains('$') {
+            continue;
+        }
+        found.push(Endpoint {
+            method: method.to_ascii_uppercase(),
+            url: canonical_url(path),
+            handler: given
+                .get(1)
+                .and_then(|value| handler_name(&source[value.byte_range()])),
+            line: lines.line(node.start_byte()),
+        });
+    }
+    (!found.is_empty()).then_some((Framework::GoNetHttp, found))
 }
 
 /// `@GetMapping("/pets")` and `@RequestMapping(value = "/pets", method = GET)`.

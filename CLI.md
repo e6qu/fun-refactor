@@ -858,8 +858,10 @@ fr migrate feature <FEATURE-ID> --to nextjs --out web/app
 ```
 
 Plan one route-centered migration from a revision-bound `fr project features` ID.
-`fr migrate application --ir FILE --to ADAPTER --out DIRECTORY` authors JSON HTTP behavior.
-Its bounded IR has Next.js, FastAPI, Express and Go HTTP writers.
+`fr migrate application --ir FILE --to ADAPTER --out DIRECTORY` authors or converts
+bounded JSON HTTP behavior. `FILE` may contain a route bundle, application model, or
+complete `project application` report. Its bounded IR has Next.js, FastAPI, Express
+and Go HTTP readers and writers for literal JSON responses and path bindings.
 `fr project application` and `project disclose HANDLE --view application` expose the
 application hierarchy. See [the application IR contract](docs/application-ir.md) for
 schemas, SDK constructors, manual integration and formal/runtime evidence boundaries.

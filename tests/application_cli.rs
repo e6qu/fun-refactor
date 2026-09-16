@@ -202,3 +202,159 @@ fn application_hierarchy_drains_feature_pages_without_losing_identities() {
     }
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn application_normalizes_the_shared_literal_http_subset_across_frameworks() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("app/next/[id]")).unwrap();
+    fs::write(
+        dir.path().join("package.json"),
+        r#"{"dependencies":{"express":"5.2.1","next":"16.3.5"}}"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("app/next/[id]/route.ts"),
+        r#"export async function GET(_request: Request, context: {params: Promise<{id: string}>}) {
+  const params = await context.params;
+  return Response.json({id: params["id"], framework: "portable"}, {status: 201});
+}
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        r#"from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+app = FastAPI()
+@app.get('/fast/{id}')
+def show_fast(id: str):
+    return JSONResponse(content={"id": id, "framework": "portable"}, status_code=201)
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("express.ts"),
+        r#"function showExpress(req: Request, res: Response) {
+  return res.status(201).json({id: req.params["id"], framework: "portable"});
+}
+app.get('/express/:id', showExpress);
+"#,
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("server.go"),
+        r#"package sample
+import (
+    "encoding/json"
+    "net/http"
+)
+func showGo(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(201)
+    json.NewEncoder(w).Encode(map[string]any{"id": r.PathValue("id"), "framework": "portable"})
+}
+func routes() http.Handler {
+    mux := http.NewServeMux()
+    mux.HandleFunc("GET /go/{id}", showGo)
+    return mux
+}
+"#,
+    )
+    .unwrap();
+
+    let report = ok(dir.path(), &["project", "application"]);
+    fs::write(
+        dir.path().join("application-model.json"),
+        serde_json::to_vec(&report).unwrap(),
+    )
+    .unwrap();
+    fn routes(node: &Value, found: &mut Vec<Value>) {
+        if let Some(route) = node.get("route") {
+            found.push(route.clone());
+            assert_eq!(node["data"]["normalization"]["status"], "portable");
+        }
+        for child in node["children"].as_array().unwrap() {
+            routes(child, found);
+        }
+    }
+    let mut found = Vec::new();
+    for application in report["model"]["applications"].as_array().unwrap() {
+        routes(application, &mut found);
+    }
+    found.sort_by(|left, right| left["path"].as_str().cmp(&right["path"].as_str()));
+    assert_eq!(
+        found
+            .iter()
+            .map(|route| (
+                route["path"].as_str().unwrap(),
+                route["status"].as_u64().unwrap()
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            ("/express/{id}", 201),
+            ("/fast/{id}", 201),
+            ("/go/{id}", 201),
+            ("/next/{id}", 201)
+        ]
+    );
+    let response = found[0]["response"].clone();
+    for route in &found {
+        assert_eq!(route["response"]["fields"]["id"]["kind"], "path");
+        assert_eq!(route["response"], response);
+    }
+    assert!(fun_refactor::project::framework_kernel::application_endpoint_agreement(
+        found.iter().all(|route| route["method"] == "GET"),
+        found.iter().all(|route| route["path"].as_str().unwrap().ends_with("/{id}")),
+        found.iter().all(|route| route["status"] == 201),
+        found.iter().all(|route| route["response"] == response),
+    ));
+    let migration = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "application",
+            "--ir",
+            "application-model.json",
+            "--to",
+            "fastapi",
+            "--out",
+            "generated",
+        ],
+    );
+    assert_eq!(
+        migration["migration"]["source_kind"],
+        "project-application-report"
+    );
+    assert_eq!(migration["migration"]["manual_boundaries"], 0);
+    assert_eq!(
+        migration["migration"]["endpoints"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
+}
+
+#[test]
+fn application_keeps_effectful_handlers_as_explicit_manual_boundaries() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/records/{id}')\ndef show(id: str):\n    return load_record(id)\n",
+    )
+    .unwrap();
+    let report = ok(dir.path(), &["project", "application"]);
+    fn route(node: &Value) -> Option<&Value> {
+        if node["kind"] == "route" {
+            return Some(node);
+        }
+        node["children"].as_array()?.iter().find_map(route)
+    }
+    let route = report["model"]["applications"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(route)
+        .unwrap();
+    assert!(route.get("route").is_none());
+    assert_eq!(route["data"]["normalization"]["status"], "manual");
+}
