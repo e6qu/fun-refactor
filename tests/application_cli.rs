@@ -78,6 +78,121 @@ fn application_adapters_use_review_history_and_owned_new_files() {
 }
 
 #[test]
+fn application_fastapi_registration_and_dependencies_share_one_transaction() {
+    let dir = tempfile::tempdir().unwrap();
+    input(dir.path());
+    let application = "from fastapi import FastAPI\n\napp = FastAPI()\n";
+    let manifest = "[project]\nname = \"sample\"\nversion = \"1.0.0\"\ndependencies = []\n";
+    fs::write(dir.path().join("app.py"), application).unwrap();
+    fs::write(dir.path().join("pyproject.toml"), manifest).unwrap();
+    let args = [
+        "migrate",
+        "application",
+        "--ir",
+        "application.json",
+        "--to",
+        "fastapi",
+        "--out",
+        "generated",
+        "--register-with",
+        "app.py::app",
+        "--dependency-manifest",
+        "pyproject.toml",
+        "--dependency-requirement",
+        "fastapi==0.141.1",
+        "--save-plan",
+    ];
+    let preview = ok(dir.path(), &args);
+    assert_eq!(preview["migration"]["integration"]["status"], "connected");
+    assert_eq!(
+        preview["migration"]["integration"]["dependencies"]["status"],
+        "updated"
+    );
+    let transaction = preview["transaction"].as_u64().unwrap().to_string();
+    ok(dir.path(), &["history", "apply", &transaction, "--write"]);
+    assert!(fs::read_to_string(dir.path().join("app.py"))
+        .unwrap()
+        .contains("app.include_router(fr_migrated_router)"));
+    assert!(fs::read_to_string(dir.path().join("pyproject.toml"))
+        .unwrap()
+        .contains("fastapi==0.141.1"));
+    assert!(dir.path().join("generated/routes.py").is_file());
+    ok(dir.path(), &["history", "undo", &transaction, "--write"]);
+    assert_eq!(
+        fs::read_to_string(dir.path().join("app.py")).unwrap(),
+        application
+    );
+    assert_eq!(
+        fs::read_to_string(dir.path().join("pyproject.toml")).unwrap(),
+        manifest
+    );
+    assert!(!dir.path().join("generated/routes.py").exists());
+}
+
+#[test]
+fn application_nextjs_uses_captured_app_router_placement() {
+    let dir = tempfile::tempdir().unwrap();
+    input(dir.path());
+    fs::write(
+        dir.path().join("package.json"),
+        r#"{"dependencies":{"next":"16.3.5"}}"#,
+    )
+    .unwrap();
+    let report = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "application",
+            "--ir",
+            "application.json",
+            "--to",
+            "nextjs",
+            "--out",
+            "app",
+        ],
+    );
+    assert_eq!(report["migration"]["integration"]["status"], "connected");
+    assert_eq!(
+        report["migration"]["integration"]["registration"]["framework"],
+        "nextjs-app"
+    );
+    assert_eq!(
+        report["migration"]["integration"]["dependencies"]["status"],
+        "satisfied"
+    );
+}
+
+#[test]
+fn application_migration_can_normalize_the_project_snapshot_without_an_ir_file() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        "from fastapi import FastAPI\nfrom fastapi.responses import JSONResponse\napp = FastAPI()\n@app.get('/records/{id}')\ndef show(id: str):\n    return JSONResponse(content={'id': id}, status_code=200)\n",
+    )
+    .unwrap();
+    let report = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "application",
+            "--project",
+            ".",
+            "--to",
+            "express",
+            "--out",
+            "generated",
+        ],
+    );
+    assert_eq!(report["migration"]["source_kind"], "project-snapshot");
+    assert_eq!(
+        report["migration"]["endpoints"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(report["migration"]["manual_boundaries"], 0);
+    assert!(!dir.path().join("generated").exists());
+}
+
+#[test]
 fn application_hierarchy_preserves_every_fact_and_merkle_address() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("api.py"), "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/records/{id}')\ndef show(id: str):\n    return {'id': id}\n").unwrap();
@@ -262,9 +377,16 @@ func routes() http.Handler {
     .unwrap();
 
     let report = ok(dir.path(), &["project", "application"]);
+    let mut migration_report = report.clone();
+    migration_report["model"]["applications"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|application| application["data"]["application"]["framework"] == "express");
+    migration_report["object_digest"] =
+        json!(fun_refactor::project::object_merkle(&migration_report["model"]).unwrap());
     fs::write(
         dir.path().join("application-model.json"),
-        serde_json::to_vec(&report).unwrap(),
+        serde_json::to_vec(&migration_report).unwrap(),
     )
     .unwrap();
     fn routes(node: &Value, found: &mut Vec<Value>) {
@@ -301,12 +423,16 @@ func routes() http.Handler {
         assert_eq!(route["response"]["fields"]["id"]["kind"], "path");
         assert_eq!(route["response"], response);
     }
-    assert!(fun_refactor::project::framework_kernel::application_endpoint_agreement(
-        found.iter().all(|route| route["method"] == "GET"),
-        found.iter().all(|route| route["path"].as_str().unwrap().ends_with("/{id}")),
-        found.iter().all(|route| route["status"] == 201),
-        found.iter().all(|route| route["response"] == response),
-    ));
+    assert!(
+        fun_refactor::project::framework_kernel::application_endpoint_agreement(
+            found.iter().all(|route| route["method"] == "GET"),
+            found
+                .iter()
+                .all(|route| route["path"].as_str().unwrap().ends_with("/{id}")),
+            found.iter().all(|route| route["status"] == 201),
+            found.iter().all(|route| route["response"] == response),
+        )
+    );
     let migration = ok(
         dir.path(),
         &[
@@ -330,7 +456,7 @@ func routes() http.Handler {
             .as_array()
             .unwrap()
             .len(),
-        4
+        1
     );
 }
 
@@ -357,4 +483,66 @@ fn application_keeps_effectful_handlers_as_explicit_manual_boundaries() {
         .unwrap();
     assert!(route.get("route").is_none());
     assert_eq!(route["data"]["normalization"]["status"], "manual");
+}
+
+#[test]
+fn static_react_and_nextjs_components_share_one_frontend_ir() {
+    let mut normalized = Vec::new();
+    for (manifest, path, source, target, generated) in [
+        (
+            r#"{"dependencies":{"react":"19.3.0"}}"#,
+            "src/App.tsx",
+            "export default function App() { return <main className=\"shell\"><h1>Signals</h1><p role=\"status\">Ready</p></main>; }\n",
+            "nextjs",
+            "generated/page.tsx",
+        ),
+        (
+            r#"{"dependencies":{"next":"16.3.5","react":"19.3.0"}}"#,
+            "app/page.tsx",
+            "export default function Page() { return <main className=\"shell\"><h1>Signals</h1><p role=\"status\">Ready</p></main>; }\n",
+            "react",
+            "generated/App.tsx",
+        ),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("package.json"), manifest).unwrap();
+        let source_path = dir.path().join(path);
+        fs::create_dir_all(source_path.parent().unwrap()).unwrap();
+        fs::write(&source_path, source).unwrap();
+        let application = ok(dir.path(), &["project", "application"]);
+        fn component(node: &Value) -> Option<Value> {
+            if let Some(component) = node.get("component") {
+                return Some(component.clone());
+            }
+            node["children"].as_array()?.iter().find_map(component)
+        }
+        let component = application["model"]["applications"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find_map(component)
+            .unwrap();
+        normalized.push(component.clone());
+        let migration = ok(
+            dir.path(),
+            &[
+                "migrate",
+                "application",
+                "--project",
+                ".",
+                "--to",
+                target,
+                "--out",
+                "generated",
+            ],
+        );
+        assert_eq!(migration["migration"]["components"][0], component);
+        assert!(migration["migration"]["endpoints"].as_array().unwrap().is_empty());
+        assert!(migration["migration"]["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|file| file["path"] == generated));
+    }
+    assert_eq!(normalized[0]["root"], normalized[1]["root"]);
 }

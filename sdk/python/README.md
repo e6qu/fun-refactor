@@ -96,6 +96,8 @@ For language-neutral HTTP authoring, `fr_ir.application` provides `RouteBundle`,
 `HttpRoute`, `Literal`, `Path`, `Object` and `Array`. Its exclusive IR-file write feeds
 the reviewed `migrate application` planner. Application hierarchies also support
 `FrClient.context(handle, view="application")` and checked Merkle subtree storage.
+`StaticComponent`, `StaticElement` and `StaticText` mirror the bounded React/Next.js
+intrinsic JSX subset.
 See [the application IR contract](../../docs/application-ir.md) for exact boundaries.
 
 Install the current test extra and run the suite with pytest:

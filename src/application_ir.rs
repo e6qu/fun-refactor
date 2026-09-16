@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const SCHEMA: &str = "fr-application-ir-1";
 mod write;
-pub use write::write_routes;
+pub use write::{write_routes, write_static_component};
 
 fn encoded_size<T: Serialize + ?Sized>(value: &T, limit: usize) -> Result<usize, String> {
     struct Counter {
@@ -283,6 +283,100 @@ pub fn identifier(name: &str) -> bool {
         })
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum StaticNode {
+    Text {
+        value: String,
+    },
+    Element {
+        tag: String,
+        attributes: BTreeMap<String, String>,
+        children: Vec<StaticNode>,
+    },
+}
+
+impl StaticNode {
+    fn validate(
+        &self,
+        depth: usize,
+        nodes: &mut usize,
+        max_depth: &mut usize,
+    ) -> Result<(), String> {
+        *nodes += 1;
+        *max_depth = (*max_depth).max(depth);
+        if depth > 32 || *nodes > 1024 {
+            return Err("static component exceeds its node or depth bound.".into());
+        }
+        match self {
+            Self::Text { value } => {
+                if value.is_empty() || value.len() > 65_536 || value.trim() != value {
+                    return Err("static text must be bounded and have explicit whitespace.".into());
+                }
+            }
+            Self::Element {
+                tag,
+                attributes,
+                children,
+            } => {
+                if tag.is_empty()
+                    || tag.len() > 128
+                    || !tag.bytes().enumerate().all(|(index, byte)| {
+                        byte.is_ascii_lowercase()
+                            || index > 0 && (byte.is_ascii_digit() || byte == b'-')
+                    })
+                {
+                    return Err("static elements require lowercase intrinsic tag names.".into());
+                }
+                for (name, value) in attributes {
+                    if name.is_empty()
+                        || name.len() > 128
+                        || value.len() > 65_536
+                        || name.starts_with("on")
+                        || matches!(name.as_str(), "style" | "dangerouslySetInnerHTML")
+                        || !name.bytes().enumerate().all(|(index, byte)| {
+                            byte.is_ascii_alphabetic()
+                                || index > 0
+                                    && (byte.is_ascii_digit() || matches!(byte, b'-' | b'_'))
+                        })
+                    {
+                        return Err(
+                            "static component attribute exceeds the literal safe subset.".into(),
+                        );
+                    }
+                }
+                for child in children {
+                    child.validate(depth + 1, nodes, max_depth)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct StaticComponent {
+    pub name: String,
+    pub root: StaticNode,
+}
+
+impl StaticComponent {
+    pub fn validate(&self) -> Result<(), String> {
+        if !identifier(&self.name) || !self.name.chars().next().is_some_and(char::is_uppercase) {
+            return Err("static component needs a bounded upper-case identifier.".into());
+        }
+        let mut nodes = 0;
+        let mut depth = 0;
+        self.root.validate(0, &mut nodes, &mut depth)?;
+        let encoded = encoded_size(self, 1_048_576)?;
+        if !crate::framework_kernel::application_static_resources_admitted(nodes, depth, encoded) {
+            return Err("static component exceeds its resource policy.".into());
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ApplicationNode {
@@ -293,6 +387,8 @@ pub struct ApplicationNode {
     pub children: Vec<ApplicationNode>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub route: Option<HttpRoute>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub component: Option<StaticComponent>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub boundary: Option<String>,
 }
@@ -337,6 +433,9 @@ impl ApplicationIr {
             }
             if let Some(route) = &node.route {
                 route.validate()?;
+            }
+            if let Some(component) = &node.component {
+                component.validate()?;
             }
             for child in &node.children {
                 walk(child, depth + 1, ids)?;

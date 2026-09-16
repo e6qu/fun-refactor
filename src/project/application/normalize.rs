@@ -433,7 +433,18 @@ fn normalize_node(
     project: &Project<'_>,
     cache: &mut BTreeMap<(PathBuf, String), Vec<Function>>,
     node: &mut ApplicationNode,
+    application_framework: Option<String>,
 ) {
+    let application_framework = if node.kind == "application" {
+        node.data
+            .get("application")
+            .and_then(|value| value.get("framework"))
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .or(application_framework)
+    } else {
+        application_framework
+    };
     if node.kind == "route" {
         let route = node.data.get("route").cloned().unwrap_or(Value::Null);
         let framework_name = route
@@ -468,8 +479,45 @@ fn normalize_node(
             "Source evidence is retained, but executable response semantics require manual normalization."
         }.into());
     }
+    if node.kind == "component"
+        && matches!(
+            application_framework.as_deref(),
+            Some("react" | "nextjs-app")
+        )
+    {
+        node.component = (|| {
+            let path = node.source.get("path")?.as_str()?;
+            let line = node.source.get("line")?.as_u64()? as usize;
+            let name = node.data.get("component")?.get("name")?.as_str();
+            let source = project.sources.get(&project.root.join(path))?;
+            let parsed = Parsers::new()
+                .parse(crate::lang::Language::Tsx, source)
+                .ok()?;
+            if parsed.has_errors() {
+                return None;
+            }
+            super::super::components::static_component(&parsed, source, line, name)
+        })();
+        let portable = node.component.is_some();
+        node.data.insert(
+            "normalization".into(),
+            if portable {
+                json!({"status": "portable", "basis": "literal-intrinsic-jsx-tree", "runtime_proved": false})
+            } else {
+                json!({"status": "manual", "reason": "The component exceeds the bounded static intrinsic JSX subset.", "runtime_proved": false})
+            },
+        );
+        node.boundary = Some(
+            if portable {
+                "The intrinsic JSX tree is normalized; framework rendering and styling remain unproved."
+            } else {
+                "Source evidence is retained, but dynamic rendering semantics require manual normalization."
+            }
+            .into(),
+        );
+    }
     for child in &mut node.children {
-        normalize_node(project, cache, child);
+        normalize_node(project, cache, child, application_framework.clone());
     }
 }
 
@@ -501,7 +549,7 @@ fn reject_portable(node: &mut ApplicationNode) {
 pub(super) fn routes(project: &Project<'_>, applications: &mut [ApplicationNode]) -> Result<()> {
     let mut cache = BTreeMap::new();
     for application in applications {
-        normalize_node(project, &mut cache, application);
+        normalize_node(project, &mut cache, application, None);
         let mut normalized = Vec::new();
         collect(application, &mut normalized);
         if !normalized.is_empty() && validate_routes(&normalized).is_err() {

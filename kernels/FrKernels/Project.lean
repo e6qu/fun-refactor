@@ -69,6 +69,16 @@ theorem endpoint_agreement_requires_every_observation (method path status respon
       method = true ∧ path = true ∧ status = true ∧ response = true := by
   simp [applicationEndpointAgreement, and_assoc]
 
+-- fr:spec src/project/framework_kernel.rs::application_static_resources_admitted @ 1666f5a7a7d27295295248a4fabb82d539b519ea63aea4cf6d8d7b73c4ea1b34
+-- fr:signature nodes: usize => nodes: Nat; depth: usize => depth: Nat; encoded_bytes: usize => encodedBytes: Nat; return: bool => return: Bool
+def applicationStaticResourcesAdmitted (nodes depth encodedBytes : Nat) : Bool :=
+  decide (1 ≤ nodes ∧ nodes ≤ 1024 ∧ depth ≤ 32 ∧ encodedBytes ≤ 1048576)
+
+theorem static_resources_are_bounded (nodes depth encodedBytes : Nat) :
+    applicationStaticResourcesAdmitted nodes depth encodedBytes = true ↔
+      1 ≤ nodes ∧ nodes ≤ 1024 ∧ depth ≤ 32 ∧ encodedBytes ≤ 1048576 := by
+  simp [applicationStaticResourcesAdmitted]
+
 -- fr:spec src/project/framework_kernel.rs::framework_emitted @ 9afa46708862e53eb40bf7e4c5f732cf57c9007874e05a1efe18fe61d5b80ac7
 -- fr:signature total: usize => total: Nat; limit: usize => limit: Nat; return: usize => return: Nat
 def frameworkEmitted (total : Nat) (limit : Nat) : Nat := min total limit

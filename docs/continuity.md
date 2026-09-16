@@ -19,19 +19,35 @@ method-aware standard-library `ServeMux.HandleFunc` declarations. A captured com
 application report feeds the common migration writers after its object digest is
 recomputed and checked.
 
+`migrate application --project TARGET` removes the intermediate-file step and builds
+the application IR inside the migration snapshot. The guide chooses this common path
+for portable backend targets while retaining the richer Next.js/FastAPI feature
+planner when it applies. Explicit FastAPI application mounting and PEP 621 dependency
+updates share the generated-file transaction. Captured Next.js App Router placement
+is recognized as connected integration. Express and Go mounting and all common-source
+cutover remain manual.
+
+The frontend checkpoint adds a bounded static component IR. React and Next.js
+function components normalize only when they contain one intrinsic JSX tree with
+literal attributes and explicit text. Their roots agree across generic fixtures and
+write `App.tsx` or `page.tsx`. Dynamic expressions, props, hooks, events, styles,
+spreads and component calls remain manual. The SDK mirrors the tree. A Lean policy
+now checks its 1024-node, depth-32 and 1 MiB resource bounds against Rust and Python.
+
 `fr-http-application-1` supplies agent-authored JSON responses and path parameters
 through Next.js, FastAPI, Express and Go standard HTTP writers. The Python
 `fr_ir.application` constructors mirror the IR. New outputs use the existing
 strict-reparse preview, plan basis, saved history, declared checks, patch export and
-undo/redo workflow. Registration, dependencies and source cutover remain manual in
-this authored subset; the richer existing feature planner remains available.
+undo/redo workflow. Unrecognized registration and source cutover remain manual; the
+richer existing feature planner remains available.
 
 Focused tests cover reserved keys, import-shadowing path names, ambiguous matchers,
 safe integers, bodyless statuses and resource limits. Lean models prove critical
-policy laws, with shared finite Rust/Python/Lean cases. The complete Python suite
-passes 115 tests and `ty check sdk/python/src` passes. Pinned real-framework fixtures
-compare generated values/statuses with independent IR evaluation. Full gate results
-will be recorded after the checkpoint finishes verification.
+policy laws; 1,034 finite cases agree across Rust, Python and Lean. The complete
+Python suite passes 116 tests and `ty check sdk/python/src` passes. Pinned
+real-framework fixtures compare generated values/statuses with independent IR
+evaluation, and pinned React 19 renders equal generated React and Next.js trees.
+Full gate results will be recorded after the checkpoint finishes verification.
 
 B918 fixes a reproduced CLI/model mismatch: project disclosure accepted depth 9
 although the Lean policy and SDK refused it. View construction now invokes the
@@ -42,8 +58,8 @@ B919 fixes native/SDK floating-point Merkle disagreement. Python now follows nat
 fixed/scientific spelling before hashing. Boundary and deterministic IEEE bit cases
 compare scalar addresses and independently restore their object packs.
 
-Next work stays within PR 39: connected application registration, dependency and
-cutover planning, compatible frontend transformations, navigator routing and
+Next work stays within PR 39: remaining adapter registration and cutover planning,
+compatible frontend transformations, navigator completion and
 complete acceptance. `PLAN.md` retains those unfinished deliverables. No new live
 Codex quota use or general source-equivalence result is claimed.
 

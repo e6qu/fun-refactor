@@ -90,6 +90,16 @@ fr --json project application > application-report.json
 fr migrate application --ir application-report.json --to express --out generated
 ```
 
+For the smallest agent flow, keep construction and migration in one immutable
+project snapshot:
+
+```sh
+fr migrate application --project . --to go-net-http --out generated
+```
+
+`--project` also accepts a revision-bound project handle and supports `--feature`
+for one feature branch. It is mutually exclusive with `--ir`.
+
 The migration accepts a route bundle, a bare `fr-application-ir-1` model, or the
 complete `fr-application-report-1` response. For a report it recomputes and checks
 the model's object digest. Only normalized routes are generated; the report counts
@@ -99,7 +109,13 @@ Preview first; retain `plan_basis` for an unchanged saved-plan or write request.
 The input must be a JSON file captured in the analyzed project snapshot.
 Existing destinations and paths crossing symlinks refuse. Every output belongs
 to one strict-reparse transaction. `--check NAME` binds declared project checks.
-Changes outside generated files are absent from this authoring operation.
+FastAPI can connect an existing application and dependency manifest in the same
+transaction with `--register-with PATH::APP_SYMBOL`, `--dependency-manifest
+pyproject.toml` and an exact `--dependency-requirement`. Recognized Next.js `app`
+placement beneath a captured package with a `next` dependency is connected by
+placement. These edits share preview, review basis, apply, patch, undo and redo with
+the generated files. Express and Go registration remain explicit application-owner
+decisions.
 
 | Adapter | Output beneath `--out` | Explicit integration |
 |---|---|---|
@@ -109,8 +125,25 @@ Changes outside generated files are absent from this authoring operation.
 | Go standard HTTP | `routes.go`, package `frgenerated`, exporting `Handler()` | Use its handler in the owning Go application |
 | React | Refused for HTTP routes | React has no HTTP route writer |
 
-The generated integration status is `manual`. This operation does not register
-an existing application, change dependency manifests or perform source cutover.
+## Static frontend components
+
+React and Next.js function components also share a deliberately small executable
+subset. A portable component contains one intrinsic JSX tree with lowercase HTML
+tags, literal string attributes and explicit text children. The model refuses props,
+state, effects, other hooks, events, style expressions, component calls, fragments,
+spreads and arbitrary JavaScript expressions. Those facts remain in the hierarchy
+with a manual normalization boundary.
+
+One selected portable component writes `App.tsx` for React or `page.tsx` for Next.js.
+Multiple components refuse until the agent selects one feature branch, avoiding an
+invented page or component graph. The Python SDK mirrors `StaticComponent`,
+`StaticElement` and `StaticText`. Nodes admit depth 32, 1024 nodes and 1 MiB; unsafe
+event and raw-HTML attributes refuse. React-to-Next.js and Next.js-to-React fixtures
+produce the same static tree before generation.
+
+The generated integration status is `connected` only for a checked explicit FastAPI
+mount or recognized Next.js placement. Other targets report `manual`. Existing
+source remains preserved; application-IR migration does not perform source cutover.
 Generation is framework-independent JSON construction; there are no domain or
 fixture-name rules.
 
@@ -136,8 +169,8 @@ registration, URL decoding, implicit methods, errors, middleware, authentication
 request schemas and deployment behavior remain outside this subset.
 
 Lean proves adapter admission, compatibility, JSON status safety, exact unique
-disposition coverage and endpoint agreement policies. Shared finite Rust, Python
-and Lean cases check the executable policies. These are model and policy results.
+disposition coverage, endpoint agreement and static-tree resource policies. Shared
+finite Rust, Python and Lean cases check the executable policies. These are model and policy results.
 Parser extraction and generated code behavior remain separate integration tests.
 An integration fixture checks that equivalent Next.js, FastAPI, Express and Go
 handlers normalize to equal response IR before writing. These checks do not prove

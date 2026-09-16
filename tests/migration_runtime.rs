@@ -253,6 +253,80 @@ fn common_application_ir_runs_through_real_nextjs() {
     );
 }
 
+#[test]
+fn static_component_writers_compile_and_render_with_pinned_react() {
+    use fun_refactor::application_ir::{
+        write_static_component, Adapter, StaticComponent, StaticNode,
+    };
+    let Some(runtime) = nextjs_runtime() else {
+        return;
+    };
+    let dir = tempfile::Builder::new()
+        .prefix(".fr-application-runtime-")
+        .tempdir_in(&runtime.root)
+        .unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(
+        runtime.root.join("node_modules"),
+        dir.path().join("node_modules"),
+    )
+    .unwrap();
+    let component = StaticComponent {
+        name: "Status".into(),
+        root: StaticNode::Element {
+            tag: "main".into(),
+            attributes: std::collections::BTreeMap::from([("className".into(), "shell".into())]),
+            children: vec![StaticNode::Element {
+                tag: "h1".into(),
+                attributes: std::collections::BTreeMap::new(),
+                children: vec![StaticNode::Text {
+                    value: "Signals".into(),
+                }],
+            }],
+        },
+    };
+    for adapter in [Adapter::React, Adapter::Nextjs] {
+        let (path, source) = write_static_component(&component, adapter).unwrap();
+        fs::write(dir.path().join(path), source).unwrap();
+    }
+    let tsc = runtime.root.join("node_modules/.bin/tsc");
+    assert_success(command_output({
+        let mut command = Command::new(tsc);
+        command.current_dir(dir.path()).args([
+            "--pretty",
+            "false",
+            "--strict",
+            "--target",
+            "ES2022",
+            "--module",
+            "NodeNext",
+            "--moduleResolution",
+            "NodeNext",
+            "--jsx",
+            "react-jsx",
+            "--esModuleInterop",
+            "--skipLibCheck",
+            "--outDir",
+            "dist",
+            "App.tsx",
+            "page.tsx",
+        ]);
+        command
+    }));
+    fs::write(
+        dir.path().join("render.cjs"),
+        "const React = require('react');\nconst {renderToStaticMarkup} = require('react-dom/server');\nconst files = ['./dist/App.js', './dist/page.js'];\nconsole.log(JSON.stringify(files.map(file => renderToStaticMarkup(React.createElement(require(file).default)))));\n",
+    )
+    .unwrap();
+    assert_eq!(
+        run_json("node", dir.path(), "render.cjs"),
+        serde_json::json!([
+            "<main class=\"shell\"><h1>Signals</h1></main>",
+            "<main class=\"shell\"><h1>Signals</h1></main>"
+        ])
+    );
+}
+
 fn feature(root: &Path) -> String {
     let report = fr(root, &["project", "features", "--limit", "500"]);
     report["items"]

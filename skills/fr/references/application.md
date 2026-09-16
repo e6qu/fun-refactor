@@ -33,14 +33,20 @@ the project snapshot. The SDK refuses overwriting an existing authored file.
 Preview with `migrate application --ir application.json --to fastapi --out generated`.
 The input may also be the complete JSON output of `project application`; its model
 digest is rechecked and its normalized routes feed the same writers.
+Prefer `migrate application --project TARGET --to ADAPTER --out DIRECTORY` when no
+intermediate artifact is needed. It normalizes and previews inside one snapshot.
 Targets also include `nextjs`, `express` and `go-net-http`. React refuses HTTP
 authoring. Retain the exact plan basis before `--save-plan` or `--write`. Use the
 returned history transaction for declared checks, apply, patch export, undo and redo.
 
-Generation requires new owned paths. Integration is manual: mount generated routers,
-declare framework dependencies or choose the Next.js app directory explicitly.
-Existing source cutover and registration use the earlier checked Next.js/FastAPI
-feature workflow where applicable.
+React and Next.js static function components share one smaller subset: intrinsic
+lowercase tags, literal string attributes and explicit text. Dynamic expressions,
+props, hooks, events, styles, spreads and component calls stay manual. Select one
+feature branch before conversion when several components exist.
+
+Generation requires new owned paths. FastAPI can add one explicit app mount and PEP
+621 dependency edit in the transaction. Recognized Next.js `app` placement connects
+by convention. Express and Go mounts remain manual. Existing source remains.
 
 Paths use literal ASCII segments and unique `{name}` parameters. Overlapping routes,
 HEAD, bodyless statuses, floating-point literals and integers outside ±(2^53−1)

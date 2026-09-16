@@ -41,9 +41,9 @@ structural model coverage and independent source/IR/model identities. Its PR CI 
 Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
 PR 39 is in progress on `application_ir_transformations`, started directly from that main.
 Its current checkpoints add a bounded application hierarchy, Merkle disclosure,
-agent-authored HTTP IR, four framework writers, four conservative source normalizers
-and direct application-report conversion. Connected registration, dependency and
-cutover planning still require completion.
+agent-authored HTTP IR, four framework writers, four conservative source normalizers,
+direct project conversion, checked FastAPI integration and recognized Next.js placement.
+Cross-adapter cutover and frontend planning still require completion.
 
 | Measure | Current value |
 |---|---:|
@@ -134,8 +134,9 @@ saving from internal composition alone.
    anchors and signature maps identify the modeled declaration, while tests cover selected cases.
    The parser, IR extraction and lowering are still trusted or integration-tested boundaries.
 3. **Framework transformation remains partial.** The shared application IR now normalizes and writes
-   the bounded literal JSON/path subset across four backend adapters. Registration, dependencies,
-   cutover, request schemas and compatible frontend rendering still need common planning.
+   the bounded literal JSON/path subset across four backend adapters and static intrinsic JSX between
+   React and Next.js. Remaining registration, cutover, request schemas and dynamic rendering need
+   common planning.
 4. **Support is uneven across languages.** Basic structure is broad; semantic authoring, call
    analysis, translation, framework migration and formalization have smaller support matrices.
 5. **The live-agent context target is unmet.** The retained live comparison predates unified
@@ -171,12 +172,18 @@ Implemented foundation:
   path-binding handlers through the shared semantic IR. Effectful handlers remain manual.
 - A full `project application` report feeds `migrate application` directly after its object digest
   is rechecked; equivalent four-framework fixtures produce equal response IR.
+- `migrate application --project` performs the same conversion within one project snapshot. The
+  guide selects it for compatible portable backend targets.
+- FastAPI app registration and PEP 621 dependencies can join the generated files in one reversible
+  transaction. Captured Next.js App Router placement supplies checked integration evidence.
+- React and Next.js normalize one bounded intrinsic JSX tree and write `App.tsx` or `page.tsx`.
+  Props, hooks, events, styles, component calls and dynamic expressions remain manual.
 - Lean models cover admission, compatibility, JSON status safety, exact unique coverage and
   endpoint agreement. Parser/writer and pinned framework runtime tests remain separate.
 
-Next implementation work is connected registration/dependencies/cutover and compatible frontend
-conversion. The bounded HTTP subset currently requires manual integration and does not replace the
-richer Next.js/FastAPI feature planner.
+Next implementation work is remaining adapter registration/cutover and dynamic frontend boundaries.
+Express and Go registration remain manual. The bounded HTTP subset does not replace the richer
+Next.js/FastAPI feature planner.
 These are unfinished PR 39 deliverables, rather than completion claims.
 
 Deliverables:

@@ -862,6 +862,11 @@ Plan one route-centered migration from a revision-bound `fr project features` ID
 bounded JSON HTTP behavior. `FILE` may contain a route bundle, application model, or
 complete `project application` report. Its bounded IR has Next.js, FastAPI, Express
 and Go HTTP readers and writers for literal JSON responses and path bindings.
+Use `--project TARGET` instead of `--ir FILE` to normalize and preview within one
+snapshot. FastAPI accepts explicit registration and PEP 621 dependency options;
+recognized Next.js App Router placement supplies checked integration evidence.
+The same command converts one selected static intrinsic JSX component between React
+and Next.js; dynamic rendering remains an explicit manual boundary.
 `fr project application` and `project disclose HANDLE --view application` expose the
 application hierarchy. See [the application IR contract](docs/application-ir.md) for
 schemas, SDK constructors, manual integration and formal/runtime evidence boundaries.

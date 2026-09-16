@@ -1,8 +1,59 @@
-use super::{Adapter, HttpExpression, HttpRoute};
+use super::{Adapter, HttpExpression, HttpRoute, StaticComponent, StaticNode};
 use std::collections::BTreeMap;
 
 fn quoted(value: &str) -> String {
     serde_json::to_string(value).expect("string serialization")
+}
+
+fn static_node(node: &StaticNode) -> String {
+    match node {
+        StaticNode::Text { value } => value
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;"),
+        StaticNode::Element {
+            tag,
+            attributes,
+            children,
+        } => {
+            let attributes = attributes
+                .iter()
+                .map(|(name, value)| {
+                    let value = value
+                        .replace('&', "&amp;")
+                        .replace('"', "&quot;")
+                        .replace('<', "&lt;")
+                        .replace('>', "&gt;");
+                    format!(" {name}=\"{value}\"")
+                })
+                .collect::<String>();
+            if children.is_empty() {
+                format!("<{tag}{attributes} />")
+            } else {
+                let children = children.iter().map(static_node).collect::<String>();
+                format!("<{tag}{attributes}>{children}</{tag}>")
+            }
+        }
+    }
+}
+
+pub fn write_static_component(
+    component: &StaticComponent,
+    adapter: Adapter,
+) -> Result<(String, String), String> {
+    component.validate()?;
+    let (path, name) = match adapter {
+        Adapter::React => ("App.tsx", "App"),
+        Adapter::Nextjs => ("page.tsx", "Page"),
+        _ => return Err("target adapter does not write static frontend components.".into()),
+    };
+    Ok((
+        path.into(),
+        format!(
+            "export default function {name}() {{\n  return ({});\n}}\n",
+            static_node(&component.root)
+        ),
+    ))
 }
 
 fn expression(

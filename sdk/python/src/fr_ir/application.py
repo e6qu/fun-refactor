@@ -45,6 +45,12 @@ def endpoint_agreement(method: bool, path: bool, status: bool, response: bool) -
     return all(value is True for value in (method, path, status, response))
 
 
+def static_resources_admitted(nodes: int, depth: int, encoded_bytes: int) -> bool:
+    return (type(nodes) is int and type(depth) is int and type(encoded_bytes) is int
+            and 1 <= nodes <= 1024 and 0 <= depth <= 32
+            and 0 <= encoded_bytes <= 1_048_576)
+
+
 @dataclass(frozen=True)
 class Literal:
     value: Any
@@ -225,6 +231,89 @@ class RouteBundle:
 
 
 @dataclass(frozen=True)
+class StaticText:
+    value: str
+    kind: str = field(default="text", init=False)
+
+
+@dataclass(frozen=True)
+class StaticElement:
+    tag: str
+    attributes: Mapping[str, str]
+    children: Sequence[StaticNode]
+    kind: str = field(default="element", init=False)
+
+
+StaticNode = StaticText | StaticElement
+
+
+def _static_node_from_data(value: Any, depth: int, count: list[int]) -> StaticNode:
+    count[0] += 1
+    if depth > 32 or count[0] > 1024:
+        raise IrError("static component exceeds its node or depth bound")
+    row = _fields(value, {"kind"}, {"value", "tag", "attributes", "children"})
+    if row["kind"] == "text":
+        return StaticText(_fields(row, {"kind", "value"})["value"])
+    if row["kind"] == "element":
+        row = _fields(row, {"kind", "tag", "attributes", "children"})
+        if not isinstance(row["attributes"], Mapping) or not isinstance(row["children"], list):
+            raise IrError("static element requires attributes and children")
+        return StaticElement(row["tag"], dict(row["attributes"]), [
+            _static_node_from_data(child, depth + 1, count) for child in row["children"]])
+    raise IrError("unsupported static component node")
+
+
+def _static_node(node: StaticNode, depth: int, count: list[int]) -> dict[str, Any]:
+    count[0] += 1
+    count[1] = max(count[1], depth)
+    if depth > 32 or count[0] > 1024:
+        raise IrError("static component exceeds its node or depth bound")
+    if isinstance(node, StaticText):
+        if (not isinstance(node.value, str) or not node.value
+                or len(node.value.encode("utf-8")) > 65536 or node.value.strip() != node.value):
+            raise IrError("static text must be bounded and have explicit whitespace")
+        return {"kind": "text", "value": node.value}
+    if isinstance(node, StaticElement):
+        if (not isinstance(node.tag, str) or not re.fullmatch(r"[a-z][a-z0-9-]{0,127}", node.tag)
+                or not isinstance(node.attributes, Mapping)
+                or not isinstance(node.children, (list, tuple))):
+            raise IrError("static element fields are invalid")
+        attributes: dict[str, str] = {}
+        for name, value in sorted(node.attributes.items()):
+            if (not isinstance(name, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,127}", name)
+                    or name.startswith("on") or name in ("style", "dangerouslySetInnerHTML")
+                    or not isinstance(value, str) or len(value.encode("utf-8")) > 65536):
+                raise IrError("static component attribute exceeds the literal safe subset")
+            attributes[name] = value
+        return {"kind": "element", "tag": node.tag, "attributes": attributes,
+                "children": [_static_node(child, depth + 1, count) for child in node.children]}
+    raise IrError("unsupported static component node")
+
+
+@dataclass(frozen=True)
+class StaticComponent:
+    name: str
+    root: StaticNode
+
+    @classmethod
+    def from_data(cls, value: Any) -> StaticComponent:
+        row = _fields(value, {"name", "root"})
+        component = cls(row["name"], _static_node_from_data(row["root"], 0, [0]))
+        component.to_data()
+        return component
+
+    def to_data(self) -> dict[str, Any]:
+        if (not isinstance(self.name, str) or not re.fullmatch(r"[A-Z][A-Za-z0-9_]{0,127}", self.name)):
+            raise IrError("static component needs a bounded upper-case identifier")
+        count = [0, 0]
+        value = {"name": self.name, "root": _static_node(self.root, 0, count)}
+        encoded = _encoded(value, 1_048_576)
+        if not static_resources_admitted(count[0], count[1], len(encoded.encode("utf-8"))):
+            raise IrError("static component exceeds its resource policy")
+        return value
+
+
+@dataclass(frozen=True)
 class ApplicationNode:
     id: str
     kind: str
@@ -233,19 +322,21 @@ class ApplicationNode:
     children: Sequence[ApplicationNode]
     route: HttpRoute | None = None
     boundary: str | None = None
+    component: StaticComponent | None = None
 
 
 def _node_from_data(value: Any, depth: int, count: list[int]) -> ApplicationNode:
     count[0] += 1
     if depth > 64 or count[0] > 4096:
         raise IrError("application hierarchy exceeds its bounds")
-    row = _fields(value, {"id", "kind", "source", "data", "children"}, {"route", "boundary"})
+    row = _fields(value, {"id", "kind", "source", "data", "children"}, {"route", "boundary", "component"})
     if not isinstance(row["children"], list):
         raise IrError("application children require an array")
     route = None if row.get("route") is None else HttpRoute.from_data(row["route"])
+    component = None if row.get("component") is None else StaticComponent.from_data(row["component"])
     return ApplicationNode(row["id"], row["kind"], row["source"], row["data"],
                            [_node_from_data(child, depth + 1, count) for child in row["children"]],
-                           route, row.get("boundary"))
+                           route, row.get("boundary"), component)
 
 
 def _node_data(node: ApplicationNode, depth: int, ids: set[str]) -> dict[str, Any]:
@@ -261,6 +352,8 @@ def _node_data(node: ApplicationNode, depth: int, ids: set[str]) -> dict[str, An
               "children": [_node_data(child, depth + 1, ids) for child in node.children]}
     if node.route is not None:
         result["route"] = node.route.to_data()
+    if node.component is not None:
+        result["component"] = node.component.to_data()
     if node.boundary is not None:
         result["boundary"] = node.boundary
     return result

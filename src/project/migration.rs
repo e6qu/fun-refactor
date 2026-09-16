@@ -24,13 +24,44 @@ pub enum Command {
 pub struct ApplicationOptions {
     #[arg(
         long,
+        conflicts_with = "project",
+        required_unless_present = "project",
         help = "Workspace-relative route bundle, application IR, or application report JSON file."
     )]
-    pub ir: PathBuf,
+    pub ir: Option<PathBuf>,
+    #[arg(
+        long,
+        conflicts_with = "ir",
+        required_unless_present = "ir",
+        help = "Build the application IR from this workspace path or revision-bound project handle."
+    )]
+    pub project: Option<String>,
+    #[arg(long, requires = "project")]
+    pub revision: Option<String>,
+    #[arg(long, requires = "project")]
+    pub feature: Option<String>,
     #[arg(long, value_enum)]
     pub to: crate::application_ir::Adapter,
     #[arg(long, help = "Workspace-relative directory for new generated modules.")]
     pub out: PathBuf,
+    #[arg(
+        long,
+        help = "Mount generated FastAPI routes in an explicit PATH::APP_SYMBOL target."
+    )]
+    pub register_with: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        help = "Update one explicit PEP 621 pyproject.toml owning a FastAPI destination."
+    )]
+    pub dependency_manifest: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "SPEC",
+        requires = "dependency_manifest",
+        help = "Exact FastAPI requirement to add when the selected manifest omits it."
+    )]
+    pub dependency_requirement: Vec<String>,
     #[arg(long = "check", value_delimiter = ',')]
     pub checks: Vec<String>,
     #[arg(long, default_value_t = 4096)]
@@ -217,11 +248,12 @@ struct DependencyPlan {
 
 fn fastapi_dependencies(
     project: &Project<'_>,
-    options: &Options,
+    dependency_manifest: Option<&Path>,
+    dependency_requirement: &[String],
     out: &Path,
     required: &[String],
 ) -> Result<DependencyPlan> {
-    let Some(selected) = options.dependency_manifest.as_deref() else {
+    let Some(selected) = dependency_manifest else {
         return Ok(DependencyPlan {
             change: None,
             report: json!({
@@ -303,7 +335,7 @@ fn fastapi_dependencies(
         .cloned()
         .collect::<BTreeSet<_>>();
     let mut supplied = BTreeMap::new();
-    for requirement in &options.dependency_requirement {
+    for requirement in dependency_requirement {
         let name = distribution_name(requirement).ok_or_else(|| {
             anyhow::anyhow!(
                 "dependency requirements must start with a valid distribution name and contain no control characters."
@@ -746,20 +778,48 @@ impl Project<'_> {
             options.diff_bytes <= 65536,
             "diff byte limit must be between 0 and 65536."
         );
-        let input = normalized_relative(&self.root, &options.ir, "IR input")?;
+        ensure!(
+            options.to == crate::application_ir::Adapter::Fastapi
+                || options.register_with.is_none()
+                    && options.dependency_manifest.is_none()
+                    && options.dependency_requirement.is_empty(),
+            "explicit registration and dependency edits currently require the FastAPI adapter."
+        );
         let out = destination(&self.root, &options.out)?;
-        let bytes = self
-            .sources
-            .get(&input)
-            .ok_or_else(|| {
-                anyhow::anyhow!("IR input must be a JSON file observed in the project snapshot.")
-            })?
-            .as_bytes();
+        let direct_project = options.project.is_some();
+        let (input, bytes, mut value) = if let Some(ir) = options.ir.as_deref() {
+            let input = normalized_relative(&self.root, ir, "IR input")?;
+            let bytes = self
+                .sources
+                .get(&input)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "IR input must be a JSON file observed in the project snapshot."
+                    )
+                })?
+                .as_bytes()
+                .to_vec();
+            let value = serde_json::from_slice(&bytes)?;
+            (input, bytes, value)
+        } else {
+            let target = options.project.as_deref().unwrap_or(".");
+            let application = self.application_model(
+                target,
+                options.revision.as_deref(),
+                options.feature.as_deref(),
+            )?;
+            let value = serde_json::to_value(application)?;
+            let bytes = serde_json::to_vec(&value)?;
+            (
+                self.root.join(".fr-project-application-input"),
+                bytes,
+                value,
+            )
+        };
         ensure!(
             bytes.len() <= 4_194_304,
             "application IR input exceeds its byte bound."
         );
-        let mut value: Value = serde_json::from_slice(bytes)?;
         let report_input =
             value.get("schema").and_then(Value::as_str) == Some("fr-application-report-1");
         if report_input {
@@ -775,12 +835,12 @@ impl Project<'_> {
             value = model;
         }
         let schema = value.get("schema").and_then(Value::as_str);
-        let (routes, model, source_kind, manual_boundaries) = match schema {
+        let (routes, components, model, source_kind, manual_boundaries) = match schema {
             Some("fr-http-application-1") => {
                 let bundle: crate::application_ir::RouteBundle = serde_json::from_value(value)?;
                 bundle.validate().map_err(anyhow::Error::msg)?;
                 let model = serde_json::to_value(&bundle)?;
-                (bundle.routes, model, "route-bundle", 0usize)
+                (bundle.routes, Vec::new(), model, "route-bundle", 0usize)
             }
             Some(crate::application_ir::SCHEMA) => {
                 let application: crate::application_ir::ApplicationIr =
@@ -789,30 +849,79 @@ impl Project<'_> {
                 fn collect(
                     node: &crate::application_ir::ApplicationNode,
                     routes: &mut Vec<crate::application_ir::HttpRoute>,
+                    components: &mut Vec<crate::application_ir::StaticComponent>,
+                    source: Option<crate::application_ir::Adapter>,
+                    sources: &mut BTreeSet<crate::application_ir::Adapter>,
                     manual: &mut usize,
                 ) {
+                    let source = if node.kind == "application" {
+                        node.data["application"]["framework"]
+                            .as_str()
+                            .and_then(crate::application_ir::Adapter::from_framework)
+                            .or(source)
+                    } else {
+                        source
+                    };
                     if node.kind == "route" {
                         if let Some(route) = &node.route {
                             routes.push(route.clone());
+                            if let Some(source) = node.data["route"]["framework"]
+                                .as_str()
+                                .and_then(crate::application_ir::Adapter::from_framework)
+                            {
+                                sources.insert(source);
+                            }
+                        } else {
+                            *manual += 1;
+                        }
+                    }
+                    if node.kind == "component" {
+                        if let Some(component) = &node.component {
+                            components.push(component.clone());
+                            if let Some(source) = source {
+                                sources.insert(source);
+                            }
                         } else {
                             *manual += 1;
                         }
                     }
                     for child in &node.children {
-                        collect(child, routes, manual);
+                        collect(child, routes, components, source, sources, manual);
                     }
                 }
                 let mut routes = Vec::new();
+                let mut components = Vec::new();
+                let mut sources = BTreeSet::new();
                 let mut manual = 0;
                 for node in &application.applications {
-                    collect(node, &mut routes, &mut manual);
+                    collect(
+                        node,
+                        &mut routes,
+                        &mut components,
+                        None,
+                        &mut sources,
+                        &mut manual,
+                    );
                 }
-                crate::application_ir::validate_routes(&routes).map_err(anyhow::Error::msg)?;
+                ensure!(
+                    !sources.contains(&options.to),
+                    "source and target adapters must differ; select a compatible target or narrower feature."
+                );
+                if !routes.is_empty() {
+                    crate::application_ir::validate_routes(&routes).map_err(anyhow::Error::msg)?;
+                }
+                ensure!(
+                    !routes.is_empty() || !components.is_empty(),
+                    "application IR has no portable route or component to migrate."
+                );
                 let model = serde_json::to_value(&application)?;
                 (
                     routes,
+                    components,
                     model,
-                    if report_input {
+                    if direct_project {
+                        "project-snapshot"
+                    } else if report_input {
                         "project-application-report"
                     } else {
                         "project-application"
@@ -822,8 +931,34 @@ impl Project<'_> {
             }
             _ => anyhow::bail!("IR input must use fr-http-application-1 or fr-application-ir-1."),
         };
-        let outputs =
-            crate::application_ir::write_routes(&routes, options.to).map_err(anyhow::Error::msg)?;
+        let mut outputs = BTreeMap::new();
+        if !routes.is_empty() && options.to != crate::application_ir::Adapter::React {
+            outputs.extend(
+                crate::application_ir::write_routes(&routes, options.to)
+                    .map_err(anyhow::Error::msg)?,
+            );
+        }
+        if matches!(
+            options.to,
+            crate::application_ir::Adapter::React | crate::application_ir::Adapter::Nextjs
+        ) && !components.is_empty()
+        {
+            ensure!(
+                components.len() == 1,
+                "static frontend migration requires exactly one selected component."
+            );
+            let (path, source) =
+                crate::application_ir::write_static_component(&components[0], options.to)
+                    .map_err(anyhow::Error::msg)?;
+            ensure!(
+                outputs.insert(path, source).is_none(),
+                "generated frontend destination overlaps another output."
+            );
+        }
+        ensure!(
+            !outputs.is_empty(),
+            "target adapter has no compatible portable feature in this application."
+        );
         let mut edits = EditSet::new();
         let mut files = Vec::new();
         for (relative, source) in &outputs {
@@ -857,6 +992,61 @@ impl Project<'_> {
             );
             files.push(json!({"path": options.out.join(relative), "status": "generated", "syntax": "reparse-strict"}));
         }
+        let endpoints = routes
+            .iter()
+            .map(|route| (route.method.clone(), route.path.clone()))
+            .collect::<Vec<_>>();
+        let registration = options
+            .register_with
+            .as_deref()
+            .map(|selector| {
+                add_fastapi_registration(
+                    self,
+                    &mut edits,
+                    selector,
+                    &options.out.join("routes.py"),
+                    &input,
+                    &endpoints,
+                )
+            })
+            .transpose()?;
+        let next_application = (options.to == crate::application_ir::Adapter::Nextjs)
+            .then(|| nextjs_target_application(self, &options.out))
+            .flatten();
+        let dependency_plan = match options.to {
+            crate::application_ir::Adapter::Fastapi => fastapi_dependencies(
+                self,
+                options.dependency_manifest.as_deref(),
+                &options.dependency_requirement,
+                &out.join("routes.py"),
+                &["fastapi".to_owned()],
+            )?,
+            crate::application_ir::Adapter::Nextjs => DependencyPlan {
+                change: None,
+                report: json!({"status": if next_application.is_some() { "satisfied" } else { "agent-decision" },
+                    "manifest": next_application.as_ref().and_then(|application| application["manifest"].as_str()),
+                    "required": ["next"], "declared": if next_application.is_some() { vec!["next"] } else { Vec::new() },
+                    "added": [], "basis": "captured-nextjs-dependency"}),
+                note: None,
+            },
+            _ => DependencyPlan {
+                change: None,
+                report: json!({"status": "adapter-owned", "manifest": null, "required": [], "declared": [], "added": [], "basis": "no-connected-dependency-edit"}),
+                note: None,
+            },
+        };
+        let target_application = registration
+            .as_ref()
+            .map(|value| value.report.clone())
+            .or(next_application);
+        let integration_connected = target_application.is_some();
+        let integration_reason = if registration.is_some() {
+            "The explicit FastAPI application mount joins this transaction; existing sources remain preserved."
+        } else if integration_connected {
+            "The captured Next.js App Router placement owns generated routes; existing sources remain preserved."
+        } else {
+            "Generated modules require explicit application registration. Existing applications retain their source."
+        };
         let selected = crate::checks::select(&self.root, &options.checks)?;
         let required_checks = selected
             .as_ref()
@@ -867,17 +1057,20 @@ impl Project<'_> {
         let mut report = self.envelope("migration");
         report.as_object_mut().unwrap().extend(serde_json::from_value::<serde_json::Map<String, Value>>(json!({"schema": "fr-application-migration-1",
                 "migration": {"source": "application-ir", "source_kind": source_kind, "target": options.to,
-                    "ir_object_digest": super::object_merkle(&model)?, "input_basis": format!("frha1:{}", super::hash(("fr-application-input-1", bytes))?),
-                    "files": files, "endpoints": routes, "manual_boundaries": manual_boundaries,
+                    "ir_object_digest": super::object_merkle(&model)?, "input_basis": format!("frha1:{}", super::hash(("fr-application-input-1", &bytes))?),
+                    "files": files, "endpoints": routes, "components": components, "manual_boundaries": manual_boundaries,
                     "coexistence": {"source_preserved": true, "cutover_applied": false},
-                    "integration": {"status": "manual", "reason": "Generated modules require explicit application registration and framework dependencies. Existing applications retain their source."},
+                    "integration": {"status": if integration_connected { "connected" } else { "manual" },
+                        "registration": target_application,
+                        "dependencies": dependency_plan.report,
+                        "reason": integration_reason},
                     "runtime_proved": false,
                     "limitations": ["Only declared JSON responses and path parameters are modeled.", "Implicit methods, URL decoding, middleware, errors and deployment behavior require framework checks."]},
                 "checks": selected.as_ref().map(|selection| &selection.checks),
                 "diff": "", "applied": false}))?);
         Ok(Plan {
             edits,
-            connected_changes: Vec::new(),
+            connected_changes: dependency_plan.change.into_iter().collect(),
             source_removal: None,
             required_checks,
             report,
@@ -1099,7 +1292,13 @@ impl Project<'_> {
             })
             .transpose()?;
         let dependency_plan = match options.to {
-            Target::Fastapi => fastapi_dependencies(self, options, &out, &required_dependencies)?,
+            Target::Fastapi => fastapi_dependencies(
+                self,
+                options.dependency_manifest.as_deref(),
+                &options.dependency_requirement,
+                &out,
+                &required_dependencies,
+            )?,
             Target::Nextjs => DependencyPlan {
                 change: None,
                 report: json!({

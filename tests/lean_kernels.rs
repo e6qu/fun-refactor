@@ -53,6 +53,15 @@ fn application_adapter_policies_agree_with_lean_and_python() {
             }
         }
     }
+    for nodes in [0, 1, 1024, 1025] {
+        for depth in [0, 32, 33] {
+            for encoded_bytes in [0, 1_048_576, 1_048_577] {
+                expected.push(
+                    application_static_resources_admitted(nodes, depth, encoded_bytes).to_string(),
+                );
+            }
+        }
+    }
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
         .arg("application-adapters")
         .output()

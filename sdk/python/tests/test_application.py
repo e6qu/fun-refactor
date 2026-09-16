@@ -2,7 +2,8 @@ from pathlib import Path as FilePath
 
 import pytest
 
-from fr_ir.application import ApplicationIr, Array, HttpRoute, Literal, Object, Path, RouteBundle
+from fr_ir.application import (ApplicationIr, ApplicationNode, Array, HttpRoute, Literal, Object,
+                               Path, RouteBundle, StaticComponent, StaticElement, StaticText)
 from fr_ir.context import ContextSession
 from fr_ir.ir import IrError
 from fr_ir.runtime import FrClient
@@ -72,3 +73,15 @@ def test_typed_hierarchy_refuses_duplicate_identities_and_false_claims():
     value["runtime_proved"] = True
     with pytest.raises(IrError, match="proof"):
         ApplicationIr.from_data(value)
+
+
+def test_static_component_mirrors_the_bounded_application_ir():
+    component = StaticComponent("App", StaticElement("main", {"className": "shell"}, [
+        StaticElement("h1", {}, [StaticText("Ready")])]))
+    node = ApplicationNode("component", "component", None, {}, [], component=component)
+    model = ApplicationIr("a" * 64, [node], {})
+    assert ApplicationIr.from_data(model.to_data()).to_data() == model.to_data()
+    with pytest.raises(IrError, match="attribute"):
+        StaticComponent("App", StaticElement("button", {"onClick": "run"}, [])).to_data()
+    with pytest.raises(IrError, match="whitespace"):
+        StaticComponent("App", StaticElement("p", {}, [StaticText(" padded ")])).to_data()

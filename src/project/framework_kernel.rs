@@ -34,6 +34,14 @@ pub fn application_endpoint_agreement(
     method && path && status && response
 }
 
+pub fn application_static_resources_admitted(
+    nodes: usize,
+    depth: usize,
+    encoded_bytes: usize,
+) -> bool {
+    (1..=1024).contains(&nodes) && depth <= 32 && encoded_bytes <= 1_048_576
+}
+
 pub fn framework_omitted(total: usize, limit: usize) -> usize {
     total.saturating_sub(limit)
 }

@@ -1001,47 +1001,133 @@ impl Project<'_> {
                     .filter_map(|row| row["id"].as_str().map(str::to_owned))
                     .collect::<Vec<_>>();
                 let feature_count = compatible.len();
-                supported = matches!(to.as_str(), "fastapi" | "nextjs") && feature_count > 0;
-                evidence = json!({"predicate":"project::features+framework_migration_supported","target":to,"compatible_feature_count":feature_count,
-                    "compatible_features":compatible.iter().take(8).collect::<Vec<_>>(),"features_omitted":feature_count.saturating_sub(8)});
-                if !matches!(to.as_str(), "fastapi" | "nextjs") {
-                    refusals.push("choose an advertised destination: fastapi or nextjs.".into());
+                let target_adapter = crate::application_ir::Adapter::from_framework(to);
+                let mut portable = Vec::new();
+                if let Some(target_adapter) = target_adapter {
+                    fn admitted(
+                        node: &crate::application_ir::ApplicationNode,
+                        target: crate::application_ir::Adapter,
+                        source: Option<crate::application_ir::Adapter>,
+                        found: &mut Vec<String>,
+                        route_count: &mut usize,
+                    ) {
+                        let source = if node.kind == "application" {
+                            node.data["application"]["framework"]
+                                .as_str()
+                                .and_then(crate::application_ir::Adapter::from_framework)
+                                .or(source)
+                        } else {
+                            source
+                        };
+                        if let Some(route) = &node.route {
+                            let route_source = node.data["route"]["framework"]
+                                .as_str()
+                                .and_then(crate::application_ir::Adapter::from_framework);
+                            if route_source.is_some_and(|source| {
+                                super::framework_kernel::application_adapters_compatible(
+                                    source.code(),
+                                    target.code(),
+                                    route.feature_kind().map_or(usize::MAX, |kind| kind.code()),
+                                )
+                            }) {
+                                found.push(node.id.clone());
+                                *route_count += 1;
+                            }
+                        }
+                        if node.component.is_some()
+                            && source.is_some_and(|source| {
+                                super::framework_kernel::application_adapters_compatible(
+                                    source.code(),
+                                    target.code(),
+                                    crate::application_ir::FeatureKind::StaticComponent.code(),
+                                )
+                            })
+                        {
+                            found.push(node.id.clone());
+                        }
+                        for child in &node.children {
+                            admitted(child, target, source, found, route_count);
+                        }
+                    }
+                    let application = self.application_model(&handle, None, None)?;
+                    let mut route_count = 0;
+                    for root in &application.applications {
+                        admitted(root, target_adapter, None, &mut portable, &mut route_count);
+                    }
+                    evidence = json!({"portable_route_count": route_count});
                 }
-                if feature_count == 0 {
+                let use_feature = matches!(to.as_str(), "fastapi" | "nextjs") && feature_count > 0;
+                supported = use_feature || !portable.is_empty();
+                let portable_route_count = evidence["portable_route_count"].as_u64().unwrap_or(0);
+                evidence = json!({"predicate":"project::features+application-ir-adapter-compatibility","target":to,"compatible_feature_count":feature_count,
+                    "compatible_features":compatible.iter().take(8).collect::<Vec<_>>(),"features_omitted":feature_count.saturating_sub(8),
+                    "portable_feature_count": portable.len(), "portable_route_count": portable_route_count,
+                    "portable_features": portable.iter().take(8).collect::<Vec<_>>(),
+                    "portable_features_omitted": portable.len().saturating_sub(8),
+                    "planner": if use_feature { "feature" } else { "application-ir" }});
+                if target_adapter.is_none() {
+                    refusals.push(
+                        "choose an advertised destination: fastapi, nextjs, express, go-net-http or react."
+                            .into(),
+                    );
+                }
+                if !supported {
                     refusals.push("selected subtree has no admitted framework feature.".into());
                 }
-                actions.push(action(
-                    "features",
-                    args(&["project", "features", &handle, "--limit", "8"]),
-                    "fr-project-1",
-                    None,
-                    vec![],
-                ));
-                actions.push(action(
-                    "preview",
-                    args(&[
-                        "migrate",
-                        "feature",
-                        "<feature-id>",
-                        "--to",
-                        to,
-                        "--out",
-                        "<destination>",
-                    ]),
-                    "fr-project-1",
-                    None,
-                    vec![
-                        author("feature-id", "one compatible revision-bound feature ID"),
-                        author(
+                if use_feature {
+                    actions.push(action(
+                        "features",
+                        args(&["project", "features", &handle, "--limit", "8"]),
+                        "fr-project-1",
+                        None,
+                        vec![],
+                    ));
+                    actions.push(action(
+                        "preview",
+                        args(&[
+                            "migrate",
+                            "feature",
+                            "<feature-id>",
+                            "--to",
+                            to,
+                            "--out",
+                            "<destination>",
+                        ]),
+                        "fr-project-1",
+                        None,
+                        vec![
+                            author("feature-id", "one compatible revision-bound feature ID"),
+                            author(
+                                "destination",
+                                if to == "nextjs" {
+                                    "normalized workspace-relative destination app directory."
+                                } else {
+                                    "normalized workspace-relative Python module path."
+                                },
+                            ),
+                        ],
+                    ));
+                } else if supported {
+                    actions.push(action(
+                        "preview",
+                        args(&[
+                            "migrate",
+                            "application",
+                            "--project",
+                            &handle,
+                            "--to",
+                            to,
+                            "--out",
+                            "<destination>",
+                        ]),
+                        "fr-application-migration-1",
+                        None,
+                        vec![author(
                             "destination",
-                            if to == "nextjs" {
-                                "normalized workspace-relative destination app directory."
-                            } else {
-                                "normalized workspace-relative Python module path."
-                            },
-                        ),
-                    ],
-                ));
+                            "normalized workspace-relative generated-module directory.",
+                        )],
+                    ));
+                }
             }
             Operation::Formalize => {
                 route = 8;

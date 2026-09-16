@@ -288,6 +288,10 @@ def main (args : List String) : IO Unit := do
         for status in [false, true] do
           for response in [false, true] do
             IO.println (applicationEndpointAgreement method path status response)
+    for nodes in [0, 1, 1024, 1025] do
+      for depth in [0, 32, 33] do
+        for encodedBytes in [0, 1048576, 1048577] do
+          IO.println (applicationStaticResourcesAdmitted nodes depth encodedBytes)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

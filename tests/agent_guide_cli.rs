@@ -120,6 +120,71 @@ fn migration_guide_uses_generic_feature_compatibility_in_both_directions() {
     assert_eq!(refused["actions"], json!([]));
 }
 
+#[test]
+fn migration_guide_uses_the_application_ir_for_portable_backend_adapters() {
+    let root = tempfile::tempdir().unwrap();
+    let source = "function signal(req: Request, res: Response) {\n  return res.status(200).json({id: req.params['id']});\n}\napp.get('/signals/:id', signal);\n";
+    std::fs::write(root.path().join("api.ts"), source).unwrap();
+    let report = guide(
+        root.path(),
+        &goal(
+            "migrate",
+            json!({"path":"api.ts"}),
+            json!({"kind":"framework-migration","to":"go-net-http"}),
+        ),
+    );
+    assert_eq!(report["state"], "needs-authoring", "{report}");
+    assert_eq!(report["route"]["evidence"]["planner"], "application-ir");
+    assert_eq!(report["route"]["evidence"]["portable_feature_count"], 1);
+    assert_eq!(report["route"]["evidence"]["portable_route_count"], 1);
+    assert_eq!(report["actions"].as_array().unwrap().len(), 1);
+    let arguments = args_for(&report["actions"][0], &[("<destination>", "converted")]);
+    let (passed, preview) = run(root.path(), &arguments, None);
+    assert!(passed, "{preview}");
+    assert_eq!(preview["schema"], "fr-application-migration-1");
+    assert_eq!(preview["migration"]["source_kind"], "project-snapshot");
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("api.ts")).unwrap(),
+        source
+    );
+    assert!(!root.path().join("converted").exists());
+}
+
+#[test]
+fn migration_guide_routes_static_react_components_through_application_ir() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(root.path().join("src")).unwrap();
+    std::fs::write(
+        root.path().join("package.json"),
+        r#"{"dependencies":{"react":"19.3.0"}}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("src/App.tsx"),
+        "export default function App() { return <main><h1>Ready</h1></main>; }\n",
+    )
+    .unwrap();
+    let report = guide(
+        root.path(),
+        &goal(
+            "migrate",
+            json!({"path":"src/App.tsx"}),
+            json!({"kind":"framework-migration","to":"nextjs"}),
+        ),
+    );
+    assert_eq!(report["state"], "needs-authoring", "{report}");
+    assert_eq!(report["route"]["evidence"]["planner"], "application-ir");
+    assert_eq!(report["route"]["evidence"]["portable_feature_count"], 1);
+    assert_eq!(report["route"]["evidence"]["portable_route_count"], 0);
+    let arguments = args_for(&report["actions"][0], &[("<destination>", "converted")]);
+    let (passed, preview) = run(root.path(), &arguments, None);
+    assert!(passed, "{preview}");
+    assert_eq!(
+        preview["migration"]["components"].as_array().unwrap().len(),
+        1
+    );
+}
+
 fn args_for(action: &Value, replacements: &[(&str, &str)]) -> Vec<String> {
     action["arguments"]
         .as_array()

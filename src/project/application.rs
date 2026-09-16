@@ -56,6 +56,7 @@ fn hierarchy(rows: Vec<Value>) -> Result<Vec<ApplicationNode>> {
             data: data.into_iter().collect(),
             children: Vec::new(),
             route: None,
+            component: None,
             boundary,
         };
         ensure!(
