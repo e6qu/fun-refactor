@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.28.0...fun-refactor-v0.29.0) (2026-09-17)
+
+
+### Features
+
+* **agent:** execute reviewed guides and retain source-writing evidence ([#316](https://github.com/e6qu/fun-refactor/issues/316)) ([f0e0b71](https://github.com/e6qu/fun-refactor/commit/f0e0b7136da1fb79c8516211038d86e923ba22bc))
+* complete local guide execution and matched agent evaluation ([#314](https://github.com/e6qu/fun-refactor/issues/314)) ([12ff3f2](https://github.com/e6qu/fun-refactor/commit/12ff3f2c78ac37d0e3edab75b8d4b1a486d5887a))
+
 ## [0.28.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.27.0...fun-refactor-v0.28.0) (2026-09-17)
 
 
