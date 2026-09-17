@@ -202,8 +202,9 @@ The WASM gate covers browser builds and APIs. The deep gate covers repository-sc
 conformance, translation round trips, exhaustive Lean cases and external patch replay. Generated
 code also runs its pinned compiler or framework oracle.
 
-Lean fan-out and worker threads default to two. Builders may set positive `FR_LEAN_JOBS` and
-`LEAN_NUM_THREADS` values explicitly.
+Rust test fan-out for the default, deep and Lean-kernel gates defaults to two. Lean worker threads
+use the same bound. Builders may set positive `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` values
+explicitly; use `1` for both on a resource-constrained workstation.
 
 ## Durable boundaries
 

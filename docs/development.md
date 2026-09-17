@@ -22,11 +22,13 @@ tools/check.sh wasm
 tools/check.sh deep
 ```
 
-Lean processes and Rust tests that launch Lean default to two workers. Override either bound with a
-positive integer when the machine has suitable capacity.
+Rust test fan-out in the default, deep and Lean-kernel gates defaults to two. Lean processes use the
+same worker bound. Override either value with a positive integer when the machine has suitable
+capacity.
 
 ```sh
 FR_LEAN_JOBS=1 LEAN_NUM_THREADS=1 tools/check.sh default
+FR_LEAN_JOBS=1 LEAN_NUM_THREADS=1 tools/check.sh deep
 ```
 
 Install and check the Python SDK in its own environment:
@@ -82,4 +84,3 @@ Before release, run the default, WASM and deep lanes and inspect the generated a
 cargo test --test release
 cargo test --test packaging
 ```
-

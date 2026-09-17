@@ -76,6 +76,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B936: **the deep repository audit ignored its configured worker limit**. Its full-audit
+  `cargo test` invocation omitted `--test-threads`, so fourteen repository-wide scans could run
+  together even when `FR_LEAN_JOBS` limited every Lean-facing lane. The deep profile now applies
+  the same explicit bound to full-audit, kernel and default Rust test fan-out.
+
 - [x] B934: **the Lean grammar rejected common forms used in agent-written proofs**. It now models
   match-pattern alternatives, membership binders, `by_cases name : proposition`, tactic broadcast
   and wildcard configurations, plus Lean's bitwise and shift operators. A parser regression test
@@ -128,9 +133,10 @@ shows the patch additive. What remains below is a limit of the available source 
   `answers` envelope, and a fresh no-correction matched cohort passes both arms.
 
 - [x] B923: **Lean validation inherited host-wide concurrency and saturated developer machines**.
-  `tools/check.sh` now limits the native and exhaustive kernel test harnesses to two cases. Every
-  Lean process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS`
-  expose explicit overrides, and both reject zero or malformed values before validation starts.
+  `tools/check.sh` limits the native and exhaustive kernel test harnesses to two cases. Every Lean
+  process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` expose
+  explicit overrides, and both reject zero or malformed values before validation starts. B936
+  closes the later-discovered full-audit omission.
 
 - [x] B922: **the matched-agent evaluator could misclassify or bypass its SDK arm**. An unsuccessful
   SDK process consumed the one successful-program slot. Broad `from sys import ...` forms could

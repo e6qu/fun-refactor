@@ -47,8 +47,8 @@ tools/check.sh wasm
 tools/check.sh deep
 ```
 
-Lean test fan-out and worker threads default to two. The [development guide](development.md)
-documents overrides and targeted gates.
+Rust test fan-out for the default, deep and Lean-kernel gates defaults to two, as do Lean worker
+threads. The [development guide](development.md) documents one-worker overrides and targeted gates.
 
 For repository changes, dogfood `fr`, recipes and reviewed history whenever an admitted operation
 exists. Treat an incorrect preview, refusal or impractical flow as product evidence and fix its root
