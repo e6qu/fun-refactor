@@ -2,8 +2,8 @@
 
 Start unfamiliar structured tasks with `FrClient.guide(AgentGoal(...))`. The language-aware guide
 selects an existing read/preview route and returns exact actions with only the required authored
-fields. `follow_guide` revalidates freshness and output identity before returning local report data;
-exact scalar goals with checks return the existing `TaskReview`. See the
+fields. `follow_guide` revalidates freshness and output identity before returning local report data.
+See the
 [goal and workflow contract](agent-workflow-guide.md) for schemas, proof boundaries and complete
 guided-versus-manual process and byte accounting.
 
@@ -106,20 +106,27 @@ The accepted route uses the same checked reversal and patch lifecycle as `TaskCh
 
 ## Complete reviewed changes
 
-When a scalar goal already describes the change, retain the whole guided run rather than rebuilding
-a task manifest. `run.review()` exposes its sole authoritative diff. `execute_guide` refreshes the
-guide, requires every action report and exactly one complete task review, then delegates to the same
-checked task lifecycle.
+Every writable route uses the same `GuideReview`. Author one typed operation admitted by the
+guide's `intent_action.operation_kinds`, create its native review, inspect the complete diff and
+execute that unchanged review.
 
 ```python
-run = client.complete_guide(goal)
-review = run.review()
-print(review.at("/author/diff"))
-result = client.execute_guide(run)
+from fr_ir.intent_actions import TaggedIntentAction
+
+guide = client.guide(goal)
+review = client.review_guide(guide, TaggedIntentAction(operation))
+print(review.at("/diff"))
+result = client.execute_guide(review)
 ```
 
-Routes that do not produce exactly one task review refuse here. Use `compile_guided_intent` for
-recipes, general capabilities, migrations, formal scaffolds and proof submissions.
+The common admission check covers built-in capabilities, recipes, semantic task changes and
+batches, surface edits, migrations, formal scaffolds and proof submissions. It requires exact goal,
+guide, authored-input, target, revision, check, delivery and preview identities. Read-only
+operations refuse execution.
+
+A complete semantic scalar guide exposes `guide.semantic_scalar_action()`. It returns the typed
+task operation only after matching the guide's ready manifest to the goal, target, checks, delivery
+and postconditions, so the agent need not restate the same manifest.
 
 The existing `TaskChange`, `TaskTarget` and `TaskDelivery` types build the wire object. `review`
 serializes it once into canonical UTF-8 bytes and passes those bytes on standard input. A

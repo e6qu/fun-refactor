@@ -11,8 +11,8 @@ from typing import Any, Mapping, TYPE_CHECKING
 
 from .context import merkle_object_digest
 from .runtime import FrReport, FrRuntimeError
-from .ir import TaskDelivery
-from .intent_actions import TaggedIntentAction, _operation_code
+from .ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget
+from .intent_actions import TaggedIntentAction, TaskChangeOperation, _operation_code
 from .context import ObjectStore
 from .intent import CompiledIntent
 
@@ -383,6 +383,44 @@ class AgentGuide:
     def actions(self) -> tuple[GuideAction, ...]:
         return tuple(GuideAction(self, index) for index in range(len(self.at("/actions"))))
 
+    def semantic_scalar_action(self) -> TaggedIntentAction:
+        """Return the exact typed task action already committed by a complete scalar guide."""
+        if hashlib.sha256(_canonical(self.to_data())).hexdigest() != self.report_sha256:
+            raise FrRuntimeError("guide changed after receipt")
+        fields = self.goal.operation.fields
+        route = self.at("/route")
+        if (self.goal.purpose != "change" or self.goal.operation.kind != "semantic-scalar"
+                or not isinstance(route, Mapping) or route.get("id") != "semantic-scalar"
+                or route.get("admitted") is not True or fields.get("from") is None
+                or fields.get("to") is None or not self.goal.checks
+                or self.goal.delivery is None):
+            raise FrRuntimeError("guide does not contain one complete semantic scalar action")
+        target = self.at("/target")
+        if (not isinstance(target, Mapping) or not isinstance(target.get("handle"), str)
+                or not isinstance(target.get("path"), str)):
+            raise FrRuntimeError("scalar guide has no exact target")
+        change = TaskChange(
+            (),
+            (TaskTarget(
+                "goal", target["handle"], "edit-body-scalar",
+                scalar=ScalarRequest(fields["operation"], fields["from"], fields["to"]),
+            ),),
+            {"files-changed": 1, "edits": 1, "changed-operations": 1,
+             "paths-changed": [target["path"]]},
+            self.goal.checks,
+            self.goal.delivery,
+        )
+        previews = [item for item in self.at("/actions")
+                    if item.get("output_schema") == "fr-task-change-1"]
+        if (len(previews) != 1 or previews[0].get("ready") is not True
+                or previews[0].get("author_fields") != []
+                or previews[0].get("input") != change.to_data()):
+            raise FrRuntimeError("scalar guide task manifest differs from its typed goal")
+        return TaggedIntentAction(
+            TaskChangeOperation(change), diff_bytes=self.goal.context.token_limit,
+            report_bytes=self.goal.context.packet_limit, proof_expectation=self.goal.proof,
+        )
+
 
 @dataclass(frozen=True)
 class GuideReview:
@@ -560,9 +598,10 @@ def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedInt
     delivery = operation.get("delivery")
     if operation["kind"] == "task-change":
         checks, delivery = operation["task_change"]["checks"], operation["task_change"]["delivery"]
-    if checks and guide.goal.checks and set(checks) != set(guide.goal.checks):
+    if len(checks) != len(guide.goal.checks) or set(checks) != set(guide.goal.checks):
         raise FrRuntimeError("intent checks differ from its goal")
-    if delivery is not None and guide.goal.delivery is not None and delivery != guide.goal.delivery.to_data():
+    expected_delivery = guide.goal.delivery.to_data() if guide.goal.delivery is not None else None
+    if delivery != expected_delivery:
         raise FrRuntimeError("intent delivery differs from its goal")
     compiled = client.compile(AgentIntent(guide.at("/target/handle"), guide.goal.purpose,
         needs=(IntentNeed("map", "code_map", "/target"),),

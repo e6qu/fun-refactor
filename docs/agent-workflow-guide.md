@@ -60,27 +60,34 @@ Exact scalar goals with declared checks produce one complete `fr-task-change-1` 
 Integer/float scalars follow the live unsigned-decimal contract; negatives use explicit unary IR
 nodes. Option-like string values use equals-form arguments so the CLI preserves their data role.
 The native task planner checks uniqueness, scalar category, writer admission and postconditions
-before the guide advertises it. Python returns the preview as `TaskReview`; the existing `execute`
-method runs original checks, apply, checks, reversal, restored checks, redo, final checks and optional
-patch delivery according to the supplied policy.
+before the guide advertises it. The common Python delivery API wraps the corresponding typed task
+operation in the same `GuideReview` used by every other writable route.
+`guide.semantic_scalar_action()` returns that typed operation only when the ready task manifest
+exactly matches the retained goal, target, checks, delivery and postconditions.
 
 ```python
 from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
+from fr_ir.intent_actions import CapabilityOperation, TaggedIntentAction
 from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient
 
 client = FrClient(".")
+delivery = TaskDelivery(patch="artifacts/change.patch", check_output_bytes=256)
 goal = AgentGoal(
     "change",
     selector=GoalSelector(name="calculate", scope="src", language="rust"),
-    operation=GoalOperation("semantic-scalar", {"operation": "set-int", "from": "7", "to": "9"}),
+    operation=GoalOperation("capability", {
+        "capability": "rename", "parameters": {"new_name": "evaluate"},
+    }),
     checks=("unit",),
-    delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=256),
+    delivery=delivery,
 )
-run = client.complete_guide(goal)
-review = run.review()
-print(review.at("/author/diff"))
-result = client.execute_guide(run)
+guide = client.guide(goal)
+review = client.review_guide(guide, TaggedIntentAction(CapabilityOperation(
+    "rename", {"new_name": "evaluate"}, checks=("unit",), delivery=delivery,
+)))
+print(review.at("/diff"))
+result = client.execute_guide(review)
 assert result.passed
 ```
 
@@ -107,12 +114,11 @@ assert run.reports[-1].at("/applied") is False
 ```
 
 `complete_guide` obtains one guide and follows every read or preview action locally. The caller
-still authors every required value and reviews the returned reports. `GuideRun.review()` accepts
-only a run with exactly one immutable task review. After that explicit review boundary,
-`execute_guide` refreshes the guide again and executes only the unchanged retained task. Routes
-with another write shape refuse and direct the caller to `compile_guided_intent`. Each action checks
-the guide basis, output schema and byte ceiling. This form is intended for an agent-authored Python
-program whose intermediate project reports should stay outside the model transcript.
+still authors every required value and reviews the returned reports; a `GuideRun` is never an
+execution request. For writes, `review_guide` accepts the retained guide and exactly one typed
+operation admitted by its route. Its `GuideReview` binds the normalized goal, guide basis, authored
+input digest, target set, revision, checks, delivery policy and complete native preview.
+`execute_guide` refreshes the guide and accepts only that unchanged review.
 
 The guide contains no source, semantic body, complete vocabulary or unrelated route. Exact source
 requires `constraints.allow_source: true` and a separate bounded reveal. Reveal limits range from
@@ -142,14 +148,14 @@ boundaries.
 The retained compatibility [complete-program comparison](../tests/agent-eval/agent-guide-context.json) changes a
 generic Rust scalar, runs compiler and finite behavioral checks, emits an identical patch and
 completes all eight lifecycle stages in both arms. The manual program and final packet occupy
-1,155 bytes; the guided program and packet occupy 1,102 bytes. Manual discovery/review/write uses
-three processes. Guide/freshness/review/write uses four and carries 9,027 additional internal
+1,155 bytes; the guided program and packet occupy 1,140 bytes. Manual discovery/review/write uses
+three processes. Guide/review/freshness/write uses four and carries 14,117 additional internal
 request/response bytes. This fixture measures protocol bytes and process counts; it runs no model
 and establishes no token, quota or population result.
 
 The existing inline-discovery task route supplies a stronger process baseline: its complete program
-and packet occupy 1,217 bytes and use two processes. Guided delivery saves 115 exposed bytes while
-adding two processes and 9,512 internal bytes. All three arms pass the same compiler, behavioral,
+and packet occupy 1,217 bytes and use two processes. Guided delivery saves 77 exposed bytes while
+adding two processes and 14,602 internal bytes. All three arms pass the same compiler, behavioral,
 source, patch and lifecycle oracles. Counts use canonical JSON and retain every complete agent
 program, environment-binding form, internal request, response and final packet size.
 
@@ -163,13 +169,15 @@ checked task delivery through JSON stdin; unchecked CLI scalar actions refuse th
 ## Retaining the guide through delivery
 
 `intent_action` names the versioned action schema, the operation kinds admitted for this route,
-the SDK compile/execute methods and review/basis pointers. Unsupported routes offer no action kinds.
+whether it is writable, the SDK review/execute methods and review/basis pointers. Writable routes
+also carry `fr-guide-delivery-1`, which states the common lifecycle and every required identity.
+Unsupported routes offer no action kinds.
 Read `skills/fr/references/intents.md` for operation inputs.
 
 Author a matching `TaggedIntentAction` from `fr_ir.intent_actions`, then call
-`client.compile_guided_intent(guide, action)`. Native compilation binds the retained goal and guide
-basis to the same snapshot as the intent evidence. Inspect `/action/review` and execute the unchanged
-compiled action with `client.execute_intent`. Every write uses declared checks and the existing
+`client.review_guide(guide, action)`. Native compilation binds the retained goal and guide basis to
+the same snapshot as the intent evidence. Inspect the returned review and execute it unchanged with
+`client.execute_guide`. Every write uses declared checks and the existing
 recoverable history/workflow engine. File/directory evidence provides bounded declaration continuations.
 
 Capability goals can include a `range` with `start`/`end` byte offsets inside the selected source.

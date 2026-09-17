@@ -1,15 +1,15 @@
 {
   "schema": "fr-agent-guide-context-1",
   "bindings": {
-    "tools/agent-guide-context.py": "3908d45d6915af14e0c0488851d424dd4af26a5b28d0d57453dcacf945f61e48",
+    "tools/agent-guide-context.py": "3b9953e9f7c6816271109245c25d05879f26f27f56d693fb8b9d6574aaede920",
     "src/cli.rs": "4d7b524ee696b68257d08dc9bc03cdf8029a71aaa6ea06888218da4185039605",
     "src/capabilities.rs": "e221fca5fcf5227206a7eea7a3cff2b1222badd7b6f5ba9cec2969d7ba1b6a3e",
-    "src/project/agent_guide.rs": "7c3462faf09c46308b602b22a36aa845d204f948d10123cd9311b26cb5f82683",
+    "src/project/agent_guide.rs": "a5114ea30cd9199f1dc97048706131756c163a1327c1e60e5bdecebe978b64bf",
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
-    "sdk/python/src/fr_ir/guide.py": "f503a0e85cd6a6c6b48c6a9e5913c9addc523b1f92c81d2eb970096ab84bda39",
+    "sdk/python/src/fr_ir/guide.py": "385cc36eb7060d8b805268ea6a9f42bb693904508e2d30fee6e4cf5e7a201875",
     "sdk/python/src/fr_ir/ir.py": "9d16f0040919c05061b324d7d9d903a9668f22d81d4e111be6cf0c8d33bace09",
-    "sdk/python/src/fr_ir/runtime.py": "bce95872d76227f141678dd376115232a3afbb12ce21c0bf0977c24cacc62817",
-    "kernels/FrKernels/AgentGuide.lean": "070c8fb88b42f28e47a863f4ce90f2b4790ff9f9415c52e2394c19fbf01bfb49",
+    "sdk/python/src/fr_ir/runtime.py": "ef0d7024d9ea677b66c3d562c2815d379afc11055d3ce9e001886a9f2450aca3",
+    "kernels/FrKernels/AgentGuide.lean": "7fface87376f694e7dc79f9a2b7d3cd620ddb406016899bf0cb3d158650990fe",
     "src/project/agent_actions.rs": "0b7145488186b6e1b84430cc6c5e92b4da12f69c9c833e7c46639e0e17ef963a",
     "src/project/capability_action.rs": "0015847105a8f4857c698c7f398f70c30064de630a79cb51ee28286211c9c66b",
     "sdk/python/src/fr_ir/intent_actions.py": "c8c29c1e6bf251f14ca8a8d644bf753c5a7eb932cf6480da5ffd018839c85d42"
@@ -94,7 +94,7 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:85cd41cd2f2187135fefdd63e93e480063e60582d601575625adfbd21aea6793"
+          "frtc1:7a61ceb635dc5a0c43817fab5ff7f49a5613fac4f4df73d43d52cfb74eae2ae1"
         ],
         "request_bytes": 598,
         "response_bytes": 4176
@@ -177,7 +177,7 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:9d335624eba8aac198aa0717d63ded8547888b53eee4be5075fd52f47be6f4b6"
+          "frtc1:ba7908e49c085e89de4263324ba1e51213cd3b021761d6cafec98b65bd9b2cc4"
         ],
         "request_bytes": 661,
         "response_bytes": 4176
@@ -191,10 +191,10 @@
     "behavior_oracle_cases": 33
   },
   "guided": {
-    "program": "from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector\nfrom fr_ir.ir import TaskDelivery\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\ngoal = AgentGoal(\"change\", selector=GoalSelector(name=\"calculate\"),\n    operation=GoalOperation(\"semantic-scalar\", {\"operation\": \"set-int\", \"from\": \"7\", \"to\": \"9\"}),\n    checks=(\"compiler\",), delivery=TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256))\nrun = client.complete_guide(goal)\nreview = run.review()\nresult = client.execute_guide(run)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
-    "program_sha256": "933ad8e66d898676359934b9d112168293004d62b631549cdc2272303f245458",
+    "program": "from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector\nfrom fr_ir.ir import TaskDelivery\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\ngoal = AgentGoal(\"change\", selector=GoalSelector(name=\"calculate\"),\n    operation=GoalOperation(\"semantic-scalar\", {\"operation\": \"set-int\", \"from\": \"7\", \"to\": \"9\"}),\n    checks=(\"compiler\",), delivery=TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256))\nguide = client.guide(goal)\nreview = client.review_guide(guide, guide.semantic_scalar_action())\nresult = client.execute_guide(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+    "program_sha256": "573e5af974956bcae3cb819b1ccb8d77e3c4af89c06c36836e62231c8b8c79cb",
     "agent_request": {
-      "program": "from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector\nfrom fr_ir.ir import TaskDelivery\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\ngoal = AgentGoal(\"change\", selector=GoalSelector(name=\"calculate\"),\n    operation=GoalOperation(\"semantic-scalar\", {\"operation\": \"set-int\", \"from\": \"7\", \"to\": \"9\"}),\n    checks=(\"compiler\",), delivery=TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256))\nrun = client.complete_guide(goal)\nreview = run.review()\nresult = client.execute_guide(run)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
+      "program": "from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector\nfrom fr_ir.ir import TaskDelivery\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\ngoal = AgentGoal(\"change\", selector=GoalSelector(name=\"calculate\"),\n    operation=GoalOperation(\"semantic-scalar\", {\"operation\": \"set-int\", \"from\": \"7\", \"to\": \"9\"}),\n    checks=(\"compiler\",), delivery=TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256))\nguide = client.guide(goal)\nreview = client.review_guide(guide, guide.semantic_scalar_action())\nresult = client.execute_guide(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
       "bindings": {
         "WORKSPACE": "<workspace>",
         "FR": "<fr>"
@@ -238,11 +238,11 @@
         }
       ]
     },
-    "agent_request_bytes": 713,
+    "agent_request_bytes": 755,
     "agent_response_bytes": 385,
-    "agent_exchange_bytes": 1098,
+    "agent_exchange_bytes": 1140,
     "agent_exchanges": 1,
-    "process_calls": 5,
+    "process_calls": 4,
     "calls": [
       {
         "arguments": [
@@ -251,7 +251,16 @@
           "-"
         ],
         "request_bytes": 544,
-        "response_bytes": 4500
+        "response_bytes": 4561
+      },
+      {
+        "arguments": [
+          "intent",
+          "--from",
+          "-"
+        ],
+        "request_bytes": 1485,
+        "response_bytes": 8230
       },
       {
         "arguments": [
@@ -260,46 +269,24 @@
           "-"
         ],
         "request_bytes": 544,
-        "response_bytes": 4500
+        "response_bytes": 4561
       },
       {
         "arguments": [
-          "task-change",
-          "--from",
-          "-",
-          "--diff-bytes",
-          "4096",
-          "--report-bytes",
-          "16384"
-        ],
-        "request_bytes": 550,
-        "response_bytes": 5199
-      },
-      {
-        "arguments": [
-          "guide",
-          "--from",
-          "-"
-        ],
-        "request_bytes": 544,
-        "response_bytes": 4500
-      },
-      {
-        "arguments": [
-          "task-change",
+          "intent",
           "--from",
           "-",
           "--write",
           "--basis",
-          "frtc1:25dc6cf1cd70f53cf20e46ee6b1cf2afef5e7b804794e5e4417b2463c804f0f0"
+          "fraa2:f52b732a14663469e987586e10a9844665d0805769617aa6293f2c2c926f0781"
         ],
-        "request_bytes": 596,
-        "response_bytes": 4176
+        "request_bytes": 1578,
+        "response_bytes": 4196
       }
     ],
-    "internal_request_bytes": 2778,
-    "internal_response_bytes": 22875,
-    "internal_exchange_bytes": 25653,
+    "internal_request_bytes": 4151,
+    "internal_response_bytes": 21548,
+    "internal_exchange_bytes": 25699,
     "source_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
     "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596",
     "behavior_oracle_cases": 33
@@ -315,14 +302,14 @@
     "agent_packet": true
   },
   "difference": {
-    "agent_exchange_bytes": -57,
-    "process_calls": 2,
-    "internal_exchange_bytes": 14071
+    "agent_exchange_bytes": -15,
+    "process_calls": 1,
+    "internal_exchange_bytes": 14117
   },
   "inline_difference": {
-    "agent_exchange_bytes": -119,
-    "process_calls": 3,
-    "internal_exchange_bytes": 14556
+    "agent_exchange_bytes": -77,
+    "process_calls": 2,
+    "internal_exchange_bytes": 14602
   },
   "claim": "Fixed complete agent programs and serialized protocol bytes; no model, token, quota or population claim."
 }

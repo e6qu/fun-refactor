@@ -520,6 +520,11 @@ impl Project<'_> {
         } else {
             &goal.operation
         };
+        let writable = match operation {
+            Operation::Automatic => false,
+            Operation::Capability { capability, .. } => capability.agent_form().writes,
+            _ => true,
+        };
         let mut route = 0usize;
         let mut supported = true;
         let mut source_required = false;
@@ -687,9 +692,6 @@ impl Project<'_> {
                     None,
                     authors,
                 ));
-                if form.writes {
-                    report["delivery"] = json!({"route":"save-plan-then-workflow","next_after_complete_preview":"save the unchanged plan, bind declared checks, then request workflow review.","reference":"skills/fr/references/workflow.md"});
-                }
             }
             Operation::Recipe { verb } => {
                 route = 2;
@@ -875,7 +877,6 @@ impl Project<'_> {
                             Some(input),
                             vec![],
                         ));
-                        report["delivery"] = json!({"route":"reviewed-task-change","execution":"FrClient.execute(TaskReview)","requires":"complete returned task-change review and its unchanged basis."});
                         let mut direct = args(&[
                             "author",
                             "edit-body-scalar",
@@ -1440,8 +1441,17 @@ impl Project<'_> {
         };
         report["intent_action"] = json!({"schema":"fr-intent-action-2",
             "operation_kinds":if admitted { operation_kinds } else { &[] },
-            "compile":"FrClient.compile_guided_intent", "execute":"FrClient.execute_intent",
+            "writable":admitted && writable,
+            "review":"FrClient.review_guide", "execute":"FrClient.execute_guide",
             "reference":"intents", "review_pointer":"/action/review", "basis_pointer":"/action/basis"});
+        if admitted && writable {
+            report["delivery"] = json!({
+                "schema":"fr-guide-delivery-1",
+                "review":"FrClient.review_guide",
+                "execute":"FrClient.execute_guide",
+                "requires":["declared-checks","declared-delivery","complete-review","unchanged-guide","unchanged-review"]
+            });
+        }
         report["verification_ladder"] = json!([
             {"level":"reparse","state":"not-run","claim":"syntax only"},
             {"level":"compiler","state":"requires-declared-check","claim":"toolchain acceptance"},

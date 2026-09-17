@@ -75,7 +75,7 @@ fn checked_agent_guide_context_comparison_is_reproducible() {
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_slice(&fs::read(evidence).unwrap()).unwrap();
-    assert_eq!(report["guided"]["process_calls"], 5);
+    assert_eq!(report["guided"]["process_calls"], 4);
     assert_eq!(report["manual"]["process_calls"], 3);
     assert!(report["equality"]
         .as_object()
@@ -99,8 +99,7 @@ fn python_guide_delivers_an_exact_scalar_goal_and_refuses_stale_guidance() {
 import json, sys
 from pathlib import Path
 from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
-from fr_ir.intent_actions import TaggedIntentAction, TaskChangeOperation
-from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget
+from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient, FrRuntimeError
 client=FrClient(sys.argv[1], executable=sys.argv[2])
 delivery=TaskDelivery(patch='artifacts/change.patch',check_output_bytes=256)
@@ -109,11 +108,7 @@ goal=AgentGoal('change',selector=GoalSelector(name='calculate'),
     checks=('syntax',),delivery=delivery)
 guide=client.guide(goal)
 assert len(guide.actions()) == 1
-change=TaskChange((),(TaskTarget('goal',guide.at('/target/handle'),'edit-body-scalar',
-    scalar=ScalarRequest('set-int','7','9')),),
-    {'files-changed':1,'edits':1,'changed-operations':1,'paths-changed':['app.rs']},
-    ('syntax',),delivery)
-review=client.review_guide(guide,TaggedIntentAction(TaskChangeOperation(change)))
+review=client.review_guide(guide,guide.semantic_scalar_action())
 assert '+ 9' in review.at('/diff')
 result=client.execute_guide(review)
 assert result.passed

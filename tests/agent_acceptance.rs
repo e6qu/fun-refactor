@@ -62,7 +62,7 @@ fn matched_source_writing_evidence_is_bound_and_passing() {
     python(&[
         "tools/matched-agent-source.py",
         "audit",
-        "tests/agent-eval/results/2026-09-17-matched-source-acceptance",
+        "tests/agent-eval/results/2026-09-18-guided-delivery-acceptance",
     ]);
 }
 

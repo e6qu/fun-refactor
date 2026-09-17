@@ -1,0 +1,162 @@
+{
+  "schema": "fr-matched-source-manifest-1",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "low",
+  "service_tier": "default",
+  "results": [
+    {
+      "schema": "fr-matched-source-result-1",
+      "arm": "fr",
+      "answers_match": true,
+      "source_matches": true,
+      "behavior_oracle": true,
+      "coverage": {
+        "calls": 4,
+        "failed_calls": 0,
+        "reviewed_writes": 1,
+        "passed": true,
+        "transaction_status": "applied",
+        "stages": [
+          {
+            "stage": "check-original",
+            "status": "passed"
+          },
+          {
+            "stage": "apply",
+            "status": "passed"
+          },
+          {
+            "stage": "check-applied",
+            "status": "passed"
+          },
+          {
+            "stage": "undo",
+            "status": "passed"
+          },
+          {
+            "stage": "check-restored",
+            "status": "passed"
+          },
+          {
+            "stage": "redo",
+            "status": "passed"
+          },
+          {
+            "stage": "check-applied",
+            "status": "passed"
+          },
+          {
+            "stage": "deliver-patch",
+            "status": "passed"
+          }
+        ],
+        "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596"
+      },
+      "finished": true,
+      "tool_calls": 2,
+      "tool_request_bytes": 948,
+      "tool_response_bytes": 231,
+      "tool_errors": 0,
+      "codex": {
+        "usage": {
+          "input_tokens": 41389,
+          "cached_input_tokens": 35072,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 638,
+          "reasoning_output_tokens": 60
+        },
+        "command_executions": 2,
+        "failed_command_executions": 0,
+        "direct_project_commands": [],
+        "infrastructure_errors": 0,
+        "stderr_bytes": 0,
+        "event_bytes": 5031,
+        "final_bytes": 122,
+        "billed_quota": {
+          "available": false,
+          "value": null
+        }
+      },
+      "manual_corrections": 0,
+      "passed": true
+    },
+    {
+      "schema": "fr-matched-source-result-1",
+      "arm": "files",
+      "answers_match": true,
+      "source_matches": true,
+      "behavior_oracle": true,
+      "coverage": {
+        "reads": 1,
+        "replacements": 1
+      },
+      "finished": true,
+      "tool_calls": 4,
+      "tool_request_bytes": 299,
+      "tool_response_bytes": 357,
+      "tool_errors": 0,
+      "codex": {
+        "usage": {
+          "input_tokens": 67985,
+          "cached_input_tokens": 51968,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 687,
+          "reasoning_output_tokens": 92
+        },
+        "command_executions": 4,
+        "failed_command_executions": 0,
+        "direct_project_commands": [],
+        "infrastructure_errors": 0,
+        "stderr_bytes": 0,
+        "event_bytes": 4785,
+        "final_bytes": 122,
+        "billed_quota": {
+          "available": false,
+          "value": null
+        }
+      },
+      "manual_corrections": 0,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "usage_difference_fr_minus_files": {
+    "input_tokens": -26596,
+    "cached_input_tokens": -16896,
+    "output_tokens": -49,
+    "reasoning_output_tokens": -32
+  },
+  "tool_call_difference_fr_minus_files": -2,
+  "claim": "One matched pair over one fixed source-writing task; no population, hidden-reasoning or billed-quota claim.",
+  "acceptance_evidence": true,
+  "bindings": {
+    "tools/matched-agent-source.py": "fa07faf7b9b1715378c85a14b52e44619fafd9e7409bb242288935dc8c58e4e4",
+    "tools/matched-agent-context.py": "18a47e88dbf0805c6c732f20077f158338388986f7b4c24105fd591fcd4afd8f",
+    "sdk/python/src/fr_ir/guide.py": "385cc36eb7060d8b805268ea6a9f42bb693904508e2d30fee6e4cf5e7a201875",
+    "sdk/python/src/fr_ir/runtime.py": "ef0d7024d9ea677b66c3d562c2815d379afc11055d3ce9e001886a9f2450aca3",
+    "src/project/agent_guide.rs": "a5114ea30cd9199f1dc97048706131756c163a1327c1e60e5bdecebe978b64bf",
+    "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
+    "kernels/FrKernels/AgentGuide.lean": "7fface87376f694e7dc79f9a2b7d3cd620ddb406016899bf0cb3d158650990fe"
+  },
+  "files": {
+    "experiment.json": "3865f28140708da6a7b6e34d587b768899b76c7554bc748eac1d2e41c8f9b2ee",
+    "manifest.json": "8c59208938c552a34e5ffc4d2e2ee94ce164f72cdf3762eb613004662f668726",
+    "fr/session.json": "a6f4b1da618cd0c3b397130a37ab59d0344fdb11605cdaec8008acf576d42f87",
+    "fr/prompt.txt": "33e10043ef356e6e330b1d4e4ca34433c55c2b80db2bc290f24a0fd961dd97b2",
+    "fr/events.jsonl": "6401a4dcde5f493f4c1d0cfbc6ed41af9a720914bff35a3b011e43c157890673",
+    "fr/codex-events.jsonl": "46c7d48a772a9b9a934ba85b614250ebc663a0d8ca0dc2857e14424626d09f97",
+    "fr/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fr/codex-final.txt": "6b950ff1739bc5f32cad263828c60ec0bd30f39283d7d2c2b5a72dc96620b10a",
+    "fr/codex-run.json": "d94d2a08a535fe4bb5bf0d7e453a8da963d1496f18a0b26083fdc6521cc53c47",
+    "fr/result.json": "3f7355bc754b0a324c66a10dc0f579d33951656be84d25c59a6223653ca3d234",
+    "fr/sdk-events.jsonl": "2f358a3dc6dbb94943d0704d7c274c716bd811020804e24483b034586eb58a80",
+    "files/session.json": "571dd25b794d121ec46848c5b0c70e6c2b941394366fc96e311d282271f982a2",
+    "files/prompt.txt": "b6d8b0261b0915ec656b9a9dcb53df2d7e8972b3dffe173e0184d21a0a01fbc6",
+    "files/events.jsonl": "8d4cccc2adc26a006779274cface69a99879dde3995897e1d14b910e1c96e7b1",
+    "files/codex-events.jsonl": "a1d51342d34e503f125bae014bf6cb6f7e049eb2f54cbf5d100211fb2c84c674",
+    "files/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "files/codex-final.txt": "6b950ff1739bc5f32cad263828c60ec0bd30f39283d7d2c2b5a72dc96620b10a",
+    "files/codex-run.json": "cf595ac4181d0e79d58537d9a79bb43d4ce6a7d31071f9efa7876f743c60591b",
+    "files/result.json": "763b6eff57344273c2b7c686f0d79e9face1c9de3b0d4759f6ce8031a73b3ce1"
+  }
+}

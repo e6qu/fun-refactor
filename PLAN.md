@@ -33,7 +33,7 @@ The product is complete when an agent can:
 Completion excludes guesses about runtime behavior from static source. A translated Lean model
 does not prove its source without a checked correspondence boundary.
 
-## Baseline after PR 316
+## Current baseline
 
 The architecture needed for items 1 through 7 exists. Item 8 has accepted preview evidence and one
 accepted real source-writing task, but lacks breadth across repositories, languages and multi-file
@@ -43,10 +43,10 @@ changes. The defect ledger currently records no actionable correctness defect.
 |---|---|---|
 | Project understanding | 19 parser identities; symbols, scopes, types, references, calls, flow, impact, entry points, configuration and cross-stack facts | Preserve uncertainty and expand a language only against a concrete task |
 | Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks | Validate on more repositories and publish remote-store integration examples |
-| Agent routing | Structured goals and ten language-aware guide routes | Make every writable route use one uniform review and execution interface |
+| Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden representative acceptance |
 | Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
 | Application migration | Generic application IR for admitted Next.js, React, FastAPI, Express and Go HTTP routes or components | Model selected request, query, middleware, authentication and service behavior |
-| Delivery | Checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Complete uniform guide-to-delivery coverage and broaden failure testing |
+| Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
 | Agent evidence | Deterministic workflow audits, matched context evaluation and one matched source-writing cohort | Cross-project, cross-language, multi-file and proof-writing acceptance |
 | Distribution | Native and WASM releases plus a portable agent skill | Ship and compatibility-test the Python SDK as a release artifact |
@@ -74,39 +74,9 @@ patch delivery. A refusal, incorrect preview or impractical workflow is product 
 the same pull request when its root cause belongs to that outcome. Use a direct editor only when
 `fr` has no suitable operation, and retain that boundary in the pull request validation notes.
 
-### PR 1: roadmap and documentation truth reset
-
-Make the merged product understandable without repository archaeology.
-
-- Remove merged-branch, completed-milestone and obsolete future-tense material.
-- Make the README a short installation and agent-use entry point.
-- Make the documentation index route users, agent integrators and contributors to one authoritative
-  guide for each topic.
-- Consolidate repeated protocol explanations and link detailed contracts rather than paraphrasing
-  them.
-- Correct documentation and SDK inconsistencies found during the sweep.
-- Keep continuity limited to the active baseline, next outcome and validation commands.
-
-Acceptance: prose checks and local links pass. Live audit claims match the docs, packaged skill
-examples remain within budget, and the complete default gate passes.
-
-### PR 2: uniform guided review and delivery
-
-Give every admitted writable guide route the same safe high-level lifecycle.
-
-- Replace route-specific SDK handoffs with one immutable reviewed-delivery abstraction.
-- Cover built-in capabilities, recipes, semantic bodies and deltas, batches, surface edits,
-  application migrations, formal scaffolds and proof submissions.
-- Keep `cases`, `induction` and `rcases` proof branches structural without an opaque fallback.
-- Bind the goal, guide, authored inputs, target set, project revision, checks, delivery policy and
-  complete preview into one review identity.
-- Execute only an unchanged review through original checks, apply, final checks, reversal, restored
-  checks, redo and patch verification.
-- Preserve route-specific refusal reasons and expose no write operation before a complete review.
-- Add shared Rust, Python and Lean admission cases for the common lifecycle.
-
-Acceptance: every writable route passes through the public Python API and native CLI. Cases cover
-success, stale bases, changed input, incomplete diffs, failed checks, undo/redo and patch replay.
+Completed bulk outcomes: PR 317 reset the roadmap and documentation around the merged product. The
+current change gives every writable guide route one immutable `GuideReview`, shared Rust/Python/Lean
+admission cases, structural Lean tactic branches and retained low-effort Codex acceptance evidence.
 
 ### PR 3: representative agent acceptance and SDK distribution
 
