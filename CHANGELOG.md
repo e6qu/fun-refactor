@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.27.0...fun-refactor-v0.28.0) (2026-09-17)
+
+
+### Features
+
+* add generic hierarchical application transformations ([#311](https://github.com/e6qu/fun-refactor/issues/311)) ([37b35f0](https://github.com/e6qu/fun-refactor/commit/37b35f0b77529c249003cdf039227ae624f5058e))
+* complete source-derived audit and guided agent validation ([#313](https://github.com/e6qu/fun-refactor/issues/313)) ([d4b8104](https://github.com/e6qu/fun-refactor/commit/d4b810469b9d5147ecdf9c0d2cfc27b0184e4a21))
+
 ## [0.27.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.26.0...fun-refactor-v0.27.0) (2026-09-16)
 
 
