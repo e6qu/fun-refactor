@@ -214,6 +214,16 @@ fn workflow_report() -> Value {
             "families":7,
             "claim":"The retained fresh cohort passed every guided preview. It had zero failed commands, infrastructure errors, direct project commands, exploratory calls, mutations and human corrections. Billed quota is unavailable."
         },
+        "matched_evaluation": {
+            "schema":"fr-matched-agent-manifest-1",
+            "auditor":"python3 tools/matched-agent-context.py replay tests/agent-eval/results/2026-09-17-matched-context-acceptance",
+            "retained":"tests/agent-eval/results/2026-09-17-matched-context-acceptance",
+            "model":"gpt-5.6-luna",
+            "reasoning_effort":"low",
+            "arms":["fr","files"],
+            "families":7,
+            "claim":"One fresh matched pair passed the same seven preview outcomes. The local SDK arm used 46120 input tokens and 2 agent calls; direct files used 89118 input tokens and 7 calls. This is fixture evidence, not a population or billed-quota claim."
+        },
     })
 }
 

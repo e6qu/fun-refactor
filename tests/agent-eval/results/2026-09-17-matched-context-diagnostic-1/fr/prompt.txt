@@ -1,0 +1,46 @@
+You are an independent matched-context evaluation agent.
+
+Complete the same seven read/preview workflows in order on this unfamiliar project:
+1. Understand the declaration named calculate.
+2. Trace the declaration named calculate and count its direct callers.
+3. Preview renaming calculate to compute with a direct capability.
+4. Preview the same rename as a schema-1 recipe matching exactly one declaration, one changed file and zero refusals.
+5. Preview changing integer 7 to 9 in calculate with semantic set-int.
+6. Preview app/api/signals/route.ts as FastAPI at converted/signals.py; preserve method, route and literal JSON response.
+7. Check obligation keepModel_identity in specs/FrSpecs/SrcLibRsKeep.lean with agent-authored tactics `rfl`.
+
+Finish with one `fr-matched-outcomes-1` packet containing all seven workflow rows. Use strings for
+the scalar values 7 and 9. The instrumented tool validates the packet independently. Every operation
+must remain a preview and project source must stay unchanged.
+
+Use these exact row fields: understanding has `id,path,name,kind,language`; tracing has
+`id,path,name,direct_callers`; direct-change has `id,path,from,to,changed_files`; recipe has
+`id,verb,from,to,matched,changed_files,refusals`; semantic-edit has
+`id,path,operation,from,to,changed_files`; framework-migration has
+`id,source,target,destination,method,path,response`; proof has
+`id,path,obligation,tactics,accepted`. Preserve this workflow order and add no fields.
+
+Use one agent-authored Python SDK program so intermediate guides and reports stay local.
+Submit it once as `{"tool":"sdk","program_lines":[...]}`, then call finish. The program receives
+the project root as `sys.argv[1]` and an instrumented fr executable as `sys.argv[2]`. Import only
+`json`, `sys`, `FrClient`, and IR-shaped goal classes from `fr_ir.guide`. Use `client.complete_guide`
+for routes whose inputs are known. For migration, obtain one guide, take the first compatible feature
+ID from `/route/evidence/compatible_features`, then follow both actions with `GuideInputs`. Supply
+recipe and tactics text with `GuideFile`; the agent authors both. Print only the final outcome packet
+as JSON. Do not call `client.call`, execute a write, read source through Python, or use project/file APIs.
+
+The recipe lines are: `schema 1`, `recipe rename-calculate {`, `  rename to "compute" where
+name="calculate"`, `  expect matched = 1`, `  expect changed = 1 files`,
+`  expect refusals = 0`, `}`. Build goals with `AgentGoal`, `GoalSelector`, `GoalOperation`,
+`GuideInputs`, and `GuideFile`. `complete_guide` returns a guide and reports; the migration guide's
+actions are followed with `client.follow_guide`. Recipe input belongs to action 0. Migration inputs
+belong to action 1. The proof tactics file belongs unchanged to actions 1 and 2.
+
+Use only the instrumented tool through functions.exec / tools.exec_command. Every call uses this
+complete stdin command and one JSON object:
+python3 /Users/zardoz/projects/fun-refactor/tools/matched-agent-context.py step /tmp/fr-matched-live-1/fr --request-stdin <<'FRJSON'
+{"tool":"finish","summary":"all seven workflows completed"}
+FRJSON
+No human correction is available. Do not browse, delegate, inspect the evaluator, or access another
+session. Do not repeat a successful request. The harness records complete prompts, requests,
+responses and Codex usage; the CLI exposes no billed-quota value.

@@ -26,12 +26,16 @@ relevant schema action and exact preview arguments. It omits the internal path a
 `frdi1:` ID already binds those details, so an agent only chooses a disclosed capability and supplies
 the smallest replacement node when required.
 
+Replace a same-category node or insert a statement:
+
 ```sh
-# Same-category node replacement or statement insertion:
 fr author edit-body-disclosed-ir '<FULL_HANDLE>' \
   --edit 'frdi1:<DIGEST>' --from node.json
+```
 
-# Statement deletion:
+Delete a statement:
+
+```sh
 fr author edit-body-disclosed-ir '<FULL_HANDLE>' --edit 'frdi1:<DIGEST>'
 ```
 

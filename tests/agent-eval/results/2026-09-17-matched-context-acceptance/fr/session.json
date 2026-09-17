@@ -1,0 +1,93 @@
+{
+  "schema": "fr-matched-agent-session-1",
+  "arm": "fr",
+  "binary": "/tmp/fr-matched-live-3/fr-matched-agent-bin",
+  "binary_sha256": "a5f53ea5f6b3cd9674f12a8b3a17200d4e7553aba4dcf93a36132b1f07583aad",
+  "wrapper": "/tmp/fr-matched-live-3/fr/fr-sdk-wrapper.py",
+  "proof_path": "specs/FrSpecs/SrcLibRsKeep.lean",
+  "obligation": "keepModel_identity",
+  "expected_answers": {
+    "schema": "fr-matched-outcomes-1",
+    "workflows": [
+      {
+        "id": "understanding",
+        "path": "src/lib.rs",
+        "name": "calculate",
+        "kind": "function",
+        "language": "rust"
+      },
+      {
+        "id": "tracing",
+        "path": "src/lib.rs",
+        "name": "calculate",
+        "direct_callers": 0
+      },
+      {
+        "id": "direct-change",
+        "path": "src/lib.rs",
+        "from": "calculate",
+        "to": "compute",
+        "changed_files": 1
+      },
+      {
+        "id": "recipe",
+        "verb": "rename",
+        "from": "calculate",
+        "to": "compute",
+        "matched": 1,
+        "changed_files": 1,
+        "refusals": 0
+      },
+      {
+        "id": "semantic-edit",
+        "path": "src/lib.rs",
+        "operation": "set-int",
+        "from": "7",
+        "to": "9",
+        "changed_files": 1
+      },
+      {
+        "id": "framework-migration",
+        "source": "app/api/signals/route.ts",
+        "target": "fastapi",
+        "destination": "converted/signals.py",
+        "method": "GET",
+        "path": "/api/signals",
+        "response": {
+          "healthy": true
+        }
+      },
+      {
+        "id": "proof",
+        "path": "specs/FrSpecs/SrcLibRsKeep.lean",
+        "obligation": "keepModel_identity",
+        "tactics": [
+          "rfl"
+        ],
+        "accepted": true
+      }
+    ]
+  },
+  "source_bindings": {
+    "tools/matched-agent-context.py": "686df5a8419a9765a704f29c6ef14de3668237635cae542dd63b2cf32ddcab75",
+    "tools/completion-workflows.py": "4a88f05802e07e57e9964427178664ce2fb20e2f4373f5ff3db9b05d965982b2",
+    "sdk/python/src/fr_ir/guide.py": "38e269837ba7af6d3d382382939e665e0c699119d06324784accc9854bc31460",
+    "sdk/python/src/fr_ir/runtime.py": "3f95f90518c7fd1226143e5fae4aef62d66558ef1738371cd2eb72b716ac65c9",
+    "src/project/agent_guide.rs": "617c98f79443be883008c323f0c46d369669b548f9f58ade9d2d2b44c96e4647",
+    "kernels/FrKernels/AgentGuide.lean": "f8fb6c2355d8829a43ff0062d6d3308d05bcfd6d1368ff58a202b263fc85a08c"
+  },
+  "original_source": {
+    "Cargo.toml": "434e102c861f994d2aace9114d392dbc162190e00be8fe357d472150ca439614",
+    "app/api/signals/route.ts": "b9a7cac12c61a6a65855c5a7e01a10f48a02f7baf3a0cd3c6c07f17c94e56838",
+    "formal-plan.json": "37b5037d31eeb40f231884296ef04ed032ea0b14c8f815654416baa69a019ed0",
+    "proof.lean": "10896888cad7b91cfc9f4bea90213a34cf597b54b69ab6c228171db5668cfe88",
+    "rename.recipe": "fc20bebcc02f00dd0d2ccf0304e2f23c1119a44dff349c14b50c6aeaf91c94d3",
+    "specs/FrSpecs/SrcLibRsKeep.lean": "cccd729dc633b30d7498f69942b8cf82c0eb08c3ec99a203db49c129a48805f5",
+    "specs/FrSpecs.lean": "5fe8bf5a6ec1160fec5fbd2e485c72cc08f0aa8fa942b19716b7ffb3017b35b6",
+    "specs/lake-manifest.json": "823948133e4485ef420505d1d8065898b9310cc3096721f11cfb2b9ded3bf467",
+    "specs/lakefile.toml": "0ef98cfa67bdd435d22268ec0f2122cb4893c7025f0ac3ae981f4f3ea569a672",
+    "specs/lean-toolchain": "db7bb24b756d745bbde83fe92718b51bd3625dae3701ba0f598d0eedcd3f3028",
+    "src/lib.rs": "9a0cbf531ca3e0f7f11a14892b33dd10667d86530740f657db887d21e335143c"
+  },
+  "manual_corrections": 0
+}

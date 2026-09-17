@@ -1,0 +1,60 @@
+{
+  "schema": "fr-matched-agent-result-1",
+  "arm": "fr",
+  "workflow_ids": [
+    "understanding",
+    "tracing",
+    "direct-change",
+    "recipe",
+    "semantic-edit",
+    "framework-migration",
+    "proof"
+  ],
+  "answers_match": false,
+  "coverage": {
+    "calls": 9,
+    "failed_calls": 0,
+    "observed_routes": [
+      "evidence",
+      "evidence",
+      "evidence",
+      "evidence",
+      "direct-capability",
+      "direct-capability"
+    ],
+    "route_coverage": false,
+    "action_coverage": false,
+    "request_bytes": 2653,
+    "response_bytes": 27864
+  },
+  "finished": true,
+  "source_unchanged": true,
+  "prompt_bytes": 5539,
+  "tool_calls": 5,
+  "tool_request_bytes": 12706,
+  "tool_response_bytes": 997,
+  "tool_errors": 3,
+  "codex": {
+    "usage": {
+      "input_tokens": 127973,
+      "cached_input_tokens": 106752,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 7394,
+      "reasoning_output_tokens": 1502
+    },
+    "command_executions": 6,
+    "failed_command_executions": 1,
+    "direct_project_commands": [],
+    "infrastructure_errors": 0,
+    "stderr_bytes": 0,
+    "event_bytes": 50570,
+    "final_bytes": 96,
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0,
+  "measurement_scope": "Complete prompt, instrumented requests/responses and Codex JSONL usage; billed quota unavailable.",
+  "passed": false
+}

@@ -1,6 +1,6 @@
 //! Every document is reachable, and every link between them resolves.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 use std::path::{Path, PathBuf};
 
 fn root() -> PathBuf {
@@ -47,21 +47,41 @@ fn links_in(text: &str) -> Vec<String> {
     found
 }
 
+fn repository_name(from: &str, target: &str) -> Option<String> {
+    let base = root().join(from).parent()?.to_path_buf();
+    let path = base.join(target).canonicalize().ok()?;
+    Some(
+        path.strip_prefix(root())
+            .ok()?
+            .to_string_lossy()
+            .to_string(),
+    )
+}
+
 #[test]
-fn every_document_is_linked_from_the_readme() {
-    let readme = std::fs::read_to_string(root().join("README.md")).expect("README.md is there");
-    let linked: BTreeSet<String> = links_in(&readme).into_iter().collect();
-    let orphaned: Vec<String> = documents()
+fn every_document_is_reachable_from_the_readme() {
+    let published = documents();
+    let mut reachable = BTreeSet::from(["README.md".to_string()]);
+    let mut pending = VecDeque::from(["README.md".to_string()]);
+    while let Some(name) = pending.pop_front() {
+        let text = std::fs::read_to_string(root().join(&name)).expect("the document is readable");
+        for target in links_in(&text) {
+            let Some(linked) = repository_name(&name, &target) else {
+                continue;
+            };
+            if published.contains(&linked) && reachable.insert(linked.clone()) {
+                pending.push_back(linked);
+            }
+        }
+    }
+    let orphaned: Vec<String> = published
         .into_iter()
-        // The README does not link itself, and `docs/style.md` is a rule for
-        // whoever writes the others rather than something a user reads.
-        .filter(|name| !matches!(name.as_str(), "README.md" | "docs/style.md"))
-        .filter(|name| !linked.contains(name))
+        .filter(|name| !reachable.contains(name))
         .collect();
     assert!(
         orphaned.is_empty(),
-        "the README links to none of {orphaned:?}. A document nobody links to is \
-         one nobody finds."
+        "no link path from README.md reaches {orphaned:?}. Add them to the \
+         documentation map or another reachable guide."
     );
 }
 

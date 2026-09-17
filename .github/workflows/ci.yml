@@ -123,9 +123,9 @@ jobs:
           # Zig has been absent since the gate started driving it, and every Zig case
           # skipped itself here while the run went green. The checksum is the one the
           # download index publishes for this build.
-          fetch /tmp/zig.tar.xz \
-            "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz"
-          echo "${ZIG_SHA}  /tmp/zig.tar.xz" | sha256sum -c -
+          tools/fetch-verified-ranges.sh \
+            "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz" \
+            /tmp/zig.tar.xz "${ZIG_SHA}" 55478392
           tar -xJf /tmp/zig.tar.xz -C /tmp
           sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
           # Both checksums are the ones each project publishes beside its own

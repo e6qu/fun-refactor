@@ -97,6 +97,8 @@ It states properties of accepted and rejected plans and unchanged source prefixe
 It also checks plans from real refactoring commands.
 `tools/check-kernels.sh` builds the package with warnings as errors and runs all five executables.
 The full self-audits run in `tools/check.sh deep`.
+The native gate and exhaustive Lean kernel run default to two concurrent Rust cases and two worker
+threads in each Lean process. Set `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` to adjust the limits.
 
 `FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
 Its anchored snapshot predicate has 432 shared Rust/Lean executable cases, including a symlink snapshot.
@@ -494,7 +496,7 @@ CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test lea
 
 `tools/check-kernels.sh` builds the model and runs its corpus; the default native gate runs the Rust comparison.
 Inspect a theorem's dependencies with `#print axioms FrKernels.Digest.digest_view_preserves_thresholds` in a file importing `FrKernels.Digest`.
-The [M4s timing report](project-context-evaluation.md#batched-revision-hashing) remains historical evidence; M4t introduces no timing or context-saving claim.
+Historical timing artifacts remain available through the [evaluation evidence guide](evaluations.md); the digest model makes no timing or context-saving claim.
 
 ## Adopting Lean in another project today
 

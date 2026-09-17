@@ -26,7 +26,7 @@ Git attributes preserve evidence bytes and allow the context-only space lines th
 Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
-The separate [regex workspace evaluation](../../docs/agent-workspace-evaluation.md) pins a complete upstream workspace and dependency lock.
+The separate [evaluation evidence guide](../../docs/evaluations.md) pins a complete upstream workspace and dependency lock.
 It retains four passing autonomous trials and a separate controlled rehearsal.
 Its source archive, licenses and lock live under `regex/`; it does not replace the strsim fixture or earlier transcripts.
 
@@ -35,7 +35,7 @@ It retains a prescribed three-step authoring batch, exact snapshots, a receiver 
 This supplies task-preparation evidence; it contains no autonomous trials or context comparison.
 
 The [coordinated cohort](results/2026-09-08-coordinated/manifest.json) retains four fresh-agent trials of this two-crate task.
-All four pass independent project/receiver oracles and exact reversal checks; the [report](../../docs/agent-coordinated-evaluation.md) explains context counts and their limits.
+All four pass independent project/receiver oracles and exact reversal checks; the [evaluation evidence guide](../../docs/evaluations.md) explains how to interpret context counts.
 Its prompts, transcripts, scores, patches, frozen skills and evaluator fingerprints remain separate from the earlier cohorts and prescribed rehearsals.
 
 The [matched check-output projection](checks-policy-context.json) applies quiet-success policies to each retained coordinated check execution.

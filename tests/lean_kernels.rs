@@ -167,13 +167,52 @@ fn agent_guide_policy_matches_rust_python_and_lean_exhaustively() {
         steps
     );
     expected.extend(steps);
+    let mut bindings = Vec::new();
+    for expected_fields in [0, 1, 32, 33] {
+        for supplied_fields in [0, 1, 32, 33] {
+            for names_match in [false, true] {
+                for values_bounded in [false, true] {
+                    for execution_disabled in [false, true] {
+                        for basis_matches in [false, true] {
+                            bindings.push(
+                                fun_refactor::project::agent_guide_binding_admitted(
+                                    expected_fields,
+                                    supplied_fields,
+                                    names_match,
+                                    values_bounded,
+                                    execution_disabled,
+                                    basis_matches,
+                                )
+                                .to_string(),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let observed = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-guide-bindings")
+        .output()
+        .unwrap();
+    assert!(observed.status.success());
+    assert_eq!(
+        String::from_utf8(observed.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        bindings
+    );
+    expected.extend(bindings);
     let observed=Command::new("python3").arg("-c").arg(r#"# => Rust, Python and Lean finite policy corpus
-from fr_ir.guide import _guide_route_admitted, _guide_step
+from fr_ir.guide import _guide_binding_admitted, _guide_route_admitted, _guide_step
 from itertools import product
 for case in product(range(7), range(3), range(4), range(12), (False, True), (False, True), (False, True), range(4)):
     print(str(_guide_route_admitted(*case)).lower())
 for case in product(range(7), range(6), (False, True), (False, True), (False, True)):
     print(_guide_step(*case))
+for case in product((0, 1, 32, 33), (0, 1, 32, 33), (False, True), (False, True), (False, True), (False, True)):
+    print(str(_guide_binding_admitted(*case)).lower())
 "#).env("PYTHONPATH",root().join("sdk/python/src")).output().unwrap();
     assert!(
         observed.status.success(),

@@ -1,128 +1,246 @@
 # fun-refactor
 
-`fr` finds and changes code across 19 languages. One binary carries the whole
-program, and it pulls in no dependencies. It runs without a language server, a
-background process or a configuration file.
+`fr` finds and changes code across 19 languages. It is one standalone binary: no language server,
+daemon or project configuration is required for ordinary analysis and refactoring.
 
-It reads source files with [tree-sitter](https://tree-sitter.github.io), a parser
-library that carries a grammar for each language. It shares those grammars with
-[funveil](https://github.com/e6qu/funveil).
+## Install
 
+Download the latest archive and matching `.sha256` file from
+[GitHub Releases](https://github.com/e6qu/fun-refactor/releases/latest), then choose the target for
+your machine.
+
+| Archive | Machine |
+|---|---|
+| `fr-<tag>-x86_64-unknown-linux-musl.tar.gz` | Linux, amd64 |
+| `fr-<tag>-aarch64-unknown-linux-musl.tar.gz` | Linux, arm64 |
+| `fr-<tag>-x86_64-apple-darwin.tar.gz` | macOS, Intel |
+| `fr-<tag>-aarch64-apple-darwin.tar.gz` | macOS, Apple silicon |
+| `fun-refactor-<tag>-wasm.tar.gz` | Browser or Node module |
+
+Verify, unpack and install the archive. Linux users can substitute `sha256sum -c` for the first
+command.
+
+```sh
+shasum -a 256 -c fr-*.tar.gz.sha256
+tar -xzf fr-*.tar.gz
+mkdir -p "$HOME/.local/bin"
+install "$(find . -path '*/fr' -type f | head -n 1)" "$HOME/.local/bin/fr"
+fr --version
 ```
-fr rename btn-primary btn-cta
+
+To build the current source instead, install a stable Rust toolchain and run:
+
+```sh
+git clone https://github.com/e6qu/fun-refactor.git
+cd fun-refactor
+cargo install --locked --path .
+fr --version
 ```
 
-That command renames a CSS class. It rewrites the CSS rule that declares the class,
-every HTML `class` attribute that uses it, and every TSX `className` property that
-names it. One rename crosses three languages and three grammars. A language server
-reads one language at a time, so it cannot follow a name across that boundary.
+The Linux release binaries are static. The native release archive also includes `README.md`,
+`CLI.md`, the licence and the portable agent skill.
 
-New here? Read [docs/terminology.md](docs/terminology.md) for the words this project
-uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
+## First five minutes
 
-For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
-`fr audit` gives the agent a small content-addressed support and trust summary. The agent then
-reveals only the capability, workflow, recipe, semantic, framework, proof or boundary section it needs.
-The [completion audit](docs/completion-audit.md) explains its claims and retained seven-family sweep.
-The [language-aware workflow guide](docs/agent-workflow-guide.md) turns one structured goal into
-bounded exact read/preview actions, named authoring fields and separate verification levels.
-[Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
-The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. The [v2](docs/agent-context-v2-evaluation.md), [v3](docs/agent-context-v3-evaluation.md), and [prescribed v4 workflow](docs/agent-workflow-v4-evaluation.md) evaluations report fixed-workflow reductions, exact change boundaries and the latest passing comparison.
-The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
-[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, Python, JavaScript, TypeScript and TSX implementation changes through project handles and source-history transactions.
-[Semantic project data](docs/semantic-model.md) lets agents inspect source-free typed IR and author
-supported bodies, checked deltas and role-based scalar intents through the same transactions.
-Reviewed semantic edit plans resolve one exact declaration and scalar below a workspace path.
-Agents can preview or write the generated intent without reading source or building JSON.
-The [agent IR SDK evaluation](docs/agent-ir-sdk-evaluation.md) compares direct JSON and typed Python construction under deterministic and fresh-agent checks.
-The [application IR](docs/application-ir.md) carries bounded application hierarchies and checked HTTP route bundles between supported framework adapters.
-The [agent runtime SDK](docs/agent-runtime-sdk.md) keeps bounded project, disclosure and reviewed
-change reports as Python objects. It follows server-issued continuations and executes an unchanged
-reviewed manifest and basis.
-The [agent context workspace](docs/agent-context-workspace.md) recursively materializes selected
-Merkle subtrees, then verifies and stores their objects. Its bounded packet contains only the code
-map, traces, impact, value flow or other pointers an agent chooses.
-The [semantic context comparison](docs/semantic-context-evaluation.md) records identical changes and patches, zero exposed source bytes and the current small-task payload premium.
-The [semantic delta evaluation](docs/semantic-delta-evaluation.md) compares basis-bound node edits with complete semantic-body replacement under deterministic and fresh-agent checks.
-The [semantic intent evaluation](docs/semantic-intent-evaluation.md) compares filtered role-based
-scalar edits with whole-body, pointer-delta and Python routes through the checked lifecycle.
-The [semantic edit-plan evaluation](docs/semantic-edit-plan-evaluation.md) compares explicit intent
-construction with direct unique-scalar planning and records equal canonical results.
-[Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
-After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
-Passing checks can record a configuration- and source-bound receipt on an applied source transaction with `--record-for <TX>`.
-`fr workflow --from MANIFEST` preflights one saved transaction, exact checks, optional undo/redo
-exercise and delayed Git patch delivery. `--write` runs the bounded lifecycle and reports its durable stage.
-The [controlled workflow evaluation](docs/workflow-evaluation.md) measures the compact route against
-the equivalent seven-call manual lifecycle and checks exact final-state equivalence.
-`fr task-change --from MANIFEST` joins task discovery, concrete authoring and checked delivery under one review basis.
-The [task-change evaluation](docs/task-change-evaluation.md) compares it with the composed five-call route.
-[Development continuity](docs/continuity.md) records completed milestones, evidence and the current implementation handoff.
-The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
-`project find --source --bytes N` combines name lookup with source slices under one shared page budget.
-`project explore` gives agents a name-first route with server-enforced source, relationship and
-report budgets. Profiled batches reuse one project snapshot across its referenced discovery stages.
-The [bounded discovery evaluation](docs/agent-discovery-evaluation.md) records coalesced cold
-queries, exact continuations, formal boundaries and generic fixture evidence.
-`project disclose` returns a Merkle-committed semantic skeleton or a source-free evidence tree for
-code maps, call traces, impact, and local value sources and sinks. It reveals only selected levels
-or explicitly requested source under a conservative per-response token bound. Stable object
-digests let clients store and deduplicate fetched subtrees; proof paths are opt-in for verification. The
-[progressive disclosure protocol](docs/progressive-disclosure.md) specifies its commitments,
-continuations, verification boundary and retained independent-oracle evidence.
-Revealed authorable scalars carry revision-bound edit capabilities. An agent can change one exact
-typed value through preview, checks, patch export, undo and redo without reading source or building
-a locator. [Disclosure-bound editing](docs/disclosed-editing.md) documents the identity and proof boundary.
-Revealed typed nodes and statement-list positions also carry structural capabilities for
-same-category replacement, statement deletion, insertion before and append, including empty lists.
-Their opaque identities let agents make hierarchical IR changes without receiving source, paths or indices.
-`project select NAME...` retrieves several exact declarations through one revision and shared budget.
-[Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
-The [agent formalization workbench](docs/agent-formalization.md) discovers a conservative Rust
-subset, emits source-free Merkle plans, generates Lean models and discloses exact proof goals.
-[Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
-[Release profiling](docs/project-context-evaluation.md#release-stage-profiling) identifies project construction as the largest remaining stage in the measured cached lookups.
-[Batched revision hashing](docs/project-context-evaluation.md#batched-revision-hashing) reduces allocation and hash-update overhead while checking identical reports and stale-source refusals.
-[Revision buffer proofs](docs/lean-specs.md#revision-buffer-kernels) cover ordered bytes, failed writes and flush schedules, with shared Rust/Lean execution checks.
-[Real-agent acceptance](docs/agent-acceptance.md) records the first paired trials and reversible patches.
-The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
-Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.
-After reviewing a source transaction, `history apply`, `undo`, `redo` and `recover` accept `--write --no-diff` for smaller completion reports.
-Complete author and migration previews return a cryptographic plan basis so their repeated save or write can omit unchanged reviewed payloads.
-The [workspace evaluation](docs/agent-workspace-evaluation.md) records four passing trials on the larger regex repository, with context comparisons and replayable patches.
-Rust function declaration replacement also supports combined signature and implementation changes.
-Declaration insertion adds a Rust function through a file, inline module, impl method, or trait handle while retaining existing code.
-Authoring batches coordinate disjoint edits across files through one reviewed source-history transaction.
-The [controlled batch comparison](docs/project-context-evaluation.md#coordinated-authoring-measurement) measures command and payload costs while checking behavior and exact reversal.
-The [coordinated workspace task](docs/agent-workspace-evaluation.md#coordinated-task-preparation) prepares evaluation of a change spanning regex and regex-syntax.
-The [coordinated agent evaluation](docs/agent-coordinated-evaluation.md) records the paired trials of that task.
+Run these commands from a project root. Read commands return text by default; add `--json` for an
+agent or program. Mutations preview a diff until `--write` is present.
 
-## Why
+```sh
+fr scan
+fr parse --stats
+fr symbols --kind function
+fr project map --depth 2 --limit 30
+fr rename old_name new_name
+```
 
-Language servers work well for the four largest ecosystems. Elsewhere you find a thin
-one, or nothing. `terraform-ls` cannot rename. `bash-language-server` cannot
-rename. `zls` returns no edits. Nothing renames HTML, CSS, XML, Markdown or Helm to
-that standard.
+A preview that looks correct can be saved and applied through durable history:
 
-None of them sees a reference that crosses languages, because each reads a single
-language. Three examples: a CSS class named in a JSX property, a Helm values key read
-in a template, a Terraform variable passed through modules.
+```sh
+fr rename old_name new_name --save-plan
+fr history show '<TX>'
 
-`fr` covers that gap. [RESEARCH.md](RESEARCH.md) holds the survey behind the design,
-with sources.
+fr history apply '<TX>' --write
+fr history undo '<TX>' --write
 
-## Languages
+fr history redo '<TX>' --write
+fr history patch '<TX>' --output change.patch
+```
 
-`fr capabilities --markdown` generates this table from the code, so the two cannot
-disagree. **✓** means the command works for that language. **n/a** means the
-operation has no meaning there, and the table carries the reason. Run
-`fr capabilities` to read the reason for every cell that is not a ✓.
+`<TX>` is the transaction ID returned by `--save-plan`. See the
+[tutorial](TUTORIAL.md) for a complete walkthrough and the [CLI reference](CLI.md) for every command.
 
-`fr recipe` has no row. It runs the steps you write, so it answers for a language
-whatever those steps answer.
+## Set up an agent
 
-JavaScript has no row. The `typescript` grammar reads `.js`, `.mjs` and `.cjs`, and
-the `tsx` grammar reads `.jsx`.
+Make `fr` available on the agent's `PATH`, then give it the complete `skills/fr` directory from the
+release archive or this repository. For Codex, copy the skill into the user skill directory:
+
+```sh
+mkdir -p "$HOME/.codex/skills"
+cp -R skills/fr "$HOME/.codex/skills/fr"
+```
+
+For another agent, point its skill or instruction loader at `skills/fr/SKILL.md` and keep the
+adjacent `references` directory. The skill routes each task to a small relevant reference instead
+of loading the whole manual.
+
+Start an agent session with the live support summary, then let `fr` turn structured intent into
+bounded read and preview actions:
+
+```sh
+fr --json audit
+fr --json guide --from goal.json
+```
+
+The agent should follow this sequence:
+
+1. Read `fr audit` or the portable skill to discover live support and trust boundaries.
+2. Express the task as `fr-agent-goal-1`, or select a focused project query directly.
+3. Follow only the exact actions returned by `fr guide`; reveal source only when structured evidence
+   is insufficient.
+4. Author required values, fragments, semantic IR, migration choices or Lean tactics.
+5. Review the complete preview and retain its revision and basis.
+6. Execute the unchanged reviewed plan through history, `task-change` or `workflow`.
+7. Run declared checks, export a patch, and keep the transaction ID for undo, redo or recovery.
+
+The optional Python SDK keeps intermediate reports outside the model transcript and mirrors the
+wire IR with typed Python objects. From a source checkout:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install ./sdk/python
+```
+
+Use the [agent quickstart](docs/agent-skill.md), [workflow guide](docs/agent-workflow-guide.md),
+[Python runtime](docs/agent-runtime-sdk.md) and [Python package README](sdk/python/README.md) for the
+complete contracts.
+
+## Agent scenarios
+
+### Inspect a known symbol
+
+Find the exact revision-bound handle, then request only the relationships needed by the task.
+
+```sh
+fr --json project find render --signature
+fr --json project show '<HANDLE>' --relations --limit 8
+
+fr --json project calls '<HANDLE>' --direction incoming --limit 8
+fr --json project tests '<HANDLE>' --limit 8
+```
+
+### Explore an unfamiliar subsystem
+
+Begin with a shallow hierarchy or bounded name search. Use progressive disclosure for code maps,
+call traces, impact, and local sources and sinks without loading source text.
+
+```sh
+fr --json project map --depth 3 --limit 40
+fr --json project explore payment --contains
+
+fr --json project disclose '<HANDLE>' --view evidence --depth 3 --token-limit 4096
+```
+
+### Perform a built-in refactor
+
+Preview first. Save the exact plan, apply it, run declared checks and export the reviewed patch.
+
+```sh
+fr rename old_name new_name
+fr rename old_name new_name --save-plan
+
+fr history apply '<TX>' --write --no-diff
+fr checks
+
+fr checks --run unit --basis '<CHECK_BASIS>' --quiet-success --no-declarations
+fr history patch '<TX>' --output change.patch
+```
+
+### Author a high-level code change
+
+Select exact declarations with bounded source, inspect the authoring schema, then preview a batch.
+The batch can coordinate bodies, signatures, callers and imports in one transaction.
+
+```sh
+fr --json project find calculate --in src/lib.rs --source --bytes 2048
+fr --json author guide
+
+fr --json author batch --from change.json
+fr --json author batch --from change.json --save-plan --plan-basis '<PLAN_BASIS>'
+```
+
+For source-free changes, use semantic bodies, pointer deltas, scalar intents, or disclosed edit
+capabilities described in the [semantic model](docs/semantic-model.md) and
+[disclosed editing](docs/disclosed-editing.md).
+
+### Migrate a framework feature
+
+Inspect the application hierarchy, select one revision-bound feature, then preview a compatible
+Next.js or FastAPI route migration. Unsupported runtime behavior remains an explicit gap.
+
+```sh
+fr --json project features --limit 12
+fr --json project features --feature '<FEATURE_ID>'
+fr --json migrate feature '<FEATURE_ID>' --to fastapi --out services/route.py
+```
+
+### Recover or reverse a change
+
+Use source history for refactor and author transactions. Recovery is only for a reported interrupted
+operation.
+
+```sh
+fr history
+fr history show '<TX>'
+fr history undo '<TX>' --write --no-diff
+fr history redo '<TX>' --write --no-diff
+fr history recover '<TX>' --write
+```
+
+### Build and check a Lean proof
+
+`fr` generates bounded models and proof tasks; the agent writes the property and tactics. A checked
+Lean model proves its proposition under its definitions and assumptions, while implementation
+correspondence remains separate evidence.
+
+```sh
+fr --json spec candidates src
+fr --json spec property-task src/lib.rs::allowed
+
+fr --json spec plan src/lib.rs::allowed --property-from property.json
+fr --json spec scaffold --from formal-plan.json --write
+
+fr --json spec goals specs
+fr --json spec proof-task specs/FrSpecs/Model.lean::obligation
+
+fr --json spec proof-check specs/FrSpecs/Model.lean::obligation --from proof.lean
+fr --json spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --write
+
+fr --json spec verify specs
+```
+
+## What `fr` provides
+
+| Need | Main surface |
+|---|---|
+| Cross-language structure and references | `symbols`, `def`, `refs`, `project map`, `project find` |
+| Calls, value flow, impact and configuration provenance | `callers`, `callees`, `flow`, `impact`, `stitch` |
+| Built-in refactoring and translation | `rename`, `delete`, `extract`, `inline`, `signature`, `move`, `translate` |
+| High-level authored changes | `author`, semantic IR, disclosed capabilities, recipes |
+| Framework understanding and migration | `project features`, application IR, `migrate feature` |
+| Progressive context | `project disclose`, Merkle objects, bounded continuations |
+| Verification | declared checks, behavioral workflows, Lean models and proof tasks |
+| Reversibility and delivery | history, undo, redo, recovery, Git patches, staging and commits |
+| Agent integration | `audit`, `guide`, portable skill and zero-dependency Python SDK |
+
+`fr` parses with tree-sitter and preserves original bytes outside selected edit ranges. It reports
+coverage, uncertainty and omissions instead of turning an unresolved case into certainty. Ambiguous
+targets refuse with candidates. Every edited file is reparsed before commit; compilation and
+behavior still require declared checks or another explicit oracle.
+
+## Languages and capability matrix
+
+JavaScript uses the TypeScript grammar for `.js`, `.mjs` and `.cjs`; JSX uses the TSX grammar. Run
+`fr capabilities` for the reason behind every unsupported or inapplicable cell.
 
 | Capability | rust | go | zig | java | typescript | tsx | python | bash | html | css | scss | sass | hcl | json | yaml | helm | xml | markdown | lean |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -151,334 +269,50 @@ the `tsx` grammar reads `.jsx`.
 | declared HTTP contract | n/a | n/a | n/a | n/a | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | declared type | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
-**No cell is blank for want of work.** Every cell either reports support or carries
-the reason the operation has no meaning there. HTML has no way to bind a value. A
-stylesheet has no entry point. A document does not import the elements of another.
-
-## Commands
-
-```
-fr cache                      # where cached facts live, and how big
-fr scan                       # files it can act on
-fr parse --stats              # syntax health per language
-fr symbols --kind function    # what is defined
-fr def <name|path:line:col>   # where is it defined, every one of them
-fr implementations <target>   # the concrete implementations of an abstraction
-fr usages <target>            # every use, grouped by file, with its context
-fr refs <target>              # where is it used, with confidence per site
-fr rename <target> <new>      # rename it and everything that points at it
-fr extract <path:l:c-l:c> <n> # extract an expression into a binding
-fr extract <range> <n> --function   # extract statements into a function
-fr inline <target>            # replace a variable's uses with its value
-fr inline <path:l:c> --call   # replace a call with a one-expression body
-fr signature <target> remove:1  # change parameters, update every call site
-fr move <target> <dest-file>  # move a symbol, update imports
-fr delete <target>            # delete it, refusing if anything uses it
-fr unused                     # symbols nothing appears to use
-fr unused --lang go --internal   # ...only what is definitely dead here
-fr duplicates                 # code written more than once, by structure
-fr duplicates --exact         # ...requiring the names to match as well
-fr imports <file>             # drop unused imports, sort the rest
-fr restructure 'old($X)' 'new($X)' --lang rust
-fr restructure 'A | B' 'A | B | C' --lang rust
-                              # a member, an arm, or a run of macro tokens
-fr remove-flag USE_NEW --value true  # and everything that only served it
-fr rewrite <path:l:c>         # list local transformations that apply here
-fr rewrite <path:l:c> guard-clause   # ...and apply one
-fr translate <file> [language]  # write it as another language, or `fastapi`
-                              #   (routes and "use server" modules both)
-fr translate app.py nextjs    # a FastAPI application as a Next.js route tree
-fr translate openapi.yaml fastapi  # a service skeleton from a contract
-fr migrate feature <ID> --to fastapi --out services/telemetry.py
-                              # a checked, reversible feature migration plan
-fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
-fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
-fr spec init --write          # create a pinned, checked Lean package through history
-fr spec candidates src        # find pure Rust functions in the generated Lean subset
-fr --json spec property-task src/lib.rs::allowed # bounded agent property grammar
-fr --json spec plan src/lib.rs::allowed --property identity # source-free formal plan
-fr --json spec plan src/lib.rs::allowed --property-from property.json
-fr spec scaffold --from formal-plan.json --write # generate model and proof regions
-fr spec goals specs           # bounded, content-addressed proof-goal catalog
-fr spec proof-task specs/FrSpecs/Model.lean::obligation # empty agent proof templates
-fr spec proof-check specs/FrSpecs/Model.lean::obligation --from proof.lean
-fr spec prove specs/FrSpecs/Model.lean::obligation --from proof.lean --write
-fr spec scaffold src/lib.rs::allowed --write # select one Rust model obligation
-fr spec ci --max-debt 0 --write # pin correspondence, debt and Lean checks in CI
-fr spec check                 # Lean models whose source anchors still match
-fr spec sync --write          # renew reviewed stale source hashes
-fr spec verify                # strict correspondence plus Lake builds
-fr spec evidence              # bounded claims, assumptions, trust and open obligations
-fr openapi [--yaml]           # the contract a Next.js route tree declares
-fr callers <fn> --depth 3     # who calls this
-fr callees <fn> --depth 3     # what does it call
-fr graph --dot                # the call graph
-fr flow back <target> [-f values.yaml] [--set a.b=c]
-                              # where did this value come from
-fr flow fwd <target>          # where does it go
-                              #   (def-use for code, substitution/override
-                              #    provenance for config languages)
-fr impact <target>            # everything a change could affect
-fr stitch                     # config values traced into the code reading them
-fr entrypoints --kind http-route
-```
-
-Every command takes `--json`. Source refactorings preview their diff; `--write` applies it and `--save-plan` records a plan.
-`checks --run` executes declared project commands; `--record-for <TX>` attaches passing evidence to an applied source-history transaction.
-[CLI.md](CLI.md#write-guarantees) states the commit and recovery guarantees and command-specific exceptions.
-
-`fr` indexes files in parallel and caches the facts it extracts by file content and
-query set. A repeated command therefore re-reads only what changed, roughly 1.7×
-faster cold and 3–5× warm. On the one repository we timed, a warm index cost on the
-order of 30 ms per file; take the magnitude, not the number. `--no-cache` bypasses
-the cache, and `fr cache --clear` empties it.
-
-## What it will not do
-
-The tool measures how sure it is, and says so. It does not guess and sound certain.
-
-**Every resolved reference carries a confidence tier.** The four tiers are `exact`,
-`import-qualified`, `field-based` and `name-only`. A change rewrites the top two
-tiers only. The tool reports anything weaker for you to check.
-
-- **Renames report, never rewrite, occurrences in strings and comments.** They
-  defeat syntax analysis and language servers alike.
-- **`fr` refuses an ambiguous name and lists** the candidates.
-- **Change-signature refuses entirely** if any call site is unproven, because
-  updating a subset does not compile.
-- **Flow analysis stops loudly** at function boundaries, unresolved calls and weak
-  resolutions instead of over-approximating through them.
-- **`fr` writes no edit that breaks the file.** It reparses each changed file,
-  rejecting the whole operation if one gains a syntax error.
-
-The tool never reformats a file. Each edit replaces one range of bytes in the
-original source. Comments, spacing and trailing whitespace outside that range stay
-as they were, including inside an expression that the tool extracts.
-
-## Install
-
-Every release carries a built binary. Take the one for your machine, check it
-against the `.sha256` beside it, and put `fr` on your path.
-
-| Archive | Machine |
-|---|---|
-| `fr-<tag>-x86_64-unknown-linux-musl.tar.gz` | Linux, amd64 |
-| `fr-<tag>-aarch64-unknown-linux-musl.tar.gz` | Linux, arm64 |
-| `fr-<tag>-x86_64-apple-darwin.tar.gz` | macOS, Intel |
-| `fr-<tag>-aarch64-apple-darwin.tar.gz` | macOS, Apple silicon |
-| `fun-refactor-<tag>-wasm.tar.gz` | A browser or Node, as a module |
-
-The Linux binaries link against musl and are static, so they need nothing
-installed and no particular distribution. The browser archive holds the
-WebAssembly module and the JavaScript that loads it, the same pair the
-[playground](https://e6qu.github.io/fun-refactor/playground/) runs.
-
-```
-shasum -a 256 -c fr-v0.2.0-aarch64-apple-darwin.tar.gz.sha256
-tar -xzf fr-v0.2.0-aarch64-apple-darwin.tar.gz
-./fr-v0.2.0-aarch64-apple-darwin/fr --version
-```
-
-Releases come from `release-please`. It reads the commits on `main` and keeps the
-next version and its changelog in an open pull request. [CHANGELOG.md](CHANGELOG.md)
-holds what each release carried. Merging that request tags
-the release. The repository has to allow a workflow to open one: Settings,
-Actions, General, Workflow permissions, "Allow GitHub Actions to create and
-approve pull requests".
-
-To build it yourself instead:
-
-```
-cargo install --path .
-```
-
-`./tools/check.sh` runs the native and WASM API PR checks, capability coverage, prose checks and Lean kernels.
-A separate CI job builds and exercises the browser playground.
-`./tools/check.sh deep` runs the repository-scale audits.
-
-## Third-party material
-
-`vendor/` holds the upstream tree-sitter query files behind the rules in
-`queries/`, each with its licence and a checksum in `vendor/MANIFEST.toml`. The
-build compiles nothing there. Those files serve as reference material, and as
-evidence of where the rules came from. `cargo test --test vendor` fails in three
-cases:
-
-- A file changed and its manifest entry did not.
-- A file arrived with no record of its source.
-- A licence arrived that AGPL-3.0-or-later cannot include.
-
-Run `python3 vendor/vendor.py` after you update a grammar, then read the diff. A
-grammar that renames a node does not break the build. It makes a query stop matching,
-and nothing reports that.
-
-## Adding a language
-
-`queries/<lang>/facts.scm` declares definitions, references, scopes and imports.
-`src/extract.rs` documents the captures each query can produce.
-YAML catalogs describe recognized entry points.
-
-A new language also needs grammar integration and capability decisions.
-Refactoring and translation rules may require Rust changes and language-specific validation.
-Framework migration needs adapters for its runtime and project conventions.
-See `grammars/README.md` for grammar provenance and local patches.
-
-## Status
-
 The generated matrix records **311 of 456 capability × language pairs supported, 145 not applicable**.
-Supported operations still report input-specific limitations and confidence.
+Exact inputs can still refuse because of ambiguity, syntax, missing evidence or an unsupported
+construct.
 
-[PLAN.md](PLAN.md) is the active roadmap for agents: compact project understanding,
-reversible changes, Git patches, reusable Lean verification and hierarchical framework migration.
-Every scheduled milestone and deferred-boundary checkpoint is complete. New scope starts from
-measured agent needs or a newly reproduced defect.
-The standalone engine excludes LSP delegation and daemon/watch state. Persistent cache, bounded
-request batching and concurrent-build coalescing cover the measured repeated-query workloads.
+## Boundaries
 
-The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
-The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
-`fr history patch ID` exports stored text and UTF-8 symlink changes for Git, with reverse export and optional JSON metadata.
-Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
-Use `--git-check` for Git's application verdict, with `--index` to include the index.
-Patch-basis, executable-mode and symlink-mode helpers have anchored Lean models with 63,784 shared execution comparisons.
-See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
-`fr file delete`, `fr file move`, `fr file executable --set on|off` and
-`fr file symlink --target TARGET` add explicit entry operations with saved plans, undo/redo and
-patch export.
-See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
-`fr git status` pages through repository changes with filters, rename sources and continuation cursors.
-See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
-`fr git changes` discovers changed paths and line counts across the repository, including comparisons since a commit.
-See [repository change pages](docs/git-changes.md) for scope and metadata identity.
-`fr git diff PATH` pages through hunks and capped source excerpts, with staged and commit-based comparisons.
-Add `--symbols` for changed declarations and their containing hierarchy, with snapshot checks and no source bodies.
-Add `--calls` for incoming and outgoing candidates within each file snapshot, retaining confidence and unresolved targets.
-Repeat `--include FILE` to add explicit caller and target context, with selected blob bases and checked raw working snapshots.
-Use `--workspace-context --depth N` for bounded transitive calls across tracked source snapshots without returning source bodies.
-See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
-`fr git stage PATH...` previews raw staging entries; `--basis TOKEN --write` applies them through a prepared index on Unix.
-See [staging semantics and limits](docs/git-staging.md) for raw byte and mode semantics.
-`fr git stage-history` inspects staging records and crash evidence, and previews checked undo, redo, recovery and payload compaction; see [staging history](docs/git-stage-history.md).
-`fr git commit -m MESSAGE` previews the entire index; `--basis TOKEN --write` publishes it after index and HEAD checks.
-See [reviewed commits](docs/git-commit.md) for identity configuration, disabled hooks/signing and publication limits.
-`fr git worktree list` pages through registered workspaces, branches, HEADs and lock metadata.
-See [worktree inspection](docs/git-worktrees.md) for observation limits and cursor identity.
-`fr git worktree create PATH --branch NAME` previews a fresh raw checkout; `--basis TOKEN --write` creates it on Unix.
-See [reviewed worktree creation](docs/git-worktree-creation.md) for branch checks and partial-failure outcomes.
-Use `--existing-branch NAME` for an unused local branch; [existing-branch checkout](docs/git-worktree-existing-branches.md) preserves its tip and configuration.
-`fr git worktree recover PATH` previews completion of a recorded incomplete checkout, with checked application through `--basis TOKEN --write`.
-See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts and preservation rules.
-`fr git worktree remove PATH` previews removal of a clean owned worktree; `--basis TOKEN --write` archives metadata and removes reviewed files.
-[Reviewed removal](docs/git-worktree-removal.md) retains the branch and refuses extra content.
-[Removal resumption](docs/git-worktree-removal-resumption.md) uses `fr git worktree resume-removal RECORD` to inspect partial removals and `--basis TOKEN --write` to finish them.
-`fr git worktree undo-removal RECORD` reconstructs a completed removed checkout from its retained commit.
-`redo-removal RECORD` removes that restored checkout and returns the next reversible archive.
-[Archive compaction](docs/git-worktree-archive-compaction.md) uses `fr git worktree compact-removal RECORD` to review discarding completed recovery records while retaining audit summaries.
-Its plural `compact-removals RECORD...` form applies the same checks to an explicit bulk-retention set.
-The browser records bounded transactions, supports checked undo, redo and compaction, and exports
-cumulative patches through the native Rust Git renderer. The playground restores content-bound
-checkpoints across reloads; see [browser history](docs/browser-history.md).
-`fr project` now provides compact hierarchy maps and bounded source inspection.
-Its package and dependency pages report Cargo, npm, Go module and Python project declarations with shared revision checks.
-`fr project resolutions` pages through captured Cargo, npm, Go and Python lock entries without
-returning lockfile text. Filters select one manifest or lockfile, and every cursor binds the exact
-lock snapshot. The report includes versions, available origins and integrity fields with explicit
-format gaps. It reads `Cargo.lock`, npm lockfiles, `go.sum`, Poetry, uv and Pipenv locks.
-Dependency rows select the nearest ancestor lock of the same ecosystem. Cargo and npm aliases map
-to their resolved package names, and Python names use normalized punctuation and case. Candidate
-versions remain bounded and keep ambiguity when a lock contains several versions.
-`fr project package-features --manifest Cargo.toml` evaluates the bounded local Cargo feature
-graph. It handles defaults, cycles, implicit optional-dependency features, `dep:`, strong and weak
-dependency-feature requests, and dependency-declared features without invoking Cargo. Default
-Progressive project disclosure also stores activation evidence beneath its packages branch.
-`fr project verify-artifact` checks caller-selected bytes against a captured lock entry without a
-network request. It supports Cargo and Python SHA-256, npm SRI SHA-256/384/512, and Go `h1` tree
-hashes over an extracted module directory. Reports expose computed digests and status without
-returning artifact contents.
-`fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
-`fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
-Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.
-Glob-shaped exclusions produce unresolved rows.
-Cargo member patterns can start with `../` within the selected snapshot; observed sibling packages still need ownership evidence.
-Its expansion helper has an anchored Lean model with finite convergence and exact closure laws.
-Shared graph cases test Rust correspondence; Cargo interpretation remains outside the proofs.
-`fr project calls` and `implementations` page through call sites and hierarchy candidates, retaining uncertainty and coverage gaps.
-`fr project routes` adds bounded declarations and handler candidates for five pattern readers, Next.js App Router exports and direct FastAPI decorators.
-`fr project technologies` inventories JavaScript, TypeScript, React, Next.js, Go, Python,
-FastAPI, HTML, CSS, Tailwind CSS, Express.js, Markdown and embedded Mermaid as distinct surfaces.
-It returns source-free, content-addressed evidence with bounded counts and follow-up actions.
-`fr project styles` links CSS definitions to literal HTML/JSX class uses and marks Tailwind utility
-candidates only with package evidence. `fr project diagrams` retains Markdown heading hierarchy
-and embedded Mermaid node/edge graphs. Both reports preserve source handles and explicit gaps; see
-the [cross-stack surface model](docs/cross-stack-surfaces.md).
-Editable rows return opaque revision-bound capabilities for exact CSS definitions, literal class
-tokens, Markdown headings and Mermaid nodes. `fr author edit-surface` previews and records those
-changes through the same undo, redo and Git patch history as function authoring.
-`fr project disclose HANDLE --view project` commits these reports and application facts as five
-independently revealable Merkle branches.
-Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.
-Direct variable handlers expose initializer annotations. Nested app candidates retain captured npm dependency and package-boundary evidence.
-`fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.
-FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
-`fr project schemas` pages Python class, TypeScript interface/object-alias and Rust struct fields, with followable candidates and explicit validation gaps.
-`fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
-`fr project features` joins bounded Next.js App Router, standalone React, Express.js and FastAPI facts into a parent-linked hierarchy.
-It groups exact route paths inside inferred application boundaries, then links routes, handlers, contract fields, execution dependencies and same-file schema candidates.
-Next.js applications also link to captured npm packages, build scripts and declared dependency boundaries.
-Local manifest links remain distinct from dependencies that need package-manager resolution.
-Application children expose Next.js Proxy or legacy middleware convention files and direct FastAPI HTTP middleware registrations.
-FastAPI `Depends` and `Security` parameter markers become route execution dependencies; only `Security` is labeled as an authentication candidate.
-Lifecycle children cover Next.js instrumentation exports and FastAPI lifespan or event declarations.
-Runtime configuration links environment declarations to application consumers without exposing values.
-Handler children include sanitized `fetch`, axios, requests and HTTPX service candidates; dynamic targets become gaps.
-Root-relative service targets link to every same-path route candidate in the selected project.
-Known HTTP methods narrow the candidates; unknown methods retain all path matches. Each link exposes
-its route IDs and omission count, so an agent can traverse application dependencies without source.
-Next.js pages also form features without API routes.
-Standalone React packages form features at root component files in the captured relative-import graph.
-Their React files include inherited Next.js layouts where applicable and bounded relative component imports.
-Direct function components expose server/client boundaries, props, state, effects, other hook names, events and style shapes.
-Render edges resolve unique same-file, default-import and named-import declarations to source anchors.
-Files below a captured `use client` import path retain a client-transitive candidate marker.
-Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
-Use `--feature ID` to retrieve one revision-bound subtree.
-The [framework semantic model](docs/framework-semantics.md) lists the versioned syntax witnesses, modeled boundaries and runtime gaps.
-`fr migrate feature` consumes one revision-bound feature subtree and previews a bounded Next.js/FastAPI route migration.
-It requires exact endpoint agreement, keeps the source available and reports automatic work, agent decisions and unsupported gaps separately.
-Saved plans and writes use source history, including patch export and exact undo/redo.
-A captured Next.js package makes route placement under `app` or `src/app` an automatic registration step.
-An explicit `--register-with PATH::APP_SYMBOL` target can make generated FastAPI router registration an automatic edit in the same reversible transaction.
-An explicit PEP 621 manifest and caller-supplied requirement strings can add missing generated imports to that transaction.
-Repeated `--check NAME` options bind project-owned test commands to the transaction and its accepted evidence.
-An explicit `--cutover` can remove the source in that transaction after registration and resolved-reference checks.
-Generic handler oracles compare migrated status, JSON bodies and mixed-spelling payload fields in both directions.
-Pinned FastAPI and Next.js fixtures register generated routes and execute real framework requests; both check bounded body rejection at the expected field.
-The [feature migration contract](docs/feature-migration.md) states destination rules, coexistence behavior and current runtime limits.
-`fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
-`fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Framework runtime execution remains outside the static evidence model.
+- Reports identify string and comment occurrences but never rewrite them as resolved references.
+- Weak or unresolved call and flow edges remain explicit uncertainty.
+- A syntax-clean edit does not establish type safety or behavior.
+- Static framework evidence does not model arbitrary middleware, authentication, dynamic rendering
+  or runtime-generated routes.
+- Translation and framework migration support the constructs admitted by their IR and refuse the
+  rest with gaps.
+- Lean theorems establish model properties. Source correspondence needs its own checked bridge or
+  bounded execution evidence.
 
-[TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
-[EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.
-[CLI.md](CLI.md) documents the implemented commands.
-[Project view evaluation](docs/project-context-evaluation.md) measures compact output and records the remaining task-level checks.
+Read [known defects and boundaries](BUGS.md) for the maintained ledger.
 
-- [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md) explains reference and translation boundaries.
-- [API_CONTRACTS.md](API_CONTRACTS.md) describes HTTP contract extraction and route conversion.
-- [RECIPES.md](RECIPES.md) defines the local recipe language.
-- [IR.md](IR.md) describes the intermediary language and translation evidence.
-- [docs/lean-specs.md](docs/lean-specs.md) separates implemented Lean checks from the adoption roadmap.
+## Documentation
 
-Lean readers, writers, edit and position models, and `spec check`, `sync` and `verify` exist.
-Strict signature correspondence currently accepts Rust source declarations.
-Model proofs and shared execution cases establish different kinds of evidence; neither alone proves every Rust behavior.
+The [documentation map](docs/README.md) groups user guides, agent workflows, contracts, verification,
+evaluation evidence and contributor material. Useful starting points are:
 
-[BUGS.md](BUGS.md) records known limitations and fixed defects.
-B5 tracks reachability that available source evidence cannot settle.
-The list records known findings; it does not establish the absence of other defects.
+- [Tutorial](TUTORIAL.md)
+- [CLI reference](CLI.md)
+- [Examples](EXAMPLES.md)
+- [Cross-language behavior](CROSS_LANGUAGE.md)
+- [Intermediate representation](IR.md)
+- [Recipes](RECIPES.md)
+- [HTTP contracts](API_CONTRACTS.md)
+- [Roadmap](PLAN.md)
+- [Changelog](CHANGELOG.md)
 
-`grammars/` holds grammar sources and provenance, including the Lean grammar and patched upstream grammars.
-The build uses these where the published grammar cannot read supported source forms.
+## Develop
+
+The [development guide](docs/development.md) covers local checks, Lean resource limits, grammar and
+query provenance, adding a language and the release process.
+
+```sh
+cargo build --locked
+PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
+tools/check.sh wasm
+tools/check.sh deep
+```
 
 ## Licence
 

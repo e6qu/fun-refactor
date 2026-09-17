@@ -72,6 +72,24 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B923: **Lean validation inherited host-wide concurrency and saturated developer machines**.
+  `tools/check.sh` now limits the native and exhaustive kernel test harnesses to two cases. Every
+  Lean process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS`
+  expose explicit overrides, and both reject zero or malformed values before validation starts.
+
+- [x] B922: **the matched-agent evaluator could misclassify or bypass its SDK arm**. An unsuccessful
+  SDK process consumed the one successful-program slot. Broad `from sys import ...` forms could
+  reach Python internals outside the intended guide surface. Success now requires exit
+  zero and the exact outcome packet. Imports admit only the public guide constructors, and risky
+  reflective primitives refuse before the program runs. Local tests cover both failures; retained
+  diagnostics preserve the original classification bug.
+
+- [x] B921: **the Python guide runtime could not follow actions with authored fields**. An agent
+  had to copy every intermediate report and manually create recipe, migration or tactics files,
+  defeating the local low-context runtime. `GuideInputs`, `GuideFile` and `complete_guide` bind only
+  exact named placeholders and use bounded temporary files. They refresh the guide basis, verify
+  every output contract and keep writes disabled. Rust, Python and Lean agree on the binding gate.
+
 - [x] B920: **recipe guidance omitted the recipe file envelope**. The route exposed the selected
   verb, predicates and expectation forms, but a fresh agent still had to guess the `schema` and
   `recipe` wrapper. The author contract now supplies the exact schema line, lower-kebab recipe

@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::process::Command;
 
 const FR: &str = env!("CARGO_BIN_EXE_fr");
@@ -54,6 +54,11 @@ fn trust_sections_keep_support_tests_and_proofs_distinct() {
         workflows["report"]["live_evaluation"]["model"],
         "gpt-5.6-luna"
     );
+    assert_eq!(
+        workflows["report"]["matched_evaluation"]["arms"],
+        json!(["fr", "files"])
+    );
+    assert_eq!(workflows["report"]["matched_evaluation"]["families"], 7);
 
     let proofs = audit("proofs");
     let classes = proofs["report"]["evidence_classes"].as_array().unwrap();

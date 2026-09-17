@@ -1,10 +1,12 @@
 import hashlib
 import json
+from pathlib import Path
 import pytest
 
 from fr_ir.context import merkle_object_digest
 from fr_ir.guide import (AgentGoal, AgentGuide, GoalConstraints, GoalLimits, GoalOperation,
-                        GoalSelector, _canonical, follow_guide, guide_goal)
+                        GoalSelector, GuideFile, GuideInputs, _canonical, complete_guide,
+                        follow_guide, guide_goal)
 from fr_ir.runtime import FrReport, FrRuntimeError
 
 
@@ -43,6 +45,30 @@ class FakeClient:
         return FrReport(report, arguments)
 
 
+class AuthoredClient(FakeClient):
+    def call(self, *arguments, input_bytes=None):
+        if arguments[0] == "guide":
+            report = super().call(*arguments, input_bytes=input_bytes)
+            value = report._value
+            value["actions"] = [{"id": "proof-check",
+                                 "arguments": ["spec", "proof-check", "target", "--from", "<tactics-file>"],
+                                 "output_schema": "fr-proof-attempt-1", "schema_field": "schema",
+                                 "input": None, "author_fields": [{"name": "tactics-file", "shape": "Lean tactics"}],
+                                 "writes": False, "ready": False, "max_output_bytes": 16384}]
+            identity = {key: item for key, item in value.items()
+                        if key not in ("object_root", "basis", "serialized_bytes")}
+            value["object_root"] = merkle_object_digest(identity)
+            value["serialized_bytes"] = 0
+            for _ in range(5):
+                value["serialized_bytes"] = len(_canonical(value))
+            return report
+        self.calls.append((arguments, input_bytes))
+        assert arguments[:4] == ("spec", "proof-check", "target", "--from")
+        supplied = open(arguments[4], encoding="utf-8").read()
+        assert supplied == "rfl\n"
+        return FrReport({"schema": "fr-proof-attempt-1", "accepted": True}, arguments)
+
+
 def test_goal_wire_shape_preserves_tagged_ir_and_explicit_limits():
     goal = AgentGoal("change", selector=GoalSelector(name="calculate"),
                      operation=GoalOperation("semantic-scalar", {"operation": "set-int",
@@ -72,7 +98,7 @@ def test_invalid_goals_refuse_before_subprocess_work(build):
         build()
 
 
-def test_guide_verifies_identity_and_follows_only_ready_preview_actions():
+def test_guide_verifies_identity_and_follows_ready_preview_actions():
     client = FakeClient()
     goal = AgentGoal("understand", selector=GoalSelector(path="app.rs"))
     guide = guide_goal(client, goal)
@@ -80,6 +106,42 @@ def test_guide_verifies_identity_and_follows_only_ready_preview_actions():
     report = follow_guide(client, guide.actions()[0])
     assert report.schema == "fr-project-1"
     assert len(client.calls) == 3
+
+
+def test_authored_guide_files_are_exact_bounded_and_temporary():
+    client = AuthoredClient()
+    goal = AgentGoal("prove")
+    guide = guide_goal(client, goal)
+    action = guide.actions()[0]
+    with pytest.raises(FrRuntimeError, match="exactly match"):
+        follow_guide(client, action)
+    with pytest.raises(FrRuntimeError, match="exactly match"):
+        follow_guide(client, action, GuideInputs({"wrong": "rfl"}))
+    report = follow_guide(client, action, GuideInputs({
+        "tactics-file": GuideFile("proof.lean", "rfl\n"),
+    }))
+    assert report.schema == "fr-proof-attempt-1"
+    assert not Path(client.calls[-1][0][-1]).exists()
+
+
+def test_complete_guide_keeps_intermediate_reports_inside_one_sdk_call():
+    client = AuthoredClient()
+    result = complete_guide(client, AgentGoal("prove"), {0: GuideInputs({
+        "tactics-file": GuideFile("proof.lean", "rfl\n"),
+    })})
+    assert result.guide.at("/schema") == "fr-agent-guide-1"
+    assert [report.schema for report in result.reports] == ["fr-proof-attempt-1"]
+
+
+@pytest.mark.parametrize("build", [
+    lambda: GuideFile("../proof.lean", "rfl"),
+    lambda: GuideFile("proof.lean", "x" * 65_537),
+    lambda: GuideInputs({"value": "--write"}),
+    lambda: GuideInputs({"value": object()}),
+])
+def test_invalid_guide_inputs_refuse_before_subprocess_work(build):
+    with pytest.raises(FrRuntimeError):
+        build()
 
 
 @pytest.mark.parametrize("mutate", [

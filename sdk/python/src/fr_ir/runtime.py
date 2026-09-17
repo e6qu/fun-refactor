@@ -396,10 +396,15 @@ class FrClient:
         from .guide import compile_guided_intent
         return compile_guided_intent(self, guide, action, store=store)
 
-    def follow_guide(self, action: GuideAction) -> FrReport:
-        """Run one ready read/preview action retained by an authoritative guide."""
+    def follow_guide(self, action: GuideAction, inputs=None) -> FrReport:
+        """Run one author-bound read/preview action retained by an authoritative guide."""
         from .guide import follow_guide
-        return follow_guide(self, action)
+        return follow_guide(self, action, inputs)
+
+    def complete_guide(self, goal: AgentGoal, inputs=None):
+        """Select and follow every read/preview action without exposing intermediate reports."""
+        from .guide import complete_guide
+        return complete_guide(self, goal, inputs)
 
     def disclose(
         self,

@@ -1827,17 +1827,19 @@ fr history patch 1 --check
 fr history patch 1 --check --against /path/to/receiving/workspace
 fr history patch 1 --git-check
 fr history patch 1 --git-check --index
-fr history apply 1                  # preview
+fr history apply 1
 fr history apply 1 --write
 fr history undo 1 --write
 fr history redo 1 --write
-fr history recover 1 --write        # only when an operation remains pending
-fr history compact --keep 100       # preview retention
+fr history recover 1 --write
+fr history compact --keep 100
 fr history compact --keep 100 --basis '<BASIS>' --write
 ```
 
 History uses schema 1 and numeric identities local to the workspace.
 `history` lists status, validation labels, paths, applied IDs and the redo stack.
+`history apply` previews unless `--write` is present. Use `recover` only for a pending operation;
+the first `compact` form previews the retention change.
 `patch` prints a Git text patch, or metadata with a `patch` string under `--json`.
 `patch --output FILE` creates a new artifact and returns JSON with its SHA-256 and byte count, without patch text.
 Relative paths start at the workspace root. Existing paths refuse.
@@ -2139,7 +2141,7 @@ Long project calls write sparse progress objects such as
 `{"indexing":{"phase":"resolution","done":16384,"total":436803}}` to stderr. Each line is
 standalone JSON, counts only advance within a phase, and stdout remains the final project report.
 Calls that finish before the first five-second interval emit no progress.
-The [controlled cache comparison](docs/project-context-evaluation.md#query-time-and-the-fact-cache) checks complete reports and source invalidation alongside query time.
+The retained controlled cache comparison checks complete reports and source invalidation alongside query time. The [evaluation guide](docs/evaluations.md) identifies the artifact family.
 
 ### `fr completions`
 

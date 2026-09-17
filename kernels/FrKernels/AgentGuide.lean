@@ -76,4 +76,23 @@ theorem incomplete_preview_cannot_be_reviewed (ready basisMatches : Bool) :
     step 2 2 ready false basisMatches = 5 := by
   simp [step]
 
+-- fr:spec src/project/agent_guide.rs::agent_guide_binding_admitted @ 51cc53241b240ba7e3ba1330b61e1d2a88e23463b042a24acd9416e8feed1c61
+-- fr:signature expected_fields: usize => expectedFields: Nat; supplied_fields: usize => suppliedFields: Nat; names_match: bool => namesMatch: Bool; values_bounded: bool => valuesBounded: Bool; execution_disabled: bool => executionDisabled: Bool; basis_matches: bool => basisMatches: Bool; return: bool => return: Bool
+def bindingAdmitted (expectedFields suppliedFields : Nat) (namesMatch valuesBounded
+    executionDisabled basisMatches : Bool) : Bool :=
+  decide (expectedFields ≤ 32) && decide (expectedFields = suppliedFields) && namesMatch &&
+    valuesBounded && executionDisabled && basisMatches
+
+theorem binding_requires_exact_named_bounded_inputs
+    (accepted : bindingAdmitted expectedFields suppliedFields namesMatch valuesBounded
+      executionDisabled basisMatches = true) :
+    (((((expectedFields ≤ 32 ∧ expectedFields = suppliedFields) ∧ namesMatch = true) ∧
+      valuesBounded = true) ∧ executionDisabled = true) ∧ basisMatches = true) := by
+  simpa [bindingAdmitted, Bool.and_eq_true] using accepted
+
+theorem changed_guide_cannot_bind
+    (expectedFields suppliedFields : Nat) (namesMatch valuesBounded executionDisabled : Bool) :
+    bindingAdmitted expectedFields suppliedFields namesMatch valuesBounded executionDisabled false = false := by
+  simp [bindingAdmitted]
+
 end FrKernels.AgentGuide

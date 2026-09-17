@@ -89,6 +89,28 @@ contract and enforces the response byte ceiling. Changed input, source, capabili
 target or guide receipt refuses. Shell agents should revalidate guidance on the current revision
 before following direct positional previews, then review the authoritative preview basis.
 
+Actions that name `author_fields` accept the same wire-shaped values through `GuideInputs`.
+Use `GuideFile` for recipes, formal properties, plans or Lean tactics; the runtime writes it to a
+bounded private temporary file for the one preview call and removes it afterward. Scalar values
+replace only their exact `<field-name>` argument. Missing, extra, duplicate, unbounded or
+execution-like values refuse before the action runs.
+
+```python
+from fr_ir.guide import GuideFile, GuideInputs
+
+run = client.complete_guide(goal, {
+    1: GuideInputs({"tactics-file": GuideFile("proof.lean", "rfl\n")}),
+    2: GuideInputs({"tactics-file": GuideFile("proof.lean", "rfl\n")}),
+})
+assert run.reports[-1].at("/applied") is False
+```
+
+`complete_guide` obtains one guide and follows every read or preview action locally. The caller
+still authors every required value and reviews the returned reports; the method does not enable
+writes. Each action refreshes the guide and checks its immutable basis, output schema and byte
+ceiling. This form is intended for an agent-authored Python program whose intermediate project
+reports should stay outside the model transcript.
+
 The guide contains no source, semantic body, complete vocabulary or unrelated route. Exact source
 requires `constraints.allow_source: true` and a separate bounded reveal. Reveal limits range from
 1,024 through 4,096 conservative token upper bounds; guide packets range from 2 through 64 KiB.
@@ -106,9 +128,10 @@ Some older direct commands return unversioned JSON objects. Their guide actions 
 `output_schema`; versioned commands identify their exact schema and `schema_field`, including
 `semantic_schema` for minimal semantic reports. The navigator preserves this distinction.
 
-`FrKernels.AgentGuide` proves matching purpose/live support/source permission requirements and the
-complete unchanged-review requirement for execution. Rust, Python and executable Lean agree over
-32,256 finite admission cases and 336 lifecycle cases. These proofs cover the scalar policies;
+`FrKernels.AgentGuide` proves matching purpose/live support/source permission requirements, exact
+bounded author-field binding and the complete unchanged-review requirement for execution. Rust,
+Python and executable Lean agree over 32,256 route cases, 336 lifecycle cases and 1,024 binding
+cases. These proofs cover the scalar policies;
 parsing, serialization, SHA-256, target construction, planners, writers, subprocesses, toolchains,
 proof completeness and general implementation correspondence remain separate tested/trusted
 boundaries.

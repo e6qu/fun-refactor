@@ -1,43 +1,52 @@
-# web/ — the playground
+# Browser playground
 
-A public GitHub repository, loaded into the tab and refactored there. No server: the
-analysis is this crate compiled to WebAssembly, and the repository is fetched from
-GitHub's API by the browser.
+The playground loads a public GitHub repository into the browser and runs the WASM build of `fr`
+without a server. It does not send changes back to GitHub or hold an access token.
 
-```
+## Run locally
+
+Install the web dependencies and start the development server:
+
+```sh
 npm install
-npm run dev          # needs web/src/wasm — see below
-npm run build        # writes ../docs/playground, which CI publishes
+npm run dev
 ```
 
-`src/wasm/` is generated and not committed:
+`npm run dev` expects the generated module under `web/src/wasm`. Build it first with either
+`WASI_SDK` or `WASM_CLANG`, then generate the JavaScript bindings:
 
+```sh
+WASI_SDK=/path/to/wasi-sdk ../tools/build-wasm.sh
+wasm-bindgen --target web --out-dir src/wasm ../target/wasm32-unknown-unknown/release/fun_refactor.wasm
 ```
-WASI_SDK=/path/to/wasi-sdk ../tools/build-wasm.sh     # or WASM_CLANG=…
-wasm-bindgen --target web --out-dir src/wasm \
-  ../target/wasm32-unknown-unknown/release/fun_refactor.wasm
+
+The `wasm-bindgen` CLI must match the version in `Cargo.lock` because the generated ABI is unstable.
+CI reads that version from the lockfile.
+
+Build the static site under `docs/playground` with:
+
+```sh
+npm run build
 ```
 
-The wasm-bindgen CLI must match the `wasm-bindgen` version in `Cargo.lock` exactly —
-the two share an unstable ABI, and a mismatch fails with a schema-version error that
-says so. CI reads the version out of the lockfile for this reason.
+## Select languages
 
-## Build size and language selection
+The bundle includes Monaco and each selected tree-sitter grammar. Build a smaller language set by
+passing features to the WASM script:
 
-The bundle contains Monaco and the WASM analysis module with its selected grammars.
-Measure the current release artifacts when budgeting download size; the language set changes between releases.
-A smaller grammar selection is available through build features:
-
-```
+```sh
 FEATURES=wasm,lang-go,lang-typescript,lang-python ../tools/build-wasm.sh
 ```
 
-The playground exports session patches and can restore the initially loaded workspace.
-Persistent transaction undo/redo and Git integration remain on the [roadmap](../PLAN.md).
+Measure the current artifacts when setting a download budget because the selected grammars can
+change between releases.
 
-## What it does not do
+## Boundaries
 
-It does not write to GitHub, and it holds no token. A refactoring here edits the copy
-in the tab; the diff is what you take away. Loading is capped at 400 files and 6 MB,
-smallest first, and whatever is left out is reported and not quietly dropped —
-see `src/github.ts`.
+The playground edits only its in-memory workspace. It supports browser transaction history, undo,
+redo, initial-workspace restore and patch export. Native Git staging, commits and worktrees remain
+native CLI operations.
+
+Repository loading is limited to 400 files and 6 MiB, smallest files first. The interface reports
+every omitted file. See `src/github.ts` for the loader contract.
+

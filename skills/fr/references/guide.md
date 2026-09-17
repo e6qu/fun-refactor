@@ -20,6 +20,12 @@ with declared checks emits one complete task preview. `client.follow_guide` veri
 and returns `TaskReview`; review it, then use `client.execute`. Retain intermediate reports locally
 and expose only selected fields with `at`.
 
+For non-ready actions, pass `GuideInputs({"field-name": value})`; wrap recipe, property, plan or
+tactics text in `GuideFile("plain-name", text)`. `client.complete_guide(goal, {action_index:
+inputs})` follows all read/preview actions inside one local program. It refreshes the guide basis for
+every action, requires the exact named fields, verifies output schemas and removes temporary files.
+It never writes project source. The agent must still author and review every supplied value.
+
 Allow source through `constraints.allow_source` only when the route requires an explicit bounded
 reveal. Keep the six verification levels separate. An agent writes every property and tactic;
 generated Rust model theorems do not establish implementation correspondence. Full wire contracts:
