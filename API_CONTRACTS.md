@@ -99,4 +99,4 @@ See [docs/lean-specs.md](docs/lean-specs.md) for the evidence levels.
 - [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md): references and language conversions.
 - [IR.md](IR.md): the executable code representation.
 - [RECIPES.md](RECIPES.md): composing current transformations.
-- [PLAN.md](PLAN.md): project and framework migration milestones.
+- [Feature migration](docs/feature-migration.md): the implemented migration contract.

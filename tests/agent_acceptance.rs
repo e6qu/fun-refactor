@@ -30,7 +30,7 @@ fn recorded_agent_patches_pass_upstream_tests_and_independent_oracles() {
 }
 
 #[test]
-#[ignore = "requires the pinned regex workspace dependencies; see docs/agent-workspace-evaluation.md"]
+#[ignore = "requires the pinned regex workspace dependencies; see docs/evaluations.md"]
 fn recorded_workspace_patches_pass_checks_oracles_and_exact_reversal() {
     for directory in [
         "tests/agent-eval/results/2026-09-08-regex",

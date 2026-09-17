@@ -51,9 +51,10 @@ A saved `fr author` report with a complete diff includes `transaction_context_ba
 ```sh
 fr author batch --from '<MANIFEST>' --save-plan
 fr history apply '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
-# The same retained basis can compact a later redo.
 fr history redo '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
+
+The same retained basis can compact a later redo.
 
 The compact report keeps the transaction, action, outcome, paths, existence and modes. Each change replaces `diff` with its UTF-8 `diff_bytes`; the report adds `context_basis` and `context_omitted: ["changes[].diff"]`. Reconstruct the full report from the detailed history record, or split the retained combined author diff at those byte boundaries. Each slice is one valid UTF-8 diff in change order.
 

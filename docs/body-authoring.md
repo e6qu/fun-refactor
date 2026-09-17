@@ -86,7 +86,7 @@ The command does not update callers, signatures or imports and does not check ty
 Macros and language context rules retain the parser's syntax coverage limits.
 Choose project compiler and test commands that establish the intended behavior after applying.
 An implementation change may deliberately change behavior; syntax acceptance does not validate that intention.
-Further languages, additional initializer forms and insertion into empty impls or function bodies remain roadmap work.
+Other languages, initializer forms and insertion into empty impls or function bodies are unsupported by this command.
 For complete Rust function changes, see [declaration replacement](#declaration-replacement).
 
 For a TSX component, the fragment may contain JSX:
@@ -282,7 +282,7 @@ That workflow checks four explicit postconditions. Six negative forms refuse wit
 A two-file Rust batch compiles and runs before changes, after application, after undo and after redo.
 A reported batch containing two length-changing edits also produces matching Rust and Lean splice results.
 A reported body-and-import batch also produces matching Rust and Lean splice results over Unicode source.
-A [controlled batch comparison](project-context-evaluation.md#coordinated-authoring-measurement) measures repeated calls and payloads with compiled behavior, exact reversal and receiver patch checks.
+A retained controlled comparison measures repeated calls and payloads with compiled behavior, exact reversal and receiver patch checks. The [evaluation guide](evaluations.md) identifies the artifact family.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves the one-byte lower bound, the upper bound and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.

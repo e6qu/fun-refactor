@@ -99,7 +99,7 @@ The first fresh Luna/low pair produced exact canonical values through both route
 fewer commands and 65.7% fewer input tokens after reported cache hits; the SDK producer used 51.5%
 fewer bytes. Treat direct JSON as the measured default for a small one-off body. Prefer the SDK when
 early category checks or reuse matters, and measure broader tasks before claiming a context saving.
-See `docs/agent-ir-sdk-evaluation.md` for the conditions and limits.
+The [evaluation evidence guide](evaluations.md) records the artifact family and its limits.
 
 ## Checked semantic deltas
 
@@ -138,8 +138,8 @@ checks the basis. It applies the delta through the semantic writer and exact bod
 project tasks and reviewed task changes accept `edit-body-semantic`. Their normal preview, drift,
 checks, reversal and patch rules apply.
 
-The [controlled comparison](semantic-delta-evaluation.md) measures one small edit against complete
-body replacement. It reports the smaller delta input, larger receipt output and identical checked
+The retained controlled comparison measures one small edit against complete body replacement; the
+[evaluation guide](evaluations.md) points to its artifact family. It reports the smaller delta input, larger receipt output and identical checked
 lifecycle result.
 
 The operation selects the existing function model, replaces its IR body and renders one function
@@ -267,7 +267,7 @@ three-field `ScalarRequest`, two-field `DisclosedEditRequest` and typed-node
 `DisclosedIrEditRequest` used by task manifests. Direct
 JSON is the measured choice for a one-off scalar edit. Python provides earlier type and scalar checks
 when several operations or reusable producer logic justify it. The deterministic four-route result
-is documented in [semantic intent evaluation](semantic-intent-evaluation.md).
+is retained with the semantic-intent artifacts listed in the [evaluation guide](evaluations.md).
 
 `FrKernels.SemanticIntent` anchors admission, locator bounds and the exact operation/category/kind
 relation. It proves deterministic exact-singleton abstract locator resolution, scalar category,

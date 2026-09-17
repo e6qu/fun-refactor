@@ -496,7 +496,7 @@ CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test lea
 
 `tools/check-kernels.sh` builds the model and runs its corpus; the default native gate runs the Rust comparison.
 Inspect a theorem's dependencies with `#print axioms FrKernels.Digest.digest_view_preserves_thresholds` in a file importing `FrKernels.Digest`.
-The [M4s timing report](project-context-evaluation.md#batched-revision-hashing) remains historical evidence; M4t introduces no timing or context-saving claim.
+Historical timing artifacts remain available through the [evaluation evidence guide](evaluations.md); the digest model makes no timing or context-saving claim.
 
 ## Adopting Lean in another project today
 

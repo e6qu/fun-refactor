@@ -88,7 +88,7 @@ Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI tests cover coordinates, excerpts, cursors, comparison bases, unusual paths, conflicts, linked worktrees and guarded Git execution.
 They do not prove parser or Git execution correspondence with Lean.
 Use `--symbols` for changed declarations or `--calls` for snapshot-local call candidates, described below.
-Call pages can include explicitly selected files for each comparison. Transitive impact remains roadmap work.
+Call pages can include explicitly selected files for each comparison. This command does not compute transitive impact.
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
 

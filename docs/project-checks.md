@@ -104,7 +104,7 @@ The execution layer has test evidence; no Lean proof covers process behavior or 
 
 ## Controlled report measurement
 
-The [workspace agent traces](agent-workspace-evaluation.md) repeat the reviewed declarations in four check execution reports per trial.
+The retained workspace agent traces repeat the reviewed declarations in four check execution reports per trial.
 Applying declaration omission to those frozen payloads gives this deterministic projection:
 
 | Retained fr trial | Execution reports | Original payload tokens | Projected tokens |
@@ -123,7 +123,7 @@ Joining results to the reviewed listing reconstructs the full report, apart from
 Both declared checks pass, and tracked source and index bytes stay unchanged.
 The live stdout uses CLI formatting; its token counts differ from the instrumented transcript projection.
 
-Reproduce the comparison after the [workspace dependency bootstrap](agent-workspace-evaluation.md#reproduction-and-trial-design):
+Reproduce the comparison after preparing the pinned workspace described by the [evaluation evidence](evaluations.md):
 
 ```sh
 python3 tools/checks-context.py --fr target/debug/fr
