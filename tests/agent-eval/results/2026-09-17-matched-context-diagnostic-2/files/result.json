@@ -1,0 +1,57 @@
+{
+  "schema": "fr-matched-agent-result-1",
+  "arm": "files",
+  "workflow_ids": [
+    "understanding",
+    "tracing",
+    "direct-change",
+    "recipe",
+    "semantic-edit",
+    "framework-migration",
+    "proof"
+  ],
+  "answers_match": true,
+  "coverage": {
+    "reads": [
+      "app/api/signals/route.ts",
+      "specs/FrSpecs/SrcLibRsKeep.lean",
+      "src/lib.rs"
+    ],
+    "required_reads": [
+      "app/api/signals/route.ts",
+      "specs/FrSpecs/SrcLibRsKeep.lean",
+      "src/lib.rs"
+    ],
+    "read_coverage": true
+  },
+  "finished": true,
+  "source_unchanged": true,
+  "prompt_bytes": 3597,
+  "tool_calls": 7,
+  "tool_request_bytes": 1120,
+  "tool_response_bytes": 2811,
+  "tool_errors": 0,
+  "codex": {
+    "usage": {
+      "input_tokens": 103264,
+      "cached_input_tokens": 86272,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1326,
+      "reasoning_output_tokens": 229
+    },
+    "command_executions": 7,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "infrastructure_errors": 0,
+    "stderr_bytes": 0,
+    "event_bytes": 12700,
+    "final_bytes": 125,
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0,
+  "measurement_scope": "Complete prompt, instrumented requests/responses and Codex JSONL usage; billed quota unavailable.",
+  "passed": true
+}

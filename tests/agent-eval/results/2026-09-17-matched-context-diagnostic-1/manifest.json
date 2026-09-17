@@ -1,0 +1,149 @@
+{
+  "schema": "fr-matched-agent-manifest-1",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "low",
+  "service_tier": "default",
+  "workflow_families": 7,
+  "results": [
+    {
+      "schema": "fr-matched-agent-result-1",
+      "arm": "fr",
+      "workflow_ids": [
+        "understanding",
+        "tracing",
+        "direct-change",
+        "recipe",
+        "semantic-edit",
+        "framework-migration",
+        "proof"
+      ],
+      "answers_match": false,
+      "coverage": {
+        "calls": 0,
+        "failed_calls": 0,
+        "observed_routes": [],
+        "route_coverage": false,
+        "action_coverage": false,
+        "request_bytes": 0,
+        "response_bytes": 0
+      },
+      "finished": true,
+      "source_unchanged": true,
+      "prompt_bytes": 3415,
+      "tool_calls": 3,
+      "tool_request_bytes": 6462,
+      "tool_response_bytes": 206,
+      "codex": {
+        "usage": {
+          "input_tokens": 60185,
+          "cached_input_tokens": 51200,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2582,
+          "reasoning_output_tokens": 360
+        },
+        "command_executions": 3,
+        "failed_command_executions": 0,
+        "direct_project_commands": [],
+        "infrastructure_errors": 0,
+        "stderr_bytes": 0,
+        "event_bytes": 17506,
+        "final_bytes": 30,
+        "billed_quota": {
+          "available": false,
+          "value": null
+        }
+      },
+      "manual_corrections": 0,
+      "measurement_scope": "Complete prompt, instrumented requests/responses and Codex JSONL usage; billed quota unavailable.",
+      "passed": false
+    },
+    {
+      "schema": "fr-matched-agent-result-1",
+      "arm": "files",
+      "workflow_ids": [
+        "understanding",
+        "tracing",
+        "direct-change",
+        "recipe",
+        "semantic-edit",
+        "framework-migration",
+        "proof"
+      ],
+      "answers_match": false,
+      "coverage": {
+        "reads": [
+          "app/api/signals/route.ts",
+          "formal-plan.json",
+          "specs/FrSpecs/SrcLibRsKeep.lean",
+          "src/lib.rs"
+        ],
+        "required_reads": [
+          "app/api/signals/route.ts",
+          "specs/FrSpecs/SrcLibRsKeep.lean",
+          "src/lib.rs"
+        ],
+        "read_coverage": true
+      },
+      "finished": true,
+      "source_unchanged": true,
+      "prompt_bytes": 2485,
+      "tool_calls": 20,
+      "tool_request_bytes": 4717,
+      "tool_response_bytes": 8857,
+      "codex": {
+        "usage": {
+          "input_tokens": 213429,
+          "cached_input_tokens": 190208,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3656,
+          "reasoning_output_tokens": 942
+        },
+        "command_executions": 20,
+        "failed_command_executions": 0,
+        "direct_project_commands": [],
+        "infrastructure_errors": 0,
+        "stderr_bytes": 0,
+        "event_bytes": 39646,
+        "final_bytes": 113,
+        "billed_quota": {
+          "available": false,
+          "value": null
+        }
+      },
+      "manual_corrections": 0,
+      "measurement_scope": "Complete prompt, instrumented requests/responses and Codex JSONL usage; billed quota unavailable.",
+      "passed": false
+    }
+  ],
+  "passed": false,
+  "usage_difference_fr_minus_files": {
+    "input_tokens": -153244,
+    "cached_input_tokens": -139008,
+    "output_tokens": -1074,
+    "reasoning_output_tokens": -582
+  },
+  "tool_call_difference_fr_minus_files": -17,
+  "context_saving_observed": true,
+  "claim": "One matched pair over seven fixed preview workflows; no population, hidden-reasoning or billed-quota claim.",
+  "acceptance_evidence": false,
+  "files": {
+    "experiment.json": "e9df943e2a1c32e700087b44cecd1a807df2cb29c70d9120f6ada755386c256d",
+    "manifest.json": "fb71a400673543462282ca4cf484f8a31cab0d28e14c130e1988a904e560737c",
+    "fr/session.json": "222c8d2a2df5ebf1a7f1939624cd2c6924d411ab83f3671e7bf650d9cd3e61af",
+    "fr/prompt.txt": "84fcda7dd6b57d70cd746cd37f4b53ce4ee3dbda89200c629443a31649661705",
+    "fr/events.jsonl": "aaec6c91a0df13af33ca1934217d98968398da7ed2f3d980e20a22c366091a86",
+    "fr/codex-events.jsonl": "b06014e686c0aeb234567c2177ad387f247e62480354ceaeb1b2a6fe62045349",
+    "fr/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fr/codex-final.txt": "84ab2a9827a6ba1f2328d52933ccbcc061ab95d7e9f23c7a5def99984009d98a",
+    "fr/codex-run.json": "ed3909ba7ad984133c7ab94897717f5b985c7d1b1070ec400e30ba3676cb7598",
+    "fr/result.json": "864f14f6d406e9558581445a3cffdbd5009a6d5bcddbfe943ea0a2fd32ac4bf9",
+    "files/session.json": "49f5ba4455a115f77b205b78808a95afd9954d8ff3556fb865bf0629e8383349",
+    "files/prompt.txt": "5aa7f4c21972b25f0f81cdfd367ed0fc6f40bd7ec7f55faa69399a022c7654d8",
+    "files/events.jsonl": "4cd424e36eb15cafcbbb907bc7b6fde3f5e753d176a80003fcd32b6bc4bf75a2",
+    "files/codex-events.jsonl": "b50ce5f32c3fccee09f68ff0a31dc116f474e38fb15e3231e14ed59529ee7c02",
+    "files/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "files/codex-final.txt": "e64331dc06ed337f654ada1676bc096cf5c29b98e834df920f2598e195a9513e",
+    "files/codex-run.json": "476df06745a5bd02bfd9e7527c134b4110038148548f813d8877dd14382381e9",
+    "files/result.json": "49846971881c3241bc284fcb6f7b2eebea8ef6767f93bee69efecec6b6603f24"
+  }
+}

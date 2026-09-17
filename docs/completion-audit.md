@@ -129,3 +129,37 @@ Codex reports 369,267 input tokens, including 318,976 cached input tokens, plus 
 and 430 reasoning-output tokens. The complete prompts occupy 7,264 bytes; instrumented requests and
 responses occupy 2,933 and 16,175 bytes. Billed quota remains unavailable. This cohort establishes
 guided usability for these fixtures; it does not establish a saving against a direct-file cohort.
+
+## Matched context cohort
+
+`tools/matched-agent-context.py` gives fresh agents the same seven preview tasks, exact outcome
+packet and Luna/low configuration. The direct-file arm must read the relevant Rust, Next.js and Lean
+files. The `fr` arm authors one Python SDK program from the public IR-shaped constructors. Its
+intermediate guide reports stay local; an instrumented frozen-binary wrapper records every internal
+command, response schema and failure. Both arms must produce the identical outcome packet without
+changing source.
+
+```sh
+python3 tools/matched-agent-context.py prepare /tmp/fr-matched-agent --fr target/debug/fr
+python3 tools/matched-agent-context.py run /tmp/fr-matched-agent --confirm-agent-spend
+python3 tools/matched-agent-context.py score /tmp/fr-matched-agent
+```
+
+The first retained diagnostic rejected an invented SDK import before any workflow ran. Its file arm
+read the required sources but invented per-workflow tools and incompatible packet envelopes. The
+second diagnostic supplies exact public constructor signatures and the common packet schema. Its
+file arm passes in seven calls, while the SDK arm reaches understanding, tracing and direct-change
+before extra recipe fields refuse; a failed SDK process was also incorrectly treated as consuming
+the one successful slot. Both diagnostics remain non-acceptance evidence.
+
+The final [matched acceptance cohort](../tests/agent-eval/results/2026-09-17-matched-context-acceptance/manifest.json)
+passes both arms. The SDK agent completes all seven routes through 29 recorded internal preview
+calls while exposing two agent calls. It uses 46,120 input tokens, including 32,000 cached, 1,231
+output tokens and 68 reasoning-output tokens. Direct files use seven agent calls, 89,118 input
+tokens, including 74,240 cached, 1,306 output tokens and 217 reasoning-output tokens. Measured input
+falls by 42,998 tokens, or 48.2%; uncached input falls by 758 tokens, or 5.1%.
+
+Both arms have zero failed commands, tool errors, infrastructure errors, direct project commands,
+source changes and human corrections. The result establishes a saving for this fixed matched pair.
+It does not establish a population effect, generalize to source-writing tasks, measure hidden
+reasoning, or report billed quota because the CLI does not expose that value.

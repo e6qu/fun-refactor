@@ -35,11 +35,10 @@ construct, or claiming general source equivalence from a translated Lean model.
 
 ## Current state
 
-The project has merged PRs 0 through 39. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311)
-adds the bounded application hierarchy, Merkle disclosure, agent-authored HTTP IR and four backend
-adapters. It also adds static React and Next.js conversion. Current `origin/main` is `37b35f0b`.
-PR 40 implementation and local acceptance are complete on `completion_audit_agent_validation` from
-that exact main. It is the final scheduled implementation PR in this plan.
+The original numbered roadmap through PR 40 is merged. [GitHub PR 313](https://github.com/e6qu/fun-refactor/pull/313)
+adds the source-derived completion audit and passing seven-family guided cohort. Current
+`origin/main` is `d4b81046`. The active matched-context milestone is on
+`matched_agent_context` from that exact main.
 
 | Measure | Current value |
 |---|---:|
@@ -48,7 +47,7 @@ that exact main. It is the final scheduled implementation PR in this plan.
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 767 |
+| Fixed defects | 768 |
 | Open defects | 0 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -112,14 +111,15 @@ and result. The context workspace comparison reduces sixteen exposed exchanges f
 one 4,550-byte program and packet. Native intent compilation uses one process instead of 89
 progressive subprocesses on its fixed trace fixture.
 
-These deterministic measurements do not establish model-token or population behavior. The latest
-retained live Codex comparison still shows an `fr` context premium. The `fr` route uses 17,711
-measured context tokens and 42 calls; direct files use 11,182 tokens and 17 calls. PR 35 reduces an intent-bound change
-from three processes to two, while its complete request and response traffic is 272 bytes larger.
-PR 40's passing guided cohort establishes route completion rather than a direct-file comparison. Its
-two sessions complete seven workflow families through twenty actions with 369,267 input tokens,
-318,976 cached input tokens, 3,896 output tokens and 430 reasoning-output tokens. Future context
-claims require a matched direct-file cohort rather than an inference from internal composition.
+The older live comparison shows an `fr` context premium: 17,711 measured context tokens and 42
+calls versus 11,182 tokens and 17 direct-file calls. PR 40's first passing guided cohort establishes
+route completion through twenty exposed actions, with no matched direct-file arm.
+
+The current matched Luna/low cohort gives both agents the same seven preview outcomes. The local SDK
+arm completes 29 internally recorded `fr` calls through two agent calls and 46,120 input tokens. The
+direct-file arm uses seven calls and 89,118 input tokens. This is a 42,998-token (48.2%) reduction;
+uncached input falls from 14,878 to 14,120 (5.1%). Both arms pass with no errors, bypasses, mutation
+or correction. The result is one fixed-fixture observation, not a population or billed-quota claim.
 
 ## Remaining gaps
 
@@ -139,176 +139,63 @@ claims require a matched direct-file cohort rather than an inference from intern
    remain named unsupported features rather than inferred behavior.
 4. **Support is uneven across languages.** Basic structure is broad; semantic authoring, call
    analysis, translation, framework migration and formalization have smaller support matrices.
-5. **Live-agent context savings remain unproved.** The completed guided cohort validates routing,
-   bounded handoffs and previews. It does not compare those sessions against matched direct-file
-   agents, so it establishes no token or quota saving.
+5. **Live-agent context saving is demonstrated on one fixed matched pair.** The SDK arm reduces
+   measured input and interaction count for the seven preview workflows. Repetition across projects,
+   models and source-writing tasks remains future evidence; the CLI still exposes no billed quota.
 6. **Static source has a tested analysis boundary.** B5 now records indirect calls and dead-code
    conclusions that source cannot settle. The report preserves these cases as uncertainty.
 
 ## Active delivery sequence
 
-Large reviewable pull requests group the remaining work. Each PR must update this file,
-continuity, the portable skill, command documentation, defect records and source-bound evidence when
-its public contract changes.
+The original roadmap is complete. New work is scoped from the explicit evidence and semantic
+boundaries above rather than extending the old PR numbering indefinitely.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 39 | Generic Hierarchical Framework Transformation | [PR 311](https://github.com/e6qu/fun-refactor/pull/311) merged |
-| PR 40 | Completion Audit and Agent Validation | Implementation and local acceptance complete |
+| PR 40 | Completion Audit and Agent Validation | [PR 313](https://github.com/e6qu/fun-refactor/pull/313) merged |
+| PR 41 | Matched Agent Context and Local Guide Execution | Implementation and fresh acceptance complete; final gates pending |
 
-### PR 39. Generic Hierarchical Framework Transformation
+### PR 41. Matched Agent Context and Local Guide Execution
 
-Goal: translate supported application features through a common hierarchy rather than through
-example-specific or pair-specific source templates.
+Goal: let an agent express all authored guide inputs through the IR-shaped Python SDK, keep
+intermediate reports outside its transcript, and measure the resulting workflow against a matched
+direct-file agent.
 
-Implemented foundation:
+Implemented:
 
-- `project application` preserves the complete bounded feature-fact hierarchy and exact identities.
-  Reader gaps remain explicit; route/component semantics retain normalization boundaries.
-- Application IR supports revision-bound Merkle reveal and existing object-store sessions.
-- Agent-authored `fr-http-application-1` behavior has deterministic Next.js, FastAPI, Express and
-  Go HTTP writers, matching Python constructors and checked new-file history delivery.
-- Next.js, FastAPI, Express and Go standard HTTP readers conservatively normalize literal JSON and
-  path-binding handlers through the shared semantic IR. Effectful handlers remain manual.
-- A full `project application` report feeds `migrate application` directly after its object digest
-  is rechecked; equivalent four-framework fixtures produce equal response IR.
-- `migrate application --project` performs the same conversion within one project snapshot. The
-  guide selects it for compatible portable backend targets.
-- The tagged `application-migration` intent operation executes that selected common planner from
-  the exact intent handle, with checks, delivery, patch output and guide-basis validation.
-- FastAPI app registration and PEP 621 dependencies can join the generated files in one reversible
-  transaction. Express app/router registration and npm dependencies use the same history path.
-  Go generates an owning-package mount for an explicit ServeMux under a captured module. Captured
-  Next.js App Router placement supplies checked integration evidence.
-- React and Next.js normalize one bounded intrinsic JSX tree and write `App.tsx` or `page.tsx`.
-  Props, hooks, events, styles, component calls and dynamic expressions remain manual.
-- Application reports publish all 75 adapter-pair/feature cells with deterministic refusal reasons.
-  Explicit cutover is reversible for one recognized whole-file route or static component after
-  connected integration and external-reference checks; mixed application files refuse.
-- Lean models cover admission, compatibility, JSON status safety, exact unique coverage and
-  endpoint agreement. Parser/writer and pinned framework runtime tests remain separate.
-
-PR 39 implementation and local acceptance are complete. Dynamic frontend behavior remains
-explicit manual evidence. The bounded HTTP subset does not replace the richer Next.js/FastAPI
-feature planner.
-
-Deliverables:
-
-- Define a versioned hierarchy that preserves package, module, route, handler, schema and dependency
-  facts. Preserve component and configuration facts. Limit executable IR to admitted features.
-- Derive the IR from the existing React, Next.js, Express.js, FastAPI and Go HTTP evidence. Preserve
-  unknown runtime behavior and unsupported framework constructs as explicit dispositions.
-- Replace direct pair logic with adapters that read and write the common hierarchy. Keep adapters
-  independent of fixture names, endpoint names and domain examples.
-- Support checked transformations among the advertised frontend and backend adapters when their
-  feature subsets overlap. Never infer a pair from a shared host language alone.
-- Plan registration, dependencies, imports and guarded cutover as one revision-bound
-  multi-file transaction. Preserve unrelated files and existing user changes.
-- Validate generated projects with pinned framework toolchains and generic runtime fixtures. Check
-  route, method, path, schema and response behavior rather than only syntax.
-- Publish capability rows per source adapter, target adapter and feature kind. Every unsupported pair
-  must name the missing semantic feature.
-- Make application IR progressively revealable and storable by Merkle object digest. Let the
-  navigator select only the feature branch needed for the migration.
-- Formalize adapter admission, feature compatibility, disposition completeness and endpoint
-  agreement policies in Lean. Test parser, writer and runtime behavior separately.
+- `GuideInputs` binds exact named scalar or file placeholders. `GuideFile` supplies at most 64 KiB
+  through a private temporary file removed after the preview call.
+- `complete_guide` runs every read/preview action locally. Each action refreshes the guide, checks its
+  immutable basis, rejects write flags and verifies the returned schema and byte ceiling.
+- The binding admission rule is mirrored in Rust, Python and Lean. Exhaustive agreement covers 1,024
+  count, name, bound, execution and basis combinations; Lean proves every admitted binding has all
+  required conditions.
+- A source-bound paired harness freezes the binary and uses the same model, effort, tasks and exact
+  outcome oracle for both arms. It records complete prompts, tool events, Codex usage and all 29
+  hidden SDK calls. Direct files must read the relevant Rust, framework and Lean sources.
+- Two immutable diagnostics retain invented API/packet shapes and an exit-classification harness
+  bug. The corrected handoff gives exact public constructors and transports the common packet apart
+  from Python source.
+- The fresh acceptance pair passes all seven workflow families. SDK use reduces agent calls from
+  seven to two and input tokens from 89,118 to 46,120 on this fixture. Source stays unchanged and
+  neither arm records a command, tool, infrastructure or isolation failure.
+- `fr audit workflows`, the portable skill, SDK documentation, completion evidence, defect ledger
+  and continuity record link the public contract and its limits.
 
 Acceptance:
 
-1. No transformation contains a pet-store or other fixture-specific rule.
-2. Equivalent generic features produce equivalent application IR regardless of their source adapter.
-3. Every input feature receives a migrated, preserved, external, manual or unsupported disposition.
-4. Generated projects compile and pass generic runtime contracts under their pinned toolchains.
-5. Preview, review basis, apply, undo, redo and Git patch identity cover the complete multi-file
-   migration and optional cutover.
-6. The navigator selects migration only for an advertised compatible pair and reports every gap.
-7. Lean policy correspondence, independent fixture checks and all repository gates pass.
-
-### PR 40. Completion Audit and Agent Validation
-
-Goal: close remaining defects and prove that the finished guided workflow is usable, bounded and
-honest across the advertised product surface.
-
-Implemented on the current branch:
-
-- `fr audit` publishes a bounded content-addressed summary with progressive capability, workflow,
-  recipe, semantic, framework, proof and boundary sections.
-- The report derives its 456 capability cells and 75 application cells from live predicates. It
-  names executable acceptance targets without treating an unrun test as passing evidence.
-- The report separates support, behavioral validation, model theorems, implementation
-  correspondence and runtime framework evidence.
-- A source-bound deterministic sweep exercises all seven required workflow families. Guidance
-  removes fourteen exploratory calls and makes no token or quota claim.
-- A two-session Codex harness freezes the binary and records prompts, tool traffic, Codex events,
-  token usage, source identities and failures. It rejects direct project access and cannot record a
-  failing cohort as acceptance evidence.
-- The first fresh diagnostic exposed an underspecified recipe envelope and a prompt example that
-  biased the wrong cohort. B920 adds the missing live recipe contract. The revised harness scores
-  every failed Codex command and retains the failed cohort as diagnostic evidence.
-- A second diagnostic completed every required route and preview, but only after many invalid goal
-  guesses. The final handoff supplies exact structured goals generated from the same deterministic
-  case registry. The agent still follows and authors each returned action.
-- A third diagnostic completed all seven routes without direct project access or exploratory calls.
-  Three rejected transport and artifact references remain diagnostic evidence. Complete request
-  handoffs and session-scoped authored artifacts remove those harness ambiguities.
-- A fourth diagnostic completed every route and recorded command, but Codex stderr exposed one
-  internal process error. Infrastructure failures are now separate from agent-command failures,
-  both must be zero, and diagnostic recordings can never become acceptance evidence.
-- A fifth diagnostic found one misleading recipe placeholder in the harness prompt and another
-  internal router failure. The handoff now requires byte-exact returned placeholders and complete
-  nonempty exec invocations.
-- A sixth diagnostic passed the structured cohort but exposed raw multiline recipe JSON in the
-  fundamentals cohort. Recipe guidance now supplies `template_lines`; the harness accepts bounded
-  `file_lines` and performs newline joining itself.
-- A seventh diagnostic passed fundamentals but mixed the new line-array value with the old file
-  key during proof authoring. The agent handoff now uses `file_lines` for every authored file.
-- The final fresh Luna/low cohort passes all seven families with zero failed command,
-  infrastructure error, direct project command, exploratory call, mutation or human correction.
-  It retains complete prompts, events, byte counts and tokenizer usage; billed quota is unavailable.
-- B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
-  actionable defect remains open.
-- Final local validation passes the default and WASM gates and all 101 exhaustive Lean kernel tests.
-  It passes fourteen repository agreement audits, translation conformance, seven round trips, seven
-  self-translations and the pinned external replay. A fresh production WASM build passes TypeScript,
-  Vite and all six browser programs, including forty rename-fidelity scale checks with no defect.
-
-Deliverables:
-
-- Audit every capability predicate, language, technology surface, recipe verb, semantic schema,
-  intent route, action variant, formalization cell and framework adapter from the implementing code.
-- Run complete parser, round-trip, translation, migration, history, Git and proof sweeps. Fix every
-  reproducible defect found. Do not add an untested exception or deferred issue.
-- Resolve the actionable part of B5 with available type, hierarchy and callable-value evidence.
-  Reclassify inherently dynamic cases as a tested analysis boundary only when no sound static
-  conclusion is available.
-- Remove stale schemas, compatibility branches, duplicated guidance, obsolete docs and unreferenced
-  evaluation artifacts. Keep retained scientific evidence immutable and linked from continuity.
-- Run deterministic guided-versus-manual comparisons for each workflow family. Require the guide to
-  eliminate exploratory help, vocabulary and command-shape calls.
-- Run fresh isolated Codex CLI tasks with the weakest economical available model at its lowest effort.
-  Cover understanding, tracing, direct change, recipe, semantic edit, framework migration and proof.
-- Retain prompts, events, reports, patches, source states, independent behavior oracles, exact
-  reversal and context accounting for every attempt, including failures.
-- Publish one compact support and trust report generated from the same predicates, schemas, anchors
-  and evaluators used by the product.
-
-Acceptance:
-
-1. Every advertised route has a passing deterministic end-to-end fixture and a checked refusal
-   matrix. No known actionable defect remains.
-2. Fresh agents complete the representative workflow set through the guide without direct project
-   file ingestion except an explicit source reveal recommended by the guide.
-3. Every successful write passes original and final checks, exact undo and redo, patch verification
-   and independent task-specific behavior oracles.
-4. Context reports count all prompts, tool requests, responses, retained programs and final answers.
-   They distinguish deterministic protocol bytes from tokenizer counts and billed quota.
-5. Capability, proof and framework reports make no stronger claim than their evidence supports.
-6. Default, WASM, playground, every pinned language toolchain, Python, strict Lean, deep audit,
-   external replay, prose and documentation gates pass on the final review head.
-
-PR 40 satisfies these acceptance conditions locally. CI remains the independent clean-run evidence
-for the review head. After it merges, the numbered roadmap is complete; the remaining gaps above are
-explicit semantic or evidentiary boundaries and require new scoped proposals before implementation.
+1. Authored recipe, migration and proof fields use public Python IR types without copying guide
+   responses through the agent transcript.
+2. Missing, extra, duplicated, unbounded, execution-like or stale bindings refuse before preview.
+3. Rust, Python and Lean agree on the complete finite binding policy; strict source anchors are fresh.
+4. The matched arms receive identical tasks, model settings and final oracle. Every relevant prompt,
+   request, response, internal SDK command and Codex usage value is retained.
+5. Both fresh arms pass all seven outcomes without source mutation, direct-command bypass, failed
+   commands, infrastructure errors or human correction.
+6. Reported savings are limited to the retained pair. Population behavior, hidden reasoning and
+   billed quota remain unclaimed.
+7. Default, WASM, deep, Python, strict Lean, portable-skill and documentation gates pass on the
+   final review head.
 
 ## Product invariants
 

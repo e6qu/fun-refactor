@@ -72,6 +72,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B922: **the matched-agent evaluator could misclassify or bypass its SDK arm**. An SDK process
+  exiting unsuccessfully consumed the one successful-program slot, and broad `from sys import ...`
+  forms could reach Python internals outside the intended guide surface. Success now requires exit
+  zero and the exact outcome packet. Imports admit only the public guide constructors, and risky
+  reflective primitives refuse before the program runs. Local tests cover both failures; retained
+  diagnostics preserve the original classification bug.
+
 - [x] B921: **the Python guide runtime could not follow actions with authored fields**. An agent
   had to copy every intermediate report and manually create recipe, migration or tactics files,
   defeating the local low-context runtime. `GuideInputs`, `GuideFile` and `complete_guide` now bind

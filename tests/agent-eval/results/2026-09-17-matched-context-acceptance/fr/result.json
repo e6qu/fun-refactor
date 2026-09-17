@@ -1,0 +1,72 @@
+{
+  "schema": "fr-matched-agent-result-1",
+  "arm": "fr",
+  "workflow_ids": [
+    "understanding",
+    "tracing",
+    "direct-change",
+    "recipe",
+    "semantic-edit",
+    "framework-migration",
+    "proof"
+  ],
+  "answers_match": true,
+  "coverage": {
+    "calls": 29,
+    "failed_calls": 0,
+    "observed_routes": [
+      "evidence",
+      "evidence",
+      "evidence",
+      "evidence",
+      "direct-capability",
+      "direct-capability",
+      "recipe",
+      "recipe",
+      "semantic-scalar",
+      "semantic-scalar",
+      "semantic-scalar",
+      "framework-migration",
+      "framework-migration",
+      "framework-migration",
+      "proof",
+      "proof",
+      "proof",
+      "proof"
+    ],
+    "route_coverage": true,
+    "action_coverage": true,
+    "request_bytes": 7050,
+    "response_bytes": 100593
+  },
+  "finished": true,
+  "source_unchanged": true,
+  "prompt_bytes": 6689,
+  "tool_calls": 2,
+  "tool_request_bytes": 2992,
+  "tool_response_bytes": 1097,
+  "tool_errors": 0,
+  "codex": {
+    "usage": {
+      "input_tokens": 46120,
+      "cached_input_tokens": 32000,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1231,
+      "reasoning_output_tokens": 68
+    },
+    "command_executions": 2,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "infrastructure_errors": 0,
+    "stderr_bytes": 0,
+    "event_bytes": 12750,
+    "final_bytes": 118,
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0,
+  "measurement_scope": "Complete prompt, instrumented requests/responses and Codex JSONL usage; billed quota unavailable.",
+  "passed": true
+}

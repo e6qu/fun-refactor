@@ -24,6 +24,8 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 `fr audit` gives the agent a small content-addressed support and trust summary. The agent then
 reveals only the capability, workflow, recipe, semantic, framework, proof or boundary section it needs.
 The [completion audit](docs/completion-audit.md) explains its claims and retained seven-family sweep.
+Its matched Luna/low cohort completes the same seven outcomes with two SDK-facing calls and 46,120
+input tokens, versus seven direct-file calls and 89,118 input tokens on the fixed fixture.
 The [language-aware workflow guide](docs/agent-workflow-guide.md) turns one structured goal into
 bounded exact read/preview actions, named authoring fields and separate verification levels.
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.

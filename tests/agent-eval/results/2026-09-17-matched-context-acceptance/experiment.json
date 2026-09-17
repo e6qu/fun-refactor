@@ -1,0 +1,23 @@
+{
+  "schema": "fr-matched-agent-experiment-1",
+  "arms": [
+    "fr",
+    "files"
+  ],
+  "sessions": [
+    "/tmp/fr-matched-live-3/fr",
+    "/tmp/fr-matched-live-3/files"
+  ],
+  "workflow_ids": [
+    "understanding",
+    "tracing",
+    "direct-change",
+    "recipe",
+    "semantic-edit",
+    "framework-migration",
+    "proof"
+  ],
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "low",
+  "service_tier": "default"
+}
