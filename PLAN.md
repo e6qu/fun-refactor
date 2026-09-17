@@ -35,7 +35,7 @@ construct, or claiming general source equivalence from a translated Lean model.
 
 ## Current state
 
-The original numbered roadmap through PR 40 is merged. [GitHub PR 313](https://github.com/e6qu/fun-refactor/pull/313)
+PR 40 completes the original numbered roadmap. [GitHub PR 313](https://github.com/e6qu/fun-refactor/pull/313)
 adds the source-derived completion audit and passing seven-family guided cohort. Current
 `origin/main` is `d4b81046`. The active matched-context milestone is on
 `matched_agent_context` from that exact main.
@@ -47,7 +47,7 @@ adds the source-derived completion audit and passing seven-family guided cohort.
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 768 |
+| Fixed defects | 769 |
 | Open defects | 0 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -157,9 +157,9 @@ boundaries above rather than extending the old PR numbering indefinitely.
 
 ### PR 41. Matched Agent Context and Local Guide Execution
 
-Goal: let an agent express all authored guide inputs through the IR-shaped Python SDK, keep
-intermediate reports outside its transcript, and measure the resulting workflow against a matched
-direct-file agent.
+Goal: let an agent express all authored guide inputs through the IR-shaped Python SDK while keeping
+intermediate reports outside its transcript. Measure that workflow against a matched direct-file
+agent.
 
 Implemented:
 
