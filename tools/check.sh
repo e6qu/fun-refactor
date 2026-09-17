@@ -80,7 +80,8 @@ if [ "$slice" = deep ]; then
         --test commands_agree \
         --test conformance \
         --test round_trip \
-        --test self_translation
+        --test self_translation \
+        -- --test-threads "$FR_LEAN_JOBS"
     run cargo test --test lean_kernels -- --include-ignored \
         --test-threads "$FR_LEAN_JOBS"
     run bash tools/check-external-replays.sh

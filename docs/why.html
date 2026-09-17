@@ -73,6 +73,7 @@
           lists the rest: weakly resolved sites, names appearing in strings, files that
           did not parse. It prints the diff, then the list.
         </p>
+        <p><code>fr capabilities</code> prints the live language support matrix.</p>
       </div>
     </div>
   </div>
@@ -120,31 +121,6 @@
     <p class="note">
       That last one reported the gap instead of rewriting wrongly. It was still a
       bug, and it is fixed.
-    </p>
-  </div>
-</section>
-
-<section>
-  <div class="shell">
-    <h2 class="prose">What the figures cover</h2>
-    <div class="grid three" style="margin-top:2rem">
-      <div class="stat">
-        <span class="num">1,376</span>
-        <span class="what">tests, with clippy at <code>-D warnings</code> on every pull request</span>
-      </div>
-      <div class="stat">
-        <span class="num">16,525</span>
-        <span class="what">Grafana files parsed in 10.9s across 13 languages, one index</span>
-      </div>
-      <div class="stat">
-        <span class="num">0</span>
-        <span class="what">capability × language pairs marked "refused"; the tool marks the other 145 not applicable and gives a reason</span>
-      </div>
-    </div>
-    <p class="note prose" style="margin-top:2rem">
-      Every cell of the capability matrix comes from asking that refactoring's own
-      predicate. The hand-maintained version drifted twice: once it hid 27 cells
-      nobody had built, and once it published six working ones as refused.
     </p>
   </div>
 </section>

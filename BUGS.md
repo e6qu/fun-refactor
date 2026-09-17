@@ -19,8 +19,12 @@ away.
 
 ## Open
 
-No actionable implementation defect is currently known. A passing completion audit does not
-establish the absence of undiscovered defects.
+- [ ] B935: **Lean tactic constructor branches are not yet structural**. The grammar reads named
+  `by_cases`, tactic broadcast, membership binders, match-pattern alternatives and the operators
+  used by the kernels, but valid `cases value with | constructor => ...` and corresponding
+  `induction`/`rcases` forms still produce error nodes. Modeling arbitrary tactic text as an opaque
+  token is not an acceptable fix: agents need the branch hierarchy. A focused tactic grammar must
+  reuse a bounded pattern layer without exceeding Tree-sitter's parse-table limit.
 
 ## Analysis boundaries
 
@@ -72,6 +76,27 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B936: **the deep repository audit ignored its configured worker limit**. Its full-audit
+  `cargo test` invocation omitted `--test-threads`, so fourteen repository-wide scans could run
+  together even when `FR_LEAN_JOBS` limited every Lean-facing lane. The deep profile now applies
+  the same explicit bound to full-audit, kernel and default Rust test fan-out.
+
+- [x] B934: **the Lean grammar rejected common forms used in agent-written proofs**. It now models
+  match-pattern alternatives, membership binders, `by_cases name : proposition`, tactic broadcast
+  and wildcard configurations, plus Lean's bitwise and shift operators. A parser regression test
+  combines the forms, while B935 pins the remaining structural tactic boundary.
+
+- [x] B933: **a path-scoped symbol query indexed the entire workspace first**. This made a heading
+  lookup in one Markdown file resolve more than half a million references and take over a minute.
+  Explicit paths now restrict the scan before parsing and reference resolution; repository-wide
+  statistics retain the complete index.
+
+- [x] B932: **guided application migration advertised an operation the Python bridge rejected**.
+  The application-IR guide correctly selected `application-migration` for destinations such as
+  Express and Go HTTP, while `compile_guided_intent` admitted only the narrower
+  `framework-migration` operation. The SDK now accepts both operation kinds on that route, with a
+  regression test that compiles the operation advertised by the retained guide.
+
 - [x] B931: **two local-context measurements retained an old runtime digest**. Fresh runtime and
   workspace comparisons bind the current Python executor. Their outcomes and measured 89.3% and
   92.4% agent-visible byte reductions remain unchanged.
@@ -108,9 +133,10 @@ shows the patch additive. What remains below is a limit of the available source 
   `answers` envelope, and a fresh no-correction matched cohort passes both arms.
 
 - [x] B923: **Lean validation inherited host-wide concurrency and saturated developer machines**.
-  `tools/check.sh` now limits the native and exhaustive kernel test harnesses to two cases. Every
-  Lean process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS`
-  expose explicit overrides, and both reject zero or malformed values before validation starts.
+  `tools/check.sh` limits the native and exhaustive kernel test harnesses to two cases. Every Lean
+  process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` expose
+  explicit overrides, and both reject zero or malformed values before validation starts. B936
+  closes the later-discovered full-audit omission.
 
 - [x] B922: **the matched-agent evaluator could misclassify or bypass its SDK arm**. An unsuccessful
   SDK process consumed the one successful-program slot. Broad `from sys import ...` forms could

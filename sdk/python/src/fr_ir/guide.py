@@ -457,7 +457,7 @@ def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedInt
         "semantic-change": ("task-change", "author-batch"),
         "semantic-body": ("task-change", "author-batch"),
         "surface-edit": ("surface-edit",),
-        "framework-migration": ("framework-migration",),
+        "framework-migration": ("framework-migration", "application-migration"),
         "formalization": ("property-task", "formal-plan"),
         "proof": ("proof-task", "proof-submission"),
     }

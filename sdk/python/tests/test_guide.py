@@ -6,8 +6,10 @@ import pytest
 from fr_ir.context import merkle_object_digest
 from fr_ir.guide import (AgentGoal, AgentGuide, GoalConstraints, GoalLimits, GoalOperation,
                         GoalSelector, GuideFile, GuideInputs, _canonical,
-                        _guide_delivery_admitted, complete_guide,
+                        _guide_delivery_admitted, compile_guided_intent, complete_guide,
                         follow_guide, guide_goal)
+from fr_ir.intent_actions import ApplicationMigrationOperation, TaggedIntentAction
+from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient, FrReport, FrRuntimeError, TaskResult, TaskReview
 
 
@@ -99,6 +101,32 @@ class DeliveryClient(FakeClient):
                          "task_change_basis": basis}, arguments)
 
 
+class ApplicationGuideClient(FakeClient):
+    def call(self, *arguments, input_bytes=None):
+        report = super().call(*arguments, input_bytes=input_bytes)
+        if arguments[0] == "guide":
+            value = report._value
+            value["route"] = {"id": "framework-migration", "admitted": True}
+            value["target"] = {"handle": "frh1:application"}
+            identity = {key: item for key, item in value.items()
+                        if key not in ("object_root", "basis", "serialized_bytes")}
+            value["object_root"] = merkle_object_digest(identity)
+            value["serialized_bytes"] = 0
+            for _ in range(5):
+                value["serialized_bytes"] = len(_canonical(value))
+        return report
+
+    def compile(self, intent, *, store=None):
+        self.compiled_intent = intent
+
+        class Compiled:
+            def at(inner, pointer):
+                assert pointer == "/revision"
+                return "r"
+
+        return Compiled()
+
+
 def test_goal_wire_shape_preserves_tagged_ir_and_explicit_limits():
     goal = AgentGoal("change", selector=GoalSelector(name="calculate"),
                      operation=GoalOperation("semantic-scalar", {"operation": "set-int",
@@ -171,6 +199,27 @@ def test_complete_guide_exposes_and_executes_one_unchanged_review():
     assert isinstance(result, TaskResult)
     assert result.passed
     assert client.calls[-1][0][-3:] == ("--write", "--basis", run.review().task_change_basis)
+
+
+def test_guided_application_migration_accepts_the_operation_advertised_by_the_guide():
+    client = ApplicationGuideClient()
+    goal = AgentGoal(
+        "migrate",
+        selector=GoalSelector(path="api.ts"),
+        operation=GoalOperation("framework-migration", {"to": "go-net-http"}),
+        checks=("syntax",),
+        delivery=TaskDelivery(),
+    )
+    guide = guide_goal(client, goal)
+    compiled = compile_guided_intent(
+        client,
+        guide,
+        TaggedIntentAction(ApplicationMigrationOperation(
+            "go-net-http", "generated", ("syntax",),
+        )),
+    )
+    assert compiled.at("/revision") == "r"
+    assert client.compiled_intent.action.operation.to_data()["kind"] == "application-migration"
 
 
 def test_guided_delivery_refuses_tampering_and_routes_without_one_task_review():

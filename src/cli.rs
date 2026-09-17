@@ -7057,7 +7057,25 @@ fn cmd_symbols(
     stats: bool,
     paths: &[PathBuf],
 ) -> Result<()> {
-    let index = build_index(cli, languages)?;
+    let roots = absolute_paths(cli, paths)?;
+    let index = if roots.is_empty() || stats {
+        build_index(cli, languages)?
+    } else {
+        let options = scan_options(cli, languages)?;
+        let root = workspace_root(cli);
+        let mut scanned = crate::scan::scan(&root, &options)?;
+        let selected = |path: &std::path::Path| roots.iter().any(|item| path.starts_with(item));
+        scanned.files.retain(|file| selected(&file.path));
+        scanned.skipped_too_large.retain(|(path, _)| selected(path));
+        scanned.skipped_symlinks.retain(|(path, _)| selected(path));
+        scanned.unsupported.clear();
+        let cache = if cli.no_cache {
+            None
+        } else {
+            crate::cache::Cache::open()
+        };
+        build_index_from_scan(cli, &scanned, cache.as_ref(), cli.json)?
+    };
 
     if stats {
         let s = index.stats();
@@ -7087,7 +7105,6 @@ fn cmd_symbols(
         return Ok(());
     }
 
-    let roots = absolute_paths(cli, paths)?;
     let selected: Vec<&Symbol> = index
         .symbols
         .iter()

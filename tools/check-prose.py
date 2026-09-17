@@ -21,7 +21,7 @@ BUDGET = ROOT / "tools" / "PROSE-DEBT"
 DOCS = [
     # `docs/style.md` is absent on purpose: it quotes the habits it forbids.
     "README.md", "PLAN.md", "BUGS.md", "TUTORIAL.md", "RECIPES.md",
-    "API_CONTRACTS.md", "CROSS_LANGUAGE.md", "EXAMPLES.md", "RESEARCH.md",
+    "API_CONTRACTS.md", "CROSS_LANGUAGE.md", "EXAMPLES.md",
     "CLI.md", "IR.md",
     "docs/terminology.md", "docs/lean-specs.md",
 ]

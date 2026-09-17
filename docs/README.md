@@ -1,73 +1,76 @@
 # Documentation
 
-Start with the [project README](../README.md) for installation and the first agent workflow. This
-page groups the durable references by task. Generated command output and retained measurements live
-with their fixtures so these guides can stay current.
+Start with the [project README](../README.md) to install `fr` and run a first command. Use this page
+to choose one authoritative guide for the task; detailed contracts link to related material instead
+of repeating it.
 
-## Learn the tool
+## Use `fr`
 
-- [Tutorial](../TUTORIAL.md): a complete first change.
-- [CLI reference](../CLI.md): commands, flags and output contracts.
-- [Examples](../EXAMPLES.md): focused command examples.
-- [Recipes](../RECIPES.md): the declarative change language.
-- [Cross-language behavior](../CROSS_LANGUAGE.md): resolution and edit rules across languages.
-- [IR reference](../IR.md): common syntax and semantic data structures.
-- [HTTP contracts](../API_CONTRACTS.md): declared service contracts.
-- [Terminology](terminology.md): shared terms used by reports and guides.
+- [Tutorial](../TUTORIAL.md): complete a first inspected, reviewed and reversible change.
+- [CLI reference](../CLI.md): every command, option and output contract.
+- [Examples](../EXAMPLES.md): short task-oriented command sequences.
+- [Recipes](../RECIPES.md): declarative multi-step refactoring.
+- [Cross-language behavior](../CROSS_LANGUAGE.md): language resolution and edit rules.
+- [IR reference](../IR.md): syntax and semantic intermediate representations.
+- [HTTP contracts](../API_CONTRACTS.md): declared service-contract analysis.
+- [Terminology](terminology.md): identities, bases, evidence and lifecycle terms.
 
-## Give `fr` to an agent
+## Integrate an agent
 
-- [Agent quickstart](agent-skill.md): install the portable skill and follow a safe change loop.
-- [Workflow guide](agent-workflow-guide.md): express goals and execute returned actions.
-- [Context protocol](agent-context-protocol.md): compact packets and continuation rules.
-- [Context workspace](agent-context-workspace.md): keep intermediate reports outside the transcript.
-- [Python runtime](agent-runtime-sdk.md): typed local orchestration.
-- [Codex runner](agent-codex-runner.md): optional live-agent evaluation.
+Begin with the quickstart, then choose the runtime or protocol detail needed by the integration.
+
+- [Agent quickstart](agent-skill.md): install and use the portable skill.
+- [Goal and workflow contract](agent-workflow-guide.md): route structured intent to reviewed work.
+- [Python runtime](agent-runtime-sdk.md): keep intermediate reports outside the model transcript.
+- [Context workspace](agent-context-workspace.md): materialize and cache selected Merkle subtrees.
+- [Context protocol](agent-context-protocol.md): packet, continuation and review identities.
+- [Progressive disclosure](progressive-disclosure.md): reveal semantic, project and source branches.
 - [Completion audit](completion-audit.md): inspect live support and trust boundaries.
-- [Evaluation evidence](evaluations.md): understand and reproduce retained measurements.
+- [Evaluation evidence](evaluations.md): reproduce and interpret deterministic and live-agent runs.
+- [Codex runner](agent-codex-runner.md): run optional paid live-agent evaluations.
 
-## Understand and author code
+For a change, the normal path is
+`audit → goal → guide → bounded evidence → preview → reviewed execution → checks → patch`.
+The [goal guide](agent-workflow-guide.md) owns this contract; the other pages explain individual
+stages.
 
-- [Semantic model](semantic-model.md): source-free bodies, deltas and scalar intents.
-- [Body authoring](body-authoring.md): replace and insert declarations.
-- [Disclosed editing](disclosed-editing.md): edit through bounded Merkle capabilities.
-- [Progressive disclosure](progressive-disclosure.md): reveal maps, traces, impact and source in parts.
-- [Application IR](application-ir.md): framework-neutral applications and features.
-- [Framework semantics](framework-semantics.md): admitted behavior and refusal boundaries.
-- [Feature migration](feature-migration.md): checked framework migration.
-- [Cross-stack surfaces](cross-stack-surfaces.md): connect frontend, backend and configuration evidence.
+## Understand and change code
 
-## Verify changes
+- [Semantic model](semantic-model.md): source-free bodies, changes and scalar intents.
+- [Body authoring](body-authoring.md): replace bodies and coordinate declarations.
+- [Disclosed editing](disclosed-editing.md): edit through returned scalar and typed-IR capabilities.
+- [Cross-stack surfaces](cross-stack-surfaces.md): CSS, Tailwind, Markdown and Mermaid facts and edits.
+- [Framework semantics](framework-semantics.md): React, Next.js, Express and FastAPI recognition.
+- [Application IR](application-ir.md): framework-neutral routes and components.
+- [Feature migration](feature-migration.md): reviewed migration and runtime evidence.
 
-- [Project checks](project-checks.md): declare and run compiler, test and lint commands.
-- [Lean support](lean-specs.md): generate models and verify properties.
-- [Agent formalization](agent-formalization.md): build project-specific proof scaffolds.
-- [File transactions](file-transactions.md): atomic write and recovery rules.
-- [Browser history](browser-history.md): history in the WASM interface.
+## Verify and recover
 
-## Work with Git
+- [Project checks](project-checks.md): declare compiler, test and lint commands.
+- [Lean support](lean-specs.md): proof evidence, kernels and strict correspondence checks.
+- [Agent formalization](agent-formalization.md): generate a project-specific proof workbench.
+- [File transactions](file-transactions.md): atomic file plans, application and recovery.
+- [Browser history](browser-history.md): bounded history in the WASM interface.
 
-- [Repository views](git-status.md)
-- [Change inspection](git-changes.md)
-- [Diffs](git-diff.md)
-- [Patch export and application](git-patches.md)
-- [Staging](git-staging.md) and [staging history](git-stage-history.md)
-- [Reviewed commits](git-commit.md)
-- [Worktree overview](git-worktrees.md)
-- [Create a worktree](git-worktree-creation.md)
-- [Use existing branches](git-worktree-existing-branches.md)
-- [Remove a worktree](git-worktree-removal.md)
-- [Resume removal](git-worktree-removal-resumption.md)
-- [Recover worktree operations](git-worktree-recovery.md)
-- [Archive and compact worktrees](git-worktree-archive-compaction.md)
+## Use Git
+
+- Inspect [status](git-status.md), [changes](git-changes.md) and [diffs](git-diff.md).
+- [Export and apply patches](git-patches.md).
+- [Stage files](git-staging.md) and [undo or redo staging](git-stage-history.md).
+- [Create reviewed commits](git-commit.md).
+- Manage [worktrees](git-worktrees.md), including [creation](git-worktree-creation.md),
+  [existing branches](git-worktree-existing-branches.md), [removal](git-worktree-removal.md),
+  [resumption](git-worktree-removal-resumption.md), [recovery](git-worktree-recovery.md) and
+  [archive compaction](git-worktree-archive-compaction.md).
 
 ## Maintain the project
 
-- [Development guide](development.md): build, test, add languages and release.
-- [Roadmap](../PLAN.md): finish line and remaining boundaries.
-- [Known defects](../BUGS.md): fixed and open defect ledger.
+- [Development](development.md): build, test, add languages and release.
+- [Roadmap](../PLAN.md): unfinished product outcomes and acceptance gates.
+- [Known defects](../BUGS.md): actionable defects and durable analysis boundaries.
+- [Continuity](continuity.md): current contributor handoff.
+- [Writing style](style.md): prose rules for user-facing text.
 - [Changelog](../CHANGELOG.md): released changes.
-- [Research](../RESEARCH.md): design sources and experiments.
-- [Development continuity](continuity.md): current handoff for the next contributor.
-- [Writing style](style.md): repository prose rules.
 
+Historical design work belongs in Git history and retained evaluation fixtures. The active guides
+describe the current product contract.

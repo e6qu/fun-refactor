@@ -78,6 +78,7 @@ module.exports = grammar({
     [$.import, $._modifier],
     [$._syntax_atom, $._atom],
     [$.return, $.do_return],
+    [$.tactic_config, $.list],
     // A dedent after a `then` block either reaches an `else` of the chain or ends the
     // chain. GLR decides by what follows the ends.
     [$._do_then_else],
@@ -628,12 +629,12 @@ module.exports = grammar({
       // 6 levels (reduced from 9) to minimize parser states.
       // Merged: or+$ → low, cons+add+product → add.
       const leftAssoc = [
-        [PREC.low, choice('||', '∨', '<|>', '<$>', '<*>', '*>', '<*')],
-        [PREC.and, choice('&&', '∧')],
+        [PREC.low, choice('||', '∨', '|||', '<|>', '<$>', '<*>', '*>', '<*')],
+        [PREC.and, choice('&&', '∧', '&&&')],
         [PREC.compare, choice('==', '!=', '=', '<', '>', '<=', '>=', '≤', '≥', '≠',
-                               '∣', '↔', '⊢')],
+                               '∈', '∉', '⊆', '⊂', '∣', '↔', '⊢')],
         [PREC.add, choice('+', '-', '++', '∪', '∩', '×', '\\')],
-        [PREC.mul, choice('*', '/', '%')],
+        [PREC.mul, choice('*', '/', '%', '^^^', '<<<', '>>>')],
         [PREC.app + 1, choice('|>', '|>.')],
       ];
 
@@ -665,7 +666,7 @@ module.exports = grammar({
 
     // Prefix operators (includes monadic lift ← for do-blocks)
     unary_expression: $ => prec(PREC.unary, seq(
-      field('operator', choice('!', '¬', '-', '←', '<-')),
+      field('operator', choice('!', '¬', '-', '~~~', '←', '<-')),
       field('operand', $._expression),
     )),
 
@@ -700,10 +701,21 @@ module.exports = grammar({
 
     // Shared `binders, body` for forall and exists.
     _quantifier_tail: $ => seq(
-      field('binders', $._quantifier_binders),
+      field('binders', choice(
+        $._quantifier_binders,
+        $.quantifier_membership_binders,
+      )),
       ',',
       field('body', $._expression),
     ),
+
+    // Lean's binder-predicate notation: `∀ x ∈ xs, P x`. Chained forms such
+    // as `∀ x ∈ xs, ∀ y, ...` are represented by nested quantifiers.
+    quantifier_membership_binders: $ => prec(1, seq(
+      repeat1(choice($.identifier, $._bracketed_binder)),
+      choice('∈', '∉'),
+      $._expression,
+    )),
 
     // Have expression: `have h : T := proof; body`
     have: $ => prec.right(seq(
@@ -742,7 +754,7 @@ module.exports = grammar({
     _tactic_seq: $ => prec.right(seq(
       $._tactic,
       repeat(seq(
-        choice($._layout_semicolon, ';', '<;>', '<;'),
+        choice($._layout_semicolon, ';', token(prec(2, '<;>')), '<;'),
         $._tactic,
       )),
       optional(';'),
@@ -757,6 +769,7 @@ module.exports = grammar({
       $.tactic_focus,
       $.tactic_case,
       $.tactic_rewrite,
+      $.tactic_by_cases,
       $.tactic_have,
       $.tactic_let,
       $.tactic_show,
@@ -771,10 +784,17 @@ module.exports = grammar({
       ))),
     )),
 
+    // `by_cases h : proposition` and `by_cases proposition`.
+    tactic_by_cases: $ => prec.right(2, seq(
+      'by_cases',
+      optional(seq(field('name', $.identifier), ':')),
+      field('condition', $._expression),
+    )),
+
     // Configuration list: `[lemma1, ←lemma2, *]`
     // The ← before lemmas is handled by unary_expression.
     tactic_config: $ => prec(1, seq(
-      '[', commaSep($._expression), ']',
+      '[', commaSep(choice($._expression, '*')), ']',
     )),
 
     // Focus: `· tactic1; tactic2`
@@ -931,12 +951,25 @@ module.exports = grammar({
 
     match_arm: $ => prec.right(seq(
       '|',
-      field('patterns', commaSep1($._expression)),
+      field('patterns', commaSep1($.match_pattern)),
       '=>',
       $._match_body_start,
       field('body', $._expression),
       optional($._layout_end),
     )),
+
+    // A pattern alternative uses the same vertical bar as the next match arm.
+    // GLR can resolve the choice once it reaches that arm's `=>`.
+    match_pattern: $ => prec.right(seq(
+      $._expression,
+      repeat(seq('|', $.alternative_pattern)),
+    )),
+
+    alternative_pattern: $ => seq(
+      optional('.'),
+      choice($.identifier, $.number, $.string, $.char, $._boolean, $.hole),
+      repeat(choice($.identifier, $.hole)),
+    ),
 
     // Do notation with layout-sensitive parsing
     // Elements are separated by newlines at the same indentation level
