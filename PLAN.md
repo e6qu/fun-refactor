@@ -36,8 +36,8 @@ properties from a translated Lean model without a checked bridge.
 
 ## Current state
 
-The original numbered delivery roadmap is complete. [PR 314](https://github.com/e6qu/fun-refactor/pull/314)
-contains the active matched-context, resource-control and documentation work.
+The project completed the original numbered delivery roadmap and merged PR 314. Current work adds
+complete reviewed guide-run execution and the first accepted matched source-writing cohort.
 
 | Measure | Current value |
 |---|---:|
@@ -46,7 +46,7 @@ contains the active matched-context, resource-control and documentation work.
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 770 |
+| Fixed defects | 773 |
 | Open defects | 0 |
 
 The remaining 145 cells refuse or are inapplicable with reasons. `fr capabilities` is the authority
@@ -65,6 +65,8 @@ confidence or effect contract.
   continuations.
 - Structured `understand`, `trace`, `change`, `migrate` and `prove` goals over an immutable snapshot.
 - A zero-dependency Python SDK that mirrors the wire IR and keeps intermediate reports local.
+- A reviewed `GuideRun` delivery path that refreshes guidance and executes its sole unchanged task
+  review through checks, reversal and patch export.
 - Recoverable history, apply, undo, redo, compaction, Git patches, staging, reviewed commits and
   owned-worktree operations.
 - Declared checks with reviewed configuration digests and bounded diagnostics.
@@ -102,8 +104,9 @@ TSX. React, Next.js, Express.js, FastAPI and Tailwind CSS are framework surfaces
    and dynamic rendering.
 4. **Reduce uneven language support.** Bring semantic authoring, call analysis, translation,
    migration and formalization to more languages without weakening refusal behavior.
-5. **Repeat live-agent evidence.** Run matched evaluations across projects, models and source-writing
-   tasks. Keep fixture results separate from general context or quota claims.
+5. **Repeat live-agent evidence.** The first matched source-writing pair now passes with exact source,
+   compiled behavior and full guided lifecycle evidence. Repeat across other projects, models,
+   languages and multi-file tasks. Keep fixture results separate from general context or quota claims.
 6. **Preserve static uncertainty.** Continue reporting indirect calls, reflection, generated names
    and unresolved dispatch rather than treating missing static edges as absence.
 

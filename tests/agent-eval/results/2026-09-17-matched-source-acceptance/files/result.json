@@ -1,0 +1,38 @@
+{
+  "schema": "fr-matched-source-result-1",
+  "arm": "files",
+  "answers_match": true,
+  "source_matches": true,
+  "behavior_oracle": true,
+  "coverage": {
+    "reads": 1,
+    "replacements": 1
+  },
+  "finished": true,
+  "tool_calls": 4,
+  "tool_request_bytes": 299,
+  "tool_response_bytes": 357,
+  "tool_errors": 0,
+  "codex": {
+    "usage": {
+      "input_tokens": 67859,
+      "cached_input_tokens": 56064,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 659,
+      "reasoning_output_tokens": 57
+    },
+    "command_executions": 4,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "infrastructure_errors": 0,
+    "stderr_bytes": 0,
+    "event_bytes": 4919,
+    "final_bytes": 122,
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0,
+  "passed": true
+}

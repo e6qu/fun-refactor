@@ -106,6 +106,21 @@ The accepted route uses the same checked reversal and patch lifecycle as `TaskCh
 
 ## Complete reviewed changes
 
+When a scalar goal already describes the change, retain the whole guided run rather than rebuilding
+a task manifest. `run.review()` exposes its sole authoritative diff. `execute_guide` refreshes the
+guide, requires every action report and exactly one complete task review, then delegates to the same
+checked task lifecycle.
+
+```python
+run = client.complete_guide(goal)
+review = run.review()
+print(review.at("/author/diff"))
+result = client.execute_guide(run)
+```
+
+Routes that do not produce exactly one task review refuse here. Use `compile_guided_intent` for
+recipes, general capabilities, migrations, formal scaffolds and proof submissions.
+
 The existing `TaskChange`, `TaskTarget` and `TaskDelivery` types build the wire object. `review`
 serializes it once into canonical UTF-8 bytes and passes those bytes on standard input. A
 `TaskReview` requires a ready non-executed preview, the exact manifest SHA-256 and a well-formed

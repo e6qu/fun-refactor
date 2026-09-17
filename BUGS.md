@@ -72,6 +72,20 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B926: **a complete guided scalar preview had no first-class retained-run executor**. Agents
+  had to extract a `TaskReview` from an untyped report tuple and switch to the generic executor.
+  `GuideRun.review()` now requires exactly one task review, and `execute_guide` refreshes the guide
+  before executing that unchanged review. Rust, Python and Lean share the delivery admission gate.
+
+- [x] B925: **the first matched source-writing harness gave Codex relative writable paths**. Its
+  changed working directory resolved those paths inside the fixture, so both agents were denied the
+  session event log. The runner now resolves every session before building `--add-dir`, `--cd` and
+  output paths.
+
+- [x] B924: **the direct source-writing prompt omitted the submit request envelope**. The agent made
+  the correct exact edit but tried several plausible field names. The prompt now supplies the exact
+  `answers` envelope, and a fresh no-correction matched cohort passes both arms.
+
 - [x] B923: **Lean validation inherited host-wide concurrency and saturated developer machines**.
   `tools/check.sh` now limits the native and exhaustive kernel test harnesses to two cases. Every
   Lean process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS`

@@ -58,6 +58,15 @@ fn matched_check_policies_preserve_recorded_outcomes_and_live_diagnostics() {
 }
 
 #[test]
+fn matched_source_writing_evidence_is_bound_and_passing() {
+    python(&[
+        "tools/matched-agent-source.py",
+        "audit",
+        "tests/agent-eval/results/2026-09-17-matched-source-acceptance",
+    ]);
+}
+
+#[test]
 fn batch_and_individual_workflows_match_source_behavior_and_reversal() {
     python(&[
         "tools/author-batch-context.py",

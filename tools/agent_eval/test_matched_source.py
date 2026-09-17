@@ -47,3 +47,15 @@ def test_both_instrumented_arms_produce_the_exact_source_change():
                                    "old": "+ 7", "new": "+ 9"})["changed"] is True
         assert SOURCE.step(files, {"tool": "submit", "answers": SOURCE.EXPECTED})["accepted"] is True
         assert (files / "project/src/lib.rs").read_text() == SOURCE.EXPECTED_SOURCE
+
+
+def test_retained_source_writing_cohort_is_bound_and_passing():
+    evidence = ROOT / "tests/agent-eval/results/2026-09-17-matched-source-acceptance"
+    report = SOURCE.audit(evidence)
+    assert report["acceptance_evidence"] is True
+    assert report["passed"] is True
+    assert report["usage_difference_fr_minus_files"]["input_tokens"] == -10_395
+    fr, files = report["results"]
+    assert (fr["tool_calls"], files["tool_calls"]) == (2, 4)
+    assert fr["coverage"]["reviewed_writes"] == 1
+    assert len(fr["coverage"]["stages"]) == 8
