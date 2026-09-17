@@ -47,7 +47,7 @@ adds the source-derived completion audit and passing seven-family guided cohort.
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 769 |
+| Fixed defects | 770 |
 | Open defects | 0 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
@@ -153,7 +153,7 @@ boundaries above rather than extending the old PR numbering indefinitely.
 | PR | Outcome | Status |
 |---|---|---|
 | PR 40 | Completion Audit and Agent Validation | [PR 313](https://github.com/e6qu/fun-refactor/pull/313) merged |
-| PR 41 | Matched Agent Context and Local Guide Execution | Implementation and fresh acceptance complete; final gates pending |
+| PR 41 | Matched Agent Context and Local Guide Execution | Review candidate complete; all required gates pass |
 
 ### PR 41. Matched Agent Context and Local Guide Execution
 
@@ -250,6 +250,8 @@ Use focused tests while implementing a change, then run the complete relevant ga
 - `tools/check.sh wasm` for browser feature builds and tests.
 - `tools/check.sh deep` for repository-scale agreement, conformance, round trips and exhaustive Lean
   comparisons.
+- The native gate and exhaustive Lean kernel run cap Rust fan-out at two; Lean processes also get
+  two workers by default. Builders may override `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` explicitly.
 - The playground CI job for the generated browser package and exported behavior.
 - External replay for pinned consumer patches, independent oracles and exact reversal.
 - Pinned language and framework compilers for generated or migrated artifacts.

@@ -72,6 +72,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B923: **Lean validation inherited host-wide concurrency and saturated developer machines**.
+  `tools/check.sh` now limits the native and exhaustive kernel test harnesses to two cases. Every
+  Lean process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS`
+  expose explicit overrides, and both reject zero or malformed values before validation starts.
+
 - [x] B922: **the matched-agent evaluator could misclassify or bypass its SDK arm**. An unsuccessful
   SDK process consumed the one successful-program slot. Broad `from sys import ...` forms could
   reach Python internals outside the intended guide surface. Success now requires exit

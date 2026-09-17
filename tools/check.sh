@@ -28,6 +28,11 @@ case "$slice" in
         ;;
 esac
 
+if [ "$slice" != wasm ]; then
+    source tools/lean-resources.sh
+    fr_configure_lean_resources
+fi
+
 run() {
     printf '\n\033[1m==> %s\033[0m\n' "$*"
     "$@"
@@ -52,7 +57,8 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
 
     run cargo fmt --all --check
     run cargo clippy --all-targets -- -D warnings
-    ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets
+    ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets \
+        -- --test-threads "$FR_LEAN_JOBS"
 
     printf '\n\033[1m==> writing\033[0m\n'
     python3 tools/check-prose.py
@@ -75,7 +81,8 @@ if [ "$slice" = deep ]; then
         --test conformance \
         --test round_trip \
         --test self_translation
-    run cargo test --test lean_kernels -- --include-ignored
+    run cargo test --test lean_kernels -- --include-ignored \
+        --test-threads "$FR_LEAN_JOBS"
     run bash tools/check-external-replays.sh
 fi
 

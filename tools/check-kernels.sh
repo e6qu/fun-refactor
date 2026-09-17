@@ -4,6 +4,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+source tools/lean-resources.sh
+fr_configure_lean_resources
+
 (
     cd kernels
     lake build --wfail

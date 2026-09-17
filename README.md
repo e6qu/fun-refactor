@@ -297,6 +297,8 @@ cargo install --path .
 `./tools/check.sh` runs the native and WASM API PR checks, capability coverage, prose checks and Lean kernels.
 A separate CI job builds and exercises the browser playground.
 `./tools/check.sh deep` runs the repository-scale audits.
+The native gate and exhaustive Lean kernel run default to two concurrent Rust cases, while every
+Lean process gets two worker threads. Set `FR_LEAN_JOBS` or `LEAN_NUM_THREADS` to adjust the limits.
 
 ## Third-party material
 

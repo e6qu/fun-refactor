@@ -95,10 +95,12 @@ The matched evaluator has a local end-to-end test, refusal tests and immutable r
 two diagnostics and accepted pair. Its replay verifies retained file digests, arm classification,
 usage differences, call differences and the context-saving classification.
 
-Before review, run the focused evaluator and audit tests, regenerate the source-bound completion
-workflow report after the `src/audit.rs` change, then pass `tools/check.sh default`,
-`tools/check.sh wasm` and `tools/check.sh deep`. Update this section with the final review head and
-results.
+The review candidate passes the complete default and WASM gates. The repository-scale full-audit
+tests passed before the resource-only follow-up; its exhaustive Lean phase passes all 101 tests,
+including both self-plan audits, in 104.76 seconds under the new bounds. External consumer replay
+also passes exact reversal. Native and exhaustive kernel test fan-out now defaults to two cases, and
+each Lean process defaults to two worker threads. Invalid `FR_LEAN_JOBS` or `LEAN_NUM_THREADS`
+values fail before validation starts.
 
 ## Boundaries that remain
 
