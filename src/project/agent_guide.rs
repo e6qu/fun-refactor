@@ -213,23 +213,51 @@ pub fn agent_guide_binding_admitted(
         && basis_matches
 }
 
-#[doc = "Finite admission kernel for executing one task review retained by a complete guide run."]
+fn guided_operation_matches(route: usize, operation: usize) -> bool {
+    match route {
+        0 => operation == 6,
+        1 => matches!(operation, 10 | 11),
+        2 => operation == 2,
+        3..=5 => matches!(operation, 0 | 1),
+        6 => operation == 7,
+        7 => operation == 3,
+        8 => matches!(operation, 4 | 8),
+        9 => matches!(operation, 5 | 9),
+        _ => false,
+    }
+}
+
+#[doc = "Finite admission kernel for one common guide-bound native action review."]
+#[allow(clippy::too_many_arguments)] // Mirrors the separately reviewed identity components.
 pub fn agent_guide_delivery_admitted(
     purpose: usize,
-    action_count: usize,
-    report_count: usize,
-    review_count: usize,
+    route: usize,
+    operation: usize,
+    writable: bool,
     route_admitted: bool,
+    goal_matches: bool,
     guide_matches: bool,
+    inputs_match: bool,
+    targets_match: bool,
+    revision_matches: bool,
+    checks_match: bool,
+    delivery_matches: bool,
     review_complete: bool,
+    review_unchanged: bool,
 ) -> bool {
-    purpose == 2
-        && (1..=16).contains(&action_count)
-        && report_count == action_count
-        && review_count == 1
+    agent_guide_route_admitted(purpose, 0, 0, route, true, false, false, 0)
+        && guided_operation_matches(route, operation)
+        && writable
         && route_admitted
+        && goal_matches
         && guide_matches
+        && inputs_match
+        && targets_match
+        && revision_matches
+        && checks_match
+        && delivery_matches
         && review_complete
+        && review_unchanged
 }
 
 fn read_goal(root: &Path, path: &Path) -> Result<Goal> {

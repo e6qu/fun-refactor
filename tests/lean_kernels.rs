@@ -206,27 +206,22 @@ fn agent_guide_policy_matches_rust_python_and_lean_exhaustively() {
     expected.extend(bindings);
     let mut deliveries = Vec::new();
     for purpose in 0..7 {
-        for action_count in [0, 1, 16, 17] {
-            for report_count in [0, 1, 16, 17] {
-                for review_count in [0, 1, 2] {
-                    for route_admitted in [false, true] {
-                        for guide_matches in [false, true] {
-                            for review_complete in [false, true] {
-                                deliveries.push(
-                                    fun_refactor::project::agent_guide_delivery_admitted(
-                                        purpose,
-                                        action_count,
-                                        report_count,
-                                        review_count,
-                                        route_admitted,
-                                        guide_matches,
-                                        review_complete,
-                                    )
-                                    .to_string(),
-                                );
-                            }
-                        }
-                    }
+        for route in 0..12 {
+            for operation in 0..13 {
+                let mut cases = vec![[true; 11]];
+                for index in 0..11 {
+                    let mut case = [true; 11];
+                    case[index] = false;
+                    cases.push(case);
+                }
+                for case in cases {
+                    deliveries.push(
+                        fun_refactor::project::agent_guide_delivery_admitted(
+                            purpose, route, operation, case[0], case[1], case[2], case[3], case[4],
+                            case[5], case[6], case[7], case[8], case[9], case[10],
+                        )
+                        .to_string(),
+                    );
                 }
             }
         }
@@ -253,8 +248,14 @@ for case in product(range(7), range(6), (False, True), (False, True), (False, Tr
     print(_guide_step(*case))
 for case in product((0, 1, 32, 33), (0, 1, 32, 33), (False, True), (False, True), (False, True), (False, True)):
     print(str(_guide_binding_admitted(*case)).lower())
-for case in product(range(7), (0, 1, 16, 17), (0, 1, 16, 17), (0, 1, 2), (False, True), (False, True), (False, True)):
-    print(str(_guide_delivery_admitted(*case)).lower())
+for purpose, route, operation in product(range(7), range(12), range(13)):
+    cases = [[True] * 11]
+    for index in range(11):
+        flags = [True] * 11
+        flags[index] = False
+        cases.append(flags)
+    for flags in cases:
+        print(str(_guide_delivery_admitted(purpose, route, operation, *flags)).lower())
 "#).env("PYTHONPATH",root().join("sdk/python/src")).output().unwrap();
     assert!(
         observed.status.success(),

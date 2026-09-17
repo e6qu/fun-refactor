@@ -99,18 +99,23 @@ fn python_guide_delivers_an_exact_scalar_goal_and_refuses_stale_guidance() {
 import json, sys
 from pathlib import Path
 from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
-from fr_ir.ir import TaskDelivery
-from fr_ir.runtime import FrClient, FrRuntimeError, TaskReview
+from fr_ir.intent_actions import TaggedIntentAction, TaskChangeOperation
+from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget
+from fr_ir.runtime import FrClient, FrRuntimeError
 client=FrClient(sys.argv[1], executable=sys.argv[2])
+delivery=TaskDelivery(patch='artifacts/change.patch',check_output_bytes=256)
 goal=AgentGoal('change',selector=GoalSelector(name='calculate'),
     operation=GoalOperation('semantic-scalar', {'operation':'set-int','from':'7','to':'9'}),
-    checks=('syntax',),delivery=TaskDelivery(patch='artifacts/change.patch',check_output_bytes=256))
+    checks=('syntax',),delivery=delivery)
 guide=client.guide(goal)
 assert len(guide.actions()) == 1
-review=client.follow_guide(guide.actions()[0])
-assert isinstance(review, TaskReview)
-assert '+ 9' in review.at('/author/diff')
-result=client.execute(review)
+change=TaskChange((),(TaskTarget('goal',guide.at('/target/handle'),'edit-body-scalar',
+    scalar=ScalarRequest('set-int','7','9')),),
+    {'files-changed':1,'edits':1,'changed-operations':1,'paths-changed':['app.rs']},
+    ('syntax',),delivery)
+review=client.review_guide(guide,TaggedIntentAction(TaskChangeOperation(change)))
+assert '+ 9' in review.at('/diff')
+result=client.execute_guide(review)
 assert result.passed
 assert Path(sys.argv[1], 'artifacts/change.patch').is_file()
 assert '+ 9' in Path(sys.argv[1], 'app.rs').read_text()
@@ -120,7 +125,7 @@ assert '+ 7' in Path(sys.argv[1], 'app.rs').read_text()
 client.call('history','redo',str(transaction),'--write')
 assert '+ 9' in Path(sys.argv[1], 'app.rs').read_text()
 try:
-    client.follow_guide(guide.actions()[0])
+    client.execute_guide(review)
 except FrRuntimeError:
     pass
 else:

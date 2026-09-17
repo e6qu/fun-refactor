@@ -104,16 +104,28 @@ def main (args : List String) : IO Unit :=
                 for basisMatches in [false, true] do
                   IO.println (FrKernels.AgentGuide.bindingAdmitted expectedFields suppliedFields
                     namesMatch valuesBounded executionDisabled basisMatches)
-  | ["agent-guide-deliveries"] =>
+  | ["agent-guide-deliveries"] => do
       for purpose in [0:7] do
-        for actionCount in ([0, 1, 16, 17] : List Nat) do
-          for reportCount in ([0, 1, 16, 17] : List Nat) do
-            for reviewCount in ([0, 1, 2] : List Nat) do
-              for routeAccepted in [false, true] do
-                for guideMatches in [false, true] do
-                  for reviewComplete in [false, true] do
-                    IO.println (FrKernels.AgentGuide.deliveryAdmitted purpose actionCount
-                      reportCount reviewCount routeAccepted guideMatches reviewComplete)
+        for route in [0:12] do
+          for operation in [0:13] do
+            let emit := fun writable routeAccepted goalMatches guideMatches inputsMatch
+                targetsMatch revisionMatches checksMatch deliveryMatches reviewComplete
+                reviewUnchanged =>
+              IO.println (FrKernels.AgentGuide.deliveryAdmitted purpose route operation writable
+                routeAccepted goalMatches guideMatches inputsMatch targetsMatch revisionMatches
+                checksMatch deliveryMatches reviewComplete reviewUnchanged)
+            emit true true true true true true true true true true true
+            emit false true true true true true true true true true true
+            emit true false true true true true true true true true true
+            emit true true false true true true true true true true true
+            emit true true true false true true true true true true true
+            emit true true true true false true true true true true true
+            emit true true true true true false true true true true true
+            emit true true true true true true false true true true true
+            emit true true true true true true true false true true true
+            emit true true true true true true true true false true true
+            emit true true true true true true true true true false true
+            emit true true true true true true true true true true false
   | ["agent-context-admission"] => do
       for calls in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do
         for limit in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do
