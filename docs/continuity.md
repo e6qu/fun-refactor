@@ -6,9 +6,10 @@ older milestone detail.
 
 ## Current work
 
-The `guided_source_changes` branch follows merged PR 314. It adds a first-class reviewed guide-run
-delivery boundary and a retained live source-writing comparison. Inspect Git before continuing
-because the remote base can advance while a pull request is open.
+The `guided_source_changes` branch in [PR 316](https://github.com/e6qu/fun-refactor/pull/316)
+follows merged PR 314. It adds a first-class reviewed guide-run delivery boundary and a retained
+live source-writing comparison. Inspect Git before continuing because the remote base can advance
+while a pull request is open.
 
 The Python runtime can now satisfy authored guide actions locally. `GuideInputs` binds exact named
 scalar and bounded file values. `complete_guide` refreshes the guide, checks its immutable basis,
