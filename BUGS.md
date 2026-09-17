@@ -72,6 +72,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B930: **two retained Python runtime comparisons had stale source bindings**. The native-intent
+  and reviewed-action audits now bind the current SDK runtime. Fresh runs preserve their exact
+  outcome equality, process-call reductions and byte-accounting invariants.
+
 - [x] B929: **retained completion workflows referenced the previous guide implementation**. The
   acceptance audit refused their stale source binding. A new deterministic run binds the current
   binary and rechecks all seven guide families without source mutation or exploratory follow-up.

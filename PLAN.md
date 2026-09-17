@@ -46,7 +46,7 @@ complete reviewed guide-run execution and the first accepted matched source-writ
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 776 |
+| Fixed defects | 777 |
 | Open defects | 0 |
 
 The remaining 145 cells refuse or are inapplicable with reasons. `fr capabilities` is the authority
