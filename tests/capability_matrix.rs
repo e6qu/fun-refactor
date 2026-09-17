@@ -179,44 +179,16 @@ fn config_languages_carry_their_share_of_the_mutations() {
 }
 
 #[test]
-fn the_published_totals_match_the_matrix() {
-    let mut yes = 0usize;
-    let mut rest = 0usize;
-    for capability in Capability::ALL {
-        for language in Language::ALL {
-            match capabilities::support(*capability, *language) {
-                Support::Yes => yes += 1,
-                Support::NotApplicable { .. } | Support::Refused { .. } => rest += 1,
-            }
-        }
-    }
-    let total = yes + rest;
-
-    // Each claim as the document spells it, the numbers standing as placeholders.
-    for (name, claims) in [
-        (
-            "docs/index.html",
-            &["The tool supports YES of TOTAL capability × language pairs. It marks the other\n      REST"][..],
-        ),
-        (
-            "docs/why.html",
-            &["capability × language pairs marked \"refused\"; the tool marks the other REST not applicable"]
-                [..],
-        ),
-    ] {
+fn the_website_uses_the_live_matrix_instead_of_copied_totals() {
+    for name in ["docs/index.html", "docs/why.html"] {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         let text = std::fs::read_to_string(&path).expect("the file is readable");
-        for claim in claims {
-            let needle = claim
-                .replace("YES", &yes.to_string())
-                .replace("TOTAL", &total.to_string())
-                .replace("REST", &rest.to_string());
-            assert!(
-                text.contains(&needle),
-                "{name} does not say `{needle}`. The matrix has {yes} supported and \
-                 {rest} not applicable out of {total}. Update the table and count statements together."
-            );
-        }
+        assert!(
+            text.contains("fr capabilities"),
+            "{name} must name the live matrix"
+        );
+        assert!(!text.contains("capability × language pairs marked"));
+        assert!(!text.contains("The tool supports 311 of 456"));
     }
 }
 
