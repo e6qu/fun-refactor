@@ -38,6 +38,9 @@ def test_both_instrumented_arms_produce_the_exact_source_change():
         assert lifecycle["passed"] is True
         assert len(lifecycle["stages"]) == 8
 
+        duplicate = SOURCE.step(fr, {"tool": "sdk", "program": SOURCE.sdk_program()})
+        assert duplicate["exit_code"] == 1
+
         files = root / "files"
         assert SOURCE.step(files, {"tool": "read", "path": "src/lib.rs"})["text"] == SOURCE.SOURCE
         assert SOURCE.step(files, {"tool": "replace", "path": "src/lib.rs",

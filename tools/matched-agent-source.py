@@ -160,7 +160,8 @@ name, parameter, return type and all other source. Finish with exactly this JSON
 {"schema":"fr-matched-source-change-1","path":"src/lib.rs","symbol":"calculate","operation":"set-int","from":"7","to":"9"}
 """
     if arm == "fr":
-        surface = f"""Use exactly one agent-authored Python SDK program. Submit it with the `sdk` tool,
+        surface = f"""Use exactly one agent-authored Python SDK program. Submit it with the `sdk` tool
+as `{{"tool":"sdk","program":"COMPLETE PYTHON SOURCE"}}`,
 then call `finish`. Use `AgentGoal`, `GoalSelector`, `GoalOperation`, `TaskDelivery`, and `FrClient`.
 Call `complete_guide`, inspect `run.review()` at `/author/diff`, and call `execute_guide` only after
 that review. Declare check `compiler` and patch `artifacts/change.patch`. Do not read or write source
@@ -274,10 +275,15 @@ def act(session: Path, request: dict[str, object]) -> dict[str, object]:
     if tool == "sdk":
         if selected["arm"] != "fr" or any(row["request"].get("tool") == "sdk" for row in rows(session)):
             raise ValueError("sdk runs once in the fr arm")
+        program = request.get("program")
         lines = request.get("program_lines")
-        if not isinstance(lines, list) or not 1 <= len(lines) <= 100 or not all(isinstance(line, str) for line in lines):
-            raise ValueError("sdk needs 1 through 100 program lines")
-        source = "\n".join(lines) + "\n"
+        if isinstance(program, str) and 1 <= len(program.encode()) <= 65_536:
+            source = program if program.endswith("\n") else program + "\n"
+        elif (isinstance(lines, list) and 1 <= len(lines) <= 100
+              and all(isinstance(line, str) for line in lines)):
+            source = "\n".join(lines) + "\n"
+        else:
+            raise ValueError("sdk needs one bounded program or 1 through 100 program lines")
         validate_program(source)
         program = session / "artifacts/agent.py"
         program.write_text(source)
@@ -498,8 +504,9 @@ def main() -> None:
         value = prepare(args.directory, args.fr.resolve())
     elif args.command == "run":
         version = subprocess.run([args.codex, "--version"], capture_output=True, text=True, check=True).stdout.strip()
-        experiment = json.loads((args.directory / "experiment.json").read_text())
-        value = {arm: BASE.run_agent(args.codex, args.directory / arm, MODEL, EFFORT,
+        directory = args.directory.resolve()
+        experiment = json.loads((directory / "experiment.json").read_text())
+        value = {arm: BASE.run_agent(args.codex, directory / arm, MODEL, EFFORT,
                                      SERVICE_TIER, args.timeout, version) for arm in ARMS}
         value["experiment"] = experiment["schema"]
     elif args.command == "score":
