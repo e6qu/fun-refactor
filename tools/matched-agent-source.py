@@ -173,8 +173,9 @@ This tested program shape is complete:
 """
     else:
         surface = """Use `read` once for `src/lib.rs`, then `replace` its exact `+ 7` substring with
-`+ 9`. Submit the final JSON object with `submit`, then call `finish`. Do not use a shell, Git,
-Python file APIs, or any other project tool.
+`+ 9`. Submit the final JSON object as
+`{"tool":"submit","answers":{"schema":"fr-matched-source-change-1","path":"src/lib.rs","symbol":"calculate","operation":"set-int","from":"7","to":"9"}}`,
+then call `finish`. Do not use a shell, Git, Python file APIs, or any other project tool.
 """
     return f"""You are an independent matched source-writing evaluation agent.
 
