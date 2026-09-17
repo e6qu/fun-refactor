@@ -66,7 +66,8 @@ Changed selected intent-to-add entries remain unsupported. Unrelated entries ret
 ## Storage and recovery
 
 The journal lives at `fr-stage/state.json` beside the worktree's index, normally `.git/fr-stage/state.json`.
-Linked worktrees use separate journals. Repository root and index location bind the journal; moving a repository requires a future migration workflow.
+Linked worktrees use separate journals. Repository root and index location bind the journal, so a
+journal does not follow a repository moved to another path.
 New journal directories use mode `0700`; state files use private temporary files and atomic replacement.
 Symlink storage and malformed records cause refusal.
 

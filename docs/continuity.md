@@ -1,48 +1,45 @@
 # Development continuity
 
-This is the current contributor handoff. Git history, merged pull requests, the
-[changelog](../CHANGELOG.md), [defect ledger](../BUGS.md) and retained evaluator manifests preserve
-older milestone detail.
+This is the short contributor handoff. The [roadmap](../PLAN.md) owns unfinished outcomes; the
+[changelog](../CHANGELOG.md), [defect ledger](../BUGS.md), retained evaluator manifests and Git
+history preserve completed detail.
 
-## Current work
+## Baseline
 
-The `guided_source_changes` branch in [PR 316](https://github.com/e6qu/fun-refactor/pull/316)
-follows merged PR 314. It adds a first-class reviewed guide-run delivery boundary and a retained
-live source-writing comparison. Inspect Git before continuing because the remote base can advance
-while a pull request is open.
+PR 316 completed first-class execution of one unchanged reviewed guide run and retained the first
+matched live source-writing cohort. The merged system provides:
 
-The Python runtime can now satisfy authored guide actions locally. `GuideInputs` binds exact named
-scalar and bounded file values. `complete_guide` refreshes the guide, checks its immutable basis,
-refuses write flags, executes every read or preview action and validates each result schema and byte
-limit. `GuideRun.review()` accepts exactly one task review. `execute_guide` refreshes the guide and
-executes only that unchanged review; other writing routes continue through `compile_guided_intent`.
+- Bounded project, semantic, application and evidence models for 19 parser identities.
+- Merkle-addressed progressive disclosure and a Python object-store protocol.
+- Structured goals, ten guide routes and native intent compilation.
+- Built-in refactors, recipes, semantic and surface edits, application migration and proof work.
+- Checks, history, apply, undo, redo, recovery, patches and reviewed Git operations.
+- Lean admission and transition kernels with strict source anchors and shared executable cases.
+- A portable agent skill and zero-dependency typed Python runtime.
 
-Rust, Python and Lean share the guide-binding admission policy. The finite corpus covers counts,
-names, bounds, execution flags and bases. The new delivery kernel also requires a change goal, full
-action coverage, one complete review and matching guide identity. Lean proves these model
-implications, while finite Rust, Python and Lean cases check implementation agreement.
+Use `fr audit` and `fr capabilities` for live counts and support. A supported route can still refuse
+an input outside its syntax, identity, confidence or effect contract.
 
-## Product state
+## Active outcome
 
-`fr` exposes bounded structure and semantic data for 19 parser identities. Agents can inspect code
-maps, calls, flow, impact, sources and sinks through progressive Merkle disclosure. They can preview
-supported refactors, semantic edits, framework migrations, proof work, declared checks, patches,
-reviewed Git actions, undo and redo.
+The first bulk roadmap item resets documentation around the merged product and its remaining work.
+It removes stale milestone prose, shortens the user entry path, cross-links authoritative guides and
+corrects inconsistencies found while dogfooding `fr`.
 
-`fr capabilities` is the authority for operation support. The generated matrix currently contains
-456 cells, with 311 supported and an explicit reason for each remaining cell. A supported cell may
-still refuse an input outside its syntax, identity, confidence or effect contract.
+The next implementation outcome is uniform reviewed guide delivery across every writable route.
+Today, native tagged intents can review and execute those routes, while the simpler
+`complete_guide`/`execute_guide` path accepts only a run containing one task review.
 
-The accepted preview fixture gives both agents seven outcomes. A second accepted fixture makes one
-real Rust source change. The SDK arm uses two calls and 57,464 input tokens; direct files use four
-calls and 67,859 tokens. Both pass exact-source and compiled behavior oracles without failures,
-bypasses or correction. The SDK result also retains one reviewed write, eight lifecycle stages and
-a patch. These are fixed-fixture observations; the [evaluation guide](evaluations.md) points to both
-immutable manifests.
+Dogfooding this outcome fixed three defects: the Python guide bridge now accepts the
+`application-migration` operation advertised by its route, path-scoped symbol queries restrict the
+scan before parsing and resolution, and the Lean grammar reads the common proof forms listed in
+B934. B935 remains explicit: constructor branches for `cases`, `induction` and `rcases` need a
+bounded structural grammar before proof submissions join the common delivery lifecycle. An opaque
+tactic fallback is not acceptable because it would hide the hierarchy from agents.
 
 ## Validation
 
-The pull request should pass:
+Run focused tests while editing, then:
 
 ```sh
 PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
@@ -50,20 +47,21 @@ tools/check.sh wasm
 tools/check.sh deep
 ```
 
-Lean fan-out defaults to two test jobs and two worker threads per process. Invalid bounds fail before
-validation begins. The [development guide](development.md) documents overrides and targeted tests.
+Lean test fan-out and worker threads default to two. The [development guide](development.md)
+documents overrides and targeted gates.
 
-## Remaining boundaries
+For repository changes, dogfood `fr`, recipes and reviewed history whenever an admitted operation
+exists. Treat an incorrect preview, refusal or impractical flow as product evidence and fix its root
+cause in the same outcome. Record direct editing only when no suitable `fr` operation exists.
 
-- Generated formalization covers typed pure declarations and structural snapshots. Dynamic,
-  effectful, async and unsupported numeric semantics need separate models.
-- Lean proves model properties and selected correspondence kernels. Parsing, IR extraction and
-  lowering remain trusted or integration-tested unless a specific bridge states otherwise.
-- Framework migration admits literal path and JSON behavior plus static intrinsic JSX. Request
-  bodies, middleware, authentication, service calls and dynamic rendering refuse.
-- Semantic authoring, translation, migration and formalization cover fewer languages than basic
-  structural analysis.
-- Static analysis preserves uncertainty around reflection, runtime names, external callbacks and
+## Durable boundaries
+
+- Generated formalization covers admitted typed pure declarations and structural snapshots.
+- Parsing, extraction, lowering, hashing, Git, filesystems and runtime behavior remain trusted or
+  separately tested unless a proof record states a narrower correspondence claim.
+- Application migration currently models literal JSON routes, path JSON routes and static
+  React/Next components. Other effects require explicit IR semantics.
+- Static analysis retains uncertainty around reflection, runtime names, external callbacks and
   unresolved dynamic dispatch.
-- Live source-writing evidence now has one accepted scalar task. It still needs repetition across
-  projects, models, languages and multi-file change shapes.
+- Live source-writing evidence covers one accepted scalar task and needs cross-project,
+  cross-language, multi-file, migration and proof-writing cohorts.

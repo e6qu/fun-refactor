@@ -43,7 +43,7 @@ preview before formal scaffold authoring.
 | `semantic-change` | Basis-bound typed operations | Semantic change catalog and writer |
 | `semantic-body` | Typed statement tree | Semantic body catalog and writer |
 | `surface-edit` | `surface`: `styles` or `diagrams`, then returned edit ID and new scalar | CSS/host/Markdown/Mermaid capabilities |
-| `framework-migration` | `to`: `fastapi` or `nextjs`, feature ID and destination | Feature hierarchy and migration compatibility |
+| `framework-migration` | Advertised destination, feature or application output, and optional registration data | Feature or application IR compatibility |
 | `formalize` | Property tree, then proof tactics | Conservative pure Rust formalization workbench |
 | `proof` | Exact `obligation`, then tactics without `by` | Existing checked Lean proof-task loop |
 
@@ -123,8 +123,8 @@ goal, project revision, all live capability forms/support, recipe vocabulary and
 
 The verification ladder keeps reparse, compiler, declared checks, behavioral oracles, model theorems
 and implementation correspondence separate. A route starts with no proved behavior. Agents author
-properties and tactics. Generated formalization currently admits only the existing pure Rust
-subset; manual model/signature support retains its existing language boundaries. An
+properties and tactics. Generated formalization admits typed pure declarations for the languages
+listed by `fr --json audit proofs` and structural snapshots for the remaining parser identities. An
 `implementation` proof expectation returns an explicit unsupported state.
 
 Some older direct commands return unversioned JSON objects. Their guide actions have a null

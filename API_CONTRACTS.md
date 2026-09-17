@@ -1,9 +1,9 @@
 # HTTP contracts and framework translation
 
 A framework migration must preserve the behavior its callers rely on.
-The current tool extracts declared HTTP contracts, converts selected route handlers,
-and generates service skeletons from OpenAPI documents.
-The [roadmap](PLAN.md) extends these capabilities into incremental project migration.
+`fr` extracts declared HTTP contracts, converts admitted route handlers, generates service
+skeletons from OpenAPI documents and migrates normalized application IR across compatible adapters.
+See the [application IR](docs/application-ir.md) for the broader project-level model.
 
 ## Contract surface
 
@@ -83,8 +83,10 @@ Adapters must state supported patterns and preserve everything they cannot trans
 
 ## Verification and migration plans
 
-`fr migrate feature` selects one revision-bound route feature, records its contract and reports feasibility.
-The first subset requires one source file and supports Next.js App Router and FastAPI.
+`fr migrate feature` selects one revision-bound route feature, records its contract and reports
+feasibility. This focused planner requires one source file and supports Next.js App Router and
+FastAPI. `fr migrate application` uses the generic application IR for admitted Next.js, FastAPI,
+Express and Go HTTP routes and React/Next static components.
 The resulting change plan includes generated files, unresolved decisions, validation evidence and visible gaps.
 Source history supplies patch export, apply and undo/redo.
 See [verified feature migration](docs/feature-migration.md) for its current contract.

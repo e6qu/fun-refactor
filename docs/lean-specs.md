@@ -1,8 +1,8 @@
 # Lean specifications with fr
 
-`fr` reads and writes Lean. It checks source anchors and explicit signature maps,
-renews reviewed source hashes, and builds the Lean packages that own selected specs.
-The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for other projects.
+`fr` reads and writes Lean. It checks source anchors and explicit signature maps, renews reviewed
+source hashes, builds the owning Lean packages and scaffolds proof work in other projects. The
+[agent formalization guide](agent-formalization.md) covers that adoption workflow.
 
 ## What exists
 
@@ -498,7 +498,7 @@ CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test lea
 Inspect a theorem's dependencies with `#print axioms FrKernels.Digest.digest_view_preserves_thresholds` in a file importing `FrKernels.Digest`.
 Historical timing artifacts remain available through the [evaluation evidence guide](evaluations.md); the digest model makes no timing or context-saving claim.
 
-## Adopting Lean in another project today
+## Adopt Lean in another project
 
 Run `fr spec init` to preview a minimal package, then apply it with `--write`.
 The command defaults to `specs/`, pins the supported Lean toolchain, and records all
@@ -506,13 +506,12 @@ created files in one undoable transaction. Import every selected model from
 `FrSpecs.lean` so the default target builds it. The command preserves every existing
 package file that differs from its template.
 
-Write a small executable model with a useful property.
-Choose a pure function whose domain and assumptions can be stated clearly.
-For a supported Rust signature, `fr spec scaffold src/lib.rs::allowed` creates its source
-anchor, explicit map, imported module and handwritten model region. Review and apply
-that two-file transaction, replace its visible `sorry`, and add the useful theorem.
-Other languages and Rust signatures outside the documented type subset still require
-manual model and anchor authoring. Then run `fr spec check --strict`.
+Choose a typed pure declaration or structural snapshot whose domain and assumptions can be stated
+clearly. `fr spec candidates` reports generated targets and explicit refusals. Use `property-task`,
+`plan` and `scaffold --from` for a source-free agent-authored property, or use direct `spec scaffold`
+when manually supplying the model boundary. Review the generated source anchor, signature map,
+definition and obligation, then write the proof tactics. Unsupported declarations still require a
+manual model and correspondence statement. Run `fr spec check --strict` afterward.
 Run `fr spec verify` to check correspondence and build the owning package.
 Add shared input/output cases when the model mirrors an implementation.
 Generate CI after choosing the current debt ceiling. The workflow pins this `fr`
@@ -639,23 +638,13 @@ algorithms, digest mismatches and verified bytes distinct. Lean proves the statu
 success requires all three positive inputs. Rust and Lean agree on all eight states. SHA-2 and Go
 tree-hash implementations remain cryptographic-library and integration-tested assumptions.
 
-## Formalization order
-
-Extend the edit and position models with general laws that their callers need.
-Extend transaction correspondence beyond the snapshot predicate and test storage failure boundaries.
-Define an executable IR semantics for a small subset, then prove selected lowerings against it.
-Arithmetic, precedence, capture avoidance and scope lookup are useful initial targets.
-Expand the subset only with explicit semantics and regression evidence.
-
-A `def` contains executable content. A `theorem` states a proposition and provides no application implementation.
-The existing Lean reader translates supported executable constructs into the code IR.
-Future generation must retain this distinction and report unsupported definitions.
-
-## Agent responsibilities
+## Agent proof responsibilities
 
 The tool identifies drift, enumerates obligations and runs the checker.
 An agent chooses useful claims, writes models and searches for proofs.
 It must report a false claim rather than weaken that claim to obtain a successful build.
+A `def` contains executable content; a theorem states a proposition and supplies no application
+implementation. Keep that distinction and every unsupported definition explicit.
 
 The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the implemented workflow.
 The portable agent skill includes a [Lean reference](../skills/fr/references/lean.md) with an executable anchor-review workflow.

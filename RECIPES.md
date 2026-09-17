@@ -1,27 +1,12 @@
 # Refactoring recipes
 
-A **recipe** is a refactoring written down: a file that says what to find, what to do
-to it, and what must be true afterwards. A reviewer can read it, you can run it again,
-and it fails loudly.
+A recipe is a readable, repeatable multi-step refactoring. It declares what to select, what to do,
+how to handle refusals and what must hold afterward. `fr recipe FILE` previews the complete result;
+`--write` applies it only when every recipe in the file succeeds.
 
-**Built.** Run `fr recipe <file>` to plan or apply one workspace transaction. A file
-may hold several recipes: each sees the virtual workspace its predecessor left, and
-`--write` commits only when every recipe succeeds. `src/recipe/` implements the runner
-and `tests/recipe.rs` covers it. The tutorial at
-[docs/recipes.html](https://e6qu.github.io/fun-refactor/recipes.html) works five of
-them, in five languages, with the output the tool produced.
-
-The design and the build agree. Every predicate in the table below works,
-including the four that were missing at first. One call graph answers both `calls=` and
-`called-by=`, and the runner builds it only when a recipe asks for one of them. The
-hierarchy answers `implements=`. The pattern matcher answers `matches=`, and it needs
-`lang=` beside it: the same text parses into a different tree in every language.
-
-The runner found a defect the design could not have: the refactorings read source
-through `crate::vfs`. So a later step read the file on *disk*, the text as it stood
-before any step ran. The in-memory backing that the browser build uses now compiles
-everywhere, and the runner installs the workspace on it. The design intended "each step
-sees what the last one left". The runner now delivers it.
+Steps run in file order against one virtual workspace, so each step sees the preceding result. A
+failed later step keeps every earlier edit out of the working tree. The complete run can use source
+history, patch export, undo, redo and recovery.
 
 ```
 schema 1
@@ -44,62 +29,19 @@ recipe retire-legacy-auth {
 }
 ```
 
-## Why
+## Commands and scope
 
-Every command in this tool acts on **one** target. A person at a terminal wants that.
-The work people bring does not fit it:
+```sh
+fr recipe change.recipe
+fr recipe change.recipe --explain
+fr recipe fmt change.recipe --check
+fr recipe change.recipe --save-plan
+```
 
-- *"Retire `USE_LEGACY_AUTH`, delete what it was guarding, and tidy the imports that
-  leaves behind."*, three commands, in order, each depending on the last.
-- *"Turn every wrapping `if` in `pkg/services` into a guard clause."* That names 1,498
-  sites in helm/helm alone. Nobody types that.
-
-Today you write a shell loop over `fr`. The refusals scroll past, the ordering stays
-implicit, and nowhere does a reviewer find what you did written down. A recipe makes
-the *plan* the artifact and the diff its product.
-
-Several recipes in one file are one larger transaction, not a shell loop with nicer
-syntax. They run in file order against one virtual workspace. The preview and JSON
-report describe the complete file, and a failed later recipe keeps an earlier recipe's
-successful result out of the working tree.
-
-## Non-goals
-
-**Not a programming language.** No loops, no arithmetic, no user-defined functions,
-no conditionals. The moment a recipe needs those it should be a program calling the
-CLI, and we should make that pleasant instead. Every construct below appears in a
-refactoring someone wants.
-
-**Does not extend what the tool can do.** A recipe composes existing operations. If you
-could not type a step as an `fr` command, it is not a step.
-
-**Not a linter.** A recipe changes code. The default run reports without changing:
-nothing reaches disk without `--write`, so every run doubles as a check.
-
-## The cost of a bespoke syntax, and how it gets paid
-
-This repository now holds a third mini-language, after the entry-point catalogs and
-the `$META` patterns in `restructure`. The cost is real and it buys terseness. Three
-things have to come with the language to justify it, and here is where each stands:
-
-1. **Errors that name the mistake and where it is**, with a suggestion from the
-   closed vocabulary. Built: type a predicate wrong and the parser answers `there is
-   no predicate called 'exportd'. Did you mean 'exported'?`. A language without that
-   answer is a chore.
-2. **`fr recipe <file> --explain`**, print what a recipe would do, without running
-   it. Built: it parses the file and prints the steps, the selectors and the
-   expectations, selecting and running nothing. A terse language repays reading only
-   when you can ask it what it means.
-3. **One canonical layout.** Built: `fr recipe fmt paths...` prints each parsed
-   meaning in one spelling, and `--write` replaces the files only after all parse. It
-   makes string quotes, optional `files`, modifier order and phase spacing deliberate,
-   so a diff stays a diff of meaning. Directories find `.recipe` files in path order
-   and honour the workspace's ignore rules. `--check` lets a script reject formatting
-   drift. Comments stay beside the schema, recipe or directive they explain.
-   Formatting preserves their words and their review context.
-
-Weaken either of the first two and the YAML we did not write becomes the better
-choice.
+`--explain` parses and describes steps without selecting source. `recipe fmt` emits one canonical
+spelling and can reject formatting drift. The DSL has no loops, arithmetic, functions or
+conditionals. It composes existing `fr` operations and adds ordering, selectors, refusal policy and
+expectations; it does not extend the underlying mutation support.
 
 ## Lexical structure
 
@@ -470,34 +412,13 @@ recipe drop-dead-adapters {
 }
 ```
 
-## Sharing, staged, and honest about it
-
-v1 recipes are **local**: keep the file beside the code it changes and run
-`fr recipe recipes/retire-legacy-auth.recipe --write`. No registry, no fetching, no
-running someone else's file against your source.
-
-Every file carries `schema 1` from day one anyway, because it costs one line now and
-nobody can add later. A future reader grabs that hook to refuse a file it does not
-understand.
-
-What sharing would require, written down rather than answered badly:
-
-- **Compatibility.** What does `schema 2` mean for a `schema 1` recipe? Must the reader
-  run it, refuse it, or upgrade it?
-- **Blast radius.** A shared recipe edits your source. Does it declare the paths it
-  may touch, and is that declaration enforced or advisory?
-- **Provenance.** Who wrote it, what does it hash to, and does the run record that in
-  the commit it produces? The repository already insists on provenance for vendored
-  corpora; a recipe that rewrites your code deserves at least as much.
-- **Review.** A diff of a recipe is small and its effect is large. The asymmetry
-  carries the whole risk, and a version field does not solve it.
-
-None of these are answered here. They are the reason v1 does not fetch.
-
 ## Local scope boundary
 
-Recipes already include expectations, named steps, refusal policies and formatting.
-Recipe writes and formatting now share persistent transaction identities with other CLI changes.
+Recipes are local files. `fr` does not fetch a recipe registry or execute remotely supplied recipe
+content. Distribute recipe files through the project's reviewed supply chain.
+
+Recipes include expectations, named steps, refusal policies and formatting. Recipe writes and
+formatting share persistent transaction identities with other CLI changes.
 `fr history` provides checked apply, undo, redo and recovery.
 `fr history patch ID` exports recorded text changes; see [patch usage and limits](docs/git-patches.md).
 Agent workflows use revision-bound project batches, task bundles and byte ceilings for bounded

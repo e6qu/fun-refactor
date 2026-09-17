@@ -4,18 +4,12 @@ use fun_refactor::capabilities::{self, Capability, Support};
 use fun_refactor::lang::Language;
 
 #[test]
-fn the_readme_matrix_matches_the_code() {
-    let generated = capabilities::render_markdown();
+fn the_readme_directs_readers_to_the_live_matrix() {
     let readme = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))
         .expect("README.md is readable");
-
-    for line in generated.lines() {
-        assert!(
-            readme.contains(line.trim()),
-            "README.md is out of date. Regenerate with `fr capabilities --markdown`.\n\
-             Missing row:\n  {line}"
-        );
-    }
+    assert!(readme.contains("fr capabilities"));
+    assert!(readme.contains("fr --json audit"));
+    assert!(!readme.contains("| symbols/def/refs |"));
 }
 
 #[test]
@@ -201,10 +195,6 @@ fn the_published_totals_match_the_matrix() {
     // Each claim as the document spells it, the numbers standing as placeholders.
     for (name, claims) in [
         (
-            "README.md",
-            &["YES of TOTAL capability × language pairs supported, REST not applicable"][..],
-        ),
-        (
             "docs/index.html",
             &["The tool supports YES of TOTAL capability × language pairs. It marks the other\n      REST"][..],
         ),
@@ -213,7 +203,6 @@ fn the_published_totals_match_the_matrix() {
             &["capability × language pairs marked \"refused\"; the tool marks the other REST not applicable"]
                 [..],
         ),
-        ("PLAN.md", &["| Supported cells | YES |", "| Capability and language cells | TOTAL |", "REST cells refuse or are inapplicable with reasons"][..]),
     ] {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         let text = std::fs::read_to_string(&path).expect("the file is readable");
@@ -245,16 +234,12 @@ fn the_published_language_count_matches_the_list() {
         ),
     };
     for (name, claims) in [
-        (
-            "README.md",
-            &["finds and changes code across N languages."][..],
-        ),
+        ("README.md", &["supports N parser identities"][..]),
         (
             "TUTORIAL.md",
             &["what each of the N languages supports"][..],
         ),
         ("EXAMPLES.md", &["across all WORD languages at once"][..]),
-        ("PLAN.md", &["| Parsed languages | N |"][..]),
         (
             "docs/index.html",
             &[
@@ -281,55 +266,11 @@ fn the_published_language_count_matches_the_list() {
 }
 
 #[test]
-fn the_status_table_in_the_plan_is_derived_from_the_code() {
+fn the_plan_uses_live_audits_instead_of_copied_support_counts() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let plan = std::fs::read_to_string(root.join("PLAN.md")).expect("PLAN.md is readable");
-    let bugs = std::fs::read_to_string(root.join("BUGS.md")).expect("BUGS.md is readable");
-
-    let count_dir = |name: &str, keep: fn(&std::path::Path) -> bool| -> usize {
-        std::fs::read_dir(root.join(name))
-            .unwrap_or_else(|e| panic!("{name}/ is readable: {e}"))
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| keep(&entry.path()))
-            .count()
-    };
-    // `queries/` holds one directory per language and a README beside them.
-    let query_sets = count_dir("queries", |p| p.is_dir());
-    let catalogs = count_dir("catalogs", |p| {
-        p.extension().and_then(|e| e.to_str()) == Some("yaml")
-    });
-
-    let mut supported = 0usize;
-    let mut rest = 0usize;
-    for capability in Capability::ALL {
-        for language in Language::ALL {
-            match capabilities::support(*capability, *language) {
-                Support::Yes => supported += 1,
-                Support::NotApplicable { .. } | Support::Refused { .. } => rest += 1,
-            }
-        }
-    }
-
-    let fixed = bugs.lines().filter(|l| l.starts_with("- [x] B")).count();
-    let open = bugs.lines().filter(|l| l.starts_with("- [ ] B")).count();
-
-    for row in [
-        format!("| Query sets | {query_sets} |"),
-        format!("| Entry-point catalogs | {catalogs} |"),
-        format!("| Parsed languages | {} |", Language::ALL.len()),
-        format!(
-            "| Capability and language cells | {} |",
-            Capability::ALL.len() * Language::ALL.len()
-        ),
-        format!("| Supported cells | {supported} |"),
-        format!("{} cells refuse or are inapplicable with reasons", rest),
-        format!("| Fixed defects | {fixed} |"),
-        format!("| Open defects | {open} |"),
-    ] {
-        assert!(
-            plan.contains(&row),
-            "PLAN.md's status table does not have the row `{row}`. Update the \
-             table, or update the phrasing here if the row was reworded."
-        );
-    }
+    assert!(plan.contains("fr --json audit"));
+    assert!(plan.contains("fr capabilities"));
+    assert!(!plan.contains("| Fixed defects |"));
+    assert!(!plan.contains("| Open defects |"));
 }
