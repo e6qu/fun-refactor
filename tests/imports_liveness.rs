@@ -572,7 +572,7 @@ fn dynamic_dispatch_no_longer_looks_dead() {
 
 #[test]
 fn a_name_assembled_at_runtime_remains_a_false_positive() {
-    // The part of B5 that stays open.
+    // The inherent part of the B5 boundary.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "fn on_event() {}\nfn dispatch(name: &str) {}\nfn main() {\n    let name = format!(\"on_{}\", \"event\");\n    dispatch(&name);\n}\n",

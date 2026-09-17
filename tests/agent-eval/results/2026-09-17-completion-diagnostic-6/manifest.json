@@ -1,0 +1,144 @@
+{
+  "schema": "fr-completion-agent-manifest-1",
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "low",
+  "service_tier": "default",
+  "results": [
+    {
+      "schema": "fr-completion-agent-result-1",
+      "group": "fundamentals",
+      "workflow_ids": [
+        "understanding",
+        "tracing",
+        "direct-change",
+        "recipe"
+      ],
+      "expected_routes": [
+        "evidence",
+        "evidence",
+        "direct-capability",
+        "recipe"
+      ],
+      "observed_routes": [
+        "evidence",
+        "evidence",
+        "direct-capability",
+        "recipe"
+      ],
+      "guide_calls": 4,
+      "follow_calls": 4,
+      "post_guide_exploratory_calls": 0,
+      "finished": true,
+      "source_unchanged": true,
+      "source_before_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+      "source_after_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+      "tool_request_bytes": 1507,
+      "tool_response_bytes": 6317,
+      "underlying_request_bytes": 1963,
+      "underlying_response_bytes": 22872,
+      "prompt_bytes": 3763,
+      "codex": {
+        "usage": {
+          "input_tokens": 179036,
+          "cached_input_tokens": 155904,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2054,
+          "reasoning_output_tokens": 268
+        },
+        "command_executions": 10,
+        "failed_command_executions": 1,
+        "direct_project_commands": [],
+        "infrastructure_errors": 0,
+        "stderr_bytes": 0,
+        "event_bytes": 22339,
+        "final_bytes": 87,
+        "billed_quota": {
+          "available": false,
+          "value": null
+        }
+      },
+      "manual_corrections": 0,
+      "measurement_scope": "Complete prompt, instrumented requests and responses, Codex JSONL usage and final answer. The CLI does not expose billed quota.",
+      "passed": false
+    },
+    {
+      "schema": "fr-completion-agent-result-1",
+      "group": "structured",
+      "workflow_ids": [
+        "semantic-edit",
+        "framework-migration",
+        "proof"
+      ],
+      "expected_routes": [
+        "semantic-scalar",
+        "framework-migration",
+        "proof"
+      ],
+      "observed_routes": [
+        "semantic-scalar",
+        "framework-migration",
+        "proof"
+      ],
+      "guide_calls": 3,
+      "follow_calls": 7,
+      "post_guide_exploratory_calls": 0,
+      "finished": true,
+      "source_unchanged": true,
+      "source_before_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+      "source_after_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+      "tool_request_bytes": 1463,
+      "tool_response_bytes": 9700,
+      "underlying_request_bytes": 2040,
+      "underlying_response_bytes": 34485,
+      "prompt_bytes": 3537,
+      "codex": {
+        "usage": {
+          "input_tokens": 209169,
+          "cached_input_tokens": 181248,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2098,
+          "reasoning_output_tokens": 141
+        },
+        "command_executions": 11,
+        "failed_command_executions": 0,
+        "direct_project_commands": [],
+        "infrastructure_errors": 0,
+        "stderr_bytes": 0,
+        "event_bytes": 27257,
+        "final_bytes": 197,
+        "billed_quota": {
+          "available": false,
+          "value": null
+        }
+      },
+      "manual_corrections": 0,
+      "measurement_scope": "Complete prompt, instrumented requests and responses, Codex JSONL usage and final answer. The CLI does not expose billed quota.",
+      "passed": true
+    }
+  ],
+  "passed": false,
+  "workflow_families": 7,
+  "fresh_sessions": 2,
+  "manual_corrections": 0,
+  "acceptance_evidence": false,
+  "files": {
+    "experiment.json": "1a1e1bba7d62b4b14c4865a03652174747cf6004994a44443db46f89d54eb024",
+    "manifest.json": "dbdc76f0bbb5abf5bed1c5906a55909f75b5079d93429781305344d9c3d68bf8",
+    "fundamentals/session.json": "6d89d5372579a14f564330046f7e669fc7e789708e4e68d2e7a28848dd37b8c7",
+    "fundamentals/prompt.txt": "d19279e85bb7fba82dbccf96fe45840caf2c79e211bd277ce610a98b99f1e5c7",
+    "fundamentals/events.jsonl": "ddacad41a64f7e12261d969d20a2cd7e90e3c4dada1965167befb0c3042ad69c",
+    "fundamentals/codex-events.jsonl": "2501290c649fbc4cdf8d5ef7abf9c8408fb668a6d64e59290ad80d1579a31722",
+    "fundamentals/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fundamentals/codex-final.txt": "0534bbd36e55ddb3fd7fb2c29b654d1899c1fa5e9acec276fae4c6ba046da93a",
+    "fundamentals/codex-run.json": "279544636a4065fcbd73606860f35ca12d050ff5657517f23956a3f09ca9c2e9",
+    "fundamentals/result.json": "8d06145d35e5b12cb7bcedc96ab61ea64334140c832c22796521c3684d7648d4",
+    "structured/session.json": "2c19cc7c0fdd11dad24f6cf6c8e26aebe712ebc3dc67cd21f88d3c71a0caac59",
+    "structured/prompt.txt": "ebed6cc58f346d366ef8f9ea080988edc0b9f98e55ce796e90ed329aa57b9d77",
+    "structured/events.jsonl": "e0fa2da9580007af53a81408df3b315b0b734269f7b1ad61ca672761a4d298df",
+    "structured/codex-events.jsonl": "d1fc0027f36a52c528edd645bcd85d332cf941a1295c4f8677a16b1b102bfb6d",
+    "structured/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "structured/codex-final.txt": "ec1f3e149ba5ec37805e8e54ad2c34170ef344e8e2fb0873b2af1711b793499b",
+    "structured/codex-run.json": "083e6a73f645d34b0d0cbf2b22a6e56dff8d821541459007ce2c7e28fc57bdc1",
+    "structured/result.json": "60315b086b372c13aa954ceab178e6376927d10b389b19734c177bf011d245f3"
+  }
+}

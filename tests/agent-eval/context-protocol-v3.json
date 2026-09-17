@@ -2,12 +2,7 @@
   "schema": "fr-agent-context-protocol-projection-2",
   "passed": true,
   "evidence_manifest_sha256": "8966a31b2e449516ee2738916d5f91140a11a29052f3a731648b26cf55838f61",
-  "tokenizer": {
-    "package": "tiktoken",
-    "version": "0.12.0",
-    "encoding": "o200k_base",
-    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
-  },
+  "tokenizer": null,
   "trials": [
     {
       "trial": "regex-escape-len-fr-r1",
@@ -17,44 +12,44 @@
       "recorded": {
         "context": {
           "bytes": 46747,
-          "tokens": 13539
+          "tokens": null
         },
         "prompt": {
           "bytes": 4402,
-          "tokens": 925
+          "tokens": null
         },
         "visible_output": {
           "bytes": 42345,
-          "tokens": 12614
+          "tokens": null
         },
         "requests": {
           "bytes": 4830,
-          "tokens": 1503
+          "tokens": null
         },
         "categories": {
           "skill": {
             "bytes": 11947,
-            "tokens": 2851,
+            "tokens": null,
             "seconds": 0.001
           },
           "inspection": {
             "bytes": 9756,
-            "tokens": 3428,
+            "tokens": null,
             "seconds": 51.757
           },
           "checks": {
             "bytes": 7143,
-            "tokens": 2133,
+            "tokens": null,
             "seconds": 8.752
           },
           "authoring": {
             "bytes": 4637,
-            "tokens": 1535,
+            "tokens": null,
             "seconds": 11.151
           },
           "delivery": {
             "bytes": 8862,
-            "tokens": 2667,
+            "tokens": null,
             "seconds": 1.362
           }
         },
@@ -63,45 +58,45 @@
       },
       "projected": {
         "context": {
-          "bytes": 37979,
-          "tokens": 11441
+          "bytes": 37982,
+          "tokens": null
         },
         "prompt": {
           "bytes": 4402,
-          "tokens": 925
+          "tokens": null
         },
         "visible_output": {
-          "bytes": 33577,
-          "tokens": 10516
+          "bytes": 33580,
+          "tokens": null
         },
         "requests": {
           "bytes": 5429,
-          "tokens": 1798
+          "tokens": null
         },
         "categories": {
           "skill": {
-            "bytes": 7089,
-            "tokens": 1872,
+            "bytes": 7092,
+            "tokens": null,
             "seconds": 0.001
           },
           "inspection": {
             "bytes": 8581,
-            "tokens": 3056,
+            "tokens": null,
             "seconds": 51.757
           },
           "checks": {
             "bytes": 7143,
-            "tokens": 2133,
+            "tokens": null,
             "seconds": 8.752
           },
           "authoring": {
             "bytes": 4318,
-            "tokens": 1440,
+            "tokens": null,
             "seconds": 11.151
           },
           "delivery": {
             "bytes": 6446,
-            "tokens": 2015,
+            "tokens": null,
             "seconds": 1.362
           }
         },
@@ -228,7 +223,7 @@
           "recorded_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "projected_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "recorded_visible_sha256": "785867d9c3c7900d108f65b1d690a81e6cfc4bfa222d6b1755992b76fe680ef6",
-          "projected_visible_sha256": "350dcd0372fc6da4d04a01eef0c932ccdd367328ce40442b04e9d04f671014dd"
+          "projected_visible_sha256": "c620dd156497492898637d2e22bbbf13ff99270dae111cae78d20a49660bf7aa"
         },
         {
           "event_index": 1,
@@ -447,18 +442,11 @@
       },
       "contribution": {
         "bytes": {
-          "skill_and_current_docs": 622,
+          "skill_and_current_docs": 619,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 622
-        },
-        "tokens": {
-          "skill_and_current_docs": 90,
-          "transaction_basis_v2": 0,
-          "multi_select": 0,
-          "plan_basis": 0,
-          "total": 90
+          "total": 619
         }
       }
     },
@@ -470,44 +458,44 @@
       "recorded": {
         "context": {
           "bytes": 47947,
-          "tokens": 13487
+          "tokens": null
         },
         "prompt": {
           "bytes": 4284,
-          "tokens": 898
+          "tokens": null
         },
         "visible_output": {
           "bytes": 43663,
-          "tokens": 12589
+          "tokens": null
         },
         "requests": {
           "bytes": 2916,
-          "tokens": 859
+          "tokens": null
         },
         "categories": {
           "skill": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "inspection": {
             "bytes": 9585,
-            "tokens": 2768,
+            "tokens": null,
             "seconds": 0.017
           },
           "checks": {
             "bytes": 31087,
-            "tokens": 8974,
+            "tokens": null,
             "seconds": 8.552
           },
           "authoring": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "delivery": {
             "bytes": 2991,
-            "tokens": 847,
+            "tokens": null,
             "seconds": 0.105
           }
         },
@@ -517,44 +505,44 @@
       "projected": {
         "context": {
           "bytes": 24017,
-          "tokens": 6646
+          "tokens": null
         },
         "prompt": {
           "bytes": 4284,
-          "tokens": 898
+          "tokens": null
         },
         "visible_output": {
           "bytes": 19733,
-          "tokens": 5748
+          "tokens": null
         },
         "requests": {
           "bytes": 2916,
-          "tokens": 859
+          "tokens": null
         },
         "categories": {
           "skill": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "inspection": {
             "bytes": 9585,
-            "tokens": 2768,
+            "tokens": null,
             "seconds": 0.017
           },
           "checks": {
             "bytes": 7157,
-            "tokens": 2133,
+            "tokens": null,
             "seconds": 8.552
           },
           "authoring": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "delivery": {
             "bytes": 2991,
-            "tokens": 847,
+            "tokens": null,
             "seconds": 0.105
           }
         },
@@ -684,13 +672,6 @@
           "multi_select": 0,
           "plan_basis": 0,
           "total": 0
-        },
-        "tokens": {
-          "skill_and_current_docs": 0,
-          "transaction_basis_v2": 0,
-          "multi_select": 0,
-          "plan_basis": 0,
-          "total": 0
         }
       }
     },
@@ -702,44 +683,44 @@
       "recorded": {
         "context": {
           "bytes": 45022,
-          "tokens": 13018
+          "tokens": null
         },
         "prompt": {
           "bytes": 4402,
-          "tokens": 925
+          "tokens": null
         },
         "visible_output": {
           "bytes": 40620,
-          "tokens": 12093
+          "tokens": null
         },
         "requests": {
           "bytes": 4714,
-          "tokens": 1491
+          "tokens": null
         },
         "categories": {
           "skill": {
             "bytes": 11947,
-            "tokens": 2851,
+            "tokens": null,
             "seconds": 0.003
           },
           "inspection": {
             "bytes": 8920,
-            "tokens": 3200,
+            "tokens": null,
             "seconds": 56.054
           },
           "checks": {
             "bytes": 7142,
-            "tokens": 2133,
+            "tokens": null,
             "seconds": 10.882
           },
           "authoring": {
             "bytes": 4772,
-            "tokens": 1592,
+            "tokens": null,
             "seconds": 14.372
           },
           "delivery": {
             "bytes": 7839,
-            "tokens": 2317,
+            "tokens": null,
             "seconds": 1.526
           }
         },
@@ -748,45 +729,45 @@
       },
       "projected": {
         "context": {
-          "bytes": 35998,
-          "tokens": 10837
+          "bytes": 36001,
+          "tokens": null
         },
         "prompt": {
           "bytes": 4402,
-          "tokens": 925
+          "tokens": null
         },
         "visible_output": {
-          "bytes": 31596,
-          "tokens": 9912
+          "bytes": 31599,
+          "tokens": null
         },
         "requests": {
           "bytes": 5313,
-          "tokens": 1790
+          "tokens": null
         },
         "categories": {
           "skill": {
-            "bytes": 7089,
-            "tokens": 1872,
+            "bytes": 7092,
+            "tokens": null,
             "seconds": 0.003
           },
           "inspection": {
             "bytes": 7745,
-            "tokens": 2814,
+            "tokens": null,
             "seconds": 56.054
           },
           "checks": {
             "bytes": 7142,
-            "tokens": 2133,
+            "tokens": null,
             "seconds": 10.882
           },
           "authoring": {
             "bytes": 4453,
-            "tokens": 1492,
+            "tokens": null,
             "seconds": 14.372
           },
           "delivery": {
             "bytes": 5167,
-            "tokens": 1601,
+            "tokens": null,
             "seconds": 1.526
           }
         },
@@ -913,7 +894,7 @@
           "recorded_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "projected_request_sha256": "fea906655fe6dfc57a561193bf50b9ea54d062010c61f7242abc354e7e348987",
           "recorded_visible_sha256": "785867d9c3c7900d108f65b1d690a81e6cfc4bfa222d6b1755992b76fe680ef6",
-          "projected_visible_sha256": "350dcd0372fc6da4d04a01eef0c932ccdd367328ce40442b04e9d04f671014dd"
+          "projected_visible_sha256": "c620dd156497492898637d2e22bbbf13ff99270dae111cae78d20a49660bf7aa"
         },
         {
           "event_index": 1,
@@ -1132,18 +1113,11 @@
       },
       "contribution": {
         "bytes": {
-          "skill_and_current_docs": 622,
+          "skill_and_current_docs": 619,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 622
-        },
-        "tokens": {
-          "skill_and_current_docs": 90,
-          "transaction_basis_v2": 0,
-          "multi_select": 0,
-          "plan_basis": 0,
-          "total": 90
+          "total": 619
         }
       }
     },
@@ -1155,44 +1129,44 @@
       "recorded": {
         "context": {
           "bytes": 49076,
-          "tokens": 13818
+          "tokens": null
         },
         "prompt": {
           "bytes": 4284,
-          "tokens": 898
+          "tokens": null
         },
         "visible_output": {
           "bytes": 44792,
-          "tokens": 12920
+          "tokens": null
         },
         "requests": {
           "bytes": 2966,
-          "tokens": 890
+          "tokens": null
         },
         "categories": {
           "skill": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "inspection": {
             "bytes": 7307,
-            "tokens": 2135,
+            "tokens": null,
             "seconds": 0.025
           },
           "checks": {
             "bytes": 34651,
-            "tokens": 9967,
+            "tokens": null,
             "seconds": 10.657
           },
           "authoring": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "delivery": {
             "bytes": 2834,
-            "tokens": 818,
+            "tokens": null,
             "seconds": 0.177
           }
         },
@@ -1202,44 +1176,44 @@
       "projected": {
         "context": {
           "bytes": 25146,
-          "tokens": 6974
+          "tokens": null
         },
         "prompt": {
           "bytes": 4284,
-          "tokens": 898
+          "tokens": null
         },
         "visible_output": {
           "bytes": 20862,
-          "tokens": 6076
+          "tokens": null
         },
         "requests": {
           "bytes": 2966,
-          "tokens": 890
+          "tokens": null
         },
         "categories": {
           "skill": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "inspection": {
             "bytes": 7307,
-            "tokens": 2135,
+            "tokens": null,
             "seconds": 0.025
           },
           "checks": {
             "bytes": 10721,
-            "tokens": 3123,
+            "tokens": null,
             "seconds": 10.657
           },
           "authoring": {
             "bytes": 0,
-            "tokens": 0,
+            "tokens": null,
             "seconds": 0
           },
           "delivery": {
             "bytes": 2834,
-            "tokens": 818,
+            "tokens": null,
             "seconds": 0.177
           }
         },
@@ -1369,36 +1343,23 @@
           "multi_select": 0,
           "plan_basis": 0,
           "total": 0
-        },
-        "tokens": {
-          "skill_and_current_docs": 0,
-          "transaction_basis_v2": 0,
-          "multi_select": 0,
-          "plan_basis": 0,
-          "total": 0
         }
       }
     }
   ],
   "summary": {
     "bytes": {
-      "fr_mean": 36988.5,
+      "fr_mean": 36991.5,
       "files_mean": 24581.5,
-      "fr_minus_files": 12407.0,
-      "fr_percent_difference": 50.472916624290626
-    },
-    "tokens": {
-      "fr_mean": 11139.0,
-      "files_mean": 6810.0,
-      "fr_minus_files": 4329.0,
-      "fr_percent_difference": 63.56828193832599
+      "fr_minus_files": 12410.0,
+      "fr_percent_difference": 50.485120924272316
     }
   },
   "measurement_files": {
     "tools/agent-context-protocol.py": "8da3c8b00853825acf5c6a4c57aeeb95d0824b92f0652eb4f61a8a20bc9701be",
     "tools/checks-policy-context.py": "b37ef3e212ee76c90cbfaf608a79e536ab8c6941f6fa0ca350c56b35170129d7",
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
-    "skills/fr/SKILL.md": "03923a4850d88f7de1c1ae832150952b355a0ae548d96388f165087a9c37303f",
+    "skills/fr/SKILL.md": "eadc09b4fb8055177f387857ea95c245e27a35bf7c2362486700774152a3b5a5",
     "skills/fr/references/author.md": "5b0d5170ac77ceddf39655fbb67a03eeb2a52a96df22d8209e7fadf70671734a",
     "skills/fr/references/checks.md": "cbb02b7196c590d2cae243d765df19506b7030f34bf0a43a95ecd3d03d2ba34a",
     "skills/fr/references/git.md": "2963b05f5d740caca7875adbd560edb3f835dbb816b93b5012627f6e5843e1b8",
@@ -1484,18 +1445,11 @@
   },
   "contributions": {
     "bytes": {
-      "skill_and_current_docs": 622.0,
+      "skill_and_current_docs": 619.0,
       "transaction_basis_v2": 0.0,
       "multi_select": 0.0,
       "plan_basis": 0.0,
-      "total": 622.0
-    },
-    "tokens": {
-      "skill_and_current_docs": 90.0,
-      "transaction_basis_v2": 0.0,
-      "multi_select": 0.0,
-      "plan_basis": 0.0,
-      "total": 90.0
+      "total": 619.0
     }
   },
   "feature_applicability": {

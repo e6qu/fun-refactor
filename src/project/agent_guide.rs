@@ -658,12 +658,38 @@ impl Project<'_> {
                 } else {
                     &vocabulary.predicates
                 };
+                let recipe_template = selected_verb.map(|verb| {
+                    let selector = match verb.acts_on {
+                        "symbol" => symbol.map_or_else(String::new, |symbol| {
+                            format!(
+                                " where name={}",
+                                serde_json::to_string(&symbol.name).unwrap()
+                            )
+                        }),
+                        "file" => format!(
+                            " where file={}",
+                            serde_json::to_string(&path).unwrap()
+                        ),
+                        _ => String::new(),
+                    };
+                    format!(
+                        "schema 1\nrecipe <lower-kebab-name> {{\n  {}{}\n  expect matched = 1\n  expect changed = 1 files\n  expect refusals = 0\n}}\n",
+                        verb.form, selector
+                    )
+                });
+                let recipe_template_lines = recipe_template
+                    .as_ref()
+                    .map(|template| template.lines().map(str::to_owned).collect::<Vec<String>>());
                 evidence = json!({"predicate":"recipe::vocabulary+capabilities::support","verb":selected_verb,
                     "capabilities":matching.iter().map(|capability|json!({"capability":capability,"support":language.map(|language|capabilities::support(**capability, language))})).collect::<Vec<_>>(),
                     "author_contract":{"language":language,"target_handle":handle,
+                        "file":{"schema_line":"schema 1","open":"recipe <lower-kebab-name> {","close":"}"},
+                        "template":recipe_template,
+                        "template_lines":recipe_template_lines,
                         "selector_fields":predicates.iter().filter(|predicate|matches!(**predicate,"name"|"kind"|"lang"|"file")).collect::<Vec<_>>(),
                         "target_values":{"name":symbol.map(|symbol|&symbol.name),"kind":symbol.map(|symbol|symbol.kind.as_str()),"lang":language,"file":path},
                         "expectations":vocabulary.expectations.iter().filter(|form|form.starts_with("matched ") || form.starts_with("refusals ")).collect::<Vec<_>>(),
+                        "required_expectations":["expect matched = 1","expect changed = 1 files","expect refusals = 0"],
                         "required_review":"constrain the selected target and require exact matched count before delivery."}});
                 if selected_verb.is_none() {
                     refusals.push("recipe verb is not in the live vocabulary.".into());

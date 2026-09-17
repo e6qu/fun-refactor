@@ -621,7 +621,7 @@ fn dispatch_edges_are_dashed_and_named_in_dot() {
 
 #[test]
 fn a_call_through_a_struct_field_stays_inherent() {
-    // What hierarchy analysis cannot reach, and what B5 keeps.
+    // What hierarchy analysis cannot reach, and what the B5 boundary keeps.
     let source = "\
 struct Bus { handler: fn() }
 fn on_event() {}

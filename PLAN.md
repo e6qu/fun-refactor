@@ -35,15 +35,11 @@ construct, or claiming general source equivalence from a translated Lean model.
 
 ## Current state
 
-The project has merged PRs 0 through 38. The latest implementation is
-[GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309), with typed pure formalization,
-structural model coverage and independent source/IR/model identities. Its PR CI passed.
-Release PR 310 advances `origin/main` to `31c62e65`, version 0.27.0.
-[GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311) is PR 39 on
-`application_ir_transformations`, based directly on that main. It adds the bounded application
-hierarchy, Merkle disclosure, agent-authored HTTP IR and four framework adapters. Native intent,
-checked registration, capability rows and guarded whole-file cutover complete the implementation.
-All local native, WASM, deep, runtime, retained-evidence and formal verification gates pass.
+The project has merged PRs 0 through 39. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311)
+adds the bounded application hierarchy, Merkle disclosure, agent-authored HTTP IR and four backend
+adapters. It also adds static React and Next.js conversion. Current `origin/main` is `37b35f0b`.
+PR 40 implementation and local acceptance are complete on `completion_audit_agent_validation` from
+that exact main. It is the final scheduled implementation PR in this plan.
 
 | Measure | Current value |
 |---|---:|
@@ -52,8 +48,8 @@ All local native, WASM, deep, runtime, retained-evidence and formal verification
 | Entry-point catalogs | 10 |
 | Capability and language cells | 456 |
 | Supported cells | 311 |
-| Fixed defects | 765 |
-| Open defects | 1 |
+| Fixed defects | 767 |
+| Open defects | 0 |
 
 `fr capabilities` is the authority for operation support. Each unsupported or inapplicable cell
 carries a reason. A supported cell can still refuse a particular input when its syntax, identity,
@@ -120,8 +116,10 @@ These deterministic measurements do not establish model-token or population beha
 retained live Codex comparison still shows an `fr` context premium. The `fr` route uses 17,711
 measured context tokens and 42 calls; direct files use 11,182 tokens and 17 calls. PR 35 reduces an intent-bound change
 from three processes to two, while its complete request and response traffic is 272 bytes larger.
-The next milestones must improve route selection and exposed interaction count rather than infer a
-saving from internal composition alone.
+PR 40's passing guided cohort establishes route completion rather than a direct-file comparison. Its
+two sessions complete seven workflow families through twenty actions with 369,267 input tokens,
+318,976 cached input tokens, 3,896 output tokens and 430 reasoning-output tokens. Future context
+claims require a matched direct-file cohort rather than an inference from internal composition.
 
 ## Remaining gaps
 
@@ -141,11 +139,11 @@ saving from internal composition alone.
    remain named unsupported features rather than inferred behavior.
 4. **Support is uneven across languages.** Basic structure is broad; semantic authoring, call
    analysis, translation, framework migration and formalization have smaller support matrices.
-5. **The live-agent context target is unmet.** The retained live comparison predates unified
-   delivery. No live-agent result establishes the new routes' context benefit.
-6. **One source-evidence defect remains open.** B5 covers indirect calls and dead-code conclusions
-   that source cannot settle. Actionable inference gaps should close; inherently dynamic cases must
-   remain explicit uncertainty rather than false precision.
+5. **Live-agent context savings remain unproved.** The completed guided cohort validates routing,
+   bounded handoffs and previews. It does not compare those sessions against matched direct-file
+   agents, so it establishes no token or quota saving.
+6. **Static source has a tested analysis boundary.** B5 now records indirect calls and dead-code
+   conclusions that source cannot settle. The report preserves these cases as uncertainty.
 
 ## Active delivery sequence
 
@@ -155,8 +153,8 @@ its public contract changes.
 
 | PR | Outcome | Status |
 |---|---|---|
-| PR 39 | Generic Hierarchical Framework Transformation | [PR 311](https://github.com/e6qu/fun-refactor/pull/311) open; local acceptance complete |
-| PR 40 | Completion Audit and Agent Validation | Planned |
+| PR 39 | Generic Hierarchical Framework Transformation | [PR 311](https://github.com/e6qu/fun-refactor/pull/311) merged |
+| PR 40 | Completion Audit and Agent Validation | Implementation and local acceptance complete |
 
 ### PR 39. Generic Hierarchical Framework Transformation
 
@@ -231,6 +229,49 @@ Acceptance:
 Goal: close remaining defects and prove that the finished guided workflow is usable, bounded and
 honest across the advertised product surface.
 
+Implemented on the current branch:
+
+- `fr audit` publishes a bounded content-addressed summary with progressive capability, workflow,
+  recipe, semantic, framework, proof and boundary sections.
+- The report derives its 456 capability cells and 75 application cells from live predicates. It
+  names executable acceptance targets without treating an unrun test as passing evidence.
+- The report separates support, behavioral validation, model theorems, implementation
+  correspondence and runtime framework evidence.
+- A source-bound deterministic sweep exercises all seven required workflow families. Guidance
+  removes fourteen exploratory calls and makes no token or quota claim.
+- A two-session Codex harness freezes the binary and records prompts, tool traffic, Codex events,
+  token usage, source identities and failures. It rejects direct project access and cannot record a
+  failing cohort as acceptance evidence.
+- The first fresh diagnostic exposed an underspecified recipe envelope and a prompt example that
+  biased the wrong cohort. B920 adds the missing live recipe contract. The revised harness scores
+  every failed Codex command and retains the failed cohort as diagnostic evidence.
+- A second diagnostic completed every required route and preview, but only after many invalid goal
+  guesses. The final handoff supplies exact structured goals generated from the same deterministic
+  case registry. The agent still follows and authors each returned action.
+- A third diagnostic completed all seven routes without direct project access or exploratory calls.
+  Three rejected transport and artifact references remain diagnostic evidence. Complete request
+  handoffs and session-scoped authored artifacts remove those harness ambiguities.
+- A fourth diagnostic completed every route and recorded command, but Codex stderr exposed one
+  internal process error. Infrastructure failures are now separate from agent-command failures,
+  both must be zero, and diagnostic recordings can never become acceptance evidence.
+- A fifth diagnostic found one misleading recipe placeholder in the harness prompt and another
+  internal router failure. The handoff now requires byte-exact returned placeholders and complete
+  nonempty exec invocations.
+- A sixth diagnostic passed the structured cohort but exposed raw multiline recipe JSON in the
+  fundamentals cohort. Recipe guidance now supplies `template_lines`; the harness accepts bounded
+  `file_lines` and performs newline joining itself.
+- A seventh diagnostic passed fundamentals but mixed the new line-array value with the old file
+  key during proof authoring. The agent handoff now uses `file_lines` for every authored file.
+- The final fresh Luna/low cohort passes all seven families with zero failed command,
+  infrastructure error, direct project command, exploratory call, mutation or human correction.
+  It retains complete prompts, events, byte counts and tokenizer usage; billed quota is unavailable.
+- B5 now records its remaining runtime-only cases as a tested analysis boundary. No known
+  actionable defect remains open.
+- Final local validation passes the default and WASM gates and all 101 exhaustive Lean kernel tests.
+  It passes fourteen repository agreement audits, translation conformance, seven round trips, seven
+  self-translations and the pinned external replay. A fresh production WASM build passes TypeScript,
+  Vite and all six browser programs, including forty rename-fidelity scale checks with no defect.
+
 Deliverables:
 
 - Audit every capability predicate, language, technology surface, recipe verb, semantic schema,
@@ -264,6 +305,10 @@ Acceptance:
 5. Capability, proof and framework reports make no stronger claim than their evidence supports.
 6. Default, WASM, playground, every pinned language toolchain, Python, strict Lean, deep audit,
    external replay, prose and documentation gates pass on the final review head.
+
+PR 40 satisfies these acceptance conditions locally. CI remains the independent clean-run evidence
+for the review head. After it merges, the numbered roadmap is complete; the remaining gaps above are
+explicit semantic or evidentiary boundaries and require new scoped proposals before implementation.
 
 ## Product invariants
 

@@ -1,0 +1,52 @@
+{
+  "schema": "fr-completion-agent-result-1",
+  "group": "structured",
+  "workflow_ids": [
+    "semantic-edit",
+    "framework-migration",
+    "proof"
+  ],
+  "expected_routes": [
+    "semantic-scalar",
+    "framework-migration",
+    "proof"
+  ],
+  "observed_routes": [
+    "semantic-scalar",
+    "framework-migration",
+    "proof"
+  ],
+  "guide_calls": 3,
+  "follow_calls": 7,
+  "post_guide_exploratory_calls": 0,
+  "finished": true,
+  "source_unchanged": true,
+  "source_before_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+  "source_after_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+  "tool_request_bytes": 1529,
+  "tool_response_bytes": 9724,
+  "underlying_request_bytes": 2060,
+  "underlying_response_bytes": 34477,
+  "prompt_bytes": 3116,
+  "codex": {
+    "usage": {
+      "input_tokens": 228562,
+      "cached_input_tokens": 199424,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 2421,
+      "reasoning_output_tokens": 261
+    },
+    "command_executions": 12,
+    "failed_command_executions": 1,
+    "direct_project_commands": [],
+    "event_bytes": 28915,
+    "final_bytes": 249,
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0,
+  "measurement_scope": "Complete prompt, instrumented requests and responses, Codex JSONL usage and final answer. The CLI does not expose billed quota.",
+  "passed": false
+}

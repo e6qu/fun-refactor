@@ -1,4 +1,4 @@
-//! The open entries in BUGS.md, held to what they say.
+//! The analysis boundaries in BUGS.md, held to what they say.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::SymbolId;

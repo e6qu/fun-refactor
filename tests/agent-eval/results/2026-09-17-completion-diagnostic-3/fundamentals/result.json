@@ -1,0 +1,55 @@
+{
+  "schema": "fr-completion-agent-result-1",
+  "group": "fundamentals",
+  "workflow_ids": [
+    "understanding",
+    "tracing",
+    "direct-change",
+    "recipe"
+  ],
+  "expected_routes": [
+    "evidence",
+    "evidence",
+    "direct-capability",
+    "recipe"
+  ],
+  "observed_routes": [
+    "evidence",
+    "evidence",
+    "direct-capability",
+    "recipe"
+  ],
+  "guide_calls": 4,
+  "follow_calls": 4,
+  "post_guide_exploratory_calls": 0,
+  "finished": true,
+  "source_unchanged": true,
+  "source_before_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+  "source_after_sha256": "50a6cb9e75efb8a3d80a594c43359ff5c27fc88f3dc7d7f6a9bca2012e9ab8c2",
+  "tool_request_bytes": 1485,
+  "tool_response_bytes": 6295,
+  "underlying_request_bytes": 1939,
+  "underlying_response_bytes": 22868,
+  "prompt_bytes": 3315,
+  "codex": {
+    "usage": {
+      "input_tokens": 194895,
+      "cached_input_tokens": 171008,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 2221,
+      "reasoning_output_tokens": 312
+    },
+    "command_executions": 11,
+    "failed_command_executions": 2,
+    "direct_project_commands": [],
+    "event_bytes": 23717,
+    "final_bytes": 116,
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0,
+  "measurement_scope": "Complete prompt, instrumented requests and responses, Codex JSONL usage and final answer. The CLI does not expose billed quota.",
+  "passed": false
+}

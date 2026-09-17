@@ -1,9 +1,26 @@
 # Development continuity
 
-PR 38 merged as [GitHub PR 309](https://github.com/e6qu/fun-refactor/pull/309).
-Release PR 310 advances main to `31c62e659a05889cec6d85903f7d893958888f1b`,
-version 0.27.0. [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311) is PR 39 on
-`application_ir_transformations`, based directly on that main.
+PR 39 merged as [GitHub PR 311](https://github.com/e6qu/fun-refactor/pull/311). Current main is
+`37b35f0b77529c249003cdf039227ae624f5058e`. PR 40 implementation and local acceptance are complete
+on `completion_audit_agent_validation` from that exact main.
+
+PR 40 adds the source-derived `fr audit` surface, a deterministic seven-family guided workflow
+sweep and a strict two-session live Codex cohort. The final retained Luna/low cohort completes all
+seven families through twenty actions. It has no failed command, infrastructure error, direct
+project access, exploratory call, mutation or human correction. Seven earlier cohorts remain
+immutable diagnostic evidence. Their failures produced exact structured-goal handoffs, reusable
+authored artifacts, line-safe file transport, infrastructure-error scoring and byte-exact
+placeholders.
+
+Final local validation passes `tools/check.sh default`, `tools/check.sh wasm` and
+`tools/check.sh deep`. The default gate exercises 311/311 supported capability cells and builds all
+81 Lean jobs. The deep gate passes fourteen whole-repository agreement tests, two translation
+conformance tests, seven round trips, seven self-translations and all 101 Lean kernel tests. It also
+passes the pinned external replay with independent oracles and exact reversal. A source-current production
+WASM build passes TypeScript, Vite and all six browser programs: 88 API cases, six patch cases, seven
+session cases, five style cases, five rendering cases and the scale sweep. The scale sweep samples
+forty definitions and reports no rename-fidelity defect. Python's 28 Rust-driven SDK tests pass with
+the declared pytest 9.1.1 extra, and the default gate includes its `ty` check.
 
 PR 39 adds `project application`, Merkle disclosure and `migrate application` around a bounded
 common IR. Conservative readers normalize literal JSON responses and path bindings from Next.js,
@@ -30,8 +47,69 @@ Lean tests. Five external replay archives pass their checks, independent behavio
 reversal. B918 and B919 record the disclosure-depth and floating Merkle repairs. Final audit also
 fixed shared-VFS bypasses, nested Python/TypeScript generic maps and minimal WASM feature gating.
 
-PR 40 is next. It performs the completion audit and fresh live-agent validation without widening
-the explicit application semantics described in `PLAN.md`.
+The first PR 40 slice adds `fr audit`. Its small content-addressed summary discloses seven bounded
+detail sections. Live predicates supply every capability and application cell. Live catalogs supply
+recipe and semantic counts. Proof schemas and analysis boundaries retain their narrower claims.
+The workflow section names executable acceptance tests but treats them as obligations until they run.
+B5 now describes a tested static-analysis boundary after earlier work closed its actionable gaps.
+`BUGS.md` currently has no known actionable defect.
+
+`tools/completion-workflows.py` now runs the seven completion families against isolated copies of
+one prepared fixture. Each guide executes at least one read or preview action and leaves source
+unchanged. The retained report measures fourteen manual discovery calls and zero exploratory calls
+after guidance. It binds the evaluator and implementation sources and excludes model-token and
+quota claims.
+
+The opt-in completion-agent runner groups the same seven families into two fresh sessions. It pins
+`gpt-5.6-luna`, low effort, the default tier, ephemeral mode and ignored user configuration. The
+instrumented surface exposes only guide, follow and finish. Scoring rejects direct project commands,
+source mutation, missing routes, repeated actions and schema mismatches. Recording requires both
+sessions to pass.
+
+The first fresh cohort remains under `2026-09-17-completion-diagnostic-1`. The fundamentals agent
+completed its routes only after repeated recipe grammar guesses. The structured agent copied an
+unrelated prompt example, invented the `semantic` operation and stopped. B920 adds the recipe file
+envelope and required expectations to the live guide response. The revised prompt gives each cohort
+only its exact operation shapes, and scoring now rejects every failed Codex command.
+
+The second diagnostic completed all seven routes, but the weak agents made 32 invalid instrumented
+calls while reconstructing the complete goal envelope. It also remains non-acceptance evidence.
+The next prompt supplies exact goals from the deterministic case registry. The live recipe contract
+now includes a target-specific file template.
+
+The third diagnostic completed all seven routes with no direct project command, exploratory call,
+mutation or human correction. Strict scoring still rejected two malformed JSON transports and one
+proof follow that omitted the tactics payload written by the preceding action. The next handoff
+supplies complete guide requests, calls out JSON newline escaping and lets later actions reuse a
+bounded authored artifact by plain name. The retained diagnostic remains non-acceptance evidence.
+
+The fourth diagnostic completed all routes and every recorded command succeeded. Raw Codex stderr
+exposed one internal tool-router process error that the first score did not count. The scorer now
+reports infrastructure errors separately and requires zero. Diagnostic recording also forces a
+non-acceptance classification even when all workflow fields pass.
+
+The fifth diagnostic again completed all seven routes. A prompt typo changed the recipe action's
+hyphenated placeholder to a spaced name, and the structured session had another unrecorded router
+failure. The prompt now requires exact returned placeholder bytes and a complete command in every
+exec call. The result remains non-acceptance evidence.
+
+The sixth diagnostic had clean infrastructure and a passing structured session. The fundamentals
+agent still placed raw recipe newlines inside JSON before retrying. Recipe guidance now publishes
+the exact template as separate lines, and the instrumented handoff joins a bounded `file_lines`
+array. This removes JSON newline escaping from the agent's job.
+
+The seventh diagnostic passed fundamentals with the line-safe recipe path. The structured agent
+then put a line array under the older `files` key for two proof attempts. The final handoff uses
+`file_lines` as the only authored-file representation for both recipes and proof tactics.
+
+The passing fresh cohort is retained as `2026-09-17-completion-acceptance`. Both isolated sessions
+pass all seven families through twenty commands with no failed command, infrastructure error,
+direct project access, exploratory call, mutation or human correction. The agents used Luna at low
+effort and the default tier under Codex CLI 0.154.0.
+
+The cohort records 369,267 input tokens, of which 318,976 were cached, plus 3,896 output tokens and
+430 reasoning-output tokens. Complete prompts occupy 7,264 bytes. The CLI exposes no billed quota.
+This validates the guided fixtures without claiming a context saving against direct file access.
 
 Merged PR 38 implementation and evidence follow:
 
