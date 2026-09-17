@@ -4,21 +4,21 @@
     "tools/completion-workflows.py": "4a88f05802e07e57e9964427178664ce2fb20e2f4373f5ff3db9b05d965982b2",
     "src/audit.rs": "3762697d61c37d6ecacea7a9091d46ccb6967823453369a479b045bd516bba65",
     "src/capabilities.rs": "e221fca5fcf5227206a7eea7a3cff2b1222badd7b6f5ba9cec2969d7ba1b6a3e",
-    "src/cli.rs": "3afc1cb7c1083a0402d83701e17e10ad17adafc539b65ce0250de2c6b0fa1b7b",
+    "src/cli.rs": "4d7b524ee696b68257d08dc9bc03cdf8029a71aaa6ea06888218da4185039605",
     "src/project/agent_guide.rs": "7c3462faf09c46308b602b22a36aa845d204f948d10123cd9311b26cb5f82683",
     "src/project/agent_intent.rs": "312f67460946cd58329414f464a124aec859b2918f07e7ec69d75ea438694320",
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
     "src/project/migration.rs": "36f005991aa2ac0e5363a794d61f22b61d42882b5c9c96f2852941c5e9486121",
     "src/spec.rs": "7b0addafe36323feb0809a4df4fc41e990e7816d19c6386c3ae3ddb85d73daff"
   },
-  "binary_sha256": "69ee04e7671dd6ab42d8995abb1e95a7f9655f864eb551fe8bba323fa82c0a2e",
+  "binary_sha256": "6f9d83aabaa3c416187afddbedbf77f91e230637251a651898ca7d152fd7bb15",
   "workflows": [
     {
       "id": "understanding",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:4313f1a9694ed5366c9b1471782078f86a8cc991f987eb4aac8c8640ac31351e",
-      "guide_object_root": "d2b456912e62c09f618f619431889f39b1ca86230b5cf24f571260191d4f7eb5",
+      "guide_basis": "frag1:af5f9592190da20ad4a830cbcc4e603336b145d840dd7d8662c5cf3ca40b15b3",
+      "guide_object_root": "bad54630333e3d741c2a5ef7f43030d8255d89efad9cba14a100df747d17c209",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
@@ -57,7 +57,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "91c934980400bed8c8ff07c2d07201b3a21f5d37b6be2bfc81375bb134e625c2"
+            "response_sha256": "fc7dfdd0796ac35832edda3de4888f8fb0fac3a9b73ada1b5fb318deaab5b4ab"
           }
         ]
       },
@@ -76,8 +76,8 @@
       "id": "tracing",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:04db8b45e7707025880a37a54e5eabb982363032b9e8c48dd884910bf79036b3",
-      "guide_object_root": "3b1413dc7098cbbfb775cf62a334a6f454060d27aace034095383f2090532259",
+      "guide_basis": "frag1:d264e9c9e2fd13fe5919f1986d8c3065aa25e76dadb5ff02ea21d2f1b028fd7e",
+      "guide_object_root": "f4c029febd91eeed7c81860c7cc9f9219cef4efff1bc286476dab0a9a7650935",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
@@ -116,7 +116,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "dc85a141000f718b7edd423b3488f2b2b727df76580ce849464ff8dde3d2341e"
+            "response_sha256": "83b6d5a7bceb4abc6cf4c3c23d11158d1b27c7e6fa666196c6d1357cba628860"
           }
         ]
       },
@@ -135,8 +135,8 @@
       "id": "direct-change",
       "route": "direct-capability",
       "state": "ready",
-      "guide_basis": "frag1:1ad0998a5b01687ebdcc4225d3b26423fd81ab8ce7fda70509d926c82b0137d6",
-      "guide_object_root": "15b776ef4dacf71baf9cd0da023871d1d5b17f6375a259a5e22f16109288b2f2",
+      "guide_basis": "frag1:c87a5835932da3985a949803ed6f87b1333876fd96ea7ad3dc4884330eea4d0a",
+      "guide_object_root": "a93be5d186deb2a96c8b80eeb002818547332dfaf284ecda82714328d2e1ac46",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 57,
@@ -174,7 +174,7 @@
               "src/lib.rs:1:8",
               "compute"
             ],
-            "response_sha256": "3df41a6693b755961d9a9e200975a8fbed8198ce4ff3bf72246fa54290e90f4c"
+            "response_sha256": "aa56d72479b4c2b1b473bc37c7818d5cb2ed760c55dd1fac8c699de2e3e7dbc6"
           }
         ]
       },
@@ -193,8 +193,8 @@
       "id": "recipe",
       "route": "recipe",
       "state": "needs-authoring",
-      "guide_basis": "frag1:e5608928edb6c03025938a4b642cdb2a7559acdd3d06ac71e86f7074579ee474",
-      "guide_object_root": "32e606257a094451216df6917c9575ea538ce746568a7b125549820909e7277c",
+      "guide_basis": "frag1:acb08169ea060bd29857ce2b0bb62613ff8ecf783b680a693bb04abe53dd5579",
+      "guide_object_root": "2573dd6534c532c2326f08e621bd733769c51f6229bac5393083213d7c4e05c2",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 72,
@@ -251,8 +251,8 @@
       "id": "semantic-edit",
       "route": "semantic-scalar",
       "state": "ready",
-      "guide_basis": "frag1:0878e9b0c11e8902f106addea31a3cb9922f2a3e5f8294a416491797cc142d25",
-      "guide_object_root": "aba133ce47afc33c70eeaa8ee810ebb2577c168d05c4424247dc0f2888070ff1",
+      "guide_basis": "frag1:718723b151cbd7c718c1122f3414330ce273a67316e8d401580c5423d31e032c",
+      "guide_object_root": "16af40432dec1ab264ff9d33b518e418922c50dec2127a597f93d29dc492ed49",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 83,
@@ -290,7 +290,7 @@
             "arguments": [
               "project",
               "semantic",
-              "frp1:23cd9cb2255cd513636feb79d816e34f:52",
+              "frp1:5da52b303e6495aea458a947378130bd:52",
               "--body",
               "--locator-op",
               "set-int",
@@ -302,13 +302,13 @@
               "--intent-to",
               "9"
             ],
-            "response_sha256": "c2fc0562205877eea7cbaf0b5cca2a46d22b88828a99c9b58ad49b0fc13bdf56"
+            "response_sha256": "604ecbd92210bed978a41027bb849eeaf12d4600393b7cb9a25953c29ad521bc"
           },
           {
             "arguments": [
               "author",
               "edit-body-scalar",
-              "frp1:23cd9cb2255cd513636feb79d816e34f:52",
+              "frp1:5da52b303e6495aea458a947378130bd:52",
               "--operation",
               "set-int",
               "--from",
@@ -316,7 +316,7 @@
               "--to",
               "9"
             ],
-            "response_sha256": "2b7a5b4e0a3fca81ccdd7504e7e6b58b9856035bd40dbca3bd6500d8c9122674"
+            "response_sha256": "fad70581c06b90f56f6c2dd4d93704ba4d704bac90dd4a3f15a9f866f85675d1"
           }
         ]
       },
@@ -335,8 +335,8 @@
       "id": "framework-migration",
       "route": "framework-migration",
       "state": "ready",
-      "guide_basis": "frag1:ba82f1654c2dd098880b049181d04c39f2afaa126b876d7f80da962b9d0370c7",
-      "guide_object_root": "e3d5363790df4c4840857b4aa811674b5009b6c1dc8e59c11b5e1458551dc07a",
+      "guide_basis": "frag1:39b6cc362615c545479794cffeff52f6396cecbacd33ab7748ae2187402ddb88",
+      "guide_object_root": "21b2f325db67165abc8c85401266675516a468a0e3c6098f95ca915554e87746",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 70,
@@ -373,23 +373,23 @@
             "arguments": [
               "project",
               "features",
-              "frp1:06a54ae71f494616493941007f8a6a30:4",
+              "frp1:646fe07918ab20ddea683cd49d901561:4",
               "--limit",
               "8"
             ],
-            "response_sha256": "ec03f32daed61d2f3257b2fa3eeb9b9882535b5f8b5920487353d9c4102b6ee8"
+            "response_sha256": "80573e75e43807f5c181a4d02cda46f9eea3368aeddb8f2428ab50c608cd921a"
           },
           {
             "arguments": [
               "migrate",
               "feature",
-              "frff1:a84ea74ff14349a859e14fb66f738b2e",
+              "frff1:89c7afa98dc429b39198bf1757443899",
               "--to",
               "fastapi",
               "--out",
               "converted/signals.py"
             ],
-            "response_sha256": "76663c15ca58ee2246fec59fc72803537ef2746425eae50dece3e2e71fe6ea3d"
+            "response_sha256": "3df7d6e1881befec4434060e9f8af4cb698e50df0f6fecfbd782709e296f6b45"
           }
         ]
       },
@@ -408,8 +408,8 @@
       "id": "proof",
       "route": "proof",
       "state": "ready",
-      "guide_basis": "frag1:bf5c622553e712278e442b703971db93a62e02f69ef891e54556b41366d496e7",
-      "guide_object_root": "99d552f4c0e7a0e2f44681e05e52a2f7eb5701874f0470484a8bc89b34b5ff3b",
+      "guide_basis": "frag1:c47bca78d7a6153e857dc0fc1a58c8d413496645fb64da726fea3a29d2791ab7",
+      "guide_object_root": "68f428ea10d2bffba6584c23a111f54d5dc931eecb21b14d729cd018ff8d8af1",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 63,
@@ -462,7 +462,7 @@
               "--token-limit",
               "4096"
             ],
-            "response_sha256": "c49a61d57ed5906c60c518884277bd0e7659725bfd136063336c182a99a5cf15"
+            "response_sha256": "277c1bf6ecd9cce76607efafbdd6c8cb5e86198c3733c3640123288670661242"
           },
           {
             "arguments": [
