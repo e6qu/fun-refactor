@@ -54,23 +54,23 @@
       },
       "finished": true,
       "tool_calls": 2,
-      "tool_request_bytes": 913,
+      "tool_request_bytes": 907,
       "tool_response_bytes": 231,
       "tool_errors": 0,
       "codex": {
         "usage": {
-          "input_tokens": 57464,
-          "cached_input_tokens": 50176,
+          "input_tokens": 55733,
+          "cached_input_tokens": 45056,
           "cache_write_input_tokens": 0,
-          "output_tokens": 675,
-          "reasoning_output_tokens": 102
+          "output_tokens": 759,
+          "reasoning_output_tokens": 149
         },
         "command_executions": 2,
         "failed_command_executions": 0,
         "direct_project_commands": [],
         "infrastructure_errors": 0,
         "stderr_bytes": 0,
-        "event_bytes": 5019,
+        "event_bytes": 4900,
         "final_bytes": 122,
         "billed_quota": {
           "available": false,
@@ -97,18 +97,18 @@
       "tool_errors": 0,
       "codex": {
         "usage": {
-          "input_tokens": 67859,
+          "input_tokens": 67176,
           "cached_input_tokens": 56064,
           "cache_write_input_tokens": 0,
-          "output_tokens": 659,
-          "reasoning_output_tokens": 57
+          "output_tokens": 656,
+          "reasoning_output_tokens": 83
         },
         "command_executions": 4,
         "failed_command_executions": 0,
         "direct_project_commands": [],
         "infrastructure_errors": 0,
         "stderr_bytes": 0,
-        "event_bytes": 4919,
+        "event_bytes": 4765,
         "final_bytes": 122,
         "billed_quota": {
           "available": false,
@@ -121,10 +121,10 @@
   ],
   "passed": true,
   "usage_difference_fr_minus_files": {
-    "input_tokens": -10395,
-    "cached_input_tokens": -5888,
-    "output_tokens": 16,
-    "reasoning_output_tokens": 45
+    "input_tokens": -11443,
+    "cached_input_tokens": -11008,
+    "output_tokens": 103,
+    "reasoning_output_tokens": 66
   },
   "tool_call_difference_fr_minus_files": -2,
   "claim": "One matched pair over one fixed source-writing task; no population, hidden-reasoning or billed-quota claim.",
@@ -132,31 +132,31 @@
   "bindings": {
     "tools/matched-agent-source.py": "e3010e5b0d9fc2740004042342681a546b6314a365ee87e0e0f08a0289a9334c",
     "tools/matched-agent-context.py": "18a47e88dbf0805c6c732f20077f158338388986f7b4c24105fd591fcd4afd8f",
-    "sdk/python/src/fr_ir/guide.py": "3a6c222f13ace8915ac17fc03d5866a5dfcb644fde81d90cb09934fec1bcac3a",
+    "sdk/python/src/fr_ir/guide.py": "f503a0e85cd6a6c6b48c6a9e5913c9addc523b1f92c81d2eb970096ab84bda39",
     "sdk/python/src/fr_ir/runtime.py": "bce95872d76227f141678dd376115232a3afbb12ce21c0bf0977c24cacc62817",
     "src/project/agent_guide.rs": "7c3462faf09c46308b602b22a36aa845d204f948d10123cd9311b26cb5f82683",
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
     "kernels/FrKernels/AgentGuide.lean": "070c8fb88b42f28e47a863f4ce90f2b4790ff9f9415c52e2394c19fbf01bfb49"
   },
   "files": {
-    "experiment.json": "c87cae101d8fad3c0b800159f706b6159b137ee898ee7c4dffdd1bd1fe6a813d",
-    "manifest.json": "34fd0058003c901d0a118c9a0fcd155efd21a47b43349b5cd84585da2ca793f4",
-    "fr/session.json": "eab2434025023df0b162ee9de2f23e5b1841e6b0b082f0b0c72f326e5f40ff3c",
-    "fr/prompt.txt": "80abfe2e08a9aad73759e224a13017f926f4a419480db56141f176a7d5a022dd",
-    "fr/events.jsonl": "67c4a9bcfa09012d6d93029fb51556d2dd6405c7b1591f25b5a9c3f3dd94cca8",
-    "fr/codex-events.jsonl": "5965ceb55ae3d84d154ffee9bb151391cd5ce933b70e39b87c9165020e119085",
+    "experiment.json": "54bde6eebfbb993adc0868366e9094c8ce3486b23c62f5385bb32f0beb24f121",
+    "manifest.json": "bb9600904cefd92caec3f263b0dad07880195a8c6a2b871e0f8e4e2b64e49924",
+    "fr/session.json": "cddfa97d17947fa896d7db54de6edd87932c92dca18bc6328bad76e7584a1daa",
+    "fr/prompt.txt": "d8acbf1d15ff940e40143ac33862e786b15de040efe7c891618e9a5136161c74",
+    "fr/events.jsonl": "91d26766e41ac690c49daa97634d9ca39bf89beac5a5ad3b48021cc941acdcd5",
+    "fr/codex-events.jsonl": "34c896b4d62a7a70e28f63dc890baffcd6e423c4e45f8fd1d638093edfb5d99e",
     "fr/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "fr/codex-final.txt": "6b950ff1739bc5f32cad263828c60ec0bd30f39283d7d2c2b5a72dc96620b10a",
-    "fr/codex-run.json": "c6226debcbfd69c0f31e8de7298b10f9e20b1c26a8a91d11f51f741494692e49",
-    "fr/result.json": "5f75fc50c2d578fef653673a9504a9c3f252779fa110cfda97d40a5c48198a13",
-    "fr/sdk-events.jsonl": "d6409c8026fafaa71210bca11c27c08dd79ac9615d810e22898bfd461d94a542",
-    "files/session.json": "6f852eeb37bf7160fcde75072b175df81e394c535d95f8e98dea79a2f30f141b",
-    "files/prompt.txt": "7ff334a4be0eaf882d15eba5df2b24dea261757a9e17f9eb497b8cef13eee4e9",
-    "files/events.jsonl": "973049e97f95e9ab857dc42d25b62cbbc831ace40bccea5a4abfff1271170719",
-    "files/codex-events.jsonl": "53dce7253fa04f6c7ae70e929e8830ce9fdb03000bbed5083836720a1741eb07",
+    "fr/codex-run.json": "971a5ec99734dd72aab25bb378592372953f53d676d9e0cfb8adb5003ded23a6",
+    "fr/result.json": "94dca10c938340c457e1fee952fcfc6f21e23ceb6ea6645a15f8066ed8162029",
+    "fr/sdk-events.jsonl": "60871be505f917cb2d54bf07406e5f34909619177c92d4dd17844d71a8f354e6",
+    "files/session.json": "03e402c3bdb535012d1c61dfd3747afed96fd937176222479182a894b098d526",
+    "files/prompt.txt": "f3be63df51b3b722a8b188e1cc6e8c7dc03443377ed3f4f3ca1830bd7caa261c",
+    "files/events.jsonl": "6d1672b472faaa307769447cbd65c9d62b4cf6307153e443a91e05fdedc87631",
+    "files/codex-events.jsonl": "b7f1cb88c461ff314912f9daea8df7b765650bc08c0f8efa1d0cc107396d3a88",
     "files/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "files/codex-final.txt": "6b950ff1739bc5f32cad263828c60ec0bd30f39283d7d2c2b5a72dc96620b10a",
-    "files/codex-run.json": "45b7920879f092bb81f13ef11018e463b8870afce1dcc3579e66143362e84e77",
-    "files/result.json": "de0d8a4c41fc02cac4f0420595ab2f7a5f288c45ec3b5e50a9c1408695cecc27"
+    "files/codex-run.json": "7f61df3e6d3a6d8394db16a398b8d70c9dadd0013f3e8f3cd13cf76701fa7cdf",
+    "files/result.json": "758cd87fd485da97c7965b302574dfc7d0c6278927a9b5772e6ee74be6a0a964"
   }
 }

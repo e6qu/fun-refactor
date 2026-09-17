@@ -11,7 +11,7 @@ then call `finish`. Do not use a shell, Git, Python file APIs, or any other proj
 
 Use only the instrumented tool through functions.exec / tools.exec_command. Every request uses this
 complete stdin command and one JSON object:
-python3 /Users/zardoz/projects/fun-refactor/tools/matched-agent-source.py step /Users/zardoz/projects/fun-refactor/target/matched-source-live-3/files --request-stdin <<'FRJSON'
+python3 /Users/zardoz/projects/fun-refactor/tools/matched-agent-source.py step /private/tmp/fr-matched-source-refresh/files --request-stdin <<'FRJSON'
 {"tool":"finish","summary":"source change complete"}
 FRJSON
 Do not browse, delegate, inspect the evaluator, or access another session. No human correction is
