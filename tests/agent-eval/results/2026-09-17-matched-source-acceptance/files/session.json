@@ -1,0 +1,27 @@
+{
+  "schema": "fr-matched-source-session-1",
+  "arm": "files",
+  "binary": "/Users/zardoz/projects/fun-refactor/target/matched-source-live-3/fr-matched-source-bin",
+  "binary_sha256": "db581932fa2a13bb45d5321f2fa527d9c3dc5fc1b9b3b4c78740c5128ff3d62a",
+  "wrapper": "/Users/zardoz/projects/fun-refactor/target/matched-source-live-3/files/fr-sdk-wrapper.py",
+  "expected": {
+    "schema": "fr-matched-source-change-1",
+    "path": "src/lib.rs",
+    "symbol": "calculate",
+    "operation": "set-int",
+    "from": "7",
+    "to": "9"
+  },
+  "before_sha256": "bfe3fefef86431a1eeb37f4daff31f3abf89f618d2b8333697dd573b91c1fc09",
+  "after_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
+  "bindings": {
+    "tools/matched-agent-source.py": "e3010e5b0d9fc2740004042342681a546b6314a365ee87e0e0f08a0289a9334c",
+    "tools/matched-agent-context.py": "18a47e88dbf0805c6c732f20077f158338388986f7b4c24105fd591fcd4afd8f",
+    "sdk/python/src/fr_ir/guide.py": "3a6c222f13ace8915ac17fc03d5866a5dfcb644fde81d90cb09934fec1bcac3a",
+    "sdk/python/src/fr_ir/runtime.py": "bce95872d76227f141678dd376115232a3afbb12ce21c0bf0977c24cacc62817",
+    "src/project/agent_guide.rs": "7c3462faf09c46308b602b22a36aa845d204f948d10123cd9311b26cb5f82683",
+    "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
+    "kernels/FrKernels/AgentGuide.lean": "070c8fb88b42f28e47a863f4ce90f2b4790ff9f9415c52e2394c19fbf01bfb49"
+  },
+  "manual_corrections": 0
+}

@@ -213,6 +213,25 @@ pub fn agent_guide_binding_admitted(
         && basis_matches
 }
 
+#[doc = "Finite admission kernel for executing one task review retained by a complete guide run."]
+pub fn agent_guide_delivery_admitted(
+    purpose: usize,
+    action_count: usize,
+    report_count: usize,
+    review_count: usize,
+    route_admitted: bool,
+    guide_matches: bool,
+    review_complete: bool,
+) -> bool {
+    purpose == 2
+        && (1..=16).contains(&action_count)
+        && report_count == action_count
+        && review_count == 1
+        && route_admitted
+        && guide_matches
+        && review_complete
+}
+
 fn read_goal(root: &Path, path: &Path) -> Result<Goal> {
     let mut bytes = Vec::new();
     if path == Path::new("-") {

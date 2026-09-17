@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .ir import TaskChange
     from .context import ContextSession, ObjectStore
     from .intent import AgentIntent, CompiledIntent, IntentResult, PreparedIntent
-    from .guide import AgentGoal, AgentGuide, GuideAction
+    from .guide import AgentGoal, AgentGuide, GuideAction, GuideRun
     from .intent_actions import TaggedIntentAction
     from .formal_kernel import KernelRequest, KernelResult
 
@@ -401,10 +401,37 @@ class FrClient:
         from .guide import follow_guide
         return follow_guide(self, action, inputs)
 
-    def complete_guide(self, goal: AgentGoal, inputs=None):
+    def complete_guide(self, goal: AgentGoal, inputs=None) -> GuideRun:
         """Select and follow every read/preview action without exposing intermediate reports."""
         from .guide import complete_guide
         return complete_guide(self, goal, inputs)
+
+    def execute_guide(self, run: GuideRun) -> TaskResult:
+        """Execute the sole unchanged task review retained by a complete guide run."""
+        from .guide import GuideRun, _canonical, _guide_delivery_admitted, guide_goal
+
+        if not isinstance(run, GuideRun):
+            raise FrRuntimeError("execute_guide requires a complete GuideRun")
+        guide = run.guide
+        guide_matches = hashlib.sha256(_canonical(guide.to_data())).hexdigest() == guide.report_sha256
+        review = run.review()
+        current = guide_goal(self, guide.goal)
+        basis_matches = current.at("/basis") == guide.at("/basis")
+        review_complete = (
+            review.schema == "fr-task-change-1"
+            and review.at("/ready") is True
+            and review.at("/executed") is False
+        )
+        route = guide.at("/route")
+        purpose = ("understand", "trace", "change", "migrate", "prove").index(guide.goal.purpose)
+        if not _guide_delivery_admitted(
+            purpose, len(guide.actions()), len(run.reports),
+            sum(isinstance(report, TaskReview) for report in run.reports),
+            isinstance(route, Mapping) and route.get("admitted") is True,
+            guide_matches and basis_matches, review_complete,
+        ):
+            raise FrRuntimeError("guided task review is stale, incomplete, or not executable")
+        return FrClient.execute(self, review)
 
     def disclose(
         self,

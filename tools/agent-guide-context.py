@@ -45,11 +45,12 @@ GUIDED = '''from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
 from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient
 client = FrClient(WORKSPACE, executable=FR)
-guide = client.guide(AgentGoal("change", selector=GoalSelector(name="calculate"),
+goal = AgentGoal("change", selector=GoalSelector(name="calculate"),
     operation=GoalOperation("semantic-scalar", {"operation": "set-int", "from": "7", "to": "9"}),
-    checks=("compiler",), delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=256)))
-review = client.follow_guide(guide.actions()[0])
-result = client.execute(review)
+    checks=("compiler",), delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=256))
+run = client.complete_guide(goal)
+review = run.review()
+result = client.execute_guide(run)
 packet = {"passed": result.passed, "workflow": result.at("/workflow")}
 '''
 BOUND_FILES = (
@@ -164,7 +165,7 @@ def measure(executable: str) -> dict:
 def audit(value: dict) -> None:
     if value.get("schema") != "fr-agent-guide-context-1" or value.get("bindings") != bindings():
         raise RuntimeError("guide comparison schema or source bindings are stale")
-    for name, program, count in (("manual", MANUAL, 3), ("inline_manual", INLINE_MANUAL, 2), ("guided", GUIDED, 4)):
+    for name, program, count in (("manual", MANUAL, 3), ("inline_manual", INLINE_MANUAL, 2), ("guided", GUIDED, 5)):
         row = value[name]
         if row["program"] != program or row["program_sha256"] != digest(program.encode()):
             raise RuntimeError("retained agent program is changed")

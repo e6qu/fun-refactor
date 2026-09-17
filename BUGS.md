@@ -72,6 +72,41 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B931: **two local-context measurements retained an old runtime digest**. Fresh runtime and
+  workspace comparisons bind the current Python executor. Their outcomes and measured 89.3% and
+  92.4% agent-visible byte reductions remain unchanged.
+
+- [x] B930: **two retained Python runtime comparisons had stale source bindings**. The native-intent
+  and reviewed-action audits now bind the current SDK runtime. Fresh runs preserve their exact
+  outcome equality, process-call reductions and byte-accounting invariants.
+
+- [x] B929: **retained completion workflows referenced the previous guide implementation**. The
+  acceptance audit refused their stale source binding. A new deterministic run binds the current
+  binary and rechecks all seven guide families without source mutation or exploratory follow-up.
+
+- [x] B928: **the guided-intent skill route exceeded its disclosure ceiling**. New delivery guidance
+  pushed the combined route 58 bytes past 7 KiB. Tighter wording preserves each workflow step and
+  restores the enforced route budget; the packaged examples still execute successfully.
+
+- [x] B927: **retained batch-context evidence went stale after a project-kernel addition**. The
+  full acceptance gate caught the changed source digest. The comparison now has three cold and
+  three warm repetitions against the current binary. Its pinned tokenizer supplies reproducible
+  token counts that the earlier single sample lacked.
+
+- [x] B926: **a complete guided scalar preview had no first-class retained-run executor**. Agents
+  had to extract a `TaskReview` from an untyped report tuple and switch to the generic executor.
+  `GuideRun.review()` now requires exactly one task review, and `execute_guide` refreshes the guide
+  before executing that unchanged review. Rust, Python and Lean share the delivery admission gate.
+
+- [x] B925: **the first matched source-writing harness gave Codex relative writable paths**. Its
+  changed working directory resolved those paths inside the fixture, so both agents were denied the
+  session event log. The runner now resolves every session before building `--add-dir`, `--cd` and
+  output paths.
+
+- [x] B924: **the direct source-writing prompt omitted the submit request envelope**. The agent made
+  the correct exact edit but tried several plausible field names. The prompt now supplies the exact
+  `answers` envelope, and a fresh no-correction matched cohort passes both arms.
+
 - [x] B923: **Lean validation inherited host-wide concurrency and saturated developer machines**.
   `tools/check.sh` now limits the native and exhaustive kernel test harnesses to two cases. Every
   Lean process also inherits a two-thread runtime limit. `FR_LEAN_JOBS` and `LEAN_NUM_THREADS`

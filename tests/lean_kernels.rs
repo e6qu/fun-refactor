@@ -204,8 +204,48 @@ fn agent_guide_policy_matches_rust_python_and_lean_exhaustively() {
         bindings
     );
     expected.extend(bindings);
+    let mut deliveries = Vec::new();
+    for purpose in 0..7 {
+        for action_count in [0, 1, 16, 17] {
+            for report_count in [0, 1, 16, 17] {
+                for review_count in [0, 1, 2] {
+                    for route_admitted in [false, true] {
+                        for guide_matches in [false, true] {
+                            for review_complete in [false, true] {
+                                deliveries.push(
+                                    fun_refactor::project::agent_guide_delivery_admitted(
+                                        purpose,
+                                        action_count,
+                                        report_count,
+                                        review_count,
+                                        route_admitted,
+                                        guide_matches,
+                                        review_complete,
+                                    )
+                                    .to_string(),
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let observed = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("agent-guide-deliveries")
+        .output()
+        .unwrap();
+    assert!(observed.status.success());
+    assert_eq!(
+        String::from_utf8(observed.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        deliveries
+    );
+    expected.extend(deliveries);
     let observed=Command::new("python3").arg("-c").arg(r#"# => Rust, Python and Lean finite policy corpus
-from fr_ir.guide import _guide_binding_admitted, _guide_route_admitted, _guide_step
+from fr_ir.guide import _guide_binding_admitted, _guide_delivery_admitted, _guide_route_admitted, _guide_step
 from itertools import product
 for case in product(range(7), range(3), range(4), range(12), (False, True), (False, True), (False, True), range(4)):
     print(str(_guide_route_admitted(*case)).lower())
@@ -213,6 +253,8 @@ for case in product(range(7), range(6), (False, True), (False, True), (False, Tr
     print(_guide_step(*case))
 for case in product((0, 1, 32, 33), (0, 1, 32, 33), (False, True), (False, True), (False, True), (False, True)):
     print(str(_guide_binding_admitted(*case)).lower())
+for case in product(range(7), (0, 1, 16, 17), (0, 1, 16, 17), (0, 1, 2), (False, True), (False, True), (False, True)):
+    print(str(_guide_delivery_admitted(*case)).lower())
 "#).env("PYTHONPATH",root().join("sdk/python/src")).output().unwrap();
     assert!(
         observed.status.success(),

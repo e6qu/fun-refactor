@@ -23,7 +23,10 @@ pub use agent_actions::{
 };
 pub use agent_intent::{agent_action_mode, agent_intent_section_allowed};
 pub(crate) mod agent_guide;
-pub use agent_guide::{agent_guide_binding_admitted, agent_guide_route_admitted, agent_guide_step};
+pub use agent_guide::{
+    agent_guide_binding_admitted, agent_guide_delivery_admitted, agent_guide_route_admitted,
+    agent_guide_step,
+};
 mod application;
 mod batch;
 mod capability_action;

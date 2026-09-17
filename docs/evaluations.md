@@ -16,16 +16,25 @@ Every retained run has a manifest under `tests/agent-eval/results/`. Manifests b
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;
 acceptance runs must satisfy their scorer at recording time.
 
-## Current matched result
+## Current matched results
 
 The accepted 2026-09-17 matched cohort gives both agents seven preview outcomes. The local SDK arm
 uses two agent calls and 46,120 input tokens. The direct-file arm uses seven calls and 89,118 input
 tokens. Both pass without source mutation, failed commands, bypasses or human correction.
 
 This one pair shows a 48.2% input reduction on its fixed fixture. It does not establish a population
-effect, cover source-writing tasks, expose hidden reasoning or report billed quota. The immutable
+effect, expose hidden reasoning or report billed quota. The immutable
 [manifest](../tests/agent-eval/results/2026-09-17-matched-context-acceptance/manifest.json) contains
 the exact environment and score.
+
+A separate accepted pair performs one real source-writing task. Both agents change the same Rust
+scalar and pass 33 compiled behavior cases without failed calls, direct commands or correction.
+The SDK agent uses two exposed calls and 57,464 input tokens. Its retained review produces one
+basis-bound write, eight passing check/apply/undo/redo/patch stages and the expected patch. The
+direct-file agent uses four exposed calls and 67,859 input tokens. The observed input difference is
+-10,395 tokens, or 15.3% fewer for the SDK arm, on this one fixed task. The
+[source-writing manifest](../tests/agent-eval/results/2026-09-17-matched-source-acceptance/manifest.json)
+retains the prompts, requests, responses, Codex settings and usage.
 
 ## Find the underlying evidence
 
@@ -34,6 +43,7 @@ the exact environment and score.
 | Completion workflows | [`completion-workflows.json`](../tests/agent-eval/completion-workflows.json), `tools/completion-workflows.py` |
 | Guided live-agent completion | `tools/completion-agent-eval.py`, `tests/agent-eval/results/2026-09-17-completion-acceptance/` |
 | Matched SDK and direct-file context | `tools/matched-agent-context.py`, `tests/agent-eval/results/2026-09-17-matched-context-acceptance/` |
+| Matched SDK and direct-file source writing | `tools/matched-agent-source.py`, `tests/agent-eval/results/2026-09-17-matched-source-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
 | Semantic bodies, deltas and intents | `tests/agent-eval/semantic-*.json`, `tools/semantic-*.py` |
@@ -55,9 +65,9 @@ cargo build --features cli
 python3 tools/completion-workflows.py --fr target/debug/fr --output /tmp/completion.json
 python3 tools/completion-workflows.py --audit /tmp/completion.json
 python3 tools/matched-agent-context.py replay tests/agent-eval/results/2026-09-17-matched-context-acceptance
+python3 tools/matched-agent-source.py audit tests/agent-eval/results/2026-09-17-matched-source-acceptance
 ```
 
 Use the [Codex runner guide](agent-codex-runner.md) for live-run isolation and the current economical
 model configuration. Treat token, byte and call counts as properties of the retained run. Recompute
 them after changing prompts, skills, fixtures, model settings or tool output.
-

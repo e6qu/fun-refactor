@@ -104,6 +104,16 @@ def main (args : List String) : IO Unit :=
                 for basisMatches in [false, true] do
                   IO.println (FrKernels.AgentGuide.bindingAdmitted expectedFields suppliedFields
                     namesMatch valuesBounded executionDisabled basisMatches)
+  | ["agent-guide-deliveries"] =>
+      for purpose in [0:7] do
+        for actionCount in ([0, 1, 16, 17] : List Nat) do
+          for reportCount in ([0, 1, 16, 17] : List Nat) do
+            for reviewCount in ([0, 1, 2] : List Nat) do
+              for routeAccepted in [false, true] do
+                for guideMatches in [false, true] do
+                  for reviewComplete in [false, true] do
+                    IO.println (FrKernels.AgentGuide.deliveryAdmitted purpose actionCount
+                      reportCount reviewCount routeAccepted guideMatches reviewComplete)
   | ["agent-context-admission"] => do
       for calls in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do
         for limit in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do

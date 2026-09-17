@@ -110,6 +110,33 @@ python3 -m venv .venv
 .venv/bin/python -m pip install ./sdk/python
 ```
 
+For a checked scalar change, the agent can keep discovery and preview reports local, inspect one
+reviewed diff, then execute that unchanged run:
+
+```python
+from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
+from fr_ir.ir import TaskDelivery
+from fr_ir.runtime import FrClient
+
+client = FrClient(".")
+goal = AgentGoal(
+    "change",
+    selector=GoalSelector(name="calculate"),
+    operation=GoalOperation("semantic-scalar", {
+        "operation": "set-int", "from": "7", "to": "9",
+    }),
+    checks=("unit",),
+    delivery=TaskDelivery(patch="artifacts/change.patch"),
+)
+
+run = client.complete_guide(goal)
+review = run.review()
+print(review.at("/author/diff"))
+
+result = client.execute_guide(run)
+assert result.passed
+```
+
 Use the [agent quickstart](docs/agent-skill.md), [workflow guide](docs/agent-workflow-guide.md),
 [Python runtime](docs/agent-runtime-sdk.md) and [Python package README](sdk/python/README.md) for the
 complete contracts.
