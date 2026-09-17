@@ -95,6 +95,15 @@ def main (args : List String) : IO Unit :=
             for completeReview in [false, true] do
               for basisMatches in [false, true] do
                 IO.println (FrKernels.AgentGuide.step state action ready completeReview basisMatches)
+  | ["agent-guide-bindings"] =>
+      for expectedFields in ([0, 1, 32, 33] : List Nat) do
+        for suppliedFields in ([0, 1, 32, 33] : List Nat) do
+          for namesMatch in [false, true] do
+            for valuesBounded in [false, true] do
+              for executionDisabled in [false, true] do
+                for basisMatches in [false, true] do
+                  IO.println (FrKernels.AgentGuide.bindingAdmitted expectedFields suppliedFields
+                    namesMatch valuesBounded executionDisabled basisMatches)
   | ["agent-context-admission"] => do
       for calls in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do
         for limit in ([0, 1, 63, 64, 65, 18446744073709551615] : List Nat) do

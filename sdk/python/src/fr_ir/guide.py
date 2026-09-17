@@ -4,7 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 import hashlib
 import json
+from pathlib import Path
 import re
+import tempfile
 from typing import Any, Mapping, TYPE_CHECKING
 
 from .context import merkle_object_digest
@@ -32,6 +34,10 @@ def _bounded(value: Any, label: str, maximum: int = 512) -> None:
     if (not isinstance(value, str) or not value or "\0" in value
             or len(value.encode("utf-8")) > maximum):
         raise FrRuntimeError(f"{label} must be a bounded nonempty string")
+
+
+def _requests_execution(value: str) -> bool:
+    return value.split("=", 1)[0] in ("--write", "--save-plan")
 
 
 @dataclass(frozen=True)
@@ -201,6 +207,13 @@ def _guide_step(state: int, action: int, ready: bool, complete_review: bool,
     return 5
 
 
+def _guide_binding_admitted(expected_fields: int, supplied_fields: int, names_match: bool,
+                            values_bounded: bool, execution_disabled: bool,
+                            basis_matches: bool) -> bool:
+    return (expected_fields <= 32 and expected_fields == supplied_fields and names_match
+            and values_bounded and execution_disabled and basis_matches)
+
+
 @dataclass(frozen=True)
 class GuideAction:
     guide: AgentGuide = field(repr=False)
@@ -215,6 +228,58 @@ class GuideAction:
     @property
     def arguments(self) -> tuple[str, ...]:
         return tuple(self.to_data()["arguments"])
+
+
+@dataclass(frozen=True)
+class GuideFile:
+    """One bounded agent-authored file supplied to a guide placeholder."""
+
+    name: str
+    text: str
+
+    def __post_init__(self) -> None:
+        if (not isinstance(self.name, str) or Path(self.name).name != self.name
+                or self.name in ("", ".", "..") or "\0" in self.name
+                or len(self.name.encode("utf-8")) > 255):
+            raise FrRuntimeError("guide file needs one bounded plain filename")
+        if (not isinstance(self.text, str) or "\0" in self.text
+                or len(self.text.encode("utf-8")) > 65_536):
+            raise FrRuntimeError("guide file content must be at most 65536 UTF-8 bytes")
+
+
+@dataclass(frozen=True)
+class GuideInputs:
+    """Exact values for the named author fields of one guide action."""
+
+    values: Mapping[str, str | GuideFile] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.values, Mapping):
+            raise FrRuntimeError("guide inputs must be a field map")
+        copied: dict[str, str | GuideFile] = {}
+        for name, value in self.values.items():
+            _bounded(name, "guide input name")
+            if not isinstance(value, (str, GuideFile)):
+                raise FrRuntimeError("guide input values must be strings or GuideFile values")
+            if isinstance(value, str):
+                _bounded(value, "guide input value", 4096)
+                if _requests_execution(value):
+                    raise FrRuntimeError("guide inputs cannot request execution or plan persistence")
+            copied[name] = value
+        object.__setattr__(self, "values", copied)
+
+
+@dataclass(frozen=True)
+class GuideRun:
+    """A retained guide and every read/preview report followed from it."""
+
+    guide: AgentGuide
+    reports: tuple[FrReport, ...]
+
+    def __post_init__(self) -> None:
+        if (not isinstance(self.guide, AgentGuide)
+                or len(self.reports) != len(self.guide.actions())):
+            raise FrRuntimeError("guide run does not cover every retained action")
 
 
 @dataclass(frozen=True)
@@ -242,12 +307,24 @@ class AgentGuide:
                                            "packet_bytes": self.goal.context.packet_limit}):
             raise FrRuntimeError("agent guide failed identity or bounded preview admission")
         for action in value["actions"]:
+            fields = action.get("author_fields") if isinstance(action, dict) else None
+            names = ([item.get("name") for item in fields]
+                     if isinstance(fields, list) and all(isinstance(item, dict) for item in fields)
+                     else [])
+            placeholders = ({item[1:-1] for item in action.get("arguments", [])
+                             if isinstance(item, str) and item.startswith("<") and item.endswith(">")}
+                            if isinstance(action, dict) else set())
             if (not isinstance(action, dict) or action.get("writes") is not False
                     or not isinstance(action.get("arguments"), list)
-                    or not action["arguments"] or "--write" in action["arguments"]
-                    or "--save-plan" in action["arguments"]
-                    or not isinstance(action.get("author_fields"), list)
-                    or action.get("ready") is not (len(action["author_fields"]) == 0)):
+                    or not action["arguments"]
+                    or any(not isinstance(item, str) or _requests_execution(item)
+                           for item in action["arguments"])
+                    or not isinstance(fields, list) or not all(isinstance(name, str) for name in names)
+                    or any(not name or "\0" in name or len(name.encode("utf-8")) > 64
+                           for name in names)
+                    or len(names) > 32 or len(names) != len(set(names))
+                    or placeholders != set(names)
+                    or action.get("ready") is not (len(fields) == 0)):
                 raise FrRuntimeError("guide recommended an invalid or writing action")
         object.__setattr__(self, "report_sha256", hashlib.sha256(encoded).hexdigest())
 
@@ -268,19 +345,43 @@ def guide_goal(client: FrClient, goal: AgentGoal) -> AgentGuide:
     return AgentGuide(goal, report)
 
 
-def follow_guide(client: FrClient, action: GuideAction) -> FrReport:
+def follow_guide(
+    client: FrClient,
+    action: GuideAction,
+    inputs: GuideInputs | None = None,
+) -> FrReport:
     if not isinstance(action, GuideAction):
         raise FrRuntimeError("follow_guide requires an action retained by a guide")
     if hashlib.sha256(_canonical(action.guide.to_data())).hexdigest() != action.guide.report_sha256:
         raise FrRuntimeError("guide changed after receipt")
     value = action.to_data()
-    if value["ready"] is not True:
-        raise FrRuntimeError("guide action needs its named agent-authored fields")
+    expected_fields = tuple(field["name"] for field in value["author_fields"])
+    supplied = {} if inputs is None else inputs.values
+    if set(supplied) != set(expected_fields):
+        raise FrRuntimeError("guide inputs must exactly match the action's named author fields")
+    if value["ready"] is not (len(expected_fields) == 0):
+        raise FrRuntimeError("guide action readiness differs from its author fields")
     current = guide_goal(client, action.guide.goal)
-    if current.at("/basis") != action.guide.at("/basis"):
+    basis_matches = current.at("/basis") == action.guide.at("/basis")
+    if not _guide_binding_admitted(
+        len(expected_fields), len(supplied), set(supplied) == set(expected_fields),
+        True, True, basis_matches,
+    ):
         raise FrRuntimeError("guide basis changed before its read/preview action")
     data = value.get("input")
-    report = client.call(*action.arguments, input_bytes=_canonical(data) if data is not None else None)
+    with tempfile.TemporaryDirectory(prefix="fr-guide-") as directory:
+        replacements: dict[str, str] = {}
+        for name, supplied_value in supplied.items():
+            if isinstance(supplied_value, GuideFile):
+                path = Path(directory) / supplied_value.name
+                path.write_text(supplied_value.text, encoding="utf-8")
+                replacements[f"<{name}>"] = str(path)
+            else:
+                replacements[f"<{name}>"] = supplied_value
+        arguments = tuple(replacements.get(item, item) for item in action.arguments)
+        if any(item.startswith("<") and item.endswith(">") for item in arguments):
+            raise FrRuntimeError("guide action retains an unbound author placeholder")
+        report = client.call(*arguments, input_bytes=_canonical(data) if data is not None else None)
     expected = value.get("output_schema")
     field_name = value.get("schema_field", "schema")
     if report.to_data().get(field_name) != expected:
@@ -296,6 +397,28 @@ def follow_guide(client: FrClient, action: GuideAction) -> FrReport:
         return TaskReview(report.to_data(), report.arguments, manifest,
                           hashlib.sha256(manifest).hexdigest(), basis)
     return report
+
+
+def complete_guide(
+    client: FrClient,
+    goal: AgentGoal,
+    inputs: Mapping[int, GuideInputs] | None = None,
+) -> GuideRun:
+    """Select one route and follow all its read/preview actions inside the SDK."""
+    if inputs is not None and not isinstance(inputs, Mapping):
+        raise FrRuntimeError("guide run inputs must be an action-index map")
+    authored = {} if inputs is None else dict(inputs)
+    if (any(isinstance(index, bool) or not isinstance(index, int) or index < 0
+            or not isinstance(value, GuideInputs) for index, value in authored.items())):
+        raise FrRuntimeError("guide run inputs must map nonnegative action indexes to GuideInputs")
+    guide = guide_goal(client, goal)
+    if set(authored) - set(range(len(guide.actions()))):
+        raise FrRuntimeError("guide run inputs name an absent action")
+    reports = tuple(
+        follow_guide(client, action, authored.get(action.index))
+        for action in guide.actions()
+    )
+    return GuideRun(guide, reports)
 
 
 def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedIntentAction,

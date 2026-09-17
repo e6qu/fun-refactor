@@ -72,6 +72,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B921: **the Python guide runtime could not follow actions with authored fields**. An agent
+  had to copy every intermediate report and manually create recipe, migration or tactics files,
+  defeating the local low-context runtime. `GuideInputs`, `GuideFile` and `complete_guide` now bind
+  only exact named placeholders, use bounded temporary files, refresh the guide basis, verify every
+  output contract and keep writes disabled. Rust, Python and Lean agree on the binding gate.
+
 - [x] B920: **recipe guidance omitted the recipe file envelope**. The route exposed the selected
   verb, predicates and expectation forms, but a fresh agent still had to guess the `schema` and
   `recipe` wrapper. The author contract now supplies the exact schema line, lower-kebab recipe

@@ -197,6 +197,22 @@ pub fn agent_guide_step(
     }
 }
 
+pub fn agent_guide_binding_admitted(
+    expected_fields: usize,
+    supplied_fields: usize,
+    names_match: bool,
+    values_bounded: bool,
+    execution_disabled: bool,
+    basis_matches: bool,
+) -> bool {
+    expected_fields <= 32
+        && expected_fields == supplied_fields
+        && names_match
+        && values_bounded
+        && execution_disabled
+        && basis_matches
+}
+
 fn read_goal(root: &Path, path: &Path) -> Result<Goal> {
     let mut bytes = Vec::new();
     if path == Path::new("-") {

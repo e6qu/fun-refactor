@@ -7,6 +7,11 @@ exact scalar goals with checks return the existing `TaskReview`. See the
 [goal and workflow contract](agent-workflow-guide.md) for schemas, proof boundaries and complete
 guided-versus-manual process and byte accounting.
 
+For authored actions, pass `GuideInputs` and use `GuideFile` for recipe, property or tactics
+content. `complete_guide` follows the full preview sequence inside one local Python program, keeping
+intermediate reports out of the agent transcript. It requires an exact value for every named author
+field, rechecks the guide basis before each action and never adds a write flag.
+
 The zero-dependency Python package can retain `fr` reports as data instead of copying command JSON
 through an agent's conversation. `FrClient` runs the local binary without a shell, fixes one project
 root, bounds arguments, input, output and time, and returns `FrReport` objects. The Rust binary
