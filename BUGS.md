@@ -72,6 +72,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B931: **two local-context measurements retained an old runtime digest**. Fresh runtime and
+  workspace comparisons bind the current Python executor. Their outcomes and measured 89.3% and
+  92.4% agent-visible byte reductions remain unchanged.
+
 - [x] B930: **two retained Python runtime comparisons had stale source bindings**. The native-intent
   and reviewed-action audits now bind the current SDK runtime. Fresh runs preserve their exact
   outcome equality, process-call reductions and byte-accounting invariants.
