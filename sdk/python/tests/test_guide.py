@@ -5,9 +5,10 @@ import pytest
 
 from fr_ir.context import merkle_object_digest
 from fr_ir.guide import (AgentGoal, AgentGuide, GoalConstraints, GoalLimits, GoalOperation,
-                        GoalSelector, GuideFile, GuideInputs, _canonical, complete_guide,
+                        GoalSelector, GuideFile, GuideInputs, _canonical,
+                        _guide_delivery_admitted, complete_guide,
                         follow_guide, guide_goal)
-from fr_ir.runtime import FrReport, FrRuntimeError
+from fr_ir.runtime import FrClient, FrReport, FrRuntimeError, TaskResult, TaskReview
 
 
 @pytest.mark.parametrize("value", ["--write", "--save-plan", "--write=true", "--save-plan=true"])
@@ -67,6 +68,35 @@ class AuthoredClient(FakeClient):
         supplied = open(arguments[4], encoding="utf-8").read()
         assert supplied == "rfl\n"
         return FrReport({"schema": "fr-proof-attempt-1", "accepted": True}, arguments)
+
+
+class DeliveryClient(FakeClient):
+    def call(self, *arguments, input_bytes=None):
+        if arguments[0] == "guide":
+            report = super().call(*arguments, input_bytes=input_bytes)
+            value = report._value
+            manifest = {"schema": "fr-task-change-1", "requests": [], "targets": []}
+            value["route"] = {"id": "semantic-scalar", "admitted": True}
+            value["actions"] = [{"id": "preview", "arguments": ["task-change", "--from", "-"],
+                                 "output_schema": "fr-task-change-1", "schema_field": "schema",
+                                 "input": manifest, "author_fields": [], "writes": False,
+                                 "ready": True, "max_output_bytes": 16384}]
+            identity = {key: item for key, item in value.items()
+                        if key not in ("object_root", "basis", "serialized_bytes")}
+            value["object_root"] = merkle_object_digest(identity)
+            value["serialized_bytes"] = 0
+            for _ in range(5):
+                value["serialized_bytes"] = len(_canonical(value))
+            return report
+        self.calls.append((arguments, input_bytes))
+        manifest_sha256 = hashlib.sha256(input_bytes).hexdigest()
+        basis = "frtc1:" + "1" * 64
+        if "--write" in arguments:
+            return FrReport({"schema": "fr-task-change-1", "executed": True,
+                             "passed": True, "task_change_basis": basis}, arguments)
+        return FrReport({"schema": "fr-task-change-1", "ready": True, "executed": False,
+                         "manifest_sha256": manifest_sha256,
+                         "task_change_basis": basis}, arguments)
 
 
 def test_goal_wire_shape_preserves_tagged_ir_and_explicit_limits():
@@ -131,6 +161,42 @@ def test_complete_guide_keeps_intermediate_reports_inside_one_sdk_call():
     })})
     assert result.guide.at("/schema") == "fr-agent-guide-1"
     assert [report.schema for report in result.reports] == ["fr-proof-attempt-1"]
+
+
+def test_complete_guide_exposes_and_executes_one_unchanged_review():
+    client = DeliveryClient()
+    run = complete_guide(client, AgentGoal("change"))
+    assert isinstance(run.review(), TaskReview)
+    result = FrClient.execute_guide(client, run)
+    assert isinstance(result, TaskResult)
+    assert result.passed
+    assert client.calls[-1][0][-3:] == ("--write", "--basis", run.review().task_change_basis)
+
+
+def test_guided_delivery_refuses_tampering_and_routes_without_one_task_review():
+    client = DeliveryClient()
+    run = complete_guide(client, AgentGoal("change"))
+    run.guide.report._value["route"]["admitted"] = False
+    with pytest.raises(FrRuntimeError, match="stale, incomplete"):
+        FrClient.execute_guide(client, run)
+    with pytest.raises(FrRuntimeError, match="exactly one"):
+        complete_guide(AuthoredClient(), AgentGoal("prove"), {0: GuideInputs({
+            "tactics-file": GuideFile("proof.lean", "rfl\n"),
+        })}).review()
+
+
+def test_guide_delivery_kernel_requires_the_complete_change_review_boundary():
+    assert _guide_delivery_admitted(2, 1, 1, 1, True, True, True)
+    for case in (
+        (1, 1, 1, 1, True, True, True),
+        (2, 0, 0, 1, True, True, True),
+        (2, 1, 0, 1, True, True, True),
+        (2, 1, 1, 0, True, True, True),
+        (2, 1, 1, 1, False, True, True),
+        (2, 1, 1, 1, True, False, True),
+        (2, 1, 1, 1, True, True, False),
+    ):
+        assert not _guide_delivery_admitted(*case)
 
 
 @pytest.mark.parametrize("build", [

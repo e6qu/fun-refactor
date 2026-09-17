@@ -95,4 +95,25 @@ theorem changed_guide_cannot_bind
     bindingAdmitted expectedFields suppliedFields namesMatch valuesBounded executionDisabled false = false := by
   simp [bindingAdmitted]
 
+-- fr:spec src/project/agent_guide.rs::agent_guide_delivery_admitted @ 60e779b03d67c7e7d83c98bf3a2b80dacccff1f961e0237e145474d4ea240922
+-- fr:signature purpose: usize => purpose: Nat; action_count: usize => actionCount: Nat; report_count: usize => reportCount: Nat; review_count: usize => reviewCount: Nat; route_admitted: bool => routeAccepted: Bool; guide_matches: bool => guideMatches: Bool; review_complete: bool => reviewComplete: Bool; return: bool => return: Bool
+def deliveryAdmitted (purpose actionCount reportCount reviewCount : Nat)
+    (routeAccepted guideMatches reviewComplete : Bool) : Bool :=
+  purpose == 2 && decide (1 ≤ actionCount) && decide (actionCount ≤ 16) &&
+    decide (reportCount = actionCount) && decide (reviewCount = 1) && routeAccepted &&
+    guideMatches && reviewComplete
+
+theorem delivery_requires_one_complete_unchanged_review
+    (accepted : deliveryAdmitted purpose actionCount reportCount reviewCount
+      routeAccepted guideMatches reviewComplete = true) :
+    purpose = 2 ∧ 1 ≤ actionCount ∧ actionCount ≤ 16 ∧ reportCount = actionCount ∧
+      reviewCount = 1 ∧ routeAccepted = true ∧ guideMatches = true ∧ reviewComplete = true := by
+  simpa [deliveryAdmitted, Bool.and_eq_true, and_assoc] using accepted
+
+theorem stale_guide_cannot_deliver
+    (purpose actionCount reportCount reviewCount : Nat) (routeAccepted reviewComplete : Bool) :
+    deliveryAdmitted purpose actionCount reportCount reviewCount
+      routeAccepted false reviewComplete = false := by
+  simp [deliveryAdmitted]
+
 end FrKernels.AgentGuide

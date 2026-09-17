@@ -17,7 +17,7 @@ from .context import ObjectStore
 from .intent import CompiledIntent
 
 if TYPE_CHECKING:
-    from .runtime import FrClient
+    from .runtime import FrClient, TaskReview
 
 _PURPOSES = ("understand", "trace", "change", "migrate", "prove")
 _PROOFS = ("none", "model", "implementation")
@@ -214,6 +214,13 @@ def _guide_binding_admitted(expected_fields: int, supplied_fields: int, names_ma
             and values_bounded and execution_disabled and basis_matches)
 
 
+def _guide_delivery_admitted(purpose: int, action_count: int, report_count: int,
+                             review_count: int, route_admitted: bool, guide_matches: bool,
+                             review_complete: bool) -> bool:
+    return (purpose == 2 and 1 <= action_count <= 16 and report_count == action_count
+            and review_count == 1 and route_admitted and guide_matches and review_complete)
+
+
 @dataclass(frozen=True)
 class GuideAction:
     guide: AgentGuide = field(repr=False)
@@ -280,6 +287,17 @@ class GuideRun:
         if (not isinstance(self.guide, AgentGuide)
                 or len(self.reports) != len(self.guide.actions())):
             raise FrRuntimeError("guide run does not cover every retained action")
+
+    def review(self) -> TaskReview:
+        """Return the sole immutable task review, refusing routes that need a tagged intent."""
+        from .runtime import TaskReview
+        reviews = tuple(report for report in self.reports if isinstance(report, TaskReview))
+        if len(reviews) != 1:
+            raise FrRuntimeError(
+                "guide run must retain exactly one task review; use compile_guided_intent "
+                "for this route"
+            )
+        return reviews[0]
 
 
 @dataclass(frozen=True)

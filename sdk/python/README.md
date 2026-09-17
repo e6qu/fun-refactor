@@ -39,7 +39,9 @@ evidence = client.follow_guide(guide.actions()[0])
 `AgentGoal` mirrors `fr-agent-goal-1`, including operation, constraints, checks, proof expectations,
 context limits and delivery. `AgentGuide` verifies the goal identity and Merkle report; following an
 action first revalidates its basis and then checks the exact response contract and byte ceiling.
-Exact semantic scalar goals with checks return a `TaskReview` for the existing `execute` lifecycle.
+Exact semantic scalar goals with checks return a `GuideRun`; inspect its sole `TaskReview` through
+`run.review()`, then pass the unchanged run to `client.execute_guide`. Other writing routes use
+`compile_guided_intent` and `execute_intent`.
 See [the language-aware route contract](../../docs/agent-workflow-guide.md) for authored fields,
 specialized workflows and the measured freshness cost.
 

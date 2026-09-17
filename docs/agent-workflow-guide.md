@@ -70,16 +70,17 @@ from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient
 
 client = FrClient(".")
-guide = client.guide(AgentGoal(
+goal = AgentGoal(
     "change",
     selector=GoalSelector(name="calculate", scope="src", language="rust"),
     operation=GoalOperation("semantic-scalar", {"operation": "set-int", "from": "7", "to": "9"}),
     checks=("unit",),
     delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=256),
-))
-review = client.follow_guide(guide.actions()[0])
-# Review review.at('/author/diff') and its complete checks and delivery basis.
-result = client.execute(review)
+)
+run = client.complete_guide(goal)
+review = run.review()
+print(review.at("/author/diff"))
+result = client.execute_guide(run)
 assert result.passed
 ```
 
@@ -106,10 +107,12 @@ assert run.reports[-1].at("/applied") is False
 ```
 
 `complete_guide` obtains one guide and follows every read or preview action locally. The caller
-still authors every required value and reviews the returned reports; the method does not enable
-writes. Each action refreshes the guide and checks its immutable basis, output schema and byte
-ceiling. This form is intended for an agent-authored Python program whose intermediate project
-reports should stay outside the model transcript.
+still authors every required value and reviews the returned reports. `GuideRun.review()` accepts
+only a run with exactly one immutable task review. After that explicit review boundary,
+`execute_guide` refreshes the guide again and executes only the unchanged retained task. Routes
+with another write shape refuse and direct the caller to `compile_guided_intent`. Each action checks
+the guide basis, output schema and byte ceiling. This form is intended for an agent-authored Python
+program whose intermediate project reports should stay outside the model transcript.
 
 The guide contains no source, semantic body, complete vocabulary or unrelated route. Exact source
 requires `constraints.allow_source: true` and a separate bounded reveal. Reveal limits range from
@@ -130,8 +133,8 @@ Some older direct commands return unversioned JSON objects. Their guide actions 
 
 `FrKernels.AgentGuide` proves matching purpose/live support/source permission requirements, exact
 bounded author-field binding and the complete unchanged-review requirement for execution. Rust,
-Python and executable Lean agree over 32,256 route cases, 336 lifecycle cases and 1,024 binding
-cases. These proofs cover the scalar policies;
+Python and executable Lean agree over finite route, lifecycle, binding and guided-delivery corpora.
+These proofs cover the admission policies;
 parsing, serialization, SHA-256, target construction, planners, writers, subprocesses, toolchains,
 proof completeness and general implementation correspondence remain separate tested/trusted
 boundaries.

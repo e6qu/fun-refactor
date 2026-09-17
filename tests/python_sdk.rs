@@ -75,7 +75,7 @@ fn checked_agent_guide_context_comparison_is_reproducible() {
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_slice(&fs::read(evidence).unwrap()).unwrap();
-    assert_eq!(report["guided"]["process_calls"], 4);
+    assert_eq!(report["guided"]["process_calls"], 5);
     assert_eq!(report["manual"]["process_calls"], 3);
     assert!(report["equality"]
         .as_object()
