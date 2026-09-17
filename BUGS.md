@@ -72,6 +72,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B927: **retained batch-context evidence went stale after a project-kernel addition**. The
+  full acceptance gate caught the changed source digest. The comparison now has three cold and
+  three warm repetitions against the current binary. Its pinned tokenizer supplies reproducible
+  token counts that the earlier single sample lacked.
+
 - [x] B926: **a complete guided scalar preview had no first-class retained-run executor**. Agents
   had to extract a `TaskReview` from an untyped report tuple and switch to the generic executor.
   `GuideRun.review()` now requires exactly one task review, and `execute_guide` refreshes the guide
