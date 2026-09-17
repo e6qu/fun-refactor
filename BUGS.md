@@ -72,6 +72,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B929: **retained completion workflows referenced the previous guide implementation**. The
+  acceptance audit refused their stale source binding. A new deterministic run binds the current
+  binary and rechecks all seven guide families without source mutation or exploratory follow-up.
+
 - [x] B928: **the guided-intent skill route exceeded its disclosure ceiling**. New delivery guidance
   pushed the combined route 58 bytes past 7 KiB. Tighter wording preserves each workflow step and
   restores the enforced route budget; the packaged examples still execute successfully.
