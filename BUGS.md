@@ -72,6 +72,10 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B928: **the guided-intent skill route exceeded its disclosure ceiling**. New delivery guidance
+  pushed the combined route 58 bytes past 7 KiB. Tighter wording preserves each workflow step and
+  restores the enforced route budget; the packaged examples still execute successfully.
+
 - [x] B927: **retained batch-context evidence went stale after a project-kernel addition**. The
   full acceptance gate caught the changed source digest. The comparison now has three cold and
   three warm repetitions against the current binary. Its pinned tokenizer supplies reproducible
