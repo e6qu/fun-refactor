@@ -33,9 +33,8 @@ Today, native tagged intents can review and execute those routes, while the simp
 Dogfooding this outcome fixed three defects: the Python guide bridge now accepts the
 `application-migration` operation advertised by its route, path-scoped symbol queries restrict the
 scan before parsing and resolution, and the Lean grammar reads the common proof forms listed in
-B934. B935 remains explicit: constructor branches for `cases`, `induction` and `rcases` need a
-bounded structural grammar before proof submissions join the common delivery lifecycle. An opaque
-tactic fallback is not acceptable because it would hide the hierarchy from agents.
+B934. The current outcome adds bounded structural branches for `cases`, `induction` and `rcases`
+without hiding tactics behind an opaque fallback.
 
 ## Validation
 

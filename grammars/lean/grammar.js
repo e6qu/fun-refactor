@@ -770,6 +770,8 @@ module.exports = grammar({
       $.tactic_case,
       $.tactic_rewrite,
       $.tactic_by_cases,
+      $.tactic_cases,
+      $.tactic_rcases,
       $.tactic_have,
       $.tactic_let,
       $.tactic_show,
@@ -790,6 +792,57 @@ module.exports = grammar({
       optional(seq(field('name', $.identifier), ':')),
       field('condition', $._expression),
     )),
+
+    // Constructor-producing tactics retain their branch hierarchy instead of
+    // falling through the generic identifier-and-arguments tactic rule.
+    tactic_cases: $ => prec.right(3, seq(
+      field('tactic', choice('cases', 'induction')),
+      field('subject', $._tactic_subject),
+      optional(seq(
+        'with',
+        repeat1($.tactic_constructor_branch),
+      )),
+    )),
+
+    tactic_constructor_branch: $ => prec.right(seq(
+      '|',
+      field('constructor', $.qualified_name),
+      repeat(field('binder', choice($.identifier, $.hole))),
+      '=>',
+      $._layout_start,
+      field('body', $._tactic_seq),
+      optional($._layout_end),
+    )),
+
+    // `rcases` has a pattern tree rather than tactic bodies. Alternatives and
+    // constructor tuples remain named nodes so an agent can reveal one branch.
+    tactic_rcases: $ => prec.right(3, seq(
+      'rcases',
+      field('subject', $._tactic_subject),
+      'with',
+      field('pattern', $._rcases_pattern),
+    )),
+
+    _rcases_pattern: $ => choice(
+      $._rcases_atom,
+      $.rcases_tuple_pattern,
+      $.rcases_alternative_pattern,
+    ),
+
+    _rcases_atom: $ => choice($.identifier, $.hole, '-', 'rfl'),
+
+    // Keeping the scrutinized value name-shaped prevents the full expression
+    // grammar from being duplicated across every structural tactic branch.
+    _tactic_subject: $ => choice($.qualified_name, $.number, $.hole),
+
+    rcases_tuple_pattern: $ => seq(
+      '⟨', commaSep1($._rcases_atom), '⟩',
+    ),
+
+    rcases_alternative_pattern: $ => seq(
+      '(', choice($._rcases_atom, $.rcases_tuple_pattern),
+      repeat1(seq('|', choice($._rcases_atom, $.rcases_tuple_pattern))), ')',
+    ),
 
     // Configuration list: `[lemma1, ←lemma2, *]`
     // The ← before lemmas is handled by unary_expression.

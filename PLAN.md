@@ -37,8 +37,7 @@ does not prove its source without a checked correspondence boundary.
 
 The architecture needed for items 1 through 7 exists. Item 8 has accepted preview evidence and one
 accepted real source-writing task, but lacks breadth across repositories, languages and multi-file
-changes. B935 is the one known actionable defect: structural Lean tactic branches remain outside
-the parser.
+changes. The defect ledger currently records no actionable correctness defect.
 
 | Area | Delivered baseline | Remaining work |
 |---|---|---|
@@ -98,8 +97,7 @@ Give every admitted writable guide route the same safe high-level lifecycle.
 - Replace route-specific SDK handoffs with one immutable reviewed-delivery abstraction.
 - Cover built-in capabilities, recipes, semantic bodies and deltas, batches, surface edits,
   application migrations, formal scaffolds and proof submissions.
-- Model `cases`, `induction` and `rcases` proof branches as structural Lean nodes without an opaque
-  fallback, closing B935 before proof submissions use the common lifecycle.
+- Keep `cases`, `induction` and `rcases` proof branches structural without an opaque fallback.
 - Bind the goal, guide, authored inputs, target set, project revision, checks, delivery policy and
   complete preview into one review identity.
 - Execute only an unchanged review through original checks, apply, final checks, reversal, restored

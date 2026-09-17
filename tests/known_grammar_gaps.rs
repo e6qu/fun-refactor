@@ -12,19 +12,30 @@ fn error_nodes(language: Language, source: &str) -> usize {
 }
 
 #[test]
-fn lean_tactic_branches_remain_explicitly_outside_the_grammar() {
+fn lean_tactic_constructor_branches_are_structural() {
     let supported = "theorem t (state : Nat) (ready : Bool) : True := by\n  \
                      by_cases h : state = 0 <;> cases ready <;> simp_all\n";
     assert_eq!(error_nodes(Language::Lean, supported), 0);
 
-    let cases_branch = "theorem t (state : Nat) : True := by\n  \
-                        cases state with\n  \
-                        | zero => simp\n  \
-                        | succ rest => simp\n";
-    assert!(
-        error_nodes(Language::Lean, cases_branch) > 0,
-        "B935 stays open until constructor branches have structural nodes"
-    );
+    for source in [
+        "theorem t (state : Nat) : True := by\n  \
+         cases state with\n  \
+         | zero => simp\n  \
+         | succ rest => simp\n",
+        "theorem t (values : List Nat) : True := by\n  \
+         induction values with\n  \
+         | nil => simp\n  \
+         | cons head tail ih => simp_all\n",
+        "theorem t (pair : Nat × Nat) : True := by\n  \
+         rcases pair with ⟨left, right⟩\n  \
+         simp\n",
+        "theorem t (value : Sum Nat Nat) : True := by\n  \
+         rcases value with (left | right)\n  \
+         simp_all\n",
+    ] {
+        let tree = Parsers::new().parse(Language::Lean, source).unwrap();
+        assert!(!tree.has_errors(), "{source}\n{}", tree.root().to_sexp());
+    }
 }
 
 #[test]
