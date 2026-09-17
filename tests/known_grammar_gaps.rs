@@ -12,6 +12,22 @@ fn error_nodes(language: Language, source: &str) -> usize {
 }
 
 #[test]
+fn lean_tactic_branches_remain_explicitly_outside_the_grammar() {
+    let supported = "theorem t (state : Nat) (ready : Bool) : True := by\n  \
+                     by_cases h : state = 0 <;> cases ready <;> simp_all\n";
+    assert_eq!(error_nodes(Language::Lean, supported), 0);
+
+    let cases_branch = "theorem t (state : Nat) : True := by\n  \
+                        cases state with\n  \
+                        | zero => simp\n  \
+                        | succ rest => simp\n";
+    assert!(
+        error_nodes(Language::Lean, cases_branch) > 0,
+        "B935 stays open until constructor branches have structural nodes"
+    );
+}
+
+#[test]
 fn python_reads_a_starred_element_in_a_bare_tuple() {
     // `grammars/python` gives `expression_list` the choice Python's own star_expressions
     // has: each element is an expression or a starred one.

@@ -1394,6 +1394,29 @@ fn symbols_narrows_to_the_paths_it_is_given() {
     );
 }
 
+#[test]
+fn path_scoped_symbols_do_not_parse_files_outside_the_scope() {
+    let ws = Workspace::new(&[
+        ("keep/a.go", "package p\nfunc alpha() {}\n"),
+        ("drop/b.go", "package p\nfunc broken(\n"),
+    ]);
+
+    let (all, ok) = ws.run(&["symbols"]);
+    assert!(ok, "{all}");
+    assert!(
+        all.contains("drop/b.go"),
+        "the full index reports the parse gap"
+    );
+
+    let (selected, ok) = ws.run(&["symbols", "keep"]);
+    assert!(ok, "{selected}");
+    assert!(selected.contains("alpha"), "{selected}");
+    assert!(
+        !selected.contains("drop/b.go") && !selected.contains("did not parse in full"),
+        "the excluded file never enters parsing or diagnostics:\n{selected}"
+    );
+}
+
 /// Deleting the only user of an import leaves the import, when caution about traits keeps it.
 #[test]
 fn delete_names_the_import_it_kept() {

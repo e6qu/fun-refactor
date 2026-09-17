@@ -220,6 +220,45 @@
     ]
   },
   {
+    "type": "alternative_pattern",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "char",
+          "named": true
+        },
+        {
+          "type": "false",
+          "named": true
+        },
+        {
+          "type": "hole",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "true",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "anonymous_constructor",
     "named": true,
     "fields": {},
@@ -684,6 +723,10 @@
             "named": false
           },
           {
+            "type": "&&&",
+            "named": false
+          },
+          {
             "type": "*",
             "named": false
           },
@@ -728,6 +771,10 @@
             "named": false
           },
           {
+            "type": "<<<",
+            "named": false
+          },
+          {
             "type": "<=",
             "named": false
           },
@@ -756,11 +803,19 @@
             "named": false
           },
           {
+            "type": ">>>",
+            "named": false
+          },
+          {
             "type": "\\",
             "named": false
           },
           {
             "type": "^",
+            "named": false
+          },
+          {
+            "type": "^^^",
             "named": false
           },
           {
@@ -776,11 +831,23 @@
             "named": false
           },
           {
+            "type": "|||",
+            "named": false
+          },
+          {
             "type": "×",
             "named": false
           },
           {
             "type": "↔",
+            "named": false
+          },
+          {
+            "type": "∈",
+            "named": false
+          },
+          {
+            "type": "∉",
             "named": false
           },
           {
@@ -817,6 +884,14 @@
           },
           {
             "type": "≥",
+            "named": false
+          },
+          {
+            "type": "⊂",
+            "named": false
+          },
+          {
+            "type": "⊆",
             "named": false
           },
           {
@@ -874,6 +949,10 @@
       "types": [
         {
           "type": "tactic_apply",
+          "named": true
+        },
+        {
+          "type": "tactic_by_cases",
           "named": true
         },
         {
@@ -3007,11 +3086,30 @@
             "named": false
           },
           {
-            "type": "_expression",
+            "type": "match_pattern",
             "named": true
           }
         ]
       }
+    }
+  },
+  {
+    "type": "match_pattern",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "_expression",
+          "named": true
+        },
+        {
+          "type": "alternative_pattern",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -3109,6 +3207,10 @@
         },
         {
           "type": "tactic_apply",
+          "named": true
+        },
+        {
+          "type": "tactic_by_cases",
           "named": true
         },
         {
@@ -3576,6 +3678,10 @@
           {
             "type": "instance_binder",
             "named": true
+          },
+          {
+            "type": "quantifier_membership_binders",
+            "named": true
           }
         ]
       },
@@ -3621,6 +3727,33 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "quantifier_membership_binders",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "_expression",
+          "named": true
+        },
+        {
+          "type": "explicit_binder",
+          "named": true
+        },
+        {
+          "type": "implicit_binder",
+          "named": true
+        },
+        {
+          "type": "instance_binder",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -4199,6 +4332,32 @@
     }
   },
   {
+    "type": "tactic_by_cases",
+    "named": true,
+    "fields": {
+      "condition": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_expression",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "tactic_calc",
     "named": true,
     "fields": {},
@@ -4227,6 +4386,10 @@
         },
         {
           "type": "tactic_apply",
+          "named": true
+        },
+        {
+          "type": "tactic_by_cases",
           "named": true
         },
         {
@@ -4285,6 +4448,10 @@
       "types": [
         {
           "type": "tactic_apply",
+          "named": true
+        },
+        {
+          "type": "tactic_by_cases",
           "named": true
         },
         {
@@ -4709,6 +4876,10 @@
             "named": false
           },
           {
+            "type": "~~~",
+            "named": false
+          },
+          {
             "type": "¬",
             "named": false
           },
@@ -4855,6 +5026,10 @@
     "named": false
   },
   {
+    "type": "&&&",
+    "named": false
+  },
+  {
     "type": "'",
     "named": false
   },
@@ -4951,6 +5126,10 @@
     "named": false
   },
   {
+    "type": "<<<",
+    "named": false
+  },
+  {
     "type": "<=",
     "named": false
   },
@@ -4983,6 +5162,10 @@
     "named": false
   },
   {
+    "type": ">>>",
+    "named": false
+  },
+  {
     "type": "?",
     "named": false
   },
@@ -5012,6 +5195,10 @@
   },
   {
     "type": "^",
+    "named": false
+  },
+  {
+    "type": "^^^",
     "named": false
   },
   {
@@ -5048,6 +5235,10 @@
   },
   {
     "type": "by",
+    "named": false
+  },
+  {
+    "type": "by_cases",
     "named": false
   },
   {
@@ -5452,7 +5643,15 @@
     "named": false
   },
   {
+    "type": "|||",
+    "named": false
+  },
+  {
     "type": "}",
+    "named": false
+  },
+  {
+    "type": "~~~",
     "named": false
   },
   {
@@ -5492,6 +5691,14 @@
     "named": false
   },
   {
+    "type": "∈",
+    "named": false
+  },
+  {
+    "type": "∉",
+    "named": false
+  },
+  {
     "type": "∘",
     "named": false
   },
@@ -5525,6 +5732,14 @@
   },
   {
     "type": "≥",
+    "named": false
+  },
+  {
+    "type": "⊂",
+    "named": false
+  },
+  {
+    "type": "⊆",
     "named": false
   },
   {
