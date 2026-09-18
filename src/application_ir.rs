@@ -122,11 +122,17 @@ impl Adapter {
 pub enum FeatureKind {
     JsonRoute,
     PathJsonRoute,
+    ValidatedJsonRoute,
     StaticComponent,
 }
 
 impl FeatureKind {
-    pub const ALL: [Self; 3] = [Self::JsonRoute, Self::PathJsonRoute, Self::StaticComponent];
+    pub const ALL: [Self; 4] = [
+        Self::JsonRoute,
+        Self::PathJsonRoute,
+        Self::ValidatedJsonRoute,
+        Self::StaticComponent,
+    ];
     pub fn code(self) -> usize {
         self as usize
     }
@@ -135,9 +141,53 @@ impl FeatureKind {
         match self {
             Self::JsonRoute => "json-route",
             Self::PathJsonRoute => "path-json-route",
+            Self::ValidatedJsonRoute => "validated-json-route",
             Self::StaticComponent => "static-component",
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HttpInputSource {
+    Query,
+    JsonBody,
+}
+
+impl HttpInputSource {
+    pub fn code(self) -> usize {
+        self as usize
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HttpScalar {
+    String,
+    Integer,
+    Boolean,
+}
+
+impl HttpScalar {
+    pub fn code(self) -> usize {
+        self as usize
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HttpInput {
+    pub name: String,
+    pub source: HttpInputSource,
+    pub scalar: HttpScalar,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HttpValidationIssue {
+    pub source: HttpInputSource,
+    pub name: String,
+    pub expected: HttpScalar,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -147,6 +197,9 @@ pub enum HttpExpression {
         value: Value,
     },
     Path {
+        name: String,
+    },
+    Input {
         name: String,
     },
     Object {
@@ -159,9 +212,18 @@ pub enum HttpExpression {
 
 impl HttpExpression {
     pub fn validate(&self, parameters: &BTreeSet<String>) -> Result<(), String> {
+        self.validate_with_inputs(parameters, &BTreeSet::new())
+    }
+
+    pub fn validate_with_inputs(
+        &self,
+        parameters: &BTreeSet<String>,
+        inputs: &BTreeSet<String>,
+    ) -> Result<(), String> {
         fn walk(
             expr: &HttpExpression,
             parameters: &BTreeSet<String>,
+            inputs: &BTreeSet<String>,
             depth: usize,
             nodes: &mut usize,
         ) -> Result<(), String> {
@@ -180,42 +242,63 @@ impl HttpExpression {
                 }
                 HttpExpression::Path { name } if parameters.contains(name) => (),
                 HttpExpression::Path { .. } => return Err("HTTP expression refers to an undeclared path parameter.".into()),
+                HttpExpression::Input { name } if inputs.contains(name) => (),
+                HttpExpression::Input { .. } => return Err("HTTP expression refers to an undeclared request input.".into()),
                 HttpExpression::Object { fields } => {
                     for (name, value) in fields {
                         if name.len() > 256 { return Err("HTTP object field exceeds its byte bound".into()); }
-                        walk(value, parameters, depth + 1, nodes)?;
+                        walk(value, parameters, inputs, depth + 1, nodes)?;
                     }
                 }
-                HttpExpression::Array { items } => for value in items { walk(value, parameters, depth + 1, nodes)?; },
+                HttpExpression::Array { items } => for value in items { walk(value, parameters, inputs, depth + 1, nodes)?; },
             }
             Ok(())
         }
-        walk(self, parameters, 0, &mut 0)?;
+        walk(self, parameters, inputs, 0, &mut 0)?;
         encoded_size(self, 1_048_576)?;
         Ok(())
     }
 
     pub fn evaluate(&self, parameters: &BTreeMap<String, String>) -> Result<Value, String> {
-        self.validate(&parameters.keys().cloned().collect())?;
+        self.evaluate_with_inputs(parameters, &BTreeMap::new())
+    }
+
+    pub fn evaluate_with_inputs(
+        &self,
+        parameters: &BTreeMap<String, String>,
+        inputs: &BTreeMap<String, Value>,
+    ) -> Result<Value, String> {
+        self.validate_with_inputs(
+            &parameters.keys().cloned().collect(),
+            &inputs.keys().cloned().collect(),
+        )?;
         if parameters.len() > 32 || parameters.values().any(|value| value.len() > 4096) {
             return Err("HTTP evaluation parameters exceed their bounds.".into());
         }
-        fn run(expr: &HttpExpression, parameters: &BTreeMap<String, String>) -> Value {
+        fn run(
+            expr: &HttpExpression,
+            parameters: &BTreeMap<String, String>,
+            inputs: &BTreeMap<String, Value>,
+        ) -> Value {
             match expr {
                 HttpExpression::Literal { value } => value.clone(),
                 HttpExpression::Path { name } => Value::String(parameters[name].clone()),
+                HttpExpression::Input { name } => inputs[name].clone(),
                 HttpExpression::Object { fields } => Value::Object(
                     fields
                         .iter()
-                        .map(|(name, expr)| (name.clone(), run(expr, parameters)))
+                        .map(|(name, expr)| (name.clone(), run(expr, parameters, inputs)))
                         .collect(),
                 ),
-                HttpExpression::Array { items } => {
-                    Value::Array(items.iter().map(|expr| run(expr, parameters)).collect())
-                }
+                HttpExpression::Array { items } => Value::Array(
+                    items
+                        .iter()
+                        .map(|expr| run(expr, parameters, inputs))
+                        .collect(),
+                ),
             }
         }
-        let value = run(self, parameters);
+        let value = run(self, parameters, inputs);
         encoded_size(&value, 1_048_576)?;
         Ok(value)
     }
@@ -226,6 +309,8 @@ impl HttpExpression {
 pub struct HttpRoute {
     pub method: String,
     pub path: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inputs: Vec<HttpInput>,
     pub status: u16,
     pub response: HttpExpression,
 }
@@ -271,15 +356,147 @@ impl HttpRoute {
         if !crate::framework_kernel::application_json_status_admitted(self.status as usize) {
             return Err("status does not admit a portable JSON response body.".into());
         }
-        self.response.validate(&self.parameters()?)
+        let parameters = self.parameters()?;
+        if self.inputs.len() > 32 {
+            return Err("route exceeds its request input bound".into());
+        }
+        let method = match self.method.as_str() {
+            "GET" => 0,
+            "POST" => 1,
+            "PUT" => 2,
+            "PATCH" => 3,
+            "DELETE" => 4,
+            "OPTIONS" => 5,
+            _ => unreachable!(),
+        };
+        let mut inputs = BTreeSet::new();
+        for input in &self.inputs {
+            if !identifier(&input.name)
+                || parameters.contains(&input.name)
+                || !inputs.insert(input.name.clone())
+                || !crate::framework_kernel::application_request_input_admitted(
+                    method,
+                    input.source.code(),
+                    input.scalar.code(),
+                )
+            {
+                return Err(
+                    "request input name, source or scalar type is not portable for this method."
+                        .into(),
+                );
+            }
+        }
+        self.response.validate_with_inputs(&parameters, &inputs)
+    }
+
+    pub fn validate_request(
+        &self,
+        query: &BTreeMap<String, String>,
+        body: Option<&Value>,
+    ) -> Result<BTreeMap<String, Value>, Vec<HttpValidationIssue>> {
+        if self.validate().is_err()
+            || query.len() > 64
+            || query.values().any(|value| value.len() > 4096)
+        {
+            return Err(self
+                .inputs
+                .iter()
+                .map(|input| HttpValidationIssue {
+                    source: input.source,
+                    name: input.name.clone(),
+                    expected: input.scalar,
+                })
+                .collect());
+        }
+        let body = body.and_then(Value::as_object);
+        let mut values = BTreeMap::new();
+        let mut issues = Vec::new();
+        for input in &self.inputs {
+            let value = match input.source {
+                HttpInputSource::Query => query
+                    .get(&input.name)
+                    .and_then(|value| query_scalar(value, input.scalar)),
+                HttpInputSource::JsonBody => body
+                    .and_then(|body| body.get(&input.name))
+                    .and_then(|value| body_scalar(value, input.scalar)),
+            };
+            if let Some(value) = value {
+                values.insert(input.name.clone(), value);
+            } else {
+                issues.push(HttpValidationIssue {
+                    source: input.source,
+                    name: input.name.clone(),
+                    expected: input.scalar,
+                });
+            }
+        }
+        if issues.is_empty() {
+            Ok(values)
+        } else {
+            Err(issues)
+        }
     }
 
     pub fn feature_kind(&self) -> Result<FeatureKind, String> {
-        Ok(if self.parameters()?.is_empty() {
+        Ok(if !self.inputs.is_empty() {
+            FeatureKind::ValidatedJsonRoute
+        } else if self.parameters()?.is_empty() {
             FeatureKind::JsonRoute
         } else {
             FeatureKind::PathJsonRoute
         })
+    }
+}
+
+fn query_scalar(value: &str, scalar: HttpScalar) -> Option<Value> {
+    match scalar {
+        HttpScalar::String if value.len() <= 4096 => Some(Value::String(value.to_owned())),
+        HttpScalar::Integer => {
+            if value == "0"
+                || value
+                    .strip_prefix('-')
+                    .unwrap_or(value)
+                    .bytes()
+                    .enumerate()
+                    .all(|(index, byte)| byte.is_ascii_digit() && (index > 0 || byte != b'0'))
+            {
+                integer_value(value)
+            } else {
+                None
+            }
+        }
+        HttpScalar::Boolean if value == "true" => Some(Value::Bool(true)),
+        HttpScalar::Boolean if value == "false" => Some(Value::Bool(false)),
+        _ => None,
+    }
+}
+
+fn integer_value(value: &str) -> Option<Value> {
+    let value = value.parse::<i64>().ok()?;
+    (-9_007_199_254_740_991..=9_007_199_254_740_991)
+        .contains(&value)
+        .then(|| Value::Number(value.into()))
+}
+
+fn body_scalar(value: &Value, scalar: HttpScalar) -> Option<Value> {
+    match (scalar, value) {
+        (HttpScalar::String, Value::String(value)) if value.len() <= 4096 => {
+            Some(Value::String(value.clone()))
+        }
+        (HttpScalar::Integer, Value::Number(value)) => value
+            .as_i64()
+            .filter(|value| (-9_007_199_254_740_991..=9_007_199_254_740_991).contains(value))
+            .or_else(|| {
+                value.as_f64().and_then(|value| {
+                    (value.is_finite()
+                        && value.fract() == 0.0
+                        && (-9_007_199_254_740_991.0..=9_007_199_254_740_991.0).contains(&value))
+                    .then_some(value as i64)
+                })
+            })
+            .map(|value| Value::Number(value.into())),
+        (HttpScalar::Boolean, Value::Bool(value)) => Some(Value::Bool(*value)),
+        _ => None,
     }
 }
 

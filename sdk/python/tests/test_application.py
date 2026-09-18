@@ -2,8 +2,9 @@ from pathlib import Path as FilePath
 
 import pytest
 
-from fr_ir.application import (ApplicationIr, ApplicationNode, Array, HttpRoute, Literal, Object,
-                               Path, RouteBundle, StaticComponent, StaticElement, StaticText)
+from fr_ir.application import (ApplicationIr, ApplicationNode, Array, HttpInput, HttpRoute, Input,
+                               Literal, Object, Path, RouteBundle, StaticComponent, StaticElement,
+                               StaticText)
 from fr_ir.context import ContextSession
 from fr_ir.ir import IrError
 from fr_ir.runtime import FrClient
@@ -81,6 +82,32 @@ def test_static_component_mirrors_the_bounded_application_ir():
     node = ApplicationNode("component", "component", None, {}, [], component=component)
     model = ApplicationIr("a" * 64, [node], {})
     assert ApplicationIr.from_data(model.to_data()).to_data() == model.to_data()
+
+
+def test_validated_request_ir_matches_the_native_shape():
+    route = HttpRoute(
+        "POST", "/records/{id}", 201,
+        Object({"id": Path("id"), "limit": Input("limit"), "title": Input("title")}),
+        (HttpInput("limit", "query", "integer"),
+         HttpInput("title", "json-body", "string")),
+    )
+    value = route.to_data()
+    assert value["inputs"] == [
+        {"name": "limit", "source": "query", "scalar": "integer"},
+        {"name": "title", "source": "json-body", "scalar": "string"},
+    ]
+    assert HttpRoute.from_data(value).to_data() == value
+    assert RouteBundle.from_data(RouteBundle((route,)).to_data()).to_data() == RouteBundle((route,)).to_data()
+
+
+@pytest.mark.parametrize("route", [
+    HttpRoute("GET", "/", 200, Input("body"), (HttpInput("body", "json-body", "string"),)),
+    HttpRoute("POST", "/{id}", 200, Input("id"), (HttpInput("id", "query", "string"),)),
+    HttpRoute("POST", "/", 200, Input("missing"), (HttpInput("value", "query", "string"),)),
+])
+def test_validated_request_ir_refuses_unportable_shapes(route):
+    with pytest.raises(IrError):
+        route.to_data()
     with pytest.raises(IrError, match="attribute"):
         StaticComponent("App", StaticElement("button", {"onClick": "run"}, [])).to_data()
     with pytest.raises(IrError, match="whitespace"):

@@ -13,7 +13,12 @@ try {
   const cases = JSON.parse(await readFile("cases.json", "utf8"));
   const results = [];
   for (const test of cases) {
-    const response = await fetch(`http://127.0.0.1:${server.address().port}${test.url}`, { method: test.method });
+    const init = { method: test.method };
+    if (test.body !== undefined) {
+      init.headers = { "content-type": "application/json" };
+      init.body = JSON.stringify(test.body);
+    }
+    const response = await fetch(`http://127.0.0.1:${server.address().port}${test.url}`, init);
     results.push({ status: response.status, body: await response.json() });
   }
   console.log(JSON.stringify(results));

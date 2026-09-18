@@ -185,6 +185,17 @@ fr --json project features --feature '<FEATURE_ID>'
 fr --json migrate feature '<FEATURE_ID>' --to fastapi --out services/route.py
 ```
 
+Generate an application from an admitted application IR bundle:
+
+```sh
+fr --json project application
+fr --json migrate application --project . --to express --out generated
+```
+
+Agents can also author required query and JSON-body scalar validation through the typed Python
+application IR. See the [application IR contract](docs/application-ir.md) for its exact reader and
+writer boundaries.
+
 Create and check a project-specific Lean proof package:
 
 ```sh

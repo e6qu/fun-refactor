@@ -271,6 +271,8 @@ def main (args : List String) : IO Unit := do
   else if args == ["application-adapters"] then
     for adapter in List.range 7 do
       for feature in List.range 5 do
+        IO.println (applicationAdapterReads adapter feature)
+        IO.println (applicationAdapterWrites adapter feature)
         IO.println (applicationAdapterSupports adapter feature)
     for source in List.range 7 do
       for target in List.range 7 do
@@ -278,6 +280,10 @@ def main (args : List String) : IO Unit := do
           IO.println (applicationAdaptersCompatible source target feature)
     for status in List.range 602 do
       IO.println (applicationJsonStatusAdmitted status)
+    for method in List.range 8 do
+      for source in List.range 4 do
+        for scalar in List.range 5 do
+          IO.println (applicationRequestInputAdmitted method source scalar)
     for input in [0, 1, 2, 256, 4096] do
       for assigned in [0, 1, 2, 256, 4096] do
         for unique in [false, true] do
@@ -285,6 +291,10 @@ def main (args : List String) : IO Unit := do
             IO.println (applicationDispositionsComplete input assigned unique exactIds)
     for method in [false, true] do
       for path in [false, true] do
+        for inputs in [false, true] do
+          for status in [false, true] do
+            for response in [false, true] do
+              IO.println (applicationValidatedEndpointAgreement method path inputs status response)
         for status in [false, true] do
           for response in [false, true] do
             IO.println (applicationEndpointAgreement method path status response)

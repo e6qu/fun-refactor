@@ -1158,7 +1158,8 @@ fn application_source_wholly_owned(
     let relative = source.strip_prefix(&project.root).unwrap_or(source);
     match feature {
         crate::application_ir::FeatureKind::JsonRoute
-        | crate::application_ir::FeatureKind::PathJsonRoute => {
+        | crate::application_ir::FeatureKind::PathJsonRoute
+        | crate::application_ir::FeatureKind::ValidatedJsonRoute => {
             adapter == crate::application_ir::Adapter::Nextjs
                 && matches!(
                     relative.file_name().and_then(|name| name.to_str()),

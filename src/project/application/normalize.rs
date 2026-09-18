@@ -408,6 +408,7 @@ fn normalize(
     let provisional = HttpRoute {
         method: method.to_owned(),
         path: path.to_owned(),
+        inputs: Vec::new(),
         status: 200,
         response: HttpExpression::Literal { value: Value::Null },
     };
@@ -422,6 +423,7 @@ fn normalize(
     let route = HttpRoute {
         method: method.to_owned(),
         path: path.to_owned(),
+        inputs: Vec::new(),
         status,
         response,
     };

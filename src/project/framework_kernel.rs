@@ -2,18 +2,40 @@ pub fn framework_emitted(total: usize, limit: usize) -> usize {
     total.min(limit)
 }
 
+pub fn application_adapter_reads(adapter: usize, feature: usize) -> bool {
+    (feature <= 1 && adapter <= 3) || (feature == 3 && (adapter == 0 || adapter == 4))
+}
+
+pub fn application_adapter_writes(adapter: usize, feature: usize) -> bool {
+    (feature <= 2 && adapter <= 3) || (feature == 3 && (adapter == 0 || adapter == 4))
+}
+
 pub fn application_adapter_supports(adapter: usize, feature: usize) -> bool {
-    (feature <= 1 && adapter <= 3) || (feature == 2 && (adapter == 0 || adapter == 4))
+    application_adapter_reads(adapter, feature) && application_adapter_writes(adapter, feature)
 }
 
 pub fn application_adapters_compatible(source: usize, target: usize, feature: usize) -> bool {
     source != target
-        && application_adapter_supports(source, feature)
-        && application_adapter_supports(target, feature)
+        && application_adapter_reads(source, feature)
+        && application_adapter_writes(target, feature)
 }
 
 pub fn application_json_status_admitted(status: usize) -> bool {
     (200..=599).contains(&status) && status != 204 && status != 205 && status != 304
+}
+
+pub fn application_request_input_admitted(method: usize, source: usize, scalar: usize) -> bool {
+    method <= 5 && scalar <= 2 && (source == 0 || source == 1 && (1..=3).contains(&method))
+}
+
+pub fn application_validated_endpoint_agreement(
+    method: bool,
+    path: bool,
+    inputs: bool,
+    status: bool,
+    response: bool,
+) -> bool {
+    method && path && inputs && status && response
 }
 
 pub fn application_dispositions_complete(
