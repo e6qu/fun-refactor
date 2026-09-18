@@ -223,6 +223,14 @@ matrix includes structural disclosed editing and now compares all 1,980 combinat
 hashing, Merkle computation, structural enumeration and rendering remain covered by deterministic
 oracle, CLI and lifecycle tests rather than these finite proofs.
 
+The application part of `FrKernels.Project` separates source-reader and target-writer admission.
+Readable features are proved writable; compatibility requires a distinct target, a source reader and
+a target writer. Request-input admission permits bounded scalar query inputs on the six modeled
+methods and JSON-body inputs only on POST, PUT and PATCH. A validated endpoint agrees only when its
+method, path, inputs, status and response all agree. Rust, Python and Lean compare 1,296 outputs
+covering the expanded adapter matrix, request admission, status, hierarchy, agreement and resource
+policies. Parsing query or JSON bytes and executing framework code remain runtime-test obligations.
+
 The same project kernel anchors seventeen framework policy helpers used after syntax recognition.
 Thirty-nine theorems cover caps, middleware ranks, hook rejection, prefixes, migration, registration, body handling, cutover and dependency edits.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.

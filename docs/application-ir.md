@@ -17,7 +17,9 @@ literal JSON and path-binding subset. The normalizer reads the shared semantic I
 then recognizes explicit response wrappers for Next.js, FastAPI, Express and Go
 standard HTTP. Equivalent admitted handlers produce the same response expression.
 Calls, request bodies, queries, middleware, authentication, errors and other effects
-remain `manual` in `data.normalization`; their source evidence stays intact. Component
+remain `manual` when normalizing existing source in `data.normalization`; their source evidence
+stays intact. The separately authored HTTP IR described below can generate a checked required-input
+subset without pretending that arbitrary source has been read into it. Component
 nodes retain a rendering boundary. The richer checked Next.js/FastAPI feature
 migration remains available for request and response schema cases outside this subset.
 
@@ -48,25 +50,35 @@ Use those handles for code maps, call traces, impact and sources/sinks analysis.
 
 `fr-http-application-1` is a separate executable subset for agent-authored HTTP
 behavior. It contains `schema` and `routes`. Each route supplies `method`, `path`,
-`status` and `response`. Expressions use exactly four variants:
+optional `inputs`, `status` and `response`. Expressions use five variants:
 
 | Kind | Fields | Meaning |
 |---|---|---|
 | `literal` | `value` | JSON null, Boolean, bounded string or safe signed integer |
 | `path` | `name` | String value of a declared path parameter |
+| `input` | `name` | Validated value of a declared request input |
 | `object` | `fields` | Named child expressions |
 | `array` | `items` | Ordered child expressions |
+
+Every input has a simple `name`, a `source` of `query` or `json-body`, and a `scalar` of
+`string`, `integer` or `boolean`. Inputs are required, names are unique and distinct from path
+parameters, and JSON-body inputs are admitted only on `POST`, `PUT` and `PATCH`. Query keys must
+occur exactly once. Validation failures return status 422 and
+`{"error":"validation","issues":[...]}` in declaration order. Each issue identifies the source,
+name and expected scalar. Undeclared query keys and body fields do not affect the route.
 
 The Python classes mirror those fields:
 
 ```python
 from pathlib import Path as FilePath
-from fr_ir.application import HttpRoute, Literal, Object, Path, RouteBundle
+from fr_ir.application import HttpInput, HttpRoute, Input, Literal, Object, Path, RouteBundle
 
 application = RouteBundle([
     HttpRoute("GET", "/records/{id}", 200,
               Object({"id": Path("id"), "available": Literal(True)})),
-    HttpRoute("POST", "/audit", 201, Literal("accepted")),
+    HttpRoute("POST", "/audit", 201,
+              Object({"accepted": Literal(True), "title": Input("title")}),
+              (HttpInput("title", "json-body", "string"),)),
 ])
 application.write(FilePath("application.json"))
 ```
@@ -111,10 +123,12 @@ when this common planner is selected. Agents can author the matching
 fields, named checks and delivery. Preview and execution rebuild the application IR
 from the intent's exact revision-bound target; the action does not carry source text.
 
-`project application` publishes a complete 5×5×3 source/target/feature matrix for
-the five adapters and three admitted feature kinds. Supported cells cite the checked
-compatibility policy. Every refused cell names an identical-adapter, missing-reader
-or missing-writer reason and retains `runtime_proved: false`.
+`project application` publishes a complete 5×5×4 source/target/feature matrix for
+the five adapters and four feature kinds. Source-reader and target-writer predicates are separate:
+the four HTTP adapters write `validated-json-route`, while existing framework source remains
+unreadable as that feature until its validation semantics can be recovered completely. Every
+refused cell names an identical-adapter, missing-reader or missing-writer reason and retains
+`runtime_proved: false`.
 
 Preview first; retain `plan_basis` for an unchanged saved-plan or write request.
 The input must be a JSON file captured in the analyzed project snapshot.
@@ -173,7 +187,12 @@ fixture-name rules.
 
 ## Admission and evidence
 
-Bundles require 1..256 endpoints and at most 1 MiB of encoded JSON. Expressions
+Bundles require 1..256 endpoints and at most 1 MiB of encoded JSON. A route admits at most 32
+request inputs. Query strings and string body fields admit at most 4096 UTF-8 bytes. Query integers
+use canonical decimal spelling; all integers stay in the exactly representable range shared by the
+adapters. JSON integers are mathematical integral numbers in that range. Boolean query values are
+exactly `true` or `false`; JSON values retain their JSON scalar type. Duplicate query keys refuse.
+Expressions
 admit at most 1024 nodes and depth 32. Integer literals must lie within
 `[-9007199254740991, 9007199254740991]`; floating-point and aggregate literals refuse.
 Use explicit object and array expressions for aggregates. Literal strings admit
@@ -187,13 +206,14 @@ Methods are GET, POST, PUT, PATCH, DELETE and OPTIONS. HEAD refuses because the
 IR models a JSON body. Statuses admit 200..599 except 204, 205 and 304.
 
 Writers preserve reserved object keys and avoid parameter/import name collisions.
-Pinned runtime tests compare generated JSON values and statuses with independent
-IR evaluation in FastAPI, Express, Go HTTP and Next.js. Framework installation,
-registration, URL decoding, implicit methods, errors, middleware, authentication,
+Pinned runtime tests execute valid and invalid requests and compare generated JSON values and
+statuses with independent IR evaluation in FastAPI, Express, Go HTTP and Next.js. Framework
+installation, registration, URL decoding, implicit methods, middleware, authentication, nested
 request schemas and deployment behavior remain outside this subset.
 
-Lean proves adapter admission, compatibility, JSON status safety, exact unique
-disposition coverage, endpoint agreement and static-tree resource policies. Shared
+Lean proves separate reader and writer admission, compatibility, request-input admission, JSON
+status safety, exact unique disposition coverage, validated endpoint agreement and static-tree
+resource policies. Shared
 finite Rust, Python and Lean cases check the executable policies. These are model and policy results.
 Parser extraction and generated code behavior remain separate integration tests.
 An integration fixture checks that equivalent Next.js, FastAPI, Express and Go

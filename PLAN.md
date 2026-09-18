@@ -45,7 +45,7 @@ defect ledger currently records no actionable correctness defect.
 | Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks; local, memory and bounded HTTP stores | Validate on more repositories and storage services |
 | Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden representative acceptance |
 | Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
-| Application migration | Generic application IR for admitted Next.js, React, FastAPI, Express and Go HTTP routes or components | Model selected request, query, middleware, authentication and service behavior |
+| Application migration | Generic application IR for routes and components; authored required query/body scalar validation writes to Next.js, FastAPI, Express and Go HTTP | Read selected validation semantics from source; model middleware, authentication and service behavior |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
 | Agent evidence | Deterministic cross-language registry, unfamiliar upstream replay, matched context and two accepted source-writing cohorts | Broaden autonomous cross-project, cross-language, multi-file and proof-writing trials |
@@ -85,7 +85,9 @@ clean-consumer wheel tests, release artifacts and a bounded HTTP Merkle-store ad
 
 Expand high-level changes around concrete cross-stack tasks rather than broad syntax claims.
 
-- Add selected request-body and query-validation semantics across compatible HTTP adapters.
+- Read selected request-body and query-validation semantics from existing source. Authored IR now
+  writes required string, integer and Boolean query/body inputs across all four HTTP adapters with
+  deterministic validation issues and independent runtime comparison.
 - Model middleware, authentication and service-call boundaries only where the IR can state their
   order, inputs, outputs and refusal conditions.
 - Expand React/Next rendering beyond the current static component subset through explicit effect

@@ -21,10 +21,13 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-Application and semantic IR expansion is next. Add concrete request-body, query-validation,
-middleware, authentication, service-call and React rendering semantics only where the IR can state
-their order, data and refusal conditions. Drive the work from representative tasks and preserve the
-generic application adapters.
+Application and semantic IR expansion is active. The authored HTTP IR now carries required query
+values and JSON-body fields with explicit string, integer and Boolean types, deterministic 422
+issues, Python mirrors and four real framework runtime fixtures. The compatibility matrix separates
+source reading from target writing: all HTTP adapters write this feature, while existing framework
+source does not claim a validated round trip yet. Next, recover selected validation semantics from
+source, then model middleware, authentication, service-call and React rendering boundaries only
+where order, data and refusal conditions are explicit.
 
 The completed representative outcome packages a version-matched Python SDK with native releases.
 `fr compatibility` and `FrClient.compatibility()` bind the distribution version, protocol revision

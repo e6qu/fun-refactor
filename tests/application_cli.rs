@@ -31,7 +31,15 @@ fn ok(root: &Path, args: &[&str]) -> Value {
 fn input(root: &Path) {
     fs::write(root.join("application.json"), json!({"schema": "fr-http-application-1", "routes": [
         {"method": "GET", "path": "/records/{id}", "status": 200, "response": {"kind": "object", "fields": {"id": {"kind": "path", "name": "id"}}}},
-        {"method": "POST", "path": "/audit", "status": 201, "response": {"kind": "literal", "value": true}}
+        {"method": "POST", "path": "/audit", "status": 201, "response": {"kind": "literal", "value": true}},
+        {"method": "POST", "path": "/records/{id}", "inputs": [
+            {"name":"limit","source":"query","scalar":"integer"},
+            {"name":"title","source":"json-body","scalar":"string"}
+        ], "status": 201, "response": {"kind":"object","fields":{
+            "id":{"kind":"path","name":"id"},
+            "limit":{"kind":"input","name":"limit"},
+            "title":{"kind":"input","name":"title"}
+        }}}
     ]}).to_string()).unwrap();
 }
 
@@ -400,7 +408,7 @@ fn application_report_publishes_every_adapter_feature_pair_and_refusal() {
                 && targets.iter().all(|target| {
                     target["features"]
                         .as_array()
-                        .is_some_and(|features| features.len() == 3)
+                        .is_some_and(|features| features.len() == 4)
                 })
         })
     }));
@@ -429,6 +437,10 @@ fn application_report_publishes_every_adapter_feature_pair_and_refusal() {
     assert_eq!(
         feature("nextjs", "react", "path-json-route")["reason"],
         "target-writer-does-not-model-path-json-route"
+    );
+    assert_eq!(
+        feature("fastapi", "express", "validated-json-route")["reason"],
+        "source-reader-does-not-model-validated-json-route"
     );
 }
 

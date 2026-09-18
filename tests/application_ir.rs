@@ -1,4 +1,7 @@
-use fun_refactor::application_ir::{write_routes, Adapter, HttpExpression, HttpRoute, RouteBundle};
+use fun_refactor::application_ir::{
+    write_routes, Adapter, FeatureKind, HttpExpression, HttpInput, HttpInputSource, HttpRoute,
+    HttpScalar, RouteBundle,
+};
 use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
 use serde_json::json;
@@ -72,6 +75,7 @@ fn route(path: &str) -> HttpRoute {
     HttpRoute {
         method: "GET".into(),
         path: path.into(),
+        inputs: Vec::new(),
         status: 200,
         response: HttpExpression::Literal { value: json!(true) },
     }
@@ -193,4 +197,125 @@ fn bundles_and_recursive_expressions_are_bounded_and_strict() {
     assert!(expr.validate(&Default::default()).is_err());
     let routes = vec![route("/"); 257];
     assert!(write_routes(&routes, Adapter::Fastapi).is_err());
+}
+
+#[test]
+fn validated_request_inputs_are_typed_bounded_and_deterministic() {
+    let route = HttpRoute {
+        method: "POST".into(),
+        path: "/records/{id}".into(),
+        inputs: vec![
+            HttpInput {
+                name: "limit".into(),
+                source: HttpInputSource::Query,
+                scalar: HttpScalar::Integer,
+            },
+            HttpInput {
+                name: "active".into(),
+                source: HttpInputSource::Query,
+                scalar: HttpScalar::Boolean,
+            },
+            HttpInput {
+                name: "title".into(),
+                source: HttpInputSource::JsonBody,
+                scalar: HttpScalar::String,
+            },
+        ],
+        status: 201,
+        response: HttpExpression::Object {
+            fields: BTreeMap::from([
+                ("id".into(), HttpExpression::Path { name: "id".into() }),
+                (
+                    "limit".into(),
+                    HttpExpression::Input {
+                        name: "limit".into(),
+                    },
+                ),
+                (
+                    "active".into(),
+                    HttpExpression::Input {
+                        name: "active".into(),
+                    },
+                ),
+                (
+                    "title".into(),
+                    HttpExpression::Input {
+                        name: "title".into(),
+                    },
+                ),
+            ]),
+        },
+    };
+    route.validate().unwrap();
+    assert_eq!(
+        route.feature_kind().unwrap(),
+        FeatureKind::ValidatedJsonRoute
+    );
+    let values = route
+        .validate_request(
+            &BTreeMap::from([
+                ("limit".into(), "12".into()),
+                ("active".into(), "false".into()),
+            ]),
+            Some(&json!({"title": "chosen"})),
+        )
+        .unwrap();
+    assert_eq!(values["limit"], 12);
+    assert_eq!(values["active"], false);
+    assert_eq!(values["title"], "chosen");
+    assert_eq!(
+        route
+            .response
+            .evaluate_with_inputs(&BTreeMap::from([("id".into(), "abc".into())]), &values)
+            .unwrap(),
+        json!({"active":false,"id":"abc","limit":12,"title":"chosen"})
+    );
+
+    for invalid in ["01", "+1", "1.0", "9007199254740992"] {
+        let issues = route
+            .validate_request(
+                &BTreeMap::from([
+                    ("limit".into(), invalid.into()),
+                    ("active".into(), "false".into()),
+                ]),
+                Some(&json!({"title":"chosen"})),
+            )
+            .unwrap_err();
+        assert_eq!(issues.len(), 1, "{invalid}");
+        assert_eq!(issues[0].name, "limit");
+    }
+    let issues = route
+        .validate_request(&BTreeMap::new(), Some(&json!({"title": 1})))
+        .unwrap_err();
+    assert_eq!(
+        issues
+            .iter()
+            .map(|issue| issue.name.as_str())
+            .collect::<Vec<_>>(),
+        ["limit", "active", "title"]
+    );
+}
+
+#[test]
+fn validated_request_inputs_refuse_ambiguous_or_unportable_shapes() {
+    let mut candidate = route("/records/{id}");
+    candidate.inputs.push(HttpInput {
+        name: "id".into(),
+        source: HttpInputSource::Query,
+        scalar: HttpScalar::String,
+    });
+    assert!(candidate.validate().is_err());
+    candidate.inputs[0].name = "query".into();
+    candidate.response = HttpExpression::Input {
+        name: "missing".into(),
+    };
+    assert!(candidate.validate().is_err());
+    candidate.response = HttpExpression::Input {
+        name: "query".into(),
+    };
+    candidate.inputs.push(candidate.inputs[0].clone());
+    assert!(candidate.validate().is_err());
+    candidate.inputs.pop();
+    candidate.inputs[0].source = HttpInputSource::JsonBody;
+    assert!(candidate.validate().is_err());
 }

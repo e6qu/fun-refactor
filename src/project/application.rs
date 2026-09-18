@@ -121,7 +121,7 @@ pub fn adapter_contracts() -> Value {
             let reader_features = FeatureKind::ALL
                 .into_iter()
                 .filter(|feature| {
-                    crate::framework_kernel::application_adapter_supports(
+                    crate::framework_kernel::application_adapter_reads(
                         source.code(),
                         feature.code(),
                     )
@@ -134,12 +134,12 @@ pub fn adapter_contracts() -> Value {
                         .into_iter()
                         .map(|feature| {
                             let source_support =
-                                crate::framework_kernel::application_adapter_supports(
+                                crate::framework_kernel::application_adapter_reads(
                                     source.code(),
                                     feature.code(),
                                 );
                             let target_support =
-                                crate::framework_kernel::application_adapter_supports(
+                                crate::framework_kernel::application_adapter_writes(
                                     target.code(),
                                     feature.code(),
                                 );
@@ -174,7 +174,7 @@ pub fn adapter_contracts() -> Value {
                 })
                 .collect::<Vec<_>>();
             json!({"source": source, "reader_features": reader_features, "targets": targets,
-                "excluded": ["request bodies", "query validation", "middleware", "authentication", "service calls", "dynamic rendering", "implicit HTTP methods", "runtime configuration"]})
+                "excluded": ["source normalization of request bodies and query validation", "middleware", "authentication", "service calls", "dynamic rendering", "implicit HTTP methods", "runtime configuration"]})
         })
         .collect::<Vec<_>>())
 }

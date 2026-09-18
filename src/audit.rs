@@ -260,8 +260,8 @@ fn framework_report() -> Value {
                     );
                     json!({"source":source.name(), "target":target.name(), "feature":feature.name(),
                         "status":if admitted {"supported"} else {"unsupported"},
-                        "source_reader":crate::framework_kernel::application_adapter_supports(source.code(), feature.code()),
-                        "target_writer":crate::framework_kernel::application_adapter_supports(target.code(), feature.code()),
+                        "source_reader":crate::framework_kernel::application_adapter_reads(source.code(), feature.code()),
+                        "target_writer":crate::framework_kernel::application_adapter_writes(target.code(), feature.code()),
                         "runtime_proved":false})
                 })
             })
@@ -277,7 +277,7 @@ fn framework_report() -> Value {
         "features": FeatureKind::ALL.map(FeatureKind::name),
         "counts":{"cells":cells.len(),"supported":supported,"unsupported":cells.len()-supported},
         "cells":cells,
-        "excluded":["request bodies","query validation","middleware","authentication",
+        "excluded":["source normalization of request bodies and query validation","middleware","authentication",
             "service calls","dynamic rendering","implicit HTTP methods","runtime configuration"],
         "claim":"Compatibility is a checked static admission policy. Runtime fixtures remain separate evidence.",
     })
@@ -452,7 +452,7 @@ mod tests {
     #[test]
     fn framework_counts_are_derived_from_the_same_policy() {
         let report = framework_report();
-        assert_eq!(report["counts"]["cells"], 75);
+        assert_eq!(report["counts"]["cells"], 100);
         let counted = report["cells"]
             .as_array()
             .unwrap()

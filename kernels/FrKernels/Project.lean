@@ -2,47 +2,90 @@ import Init.Data.List.Sort.Lemmas
 
 namespace FrKernels.Project
 
--- fr:spec src/project/framework_kernel.rs::application_adapter_supports @ 316cfe76f5e124f7a5889e234ad0512c0055b1a96c21d72cd574331079177fe8
+-- fr:spec src/project/framework_kernel.rs::application_adapter_reads @ 23988ee331ff88ad8158915dfaab9200fbe6c7d4e56edfcb699b788405ac2be2
+-- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdapterReads (adapter feature : Nat) : Bool :=
+  decide ((feature ≤ 1 ∧ adapter ≤ 3) ∨ (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
+
+-- fr:spec src/project/framework_kernel.rs::application_adapter_writes @ 6bc9b4d6aba506f3043aa7bc7fd79a9a683c308c8724df61b897302c952986d0
+-- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdapterWrites (adapter feature : Nat) : Bool :=
+  decide ((feature ≤ 2 ∧ adapter ≤ 3) ∨ (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
+
+-- fr:spec src/project/framework_kernel.rs::application_adapter_supports @ 6e018c120ec9e4ecb8565f52f4c10da2126825f640befccdcb016ae919e4d564
 -- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
 def applicationAdapterSupports (adapter feature : Nat) : Bool :=
-  decide ((feature ≤ 1 ∧ adapter ≤ 3) ∨ (feature = 2 ∧ (adapter = 0 ∨ adapter = 4)))
+  applicationAdapterReads adapter feature && applicationAdapterWrites adapter feature
+
+theorem every_readable_feature_is_writable (adapter feature : Nat)
+    (readable : applicationAdapterReads adapter feature = true) :
+    applicationAdapterWrites adapter feature = true := by
+  simp only [applicationAdapterReads, decide_eq_true_eq] at readable
+  simp only [applicationAdapterWrites, decide_eq_true_eq]
+  omega
 
 theorem http_adapters_require_http_features (feature : Nat) (adapter : Nat)
     (http : adapter ≤ 3) (notNext : adapter ≠ 0)
     (accepted : applicationAdapterSupports adapter feature = true) : feature ≤ 1 := by
-  simp only [applicationAdapterSupports, decide_eq_true_eq] at accepted
+  simp only [applicationAdapterSupports, Bool.and_eq_true, applicationAdapterReads,
+    decide_eq_true_eq] at accepted
   omega
 
-theorem react_refuses_http_routes (feature : Nat) (http : feature ≤ 1) :
+theorem react_refuses_http_routes (feature : Nat) (http : feature ≤ 2) :
     applicationAdapterSupports 4 feature = false := by
-  simp only [applicationAdapterSupports, decide_eq_false_iff_not]
-  omega
+  have unreadable : applicationAdapterReads 4 feature = false := by
+    simp only [applicationAdapterReads, decide_eq_false_iff_not]
+    omega
+  simp [applicationAdapterSupports, unreadable]
 
--- fr:spec src/project/framework_kernel.rs::application_adapters_compatible @ df8055a18f59bbc685aa469aac19b0ee215d7d6115e7d501abc1d0a994bc298b
+-- fr:spec src/project/framework_kernel.rs::application_adapters_compatible @ 707aeb2232b4dea31f6eecec7340fb932ae665ca813394f5b34d895152a306c1
 -- fr:signature source: usize => source: Nat; target: usize => target: Nat; feature: usize => feature: Nat; return: bool => return: Bool
 def applicationAdaptersCompatible (source target feature : Nat) : Bool :=
-  decide (source ≠ target) && applicationAdapterSupports source feature &&
-    applicationAdapterSupports target feature
+  decide (source ≠ target) && applicationAdapterReads source feature &&
+    applicationAdapterWrites target feature
 
 theorem compatible_adapters_require_both_contracts (source target feature : Nat) :
     applicationAdaptersCompatible source target feature = true ↔
-      source ≠ target ∧ applicationAdapterSupports source feature = true ∧
-        applicationAdapterSupports target feature = true := by
+      source ≠ target ∧ applicationAdapterReads source feature = true ∧
+        applicationAdapterWrites target feature = true := by
   simp [applicationAdaptersCompatible, and_assoc]
 
 theorem adapter_conversion_is_irreflexive (adapter feature : Nat) :
     applicationAdaptersCompatible adapter adapter feature = false := by
   simp [applicationAdaptersCompatible]
 
-theorem adapter_conversion_is_symmetric (source target feature : Nat) :
-    applicationAdaptersCompatible source target feature =
-      applicationAdaptersCompatible target source feature := by
-  simp [applicationAdaptersCompatible, ne_comm, Bool.and_comm, Bool.and_left_comm, Bool.and_assoc]
-
 -- fr:spec src/project/framework_kernel.rs::application_json_status_admitted @ 6ae20783a53d601db4758776aa07a5f1bb755d9288167edbc32ad6d627ac1c3b
 -- fr:signature status: usize => status: Nat; return: bool => return: Bool
 def applicationJsonStatusAdmitted (status : Nat) : Bool :=
   decide (200 ≤ status ∧ status ≤ 599 ∧ status ≠ 204 ∧ status ≠ 205 ∧ status ≠ 304)
+
+-- fr:spec src/project/framework_kernel.rs::application_request_input_admitted @ 00d97760eaf9a47c484d63066b8c183e7719a5b6ad5bb42c8ba43211388c5b4c
+-- fr:signature method: usize => method: Nat; source: usize => source: Nat; scalar: usize => scalar: Nat; return: bool => return: Bool
+def applicationRequestInputAdmitted (method source scalar : Nat) : Bool :=
+  decide (method ≤ 5 ∧ scalar ≤ 2 ∧ (source = 0 ∨ source = 1 ∧ 1 ≤ method ∧ method ≤ 3))
+
+theorem query_inputs_are_admitted (method scalar : Nat)
+    (methodBound : method ≤ 5) (scalarBound : scalar ≤ 2) :
+    applicationRequestInputAdmitted method 0 scalar = true := by
+  simp [applicationRequestInputAdmitted, methodBound, scalarBound]
+
+theorem body_inputs_require_mutating_methods (method scalar : Nat)
+    (accepted : applicationRequestInputAdmitted method 1 scalar = true) :
+    1 ≤ method ∧ method ≤ 3 := by
+  simp only [applicationRequestInputAdmitted, decide_eq_true_eq] at accepted
+  omega
+
+-- fr:spec src/project/framework_kernel.rs::application_validated_endpoint_agreement @ 2f2cd03ab5ddc86d5b0a733eef0bf0ccbb01ce291b095a83f920f3847d2c4925
+-- fr:signature method: bool => method: Bool; path: bool => path: Bool; inputs: bool => inputs: Bool; status: bool => status: Bool; response: bool => response: Bool; return: bool => return: Bool
+def applicationValidatedEndpointAgreement
+    (method path inputs status response : Bool) : Bool :=
+  method && path && inputs && status && response
+
+theorem validated_endpoint_agreement_is_complete
+    (method path inputs status response : Bool) :
+    applicationValidatedEndpointAgreement method path inputs status response = true ↔
+      method = true ∧ path = true ∧ inputs = true ∧ status = true ∧ response = true := by
+  simp [applicationValidatedEndpointAgreement, and_assoc]
 
 theorem portable_json_status_has_a_body (status : Nat) :
     applicationJsonStatusAdmitted status = true ↔

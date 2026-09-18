@@ -17,6 +17,8 @@ fn application_adapter_policies_agree_with_lean_and_python() {
     let mut expected = Vec::new();
     for adapter in 0..7 {
         for feature in 0..5 {
+            expected.push(application_adapter_reads(adapter, feature).to_string());
+            expected.push(application_adapter_writes(adapter, feature).to_string());
             expected.push(application_adapter_supports(adapter, feature).to_string());
         }
     }
@@ -29,6 +31,14 @@ fn application_adapter_policies_agree_with_lean_and_python() {
     }
     for status in 0..602 {
         expected.push(application_json_status_admitted(status).to_string());
+    }
+    for method in 0..8 {
+        for source in 0..4 {
+            for scalar in 0..5 {
+                expected
+                    .push(application_request_input_admitted(method, source, scalar).to_string());
+            }
+        }
     }
     for input in [0, 1, 2, 256, 4096] {
         for assigned in [0, 1, 2, 256, 4096] {
@@ -44,6 +54,18 @@ fn application_adapter_policies_agree_with_lean_and_python() {
     }
     for method in [false, true] {
         for path in [false, true] {
+            for inputs in [false, true] {
+                for status in [false, true] {
+                    for response in [false, true] {
+                        expected.push(
+                            application_validated_endpoint_agreement(
+                                method, path, inputs, status, response,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
             for status in [false, true] {
                 for response in [false, true] {
                     expected.push(

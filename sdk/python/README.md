@@ -127,7 +127,9 @@ client from `fr_ir.runtime`, progressive storage from `fr_ir.context`, and high-
 no mutable `__all__` registry.
 
 For language-neutral HTTP authoring, `fr_ir.application` provides `RouteBundle`,
-`HttpRoute`, `Literal`, `Path`, `Object` and `Array`. Its exclusive IR-file write feeds
+`HttpRoute`, `HttpInput`, `Literal`, `Path`, `Input`, `Object` and `Array`. Required query values and
+JSON-body fields use explicit string, integer or Boolean scalar contracts. Its exclusive IR-file
+write feeds
 the reviewed `migrate application` planner. Application hierarchies also support
 `FrClient.context(handle, view="application")` and checked Merkle subtree storage.
 `StaticComponent`, `StaticElement` and `StaticText` mirror the bounded React/Next.js
