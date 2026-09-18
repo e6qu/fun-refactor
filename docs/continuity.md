@@ -21,15 +21,18 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-The third bulk roadmap item is next: representative unfamiliar-project acceptance and SDK
-distribution. It covers Rust multi-file work, TypeScript or React, CSS/Tailwind or Mermaid, backend
-migration and agent-authored Lean proofs, with exact postconditions and recoverable delivery. It
-also packages matching Python and native artifacts and adds a minimal remote object-store example.
+Application and semantic IR expansion is next. Add concrete request-body, query-validation,
+middleware, authentication, service-call and React rendering semantics only where the IR can state
+their order, data and refusal conditions. Drive the work from representative tasks and preserve the
+generic application adapters.
 
-The completed guided-delivery outcome binds route, operation, goal, guide, authored input, targets,
-revision, checks, delivery, complete preview and unchanged review. Rust, Python and Lean agree over
-the finite policy corpus. A retained Codex 0.154.0 pair using `gpt-5.6-luna` at low effort completed
-the scalar flow with one reviewed write and all eight recovery and patch stages.
+The completed representative outcome packages a version-matched Python SDK with native releases.
+`fr compatibility` and `FrClient.compatibility()` bind the distribution version, protocol revision
+and schema sets; release CI installs the wheel into an isolated consumer. A bounded HTTP Merkle
+store supplies the existing verified `get`/`put` contract. The representative registry replays an
+unfamiliar upstream workspace, Rust multi-file changes, TSX, CSS/Tailwind/Mermaid, backend migration
+and agent-authored Lean tactics. Two Codex 0.154.0 matched pairs using `gpt-5.6-luna` at low effort
+completed the same scalar source-writing task with reviewed delivery.
 
 ## Validation
 
@@ -57,5 +60,5 @@ cause in the same outcome. Record direct editing only when no suitable `fr` oper
   React/Next components. Other effects require explicit IR semantics.
 - Static analysis retains uncertainty around reflection, runtime names, external callbacks and
   unresolved dynamic dispatch.
-- Live source-writing evidence covers one accepted scalar task and needs cross-project,
-  cross-language, multi-file, migration and proof-writing cohorts.
+- Live source-writing evidence is repeated but still covers one scalar task; the representative
+  cross-language breadth is deterministic rather than a population claim about autonomous agents.

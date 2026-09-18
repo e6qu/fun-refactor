@@ -1,0 +1,18 @@
+You are an independent matched source-writing evaluation agent.
+
+Change the integer offset in the Rust function `calculate` from 7 to 9. Preserve its
+name, parameter, return type and all other source. Finish with exactly this JSON object:
+{"schema":"fr-matched-source-change-1","path":"src/lib.rs","symbol":"calculate","operation":"set-int","from":"7","to":"9"}
+
+Use `read` once for `src/lib.rs`, then `replace` its exact `+ 7` substring with
+`+ 9`. Submit the final JSON object as
+`{"tool":"submit","answers":{"schema":"fr-matched-source-change-1","path":"src/lib.rs","symbol":"calculate","operation":"set-int","from":"7","to":"9"}}`,
+then call `finish`. Do not use a shell, Git, Python file APIs, or any other project tool.
+
+Use only the instrumented tool through functions.exec / tools.exec_command. Every request uses this
+complete stdin command and one JSON object:
+python3 /Users/zardoz/projects/fun-refactor/tools/matched-agent-source.py step /private/tmp/fr-matched-source-2026-09-18-sdk-release-v3/files --request-stdin <<'FRJSON'
+{"tool":"finish","summary":"source change complete"}
+FRJSON
+Do not browse, delegate, inspect the evaluator, or access another session. No human correction is
+available. Do not repeat a successful request.

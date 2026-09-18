@@ -26,6 +26,18 @@ Git attributes preserve evidence bytes and allow the context-only space lines th
 Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
+The [representative acceptance registry](representative-acceptance.json) binds six executable cases:
+the pinned unfamiliar regex workspace, Rust multi-file reviewed delivery, TSX/React body changes,
+CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its
+replay uses one Cargo and Lean worker and labels a missing toolchain as infrastructure failure.
+
+The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
+guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0
+arms use `gpt-5.6-luna` at low effort, pass exact-source and 33-case compiled behavior oracles and
+retain the complete review, reversal and patch lifecycle. Earlier failed fresh attempts were not
+recorded as acceptance evidence; their source changes passed, but a malformed JSON transport
+request required a retry. The accepted prompt uses the evaluator's bounded `program_lines` form.
+
 The separate [evaluation evidence guide](../../docs/evaluations.md) pins a complete upstream workspace and dependency lock.
 It retains four passing autonomous trials and a separate controlled rehearsal.
 Its source archive, licenses and lock live under `regex/`; it does not replace the strsim fixture or earlier transcripts.

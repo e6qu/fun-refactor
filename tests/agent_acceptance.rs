@@ -62,8 +62,13 @@ fn matched_source_writing_evidence_is_bound_and_passing() {
     python(&[
         "tools/matched-agent-source.py",
         "audit",
-        "tests/agent-eval/results/2026-09-18-guided-delivery-acceptance",
+        "tests/agent-eval/results/2026-09-18-sdk-release-acceptance",
     ]);
+}
+
+#[test]
+fn representative_cross_language_registry_and_live_cohorts_are_bound() {
+    python(&["tools/representative-acceptance.py", "audit"]);
 }
 
 #[test]

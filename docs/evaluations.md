@@ -36,6 +36,21 @@ direct-file agent uses four exposed calls and 67,985 input tokens. The observed 
 [source-writing manifest](../tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/manifest.json)
 retains the prompts, requests, responses, Codex settings and usage.
 
+The source-writing pair was repeated after SDK packaging changed the runtime. The accepted repeat
+again used Codex CLI 0.154.0, `gpt-5.6-luna` and low effort. Both arms passed the same exact-source
+and 33-case compiler oracle with no failed commands or human correction. The SDK arm used two
+exposed calls and 63,714 input tokens; the direct-file arm used four calls and 68,098 input tokens.
+The observed difference was -4,384 input tokens on this repeat. The
+[repeat manifest](../tests/agent-eval/results/2026-09-18-sdk-release-acceptance/manifest.json) is
+bound to the new SDK runtime.
+
+The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
+live matched cohorts to executable deterministic cases for a pinned unfamiliar upstream workspace,
+Rust multi-file delivery, TSX/React body changes, CSS/Tailwind/Mermaid surfaces, backend migration
+and agent-authored Lean tactics. It records each fixture revision, independent oracle and exact
+postconditions. Audit metadata and real execution remain separate: replay runs one worker and
+reports missing toolchains as infrastructure failures rather than product failures.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -44,6 +59,7 @@ retains the prompts, requests, responses, Codex settings and usage.
 | Guided live-agent completion | `tools/completion-agent-eval.py`, `tests/agent-eval/results/2026-09-17-completion-acceptance/` |
 | Matched SDK and direct-file context | `tools/matched-agent-context.py`, `tests/agent-eval/results/2026-09-17-matched-context-acceptance/` |
 | Matched SDK and direct-file source writing | `tools/matched-agent-source.py`, `tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/` |
+| Representative cross-language acceptance | `tools/representative-acceptance.py`, `tests/agent-eval/representative-acceptance.json` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
 | Semantic bodies, deltas and intents | `tests/agent-eval/semantic-*.json`, `tools/semantic-*.py` |
@@ -66,6 +82,8 @@ python3 tools/completion-workflows.py --fr target/debug/fr --output /tmp/complet
 python3 tools/completion-workflows.py --audit /tmp/completion.json
 python3 tools/matched-agent-context.py replay tests/agent-eval/results/2026-09-17-matched-context-acceptance
 python3 tools/matched-agent-source.py audit tests/agent-eval/results/2026-09-18-guided-delivery-acceptance
+python3 tools/representative-acceptance.py audit
+python3 tools/representative-acceptance.py replay
 ```
 
 Use the [Codex runner guide](agent-codex-runner.md) for live-run isolation and the current economical
