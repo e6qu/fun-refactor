@@ -21,11 +21,11 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-Application and semantic IR expansion is active. The authored HTTP IR now carries required query
-values and JSON-body fields with explicit string, integer and Boolean types, deterministic 422
-issues, Python mirrors and four real framework runtime fixtures. The compatibility matrix separates
-source reading from target writing: all HTTP adapters write this feature, and FastAPI reads required
-scalar `Query(...)` plus embedded `Body(...)` declarations with safe literal aliases. Defaults,
+Application and semantic IR expansion is active. The authored HTTP IR carries typed required query
+values and JSON-body fields. It has deterministic 422 issues, Python mirrors and four real
+framework runtime fixtures. The compatibility matrix reports readers and writers separately.
+All HTTP adapters write this feature. FastAPI reads required scalar `Query(...)` and embedded
+`Body(...)` declarations with safe literal aliases. Defaults,
 optional types, constraints, dynamic metadata and extra dependencies refuse. Native FastAPI error
 payloads and coercion edges remain explicit canonicalization boundaries. Next, model middleware,
 authentication, service-call and React rendering boundaries only where order, data and refusal

@@ -18,6 +18,13 @@ fn success(mut command: Command) -> String {
     String::from_utf8(output.stdout).unwrap()
 }
 
+fn fastapi_runtime_available() -> bool {
+    Command::new("python3")
+        .args(["-c", "from importlib.metadata import version; assert (version('fastapi'),version('pydantic'),version('starlette')) == ('0.141.1','2.13.5','1.6.0')"])
+        .output()
+        .is_ok_and(|output| output.status.success())
+}
+
 fn routes() -> Vec<HttpRoute> {
     serde_json::from_value(json!([
         {"method":"GET", "path":"/", "status":200, "response":{"kind":"literal","value":true}},
@@ -89,8 +96,7 @@ fn fixture(adapter: Adapter) -> (tempfile::TempDir, Value) {
 
 #[test]
 fn common_ir_runs_through_real_fastapi() {
-    let check = Command::new("python3").args(["-c", "from importlib.metadata import version; assert (version('fastapi'),version('pydantic'),version('starlette')) == ('0.141.1','2.13.5','1.6.0')"]).output();
-    let available = check.is_ok_and(|output| output.status.success());
+    let available = fastapi_runtime_available();
     common::require_on_ci(
         "application FastAPI runtime",
         &if available {
@@ -118,9 +124,9 @@ fn common_ir_runs_through_real_fastapi() {
 
 #[test]
 fn admitted_fastapi_source_inputs_run_through_the_real_framework() {
-    let available = Command::new("python3").args(["-c", "from importlib.metadata import version; assert (version('fastapi'),version('pydantic'),version('starlette')) == ('0.141.1','2.13.5','1.6.0')"]).output().is_ok_and(|output| output.status.success());
+    let available = fastapi_runtime_available();
     common::require_on_ci(
-        "application FastAPI source-reader runtime",
+        "FastAPI source reader",
         &if available {
             vec![]
         } else {

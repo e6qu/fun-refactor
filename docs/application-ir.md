@@ -126,9 +126,9 @@ fields, named checks and delivery. Preview and execution rebuild the application
 from the intent's exact revision-bound target; the action does not carry source text.
 
 `project application` publishes a complete 5×5×4 source/target/feature matrix for
-the five adapters and four feature kinds. Source-reader and target-writer predicates are separate:
-the four HTTP adapters write `validated-json-route`; FastAPI reads the exact declaration subset
-above, while the other framework readers retain an explicit omission. Every
+the five adapters and four feature kinds. It reports source readers and target writers separately.
+All four HTTP adapters write `validated-json-route`. FastAPI reads the exact declaration subset
+above. The other framework readers retain an explicit omission. Every
 refused cell names an identical-adapter, missing-reader or missing-writer reason and retains
 `runtime_proved: false`.
 
@@ -213,13 +213,12 @@ statuses with independent IR evaluation in FastAPI, Express, Go HTTP and Next.js
 installation, registration, URL decoding, implicit methods, middleware, authentication, nested
 request schemas and deployment behavior remain outside this subset.
 
-Reading FastAPI declarations preserves the admitted required inputs and successful response. The
-generated targets use the IR's portable validation contract: duplicate query keys and noncanonical
-integer or Boolean query spellings refuse, and failures use the deterministic issue body above.
+Reading FastAPI declarations preserves the admitted required inputs and successful response.
+Generated targets use the IR's portable validation contract. Duplicate query keys and
+noncanonical integer or Boolean query spellings refuse. Failures use the deterministic issue body.
 Native FastAPI has broader coercions and its own detailed 422 payload. The runtime fixture checks
-the shared accepted case and representative rejection statuses; the report keeps
-`runtime_proved: false` because those framework-specific failure details are intentionally
-canonicalized rather than claimed equal.
+the shared accepted case and representative rejection statuses. The report keeps
+`runtime_proved: false` because `fr` intentionally canonicalizes framework-specific failure details.
 
 Lean proves separate reader and writer admission, compatibility, request-input admission, the
 FastAPI declaration policy, JSON status safety, exact unique disposition coverage, validated

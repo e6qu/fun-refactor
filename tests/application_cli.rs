@@ -780,7 +780,7 @@ fn application_refuses_fastapi_input_semantics_outside_the_exact_subset() {
         "term: str = Query(alias=NAME)",
         "term: str = Body()",
         "term: str = Body(embed=False)",
-        "term: str = Body(embed=True, min_length=1)",
+        concat!("term: str = Body(embed=True, ", "min_length=1)"),
         "term = Depends(load_term)",
     ] {
         let dir = tempfile::tempdir().unwrap();

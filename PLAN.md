@@ -80,17 +80,17 @@ Rust/Python/Lean admission cases, structural Lean tactic branches and retained l
 evidence. The representative-acceptance and distribution outcome added two matched source-writing
 runs and a replayable cross-language registry. It also added exact SDK/native/wire compatibility,
 clean-consumer wheel tests, release artifacts and a bounded HTTP Merkle-store adapter. The first
-application-reader increment recovers required scalar FastAPI `Query(...)` and embedded
-`Body(...)` declarations, including literal aliases, into the executable HTTP IR. Unsupported
-defaults, optionality, constraints and dynamic metadata refuse normalization.
+application-reader increment now recovers required scalar FastAPI `Query(...)` and embedded
+`Body(...)` declarations, including literal aliases, into the executable HTTP IR. Defaults,
+optionality, constraints and dynamic metadata refuse normalization.
 
 ### Next bulk outcome: application and semantic IR expansion
 
 Expand high-level changes around concrete cross-stack tasks rather than broad syntax claims.
 
 - Extend source-side validation reading only when a framework can state the same transport and
-  failure contract. FastAPI's admitted declaration subset is implemented; other framework readers
-  remain explicit omissions rather than inferred checks.
+  failure contract. The current FastAPI reader admits its declaration subset. Other framework
+  readers remain explicit omissions instead of inferred checks.
 - Model middleware, authentication and service-call boundaries only where the IR can state their
   order, inputs, outputs and refusal conditions.
 - Expand React/Next rendering beyond the current static component subset through explicit effect
