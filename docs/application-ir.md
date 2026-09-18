@@ -13,13 +13,15 @@ remain explicit in `omissions`; draining output pages cannot recover evidence
 omitted by a source reader. Narrow the scope when those omissions matter.
 
 Route nodes carry a portable `route` when their handler is exactly the admitted
-literal JSON and path-binding subset. The normalizer reads the shared semantic IR,
+literal JSON, path-binding and selected FastAPI input subset. The normalizer reads the shared semantic IR,
 then recognizes explicit response wrappers for Next.js, FastAPI, Express and Go
 standard HTTP. Equivalent admitted handlers produce the same response expression.
-Calls, request bodies, queries, middleware, authentication, errors and other effects
-remain `manual` when normalizing existing source in `data.normalization`; their source evidence
-stays intact. The separately authored HTTP IR described below can generate a checked required-input
-subset without pretending that arbitrary source has been read into it. Component
+FastAPI additionally reads required `str`, `int` and `bool` parameters declared with `Query(...)`
+or `Body(..., embed=True)`. An omitted alias or one literal `alias` is admitted. Defaults,
+optionality, constraints, dynamic aliases, whole-body scalars, extra dependency parameters and
+other metadata make the route `manual`. Other source request bodies, queries, middleware,
+authentication, errors and effects also remain manual; their source evidence stays intact. The
+separately authored HTTP IR described below generates the same checked required-input subset. Component
 nodes retain a rendering boundary. The richer checked Next.js/FastAPI feature
 migration remains available for request and response schema cases outside this subset.
 
@@ -125,8 +127,8 @@ from the intent's exact revision-bound target; the action does not carry source 
 
 `project application` publishes a complete 5×5×4 source/target/feature matrix for
 the five adapters and four feature kinds. Source-reader and target-writer predicates are separate:
-the four HTTP adapters write `validated-json-route`, while existing framework source remains
-unreadable as that feature until its validation semantics can be recovered completely. Every
+the four HTTP adapters write `validated-json-route`; FastAPI reads the exact declaration subset
+above, while the other framework readers retain an explicit omission. Every
 refused cell names an identical-adapter, missing-reader or missing-writer reason and retains
 `runtime_proved: false`.
 
@@ -211,9 +213,17 @@ statuses with independent IR evaluation in FastAPI, Express, Go HTTP and Next.js
 installation, registration, URL decoding, implicit methods, middleware, authentication, nested
 request schemas and deployment behavior remain outside this subset.
 
-Lean proves separate reader and writer admission, compatibility, request-input admission, JSON
-status safety, exact unique disposition coverage, validated endpoint agreement and static-tree
-resource policies. Shared
+Reading FastAPI declarations preserves the admitted required inputs and successful response. The
+generated targets use the IR's portable validation contract: duplicate query keys and noncanonical
+integer or Boolean query spellings refuse, and failures use the deterministic issue body above.
+Native FastAPI has broader coercions and its own detailed 422 payload. The runtime fixture checks
+the shared accepted case and representative rejection statuses; the report keeps
+`runtime_proved: false` because those framework-specific failure details are intentionally
+canonicalized rather than claimed equal.
+
+Lean proves separate reader and writer admission, compatibility, request-input admission, the
+FastAPI declaration policy, JSON status safety, exact unique disposition coverage, validated
+endpoint agreement and static-tree resource policies. Shared
 finite Rust, Python and Lean cases check the executable policies. These are model and policy results.
 Parser extraction and generated code behavior remain separate integration tests.
 An integration fixture checks that equivalent Next.js, FastAPI, Express and Go

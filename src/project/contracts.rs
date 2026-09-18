@@ -145,6 +145,7 @@ fn fastapi_fields(
     function: Node<'_>,
     decorator: Node<'_>,
     source: &str,
+    path_parameters: &BTreeSet<&str>,
 ) -> Vec<Value> {
     let mut rows = Vec::new();
     let mut unknown = 0usize;
@@ -176,6 +177,14 @@ fn fastapi_fields(
             continue;
         }
         let Some(input) = fast_routes::input(parameter, source) else {
+            let binding = parameter.child_by_field_name("name").or_else(|| {
+                fast_routes::children(parameter)
+                    .into_iter()
+                    .find(|node| node.kind() == "identifier")
+            });
+            if binding.is_some_and(|binding| path_parameters.contains(text(binding, source))) {
+                continue;
+            }
             unknown += 1;
             continue;
         };
@@ -353,7 +362,7 @@ impl Project<'_> {
                 .fast_decorator
                 .and_then(|offset| parsed.node_at(offset))
             {
-                let fields = fastapi_fields(route, &handler, function, decorator, source);
+                let fields = fastapi_fields(route, &handler, function, decorator, source, &names);
                 has_response_model = fields.iter().any(|r| {
                     r["basis"] == "fastapi-response-model" && r["kind"] == "route-contract-field"
                 });

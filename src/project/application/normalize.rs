@@ -1,7 +1,10 @@
 use super::super::Project;
-use crate::application_ir::{validate_routes, ApplicationNode, HttpExpression, HttpRoute};
+use crate::application_ir::{
+    validate_routes, ApplicationNode, HttpExpression, HttpInput, HttpInputSource, HttpRoute,
+    HttpScalar,
+};
 use crate::parse::Parsers;
-use crate::transpile::ir::{Expr, Function, Item, Stmt};
+use crate::transpile::ir::{Expr, Function, Item, Param, ParamKind, Stmt, Type};
 use anyhow::Result;
 use serde_json::{json, Number, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -123,6 +126,14 @@ struct Bindings<'a> {
     path: &'a BTreeSet<String>,
     next_params: Option<&'a str>,
     request: Option<&'a str>,
+    inputs: &'a BTreeMap<String, String>,
+}
+
+fn input_binding(expr: &Expr, bindings: &Bindings<'_>) -> Option<String> {
+    let Expr::Name(name) = expr else {
+        return None;
+    };
+    bindings.inputs.get(name).cloned()
 }
 
 fn path_binding(expr: &Expr, bindings: &Bindings<'_>) -> Option<String> {
@@ -217,8 +228,11 @@ fn expression(expr: &Expr, bindings: &Bindings<'_>) -> Option<HttpExpression> {
             }
             HttpExpression::Object { fields: mapped }
         }
-        _ => HttpExpression::Path {
-            name: path_binding(expr, bindings)?,
+        _ => match input_binding(expr, bindings) {
+            Some(name) => HttpExpression::Input { name },
+            None => HttpExpression::Path {
+                name: path_binding(expr, bindings)?,
+            },
         },
     };
     Some(value)
@@ -272,12 +286,93 @@ fn next(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpres
             path,
             next_params: params,
             request: None,
+            inputs: &BTreeMap::new(),
         },
     )?;
     Some((status, response))
 }
 
-fn fastapi(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpression)> {
+fn fastapi_callee(expr: &Expr, expected: &str) -> bool {
+    match expr {
+        Expr::Name(name) => name == expected,
+        Expr::Field { name, .. } => name == expected,
+        _ => false,
+    }
+}
+
+fn fastapi_scalar(ty: &Type) -> Option<HttpScalar> {
+    match ty {
+        Type::String => Some(HttpScalar::String),
+        Type::Int => Some(HttpScalar::Integer),
+        Type::Bool => Some(HttpScalar::Boolean),
+        _ => None,
+    }
+}
+
+fn fastapi_input(parameter: &Param) -> Option<HttpInput> {
+    if parameter.kind != ParamKind::Normal {
+        return None;
+    }
+    let scalar = fastapi_scalar(parameter.ty.as_ref()?)?;
+    let (callee, arguments) = call(parameter.default.as_ref()?)?;
+    let (source, source_code) = if fastapi_callee(callee, "Query") {
+        (HttpInputSource::Query, 0)
+    } else if fastapi_callee(callee, "Body") {
+        (HttpInputSource::JsonBody, 1)
+    } else {
+        return None;
+    };
+    let mut alias = None;
+    let mut alias_safe = true;
+    let mut embedded = false;
+    let mut extra_metadata = false;
+    for argument in arguments {
+        let Expr::Keyword { name, value } = argument else {
+            extra_metadata = true;
+            continue;
+        };
+        match (name.as_str(), &**value) {
+            ("alias", Expr::Str(name)) if alias.is_none() => alias = Some(name.clone()),
+            ("alias", _) => alias_safe = false,
+            ("embed", Expr::Bool(true)) if source_code == 1 && !embedded => embedded = true,
+            _ => extra_metadata = true,
+        }
+    }
+    if !crate::framework_kernel::application_fastapi_input_admitted(
+        source_code,
+        scalar.code(),
+        alias_safe,
+        embedded,
+        extra_metadata,
+    ) {
+        return None;
+    }
+    Some(HttpInput {
+        name: alias.unwrap_or_else(|| parameter.name.clone()),
+        source,
+        scalar,
+    })
+}
+
+fn fastapi(
+    function: &Function,
+    path: &BTreeSet<String>,
+) -> Option<(Vec<HttpInput>, u16, HttpExpression)> {
+    let mut inputs = Vec::new();
+    let mut bindings = BTreeMap::new();
+    for parameter in &function.params {
+        if path.contains(&parameter.name) {
+            continue;
+        }
+        let input = fastapi_input(parameter)?;
+        if bindings
+            .insert(parameter.name.clone(), input.name.clone())
+            .is_some()
+        {
+            return None;
+        }
+        inputs.push(input);
+    }
     let [Stmt::Return(Some(returned))] = function.body.as_slice() else {
         return None;
     };
@@ -309,9 +404,10 @@ fn fastapi(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExp
             path,
             next_params: None,
             request: None,
+            inputs: &bindings,
         },
     )?;
-    Some((status?, response))
+    Some((inputs, status?, response))
 }
 
 fn express(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpression)> {
@@ -347,6 +443,7 @@ fn express(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExp
             path,
             next_params: None,
             request: Some(request),
+            inputs: &BTreeMap::new(),
         },
     )?;
     Some((status.parse().ok()?, response))
@@ -394,6 +491,7 @@ fn go(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpressi
             path,
             next_params: None,
             request: Some(request),
+            inputs: &BTreeMap::new(),
         },
     )?;
     Some((status.parse().ok()?, response))
@@ -413,17 +511,23 @@ fn normalize(
         response: HttpExpression::Literal { value: Value::Null },
     };
     let parameters = provisional.parameters().ok()?;
-    let (status, response) = match framework {
-        Framework::Next => next(function, &parameters),
+    let (inputs, status, response) = match framework {
+        Framework::Next => {
+            next(function, &parameters).map(|(status, response)| (Vec::new(), status, response))
+        }
         Framework::Fastapi => fastapi(function, &parameters),
-        Framework::Express => express(function, &parameters),
-        Framework::Go => go(function, &parameters),
+        Framework::Express => {
+            express(function, &parameters).map(|(status, response)| (Vec::new(), status, response))
+        }
+        Framework::Go => {
+            go(function, &parameters).map(|(status, response)| (Vec::new(), status, response))
+        }
         Framework::Other(_) => None,
     }?;
     let route = HttpRoute {
         method: method.to_owned(),
         path: path.to_owned(),
-        inputs: Vec::new(),
+        inputs,
         status,
         response,
     };
@@ -467,15 +571,23 @@ fn normalize_node(
             .zip(method.zip(path))
             .and_then(|(function, (method, path))| normalize(function, framework, method, path));
         let portable = node.route.is_some();
+        let validated = node
+            .route
+            .as_ref()
+            .is_some_and(|route| !route.inputs.is_empty());
         node.data.insert(
             "normalization".into(),
-            if portable {
+            if validated {
+                json!({"status": "portable", "basis": "syntax-derived-validated-http-ir", "runtime_proved": false})
+            } else if portable {
                 json!({"status": "portable", "basis": "syntax-derived-shared-ir", "runtime_proved": false})
             } else {
                 json!({"status": "manual", "reason": "The handler exceeds the bounded literal JSON and path-binding subset.", "runtime_proved": false})
             },
         );
-        node.boundary = Some(if portable {
+        node.boundary = Some(if validated {
+            "Required request inputs and the successful response are normalized; validation errors use the portable IR contract, while middleware and runtime behavior remain unproved."
+        } else if portable {
             "The response is normalized from syntax-derived shared IR; middleware and runtime behavior remain unproved."
         } else {
             "Source evidence is retained, but executable response semantics require manual normalization."

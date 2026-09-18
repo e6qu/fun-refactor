@@ -45,7 +45,7 @@ defect ledger currently records no actionable correctness defect.
 | Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks; local, memory and bounded HTTP stores | Validate on more repositories and storage services |
 | Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden representative acceptance |
 | Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
-| Application migration | Generic application IR for routes and components; authored required query/body scalar validation writes to Next.js, FastAPI, Express and Go HTTP | Read selected validation semantics from source; model middleware, authentication and service behavior |
+| Application migration | Generic application IR for routes and components; authored validation writes to four HTTP adapters; selected FastAPI query/body declarations read back into the same IR | Model middleware, authentication and service behavior |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
 | Agent evidence | Deterministic cross-language registry, unfamiliar upstream replay, matched context and two accepted source-writing cohorts | Broaden autonomous cross-project, cross-language, multi-file and proof-writing trials |
@@ -79,15 +79,18 @@ guided-delivery outcome gave every writable route one immutable `GuideReview`, s
 Rust/Python/Lean admission cases, structural Lean tactic branches and retained low-effort Codex
 evidence. The representative-acceptance and distribution outcome added two matched source-writing
 runs and a replayable cross-language registry. It also added exact SDK/native/wire compatibility,
-clean-consumer wheel tests, release artifacts and a bounded HTTP Merkle-store adapter.
+clean-consumer wheel tests, release artifacts and a bounded HTTP Merkle-store adapter. The first
+application-reader increment recovers required scalar FastAPI `Query(...)` and embedded
+`Body(...)` declarations, including literal aliases, into the executable HTTP IR. Unsupported
+defaults, optionality, constraints and dynamic metadata refuse normalization.
 
 ### Next bulk outcome: application and semantic IR expansion
 
 Expand high-level changes around concrete cross-stack tasks rather than broad syntax claims.
 
-- Read selected request-body and query-validation semantics from existing source. Authored IR now
-  writes required string, integer and Boolean query/body inputs across all four HTTP adapters with
-  deterministic validation issues and independent runtime comparison.
+- Extend source-side validation reading only when a framework can state the same transport and
+  failure contract. FastAPI's admitted declaration subset is implemented; other framework readers
+  remain explicit omissions rather than inferred checks.
 - Model middleware, authentication and service-call boundaries only where the IR can state their
   order, inputs, outputs and refusal conditions.
 - Expand React/Next rendering beyond the current static component subset through explicit effect

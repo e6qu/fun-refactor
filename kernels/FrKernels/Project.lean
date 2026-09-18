@@ -2,10 +2,11 @@ import Init.Data.List.Sort.Lemmas
 
 namespace FrKernels.Project
 
--- fr:spec src/project/framework_kernel.rs::application_adapter_reads @ 23988ee331ff88ad8158915dfaab9200fbe6c7d4e56edfcb699b788405ac2be2
+-- fr:spec src/project/framework_kernel.rs::application_adapter_reads @ fbc379d06d72da174fb82eed9e8a253746583debc06f69d72f4da29347a823ba
 -- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
 def applicationAdapterReads (adapter feature : Nat) : Bool :=
-  decide ((feature ≤ 1 ∧ adapter ≤ 3) ∨ (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
+  decide ((feature ≤ 1 ∧ adapter ≤ 3) ∨ (feature = 2 ∧ adapter = 1) ∨
+    (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
 
 -- fr:spec src/project/framework_kernel.rs::application_adapter_writes @ 6bc9b4d6aba506f3043aa7bc7fd79a9a683c308c8724df61b897302c952986d0
 -- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
@@ -26,6 +27,7 @@ theorem every_readable_feature_is_writable (adapter feature : Nat)
 
 theorem http_adapters_require_http_features (feature : Nat) (adapter : Nat)
     (http : adapter ≤ 3) (notNext : adapter ≠ 0)
+    (notFastapi : adapter ≠ 1)
     (accepted : applicationAdapterSupports adapter feature = true) : feature ≤ 1 := by
   simp only [applicationAdapterSupports, Bool.and_eq_true, applicationAdapterReads,
     decide_eq_true_eq] at accepted
@@ -74,6 +76,25 @@ theorem body_inputs_require_mutating_methods (method scalar : Nat)
     1 ≤ method ∧ method ≤ 3 := by
   simp only [applicationRequestInputAdmitted, decide_eq_true_eq] at accepted
   omega
+
+-- fr:spec src/project/framework_kernel.rs::application_fastapi_input_admitted @ 8d58227f797c75da9ebeabe593d4107a1740b6c8692ba5932ad397e1bef35fd9
+-- fr:signature source: usize => source: Nat; scalar: usize => scalar: Nat; alias_safe: bool => aliasSafe: Bool; embedded: bool => embedded: Bool; extra_metadata: bool => extraMetadata: Bool; return: bool => return: Bool
+def applicationFastapiInputAdmitted
+    (source scalar : Nat) (aliasSafe embedded extraMetadata : Bool) : Bool :=
+  decide (source ≤ 1 ∧ scalar ≤ 2) && aliasSafe && !extraMetadata &&
+    decide ((source = 0 ∧ embedded = false) ∨ (source = 1 ∧ embedded = true))
+
+theorem fastapi_query_inputs_are_unembedded
+    (scalar : Nat) (aliasSafe embedded extraMetadata : Bool)
+    (accepted : applicationFastapiInputAdmitted 0 scalar aliasSafe embedded extraMetadata = true) :
+    scalar ≤ 2 ∧ aliasSafe = true ∧ extraMetadata = false ∧ embedded = false := by
+  simpa [applicationFastapiInputAdmitted, and_assoc] using accepted
+
+theorem fastapi_body_inputs_are_embedded
+    (scalar : Nat) (aliasSafe embedded extraMetadata : Bool)
+    (accepted : applicationFastapiInputAdmitted 1 scalar aliasSafe embedded extraMetadata = true) :
+    scalar ≤ 2 ∧ aliasSafe = true ∧ extraMetadata = false ∧ embedded = true := by
+  simpa [applicationFastapiInputAdmitted, and_assoc] using accepted
 
 -- fr:spec src/project/framework_kernel.rs::application_validated_endpoint_agreement @ 2f2cd03ab5ddc86d5b0a733eef0bf0ccbb01ce291b095a83f920f3847d2c4925
 -- fr:signature method: bool => method: Bool; path: bool => path: Bool; inputs: bool => inputs: Bool; status: bool => status: Bool; response: bool => response: Bool; return: bool => return: Bool

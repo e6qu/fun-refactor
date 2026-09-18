@@ -439,7 +439,11 @@ fn application_report_publishes_every_adapter_feature_pair_and_refusal() {
         "target-writer-does-not-model-path-json-route"
     );
     assert_eq!(
-        feature("fastapi", "express", "validated-json-route")["reason"],
+        feature("fastapi", "express", "validated-json-route")["status"],
+        "supported"
+    );
+    assert_eq!(
+        feature("express", "fastapi", "validated-json-route")["reason"],
         "source-reader-does-not-model-validated-json-route"
     );
 }
@@ -682,6 +686,130 @@ fn application_normalizes_the_shared_literal_http_subset_across_frameworks() {
             .len(),
         1
     );
+}
+
+#[test]
+fn application_reads_required_fastapi_query_and_embedded_body_inputs() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        include_str!("application-fixtures/validated_fastapi.py"),
+    )
+    .unwrap();
+
+    let report = ok(dir.path(), &["project", "application"]);
+    fn route(node: &Value) -> Option<&Value> {
+        if node["kind"] == "route" {
+            return Some(node);
+        }
+        node["children"].as_array()?.iter().find_map(route)
+    }
+    let route = report["model"]["applications"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(route)
+        .unwrap();
+    fn has_parameter_gap(node: &Value) -> bool {
+        node["data"]["contract"]["reason"]
+            .as_str()
+            .is_some_and(|reason| reason.contains("Parameters lack one supported explicit binding"))
+            || node["children"]
+                .as_array()
+                .is_some_and(|children| children.iter().any(has_parameter_gap))
+    }
+    assert!(!has_parameter_gap(route));
+    assert_eq!(route["data"]["normalization"]["status"], "portable");
+    assert_eq!(
+        route["data"]["normalization"]["basis"],
+        "syntax-derived-validated-http-ir"
+    );
+    assert!(route["boundary"]
+        .as_str()
+        .unwrap()
+        .contains("validation errors use the portable IR contract"));
+    assert_eq!(
+        route["route"]["inputs"],
+        json!([
+            {"name":"limit", "source":"query", "scalar":"integer"},
+            {"name":"visible", "source":"json-body", "scalar":"boolean"}
+        ])
+    );
+    assert_eq!(route["route"]["response"]["fields"]["id"]["kind"], "path");
+    assert_eq!(
+        route["route"]["response"]["fields"]["limit"],
+        json!({"kind":"input", "name":"limit"})
+    );
+    assert_eq!(
+        route["route"]["response"]["fields"]["published"],
+        json!({"kind":"input", "name":"visible"})
+    );
+
+    for target in ["nextjs", "express", "go-net-http"] {
+        let out = format!("generated-{target}");
+        let migration = ok(
+            dir.path(),
+            &[
+                "migrate",
+                "application",
+                "--project",
+                ".",
+                "--to",
+                target,
+                "--out",
+                &out,
+            ],
+        );
+        assert_eq!(migration["migration"]["manual_boundaries"], 0);
+        assert_eq!(
+            migration["migration"]["endpoints"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+}
+
+#[test]
+fn application_refuses_fastapi_input_semantics_outside_the_exact_subset() {
+    for parameters in [
+        "term: str = Query(default=\"all\")",
+        "term: str | None = Query()",
+        "term: str = Query(min_length=1)",
+        "term: str = Query(alias=NAME)",
+        "term: str = Body()",
+        "term: str = Body(embed=False)",
+        "term: str = Body(embed=True, min_length=1)",
+        "term = Depends(load_term)",
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("api.py"),
+            format!(
+                "from fastapi import Body, Depends, FastAPI, Query\nfrom fastapi.responses import JSONResponse\napp = FastAPI()\nNAME = 'term'\ndef load_term():\n    return 'x'\n@app.post('/records')\ndef create({parameters}):\n    return JSONResponse(content={{'term': term}}, status_code=200)\n"
+            ),
+        )
+        .unwrap();
+        let report = ok(dir.path(), &["project", "application"]);
+        fn route(node: &Value) -> Option<&Value> {
+            if node["kind"] == "route" {
+                return Some(node);
+            }
+            node["children"].as_array()?.iter().find_map(route)
+        }
+        let route = report["model"]["applications"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find_map(route)
+            .unwrap();
+        assert_eq!(
+            route["data"]["normalization"]["status"], "manual",
+            "unexpected admission for {parameters}"
+        );
+        assert!(route.get("route").is_none());
+    }
 }
 
 #[test]

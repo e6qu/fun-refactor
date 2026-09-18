@@ -284,6 +284,12 @@ def main (args : List String) : IO Unit := do
       for source in List.range 4 do
         for scalar in List.range 5 do
           IO.println (applicationRequestInputAdmitted method source scalar)
+    for source in List.range 4 do
+      for scalar in List.range 5 do
+        for aliasSafe in [false, true] do
+          for embedded in [false, true] do
+            for extraMetadata in [false, true] do
+              IO.println (applicationFastapiInputAdmitted source scalar aliasSafe embedded extraMetadata)
     for input in [0, 1, 2, 256, 4096] do
       for assigned in [0, 1, 2, 256, 4096] do
         for unique in [false, true] do
