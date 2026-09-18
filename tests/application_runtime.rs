@@ -18,6 +18,13 @@ fn success(mut command: Command) -> String {
     String::from_utf8(output.stdout).unwrap()
 }
 
+fn fastapi_runtime_available() -> bool {
+    Command::new("python3")
+        .args(["-c", "from importlib.metadata import version; assert (version('fastapi'),version('pydantic'),version('starlette')) == ('0.141.1','2.13.5','1.6.0')"])
+        .output()
+        .is_ok_and(|output| output.status.success())
+}
+
 fn routes() -> Vec<HttpRoute> {
     serde_json::from_value(json!([
         {"method":"GET", "path":"/", "status":200, "response":{"kind":"literal","value":true}},
@@ -89,8 +96,7 @@ fn fixture(adapter: Adapter) -> (tempfile::TempDir, Value) {
 
 #[test]
 fn common_ir_runs_through_real_fastapi() {
-    let check = Command::new("python3").args(["-c", "from importlib.metadata import version; assert (version('fastapi'),version('pydantic'),version('starlette')) == ('0.141.1','2.13.5','1.6.0')"]).output();
-    let available = check.is_ok_and(|output| output.status.success());
+    let available = fastapi_runtime_available();
     common::require_on_ci(
         "application FastAPI runtime",
         &if available {
@@ -113,6 +119,43 @@ fn common_ir_runs_through_real_fastapi() {
     assert_eq!(
         serde_json::from_str::<Value>(&success(command)).unwrap(),
         expected
+    );
+}
+
+#[test]
+fn admitted_fastapi_source_inputs_run_through_the_real_framework() {
+    let available = fastapi_runtime_available();
+    common::require_on_ci(
+        "FastAPI source reader",
+        &if available {
+            vec![]
+        } else {
+            vec!["pinned FastAPI runtime".into()]
+        },
+    );
+    if !available {
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        include_str!("application-fixtures/validated_fastapi.py"),
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("run.py"),
+        include_str!("application-runtime/fastapi-source.py"),
+    )
+    .unwrap();
+    let mut command = Command::new("python3");
+    command.current_dir(dir.path()).arg("run.py");
+    assert_eq!(
+        serde_json::from_str::<Value>(&success(command)).unwrap(),
+        json!({
+            "valid": {"status": 201, "body": {"id":"chosen", "limit":12, "published":true}},
+            "bad_query_status": 422,
+            "missing_body_status": 422
+        })
     );
 }
 

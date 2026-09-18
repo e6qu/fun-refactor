@@ -25,7 +25,9 @@ def _encoded(value: Any, limit: int) -> str:
 
 def adapter_reads(adapter: int, feature: int) -> bool:
     return (type(adapter) is int and type(feature) is int and adapter >= 0 and feature >= 0
-            and ((feature <= 1 and adapter <= 3) or (feature == 3 and adapter in (0, 4))))
+            and ((feature <= 1 and adapter <= 3)
+                 or (feature == 2 and adapter == 1)
+                 or (feature == 3 and adapter in (0, 4))))
 
 
 def adapter_writes(adapter: int, feature: int) -> bool:
@@ -49,6 +51,15 @@ def request_input_admitted(method: int, source: int, scalar: int) -> bool:
     return (all(type(value) is int and value >= 0 for value in (method, source, scalar))
             and method <= 5 and scalar <= 2
             and (source == 0 or source == 1 and 1 <= method <= 3))
+
+
+def fastapi_input_admitted(source: int, scalar: int, alias_safe: bool,
+                           embedded: bool, extra_metadata: bool) -> bool:
+    return (type(source) is int and type(scalar) is int and source >= 0 and scalar >= 0
+            and type(alias_safe) is bool and type(embedded) is bool
+            and type(extra_metadata) is bool and source <= 1 and scalar <= 2
+            and alias_safe and not extra_metadata
+            and ((source == 0 and not embedded) or (source == 1 and embedded)))
 
 
 def validated_endpoint_agreement(method: bool, path: bool, inputs: bool,

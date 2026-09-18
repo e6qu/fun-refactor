@@ -173,8 +173,12 @@ pub fn adapter_contracts() -> Value {
                     json!({"target": target, "features": features})
                 })
                 .collect::<Vec<_>>();
+            let mut excluded = vec!["middleware", "authentication", "service calls", "dynamic rendering", "implicit HTTP methods", "runtime configuration"];
+            if source != Adapter::Fastapi {
+                excluded.insert(0, "source normalization of request bodies and query validation");
+            }
             json!({"source": source, "reader_features": reader_features, "targets": targets,
-                "excluded": ["source normalization of request bodies and query validation", "middleware", "authentication", "service calls", "dynamic rendering", "implicit HTTP methods", "runtime configuration"]})
+                "excluded": excluded})
         })
         .collect::<Vec<_>>())
 }

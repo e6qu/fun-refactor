@@ -40,6 +40,26 @@ fn application_adapter_policies_agree_with_lean_and_python() {
             }
         }
     }
+    for source in 0..4 {
+        for scalar in 0..5 {
+            for alias_safe in [false, true] {
+                for embedded in [false, true] {
+                    for extra_metadata in [false, true] {
+                        expected.push(
+                            application_fastapi_input_admitted(
+                                source,
+                                scalar,
+                                alias_safe,
+                                embedded,
+                                extra_metadata,
+                            )
+                            .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
     for input in [0, 1, 2, 256, 4096] {
         for assigned in [0, 1, 2, 256, 4096] {
             for unique in [false, true] {

@@ -3,7 +3,9 @@ pub fn framework_emitted(total: usize, limit: usize) -> usize {
 }
 
 pub fn application_adapter_reads(adapter: usize, feature: usize) -> bool {
-    (feature <= 1 && adapter <= 3) || (feature == 3 && (adapter == 0 || adapter == 4))
+    (feature <= 1 && adapter <= 3)
+        || (feature == 2 && adapter == 1)
+        || (feature == 3 && (adapter == 0 || adapter == 4))
 }
 
 pub fn application_adapter_writes(adapter: usize, feature: usize) -> bool {
@@ -26,6 +28,20 @@ pub fn application_json_status_admitted(status: usize) -> bool {
 
 pub fn application_request_input_admitted(method: usize, source: usize, scalar: usize) -> bool {
     method <= 5 && scalar <= 2 && (source == 0 || source == 1 && (1..=3).contains(&method))
+}
+
+pub fn application_fastapi_input_admitted(
+    source: usize,
+    scalar: usize,
+    alias_safe: bool,
+    embedded: bool,
+    extra_metadata: bool,
+) -> bool {
+    source <= 1
+        && scalar <= 2
+        && alias_safe
+        && !extra_metadata
+        && (source == 0 && !embedded || source == 1 && embedded)
 }
 
 pub fn application_validated_endpoint_agreement(
