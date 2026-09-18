@@ -26,6 +26,19 @@ half the work, and does not do nothing quietly.
 
 ## Structured workflow guidance
 
+### `fr compatibility`
+
+```sh
+fr --json compatibility
+```
+
+`compatibility` reports the native distribution version, the exact compatible
+`fun-refactor-ir` Python distribution version, the agent protocol revision and the
+request and response schema sets. An agent should compare this report through
+`FrClient.compatibility()` before relying on SDK types or wire contracts. The JSON
+schema is `fr-sdk-compatibility-1`; the text form prints the versions and protocol
+revision for a person.
+
 ### `fr audit`
 
 ```sh
