@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -33,10 +34,18 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="fr-sdk-consumer-") as directory:
         consumer = Path(directory)
+        source = consumer / "source"
+        shutil.copytree(
+            root / "sdk/python",
+            source,
+            ignore=shutil.ignore_patterns(
+                ".venv", ".pytest_cache", "__pycache__", "*.egg-info"
+            ),
+        )
         dist = consumer / "dist"
         run([
             sys.executable, "-m", "build", "--no-isolation", "--outdir", str(dist),
-            str(root / "sdk/python"),
+            str(source),
         ], cwd=consumer)
         wheels = sorted(dist.glob("fun_refactor_ir-*.whl"))
         sdists = sorted(dist.glob("fun_refactor_ir-*.tar.gz"))
