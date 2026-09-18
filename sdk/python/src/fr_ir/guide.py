@@ -11,8 +11,8 @@ from typing import Any, Mapping, TYPE_CHECKING
 
 from .context import merkle_object_digest
 from .runtime import FrReport, FrRuntimeError
-from .ir import TaskDelivery
-from .intent_actions import TaggedIntentAction
+from .ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget
+from .intent_actions import TaggedIntentAction, TaskChangeOperation, _operation_code
 from .context import ObjectStore
 from .intent import CompiledIntent
 
@@ -23,6 +23,18 @@ _PURPOSES = ("understand", "trace", "change", "migrate", "prove")
 _PROOFS = ("none", "model", "implementation")
 _KINDS = ("automatic", "capability", "recipe", "semantic-scalar", "semantic-change",
           "semantic-body", "surface-edit", "framework-migration", "formalize", "proof")
+_GUIDED_OPERATIONS = {
+    "evidence": ("project-query",),
+    "direct-capability": ("capability",),
+    "recipe": ("recipe",),
+    "semantic-scalar": ("task-change", "author-batch"),
+    "semantic-change": ("task-change", "author-batch"),
+    "semantic-body": ("task-change", "author-batch"),
+    "surface-edit": ("surface-edit",),
+    "framework-migration": ("framework-migration", "application-migration"),
+    "formalization": ("property-task", "formal-plan"),
+    "proof": ("proof-task", "proof-submission"),
+}
 
 
 def _canonical(value: Any) -> bytes:
@@ -214,11 +226,27 @@ def _guide_binding_admitted(expected_fields: int, supplied_fields: int, names_ma
             and values_bounded and execution_disabled and basis_matches)
 
 
-def _guide_delivery_admitted(purpose: int, action_count: int, report_count: int,
-                             review_count: int, route_admitted: bool, guide_matches: bool,
-                             review_complete: bool) -> bool:
-    return (purpose == 2 and 1 <= action_count <= 16 and report_count == action_count
-            and review_count == 1 and route_admitted and guide_matches and review_complete)
+def _guided_operation_matches(route: int, operation: int) -> bool:
+    return ((route == 0 and operation == 6)
+            or (route == 1 and operation in (10, 11))
+            or (route == 2 and operation == 2)
+            or (route in (3, 4, 5) and operation in (0, 1))
+            or (route == 6 and operation == 7)
+            or (route == 7 and operation == 3)
+            or (route == 8 and operation in (4, 8))
+            or (route == 9 and operation in (5, 9)))
+
+
+def _guide_delivery_admitted(purpose: int, route: int, operation: int, writable: bool,
+                             route_admitted: bool, goal_matches: bool, guide_matches: bool,
+                             inputs_match: bool, targets_match: bool, revision_matches: bool,
+                             checks_match: bool, delivery_matches: bool, review_complete: bool,
+                             review_unchanged: bool) -> bool:
+    return (_guide_route_admitted(purpose, 0, 0, route, True, False, False, 0)
+            and _guided_operation_matches(route, operation) and writable and route_admitted
+            and goal_matches and guide_matches and inputs_match and targets_match
+            and revision_matches and checks_match and delivery_matches and review_complete
+            and review_unchanged)
 
 
 @dataclass(frozen=True)
@@ -355,6 +383,116 @@ class AgentGuide:
     def actions(self) -> tuple[GuideAction, ...]:
         return tuple(GuideAction(self, index) for index in range(len(self.at("/actions"))))
 
+    def semantic_scalar_action(self) -> TaggedIntentAction:
+        """Return the exact typed task action already committed by a complete scalar guide."""
+        if hashlib.sha256(_canonical(self.to_data())).hexdigest() != self.report_sha256:
+            raise FrRuntimeError("guide changed after receipt")
+        fields = self.goal.operation.fields
+        route = self.at("/route")
+        if (self.goal.purpose != "change" or self.goal.operation.kind != "semantic-scalar"
+                or not isinstance(route, Mapping) or route.get("id") != "semantic-scalar"
+                or route.get("admitted") is not True or fields.get("from") is None
+                or fields.get("to") is None or not self.goal.checks
+                or self.goal.delivery is None):
+            raise FrRuntimeError("guide does not contain one complete semantic scalar action")
+        target = self.at("/target")
+        if (not isinstance(target, Mapping) or not isinstance(target.get("handle"), str)
+                or not isinstance(target.get("path"), str)):
+            raise FrRuntimeError("scalar guide has no exact target")
+        change = TaskChange(
+            (),
+            (TaskTarget(
+                "goal", target["handle"], "edit-body-scalar",
+                scalar=ScalarRequest(fields["operation"], fields["from"], fields["to"]),
+            ),),
+            {"files-changed": 1, "edits": 1, "changed-operations": 1,
+             "paths-changed": [target["path"]]},
+            self.goal.checks,
+            self.goal.delivery,
+        )
+        previews = [item for item in self.at("/actions")
+                    if item.get("output_schema") == "fr-task-change-1"]
+        if (len(previews) != 1 or previews[0].get("ready") is not True
+                or previews[0].get("author_fields") != []
+                or previews[0].get("input") != change.to_data()):
+            raise FrRuntimeError("scalar guide task manifest differs from its typed goal")
+        return TaggedIntentAction(
+            TaskChangeOperation(change), diff_bytes=self.goal.context.token_limit,
+            report_bytes=self.goal.context.packet_limit, proof_expectation=self.goal.proof,
+        )
+
+
+@dataclass(frozen=True)
+class GuideReview:
+    """One immutable native action review bound to its retained guide."""
+
+    guide: AgentGuide
+    compiled: CompiledIntent
+    review_sha256: str = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.guide, AgentGuide) or not isinstance(self.compiled, CompiledIntent):
+            raise FrRuntimeError("guide review requires an AgentGuide and CompiledIntent")
+        action = self.compiled.intent.action
+        if not isinstance(action, TaggedIntentAction) or action.guide is None:
+            raise FrRuntimeError("guide review requires one guide-bound tagged action")
+        route = self.guide.at("/route")
+        operation = action.operation.to_data()
+        review = self.compiled.at("/action/review")
+        route_id = route.get("id") if isinstance(route, Mapping) else None
+        route_code = tuple(_GUIDED_OPERATIONS).index(route_id) if route_id in _GUIDED_OPERATIONS else 10
+        basis_matches = (self.compiled.at("/action/basis") == self.compiled.action_basis
+                         and isinstance(self.compiled.action_basis, str)
+                         and re.fullmatch(r"fraa2:[0-9a-f]{64}", self.compiled.action_basis) is not None)
+        review_shape = (isinstance(review, Mapping)
+                        and review.get("schema") == "fr-intent-operation-review-2"
+                        and review.get("kind") == operation.get("kind")
+                        and review.get("ready") is True
+                        and review.get("executed") is False
+                        and isinstance(review.get("diff"), str))
+        targets = review.get("targets") if isinstance(review, Mapping) else None
+        checks = review.get("checks") if isinstance(review, Mapping) else None
+        if not _guide_delivery_admitted(
+            _PURPOSES.index(self.guide.goal.purpose), route_code, _operation_code(operation),
+            isinstance(review, Mapping) and review.get("writable") is True,
+            isinstance(route, Mapping) and route.get("admitted") is True,
+            action.guide.goal == self.guide.goal.to_data(),
+            action.guide.basis == self.guide.at("/basis") and basis_matches,
+            review.get("input_sha256") == hashlib.sha256(_canonical(action.to_data())).hexdigest()
+            if isinstance(review, Mapping) else False,
+            isinstance(targets, list) and self.compiled.intent.target in targets,
+            self.compiled.at("/revision") == self.guide.at("/revision"),
+            isinstance(checks, Mapping) and isinstance(checks.get("names"), list)
+            and len(checks["names"]) == len(self.guide.goal.checks)
+            and set(checks["names"]) == set(self.guide.goal.checks),
+            isinstance(review, Mapping) and review.get("delivery") == (
+                self.guide.goal.delivery.to_data() if self.guide.goal.delivery else None),
+            review_shape,
+            self.compiled.intent.target == self.guide.at("/target/handle")
+            and self.compiled.intent.purpose == self.guide.goal.purpose,
+        ):
+            raise FrRuntimeError("native guide review is incomplete or does not bind its guide")
+        object.__setattr__(self, "review_sha256", self._digest())
+
+    def _digest(self) -> str:
+        return hashlib.sha256(_canonical({
+            "guide": self.guide.to_data(),
+            "compiled": self.compiled.to_data(),
+        })).hexdigest()
+
+    @property
+    def basis(self) -> str:
+        assert self.compiled.action_basis is not None
+        return self.compiled.action_basis
+
+    def at(self, pointer: str = "") -> Any:
+        if pointer and not pointer.startswith("/"):
+            raise FrRuntimeError("guide review pointer must be empty or start with /")
+        return self.compiled.at(f"/action/review{pointer}")
+
+    def to_data(self) -> Mapping[str, Any]:
+        return self.at()
+
 
 def guide_goal(client: FrClient, goal: AgentGoal) -> AgentGuide:
     if not isinstance(goal, AgentGoal):
@@ -449,20 +587,9 @@ def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedInt
     if hashlib.sha256(_canonical(guide.to_data())).hexdigest() != guide.report_sha256:
         raise FrRuntimeError("guide changed after receipt")
     route = guide.at("/route")
-    allowed = {
-        "evidence": ("project-query",),
-        "direct-capability": ("capability",),
-        "recipe": ("recipe",),
-        "semantic-scalar": ("task-change", "author-batch"),
-        "semantic-change": ("task-change", "author-batch"),
-        "semantic-body": ("task-change", "author-batch"),
-        "surface-edit": ("surface-edit",),
-        "framework-migration": ("framework-migration", "application-migration"),
-        "formalization": ("property-task", "formal-plan"),
-        "proof": ("proof-task", "proof-submission"),
-    }
     operation = action.operation.to_data()
-    if route.get("admitted") is not True or operation["kind"] not in allowed.get(route.get("id"), ()):
+    if (route.get("admitted") is not True
+            or operation["kind"] not in _GUIDED_OPERATIONS.get(route.get("id"), ())):
         raise FrRuntimeError("intent operation does not match its admitted navigator route")
     action = replace(action, guide=IntentGuideBinding(guide.goal.to_data(),guide.at("/basis")))
     if action.proof_expectation != guide.goal.proof:
@@ -471,9 +598,10 @@ def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedInt
     delivery = operation.get("delivery")
     if operation["kind"] == "task-change":
         checks, delivery = operation["task_change"]["checks"], operation["task_change"]["delivery"]
-    if checks and guide.goal.checks and set(checks) != set(guide.goal.checks):
+    if len(checks) != len(guide.goal.checks) or set(checks) != set(guide.goal.checks):
         raise FrRuntimeError("intent checks differ from its goal")
-    if delivery is not None and guide.goal.delivery is not None and delivery != guide.goal.delivery.to_data():
+    expected_delivery = guide.goal.delivery.to_data() if guide.goal.delivery is not None else None
+    if delivery != expected_delivery:
         raise FrRuntimeError("intent delivery differs from its goal")
     compiled = client.compile(AgentIntent(guide.at("/target/handle"), guide.goal.purpose,
         needs=(IntentNeed("map", "code_map", "/target"),),
@@ -482,3 +610,19 @@ def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedInt
     if compiled.at("/revision") != guide.at("/revision"):
         raise FrRuntimeError("project changed between navigator and intent snapshots")
     return compiled
+
+
+def review_guide(client: FrClient, guide: AgentGuide, action: TaggedIntentAction,
+                 *, store: ObjectStore | None = None) -> GuideReview:
+    """Create the common immutable review for one admitted writable guide route."""
+    return GuideReview(guide, compile_guided_intent(client, guide, action, store=store))
+
+
+def execute_guide(client: FrClient, review: GuideReview):
+    """Execute only an unchanged native review whose guide is still current."""
+    if not isinstance(review, GuideReview) or review._digest() != review.review_sha256:
+        raise FrRuntimeError("guide review changed before execution")
+    current = guide_goal(client, review.guide.goal)
+    if current.at("/basis") != review.guide.at("/basis"):
+        raise FrRuntimeError("guide basis changed before execution")
+    return client.execute_intent(review.compiled)

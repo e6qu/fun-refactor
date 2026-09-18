@@ -29,11 +29,11 @@ the exact environment and score.
 
 A separate accepted pair performs one real source-writing task. Both agents change the same Rust
 scalar and pass 33 compiled behavior cases without failed calls, direct commands or correction.
-The SDK agent uses two exposed calls and 57,464 input tokens. Its retained review produces one
+The SDK agent uses two exposed calls and 41,389 input tokens. Its retained review produces one
 basis-bound write, eight passing check/apply/undo/redo/patch stages and the expected patch. The
-direct-file agent uses four exposed calls and 67,859 input tokens. The observed input difference is
--10,395 tokens, or 15.3% fewer for the SDK arm, on this one fixed task. The
-[source-writing manifest](../tests/agent-eval/results/2026-09-17-matched-source-acceptance/manifest.json)
+direct-file agent uses four exposed calls and 67,985 input tokens. The observed input difference is
+-26,596 tokens, or 39.1% fewer for the SDK arm, on this one fixed task. The
+[source-writing manifest](../tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/manifest.json)
 retains the prompts, requests, responses, Codex settings and usage.
 
 ## Find the underlying evidence
@@ -43,7 +43,7 @@ retains the prompts, requests, responses, Codex settings and usage.
 | Completion workflows | [`completion-workflows.json`](../tests/agent-eval/completion-workflows.json), `tools/completion-workflows.py` |
 | Guided live-agent completion | `tools/completion-agent-eval.py`, `tests/agent-eval/results/2026-09-17-completion-acceptance/` |
 | Matched SDK and direct-file context | `tools/matched-agent-context.py`, `tests/agent-eval/results/2026-09-17-matched-context-acceptance/` |
-| Matched SDK and direct-file source writing | `tools/matched-agent-source.py`, `tests/agent-eval/results/2026-09-17-matched-source-acceptance/` |
+| Matched SDK and direct-file source writing | `tools/matched-agent-source.py`, `tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
 | Semantic bodies, deltas and intents | `tests/agent-eval/semantic-*.json`, `tools/semantic-*.py` |
@@ -65,7 +65,7 @@ cargo build --features cli
 python3 tools/completion-workflows.py --fr target/debug/fr --output /tmp/completion.json
 python3 tools/completion-workflows.py --audit /tmp/completion.json
 python3 tools/matched-agent-context.py replay tests/agent-eval/results/2026-09-17-matched-context-acceptance
-python3 tools/matched-agent-source.py audit tests/agent-eval/results/2026-09-17-matched-source-acceptance
+python3 tools/matched-agent-source.py audit tests/agent-eval/results/2026-09-18-guided-delivery-acceptance
 ```
 
 Use the [Codex runner guide](agent-codex-runner.md) for live-run isolation and the current economical

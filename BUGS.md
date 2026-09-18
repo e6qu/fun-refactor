@@ -19,12 +19,7 @@ away.
 
 ## Open
 
-- [ ] B935: **Lean tactic constructor branches are not yet structural**. The grammar reads named
-  `by_cases`, tactic broadcast, membership binders, match-pattern alternatives and the operators
-  used by the kernels, but valid `cases value with | constructor => ...` and corresponding
-  `induction`/`rcases` forms still produce error nodes. Modeling arbitrary tactic text as an opaque
-  token is not an acceptable fix: agents need the branch hierarchy. A focused tactic grammar must
-  reuse a bounded pattern layer without exceeding Tree-sitter's parse-table limit.
+No actionable correctness defect is currently recorded.
 
 ## Analysis boundaries
 
@@ -75,6 +70,12 @@ shows the patch additive. What remains below is a limit of the available source 
   neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B935: **Lean tactic constructor branches were not structural**. A bounded tactic grammar now
+  exposes named `cases` and `induction` constructor branches plus `rcases` tuple and alternative
+  patterns. It admits name-shaped subjects and bounded patterns without an opaque tactic fallback;
+  regression tests assert both clean parses and the node hierarchy. The optimized parser remains
+  within Tree-sitter's state limit.
 
 - [x] B936: **the deep repository audit ignored its configured worker limit**. Its full-audit
   `cargo test` invocation omitted `--test-threads`, so fourteen repository-wide scans could run

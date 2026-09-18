@@ -964,6 +964,10 @@
           "named": true
         },
         {
+          "type": "tactic_cases",
+          "named": true
+        },
+        {
           "type": "tactic_focus",
           "named": true
         },
@@ -973,6 +977,10 @@
         },
         {
           "type": "tactic_let",
+          "named": true
+        },
+        {
+          "type": "tactic_rcases",
           "named": true
         },
         {
@@ -3222,6 +3230,10 @@
           "named": true
         },
         {
+          "type": "tactic_cases",
+          "named": true
+        },
+        {
           "type": "tactic_focus",
           "named": true
         },
@@ -3231,6 +3243,10 @@
         },
         {
           "type": "tactic_let",
+          "named": true
+        },
+        {
+          "type": "tactic_rcases",
           "named": true
         },
         {
@@ -3805,6 +3821,48 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "rcases_alternative_pattern",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "hole",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "rcases_tuple_pattern",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "rcases_tuple_pattern",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "hole",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -4401,6 +4459,10 @@
           "named": true
         },
         {
+          "type": "tactic_cases",
+          "named": true
+        },
+        {
           "type": "tactic_focus",
           "named": true
         },
@@ -4413,11 +4475,63 @@
           "named": true
         },
         {
+          "type": "tactic_rcases",
+          "named": true
+        },
+        {
           "type": "tactic_rewrite",
           "named": true
         },
         {
           "type": "tactic_show",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tactic_cases",
+    "named": true,
+    "fields": {
+      "subject": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "qualified_name",
+            "named": true
+          }
+        ]
+      },
+      "tactic": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "cases",
+            "named": false
+          },
+          {
+            "type": "induction",
+            "named": false
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "tactic_constructor_branch",
           "named": true
         }
       ]
@@ -4436,6 +4550,98 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "tactic_constructor_branch",
+    "named": true,
+    "fields": {
+      "binder": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "body": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": ";",
+            "named": false
+          },
+          {
+            "type": "<;",
+            "named": false
+          },
+          {
+            "type": "<;>",
+            "named": false
+          },
+          {
+            "type": "tactic_apply",
+            "named": true
+          },
+          {
+            "type": "tactic_by_cases",
+            "named": true
+          },
+          {
+            "type": "tactic_calc",
+            "named": true
+          },
+          {
+            "type": "tactic_case",
+            "named": true
+          },
+          {
+            "type": "tactic_cases",
+            "named": true
+          },
+          {
+            "type": "tactic_focus",
+            "named": true
+          },
+          {
+            "type": "tactic_have",
+            "named": true
+          },
+          {
+            "type": "tactic_let",
+            "named": true
+          },
+          {
+            "type": "tactic_rcases",
+            "named": true
+          },
+          {
+            "type": "tactic_rewrite",
+            "named": true
+          },
+          {
+            "type": "tactic_show",
+            "named": true
+          }
+        ]
+      },
+      "constructor": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "qualified_name",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -4463,6 +4669,10 @@
           "named": true
         },
         {
+          "type": "tactic_cases",
+          "named": true
+        },
+        {
           "type": "tactic_focus",
           "named": true
         },
@@ -4472,6 +4682,10 @@
         },
         {
           "type": "tactic_let",
+          "named": true
+        },
+        {
+          "type": "tactic_rcases",
           "named": true
         },
         {
@@ -4583,6 +4797,60 @@
         "types": [
           {
             "type": "_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "tactic_rcases",
+    "named": true,
+    "fields": {
+      "pattern": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "-",
+            "named": false
+          },
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "rcases_alternative_pattern",
+            "named": true
+          },
+          {
+            "type": "rcases_tuple_pattern",
+            "named": true
+          },
+          {
+            "type": "rfl",
+            "named": false
+          }
+        ]
+      },
+      "subject": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "hole",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "qualified_name",
             "named": true
           }
         ]
@@ -5250,6 +5518,10 @@
     "named": false
   },
   {
+    "type": "cases",
+    "named": false
+  },
+  {
     "type": "catch",
     "named": false
   },
@@ -5380,6 +5652,10 @@
   },
   {
     "type": "include",
+    "named": false
+  },
+  {
+    "type": "induction",
     "named": false
   },
   {
@@ -5523,11 +5799,19 @@
     "named": false
   },
   {
+    "type": "rcases",
+    "named": false
+  },
+  {
     "type": "return",
     "named": false
   },
   {
     "type": "rewrite",
+    "named": false
+  },
+  {
+    "type": "rfl",
     "named": false
   },
   {

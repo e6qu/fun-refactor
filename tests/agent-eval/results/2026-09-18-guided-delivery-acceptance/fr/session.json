@@ -1,0 +1,27 @@
+{
+  "schema": "fr-matched-source-session-1",
+  "arm": "fr",
+  "binary": "/private/tmp/fr-matched-source-2026-09-18-v2/fr-matched-source-bin",
+  "binary_sha256": "2d80cd143cf38dcef67373df22407a5caac158cf56f8e9e4f5e0669ae57bf8ff",
+  "wrapper": "/private/tmp/fr-matched-source-2026-09-18-v2/fr/fr-sdk-wrapper.py",
+  "expected": {
+    "schema": "fr-matched-source-change-1",
+    "path": "src/lib.rs",
+    "symbol": "calculate",
+    "operation": "set-int",
+    "from": "7",
+    "to": "9"
+  },
+  "before_sha256": "bfe3fefef86431a1eeb37f4daff31f3abf89f618d2b8333697dd573b91c1fc09",
+  "after_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
+  "bindings": {
+    "tools/matched-agent-source.py": "fa07faf7b9b1715378c85a14b52e44619fafd9e7409bb242288935dc8c58e4e4",
+    "tools/matched-agent-context.py": "18a47e88dbf0805c6c732f20077f158338388986f7b4c24105fd591fcd4afd8f",
+    "sdk/python/src/fr_ir/guide.py": "385cc36eb7060d8b805268ea6a9f42bb693904508e2d30fee6e4cf5e7a201875",
+    "sdk/python/src/fr_ir/runtime.py": "ef0d7024d9ea677b66c3d562c2815d379afc11055d3ce9e001886a9f2450aca3",
+    "src/project/agent_guide.rs": "a5114ea30cd9199f1dc97048706131756c163a1327c1e60e5bdecebe978b64bf",
+    "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
+    "kernels/FrKernels/AgentGuide.lean": "7fface87376f694e7dc79f9a2b7d3cd620ddb406016899bf0cb3d158650990fe"
+  },
+  "manual_corrections": 0
+}

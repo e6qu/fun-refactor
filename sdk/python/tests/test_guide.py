@@ -5,12 +5,15 @@ import pytest
 
 from fr_ir.context import merkle_object_digest
 from fr_ir.guide import (AgentGoal, AgentGuide, GoalConstraints, GoalLimits, GoalOperation,
-                        GoalSelector, GuideFile, GuideInputs, _canonical,
+                        GoalSelector, GuideFile, GuideInputs, GuideReview, _canonical,
                         _guide_delivery_admitted, compile_guided_intent, complete_guide,
-                        follow_guide, guide_goal)
-from fr_ir.intent_actions import ApplicationMigrationOperation, TaggedIntentAction
+                        follow_guide, guide_goal, review_guide)
+from fr_ir.intent_actions import (ApplicationMigrationOperation, AuthorBatchOperation,
+                                  CapabilityOperation, FormalPlanOperation, ProofSubmissionOperation,
+                                  RecipeOperation, SurfaceEditOperation, TaggedIntentAction)
+from fr_ir.intent import CompiledIntent
 from fr_ir.ir import TaskDelivery
-from fr_ir.runtime import FrClient, FrReport, FrRuntimeError, TaskResult, TaskReview
+from fr_ir.runtime import FrClient, FrReport, FrRuntimeError, TaskReview
 
 
 @pytest.mark.parametrize("value", ["--write", "--save-plan", "--write=true", "--save-plan=true"])
@@ -101,6 +104,39 @@ class DeliveryClient(FakeClient):
                          "task_change_basis": basis}, arguments)
 
 
+class ScalarGuideClient(FakeClient):
+    def call(self, *arguments, input_bytes=None):
+        report = super().call(*arguments, input_bytes=input_bytes)
+        if arguments[0] != "guide":
+            return report
+        goal = json.loads(input_bytes)
+        value = report._value
+        target = {"handle": "frp1:scalar", "path": "app.rs"}
+        manifest = {
+            "schema": "fr-task-change-1", "requests": [],
+            "targets": [{"id": "goal", "handle": target["handle"],
+                         "op": "edit-body-scalar", "scalar": {
+                             "operation": "set-int", "from": "7", "to": "9",
+                         }}],
+            "postconditions": {"files-changed": 1, "edits": 1, "changed-operations": 1,
+                               "paths-changed": [target["path"]]},
+            "checks": ["syntax"], "delivery": TaskDelivery().to_data(),
+        }
+        value["route"] = {"id": "semantic-scalar", "admitted": True}
+        value["target"] = target
+        value["actions"] = [{"id": "preview", "arguments": ["task-change", "--from", "-"],
+                             "output_schema": "fr-task-change-1", "schema_field": "schema",
+                             "input": manifest, "author_fields": [], "writes": False,
+                             "ready": True, "max_output_bytes": 16384}]
+        identity = {key: item for key, item in value.items()
+                    if key not in ("object_root", "basis", "serialized_bytes")}
+        value["object_root"] = merkle_object_digest(identity)
+        value["serialized_bytes"] = 0
+        for _ in range(5):
+            value["serialized_bytes"] = len(_canonical(value))
+        return report
+
+
 class ApplicationGuideClient(FakeClient):
     def call(self, *arguments, input_bytes=None):
         report = super().call(*arguments, input_bytes=input_bytes)
@@ -118,13 +154,54 @@ class ApplicationGuideClient(FakeClient):
 
     def compile(self, intent, *, store=None):
         self.compiled_intent = intent
+        manifest = _canonical(intent.to_data())
+        intent_basis = "frai1:" + hashlib.sha256(manifest).hexdigest()
+        action_basis = "fraa2:" + "2" * 64
+        operation = intent.action.operation.to_data()
+        review = {
+            "schema": "fr-intent-operation-review-2", "kind": operation["kind"],
+            "ready": True, "executed": False, "diff": "diff --git a/a b/a\n",
+            "writable": True, "targets": [intent.target],
+            "input_sha256": hashlib.sha256(_canonical(intent.action.to_data())).hexdigest(),
+            "checks": {"configuration_basis": "checks", "names": ["syntax"]},
+            "delivery": TaskDelivery().to_data(),
+            "claims": {"implementation_correspondence": False},
+            "proof": None, "proof_validation": None,
+        }
+        packet = {
+            "schema": "fr-agent-context-1", "revision": "r",
+            "intent": {"basis": intent_basis},
+            "target": {"handle": intent.target},
+            "action": {"schema": "fr-agent-action-2", "basis": action_basis,
+                       "review": review},
+        }
+        encoded = _canonical(packet)
+        return CompiledIntent(intent, FrReport(packet, ("intent",)), (), manifest,
+                              hashlib.sha256(encoded).hexdigest(), action_basis)
 
-        class Compiled:
-            def at(inner, pointer):
-                assert pointer == "/revision"
-                return "r"
+    def execute_intent(self, compiled):
+        review = compiled.at("/action/review")
+        return type("Result", (), {"passed": True, "compiled": compiled,
+                                    "review": review})()
 
-        return Compiled()
+
+class RouteGuideClient(ApplicationGuideClient):
+    def __init__(self, route):
+        super().__init__()
+        self.route = route
+
+    def call(self, *arguments, input_bytes=None):
+        report = super().call(*arguments, input_bytes=input_bytes)
+        if arguments[0] == "guide":
+            value = report._value
+            value["route"] = {"id": self.route, "admitted": True}
+            identity = {key: item for key, item in value.items()
+                        if key not in ("object_root", "basis", "serialized_bytes")}
+            value["object_root"] = merkle_object_digest(identity)
+            value["serialized_bytes"] = 0
+            for _ in range(5):
+                value["serialized_bytes"] = len(_canonical(value))
+        return report
 
 
 def test_goal_wire_shape_preserves_tagged_ir_and_explicit_limits():
@@ -191,14 +268,27 @@ def test_complete_guide_keeps_intermediate_reports_inside_one_sdk_call():
     assert [report.schema for report in result.reports] == ["fr-proof-attempt-1"]
 
 
-def test_complete_guide_exposes_and_executes_one_unchanged_review():
+def test_complete_guide_exposes_one_task_preview_for_inspection():
     client = DeliveryClient()
     run = complete_guide(client, AgentGoal("change"))
     assert isinstance(run.review(), TaskReview)
-    result = FrClient.execute_guide(client, run)
-    assert isinstance(result, TaskResult)
-    assert result.passed
-    assert client.calls[-1][0][-3:] == ("--write", "--basis", run.review().task_change_basis)
+
+
+def test_complete_scalar_guide_returns_its_exact_typed_action_without_reauthoring():
+    goal = AgentGoal(
+        "change", selector=GoalSelector(name="calculate"),
+        operation=GoalOperation("semantic-scalar", {
+            "operation": "set-int", "from": "7", "to": "9",
+        }), checks=("syntax",), delivery=TaskDelivery(),
+    )
+    guide = guide_goal(ScalarGuideClient(), goal)
+    action = guide.semantic_scalar_action()
+    assert action.operation.to_data() == {
+        "kind": "task-change", "task_change": guide.at("/actions/0/input"),
+    }
+    guide.report._value["actions"][0]["input"]["checks"] = ["other"]
+    with pytest.raises(FrRuntimeError, match="changed after receipt"):
+        guide.semantic_scalar_action()
 
 
 def test_guided_application_migration_accepts_the_operation_advertised_by_the_guide():
@@ -222,11 +312,91 @@ def test_guided_application_migration_accepts_the_operation_advertised_by_the_gu
     assert client.compiled_intent.action.operation.to_data()["kind"] == "application-migration"
 
 
-def test_guided_delivery_refuses_tampering_and_routes_without_one_task_review():
+def test_guided_review_requires_checks_and_delivery_in_the_goal_before_compilation():
+    client = ApplicationGuideClient()
+    goal = AgentGoal(
+        "migrate", selector=GoalSelector(path="api.ts"),
+        operation=GoalOperation("framework-migration", {"to": "go-net-http"}),
+        checks=("syntax",),
+    )
+    guide = guide_goal(client, goal)
+    with pytest.raises(FrRuntimeError, match="delivery differs"):
+        review_guide(client, guide, TaggedIntentAction(ApplicationMigrationOperation(
+            "go-net-http", "generated", ("syntax",),
+        )))
+    assert not hasattr(client, "compiled_intent")
+
+
+def test_common_guide_review_executes_the_unchanged_native_action():
+    client = ApplicationGuideClient()
+    goal = AgentGoal(
+        "migrate",
+        selector=GoalSelector(path="api.ts"),
+        operation=GoalOperation("framework-migration", {"to": "go-net-http"}),
+        checks=("syntax",),
+        delivery=TaskDelivery(),
+    )
+    guide = guide_goal(client, goal)
+    action = TaggedIntentAction(ApplicationMigrationOperation(
+        "go-net-http", "generated", ("syntax",),
+    ))
+    review = review_guide(client, guide, action)
+    assert isinstance(review, GuideReview)
+    assert review.basis == "fraa2:" + "2" * 64
+    assert review.at("/kind") == "application-migration"
+    result = FrClient.execute_guide(client, review)
+    assert result.passed
+
+
+@pytest.mark.parametrize(("route", "purpose", "goal_operation", "operation"), [
+    ("direct-capability", "change",
+     GoalOperation("capability", {"capability": "rename", "parameters": {"new_name": "next"}}),
+     CapabilityOperation("rename", {"new_name": "next"}, checks=("syntax",),
+                         delivery=TaskDelivery())),
+    ("recipe", "change", GoalOperation("recipe", {"verb": "rename"}),
+     RecipeOperation("schema 1\nrecipe r { rename to \"next\" where name=\"old\" }\n",
+                     ("syntax",), TaskDelivery())),
+    ("semantic-change", "change", GoalOperation("semantic-change"),
+     AuthorBatchOperation({"schema": "fr-author-batch-1"}, ("syntax",), TaskDelivery())),
+    ("surface-edit", "change", GoalOperation("surface-edit", {"surface": "styles"}),
+     SurfaceEditOperation("frse1:edit", "blue", ("syntax",), TaskDelivery())),
+    ("framework-migration", "migrate",
+     GoalOperation("framework-migration", {"to": "go-net-http"}),
+     ApplicationMigrationOperation("go-net-http", "generated", ("syntax",), TaskDelivery())),
+    ("formalization", "prove", GoalOperation("formalize"),
+     FormalPlanOperation((), package="proofs", checks=("syntax",), delivery=TaskDelivery())),
+    ("proof", "prove", GoalOperation("proof", {"obligation": "goal"}),
+     ProofSubmissionOperation("goal", "rfl\n", ("syntax",), TaskDelivery())),
+])
+def test_common_review_type_covers_each_writable_guide_route(
+        route, purpose, goal_operation, operation):
+    client = RouteGuideClient(route)
+    goal = AgentGoal(purpose, target="frp1:route", operation=goal_operation,
+                     checks=("syntax",), delivery=TaskDelivery())
+    review = review_guide(client, guide_goal(client, goal), TaggedIntentAction(operation))
+    assert isinstance(review, GuideReview)
+    assert review.at("/kind") == operation.to_data()["kind"]
+
+
+def test_common_guide_review_refuses_mutated_review_content():
+    client = ApplicationGuideClient()
+    goal = AgentGoal(
+        "migrate", selector=GoalSelector(path="api.ts"),
+        operation=GoalOperation("framework-migration", {"to": "go-net-http"}),
+        checks=("syntax",), delivery=TaskDelivery(),
+    )
+    review = review_guide(client, guide_goal(client, goal), TaggedIntentAction(
+        ApplicationMigrationOperation("go-net-http", "generated", ("syntax",)),
+    ))
+    review.compiled.packet._value["action"]["review"]["diff"] = "changed"
+    with pytest.raises(FrRuntimeError, match="changed before execution"):
+        FrClient.execute_guide(client, review)
+
+
+def test_uniform_delivery_refuses_route_specific_runs_and_missing_task_previews():
     client = DeliveryClient()
     run = complete_guide(client, AgentGoal("change"))
-    run.guide.report._value["route"]["admitted"] = False
-    with pytest.raises(FrRuntimeError, match="stale, incomplete"):
+    with pytest.raises(FrRuntimeError, match="guide review"):
         FrClient.execute_guide(client, run)
     with pytest.raises(FrRuntimeError, match="exactly one"):
         complete_guide(AuthoredClient(), AgentGoal("prove"), {0: GuideInputs({
@@ -234,18 +404,19 @@ def test_guided_delivery_refuses_tampering_and_routes_without_one_task_review():
         })}).review()
 
 
-def test_guide_delivery_kernel_requires_the_complete_change_review_boundary():
-    assert _guide_delivery_admitted(2, 1, 1, 1, True, True, True)
-    for case in (
-        (1, 1, 1, 1, True, True, True),
-        (2, 0, 0, 1, True, True, True),
-        (2, 1, 0, 1, True, True, True),
-        (2, 1, 1, 0, True, True, True),
-        (2, 1, 1, 1, False, True, True),
-        (2, 1, 1, 1, True, False, True),
-        (2, 1, 1, 1, True, True, False),
+def test_guide_delivery_kernel_covers_every_writable_route_and_identity_field():
+    for purpose, route, operation in (
+        (2, 1, 11), (2, 2, 2), (2, 3, 0), (2, 4, 1), (2, 5, 0),
+        (2, 6, 7), (3, 7, 3), (4, 8, 4), (4, 9, 5),
     ):
-        assert not _guide_delivery_admitted(*case)
+        case = [purpose, route, operation, *([True] * 11)]
+        assert _guide_delivery_admitted(*case)
+        for index in range(3, len(case)):
+            refused = list(case)
+            refused[index] = False
+            assert not _guide_delivery_admitted(*refused)
+    assert not _guide_delivery_admitted(0, 3, 0, *([True] * 11))
+    assert not _guide_delivery_admitted(2, 3, 3, *([True] * 11))
 
 
 @pytest.mark.parametrize("build", [

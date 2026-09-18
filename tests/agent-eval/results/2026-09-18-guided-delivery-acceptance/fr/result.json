@@ -1,0 +1,76 @@
+{
+  "schema": "fr-matched-source-result-1",
+  "arm": "fr",
+  "answers_match": true,
+  "source_matches": true,
+  "behavior_oracle": true,
+  "coverage": {
+    "calls": 4,
+    "failed_calls": 0,
+    "reviewed_writes": 1,
+    "passed": true,
+    "transaction_status": "applied",
+    "stages": [
+      {
+        "stage": "check-original",
+        "status": "passed"
+      },
+      {
+        "stage": "apply",
+        "status": "passed"
+      },
+      {
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "stage": "undo",
+        "status": "passed"
+      },
+      {
+        "stage": "check-restored",
+        "status": "passed"
+      },
+      {
+        "stage": "redo",
+        "status": "passed"
+      },
+      {
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "stage": "deliver-patch",
+        "status": "passed"
+      }
+    ],
+    "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596"
+  },
+  "finished": true,
+  "tool_calls": 2,
+  "tool_request_bytes": 948,
+  "tool_response_bytes": 231,
+  "tool_errors": 0,
+  "codex": {
+    "usage": {
+      "input_tokens": 41389,
+      "cached_input_tokens": 35072,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 638,
+      "reasoning_output_tokens": 60
+    },
+    "command_executions": 2,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "infrastructure_errors": 0,
+    "stderr_bytes": 0,
+    "event_bytes": 5031,
+    "final_bytes": 122,
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0,
+  "passed": true
+}

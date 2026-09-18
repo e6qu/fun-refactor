@@ -95,25 +95,43 @@ theorem changed_guide_cannot_bind
     bindingAdmitted expectedFields suppliedFields namesMatch valuesBounded executionDisabled false = false := by
   simp [bindingAdmitted]
 
--- fr:spec src/project/agent_guide.rs::agent_guide_delivery_admitted @ 60e779b03d67c7e7d83c98bf3a2b80dacccff1f961e0237e145474d4ea240922
--- fr:signature purpose: usize => purpose: Nat; action_count: usize => actionCount: Nat; report_count: usize => reportCount: Nat; review_count: usize => reviewCount: Nat; route_admitted: bool => routeAccepted: Bool; guide_matches: bool => guideMatches: Bool; review_complete: bool => reviewComplete: Bool; return: bool => return: Bool
-def deliveryAdmitted (purpose actionCount reportCount reviewCount : Nat)
-    (routeAccepted guideMatches reviewComplete : Bool) : Bool :=
-  purpose == 2 && decide (1 ≤ actionCount) && decide (actionCount ≤ 16) &&
-    decide (reportCount = actionCount) && decide (reviewCount = 1) && routeAccepted &&
-    guideMatches && reviewComplete
+def operationMatches (route operation : Nat) : Bool :=
+  match route with
+  | 0 => operation == 6
+  | 1 => operation == 10 || operation == 11
+  | 2 => operation == 2
+  | 3 | 4 | 5 => operation == 0 || operation == 1
+  | 6 => operation == 7
+  | 7 => operation == 3
+  | 8 => operation == 4 || operation == 8
+  | 9 => operation == 5 || operation == 9
+  | _ => false
 
-theorem delivery_requires_one_complete_unchanged_review
-    (accepted : deliveryAdmitted purpose actionCount reportCount reviewCount
-      routeAccepted guideMatches reviewComplete = true) :
-    purpose = 2 ∧ 1 ≤ actionCount ∧ actionCount ≤ 16 ∧ reportCount = actionCount ∧
-      reviewCount = 1 ∧ routeAccepted = true ∧ guideMatches = true ∧ reviewComplete = true := by
+-- fr:spec src/project/agent_guide.rs::agent_guide_delivery_admitted @ 5b9104f8e34e47273dd60b8209a0429629e11ad8446778380f4d7814b3e90d82
+-- fr:signature purpose: usize => purpose: Nat; route: usize => route: Nat; operation: usize => operation: Nat; writable: bool => writable: Bool; route_admitted: bool => routeAccepted: Bool; goal_matches: bool => goalMatches: Bool; guide_matches: bool => guideMatches: Bool; inputs_match: bool => inputsMatch: Bool; targets_match: bool => targetsMatch: Bool; revision_matches: bool => revisionMatches: Bool; checks_match: bool => checksMatch: Bool; delivery_matches: bool => deliveryMatches: Bool; review_complete: bool => reviewComplete: Bool; review_unchanged: bool => reviewUnchanged: Bool; return: bool => return: Bool
+def deliveryAdmitted (purpose route operation : Nat)
+    (writable routeAccepted goalMatches guideMatches inputsMatch targetsMatch revisionMatches
+      checksMatch deliveryMatches reviewComplete reviewUnchanged : Bool) : Bool :=
+  routeAdmitted purpose 0 0 route true false false 0 && operationMatches route operation &&
+    writable && routeAccepted && goalMatches && guideMatches && inputsMatch && targetsMatch &&
+    revisionMatches && checksMatch && deliveryMatches && reviewComplete && reviewUnchanged
+
+theorem delivery_requires_complete_bound_unchanged_review
+    (accepted : deliveryAdmitted purpose route operation writable routeAccepted goalMatches
+      guideMatches inputsMatch targetsMatch revisionMatches checksMatch deliveryMatches
+      reviewComplete reviewUnchanged = true) :
+    routeAdmitted purpose 0 0 route true false false 0 = true ∧
+      operationMatches route operation = true ∧ writable = true ∧ routeAccepted = true ∧
+      goalMatches = true ∧ guideMatches = true ∧ inputsMatch = true ∧ targetsMatch = true ∧
+      revisionMatches = true ∧ checksMatch = true ∧ deliveryMatches = true ∧
+      reviewComplete = true ∧ reviewUnchanged = true := by
   simpa [deliveryAdmitted, Bool.and_eq_true, and_assoc] using accepted
 
 theorem stale_guide_cannot_deliver
-    (purpose actionCount reportCount reviewCount : Nat) (routeAccepted reviewComplete : Bool) :
-    deliveryAdmitted purpose actionCount reportCount reviewCount
-      routeAccepted false reviewComplete = false := by
+    (purpose route operation : Nat) (writable routeAccepted goalMatches inputsMatch targetsMatch
+      revisionMatches checksMatch deliveryMatches reviewComplete reviewUnchanged : Bool) :
+    deliveryAdmitted purpose route operation writable routeAccepted goalMatches false inputsMatch
+      targetsMatch revisionMatches checksMatch deliveryMatches reviewComplete reviewUnchanged = false := by
   simp [deliveryAdmitted]
 
 end FrKernels.AgentGuide

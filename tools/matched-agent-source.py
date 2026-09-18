@@ -106,12 +106,12 @@ project = (session / "project").resolve()
 if len(argv) < 4 or argv[0] != "--json" or argv[1] != "-C" or pathlib.Path(argv[2]).resolve() != project:
     raise SystemExit("SDK call left the instrumented project")
 arguments = argv[3:]
-if not arguments or arguments[0] not in ("guide", "task-change"):
+if not arguments or arguments[0] not in ("guide", "intent"):
     raise SystemExit("SDK call left the guided source-writing surface")
 if any(value.split("=", 1)[0] == "--save-plan" for value in arguments):
     raise SystemExit("SDK call requested unrelated persistence")
-if "--write" in arguments and arguments[0] != "task-change":
-    raise SystemExit("only a reviewed task change may write")
+if "--write" in arguments and arguments[0] != "intent":
+    raise SystemExit("only a reviewed guide-bound intent may write")
 input_bytes = sys.stdin.buffer.read(65537)
 if len(input_bytes) > 65536:
     raise SystemExit("SDK input exceeds 64 KiB")
@@ -143,10 +143,10 @@ client = FrClient(sys.argv[1], executable=sys.argv[2])
 goal = AgentGoal("change", selector=GoalSelector(name="calculate"),
     operation=GoalOperation("semantic-scalar", {"operation":"set-int","from":"7","to":"9"}),
     checks=("compiler",), delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=512))
-run = client.complete_guide(goal)
-review = run.review()
-assert "+ 9" in review.at("/author/diff")
-result = client.execute_guide(run)
+guide = client.guide(goal)
+review = client.review_guide(guide, guide.semantic_scalar_action())
+assert "+ 9" in review.at("/diff")
+result = client.execute_guide(review)
 assert result.passed
 print(json.dumps({"schema":"fr-matched-source-change-1","path":"src/lib.rs",
     "symbol":"calculate","operation":"set-int","from":"7","to":"9"}))
@@ -162,8 +162,8 @@ name, parameter, return type and all other source. Finish with exactly this JSON
     if arm == "fr":
         surface = f"""Use exactly one agent-authored Python SDK program. Submit it with the `sdk` tool
 as `{{"tool":"sdk","program":"COMPLETE PYTHON SOURCE"}}`,
-then call `finish`. Use `AgentGoal`, `GoalSelector`, `GoalOperation`, `TaskDelivery`, and `FrClient`.
-Call `complete_guide`, inspect `run.review()` at `/author/diff`, and call `execute_guide` only after
+then call `finish`. Use the guide and delivery classes shown below. Call `guide`, obtain the exact
+typed scalar action, inspect `GuideReview` at `/diff`, and call `execute_guide` only after
 that review. Declare check `compiler` and patch `artifacts/change.patch`. Do not read or write source
 through Python and do not call the generic `client.call` or `client.execute` methods.
 

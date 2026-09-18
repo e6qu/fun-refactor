@@ -1,0 +1,39 @@
+You are an independent matched source-writing evaluation agent.
+
+Change the integer offset in the Rust function `calculate` from 7 to 9. Preserve its
+name, parameter, return type and all other source. Finish with exactly this JSON object:
+{"schema":"fr-matched-source-change-1","path":"src/lib.rs","symbol":"calculate","operation":"set-int","from":"7","to":"9"}
+
+Use exactly one agent-authored Python SDK program. Submit it with the `sdk` tool
+as `{"tool":"sdk","program":"COMPLETE PYTHON SOURCE"}`,
+then call `finish`. Use the guide and delivery classes shown below. Call `guide`, obtain the exact
+typed scalar action, inspect `GuideReview` at `/diff`, and call `execute_guide` only after
+that review. Declare check `compiler` and patch `artifacts/change.patch`. Do not read or write source
+through Python and do not call the generic `client.call` or `client.execute` methods.
+
+This tested program shape is complete:
+```python
+from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
+from fr_ir.ir import TaskDelivery
+from fr_ir.runtime import FrClient
+import json, sys
+client = FrClient(sys.argv[1], executable=sys.argv[2])
+goal = AgentGoal("change", selector=GoalSelector(name="calculate"),
+    operation=GoalOperation("semantic-scalar", {"operation":"set-int","from":"7","to":"9"}),
+    checks=("compiler",), delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=512))
+guide = client.guide(goal)
+review = client.review_guide(guide, guide.semantic_scalar_action())
+assert "+ 9" in review.at("/diff")
+result = client.execute_guide(review)
+assert result.passed
+print(json.dumps({"schema":"fr-matched-source-change-1","path":"src/lib.rs",
+    "symbol":"calculate","operation":"set-int","from":"7","to":"9"}))
+```
+
+Use only the instrumented tool through functions.exec / tools.exec_command. Every request uses this
+complete stdin command and one JSON object:
+python3 /Users/zardoz/projects/fun-refactor/tools/matched-agent-source.py step /private/tmp/fr-matched-source-2026-09-18-v2/fr --request-stdin <<'FRJSON'
+{"tool":"finish","summary":"source change complete"}
+FRJSON
+Do not browse, delegate, inspect the evaluator, or access another session. No human correction is
+available. Do not repeat a successful request.

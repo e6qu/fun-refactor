@@ -29,7 +29,7 @@ review = compiled.at("/action/review")
 result = client.execute_intent(compiled)
 ```
 
-When starting from a navigator, use `client.compile_guided_intent(guide, action)`; native `fr`
+When starting from a navigator, use `client.review_guide(guide, action)`; native `fr`
 revalidates the original goal and guide basis inside the evidence snapshot. Authored operation,
 checks, proof expectation and delivery must agree with that goal. Retain the returned review;
 changed source, input, evidence or package configuration invalidates its `fraa2:` identity.

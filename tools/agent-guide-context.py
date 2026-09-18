@@ -48,9 +48,9 @@ client = FrClient(WORKSPACE, executable=FR)
 goal = AgentGoal("change", selector=GoalSelector(name="calculate"),
     operation=GoalOperation("semantic-scalar", {"operation": "set-int", "from": "7", "to": "9"}),
     checks=("compiler",), delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=256))
-run = client.complete_guide(goal)
-review = run.review()
-result = client.execute_guide(run)
+guide = client.guide(goal)
+review = client.review_guide(guide, guide.semantic_scalar_action())
+result = client.execute_guide(review)
 packet = {"passed": result.passed, "workflow": result.at("/workflow")}
 '''
 BOUND_FILES = (
@@ -165,7 +165,7 @@ def measure(executable: str) -> dict:
 def audit(value: dict) -> None:
     if value.get("schema") != "fr-agent-guide-context-1" or value.get("bindings") != bindings():
         raise RuntimeError("guide comparison schema or source bindings are stale")
-    for name, program, count in (("manual", MANUAL, 3), ("inline_manual", INLINE_MANUAL, 2), ("guided", GUIDED, 5)):
+    for name, program, count in (("manual", MANUAL, 3), ("inline_manual", INLINE_MANUAL, 2), ("guided", GUIDED, 4)):
         row = value[name]
         if row["program"] != program or row["program_sha256"] != digest(program.encode()):
             raise RuntimeError("retained agent program is changed")

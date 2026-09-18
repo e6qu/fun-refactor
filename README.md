@@ -103,28 +103,33 @@ python3 -m venv .venv
 .venv/bin/python -m pip install ./sdk/python
 ```
 
-This example performs a checked semantic change through one retained guide run:
+This example performs a checked rename through one retained native review:
 
 ```python
 from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
+from fr_ir.intent_actions import CapabilityOperation, TaggedIntentAction
 from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient
 
 client = FrClient(".")
+delivery = TaskDelivery(patch="artifacts/change.patch")
 goal = AgentGoal(
     "change",
     selector=GoalSelector(name="calculate"),
-    operation=GoalOperation(
-        "semantic-scalar",
-        {"operation": "set-int", "from": "7", "to": "9"},
-    ),
+    operation=GoalOperation("capability", {
+        "capability": "rename", "parameters": {"new_name": "evaluate"},
+    }),
     checks=("unit",),
-    delivery=TaskDelivery(patch="artifacts/change.patch"),
+    delivery=delivery,
 )
 
-run = client.complete_guide(goal)
-print(run.review().at("/author/diff"))
-result = client.execute_guide(run)
+guide = client.guide(goal)
+review = client.review_guide(guide, TaggedIntentAction(CapabilityOperation(
+    "rename", {"new_name": "evaluate"}, checks=("unit",),
+    delivery=delivery,
+)))
+print(review.at("/diff"))
+result = client.execute_guide(review)
 assert result.passed
 ```
 

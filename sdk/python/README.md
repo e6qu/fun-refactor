@@ -39,9 +39,12 @@ evidence = client.follow_guide(guide.actions()[0])
 `AgentGoal` mirrors `fr-agent-goal-1`, including operation, constraints, checks, proof expectations,
 context limits and delivery. `AgentGuide` verifies the goal identity and Merkle report; following an
 action first revalidates its basis and then checks the exact response contract and byte ceiling.
-Exact semantic scalar goals with checks return a `GuideRun`; inspect its sole `TaskReview` through
-`run.review()`, then pass the unchanged run to `client.execute_guide`. Other writing routes use
-`compile_guided_intent` and `execute_intent`.
+`complete_guide` follows read and preview actions without writing. Every writable route instead
+uses one `GuideReview`: author the route's typed `TaggedIntentAction`, pass it with the retained
+guide to `client.review_guide`, inspect the native review, then pass that unchanged review to
+`client.execute_guide`.
+For a complete semantic scalar goal, `guide.semantic_scalar_action()` returns the exact typed task
+operation already committed by the guide, avoiding a second agent-authored manifest.
 See [the language-aware route contract](../../docs/agent-workflow-guide.md) for authored fields,
 specialized workflows and the measured freshness cost.
 
@@ -82,12 +85,15 @@ mirrors are `AuthorBatchOperation`, `RecipeOperation`, `CapabilityOperation`,
 Formal plans write scaffolds only when a package, checks and delivery are supplied. Proof properties
 and tactics remain agent-authored; checked model theorems retain explicit implementation obligations.
 
-`client.compile_guided_intent(guide, TaggedIntentAction(operation))` binds an authored operation to
-its retained goal. Native compilation checks that goal and basis in the same snapshot as evidence.
+`client.review_guide(guide, TaggedIntentAction(operation))` binds an authored operation to its
+retained goal and returns the common immutable review. Native compilation checks that goal and
+basis in the same snapshot as evidence.
 Every `fraa2:` review commits selected evidence, secondary targets, exact changes, check
 configuration, proof expectation and delivery. The SDK independently verifies those identities and
-stores all selected Merkle roots when given an object store. Execution preserves checks, requested
-undo/redo and patch delivery. Read-only plans cannot execute. The legacy `IntentAction` and `fraa1:`
+stores all selected Merkle roots when given an object store. `execute_guide` refreshes the guide and
+executes only that unchanged `fraa2:` review. Execution preserves checks, requested undo/redo and
+patch delivery. Read-only plans cannot execute. The lower-level `compile_guided_intent` remains
+available for inspection-only integrations. The legacy `IntentAction` and `fraa1:`
 wire format remain available for one direct task target without project requests.
 
 The package root is deliberately empty. Import IR constructors from `fr_ir.ir`, the subprocess

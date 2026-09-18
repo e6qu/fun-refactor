@@ -489,6 +489,12 @@ fn scalar_goal_returns_exact_plan_and_preview_without_mutation() {
     );
     assert_eq!(report["route"]["id"], "semantic-scalar");
     assert_eq!(report["route"]["admitted"], true);
+    assert_eq!(report["intent_action"]["writable"], true);
+    assert_eq!(report["intent_action"]["review"], "FrClient.review_guide");
+    assert_eq!(report["intent_action"]["execute"], "FrClient.execute_guide");
+    assert_eq!(report["delivery"]["schema"], "fr-guide-delivery-1");
+    assert_eq!(report["delivery"]["review"], "FrClient.review_guide");
+    assert_eq!(report["delivery"]["execute"], "FrClient.execute_guide");
     let plan = follow(root.path(), &report["actions"][0]);
     assert_eq!(plan["edit_plan"]["source_free"], true);
     let preview = follow(root.path(), &report["actions"][1]);
@@ -520,6 +526,8 @@ fn direct_goal_derives_a_position_and_only_recommends_preview() {
             json!({"kind":"capability","capability":"rename","parameters":{"new_name":"compute"}}),
         ),
     );
+    assert_eq!(file["intent_action"]["writable"], false);
+    assert!(file.get("delivery").is_none());
     assert_eq!(file["state"], "unsupported");
     assert_eq!(file["actions"], json!([]));
 }

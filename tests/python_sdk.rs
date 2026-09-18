@@ -75,7 +75,7 @@ fn checked_agent_guide_context_comparison_is_reproducible() {
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_slice(&fs::read(evidence).unwrap()).unwrap();
-    assert_eq!(report["guided"]["process_calls"], 5);
+    assert_eq!(report["guided"]["process_calls"], 4);
     assert_eq!(report["manual"]["process_calls"], 3);
     assert!(report["equality"]
         .as_object()
@@ -100,17 +100,17 @@ import json, sys
 from pathlib import Path
 from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
 from fr_ir.ir import TaskDelivery
-from fr_ir.runtime import FrClient, FrRuntimeError, TaskReview
+from fr_ir.runtime import FrClient, FrRuntimeError
 client=FrClient(sys.argv[1], executable=sys.argv[2])
+delivery=TaskDelivery(patch='artifacts/change.patch',check_output_bytes=256)
 goal=AgentGoal('change',selector=GoalSelector(name='calculate'),
     operation=GoalOperation('semantic-scalar', {'operation':'set-int','from':'7','to':'9'}),
-    checks=('syntax',),delivery=TaskDelivery(patch='artifacts/change.patch',check_output_bytes=256))
+    checks=('syntax',),delivery=delivery)
 guide=client.guide(goal)
 assert len(guide.actions()) == 1
-review=client.follow_guide(guide.actions()[0])
-assert isinstance(review, TaskReview)
-assert '+ 9' in review.at('/author/diff')
-result=client.execute(review)
+review=client.review_guide(guide,guide.semantic_scalar_action())
+assert '+ 9' in review.at('/diff')
+result=client.execute_guide(review)
 assert result.passed
 assert Path(sys.argv[1], 'artifacts/change.patch').is_file()
 assert '+ 9' in Path(sys.argv[1], 'app.rs').read_text()
@@ -120,7 +120,7 @@ assert '+ 7' in Path(sys.argv[1], 'app.rs').read_text()
 client.call('history','redo',str(transaction),'--write')
 assert '+ 9' in Path(sys.argv[1], 'app.rs').read_text()
 try:
-    client.follow_guide(guide.actions()[0])
+    client.execute_guide(review)
 except FrRuntimeError:
     pass
 else:

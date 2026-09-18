@@ -4226,6 +4226,14 @@
         },
         {
           "type": "SYMBOL",
+          "name": "tactic_cases"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tactic_rcases"
+        },
+        {
+          "type": "SYMBOL",
           "name": "tactic_have"
         },
         {
@@ -4324,6 +4332,310 @@
           }
         ]
       }
+    },
+    "tactic_cases": {
+      "type": "PREC_RIGHT",
+      "value": 3,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "tactic",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "cases"
+                },
+                {
+                  "type": "STRING",
+                  "value": "induction"
+                }
+              ]
+            }
+          },
+          {
+            "type": "FIELD",
+            "name": "subject",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_tactic_subject"
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": "with"
+                  },
+                  {
+                    "type": "REPEAT1",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "tactic_constructor_branch"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tactic_constructor_branch": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "|"
+          },
+          {
+            "type": "FIELD",
+            "name": "constructor",
+            "content": {
+              "type": "SYMBOL",
+              "name": "qualified_name"
+            }
+          },
+          {
+            "type": "REPEAT",
+            "content": {
+              "type": "FIELD",
+              "name": "binder",
+              "content": {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "hole"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "STRING",
+            "value": "=>"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_layout_start"
+          },
+          {
+            "type": "FIELD",
+            "name": "body",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_tactic_seq"
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_layout_end"
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tactic_rcases": {
+      "type": "PREC_RIGHT",
+      "value": 3,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "rcases"
+          },
+          {
+            "type": "FIELD",
+            "name": "subject",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_tactic_subject"
+            }
+          },
+          {
+            "type": "STRING",
+            "value": "with"
+          },
+          {
+            "type": "FIELD",
+            "name": "pattern",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_rcases_pattern"
+            }
+          }
+        ]
+      }
+    },
+    "_rcases_pattern": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_rcases_atom"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "rcases_tuple_pattern"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "rcases_alternative_pattern"
+        }
+      ]
+    },
+    "_rcases_atom": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "hole"
+        },
+        {
+          "type": "STRING",
+          "value": "-"
+        },
+        {
+          "type": "STRING",
+          "value": "rfl"
+        }
+      ]
+    },
+    "_tactic_subject": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "qualified_name"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "number"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "hole"
+        }
+      ]
+    },
+    "rcases_tuple_pattern": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "⟨"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_rcases_atom"
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": ","
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "_rcases_atom"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "⟩"
+        }
+      ]
+    },
+    "rcases_alternative_pattern": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "("
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_rcases_atom"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "rcases_tuple_pattern"
+            }
+          ]
+        },
+        {
+          "type": "REPEAT1",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "|"
+              },
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_rcases_atom"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "rcases_tuple_pattern"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "STRING",
+          "value": ")"
+        }
+      ]
     },
     "tactic_config": {
       "type": "PREC",

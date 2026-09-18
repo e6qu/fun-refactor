@@ -6,12 +6,11 @@ history preserve completed detail.
 
 ## Baseline
 
-PR 316 completed first-class execution of one unchanged reviewed guide run and retained the first
-matched live source-writing cohort. The merged system provides:
+The current system provides:
 
 - Bounded project, semantic, application and evidence models for 19 parser identities.
 - Merkle-addressed progressive disclosure and a Python object-store protocol.
-- Structured goals, ten guide routes and native intent compilation.
+- Structured goals, ten guide routes and one uniform writable `GuideReview` lifecycle.
 - Built-in refactors, recipes, semantic and surface edits, application migration and proof work.
 - Checks, history, apply, undo, redo, recovery, patches and reviewed Git operations.
 - Lean admission and transition kernels with strict source anchors and shared executable cases.
@@ -22,20 +21,15 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-The first bulk roadmap item resets documentation around the merged product and its remaining work.
-It removes stale milestone prose, shortens the user entry path, cross-links authoritative guides and
-corrects inconsistencies found while dogfooding `fr`.
+The third bulk roadmap item is next: representative unfamiliar-project acceptance and SDK
+distribution. It covers Rust multi-file work, TypeScript or React, CSS/Tailwind or Mermaid, backend
+migration and agent-authored Lean proofs, with exact postconditions and recoverable delivery. It
+also packages matching Python and native artifacts and adds a minimal remote object-store example.
 
-The next implementation outcome is uniform reviewed guide delivery across every writable route.
-Today, native tagged intents can review and execute those routes, while the simpler
-`complete_guide`/`execute_guide` path accepts only a run containing one task review.
-
-Dogfooding this outcome fixed three defects: the Python guide bridge now accepts the
-`application-migration` operation advertised by its route, path-scoped symbol queries restrict the
-scan before parsing and resolution, and the Lean grammar reads the common proof forms listed in
-B934. B935 remains explicit: constructor branches for `cases`, `induction` and `rcases` need a
-bounded structural grammar before proof submissions join the common delivery lifecycle. An opaque
-tactic fallback is not acceptable because it would hide the hierarchy from agents.
+The completed guided-delivery outcome binds route, operation, goal, guide, authored input, targets,
+revision, checks, delivery, complete preview and unchanged review. Rust, Python and Lean agree over
+the finite policy corpus. A retained Codex 0.154.0 pair using `gpt-5.6-luna` at low effort completed
+the scalar flow with one reviewed write and all eight recovery and patch stages.
 
 ## Validation
 

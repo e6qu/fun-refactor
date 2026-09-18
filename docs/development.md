@@ -36,7 +36,8 @@ Install and check the Python SDK in its own environment:
 ```sh
 python3 -m venv sdk/python/.venv
 sdk/python/.venv/bin/python -m pip install -U pip
-sdk/python/.venv/bin/python -m pip install -e 'sdk/python[dev]'
+sdk/python/.venv/bin/python -m pip install -e 'sdk/python[test]'
+sdk/python/.venv/bin/python -m pip install 'ty==0.0.80'
 sdk/python/.venv/bin/pytest sdk/python/tests
 sdk/python/.venv/bin/ty check sdk/python
 ```
