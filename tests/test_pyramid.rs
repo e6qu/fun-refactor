@@ -77,6 +77,7 @@ fn run(root: &Path, cache: &Path, args: &[&str]) -> Outcome {
 fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
         ("audit", vec!["audit"]),
+        ("compatibility", vec!["compatibility"]),
         ("capabilities", vec!["capabilities"]),
         ("cache", vec!["cache"]),
         ("history", vec!["history"]),

@@ -17,6 +17,12 @@ through an agent's conversation. `FrClient` runs the local binary without a shel
 root, bounds arguments, input, output and time, and returns `FrReport` objects. The Rust binary
 remains the authority for project construction, handles, authoring, checks and history.
 
+Install `fun-refactor-ir` from the same GitHub release as the native binary. At session startup,
+`client.compatibility()` checks the exact distribution version, protocol revision and request and
+response schema sets. It refuses mismatched artifacts before project work begins. Release CI builds
+the wheel and source archive, installs the wheel into an isolated environment and checks it against
+the release binary.
+
 ```python
 from fr_ir.runtime import FrClient
 

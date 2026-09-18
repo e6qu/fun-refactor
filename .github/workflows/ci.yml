@@ -162,6 +162,8 @@ jobs:
           "pydantic==2.13.5"
           "starlette==1.6.0"
           "pytest==9.1.1"
+          "build==1.6.1"
+          "setuptools==84.0.0"
       - uses: actions/setup-node@v7
         if: matrix.slice == 'default'
         with:

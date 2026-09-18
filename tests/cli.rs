@@ -293,6 +293,35 @@ fn the_capability_matrix_is_printable_and_totals_add_up() {
 }
 
 #[test]
+fn compatibility_report_names_the_exact_agent_protocol() {
+    let ws = workspace();
+    let (out, ok) = ws.run(&["--json", "compatibility"]);
+    assert!(ok, "{out}");
+    let report: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+    assert_eq!(report["schema"], "fr-sdk-compatibility-1");
+    assert_eq!(report["binary"]["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(
+        report["python"]["version_requirement"],
+        format!("=={}", env!("CARGO_PKG_VERSION"))
+    );
+    assert_eq!(report["protocol"]["revision"], 1);
+    assert_eq!(
+        report["protocol"]["request_schemas"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
+    assert_eq!(
+        report["protocol"]["response_schemas"]
+            .as_array()
+            .unwrap()
+            .len(),
+        5
+    );
+}
+
+#[test]
 fn a_long_unused_report_says_what_it_is_mostly_made_of() {
     // `spring-petclinic` answers this with 3,554 findings, of which 3,395 are CSS selectors in
     // one vendored stylesheet.
