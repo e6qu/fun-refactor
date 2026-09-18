@@ -403,16 +403,14 @@ pub fn write_routes(
         let response = expression(&route.response, adapter, &bindings);
         match adapter {
             Adapter::Fastapi => {
-                let mut params = parameters
-                    .iter()
-                    .enumerate()
-                    .map(|(i, name)| {
-                        format!("_fr_parameter_{i}: str = Path(alias={})", quoted(name))
-                    })
-                    .collect::<Vec<_>>();
-                if !route.inputs.is_empty() {
-                    params.push("request: Request".into());
-                }
+                let mut params = if route.inputs.is_empty() {
+                    Vec::new()
+                } else {
+                    vec!["request: Request".into()]
+                };
+                params.extend(parameters.iter().enumerate().map(|(i, name)| {
+                    format!("_fr_parameter_{i}: str = Path(alias={})", quoted(name))
+                }));
                 let asynchronous = if route.inputs.is_empty() {
                     ""
                 } else {

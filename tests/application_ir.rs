@@ -6,11 +6,11 @@ use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
 use serde_json::json;
 use std::collections::BTreeMap;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 #[test]
 fn floating_merkle_addresses_match_python_over_boundary_and_bit_cases() {
-    use std::io::Write;
-    use std::process::{Command, Stdio};
     let mut values = vec![
         1e-7_f64,
         1e-6,
@@ -247,6 +247,31 @@ fn validated_request_inputs_are_typed_bounded_and_deterministic() {
         },
     };
     route.validate().unwrap();
+    let source = write_routes(std::slice::from_ref(&route), Adapter::Fastapi)
+        .unwrap()
+        .remove("routes.py")
+        .unwrap();
+    let mut python = Command::new("python3")
+        .args([
+            "-c",
+            "import sys; compile(sys.stdin.read(), '<generated-fastapi>', 'exec')",
+        ])
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    python
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(source.as_bytes())
+        .unwrap();
+    let output = python.wait_with_output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert_eq!(
         route.feature_kind().unwrap(),
         FeatureKind::ValidatedJsonRoute
