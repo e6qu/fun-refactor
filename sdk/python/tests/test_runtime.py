@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+from urllib.error import HTTPError
 from unittest.mock import patch
 
 from fr_ir.context import (
@@ -18,6 +19,8 @@ from fr_ir.ir import (
     merkle_object_digest,
 )
 from fr_ir.runtime import Disclosure, DisclosureAction, FrClient, FrRuntimeError
+from fr_ir._version import VERSION
+from fr_ir.http_store import HttpObjectStore
 from fr_ir.context import _context_materialization_admitted, _object_store_admitted
 from fr_ir.runtime import _session_step
 import pytest
@@ -50,6 +53,39 @@ class TestRuntime:
             report.at("/rows/1")
         with pytest.raises(FrRuntimeError, match="non-canonical escape"):
             report.at("/rows~")
+
+    @patch("fr_ir.runtime.subprocess.run")
+    def test_compatibility_requires_exact_versions_and_wire_schemas(self, run):
+        compatible = {
+            "schema": "fr-sdk-compatibility-1",
+            "binary": {"distribution": "fun-refactor", "version": VERSION},
+            "python": {
+                "distribution": "fun-refactor-ir",
+                "version_requirement": f"=={VERSION}",
+            },
+            "protocol": {
+                "revision": 1,
+                "request_schemas": [
+                    "fr-agent-action-2", "fr-agent-goal-1",
+                    "fr-agent-intent-1", "fr-task-change-1",
+                ],
+                "response_schemas": [
+                    "fr-agent-action-result-2", "fr-agent-context-1",
+                    "fr-agent-guide-1", "fr-intent-operation-review-2",
+                    "fr-progressive-disclosure-1",
+                ],
+            },
+        }
+        run.return_value = completed(compatible)
+        assert self.client.compatibility().version == VERSION
+        assert run.call_args.args[0][4:] == ["compatibility"]
+
+        run.return_value = completed({
+            **compatible,
+            "binary": {"distribution": "fun-refactor", "version": "999.0.0"},
+        })
+        with pytest.raises(FrRuntimeError, match="incompatible"):
+            self.client.compatibility()
 
     @patch("fr_ir.runtime.subprocess.run")
     def test_disclosure_follows_only_exact_server_actions(self, run):
@@ -185,6 +221,58 @@ class TestRuntime:
             evidence = [True, True, True]
             evidence[missing] = False
             assert not _object_store_admitted(1, 0, *evidence)
+
+    def test_http_store_round_trips_verified_merkle_objects(self):
+        objects = {}
+
+        class Response:
+            def __init__(self, encoded=b"", status=200):
+                self.encoded = encoded
+                self.status = status
+                self.headers = {"Content-Length": str(len(encoded))}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def read(self, limit):
+                return self.encoded[:limit]
+
+        class Opener:
+            def open(self, request, timeout):
+                assert timeout == 20.0
+                assert request.get_header("Authorization") == "Bearer test"
+                path = request.full_url.removeprefix("https://objects.example/v1/")
+                if request.get_method() == "PUT":
+                    previous = objects.get(path)
+                    if previous is not None and previous != request.data:
+                        raise HTTPError(request.full_url, 409, "conflict", {}, None)
+                    objects[path] = request.data
+                    return Response(status=204)
+                if path not in objects:
+                    raise HTTPError(request.full_url, 404, "missing", {}, None)
+                return Response(objects[path])
+
+        store = HttpObjectStore(
+            "https://objects.example/v1",
+            headers={"Authorization": "Bearer test"},
+        )
+        store._opener = Opener()
+        value = {"rows": [{"name": "render"}], "complete": True}
+        stored = store_merkle_value(store, value)
+        assert restore_stored_value(store, stored.digest) == value
+        assert store.get("f" * 64) is None
+        assert all(len(digest) == 64 for digest in objects)
+
+    def test_http_store_refuses_unsafe_transport_inputs(self):
+        with pytest.raises(FrRuntimeError, match="without credentials"):
+            HttpObjectStore("https://user:secret@example.test/objects")
+        with pytest.raises(FrRuntimeError, match="headers"):
+            HttpObjectStore("https://example.test/objects", headers={"X-Test": "bad\nvalue"})
+        with pytest.raises(FrRuntimeError, match="timeout"):
+            HttpObjectStore("https://example.test/objects", timeout=0)
 
     @patch("fr_ir.runtime.subprocess.run")
     def test_context_reaches_a_later_section_and_caches_its_value(self, run):

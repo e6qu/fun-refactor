@@ -68,9 +68,22 @@ same `fr-merkle-object-1` shape as the CLI. It limits a pack to 65,536 objects a
 root last, reads every object back and compares canonical bytes. `restore_stored_value` fetches only
 reachable records, verifies every content address and reconstructs the JSON value.
 
-The `ObjectStore` protocol has only `get(digest)` and `put(digest, record)`, so an adapter can use
-object storage. The SDK verifies an adapter's writes but does not provide credentials, transport,
-concurrency control, retention or remote durability guarantees.
+The `ObjectStore` protocol has only `get(digest)` and `put(digest, record)`. `HttpObjectStore`
+provides a bounded zero-dependency adapter for an endpoint that accepts `GET` and idempotent `PUT`
+at `<base>/<sha256>`. It accepts caller-supplied headers, refuses redirects, bounds each response to
+1 MiB and exposes neither response bodies nor headers in errors. `store_merkle_value` reads every
+write back and checks canonical bytes before admitting the pack. The remote service still owns
+credentials, authorization, concurrency, retention and durability.
+
+```python
+from fr_ir.http_store import HttpObjectStore
+
+store = HttpObjectStore(
+    "https://objects.example/v1/fr",
+    headers={"Authorization": "Bearer session-token"},
+)
+session = client.context(handle, view="evidence", store=store)
+```
 
 ## Formal and executable evidence
 

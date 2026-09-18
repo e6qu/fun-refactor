@@ -54,6 +54,7 @@ fn python_package_keeps_explicit_module_boundaries() {
         "intent.py",
         "intent_actions.py",
         "guide.py",
+        "http_store.py",
     ] {
         let source = fs::read_to_string(package.join(module)).unwrap();
         assert!(!source.contains("__all__"), "{module} mutates __all__");

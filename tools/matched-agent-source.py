@@ -140,16 +140,16 @@ from fr_ir.ir import TaskDelivery
 from fr_ir.runtime import FrClient
 import json, sys
 client = FrClient(sys.argv[1], executable=sys.argv[2])
-goal = AgentGoal("change", selector=GoalSelector(name="calculate"),
-    operation=GoalOperation("semantic-scalar", {"operation":"set-int","from":"7","to":"9"}),
-    checks=("compiler",), delivery=TaskDelivery(patch="artifacts/change.patch", check_output_bytes=512))
+goal = AgentGoal('change', selector=GoalSelector(name='calculate'),
+    operation=GoalOperation('semantic-scalar', {'operation':'set-int','from':'7','to':'9'}),
+    checks=('compiler',), delivery=TaskDelivery(patch='artifacts/change.patch', check_output_bytes=512))
 guide = client.guide(goal)
 review = client.review_guide(guide, guide.semantic_scalar_action())
-assert "+ 9" in review.at("/diff")
+assert '+ 9' in review.at('/diff')
 result = client.execute_guide(review)
 assert result.passed
-print(json.dumps({"schema":"fr-matched-source-change-1","path":"src/lib.rs",
-    "symbol":"calculate","operation":"set-int","from":"7","to":"9"}))
+print(json.dumps({'schema':'fr-matched-source-change-1','path':'src/lib.rs',
+    'symbol':'calculate','operation':'set-int','from':'7','to':'9'}))
 '''
 
 
@@ -161,7 +161,9 @@ name, parameter, return type and all other source. Finish with exactly this JSON
 """
     if arm == "fr":
         surface = f"""Use exactly one agent-authored Python SDK program. Submit it with the `sdk` tool
-as `{{"tool":"sdk","program":"COMPLETE PYTHON SOURCE"}}`,
+as `{{"tool":"sdk","program_lines":["one source line","next source line"]}}`. Put each Python
+source line in a separate JSON string; do not put literal newlines inside a JSON string. Preserve
+the example's single-quoted Python strings so each line remains valid JSON without extra escaping.
 then call `finish`. Use the guide and delivery classes shown below. Call `guide`, obtain the exact
 typed scalar action, inspect `GuideReview` at `/diff`, and call `execute_guide` only after
 that review. Declare check `compiler` and patch `artifacts/change.patch`. Do not read or write source

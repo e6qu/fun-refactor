@@ -1,0 +1,98 @@
+{
+  "schema": "fr-representative-acceptance-1",
+  "cases": [
+    {
+      "id": "regex-upstream-replay",
+      "covers": ["unfamiliar-upstream"],
+      "runner": "tools/agent-eval.py",
+      "runner_sha256": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
+      "fixture_revision": "rust-lang/regex@2b527599eb9eea0dcc288c704584f242f26a5c61",
+      "oracle": "upstream checks, independent receiver oracle and exact reversal",
+      "postconditions": ["patch applies", "behavior passes", "tracked bytes restore exactly"],
+      "external": true,
+      "required_tools": ["cargo", "git", "python3"],
+      "command": ["cargo", "test", "--test", "agent_acceptance", "recorded_workspace_patches_pass_checks_oracles_and_exact_reversal", "--", "--ignored", "--exact", "--test-threads", "1"]
+    },
+    {
+      "id": "rust-multi-file-reviewed-batch",
+      "covers": ["rust-multi-file"],
+      "runner": "tools/author-batch-context.py",
+      "runner_sha256": "ecf609a63f0610cb6dffbe7760c5ffbc80edbf148103a86cbd0c5d41934b02b4",
+      "fixture_revision": "6d24ac4ab9f266af013a68b061e2ff31568f5b08f3dfe00116f6562e63c4e328",
+      "oracle": "rustc compilation, exact stdout, source snapshots and receiver patch replay",
+      "postconditions": ["two files changed", "undo and redo exact", "receiver prints 7"],
+      "required_tools": ["git", "python3", "rustc"],
+      "command": ["python3", "tools/author-batch-context.py", "--fr", "<FR>", "--repetitions", "2"]
+    },
+    {
+      "id": "tsx-react-body-batch",
+      "covers": ["typescript-react"],
+      "runner": "tests/author_cli.rs",
+      "runner_sha256": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
+      "fixture_revision": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
+      "test": "batch_combines_languages_and_resolves_fragments_from_workspace_root",
+      "oracle": "exact TSX body bytes plus parser admission and transaction reversal",
+      "postconditions": ["React TSX body changes", "three-language batch applies", "undo restores all files"],
+      "required_tools": ["cargo"],
+      "command": ["cargo", "test", "--test", "author_cli", "batch_combines_languages_and_resolves_fragments_from_workspace_root", "--", "--exact", "--test-threads", "1"]
+    },
+    {
+      "id": "style-tailwind-mermaid-surfaces",
+      "covers": ["css-tailwind-mermaid"],
+      "runner": "tests/author_cli.rs",
+      "runner_sha256": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
+      "fixture_revision": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
+      "test": "surface_capabilities_edit_css_html_markdown_and_mermaid_with_history",
+      "oracle": "exact CSS, Tailwind-class, Markdown and Mermaid source postconditions",
+      "postconditions": ["preview is unchanged", "undo and redo exact", "patch basis matches"],
+      "required_tools": ["cargo"],
+      "command": ["cargo", "test", "--test", "author_cli", "surface_capabilities_edit_css_html_markdown_and_mermaid_with_history", "--", "--exact", "--test-threads", "1"]
+    },
+    {
+      "id": "express-to-go-application-migration",
+      "covers": ["backend-migration"],
+      "runner": "tests/agent_intent_cli.rs",
+      "runner_sha256": "19c502fbc19a0823898631541a6b42a49f13cd6a83b3a88b59fe631aefc41187",
+      "fixture_revision": "19c502fbc19a0823898631541a6b42a49f13cd6a83b3a88b59fe631aefc41187",
+      "test": "tagged_application_migration_executes_the_common_ir_planner",
+      "oracle": "normalized application IR, generated Go parser and creation patch",
+      "postconditions": ["source remains unchanged", "routes.go is created", "reviewed patch contains creation"],
+      "required_tools": ["cargo"],
+      "command": ["cargo", "test", "--test", "agent_intent_cli", "tagged_application_migration_executes_the_common_ir_planner", "--", "--exact", "--test-threads", "1"]
+    },
+    {
+      "id": "agent-authored-lean-proof",
+      "covers": ["agent-authored-lean-proof"],
+      "runner": "tests/agent_intent_cli.rs",
+      "runner_sha256": "19c502fbc19a0823898631541a6b42a49f13cd6a83b3a88b59fe631aefc41187",
+      "fixture_revision": "19c502fbc19a0823898631541a6b42a49f13cd6a83b3a88b59fe631aefc41187",
+      "test": "tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history",
+      "oracle": "Lean checker, strict correspondence receipt, stale-input refusals and no proof debt",
+      "postconditions": ["agent tactics accepted", "changed evidence refuses", "patch delivered", "no sorry remains"],
+      "required_tools": ["cargo", "lake", "lean"],
+      "command": ["cargo", "test", "--test", "agent_intent_cli", "tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history", "--", "--exact", "--test-threads", "1"]
+    }
+  ],
+  "live_cohorts": [
+    {
+      "id": "guided-delivery-r1",
+      "manifest": "tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/manifest.json",
+      "revision": "2d80cd143cf38dcef67373df22407a5caac158cf56f8e9e4f5e0669ae57bf8ff",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.154.0",
+      "inputs": ["33e10043ef356e6e330b1d4e4ca34433c55c2b80db2bc290f24a0fd961dd97b2", "b6d8b0261b0915ec656b9a9dcb53df2d7e8972b3dffe173e0184d21a0a01fbc6"],
+      "oracle": "exact Rust source plus 33 compiled behavior cases"
+    },
+    {
+      "id": "guided-delivery-r2",
+      "manifest": "tests/agent-eval/results/2026-09-18-sdk-release-acceptance/manifest.json",
+      "revision": "cb4dea03acbaf481b07aa24bcfac9e8615f9a91cf56901b29e9c65f47cf7861f",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.154.0",
+      "inputs": ["b9e74c1c56c703831efab88791c6de554abbae5570b948dfb64b7c3752f88424", "58071940529d7a69b59eea65541f99f067a2a803cf1edb932b9dc393562ad1f5"],
+      "oracle": "exact Rust source plus 33 compiled behavior cases"
+    }
+  ]
+}

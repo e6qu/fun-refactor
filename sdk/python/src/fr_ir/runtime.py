@@ -15,6 +15,8 @@ import re
 import subprocess
 from typing import Any, Mapping, Sequence, TYPE_CHECKING, cast
 
+from ._version import VERSION
+
 if TYPE_CHECKING:
     from .ir import TaskChange
     from .context import ContextSession, ObjectStore
@@ -27,6 +29,20 @@ if TYPE_CHECKING:
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
 _MAX_ARGUMENTS = 128
 _MAX_ARGUMENT_BYTES = 16_384
+_PROTOCOL_REVISION = 1
+_REQUEST_SCHEMAS = (
+    "fr-agent-action-2",
+    "fr-agent-goal-1",
+    "fr-agent-intent-1",
+    "fr-task-change-1",
+)
+_RESPONSE_SCHEMAS = (
+    "fr-agent-action-result-2",
+    "fr-agent-context-1",
+    "fr-agent-guide-1",
+    "fr-intent-operation-review-2",
+    "fr-progressive-disclosure-1",
+)
 
 
 class FrRuntimeError(RuntimeError):
@@ -93,6 +109,35 @@ class FrReport:
     def at(self, pointer: str = "") -> Any:
         """Return a detached value at one RFC 6901 pointer."""
         return _copy_json(_pointer(self._value, pointer))
+
+
+@dataclass(frozen=True)
+class CompatibilityReport(FrReport):
+    """An exact native/SDK version and agent-protocol agreement."""
+
+    def __post_init__(self) -> None:
+        binary = self._value.get("binary")
+        python = self._value.get("python")
+        protocol = self._value.get("protocol")
+        if (self.schema != "fr-sdk-compatibility-1"
+                or not isinstance(binary, Mapping)
+                or binary.get("distribution") != "fun-refactor"
+                or binary.get("version") != VERSION
+                or not isinstance(python, Mapping)
+                or python.get("distribution") != "fun-refactor-ir"
+                or python.get("version_requirement") != f"=={VERSION}"
+                or not isinstance(protocol, Mapping)
+                or protocol.get("revision") != _PROTOCOL_REVISION
+                or protocol.get("request_schemas") != list(_REQUEST_SCHEMAS)
+                or protocol.get("response_schemas") != list(_RESPONSE_SCHEMAS)):
+            raise FrRuntimeError(
+                f"fr binary is incompatible with fun-refactor-ir {VERSION}"
+            )
+
+    @property
+    def version(self) -> str:
+        """Return the exact shared native and SDK release version."""
+        return VERSION
 
 
 @dataclass(frozen=True)
@@ -377,6 +422,11 @@ class FrClient:
     def project(self, *arguments: str) -> FrReport:
         """Run one structured project query."""
         return self.call("project", *arguments)
+
+    def compatibility(self) -> CompatibilityReport:
+        """Fail unless this SDK exactly matches the native agent protocol."""
+        report = self.call("compatibility")
+        return CompatibilityReport(report._value, report.arguments)
 
     def kernel(self, request: KernelRequest, *, report_bytes: int = 65_536) -> KernelResult:
         from .formal_kernel import KernelResult

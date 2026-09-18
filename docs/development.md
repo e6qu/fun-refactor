@@ -39,7 +39,7 @@ sdk/python/.venv/bin/python -m pip install -U pip
 sdk/python/.venv/bin/python -m pip install -e 'sdk/python[test]'
 sdk/python/.venv/bin/python -m pip install 'ty==0.0.80'
 sdk/python/.venv/bin/pytest sdk/python/tests
-sdk/python/.venv/bin/ty check sdk/python
+sdk/python/.venv/bin/ty check sdk/python/src
 ```
 
 Use targeted tests while developing, then run the complete affected lane before pushing. The

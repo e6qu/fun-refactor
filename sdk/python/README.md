@@ -3,6 +3,16 @@
 This zero-dependency package constructs source-free `fr-semantic-body-1` payloads. Its four
 namespaces follow the Rust IR hierarchy and retain distinct node types at runtime.
 
+Install the wheel from the same GitHub release as the native binary. Check the exact package,
+binary and wire-schema agreement before starting a long agent session:
+
+```python
+from fr_ir.runtime import FrClient
+
+client = FrClient(".", executable="fr")
+print(client.compatibility().version)
+```
+
 `FrClient` also keeps project reports, progressive disclosure and reviewed task-change sessions as
 Python objects. It invokes the local `fr` binary without a shell and exposes selected report values
 without printing the surrounding JSON:
@@ -26,6 +36,21 @@ Keep a directory object store outside the analyzed project so cache creation doe
 its revision. See [the runtime contract](../../docs/agent-runtime-sdk.md) and
 [context workspace](../../docs/agent-context-workspace.md) for bounded calls, selected packets,
 storage adapters and the reviewed session API.
+
+For a remote content-addressed endpoint that accepts `GET` and idempotent `PUT` at
+`<base>/<sha256>`, use the zero-dependency adapter. The application supplies authorization headers;
+the SDK bounds responses, refuses redirects, verifies every content address during restoration and
+reads each stored record back through `store_merkle_value`.
+
+```python
+from fr_ir.http_store import HttpObjectStore
+
+store = HttpObjectStore(
+    "https://objects.example/v1/fr",
+    headers={"Authorization": "Bearer session-token"},
+)
+session = client.context(handle, view="evidence", store=store)
+```
 
 Start with a structured goal when the agent has not chosen a command or protocol:
 

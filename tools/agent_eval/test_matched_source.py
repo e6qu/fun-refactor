@@ -50,11 +50,11 @@ def test_both_instrumented_arms_produce_the_exact_source_change():
 
 
 def test_retained_source_writing_cohort_is_bound_and_passing():
-    evidence = ROOT / "tests/agent-eval/results/2026-09-18-guided-delivery-acceptance"
+    evidence = ROOT / "tests/agent-eval/results/2026-09-18-sdk-release-acceptance"
     report = SOURCE.audit(evidence)
     assert report["acceptance_evidence"] is True
     assert report["passed"] is True
-    assert report["usage_difference_fr_minus_files"]["input_tokens"] == -26_596
+    assert report["usage_difference_fr_minus_files"]["input_tokens"] == -4_384
     fr, files = report["results"]
     assert (fr["tool_calls"], files["tool_calls"]) == (2, 4)
     assert fr["coverage"]["reviewed_writes"] == 1

@@ -16,6 +16,7 @@ Download the archive and matching `.sha256` file from
 | `fr-<tag>-x86_64-apple-darwin.tar.gz` | macOS Intel |
 | `fr-<tag>-aarch64-apple-darwin.tar.gz` | macOS Apple silicon |
 | `fun-refactor-<tag>-wasm.tar.gz` | Browser or Node |
+| `fun_refactor_ir-<version>-py3-none-any.whl` | Python agent SDK |
 
 Verify, unpack and install. Linux users can use `sha256sum -c` in place of `shasum`.
 
@@ -96,7 +97,16 @@ An agent should:
 7. Execute only the unchanged review, run declared checks and keep the transaction or patch.
 
 The optional Python SDK keeps intermediate reports outside the model transcript and mirrors public
-IR shapes with typed objects. From a source checkout:
+IR shapes with typed objects. Download the wheel carrying the same version as `fr`, then install
+and verify the pair:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install fun_refactor_ir-<version>-py3-none-any.whl
+.venv/bin/python -c 'from fr_ir.runtime import FrClient; print(FrClient(".").compatibility().version)'
+```
+
+From a source checkout:
 
 ```sh
 python3 -m venv .venv

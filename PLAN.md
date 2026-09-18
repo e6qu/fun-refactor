@@ -35,21 +35,21 @@ does not prove its source without a checked correspondence boundary.
 
 ## Current baseline
 
-The architecture needed for items 1 through 7 exists. Item 8 has accepted preview evidence and one
-accepted real source-writing task, but lacks breadth across repositories, languages and multi-file
-changes. The defect ledger currently records no actionable correctness defect.
+The architecture needed for items 1 through 7 exists. Item 8 has deterministic representative
+breadth and two accepted matched source-writing runs, but autonomous evidence remains narrow. The
+defect ledger currently records no actionable correctness defect.
 
 | Area | Delivered baseline | Remaining work |
 |---|---|---|
 | Project understanding | 19 parser identities; symbols, scopes, types, references, calls, flow, impact, entry points, configuration and cross-stack facts | Preserve uncertainty and expand a language only against a concrete task |
-| Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks | Validate on more repositories and publish remote-store integration examples |
+| Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks; local, memory and bounded HTTP stores | Validate on more repositories and storage services |
 | Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden representative acceptance |
 | Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
 | Application migration | Generic application IR for admitted Next.js, React, FastAPI, Express and Go HTTP routes or components | Model selected request, query, middleware, authentication and service behavior |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
-| Agent evidence | Deterministic workflow audits, matched context evaluation and one matched source-writing cohort | Cross-project, cross-language, multi-file and proof-writing acceptance |
-| Distribution | Native and WASM releases plus a portable agent skill | Ship and compatibility-test the Python SDK as a release artifact |
+| Agent evidence | Deterministic cross-language registry, unfamiliar upstream replay, matched context and two accepted source-writing cohorts | Broaden autonomous cross-project, cross-language, multi-file and proof-writing trials |
+| Distribution | Native, WASM and version-matched Python SDK artifacts plus a portable agent skill | Add distribution channels only when consumer demand justifies them |
 
 Run these instead of copying volatile matrices into roadmap prose:
 
@@ -75,28 +75,13 @@ the same pull request when its root cause belongs to that outcome. Use a direct 
 `fr` has no suitable operation, and retain that boundary in the pull request validation notes.
 
 Completed bulk outcomes: PR 317 reset the roadmap and documentation around the merged product. The
-current change gives every writable guide route one immutable `GuideReview`, shared Rust/Python/Lean
-admission cases, structural Lean tactic branches and retained low-effort Codex acceptance evidence.
+guided-delivery outcome gave every writable route one immutable `GuideReview`, shared
+Rust/Python/Lean admission cases, structural Lean tactic branches and retained low-effort Codex
+evidence. The representative-acceptance and distribution outcome added two matched source-writing
+runs and a replayable cross-language registry. It also added exact SDK/native/wire compatibility,
+clean-consumer wheel tests, release artifacts and a bounded HTTP Merkle-store adapter.
 
-### PR 3: representative agent acceptance and SDK distribution
-
-Prove that the agent-facing system works outside its construction fixtures and make it installable.
-
-- Exercise unfamiliar repositories with Rust multi-file changes, TypeScript or React changes,
-  CSS/Tailwind or Mermaid edits, backend migration and agent-authored Lean proofs.
-- Require exact-source or semantic postconditions, compiler or framework checks, reviewed delivery,
-  reversal and patch replay as applicable.
-- Repeat matched runs and keep infrastructure failures distinct from agent failures.
-- Publish or bundle the Python SDK with the matching native release.
-- Enforce binary, SDK and wire-schema compatibility in release tests.
-- Include a minimal remote object-store adapter example using the existing verified `get`/`put`
-  protocol.
-
-Acceptance: retained manifests pass offline replay. Every cohort names its repository revision,
-model, effort, tool version, inputs, usage fields and oracle. A clean consumer installs matching
-artifacts without cloning this repository.
-
-### PR 4: application and semantic IR expansion
+### Next bulk outcome: application and semantic IR expansion
 
 Expand high-level changes around concrete cross-stack tasks rather than broad syntax claims.
 
@@ -114,7 +99,7 @@ Acceptance: each new IR construct has reader/writer compatibility cells, negativ
 independent round-trip checks. Behavioral claims have runtime fixtures. Delivery is reversible and
 the correspondence boundary is explicit.
 
-### PR 5: critical correspondence and resilience
+### Following bulk outcome: critical correspondence and resilience
 
 Reduce the trusted boundary where failure could silently admit stale work, corrupt history or
 misstate evidence.

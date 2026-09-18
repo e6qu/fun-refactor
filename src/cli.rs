@@ -121,6 +121,8 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Report the native and Python SDK compatibility contract.")]
+    Compatibility,
     #[command(about = "Inspect bounded source-derived support and trust evidence.")]
     Audit(crate::audit::Options),
     #[command(about = "Inspect or execute checks explicitly declared by the project.")]
@@ -1063,6 +1065,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
         }
     }
     match &cli.command {
+        Command::Compatibility => cmd_compatibility(cli),
         Command::Checks(options) => {
             let report = crate::checks::report(&workspace_root(cli), options)?;
             println!("{}", serde_json::to_string(&report)?);
@@ -1351,6 +1354,45 @@ fn dispatch(cli: &Cli) -> Result<()> {
             unreachable,
         } => cmd_entrypoints(cli, kind.as_deref(), catalogs.as_deref(), *unreachable),
     }
+}
+
+fn cmd_compatibility(cli: &Cli) -> Result<()> {
+    let version = env!("CARGO_PKG_VERSION");
+    let report = serde_json::json!({
+        "schema": "fr-sdk-compatibility-1",
+        "binary": {
+            "distribution": "fun-refactor",
+            "version": version,
+        },
+        "python": {
+            "distribution": "fun-refactor-ir",
+            "version_requirement": format!("=={version}"),
+        },
+        "protocol": {
+            "revision": 1,
+            "request_schemas": [
+                "fr-agent-action-2",
+                "fr-agent-goal-1",
+                "fr-agent-intent-1",
+                "fr-task-change-1",
+            ],
+            "response_schemas": [
+                "fr-agent-action-result-2",
+                "fr-agent-context-1",
+                "fr-agent-guide-1",
+                "fr-intent-operation-review-2",
+                "fr-progressive-disclosure-1",
+            ],
+        },
+    });
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        println!("fr {version}");
+        println!("Python SDK fun-refactor-ir=={version}");
+        println!("Agent protocol revision 1");
+    }
+    Ok(())
 }
 
 fn cmd_spec_kernel(cli: &Cli, from: &std::path::Path, report_bytes: usize) -> Result<()> {

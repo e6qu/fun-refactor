@@ -206,3 +206,44 @@ jobs:
             "dist/${{ steps.package.outputs.name }}.tar.gz" \
             "dist/${{ steps.package.outputs.name }}.tar.gz.sha256" \
             --clobber
+
+  sdk:
+    needs: release-please
+    if: needs.release-please.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+
+      - name: Install the toolchains
+        run: rustup toolchain install stable --profile minimal
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-sdk
+
+      - name: Install the package builder
+        run: python -m pip install "build==1.6.1" "setuptools==84.0.0"
+
+      - name: Build and check a clean consumer
+        run: |
+          cargo build --release --locked --bin fr
+          python tools/check-sdk-package.py --fr target/release/fr
+
+      - name: Package
+        run: |
+          python -m build --no-isolation --outdir dist sdk/python
+          ( cd dist && sha256sum *.whl *.tar.gz > "fun-refactor-ir-v${{ needs.release-please.outputs.version }}.sha256" )
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ needs.release-please.outputs.tag }}" \
+            dist/*.whl dist/*.tar.gz dist/*.sha256 --clobber

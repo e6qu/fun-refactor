@@ -8,6 +8,8 @@ const README: &str = include_str!("../README.md");
 const MANIFEST: &str = include_str!("../.release-please-manifest.json");
 const CARGO: &str = include_str!("../Cargo.toml");
 const CONFIG: &str = include_str!("../release-please-config.json");
+const SDK_VERSION: &str = include_str!("../sdk/python/src/fr_ir/_version.py");
+const SDK_PROJECT: &str = include_str!("../sdk/python/pyproject.toml");
 
 /// Every `target:` the binaries matrix names.
 fn targets() -> BTreeSet<String> {
@@ -101,7 +103,7 @@ fn every_artifact_travels_with_its_checksum() {
 }
 
 #[test]
-fn the_two_versions_agree() {
+fn every_released_version_agrees() {
     // `release-please` writes the version into both.
     let manifest = MANIFEST
         .split('"')
@@ -117,6 +119,49 @@ fn the_two_versions_agree() {
         "`.release-please-manifest.json` says {manifest} and `Cargo.toml` says \
          {cargo}. The next release would repeat a version."
     );
+    assert!(
+        SDK_VERSION.contains(&format!("VERSION = \"{cargo}\"")),
+        "the Python SDK version does not match native {cargo}."
+    );
+    assert!(
+        CONFIG.contains("sdk/python/src/fr_ir/_version.py"),
+        "release-please does not advance the Python SDK version."
+    );
+    assert!(
+        SDK_PROJECT.contains("version = {attr = \"fr_ir._version.VERSION\"}"),
+        "the Python distribution does not read the shared SDK version."
+    );
+}
+
+#[test]
+fn the_release_builds_checks_and_attaches_the_python_sdk() {
+    for required in [
+        "python tools/check-sdk-package.py --fr target/release/fr",
+        "python -m build --no-isolation --outdir dist sdk/python",
+        "dist/*.whl dist/*.tar.gz dist/*.sha256 --clobber",
+    ] {
+        assert!(WORKFLOW.contains(required), "release omits `{required}`");
+    }
+}
+
+#[test]
+fn a_clean_consumer_installs_the_wheel_and_checks_the_native_contract() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let output = std::process::Command::new("python3")
+        .arg(root.join("tools/check-sdk-package.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .output()
+        .expect("SDK package check runs");
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["schema"], "fr-sdk-package-check-1");
+    assert_eq!(report["passed"], true);
 }
 
 #[test]
