@@ -45,7 +45,7 @@ defect ledger currently records no actionable correctness defect.
 | Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks; local, memory and bounded HTTP stores | Validate on more repositories and storage services |
 | Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden representative acceptance |
 | Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
-| Application migration | Generic application IR for routes and components; authored validation writes to four HTTP adapters; selected FastAPI query/body declarations read back into the same IR | Model middleware, authentication and service behavior |
+| Application migration | Generic application IR for routes and components; authored validation writes to four HTTP adapters; selected FastAPI query/body declarations, ordered middleware, `Depends`/`Security` providers and closed-world service calls read back into the same IR; React/Next state and events behind an explicit client boundary | Configured middleware, provider internals, external services, effects and other framework readers |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
 | Agent evidence | Deterministic cross-language registry, unfamiliar upstream replay, matched context and two accepted source-writing cohorts | Broaden autonomous cross-project, cross-language, multi-file and proof-writing trials |
@@ -82,7 +82,13 @@ runs and a replayable cross-language registry. It also added exact SDK/native/wi
 clean-consumer wheel tests, release artifacts and a bounded HTTP Merkle-store adapter. The first
 application-reader increment now recovers required scalar FastAPI `Query(...)` and embedded
 `Body(...)` declarations, including literal aliases, into the executable HTTP IR. Defaults,
-optionality, constraints and dynamic metadata refuse normalization.
+optionality, constraints and dynamic metadata refuse normalization. The application-behavior
+increment adds ordered direct-name middleware chains in reverse registration order, named
+`Depends`/`Security` route providers and closed-world same-application service calls. React/Next
+components gain declared state and literal `on*` events behind an explicit client boundary.
+Configured or computed registrations, provider internals, external or unresolved services, and
+effects refuse with retained evidence. Runtime fixtures execute the middleware order, the 401
+dependency contract and service forwarding through the real adapters.
 
 ### Next bulk outcome: application and semantic IR expansion
 
@@ -91,10 +97,10 @@ Expand high-level changes around concrete cross-stack tasks rather than broad sy
 - Extend source-side validation reading only when a framework can state the same transport and
   failure contract. The current FastAPI reader admits its declaration subset. Other framework
   readers remain explicit omissions instead of inferred checks.
-- Model middleware, authentication and service-call boundaries only where the IR can state their
-  order, inputs, outputs and refusal conditions.
-- Expand React/Next rendering beyond the current static component subset through explicit effect
-  and client/server boundaries.
+- Model configured middleware, provider outputs in responses and service-call request bodies. Add
+  them only where the IR can state order, inputs, outputs and refusals.
+- Expand React/Next rendering beyond declared state and literal events through explicit effect
+  semantics; effects remain refusals until then.
 - Bring semantic authoring and executable translation to the language constructs required by the
   acceptance corpus.
 - Preserve generic adapters; fixtures may use examples, but production recognition and generation

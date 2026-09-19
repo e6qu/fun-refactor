@@ -104,6 +104,20 @@ fn application_adapter_policies_agree_with_lean_and_python() {
             }
         }
     }
+    for total in [0, 1, 2, 64, 65] {
+        for resolved in [0, 1, 2, 64, 65] {
+            for configured in [0, 1, 2] {
+                expected.push(
+                    application_middleware_chain_admitted(total, resolved, configured).to_string(),
+                );
+            }
+        }
+    }
+    for provider_safe in [false, true] {
+        for configured in [false, true] {
+            expected.push(application_dependency_admitted(provider_safe, configured).to_string());
+        }
+    }
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
         .arg("application-adapters")
         .output()

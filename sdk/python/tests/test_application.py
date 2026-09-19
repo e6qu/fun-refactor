@@ -2,9 +2,10 @@ from pathlib import Path as FilePath
 
 import pytest
 
-from fr_ir.application import (ApplicationIr, ApplicationNode, Array, HttpInput, HttpRoute, Input,
-                               Literal, Object, Path, RouteBundle, StaticComponent, StaticElement,
-                               StaticText)
+from fr_ir.application import (ApplicationIr, ApplicationNode, Array, ComponentState, HttpDependency,
+                               HttpInput, HttpRoute, Input, Literal, Object, Path, RouteBundle,
+                               Service, SetState, StaticComponent, StaticElement, StaticState,
+                               StaticText, ToggleState)
 from fr_ir.context import ContextSession
 from fr_ir.ir import IrError
 from fr_ir.runtime import FrClient
@@ -112,3 +113,86 @@ def test_validated_request_ir_refuses_unportable_shapes(route):
         StaticComponent("App", StaticElement("button", {"onClick": "run"}, [])).to_data()
     with pytest.raises(IrError, match="whitespace"):
         StaticComponent("App", StaticElement("p", {}, [StaticText(" padded ")])).to_data()
+
+
+def test_middleware_dependencies_and_service_calls_round_trip():
+    route = HttpRoute("GET", "/guarded", 200, Literal(True),
+                      dependencies=(HttpDependency("session", "auth.load_session", True),))
+    bundle = RouteBundle(
+        [HttpRoute("GET", "/records", 200, Object({"items": Array([Literal("a")])})),
+         HttpRoute("GET", "/feed", 200, Service("GET", "/records")),
+         route],
+        middleware=({"name": "audit", "request_order": 1},))
+    data = bundle.to_data()
+    assert data["middleware"] == [{"name": "audit", "request_order": 1}]
+    assert data["routes"][2]["dependencies"] == [
+        {"binding": "session", "provider": "auth.load_session", "security": True}]
+    assert RouteBundle.from_data(data).to_data() == data
+
+
+@pytest.mark.parametrize("middleware", [
+    [{"name": "audit", "request_order": 0}],
+    [{"name": "audit", "request_order": 2}],
+    [{"name": "a b", "request_order": 1}],
+    [{"name": "audit", "request_order": 1}, {"name": "mark", "request_order": 1}],
+])
+def test_middleware_chain_refusals(middleware):
+    with pytest.raises(IrError):
+        RouteBundle([HttpRoute("GET", "/", 200, Literal(True))], middleware=middleware).to_data()
+
+
+@pytest.mark.parametrize("route", [
+    HttpRoute("GET", "/a", 200, Literal(True),
+              dependencies=(HttpDependency("x", "provider", False),
+                            HttpDependency("x", "other", False))),
+    HttpRoute("GET", "/a", 200, Literal(True),
+              dependencies=(HttpDependency("x", "bad provider", False),)),
+    HttpRoute("GET", "/{x}", 200, Path("x"),
+              dependencies=(HttpDependency("x", "provider", False),)),
+])
+def test_dependency_refusals(route):
+    with pytest.raises(IrError):
+        route.to_data()
+
+
+def test_service_calls_require_exactly_one_bundle_target():
+    upstream = HttpRoute("GET", "/records", 200, Literal(True))
+    with pytest.raises(IrError, match="exactly one"):
+        RouteBundle([HttpRoute("GET", "/feed", 200, Service("GET", "/absent"))]).to_data()
+    with pytest.raises(IrError, match="exactly one"):
+        RouteBundle([upstream, HttpRoute("GET", "/loop", 200, Service("GET", "/loop"))]).to_data()
+    with pytest.raises(IrError, match="service"):
+        HttpRoute("GET", "/feed", 200, Service("GET", "https://x/records")).to_data()
+    bundle = RouteBundle([upstream, HttpRoute("GET", "/feed", 200, Service("GET", "/records"))])
+    assert RouteBundle.from_data(bundle.to_data()).to_data() == bundle.to_data()
+
+
+def test_component_state_events_and_client_boundary():
+    component = StaticComponent(
+        "Panel",
+        StaticElement("button", {}, [StaticState("open")],
+                      {"onClick": ToggleState("open")}),
+        client=True,
+        state=(ComponentState("open", "setOpen", False),))
+    data = component.to_data()
+    assert data["client"] is True
+    assert data["state"] == [{"name": "open", "setter": "setOpen", "initial": False}]
+    assert data["root"]["events"] == {"onClick": {"kind": "toggle-state", "state": "open"}}
+    assert StaticComponent.from_data(data).to_data() == data
+    with pytest.raises(IrError, match="client"):
+        StaticComponent("Panel", StaticState("open"),
+                        state=(ComponentState("open", "setOpen", False),)).to_data()
+    with pytest.raises(IrError):
+        StaticComponent("Panel", StaticState("missing"), client=True,
+                        state=(ComponentState("open", "setOpen", False),)).to_data()
+    with pytest.raises(IrError):
+        StaticComponent("Panel",
+                        StaticElement("button", {}, [], {"onClick": ToggleState("open")}),
+                        client=True,
+                        state=(ComponentState("open", "setOpen", 0),)).to_data()
+    with pytest.raises(IrError):
+        StaticComponent("Panel",
+                        StaticElement("button", {}, [],
+                                      {"onclick": SetState("open", False)}),
+                        client=True,
+                        state=(ComponentState("open", "setOpen", False),)).to_data()

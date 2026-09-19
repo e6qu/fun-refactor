@@ -56,7 +56,7 @@ fn routes() -> Vec<HttpRoute> {
 fn fixture(adapter: Adapter) -> (tempfile::TempDir, Value) {
     let dir = tempfile::tempdir().unwrap();
     let routes = routes();
-    for (path, source) in write_routes(&routes, adapter).unwrap() {
+    for (path, source) in write_routes(&routes, &[], adapter).unwrap() {
         let path = dir.path().join(path);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).unwrap();

@@ -781,6 +781,10 @@ fn application_refuses_fastapi_input_semantics_outside_the_exact_subset() {
         "term: str = Body()",
         "term: str = Body(embed=False)",
         concat!("term: str = Body(embed=True, ", "min_length=1)"),
+        concat!("term = Depends(load_term, ", "use_cache=False)"),
+        concat!("term = Security(load_term, ", "scopes=[\"read\"])"),
+        "term = Depends(lambda: \"x\")",
+        "term = Depends()",
         "term = Depends(load_term)",
     ] {
         let dir = tempfile::tempdir().unwrap();
@@ -810,6 +814,260 @@ fn application_refuses_fastapi_input_semantics_outside_the_exact_subset() {
         );
         assert!(route.get("route").is_none());
     }
+}
+
+#[test]
+fn application_reads_fastapi_middleware_order_and_route_dependencies() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        include_str!("application-fixtures/behavior_fastapi.py"),
+    )
+    .unwrap();
+
+    let report = ok(dir.path(), &["project", "application"]);
+    let application = &report["model"]["applications"][0];
+    assert_eq!(
+        application["middleware"],
+        json!([
+            {"name": "AuthMiddleware", "request_order": 1},
+            {"name": "audit", "request_order": 2}
+        ])
+    );
+    assert_eq!(
+        application["data"]["middleware_normalization"]["status"],
+        "portable"
+    );
+    fn route(node: &Value) -> Option<&Value> {
+        if node["kind"] == "route" {
+            return Some(node);
+        }
+        node["children"].as_array()?.iter().find_map(route)
+    }
+    let route = report["model"]["applications"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(route)
+        .unwrap();
+    assert_eq!(route["data"]["normalization"]["status"], "portable");
+    assert_eq!(
+        route["route"]["dependencies"],
+        json!([
+            {"binding": "session", "provider": "load_session", "security": true},
+            {"binding": "terms", "provider": "load_terms", "security": false}
+        ])
+    );
+
+    for (target, file, marker) in [
+        (
+            "express",
+            "routes.ts",
+            "router.use(frMiddleware.AuthMiddleware);",
+        ),
+        (
+            "go-net-http",
+            "routes.go",
+            "handler = AuthMiddleware(handler)",
+        ),
+        (
+            "nextjs",
+            "middleware.ts",
+            "frMiddleware.AuthMiddleware(request",
+        ),
+    ] {
+        let target_dir = dir.path().join(format!("target-{target}"));
+        fs::create_dir(&target_dir).unwrap();
+        fs::write(
+            target_dir.join("api.py"),
+            include_str!("application-fixtures/behavior_fastapi.py"),
+        )
+        .unwrap();
+        let migration = ok(
+            &target_dir,
+            &[
+                "migrate",
+                "application",
+                "--project",
+                ".",
+                "--to",
+                target,
+                "--out",
+                "generated",
+                "--write",
+            ],
+        );
+        assert_eq!(migration["migration"]["manual_boundaries"], 0);
+        let mut source = fs::read_to_string(target_dir.join("generated").join(file)).unwrap();
+        if target == "nextjs" {
+            source.push_str(
+                &fs::read_to_string(
+                    target_dir
+                        .join("generated")
+                        .join("records/[record_id]/route.ts"),
+                )
+                .unwrap(),
+            );
+        }
+        assert!(source.contains(marker), "{target}: {source}");
+        let auth = source.find("AuthMiddleware").unwrap();
+        let audit = source.find("audit").unwrap();
+        if target == "go-net-http" {
+            assert!(audit < auth, "{target}: middleware order");
+        } else {
+            assert!(auth < audit, "{target}: middleware order");
+        }
+        assert!(source.contains("401"), "{target}: dependency contract");
+    }
+}
+
+#[test]
+fn application_reads_closed_world_fastapi_service_calls() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        include_str!("application-fixtures/service_fastapi.py"),
+    )
+    .unwrap();
+    let report = ok(dir.path(), &["project", "application"]);
+    fn routes(node: &Value, found: &mut Vec<Value>) {
+        if node["kind"] == "route" {
+            found.push(node.clone());
+        }
+        if let Some(children) = node["children"].as_array() {
+            for child in children {
+                routes(child, found);
+            }
+        }
+    }
+    let mut found = Vec::new();
+    routes(&report["model"]["applications"][0], &mut found);
+    assert_eq!(found.len(), 2);
+    let feed = found
+        .iter()
+        .find(|route| route["route"]["path"] == "/feed")
+        .unwrap();
+    assert_eq!(feed["data"]["normalization"]["status"], "portable");
+    assert_eq!(
+        feed["route"]["response"],
+        json!({"kind": "service", "method": "GET", "path": "/records"})
+    );
+    for target in ["express", "go-net-http", "nextjs"] {
+        let migration = ok(
+            dir.path(),
+            &[
+                "migrate",
+                "application",
+                "--project",
+                ".",
+                "--to",
+                target,
+                "--out",
+                &format!("generated-{target}"),
+            ],
+        );
+        assert_eq!(migration["migration"]["manual_boundaries"], 0, "{target}");
+        assert_eq!(
+            migration["migration"]["endpoints"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+    }
+}
+
+#[test]
+fn application_keeps_nonlocal_or_dynamic_service_calls_manual() {
+    for call in [
+        "requests.get(\"https://example.com/records\").json()",
+        "requests.get(BASE + \"/records\").json()",
+        "requests.get(\"/records\").text",
+        "requests.get(\"/absent\").json()",
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("api.py"),
+            format!(
+                "import requests\nfrom fastapi import FastAPI\nfrom fastapi.responses import JSONResponse\n\napp = FastAPI()\nBASE = 'http://x'\n\n@app.get('/records')\ndef list_records():\n    return JSONResponse(content={{'items': []}}, status_code=200)\n@app.get('/feed')\ndef read_feed():\n    return JSONResponse(content={call}, status_code=200)\n"
+            ),
+        )
+        .unwrap();
+        let report = ok(dir.path(), &["project", "application"]);
+        fn routes(node: &Value, found: &mut Vec<Value>) {
+            if node["kind"] == "route" {
+                found.push(node.clone());
+            }
+            if let Some(children) = node["children"].as_array() {
+                for child in children {
+                    routes(child, found);
+                }
+            }
+        }
+        let mut found = Vec::new();
+        routes(&report["model"]["applications"][0], &mut found);
+        let feed = found
+            .iter()
+            .find(|route| route["data"]["route"]["url"] == "/feed")
+            .cloned()
+            .unwrap();
+        assert_eq!(feed["data"]["normalization"]["status"], "manual", "{call}");
+        if call == "requests.get(\"/absent\").json()" {
+            let migration = ok(
+                dir.path(),
+                &[
+                    "migrate",
+                    "application",
+                    "--project",
+                    ".",
+                    "--to",
+                    "express",
+                    "--out",
+                    "generated",
+                ],
+            );
+            assert_eq!(migration["migration"]["manual_boundaries"], 1);
+            assert_eq!(
+                migration["migration"]["endpoints"]
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                1
+            );
+        }
+    }
+}
+
+#[test]
+fn application_keeps_configured_middleware_and_scoped_security_manual() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("api.py"),
+        "from fastapi import FastAPI\nfrom fastapi.responses import JSONResponse\napp = FastAPI()\napp.add_middleware(CORSMiddleware, allow_origins=[\"*\"])\n@app.get('/records')\ndef read():\n    return JSONResponse(content={'ok': True}, status_code=200)\n",
+    )
+    .unwrap();
+    let report = ok(dir.path(), &["project", "application"]);
+    let application = &report["model"]["applications"][0];
+    assert!(application.get("middleware").is_none());
+    assert_eq!(
+        application["data"]["middleware_normalization"]["status"],
+        "manual"
+    );
+    let migration = run(
+        dir.path(),
+        &[
+            "migrate",
+            "application",
+            "--project",
+            ".",
+            "--to",
+            "fastapi",
+            "--out",
+            "generated-fastapi",
+            "--write",
+        ],
+    );
+    assert!(!migration.0);
 }
 
 #[test]
@@ -897,6 +1155,171 @@ fn static_react_and_nextjs_components_share_one_frontend_ir() {
             .any(|file| file["path"] == generated));
     }
     assert_eq!(normalized[0]["root"], normalized[1]["root"]);
+}
+
+#[test]
+fn stateful_client_components_normalize_and_write_across_adapters() {
+    let source = "\"use client\";\n\nimport { useState } from \"react\";\n\nexport default function Page() {\n  const [open, setOpen] = useState(false);\n  const [count, setCount] = useState(0);\n  return (\n    <main className=\"shell\">\n      <button onClick={() => setOpen(!open)}>Toggle</button>\n      <button onClick={() => setCount(1)}>Reset</button>\n      <p role=\"status\">{count}</p>\n    </main>\n  );\n}\n";
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("package.json"),
+        r#"{"dependencies":{"next":"16.3.5","react":"19.3.0"}}"#,
+    )
+    .unwrap();
+    let app = dir.path().join("app");
+    fs::create_dir_all(&app).unwrap();
+    fs::write(app.join("page.tsx"), source).unwrap();
+    let application = ok(dir.path(), &["project", "application"]);
+    fn component(node: &Value) -> Option<Value> {
+        if let Some(component) = node.get("component") {
+            return Some(component.clone());
+        }
+        node["children"].as_array()?.iter().find_map(component)
+    }
+    let component = application["model"]["applications"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(component)
+        .unwrap();
+    assert_eq!(component["client"], true);
+    assert_eq!(
+        component["state"],
+        json!([
+            {"name": "open", "setter": "setOpen", "initial": false},
+            {"name": "count", "setter": "setCount", "initial": 0}
+        ])
+    );
+    let main = &component["root"];
+    assert_eq!(main["events"], Value::Null);
+    let toggle = &main["children"][0];
+    assert_eq!(
+        toggle["events"]["onClick"],
+        json!({"kind": "toggle-state", "state": "open"})
+    );
+    let reset = &main["children"][1];
+    assert_eq!(
+        reset["events"]["onClick"],
+        json!({"kind": "set-state", "state": "count", "value": 1})
+    );
+    assert_eq!(
+        main["children"][2]["children"][0],
+        json!({"kind": "state", "name": "count"})
+    );
+
+    let migration = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "application",
+            "--project",
+            ".",
+            "--to",
+            "react",
+            "--out",
+            "generated",
+        ],
+    );
+    assert_eq!(migration["migration"]["manual_boundaries"], 0);
+    let diff = migration["diff"].as_str().unwrap();
+    assert!(
+        diff.contains("const [open, setOpen] = useState(false);"),
+        "{diff}"
+    );
+    assert!(
+        diff.contains("onClick={() => setOpen((value) => !value)}"),
+        "{diff}"
+    );
+    assert!(diff.contains("onClick={() => setCount(1)}"), "{diff}");
+    assert!(diff.contains("{count}"), "{diff}");
+    assert!(!diff.contains("use client"), "{diff}");
+}
+
+#[test]
+fn same_line_duplicate_component_events_keep_distinct_identities() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("package.json"),
+        r#"{"dependencies":{"react":"19.3.0"}}"#,
+    )
+    .unwrap();
+    let src = dir.path().join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(
+        src.join("App.tsx"),
+        "import { useState } from \"react\";\nexport default function App() { const [a, setA] = useState(false); const [b, setB] = useState(false); return <main><button onClick={() => setA(!a)}>A</button><button onClick={() => setB(!b)}>B</button></main>; }\n",
+    )
+    .unwrap();
+    let report = ok(dir.path(), &["project", "application"]);
+    fn kinds(node: &Value, kind: &str, found: &mut usize) {
+        if node["kind"] == kind {
+            *found += 1;
+        }
+        if let Some(children) = node["children"].as_array() {
+            for child in children {
+                kinds(child, kind, found);
+            }
+        }
+    }
+    let mut events = 0;
+    kinds(
+        &report["model"]["applications"][0],
+        "component-event",
+        &mut events,
+    );
+    assert_eq!(events, 2);
+    fn component(node: &Value) -> Option<Value> {
+        if let Some(component) = node.get("component") {
+            return Some(component.clone());
+        }
+        node["children"].as_array()?.iter().find_map(component)
+    }
+    let component = report["model"]["applications"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(component)
+        .unwrap();
+    assert_eq!(component["client"], true);
+    assert_eq!(component["state"].as_array().unwrap().len(), 2);
+}
+
+#[test]
+fn stateful_components_without_a_client_boundary_stay_manual() {
+    for source in [
+        "import { useState } from \"react\";\n\nexport default function Page() {\n  const [open, setOpen] = useState(false);\n  return <button onClick={() => setOpen(!open)}>Toggle</button>;\n}\n",
+        "\"use client\";\n\nimport { useEffect, useState } from \"react\";\n\nexport default function Page() {\n  const [open, setOpen] = useState(false);\n  useEffect(() => { document.title = \"x\"; }, []);\n  return <button onClick={() => setOpen(!open)}>Toggle</button>;\n}\n",
+        "\"use client\";\n\nimport { useState } from \"react\";\n\nexport default function Page() {\n  const [count, setCount] = useState(0);\n  return <button onClick={() => setCount(count + 1)}>+</button>;\n}\n",
+        "\"use client\";\n\nimport { useState } from \"react\";\n\nexport default function Page() {\n  const [count, setCount] = useState(0.5);\n  return <p>{count}</p>;\n}\n",
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{"dependencies":{"next":"16.3.5","react":"19.3.0"}}"#,
+        )
+        .unwrap();
+        let app = dir.path().join("app");
+        fs::create_dir_all(&app).unwrap();
+        fs::write(app.join("page.tsx"), source).unwrap();
+        let application = ok(dir.path(), &["project", "application"]);
+        fn manual(node: &Value) -> Option<Value> {
+            if node["kind"] == "component" {
+                return Some(node.clone());
+            }
+            node["children"].as_array()?.iter().find_map(manual)
+        }
+        let component = application["model"]["applications"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find_map(manual)
+            .unwrap();
+        assert!(
+            component.get("component").is_none(),
+            "unexpected admission: {source}"
+        );
+        assert_eq!(component["data"]["normalization"]["status"], "manual");
+    }
 }
 
 #[test]

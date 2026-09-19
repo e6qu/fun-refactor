@@ -302,6 +302,7 @@ pub(super) struct Middleware {
     pub name: Option<String>,
     pub line: usize,
     pub form: &'static str,
+    pub configured: bool,
 }
 
 pub(super) struct Lifecycle {
@@ -536,6 +537,7 @@ pub(super) fn middleware(parsed: &Parsed, source: &str) -> Vec<Middleware> {
                             .map(|name| text(name, source).to_owned()),
                         line: decorator.start_position().row + 1,
                         form: "fastapi-http-decorator",
+                        configured: false,
                     });
                 }
             }
@@ -561,10 +563,13 @@ pub(super) fn middleware(parsed: &Parsed, source: &str) -> Vec<Middleware> {
                 {
                     continue;
                 }
-                let names: Vec<_> = call
+                let arguments: Vec<_> = call
                     .child_by_field_name("arguments")
                     .into_iter()
                     .flat_map(children)
+                    .collect();
+                let names: Vec<_> = arguments
+                    .iter()
                     .filter(|argument| {
                         argument.kind() != "keyword_argument"
                             && argument.kind() != "dictionary_splat"
@@ -574,9 +579,12 @@ pub(super) fn middleware(parsed: &Parsed, source: &str) -> Vec<Middleware> {
                     name: names
                         .first()
                         .filter(|_| names.len() == 1)
-                        .and_then(|name| simple_callable(*name, source)),
+                        .and_then(|name| simple_callable(**name, source)),
                     line: call.start_position().row + 1,
                     form: "fastapi-add-middleware",
+                    configured: arguments
+                        .iter()
+                        .any(|argument| argument.kind() == "keyword_argument"),
                 });
             }
         }

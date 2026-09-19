@@ -88,6 +88,18 @@ pub fn middleware_request_order(total: usize, declaration_index: usize) -> usize
     total.saturating_sub(declaration_index)
 }
 
+pub fn application_middleware_chain_admitted(
+    total: usize,
+    resolved: usize,
+    configured: usize,
+) -> bool {
+    (1..=64).contains(&total) && resolved == total && configured == 0
+}
+
+pub fn application_dependency_admitted(provider_safe: bool, configured: bool) -> bool {
+    provider_safe && !configured
+}
+
 pub fn component_hooks_compatible(client: bool, runtime_hooks: usize) -> bool {
     client || runtime_hooks == 0
 }

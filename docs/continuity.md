@@ -26,10 +26,14 @@ values and JSON-body fields. It has deterministic 422 issues, Python mirrors and
 framework runtime fixtures. The compatibility matrix reports readers and writers separately.
 All HTTP adapters write this feature. FastAPI reads required scalar `Query(...)` and embedded
 `Body(...)` declarations with safe literal aliases. Defaults,
-optional types, constraints, dynamic metadata and extra dependencies refuse. Native FastAPI error
-payloads and coercion edges remain explicit canonicalization boundaries. Next, model middleware,
-authentication, service-call and React rendering boundaries only where order, data and refusal
-conditions are explicit.
+optional types, constraints and dynamic metadata refuse. Native FastAPI error
+payloads and coercion edges remain explicit canonicalization boundaries. FastAPI applications also
+normalize ordered direct-name middleware chains, named `Depends`/`Security` route providers and
+closed-world same-application service calls. React/Next components normalize declared `useState`
+state with literal set or toggle events behind an explicit client boundary. Runtime
+fixtures execute middleware order, the 401 dependency contract and service forwarding through the
+real adapters. Next, model configured middleware, provider outputs, service request bodies and
+effect semantics only where order, data and refusal conditions are explicit.
 
 The completed representative outcome packages a version-matched Python SDK with native releases.
 `fr compatibility` and `FrClient.compatibility()` bind the distribution version, protocol revision

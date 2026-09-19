@@ -60,6 +60,7 @@ impl Project<'_> {
         &self,
         rows: &mut Vec<Value>,
         counts: &mut BoundaryCounts,
+        seen: &mut BTreeSet<String>,
         parent: &str,
         path: &std::path::Path,
         item: DetailFact<'_>,
@@ -69,14 +70,22 @@ impl Project<'_> {
             return Ok(false);
         }
         counts.component_details += 1;
+        let mut occurrence = 0usize;
+        let id = loop {
+            let key = if occurrence == 0 {
+                json!([path, item.line, item.detail])
+            } else {
+                json!([path, item.line, item.detail, occurrence])
+            };
+            let candidate = child_id(item.prefix, &self.revision, parent, &key)?;
+            if seen.insert(candidate.clone()) {
+                break candidate;
+            }
+            occurrence += 1;
+        };
         rows.push(fact(
             item.kind,
-            child_id(
-                item.prefix,
-                &self.revision,
-                parent,
-                &json!([path, item.line, item.detail]),
-            )?,
+            id,
             Some(parent),
             self.file_source(path, item.line),
             FactEvidence::new(
@@ -211,6 +220,7 @@ impl Project<'_> {
         } else {
             "nextjs-react-function-component"
         };
+        let mut seen = BTreeSet::new();
         for gap in &feature.frontend_gaps {
             counts.component_gaps += 1;
             let detail = json!({"reason": gap.reason});
@@ -364,6 +374,7 @@ impl Project<'_> {
                     && self.component_detail(
                         rows,
                         counts,
+                        &mut seen,
                         &id,
                         path,
                         DetailFact {
@@ -390,7 +401,7 @@ impl Project<'_> {
                         counts.component_gaps += 1;
                     }
                     if self.component_detail(
-                        rows, counts, &id, path,
+                        rows, counts, &mut seen, &id, path,
                         DetailFact {
                             line: state.line, kind: "component-state", prefix: "frfcs1",
                             status: if effective_client { "candidate" } else { "conflict" },
@@ -408,7 +419,7 @@ impl Project<'_> {
                         counts.component_gaps += 1;
                     }
                     if self.component_detail(
-                        rows, counts, &id, path,
+                        rows, counts, &mut seen, &id, path,
                         DetailFact {
                             line: effect.line, kind: "component-effect", prefix: "frfce1",
                             status: if effective_client { "candidate" } else { "conflict" },
@@ -426,6 +437,7 @@ impl Project<'_> {
                     if self.component_detail(
                         rows,
                         counts,
+                        &mut seen,
                         &id,
                         path,
                         DetailFact {
@@ -445,7 +457,7 @@ impl Project<'_> {
                 }
                 for event in component.events {
                     if self.component_detail(
-                        rows, counts, &id, path,
+                        rows, counts, &mut seen, &id, path,
                         DetailFact { line: event.line, kind: "component-event", prefix: "frfcv1",
                             status: "candidate", confidence: "name-only", basis: "jsx-event-attribute", detail_name: "event",
                             detail: json!({"name": bounded_text(&event.name, 160), "element": event.element.as_deref().map(|name| bounded_text(name, 160)), "handler_kind": event.handler_kind}),
@@ -454,7 +466,7 @@ impl Project<'_> {
                 }
                 for style in component.styles {
                     if self.component_detail(
-                        rows, counts, &id, path,
+                        rows, counts, &mut seen, &id, path,
                         DetailFact { line: style.line, kind: "component-style", prefix: "frfcy1",
                             status: "candidate", confidence: "name-only", basis: "jsx-style-attribute", detail_name: "style",
                             detail: json!({"attribute": style.attribute, "value_kind": style.value_kind}),
@@ -472,6 +484,7 @@ impl Project<'_> {
                     if self.component_detail(
                         rows,
                         counts,
+                        &mut seen,
                         &id,
                         path,
                         DetailFact {

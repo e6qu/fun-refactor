@@ -308,6 +308,13 @@ def main (args : List String) : IO Unit := do
       for depth in [0, 32, 33] do
         for encodedBytes in [0, 1048576, 1048577] do
           IO.println (applicationStaticResourcesAdmitted nodes depth encodedBytes)
+    for total in [0, 1, 2, 64, 65] do
+      for resolved in [0, 1, 2, 64, 65] do
+        for configured in [0, 1, 2] do
+          IO.println (applicationMiddlewareChainAdmitted total resolved configured)
+    for providerSafe in [false, true] do
+      for configured in [false, true] do
+        IO.println (applicationDependencyAdmitted providerSafe configured)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do
