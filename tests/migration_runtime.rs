@@ -224,7 +224,8 @@ fn common_application_ir_runs_through_real_nextjs() {
             "nested": {"kind": "array", "items": [{"kind": "literal", "value": null}, {"kind": "literal", "value": "é\n\"\\"}, {"kind": "literal", "value": -9007199254740991_i64}]}
         }}
     })).unwrap();
-    for (path, source) in write_routes(std::slice::from_ref(&route), Adapter::Nextjs).unwrap() {
+    for (path, source) in write_routes(std::slice::from_ref(&route), &[], Adapter::Nextjs).unwrap()
+    {
         let destination = dir.path().join("web/app").join(path);
         fs::create_dir_all(destination.parent().unwrap()).unwrap();
         fs::write(destination, source).unwrap();
@@ -273,12 +274,16 @@ fn static_component_writers_compile_and_render_with_pinned_react() {
     .unwrap();
     let component = StaticComponent {
         name: "Status".into(),
+        client: false,
+        state: Vec::new(),
         root: StaticNode::Element {
             tag: "main".into(),
             attributes: std::collections::BTreeMap::from([("className".into(), "shell".into())]),
+            events: std::collections::BTreeMap::new(),
             children: vec![StaticNode::Element {
                 tag: "h1".into(),
                 attributes: std::collections::BTreeMap::new(),
+                events: std::collections::BTreeMap::new(),
                 children: vec![StaticNode::Text {
                     value: "Signals".into(),
                 }],
@@ -289,6 +294,57 @@ fn static_component_writers_compile_and_render_with_pinned_react() {
         let (path, source) = write_static_component(&component, adapter).unwrap();
         fs::write(dir.path().join(path), source).unwrap();
     }
+    let stateful = StaticComponent {
+        name: "Counter".into(),
+        client: true,
+        state: vec![fun_refactor::application_ir::ComponentState {
+            name: "count".into(),
+            setter: "setCount".into(),
+            initial: serde_json::json!(0),
+        }],
+        root: StaticNode::Element {
+            tag: "main".into(),
+            attributes: std::collections::BTreeMap::new(),
+            events: std::collections::BTreeMap::new(),
+            children: vec![
+                StaticNode::Element {
+                    tag: "button".into(),
+                    attributes: std::collections::BTreeMap::new(),
+                    events: std::collections::BTreeMap::from([(
+                        "onClick".into(),
+                        fun_refactor::application_ir::ComponentEvent::SetState {
+                            state: "count".into(),
+                            value: serde_json::json!(1),
+                        },
+                    )]),
+                    children: vec![StaticNode::Text {
+                        value: "Reset".into(),
+                    }],
+                },
+                StaticNode::Element {
+                    tag: "p".into(),
+                    attributes: std::collections::BTreeMap::new(),
+                    events: std::collections::BTreeMap::new(),
+                    children: vec![StaticNode::State {
+                        name: "count".into(),
+                    }],
+                },
+            ],
+        },
+    };
+    stateful.validate().unwrap();
+    let (stateful_path, stateful_source) =
+        write_static_component(&stateful, Adapter::Nextjs).unwrap();
+    assert!(stateful_source.starts_with("\"use client\";"));
+    fs::write(dir.path().join("counter.tsx"), stateful_source).unwrap();
+    let (react_path, react_source) = write_static_component(&stateful, Adapter::React).unwrap();
+    assert!(!react_source.contains("use client"));
+    fs::write(
+        dir.path().join(react_path.replace("App", "CounterApp")),
+        react_source,
+    )
+    .unwrap();
+    let _ = stateful_path;
     let tsc = runtime.root.join("node_modules/.bin/tsc");
     assert_success(command_output({
         let mut command = Command::new(tsc);
@@ -310,19 +366,23 @@ fn static_component_writers_compile_and_render_with_pinned_react() {
             "dist",
             "App.tsx",
             "page.tsx",
+            "counter.tsx",
+            "CounterApp.tsx",
         ]);
         command
     }));
     fs::write(
         dir.path().join("render.cjs"),
-        "const React = require('react');\nconst {renderToStaticMarkup} = require('react-dom/server');\nconst files = ['./dist/App.js', './dist/page.js'];\nconsole.log(JSON.stringify(files.map(file => renderToStaticMarkup(React.createElement(require(file).default)))));\n",
+        "const React = require('react');\nconst {renderToStaticMarkup} = require('react-dom/server');\nconst files = ['./dist/App.js', './dist/page.js', './dist/counter.js', './dist/CounterApp.js'];\nconsole.log(JSON.stringify(files.map(file => renderToStaticMarkup(React.createElement(require(file).default)))));\n",
     )
     .unwrap();
     assert_eq!(
         run_json("node", dir.path(), "render.cjs"),
         serde_json::json!([
             "<main class=\"shell\"><h1>Signals</h1></main>",
-            "<main class=\"shell\"><h1>Signals</h1></main>"
+            "<main class=\"shell\"><h1>Signals</h1></main>",
+            "<main><button>Reset</button><p>0</p></main>",
+            "<main><button>Reset</button><p>0</p></main>"
         ])
     );
 }

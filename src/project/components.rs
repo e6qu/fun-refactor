@@ -529,18 +529,150 @@ fn literal_jsx_attribute(node: Node<'_>, source: &str) -> Option<(String, String
     Some((name, value))
 }
 
+fn ts_literal(node: Node<'_>, source: &str) -> Option<serde_json::Value> {
+    let raw = text(node, source);
+    match node.kind() {
+        "number" => {
+            let value: i64 = raw.parse().ok()?;
+            (-9007199254740991..=9007199254740991)
+                .contains(&value)
+                .then(|| serde_json::Value::Number(value.into()))
+        }
+        "string" => {
+            let inner = children(node)
+                .into_iter()
+                .find(|child| child.kind() == "string_fragment")?;
+            if children(node).len() != 1 {
+                return None;
+            }
+            Some(serde_json::Value::String(text(inner, source).to_owned()))
+        }
+        "true" => Some(serde_json::Value::Bool(true)),
+        "false" => Some(serde_json::Value::Bool(false)),
+        "null" => Some(serde_json::Value::Null),
+        _ => None,
+    }
+}
+
+fn state_declaration(
+    node: Node<'_>,
+    source: &str,
+) -> Option<crate::application_ir::ComponentState> {
+    if node.kind() != "lexical_declaration" {
+        return None;
+    }
+    let declarator = children(node)
+        .into_iter()
+        .find(|child| child.kind() == "variable_declarator")?;
+    let pattern = declarator.child_by_field_name("name")?;
+    if pattern.kind() != "array_pattern" {
+        return None;
+    }
+    let parts: Vec<_> = children(pattern)
+        .into_iter()
+        .filter(|part| part.kind() == "identifier")
+        .collect();
+    let [name, setter] = parts.as_slice() else {
+        return None;
+    };
+    let value = declarator.child_by_field_name("value")?;
+    if value.kind() != "call_expression"
+        || value
+            .child_by_field_name("function")
+            .filter(|function| function.kind() == "identifier")
+            .map(|function| text(function, source))
+            != Some("useState")
+    {
+        return None;
+    }
+    let arguments = value.child_by_field_name("arguments")?;
+    let arguments = children(arguments);
+    let [initial] = arguments.as_slice() else {
+        return None;
+    };
+    Some(crate::application_ir::ComponentState {
+        name: text(*name, source).to_owned(),
+        setter: text(*setter, source).to_owned(),
+        initial: ts_literal(*initial, source)?,
+    })
+}
+
+fn event_handler(
+    node: Node<'_>,
+    source: &str,
+    states: &BTreeMap<String, (String, serde_json::Value)>,
+) -> Option<crate::application_ir::ComponentEvent> {
+    let container = children(node).into_iter().next()?;
+    if node.kind() != "jsx_expression" || container.kind() != "arrow_function" {
+        return None;
+    }
+    let parameters = container.child_by_field_name("parameters")?;
+    if !children(parameters).is_empty() {
+        return None;
+    }
+    let body = container.child_by_field_name("body")?;
+    if body.kind() != "call_expression" {
+        return None;
+    }
+    let function = body.child_by_field_name("function")?;
+    if function.kind() != "identifier" {
+        return None;
+    }
+    let (state, _) = states
+        .iter()
+        .find(|(_, (setter, _))| text(function, source) == setter)?;
+    let arguments = body.child_by_field_name("arguments")?;
+    let args = children(arguments);
+    let [value] = args.as_slice() else {
+        return None;
+    };
+    if let Some(literal) = ts_literal(*value, source) {
+        return Some(crate::application_ir::ComponentEvent::SetState {
+            state: state.clone(),
+            value: literal,
+        });
+    }
+    if value.kind() == "unary_expression"
+        && text(*value, source).starts_with('!')
+        && children(*value).first().is_some_and(|operand| {
+            operand.kind() == "identifier" && text(*operand, source) == state.as_str()
+        })
+    {
+        return Some(crate::application_ir::ComponentEvent::ToggleState {
+            state: state.clone(),
+        });
+    }
+    None
+}
+
 fn static_jsx(
     node: Node<'_>,
     source: &str,
     depth: usize,
     nodes: &mut usize,
+    states: &BTreeMap<String, (String, serde_json::Value)>,
 ) -> Option<crate::application_ir::StaticNode> {
     *nodes += 1;
     if depth > 32 || *nodes > 1024 {
         return None;
     }
     if node.kind() == "parenthesized_expression" {
-        return static_jsx(children(node).into_iter().next()?, source, depth, nodes);
+        return static_jsx(
+            children(node).into_iter().next()?,
+            source,
+            depth,
+            nodes,
+            states,
+        );
+    }
+    if node.kind() == "jsx_expression" {
+        let inner = children(node).into_iter().next()?;
+        if inner.kind() == "identifier" && states.contains_key(text(inner, source)) {
+            return Some(crate::application_ir::StaticNode::State {
+                name: text(inner, source).to_owned(),
+            });
+        }
+        return None;
     }
     if node.kind() == "jsx_text" {
         let value = text(node, source);
@@ -577,13 +709,41 @@ fn static_jsx(
         node
     };
     let mut attributes = BTreeMap::new();
+    let mut events = BTreeMap::new();
     for attribute in children(container)
         .into_iter()
         .filter(|child| child.kind() == "jsx_attribute")
     {
-        let (name, value) = literal_jsx_attribute(attribute, source)?;
-        if attributes.insert(name, value).is_some() {
-            return None;
+        let name = attribute_name(attribute, source)?;
+        let is_event = name.strip_prefix("on").is_some_and(|rest| {
+            rest.bytes()
+                .next()
+                .is_some_and(|byte| byte.is_ascii_uppercase())
+        });
+        if is_event {
+            let value = attribute.child_by_field_name("value").or_else(|| {
+                children(attribute)
+                    .into_iter()
+                    .find(|child| child.kind() == "jsx_expression")
+            })?;
+            if value.kind() != "jsx_expression" {
+                return None;
+            }
+            match event_handler(value, source, states) {
+                Some(handler) => {
+                    if events.insert(name, handler).is_some() {
+                        return None;
+                    }
+                }
+                None => {
+                    return None;
+                }
+            }
+        } else {
+            let (name, value) = literal_jsx_attribute(attribute, source)?;
+            if attributes.insert(name, value).is_some() {
+                return None;
+            }
         }
     }
     let mut rendered = Vec::new();
@@ -591,11 +751,12 @@ fn static_jsx(
         if child.kind() == "jsx_text" && text(child, source).trim().is_empty() {
             continue;
         }
-        rendered.push(static_jsx(child, source, depth + 1, nodes)?);
+        rendered.push(static_jsx(child, source, depth + 1, nodes, states)?);
     }
     Some(crate::application_ir::StaticNode::Element {
         tag,
         attributes,
+        events,
         children: rendered,
     })
 }
@@ -605,6 +766,7 @@ pub(super) fn static_component(
     source: &str,
     line: usize,
     expected_name: Option<&str>,
+    standalone_react: bool,
 ) -> Option<crate::application_ir::StaticComponent> {
     let (function, name, _) =
         component_nodes(parsed, source)
@@ -615,6 +777,7 @@ pub(super) fn static_component(
             })?;
     let name = name?;
     let body = function.child_by_field_name("body")?;
+    let mut state = Vec::new();
     let rendered = if matches!(
         body.kind(),
         "jsx_element" | "jsx_self_closing_element" | "parenthesized_expression"
@@ -622,7 +785,11 @@ pub(super) fn static_component(
         body
     } else {
         let statements = children(body);
-        let [statement] = statements.as_slice() else {
+        let (declarations, returned) = statements.split_at(statements.len().checked_sub(1)?);
+        for declaration in declarations {
+            state.push(state_declaration(*declaration, source)?);
+        }
+        let [statement] = returned else {
             return None;
         };
         if statement.kind() != "return_statement" {
@@ -630,9 +797,20 @@ pub(super) fn static_component(
         }
         children(*statement).into_iter().next()?
     };
+    let states: BTreeMap<String, (String, serde_json::Value)> = state
+        .iter()
+        .map(|entry| {
+            (
+                entry.name.clone(),
+                (entry.setter.clone(), entry.initial.clone()),
+            )
+        })
+        .collect();
     let component = crate::application_ir::StaticComponent {
         name,
-        root: static_jsx(rendered, source, 0, &mut 0)?,
+        client: client_module(parsed, source) || standalone_react,
+        state,
+        root: static_jsx(rendered, source, 0, &mut 0, &states)?,
     };
     component.validate().ok()?;
     Some(component)

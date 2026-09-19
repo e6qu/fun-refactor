@@ -18,9 +18,25 @@ then recognizes explicit response wrappers for Next.js, FastAPI, Express and Go
 standard HTTP. Equivalent admitted handlers produce the same response expression.
 FastAPI additionally reads required `str`, `int` and `bool` parameters declared with `Query(...)`
 or `Body(..., embed=True)`. An omitted alias or one literal `alias` is admitted. Defaults,
-optionality, constraints, dynamic aliases, whole-body scalars, extra dependency parameters and
-other metadata make the route `manual`. Other source request bodies, queries, middleware,
-authentication, errors and effects also remain manual; their source evidence stays intact. The
+optionality, constraints, dynamic aliases, whole-body scalars and
+other metadata make the route `manual`. FastAPI `Depends(provider)` and `Security(provider)`
+parameters normalize into ordered route dependencies when the provider is one direct simple
+callable without keyword arguments. Configured or computed providers stay `manual`. A response
+referencing a dependency binding stays `manual` because provider values are opaque to the IR.
+A FastAPI response of exactly `requests.METHOD("/literal-path").json()` (or `httpx`) normalizes
+into a portable service call. Absolute URLs, computed paths and non-JSON access stay `manual`.
+A call whose method and path resolve to anything but one sibling route is demoted to `manual`
+during assembly. Other source request bodies, queries, errors and effects also remain
+manual; their source evidence stays intact.
+
+FastAPI applications also normalize an ordered middleware chain when every
+`app.add_middleware(Name)` or `@app.middleware("http")` registration is a direct unconfigured
+name. The portable chain runs outermost-first in reverse registration order. Configured,
+computed or unresolved registrations keep the chain out of the IR with an explicit
+`middleware_normalization` manual status; the per-entry evidence facts remain. Next.js
+convention files stay evidence-only because their export shape is unchecked.
+
+The
 separately authored HTTP IR described below generates the same checked required-input subset. Component
 nodes retain a rendering boundary. The richer checked Next.js/FastAPI feature
 migration remains available for request and response schema cases outside this subset.
@@ -51,16 +67,31 @@ Use those handles for code maps, call traces, impact and sources/sinks analysis.
 ## Author HTTP behavior through the IR
 
 `fr-http-application-1` is a separate executable subset for agent-authored HTTP
-behavior. It contains `schema` and `routes`. Each route supplies `method`, `path`,
-optional `inputs`, `status` and `response`. Expressions use five variants:
+behavior. It contains `schema`, `routes` and an optional ordered `middleware` chain. Each
+middleware entry supplies a dotted `name` and a unique 1-based `request_order`; the chain runs
+outermost-first and admits at most 64 entries. Generated Express, Go and Next.js modules reference
+middleware by name from a host-supplied `fr-middleware` module with the documented signatures.
+The FastAPI target refuses chains because router-level middleware has no FastAPI equivalent.
+Each route supplies `method`, `path`, optional `inputs`, optional `dependencies`,
+`status` and `response`. Dependencies are ordered named providers invoked before the handler.
+A failing provider refuses the request with status 401 and
+`{"error":"dependency","provider":...}` on portable targets. FastAPI targets keep native
+`Depends`/`Security` injection and provider failure semantics. Expressions use six variants:
 
 | Kind | Fields | Meaning |
 |---|---|---|
 | `literal` | `value` | JSON null, Boolean, bounded string or safe signed integer |
 | `path` | `name` | String value of a declared path parameter |
 | `input` | `name` | Validated value of a declared request input |
+| `service` | `method`, `path` | JSON body of a same-origin call to exactly one sibling route |
 | `object` | `fields` | Named child expressions |
 | `array` | `items` | Ordered child expressions |
+
+Service calls use a portable method and a bounded literal root-relative path without parameters.
+The target must be exactly one other route in the same bundle. Ambiguous, unresolved, nonlocal
+and self-recursive targets refuse. An upstream non-2xx answer or transport failure returns 502
+with `{"error":"upstream","path":...}`. Service results are runtime values; static IR evaluation
+refuses them.
 
 Every input has a simple `name`, a `source` of `query` or `json-body`, and a `scalar` of
 `string`, `integer` or `boolean`. Inputs are required, names are unique and distinct from path
@@ -167,17 +198,25 @@ files' preview, basis, checks, history, patch, undo and redo transaction.
 
 React and Next.js function components also share a deliberately small executable
 subset. A portable component contains one intrinsic JSX tree with lowercase HTML
-tags, literal string attributes and explicit text children. The model refuses props,
-state, effects, other hooks, events, style expressions, component calls, fragments,
+tags, literal string attributes and explicit text children. A component may declare
+up to 16 `useState` bindings with bounded JSON-primitive initial values and render state by name.
+`on*` event attributes admit exactly `() => setState(literal)` or `() => setState(!state)`;
+a toggle requires a Boolean state. State or events require an explicit client boundary:
+a `"use client"` directive, or a standalone React application where client rendering is the only
+mode. The model refuses props, effects, other hooks, computed event
+handlers, style expressions, component calls, fragments,
 spreads and arbitrary JavaScript expressions. Those facts remain in the hierarchy
 with a manual normalization boundary.
 
-One selected portable component writes `App.tsx` for React or `page.tsx` for Next.js.
-Multiple components refuse until the agent selects one feature branch, avoiding an
+One selected portable component writes `App.tsx` for React or `page.tsx` for Next.js. The writer
+adds the `"use client"` directive only for client Next.js components and imports `useState` only
+when state exists. Multiple components refuse until the agent selects one feature branch, avoiding an
 invented page or component graph. The Python SDK mirrors `StaticComponent`,
-`StaticElement` and `StaticText`. Nodes admit depth 32, 1024 nodes and 1 MiB; unsafe
+`StaticElement`, `StaticText`, `StaticState`, `ComponentState` and the `ComponentEvent` variants.
+Nodes admit depth 32, 1024 nodes and 1 MiB; unsafe
 event and raw-HTML attributes refuse. React-to-Next.js and Next.js-to-React fixtures
-produce the same static tree before generation.
+produce the same static tree before generation, and a pinned React render fixture executes the
+stateful subset through both writers.
 Entity-bearing source text and attributes also stay manual until the reader can
 decode and re-encode their exact JSX semantics without double escaping.
 
@@ -209,8 +248,12 @@ IR models a JSON body. Statuses admit 200..599 except 204, 205 and 304.
 
 Writers preserve reserved object keys and avoid parameter/import name collisions.
 Pinned runtime tests execute valid and invalid requests and compare generated JSON values and
-statuses with independent IR evaluation in FastAPI, Express, Go HTTP and Next.js. Framework
-installation, registration, URL decoding, implicit methods, middleware, authentication, nested
+statuses with independent IR evaluation in FastAPI, Express, Go HTTP and Next.js. One runtime
+fixture executes an ordered middleware chain and the 401 dependency contract through all four
+adapters. Another forwards a sibling route's JSON through Express, Go HTTP and Next.js real
+servers. Framework
+installation, registration, URL decoding, implicit methods, configured middleware, provider
+internals, external services, effects, nested
 request schemas and deployment behavior remain outside this subset.
 
 Reading FastAPI declarations preserves the admitted required inputs and successful response.
@@ -221,7 +264,8 @@ the shared accepted case and representative rejection statuses. The report keeps
 `runtime_proved: false` because `fr` intentionally canonicalizes framework-specific failure details.
 
 Lean proves separate reader and writer admission, compatibility, request-input admission, the
-FastAPI declaration policy, JSON status safety, exact unique disposition coverage, validated
+FastAPI declaration policy, the middleware chain and dependency admission policies, JSON status
+safety, exact unique disposition coverage, validated
 endpoint agreement and static-tree resource policies. Shared
 finite Rust, Python and Lean cases check the executable policies. These are model and policy results.
 Parser extraction and generated code behavior remain separate integration tests.

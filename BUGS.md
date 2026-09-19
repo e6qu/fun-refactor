@@ -71,6 +71,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B937: **two identical component detail facts on one line broke application assembly.** A pair of
+  same-line `onClick` arrow handlers on the same element kind produced one fact identity, and
+  `project application` refused the whole model with "application facts repeat an identity."
+  Component detail identities now disambiguate only on collision, leaving every non-colliding
+  identity unchanged. A regression reads two same-line state toggles into two distinct event facts
+  and a portable component.
+
 - [x] B935: **Lean tactic constructor branches were not structural**. A bounded tactic grammar now
   exposes named `cases` and `induction` constructor branches plus `rcases` tuple and alternative
   patterns. It admits name-shaped subjects and bounded patterns without an opaque tactic fallback;

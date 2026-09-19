@@ -30,19 +30,86 @@ fn encoded_size<T: Serialize + ?Sized>(value: &T, limit: usize) -> Result<usize,
     Ok(counter.size)
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HttpMiddleware {
+    pub name: String,
+    pub request_order: usize,
+}
+
+pub fn dotted_identifier(name: &str) -> bool {
+    !name.is_empty() && name.len() <= 160 && name.split('.').all(identifier)
+}
+
+pub fn validate_middleware(chain: &[HttpMiddleware]) -> Result<(), String> {
+    if chain.len() > 64 {
+        return Err("middleware chain exceeds its entry bound.".into());
+    }
+    let mut orders = BTreeSet::new();
+    for entry in chain {
+        if !dotted_identifier(&entry.name)
+            || !(1..=chain.len()).contains(&entry.request_order)
+            || !orders.insert(entry.request_order)
+        {
+            return Err(
+                "middleware entries need dotted names and a unique 1-based request order.".into(),
+            );
+        }
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RouteBundle {
     pub schema: String,
     pub routes: Vec<HttpRoute>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub middleware: Vec<HttpMiddleware>,
 }
 
-pub fn validate_routes(routes: &[HttpRoute]) -> Result<(), String> {
-    if routes.is_empty() || routes.len() > 256 {
-        return Err("route bundle requires 1..256 endpoints".into());
+fn service_calls(expr: &HttpExpression, calls: &mut Vec<(String, String)>) {
+    match expr {
+        HttpExpression::Service { method, path } => calls.push((method.clone(), path.clone())),
+        HttpExpression::Object { fields } => fields
+            .values()
+            .for_each(|value| service_calls(value, calls)),
+        HttpExpression::Array { items } => {
+            items.iter().for_each(|value| service_calls(value, calls))
+        }
+        _ => (),
     }
+}
+
+pub fn route_service_calls(route: &HttpRoute) -> Vec<(String, String)> {
+    let mut calls = Vec::new();
+    service_calls(&route.response, &mut calls);
+    calls
+}
+
+pub fn route_service_target_count(
+    routes: &[HttpRoute],
+    index: usize,
+    method: &str,
+    path: &str,
+) -> usize {
+    routes
+        .iter()
+        .enumerate()
+        .filter(|(target, candidate)| {
+            *target != index
+                && crate::framework_kernel::service_route_candidate(
+                    true,
+                    candidate.path == path,
+                    true,
+                    candidate.method == method,
+                )
+        })
+        .count()
+}
+
+pub fn route_matchers_overlap(routes: &[HttpRoute]) -> bool {
     for (index, route) in routes.iter().enumerate() {
-        route.validate()?;
         for previous in &routes[..index] {
             let left: Vec<_> = previous.path.split('/').collect();
             let right: Vec<_> = route.path.split('/').collect();
@@ -52,9 +119,30 @@ pub fn validate_routes(routes: &[HttpRoute]) -> Result<(), String> {
                 })
                 && (previous.path != route.path || previous.method == route.method)
             {
-                return Err("route matchers overlap or duplicate an endpoint.".into());
+                return true;
             }
         }
+    }
+    false
+}
+
+pub fn validate_routes(routes: &[HttpRoute]) -> Result<(), String> {
+    if routes.is_empty() || routes.len() > 256 {
+        return Err("route bundle requires 1..256 endpoints".into());
+    }
+    for (index, route) in routes.iter().enumerate() {
+        route.validate()?;
+        for (method, path) in route_service_calls(route) {
+            if route_service_target_count(routes, index, &method, &path) != 1 {
+                return Err(
+                    "service calls require exactly one same-bundle route target; ambiguous, unresolved and nonlocal targets remain manual."
+                        .into(),
+                );
+            }
+        }
+    }
+    if route_matchers_overlap(routes) {
+        return Err("route matchers overlap or duplicate an endpoint.".into());
     }
     encoded_size(routes, 1_048_576)?;
     Ok(())
@@ -66,6 +154,7 @@ impl RouteBundle {
             return Err("unsupported HTTP application schema".into());
         }
         validate_routes(&self.routes)?;
+        validate_middleware(&self.middleware)?;
         encoded_size(self, 1_048_576)?;
         Ok(())
     }
@@ -184,6 +273,14 @@ pub struct HttpInput {
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct HttpDependency {
+    pub binding: String,
+    pub provider: String,
+    pub security: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct HttpValidationIssue {
     pub source: HttpInputSource,
     pub name: String,
@@ -201,6 +298,10 @@ pub enum HttpExpression {
     },
     Input {
         name: String,
+    },
+    Service {
+        method: String,
+        path: String,
     },
     Object {
         fields: BTreeMap<String, HttpExpression>,
@@ -244,6 +345,24 @@ impl HttpExpression {
                 HttpExpression::Path { .. } => return Err("HTTP expression refers to an undeclared path parameter.".into()),
                 HttpExpression::Input { name } if inputs.contains(name) => (),
                 HttpExpression::Input { .. } => return Err("HTTP expression refers to an undeclared request input.".into()),
+                HttpExpression::Service { method, path } => {
+                    let provisional = HttpRoute {
+                        method: method.clone(),
+                        path: path.clone(),
+                        inputs: Vec::new(),
+                        dependencies: Vec::new(),
+                        status: 200,
+                        response: HttpExpression::Literal { value: Value::Null },
+                    };
+                    if !matches!(
+                        method.as_str(),
+                        "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS"
+                    ) || provisional.parameters().is_err()
+                        || path.contains('{')
+                    {
+                        return Err("service calls need a portable method and a bounded literal root-relative path.".into());
+                    }
+                }
                 HttpExpression::Object { fields } => {
                     for (name, value) in fields {
                         if name.len() > 256 { return Err("HTTP object field exceeds its byte bound".into()); }
@@ -275,6 +394,17 @@ impl HttpExpression {
         if parameters.len() > 32 || parameters.values().any(|value| value.len() > 4096) {
             return Err("HTTP evaluation parameters exceed their bounds.".into());
         }
+        fn has_service(expr: &HttpExpression) -> bool {
+            match expr {
+                HttpExpression::Service { .. } => true,
+                HttpExpression::Object { fields } => fields.values().any(has_service),
+                HttpExpression::Array { items } => items.iter().any(has_service),
+                _ => false,
+            }
+        }
+        if has_service(self) {
+            return Err("service call results require runtime evidence.".into());
+        }
         fn run(
             expr: &HttpExpression,
             parameters: &BTreeMap<String, String>,
@@ -284,6 +414,7 @@ impl HttpExpression {
                 HttpExpression::Literal { value } => value.clone(),
                 HttpExpression::Path { name } => Value::String(parameters[name].clone()),
                 HttpExpression::Input { name } => inputs[name].clone(),
+                HttpExpression::Service { .. } => Value::Null,
                 HttpExpression::Object { fields } => Value::Object(
                     fields
                         .iter()
@@ -311,6 +442,8 @@ pub struct HttpRoute {
     pub path: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub inputs: Vec<HttpInput>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dependencies: Vec<HttpDependency>,
     pub status: u16,
     pub response: HttpExpression,
 }
@@ -382,6 +515,23 @@ impl HttpRoute {
             {
                 return Err(
                     "request input name, source or scalar type is not portable for this method."
+                        .into(),
+                );
+            }
+        }
+        if self.dependencies.len() > 16 {
+            return Err("route exceeds its dependency bound".into());
+        }
+        let mut bindings = BTreeSet::new();
+        for dependency in &self.dependencies {
+            if !identifier(&dependency.binding)
+                || !dotted_identifier(&dependency.provider)
+                || parameters.contains(&dependency.binding)
+                || inputs.contains(&dependency.binding)
+                || !bindings.insert(dependency.binding.clone())
+            {
+                return Err(
+                    "dependency bindings need unique names distinct from inputs and path parameters."
                         .into(),
                 );
             }
@@ -509,14 +659,54 @@ pub fn identifier(name: &str) -> bool {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ComponentState {
+    pub name: String,
+    pub setter: String,
+    pub initial: Value,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum ComponentEvent {
+    SetState { state: String, value: Value },
+    ToggleState { state: String },
+}
+
+fn state_literal(value: &Value) -> bool {
+    match value {
+        Value::Null | Value::Bool(_) => true,
+        Value::String(value) => value.len() <= 65_536,
+        Value::Number(number) => number
+            .as_i64()
+            .is_some_and(|value| (-9007199254740991..=9007199254740991).contains(&value)),
+        _ => false,
+    }
+}
+
+fn literal_kind(value: &Value) -> u8 {
+    match value {
+        Value::Null => 0,
+        Value::Bool(_) => 1,
+        Value::String(_) => 2,
+        _ => 3,
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum StaticNode {
     Text {
         value: String,
     },
+    State {
+        name: String,
+    },
     Element {
         tag: String,
         attributes: BTreeMap<String, String>,
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        events: BTreeMap<String, ComponentEvent>,
         children: Vec<StaticNode>,
     },
 }
@@ -527,6 +717,7 @@ impl StaticNode {
         depth: usize,
         nodes: &mut usize,
         max_depth: &mut usize,
+        states: &BTreeMap<String, Value>,
     ) -> Result<(), String> {
         *nodes += 1;
         *max_depth = (*max_depth).max(depth);
@@ -539,9 +730,15 @@ impl StaticNode {
                     return Err("static text must be bounded and have explicit whitespace.".into());
                 }
             }
+            Self::State { name } => {
+                if !states.contains_key(name) {
+                    return Err("state references require a declared component state.".into());
+                }
+            }
             Self::Element {
                 tag,
                 attributes,
+                events,
                 children,
             } => {
                 if tag.is_empty()
@@ -570,8 +767,33 @@ impl StaticNode {
                         );
                     }
                 }
+                for (name, event) in events {
+                    let valid_name = name.len() <= 64
+                        && name.strip_prefix("on").is_some_and(|rest| {
+                            rest.bytes()
+                                .next()
+                                .is_some_and(|byte| byte.is_ascii_uppercase())
+                                && rest.bytes().all(|byte| byte.is_ascii_alphanumeric())
+                        });
+                    let valid_event = match event {
+                        ComponentEvent::ToggleState { state } => states
+                            .get(state)
+                            .is_some_and(|initial| initial.is_boolean()),
+                        ComponentEvent::SetState { state, value } => {
+                            states.get(state).is_some_and(|initial| {
+                                state_literal(value) && literal_kind(value) == literal_kind(initial)
+                            })
+                        }
+                    };
+                    if !valid_name || !valid_event {
+                        return Err(
+                            "component events need an on* name and a declared state with a matching literal."
+                                .into(),
+                        );
+                    }
+                }
                 for child in children {
-                    child.validate(depth + 1, nodes, max_depth)?;
+                    child.validate(depth + 1, nodes, max_depth, states)?;
                 }
             }
         }
@@ -583,6 +805,10 @@ impl StaticNode {
 #[serde(deny_unknown_fields)]
 pub struct StaticComponent {
     pub name: String,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub client: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub state: Vec<ComponentState>,
     pub root: StaticNode,
 }
 
@@ -591,9 +817,36 @@ impl StaticComponent {
         if !identifier(&self.name) || !self.name.chars().next().is_some_and(char::is_uppercase) {
             return Err("static component needs a bounded upper-case identifier.".into());
         }
+        if self.state.len() > 16 {
+            return Err("component exceeds its state declaration bound.".into());
+        }
+        let mut states = BTreeMap::new();
+        let mut setters = BTreeSet::new();
+        for state in &self.state {
+            if !identifier(&state.name)
+                || state.name.chars().next().is_some_and(char::is_uppercase)
+                || !identifier(&state.setter)
+                || !setters.insert(state.setter.clone())
+                || !state_literal(&state.initial)
+            {
+                return Err(
+                    "component state needs unique simple names and a bounded literal initial value."
+                        .into(),
+                );
+            }
+            if states
+                .insert(state.name.clone(), state.initial.clone())
+                .is_some()
+            {
+                return Err("component state names must be unique.".into());
+            }
+        }
+        if !crate::framework_kernel::component_hooks_compatible(self.client, self.state.len()) {
+            return Err("component state requires an explicit client boundary.".into());
+        }
         let mut nodes = 0;
         let mut depth = 0;
-        self.root.validate(0, &mut nodes, &mut depth)?;
+        self.root.validate(0, &mut nodes, &mut depth, &states)?;
         let encoded = encoded_size(self, 1_048_576)?;
         if !crate::framework_kernel::application_static_resources_admitted(nodes, depth, encoded) {
             return Err("static component exceeds its resource policy.".into());
@@ -612,6 +865,8 @@ pub struct ApplicationNode {
     pub children: Vec<ApplicationNode>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub route: Option<HttpRoute>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub middleware: Vec<HttpMiddleware>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub component: Option<StaticComponent>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -659,6 +914,7 @@ impl ApplicationIr {
             if let Some(route) = &node.route {
                 route.validate()?;
             }
+            validate_middleware(&node.middleware)?;
             if let Some(component) = &node.component {
                 component.validate()?;
             }

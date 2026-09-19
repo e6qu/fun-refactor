@@ -168,6 +168,27 @@ theorem framework_omitted_is_zero_iff (total limit : Nat) :
   unfold frameworkOmitted
   omega
 
+-- fr:spec src/project/framework_kernel.rs::application_middleware_chain_admitted @ 2dff9fe0a829004ae7989c3fb466fde48c08c9bab4e1b4cc2545e7b6d38092f1
+-- fr:signature total: usize => total: Nat; resolved: usize => resolved: Nat; configured: usize => configured: Nat; return: bool => return: Bool
+def applicationMiddlewareChainAdmitted (total resolved configured : Nat) : Bool :=
+  decide (1 ≤ total ∧ total ≤ 64 ∧ resolved = total ∧ configured = 0)
+
+theorem middleware_chain_requires_complete_unconfigured_resolution
+    (total resolved configured : Nat) :
+    applicationMiddlewareChainAdmitted total resolved configured = true ↔
+      1 ≤ total ∧ total ≤ 64 ∧ resolved = total ∧ configured = 0 := by
+  simp [applicationMiddlewareChainAdmitted]
+
+-- fr:spec src/project/framework_kernel.rs::application_dependency_admitted @ d26d6e192790de854817b57525d65f0b89a36fb53ec158cd4d70d812b240bde2
+-- fr:signature provider_safe: bool => providerSafe: Bool; configured: bool => configured: Bool; return: bool => return: Bool
+def applicationDependencyAdmitted (providerSafe configured : Bool) : Bool :=
+  providerSafe && !configured
+
+theorem dependency_requires_safe_unconfigured_provider (providerSafe configured : Bool) :
+    applicationDependencyAdmitted providerSafe configured = true ↔
+      providerSafe = true ∧ configured = false := by
+  cases providerSafe <;> cases configured <;> decide
+
 -- fr:spec src/project/framework_kernel.rs::middleware_request_order @ 8216192cd608316f86f46581f9d759b435f3aa05e1ccb7a3aae1597b1dbf4027
 -- fr:signature total: usize => total: Nat; declaration_index: usize => declarationIndex: Nat; return: usize => return: Nat
 def middlewareRequestOrder (total : Nat) (declarationIndex : Nat) : Nat := total - declarationIndex

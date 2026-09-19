@@ -1,7 +1,7 @@
 use super::super::Project;
 use crate::application_ir::{
-    validate_routes, ApplicationNode, HttpExpression, HttpInput, HttpInputSource, HttpRoute,
-    HttpScalar,
+    validate_middleware, ApplicationNode, HttpDependency, HttpExpression, HttpInput,
+    HttpInputSource, HttpMiddleware, HttpRoute, HttpScalar,
 };
 use crate::parse::Parsers;
 use crate::transpile::ir::{Expr, Function, Item, Param, ParamKind, Stmt, Type};
@@ -195,6 +195,53 @@ fn path_binding(expr: &Expr, bindings: &Bindings<'_>) -> Option<String> {
         .then(|| candidate.to_owned())
 }
 
+fn service_call(expr: &Expr) -> Option<HttpExpression> {
+    let Expr::Call { callee, args } = expr else {
+        return None;
+    };
+    if !args.is_empty() {
+        return None;
+    }
+    let Expr::Field { of, name } = &**callee else {
+        return None;
+    };
+    if name != "json" {
+        return None;
+    }
+    let Expr::Call {
+        callee: request,
+        args,
+    } = &**of
+    else {
+        return None;
+    };
+    let [Expr::Str(path)] = args.as_slice() else {
+        return None;
+    };
+    let Expr::Field {
+        of: client,
+        name: method,
+    } = &**request
+    else {
+        return None;
+    };
+    if !matches!(&**client, Expr::Name(client) if client == "requests" || client == "httpx") {
+        return None;
+    }
+    let method = method.to_uppercase();
+    if !matches!(
+        method.as_str(),
+        "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS"
+    ) || !path.starts_with('/')
+    {
+        return None;
+    }
+    Some(HttpExpression::Service {
+        method,
+        path: path.clone(),
+    })
+}
+
 fn expression(expr: &Expr, bindings: &Bindings<'_>) -> Option<HttpExpression> {
     let value = match expr {
         Expr::Str(value) => HttpExpression::Literal {
@@ -230,9 +277,16 @@ fn expression(expr: &Expr, bindings: &Bindings<'_>) -> Option<HttpExpression> {
         }
         _ => match input_binding(expr, bindings) {
             Some(name) => HttpExpression::Input { name },
-            None => HttpExpression::Path {
-                name: path_binding(expr, bindings)?,
-            },
+            None => {
+                if matches!(bindings.framework, Framework::Fastapi) {
+                    if let Some(service) = service_call(expr) {
+                        return Some(service);
+                    }
+                }
+                HttpExpression::Path {
+                    name: path_binding(expr, bindings)?,
+                }
+            }
         },
     };
     Some(value)
@@ -354,24 +408,74 @@ fn fastapi_input(parameter: &Param) -> Option<HttpInput> {
     })
 }
 
+fn dotted(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Name(name) => Some(name.clone()),
+        Expr::Field { of, name } => Some(format!("{}.{name}", dotted(of)?)),
+        _ => None,
+    }
+}
+
+fn fastapi_dependency(parameter: &Param) -> Option<HttpDependency> {
+    if parameter.kind != ParamKind::Normal {
+        return None;
+    }
+    let (callee, arguments) = call(parameter.default.as_ref()?)?;
+    let security = if fastapi_callee(callee, "Depends") {
+        false
+    } else if fastapi_callee(callee, "Security") {
+        true
+    } else {
+        return None;
+    };
+    let mut provider = None;
+    let mut configured = false;
+    for argument in arguments {
+        match argument {
+            Expr::Keyword { name, value } if name == "dependency" && provider.is_none() => {
+                provider = dotted(value);
+            }
+            Expr::Keyword { .. } => configured = true,
+            value if provider.is_none() => provider = dotted(value),
+            _ => configured = true,
+        }
+    }
+    let provider = provider?;
+    if !crate::framework_kernel::application_dependency_admitted(
+        crate::application_ir::dotted_identifier(&provider),
+        configured,
+    ) {
+        return None;
+    }
+    Some(HttpDependency {
+        binding: parameter.name.clone(),
+        provider,
+        security,
+    })
+}
+
 fn fastapi(
     function: &Function,
     path: &BTreeSet<String>,
-) -> Option<(Vec<HttpInput>, u16, HttpExpression)> {
+) -> Option<(Vec<HttpInput>, Vec<HttpDependency>, u16, HttpExpression)> {
     let mut inputs = Vec::new();
+    let mut dependencies = Vec::new();
     let mut bindings = BTreeMap::new();
     for parameter in &function.params {
         if path.contains(&parameter.name) {
             continue;
         }
-        let input = fastapi_input(parameter)?;
-        if bindings
-            .insert(parameter.name.clone(), input.name.clone())
-            .is_some()
-        {
-            return None;
+        if let Some(input) = fastapi_input(parameter) {
+            if bindings
+                .insert(parameter.name.clone(), input.name.clone())
+                .is_some()
+            {
+                return None;
+            }
+            inputs.push(input);
+        } else {
+            dependencies.push(fastapi_dependency(parameter)?);
         }
-        inputs.push(input);
     }
     let [Stmt::Return(Some(returned))] = function.body.as_slice() else {
         return None;
@@ -407,7 +511,7 @@ fn fastapi(
             inputs: &bindings,
         },
     )?;
-    Some((inputs, status?, response))
+    Some((inputs, dependencies, status?, response))
 }
 
 fn express(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpression)> {
@@ -507,32 +611,63 @@ fn normalize(
         method: method.to_owned(),
         path: path.to_owned(),
         inputs: Vec::new(),
+        dependencies: Vec::new(),
         status: 200,
         response: HttpExpression::Literal { value: Value::Null },
     };
     let parameters = provisional.parameters().ok()?;
-    let (inputs, status, response) = match framework {
-        Framework::Next => {
-            next(function, &parameters).map(|(status, response)| (Vec::new(), status, response))
-        }
+    let (inputs, dependencies, status, response) = match framework {
+        Framework::Next => next(function, &parameters)
+            .map(|(status, response)| (Vec::new(), Vec::new(), status, response)),
         Framework::Fastapi => fastapi(function, &parameters),
-        Framework::Express => {
-            express(function, &parameters).map(|(status, response)| (Vec::new(), status, response))
-        }
-        Framework::Go => {
-            go(function, &parameters).map(|(status, response)| (Vec::new(), status, response))
-        }
+        Framework::Express => express(function, &parameters)
+            .map(|(status, response)| (Vec::new(), Vec::new(), status, response)),
+        Framework::Go => go(function, &parameters)
+            .map(|(status, response)| (Vec::new(), Vec::new(), status, response)),
         Framework::Other(_) => None,
     }?;
     let route = HttpRoute {
         method: method.to_owned(),
         path: path.to_owned(),
         inputs,
+        dependencies,
         status,
         response,
     };
     route.validate().ok()?;
     Some(route)
+}
+
+fn fastapi_middleware(project: &Project<'_>, root: &str) -> Option<Vec<HttpMiddleware>> {
+    let source = project.sources.get(&project.root.join(root))?;
+    let parsed = Parsers::new()
+        .parse(crate::lang::Language::Python, source)
+        .ok()?;
+    if parsed.has_errors() {
+        return None;
+    }
+    let entries = super::super::fast_routes::middleware(&parsed, source);
+    if entries.is_empty() {
+        return Some(Vec::new());
+    }
+    let total = entries.len();
+    let resolved = entries.iter().filter(|entry| entry.name.is_some()).count();
+    let configured = entries.iter().filter(|entry| entry.configured).count();
+    if !crate::framework_kernel::application_middleware_chain_admitted(total, resolved, configured)
+    {
+        return None;
+    }
+    let mut chain: Vec<_> = entries
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| HttpMiddleware {
+            name: entry.name.clone().unwrap(),
+            request_order: crate::framework_kernel::middleware_request_order(total, index),
+        })
+        .collect();
+    chain.sort_by_key(|entry| entry.request_order);
+    validate_middleware(&chain).ok()?;
+    Some(chain)
 }
 
 fn normalize_node(
@@ -551,6 +686,31 @@ fn normalize_node(
     } else {
         application_framework
     };
+    if node.kind == "application" && application_framework.as_deref() == Some("fastapi") {
+        if let Some(root) = node
+            .data
+            .get("application")
+            .and_then(|value| value.get("root"))
+            .and_then(Value::as_str)
+        {
+            match fastapi_middleware(project, root) {
+                Some(chain) if !chain.is_empty() => {
+                    node.middleware = chain;
+                    node.data.insert(
+                        "middleware_normalization".into(),
+                        json!({"status": "portable", "basis": "direct-name-reverse-registration-order", "runtime_proved": false}),
+                    );
+                }
+                Some(_) => (),
+                None => {
+                    node.data.insert(
+                        "middleware_normalization".into(),
+                        json!({"status": "manual", "reason": "The middleware chain exceeds the direct-name unconfigured subset.", "runtime_proved": false}),
+                    );
+                }
+            }
+        }
+    }
     if node.kind == "route" {
         let route = node.data.get("route").cloned().unwrap_or(Value::Null);
         let framework_name = route
@@ -610,7 +770,13 @@ fn normalize_node(
             if parsed.has_errors() {
                 return None;
             }
-            super::super::components::static_component(&parsed, source, line, name)
+            super::super::components::static_component(
+                &parsed,
+                source,
+                line,
+                name,
+                application_framework.as_deref() == Some("react"),
+            )
         })();
         let portable = node.component.is_some();
         node.data.insert(
@@ -660,15 +826,63 @@ fn reject_portable(node: &mut ApplicationNode) {
     }
 }
 
+fn demote_service_route(node: &mut ApplicationNode, method: &str, path: &str) -> bool {
+    if node
+        .route
+        .as_ref()
+        .is_some_and(|route| route.method == method && route.path == path)
+    {
+        node.route = None;
+        node.data.insert(
+            "normalization".into(),
+            json!({"status": "manual", "reason": "The service call target is ambiguous, unresolved or nonlocal within this application.", "runtime_proved": false}),
+        );
+        node.boundary = Some(
+            "Source evidence is retained, but the service call requires an explicit target decision."
+                .into(),
+        );
+        return true;
+    }
+    node.children
+        .iter_mut()
+        .any(|child| demote_service_route(child, method, path))
+}
+
+fn demote_unresolved_service_calls(application: &mut ApplicationNode) {
+    loop {
+        let mut normalized = Vec::new();
+        collect(application, &mut normalized);
+        let invalid = normalized.iter().enumerate().find_map(|(index, route)| {
+            crate::application_ir::route_service_calls(route)
+                .into_iter()
+                .any(|(method, path)| {
+                    crate::application_ir::route_service_target_count(
+                        &normalized,
+                        index,
+                        &method,
+                        &path,
+                    ) != 1
+                })
+                .then(|| (route.method.clone(), route.path.clone()))
+        });
+        let Some((method, path)) = invalid else {
+            return;
+        };
+        demote_service_route(application, &method, &path);
+    }
+}
+
 pub(super) fn routes(project: &Project<'_>, applications: &mut [ApplicationNode]) -> Result<()> {
     let mut cache = BTreeMap::new();
     for application in applications {
         normalize_node(project, &mut cache, application, None);
         let mut normalized = Vec::new();
         collect(application, &mut normalized);
-        if !normalized.is_empty() && validate_routes(&normalized).is_err() {
+        if !normalized.is_empty() && crate::application_ir::route_matchers_overlap(&normalized) {
             reject_portable(application);
+            continue;
         }
+        demote_unresolved_service_calls(application);
     }
     Ok(())
 }

@@ -9,10 +9,9 @@ stay explicit and manual.
 For bounded inspection, obtain a full map handle and start
 `project disclose HANDLE --view application`. Follow an exact `application_shortcuts`
 continuation, then reveal only the required children. The SDK accepts
-`client.context(handle, view="application")`; selected subtrees use its checked
-Merkle object-store interface. `ApplicationIr.from_data(...)` mirrors the returned
-hierarchy and independently computes its object digest. Use source handles with evidence disclosure
-for code maps, calls, impact or sources/sinks. Source-reader omissions remain unknown.
+`client.context(handle, view="application")`; `ApplicationIr.from_data(...)` mirrors
+the hierarchy and independently computes its object digest. Source-reader omissions
+remain unknown.
 
 For explicit JSON HTTP behavior, construct the IR with Python:
 
@@ -25,36 +24,38 @@ RouteBundle([
 ]).write(FilePath("application.json"))
 ```
 
-The constructors mirror `fr-http-application-1`: a bundle of `routes`, each with
-`method`, `path`, `status` and `response`. Expressions are `Literal(value)`,
-`Path(name)`, `Object(fields)` or `Array(items)`. The IR file must be captured in
-the project snapshot. The SDK refuses overwriting an existing authored file.
+The constructors mirror `fr-http-application-1`: a bundle of `routes`, an optional
+`middleware` chain of dotted names with unique 1-based `request_order`, each route
+with `method`, `path`, `status`, `response` and optional `inputs`/`dependencies`.
+Expressions are `Literal(value)`, `Path(name)`, `Input(name)`, `Object(fields)`,
+`Array(items)` or `Service(method, path)` resolving to one sibling route.
+The IR file must be captured in the project snapshot. The SDK refuses overwriting.
 
 Preview with `migrate application --ir application.json --to fastapi --out generated`.
 The input may also be the complete JSON output of `project application`; its model
 digest is rechecked and its normalized routes feed the same writers.
 Prefer `migrate application --project TARGET --to ADAPTER --out DIRECTORY` when no
-intermediate artifact is needed. It normalizes and previews inside one snapshot.
-Targets also include `nextjs`, `express` and `go-net-http`. React refuses HTTP
-authoring. Retain the exact plan basis before `--save-plan` or `--write`. Use the
-returned history transaction for declared checks, apply, patch export, undo and redo.
+intermediate artifact is needed. Targets also include `nextjs`, `express` and
+`go-net-http`. React refuses HTTP authoring. Retain the exact plan basis before
+`--save-plan` or `--write`. Use the returned history transaction for declared checks,
+apply, patch export, undo and redo.
 
-React and Next.js static function components share one smaller subset: intrinsic
-lowercase tags, literal string attributes and explicit text. Dynamic expressions,
-props, hooks, events, styles, spreads and component calls stay manual. Select one
+React and Next.js components share one smaller subset: intrinsic lowercase tags,
+literal string attributes, explicit text, and `useState` declarations with literal
+set or toggle `on*` events behind an explicit client boundary. Props, effects,
+computed handlers, styles, spreads and component calls stay manual. Select one
 feature branch before conversion when several components exist.
 
 Generation requires new owned paths. FastAPI can add one explicit app mount and PEP
 621 dependency edit in the transaction. Express can add a recognized TypeScript
 app/router mount and exact npm dependency. Go can generate an owning-package mount
-for an explicit package-level ServeMux beneath `go.mod`. Recognized Next.js `app`
-placement connects by convention. Existing source remains.
+for an explicit ServeMux beneath `go.mod`. Recognized Next.js `app` placement
+connects by convention. Existing source remains.
 
 For an admitted navigator route, use the advertised `application-migration` tagged
-intent operation. Its `to`, `out`, optional registration/dependency fields, checks
-and delivery mirror this command; the selected intent handle supplies `--project`.
-Use `cutover=True` only for one recognized wholly owned source feature after target
-integration and external-reference checks. Mixed application files refuse.
+intent operation; the selected intent handle supplies `--project`. Use `cutover=True`
+only for one recognized wholly owned source feature after target integration and
+external-reference checks. Mixed application files refuse.
 
 The application report's adapter rows cover every source, target and feature cell.
 Inspect `status` and `reason`; do not infer support from a shared host language.
@@ -65,5 +66,6 @@ refuse. Use object/array expressions for aggregates. Bundles admit 1..256 routes
 and 1 MiB; expressions admit 1024 nodes and depth 32.
 
 Lean proves policy admission and agreement. Runtime fixtures test generated behavior.
-Neither establishes general source equivalence, middleware behavior or deployment
-correctness; preserve `runtime_proved: false` and every conversion boundary.
+Neither establishes general source equivalence, configured middleware, provider
+internals, external services or deployment correctness; preserve
+`runtime_proved: false` and every conversion boundary.

@@ -56,6 +56,7 @@ fn hierarchy(rows: Vec<Value>) -> Result<Vec<ApplicationNode>> {
             data: data.into_iter().collect(),
             children: Vec::new(),
             route: None,
+            middleware: Vec::new(),
             component: None,
             boundary,
         };
@@ -173,7 +174,7 @@ pub fn adapter_contracts() -> Value {
                     json!({"target": target, "features": features})
                 })
                 .collect::<Vec<_>>();
-            let mut excluded = vec!["middleware", "authentication", "service calls", "dynamic rendering", "implicit HTTP methods", "runtime configuration"];
+            let mut excluded = vec!["configured middleware", "dependency provider behavior", "external service calls", "effects", "implicit HTTP methods", "runtime configuration"];
             if source != Adapter::Fastapi {
                 excluded.insert(0, "source normalization of request bodies and query validation");
             }

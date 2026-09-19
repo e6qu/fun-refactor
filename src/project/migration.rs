@@ -1268,147 +1268,168 @@ impl Project<'_> {
             value = model;
         }
         let schema = value.get("schema").and_then(Value::as_str);
-        let (routes, components, portable_sources, model, source_kind, manual_boundaries) =
-            match schema {
-                Some("fr-http-application-1") => {
-                    let bundle: crate::application_ir::RouteBundle = serde_json::from_value(value)?;
-                    bundle.validate().map_err(anyhow::Error::msg)?;
-                    let model = serde_json::to_value(&bundle)?;
-                    (
-                        bundle.routes,
-                        Vec::new(),
-                        Vec::new(),
-                        model,
-                        "route-bundle",
-                        0usize,
-                    )
-                }
-                Some(crate::application_ir::SCHEMA) => {
-                    let application: crate::application_ir::ApplicationIr =
-                        serde_json::from_value(value)?;
-                    application.validate().map_err(anyhow::Error::msg)?;
-                    fn collect(
-                        node: &crate::application_ir::ApplicationNode,
-                        routes: &mut Vec<crate::application_ir::HttpRoute>,
-                        components: &mut Vec<crate::application_ir::StaticComponent>,
-                        source: Option<crate::application_ir::Adapter>,
-                        sources: &mut BTreeSet<crate::application_ir::Adapter>,
-                        portable_sources: &mut Vec<(
-                            PathBuf,
-                            crate::application_ir::Adapter,
-                            crate::application_ir::FeatureKind,
-                        )>,
-                        manual: &mut usize,
-                    ) {
-                        let source = if node.kind == "application" {
-                            node.data["application"]["framework"]
+        let (
+            routes,
+            middleware,
+            components,
+            portable_sources,
+            model,
+            source_kind,
+            manual_boundaries,
+        ) = match schema {
+            Some("fr-http-application-1") => {
+                let bundle: crate::application_ir::RouteBundle = serde_json::from_value(value)?;
+                bundle.validate().map_err(anyhow::Error::msg)?;
+                let model = serde_json::to_value(&bundle)?;
+                (
+                    bundle.routes,
+                    bundle.middleware,
+                    Vec::new(),
+                    Vec::new(),
+                    model,
+                    "route-bundle",
+                    0usize,
+                )
+            }
+            Some(crate::application_ir::SCHEMA) => {
+                let application: crate::application_ir::ApplicationIr =
+                    serde_json::from_value(value)?;
+                application.validate().map_err(anyhow::Error::msg)?;
+                #[allow(clippy::too_many_arguments)]
+                fn collect(
+                    node: &crate::application_ir::ApplicationNode,
+                    routes: &mut Vec<crate::application_ir::HttpRoute>,
+                    chains: &mut Vec<Vec<crate::application_ir::HttpMiddleware>>,
+                    components: &mut Vec<crate::application_ir::StaticComponent>,
+                    source: Option<crate::application_ir::Adapter>,
+                    sources: &mut BTreeSet<crate::application_ir::Adapter>,
+                    portable_sources: &mut Vec<(
+                        PathBuf,
+                        crate::application_ir::Adapter,
+                        crate::application_ir::FeatureKind,
+                    )>,
+                    manual: &mut usize,
+                ) {
+                    let source = if node.kind == "application" {
+                        if !node.middleware.is_empty() {
+                            chains.push(node.middleware.clone());
+                        }
+                        node.data["application"]["framework"]
+                            .as_str()
+                            .and_then(crate::application_ir::Adapter::from_framework)
+                            .or(source)
+                    } else {
+                        source
+                    };
+                    if node.kind == "route" {
+                        if let Some(route) = &node.route {
+                            routes.push(route.clone());
+                            if let Some(source) = node.data["route"]["framework"]
                                 .as_str()
                                 .and_then(crate::application_ir::Adapter::from_framework)
-                                .or(source)
+                            {
+                                sources.insert(source);
+                                if let Some(path) = node.source["path"].as_str() {
+                                    portable_sources.push((
+                                        PathBuf::from(path),
+                                        source,
+                                        route.feature_kind().unwrap(),
+                                    ));
+                                }
+                            }
                         } else {
-                            source
-                        };
-                        if node.kind == "route" {
-                            if let Some(route) = &node.route {
-                                routes.push(route.clone());
-                                if let Some(source) = node.data["route"]["framework"]
-                                    .as_str()
-                                    .and_then(crate::application_ir::Adapter::from_framework)
-                                {
-                                    sources.insert(source);
-                                    if let Some(path) = node.source["path"].as_str() {
-                                        portable_sources.push((
-                                            PathBuf::from(path),
-                                            source,
-                                            route.feature_kind().unwrap(),
-                                        ));
-                                    }
-                                }
-                            } else {
-                                *manual += 1;
-                            }
-                        }
-                        if node.kind == "component" {
-                            if let Some(component) = &node.component {
-                                components.push(component.clone());
-                                if let Some(source) = source {
-                                    sources.insert(source);
-                                    if let Some(path) = node.source["path"].as_str() {
-                                        portable_sources.push((
-                                            PathBuf::from(path),
-                                            source,
-                                            crate::application_ir::FeatureKind::StaticComponent,
-                                        ));
-                                    }
-                                }
-                            } else {
-                                *manual += 1;
-                            }
-                        }
-                        for child in &node.children {
-                            collect(
-                                child,
-                                routes,
-                                components,
-                                source,
-                                sources,
-                                portable_sources,
-                                manual,
-                            );
+                            *manual += 1;
                         }
                     }
-                    let mut routes = Vec::new();
-                    let mut components = Vec::new();
-                    let mut sources = BTreeSet::new();
-                    let mut portable_sources = Vec::new();
-                    let mut manual = 0;
-                    for node in &application.applications {
+                    if node.kind == "component" {
+                        if let Some(component) = &node.component {
+                            components.push(component.clone());
+                            if let Some(source) = source {
+                                sources.insert(source);
+                                if let Some(path) = node.source["path"].as_str() {
+                                    portable_sources.push((
+                                        PathBuf::from(path),
+                                        source,
+                                        crate::application_ir::FeatureKind::StaticComponent,
+                                    ));
+                                }
+                            }
+                        } else {
+                            *manual += 1;
+                        }
+                    }
+                    for child in &node.children {
                         collect(
-                            node,
-                            &mut routes,
-                            &mut components,
-                            None,
-                            &mut sources,
-                            &mut portable_sources,
-                            &mut manual,
+                            child,
+                            routes,
+                            chains,
+                            components,
+                            source,
+                            sources,
+                            portable_sources,
+                            manual,
                         );
                     }
-                    ensure!(
+                }
+                let mut routes = Vec::new();
+                let mut chains: Vec<Vec<crate::application_ir::HttpMiddleware>> = Vec::new();
+                let mut components = Vec::new();
+                let mut sources = BTreeSet::new();
+                let mut portable_sources = Vec::new();
+                let mut manual = 0;
+                for node in &application.applications {
+                    collect(
+                        node,
+                        &mut routes,
+                        &mut chains,
+                        &mut components,
+                        None,
+                        &mut sources,
+                        &mut portable_sources,
+                        &mut manual,
+                    );
+                }
+                ensure!(
                     !sources.contains(&options.to),
                     "source and target adapters must differ; select a compatible target or narrower feature."
                 );
-                    if !routes.is_empty() {
-                        crate::application_ir::validate_routes(&routes)
-                            .map_err(anyhow::Error::msg)?;
-                    }
-                    ensure!(
-                        !routes.is_empty() || !components.is_empty(),
-                        "application IR has no portable route or component to migrate."
+                ensure!(
+                        chains.windows(2).all(|pair| pair[0] == pair[1]),
+                        "selected applications declare different middleware chains; narrow the selection to one application."
                     );
-                    let model = serde_json::to_value(&application)?;
-                    (
-                        routes,
-                        components,
-                        portable_sources,
-                        model,
-                        if direct_project {
-                            "project-snapshot"
-                        } else if report_input {
-                            "project-application-report"
-                        } else {
-                            "project-application"
-                        },
-                        manual,
-                    )
+                let middleware = chains.into_iter().next().unwrap_or_default();
+                if !routes.is_empty() {
+                    crate::application_ir::validate_routes(&routes).map_err(anyhow::Error::msg)?;
                 }
-                _ => {
-                    anyhow::bail!("IR input must use fr-http-application-1 or fr-application-ir-1.")
-                }
-            };
+                ensure!(
+                    !routes.is_empty() || !components.is_empty(),
+                    "application IR has no portable route or component to migrate."
+                );
+                let model = serde_json::to_value(&application)?;
+                (
+                    routes,
+                    middleware,
+                    components,
+                    portable_sources,
+                    model,
+                    if direct_project {
+                        "project-snapshot"
+                    } else if report_input {
+                        "project-application-report"
+                    } else {
+                        "project-application"
+                    },
+                    manual,
+                )
+            }
+            _ => {
+                anyhow::bail!("IR input must use fr-http-application-1 or fr-application-ir-1.")
+            }
+        };
         let mut outputs = BTreeMap::new();
         if !routes.is_empty() && options.to != crate::application_ir::Adapter::React {
             outputs.extend(
-                crate::application_ir::write_routes(&routes, options.to)
+                crate::application_ir::write_routes(&routes, &middleware, options.to)
                     .map_err(anyhow::Error::msg)?,
             );
         }
@@ -1505,13 +1526,22 @@ impl Project<'_> {
             .then(|| nextjs_target_application(self, &options.out))
             .flatten();
         let dependency_plan = match options.to {
-            crate::application_ir::Adapter::Fastapi => fastapi_dependencies(
-                self,
-                options.dependency_manifest.as_deref(),
-                &options.dependency_requirement,
-                &out.join("routes.py"),
-                &["fastapi".to_owned()],
-            )?,
+            crate::application_ir::Adapter::Fastapi => {
+                let mut required = vec!["fastapi".to_owned()];
+                if routes
+                    .iter()
+                    .any(|route| !crate::application_ir::route_service_calls(route).is_empty())
+                {
+                    required.push("httpx".to_owned());
+                }
+                fastapi_dependencies(
+                    self,
+                    options.dependency_manifest.as_deref(),
+                    &options.dependency_requirement,
+                    &out.join("routes.py"),
+                    &required,
+                )?
+            }
             crate::application_ir::Adapter::Nextjs
                 if options.dependency_manifest.is_none() && next_application.is_some() =>
             {
@@ -1610,7 +1640,7 @@ impl Project<'_> {
                         "dependencies": dependency_plan.report,
                         "reason": integration_reason},
                     "runtime_proved": false,
-                    "limitations": ["HTTP portability covers declared JSON responses and path parameters; frontend portability covers bounded literal intrinsic JSX.", "Implicit methods, URL decoding, middleware, errors, dynamic UI behavior and deployment behavior require framework checks."]},
+                    "limitations": ["HTTP portability covers declared JSON responses, path parameters, required scalar inputs, ordered named middleware, named dependency providers and closed-world service calls.", "Frontend portability covers bounded literal intrinsic JSX and declared state events behind an explicit client boundary.", "Implicit methods, URL decoding, configured middleware, dependency provider behavior, external services, effects, errors and deployment behavior require framework checks."]},
                 "checks": selected.as_ref().map(|selection| &selection.checks),
                 "diff": "", "applied": false}))?);
         Ok(Plan {

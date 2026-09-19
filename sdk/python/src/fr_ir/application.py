@@ -62,6 +62,61 @@ def fastapi_input_admitted(source: int, scalar: int, alias_safe: bool,
             and ((source == 0 and not embedded) or (source == 1 and embedded)))
 
 
+def middleware_chain_admitted(total: int, resolved: int, configured: int) -> bool:
+    return (all(type(value) is int and value >= 0 for value in (total, resolved, configured))
+            and 1 <= total <= 64 and resolved == total and configured == 0)
+
+
+def dependency_admitted(provider_safe: bool, configured: bool) -> bool:
+    return (type(provider_safe) is bool and type(configured) is bool
+            and provider_safe and not configured)
+
+
+def _dotted_identifier(name: Any) -> bool:
+    return (isinstance(name, str) and 0 < len(name.encode("utf-8")) <= 160
+            and all(re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]{0,127}", part)
+                    for part in name.split(".")))
+
+
+def _middleware_data(chain: Any) -> list[dict[str, Any]]:
+    if not isinstance(chain, list) or len(chain) > 64:
+        raise IrError("middleware chain exceeds its entry bound")
+    result = []
+    orders: set[int] = set()
+    for entry in chain:
+        row = _fields(entry, {"name", "request_order"})
+        order = row["request_order"]
+        if (not _dotted_identifier(row["name"]) or type(order) is not int
+                or isinstance(order, bool) or not 1 <= order <= len(chain)
+                or order in orders):
+            raise IrError("middleware entries need dotted names and a unique 1-based request order")
+        orders.add(order)
+        result.append({"name": row["name"], "request_order": order})
+    return result
+
+
+@dataclass(frozen=True)
+class HttpDependency:
+    binding: str
+    provider: str
+    security: bool
+
+    @classmethod
+    def from_data(cls, value: Any) -> HttpDependency:
+        row = _fields(value, {"binding", "provider", "security"})
+        result = cls(row["binding"], row["provider"], row["security"])
+        result.to_data()
+        return result
+
+    def to_data(self) -> dict[str, Any]:
+        if (not isinstance(self.binding, str)
+                or not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]{0,127}", self.binding)
+                or not _dotted_identifier(self.provider)
+                or type(self.security) is not bool):
+            raise IrError("dependency needs a simple binding, a dotted provider and a marker")
+        return {"binding": self.binding, "provider": self.provider, "security": self.security}
+
+
 def validated_endpoint_agreement(method: bool, path: bool, inputs: bool,
                                  status: bool, response: bool) -> bool:
     return all(value is True for value in (method, path, inputs, status, response))
@@ -101,6 +156,13 @@ class Input:
 
 
 @dataclass(frozen=True)
+class Service:
+    method: str
+    path: str
+    kind: str = field(default="service", init=False)
+
+
+@dataclass(frozen=True)
 class Object:
     fields: Mapping[str, HttpExpression]
     kind: str = field(default="object", init=False)
@@ -112,7 +174,29 @@ class Array:
     kind: str = field(default="array", init=False)
 
 
-HttpExpression = Literal | Path | Input | Object | Array
+HttpExpression = Literal | Path | Input | Service | Object | Array
+
+
+def _service_path(path: Any) -> bool:
+    if (not isinstance(path, str) or not path.startswith("/")
+            or len(path.encode("utf-8")) > 2048 or not path.isascii()
+            or "//" in path or len(path) > 1 and path.endswith("/")
+            or "{" in path or "}" in path):
+        return False
+    return all(segment not in (".", "..")
+               and re.fullmatch(r"[A-Za-z0-9_.~\-]*", segment) is not None
+               for segment in path.split("/"))
+
+
+def _service_calls(expr: Any, calls: list[tuple[str, str]]) -> None:
+    if isinstance(expr, Service):
+        calls.append((expr.method, expr.path))
+    elif isinstance(expr, Object):
+        for value in expr.fields.values():
+            _service_calls(value, calls)
+    elif isinstance(expr, Array):
+        for value in expr.items:
+            _service_calls(value, calls)
 
 
 @dataclass(frozen=True)
@@ -152,7 +236,7 @@ def _read_expression(value: Any, depth: int, nodes: list[int]) -> HttpExpression
     nodes[0] += 1
     if depth > 32 or nodes[0] > 1024:
         raise IrError("HTTP expression exceeds its node or depth bound")
-    row = _fields(value, {"kind"}, {"value", "name", "fields", "items"})
+    row = _fields(value, {"kind"}, {"value", "name", "method", "path", "fields", "items"})
     kind = row["kind"]
     if kind == "literal":
         return Literal(_fields(row, {"kind", "value"})["value"])
@@ -160,6 +244,9 @@ def _read_expression(value: Any, depth: int, nodes: list[int]) -> HttpExpression
         return Path(_fields(row, {"kind", "name"})["name"])
     if kind == "input":
         return Input(_fields(row, {"kind", "name"})["name"])
+    if kind == "service":
+        row = _fields(row, {"kind", "method", "path"})
+        return Service(row["method"], row["path"])
     if kind == "object":
         fields = _fields(row, {"kind", "fields"})["fields"]
         if not isinstance(fields, Mapping) or len(fields) > 1024:
@@ -193,6 +280,13 @@ def _expression(expr: HttpExpression, parameters: set[str], inputs: set[str], de
         if not isinstance(expr.name, str) or expr.name not in inputs:
             raise IrError("HTTP expression refers to an undeclared request input")
         return {"kind": "input", "name": expr.name}
+    if isinstance(expr, Service):
+        if (expr.method not in ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                or not _service_path(expr.path) or len(expr.path.encode("utf-8")) > 2048
+                or "//" in expr.path or len(expr.path) > 1 and expr.path.endswith("/")
+                or not expr.path.isascii()):
+            raise IrError("service calls need a portable method and a bounded literal root-relative path")
+        return {"kind": "service", "method": expr.method, "path": expr.path}
     if isinstance(expr, Object):
         if not isinstance(expr.fields, Mapping) or any(
                 not isinstance(name, str) or len(name.encode("utf-8")) > 256
@@ -214,16 +308,19 @@ class HttpRoute:
     status: int
     response: HttpExpression
     inputs: Sequence[HttpInput] = ()
+    dependencies: Sequence[HttpDependency] = ()
 
     @classmethod
     def from_data(cls, value: Any) -> HttpRoute:
-        row = _fields(value, {"method", "path", "status", "response"}, {"inputs"})
+        row = _fields(value, {"method", "path", "status", "response"}, {"inputs", "dependencies"})
         raw_inputs = row.get("inputs", [])
-        if not isinstance(raw_inputs, list):
-            raise IrError("request inputs must be a list")
+        raw_dependencies = row.get("dependencies", [])
+        if not isinstance(raw_inputs, list) or not isinstance(raw_dependencies, list):
+            raise IrError("request inputs and dependencies must be lists")
         route = cls(row["method"], row["path"], row["status"],
                     expression_from_data(row["response"]),
-                    tuple(HttpInput.from_data(item) for item in raw_inputs))
+                    tuple(HttpInput.from_data(item) for item in raw_inputs),
+                    tuple(HttpDependency.from_data(item) for item in raw_dependencies))
         route.to_data()
         return route
 
@@ -259,6 +356,14 @@ class HttpRoute:
         names = [item["name"] for item in serialized_inputs]
         if len(set(names)) != len(names) or parameters.intersection(names):
             raise IrError("request inputs need unique names distinct from path parameters")
+        if (not isinstance(self.dependencies, (list, tuple)) or len(self.dependencies) > 16
+                or any(not isinstance(item, HttpDependency) for item in self.dependencies)):
+            raise IrError("route exceeds its dependency bound")
+        serialized_dependencies = [item.to_data() for item in self.dependencies]
+        bindings = [item["binding"] for item in serialized_dependencies]
+        if (len(set(bindings)) != len(bindings) or parameters.intersection(bindings)
+                or set(names).intersection(bindings)):
+            raise IrError("dependency bindings need unique names distinct from inputs and path parameters")
         method_code = ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS").index(self.method)
         for item in serialized_inputs:
             source_code = ("query", "json-body").index(item["source"])
@@ -271,21 +376,25 @@ class HttpRoute:
                                  "status": self.status, "response": response}
         if serialized_inputs:
             value["inputs"] = serialized_inputs
+        if serialized_dependencies:
+            value["dependencies"] = serialized_dependencies
         return value
 
 
 @dataclass(frozen=True)
 class RouteBundle:
     routes: Sequence[HttpRoute]
+    middleware: Sequence[Mapping[str, Any]] = ()
     schema: str = field(default=SCHEMA, init=False)
 
     @classmethod
     def from_data(cls, value: Any) -> RouteBundle:
         _encoded(value, 1_048_576)
-        row = _fields(value, {"schema", "routes"})
+        row = _fields(value, {"schema", "routes"}, {"middleware"})
         if row["schema"] != SCHEMA or not isinstance(row["routes"], list) or not 1 <= len(row["routes"]) <= 256:
             raise IrError("unsupported or unbounded HTTP application")
-        bundle = cls([HttpRoute.from_data(route) for route in row["routes"]])
+        bundle = cls([HttpRoute.from_data(route) for route in row["routes"]],
+                     _middleware_data(row.get("middleware", [])))
         bundle.to_data()
         return bundle
 
@@ -294,6 +403,18 @@ class RouteBundle:
                 or any(not isinstance(route, HttpRoute) for route in self.routes)):
             raise IrError("route bundle requires 1..256 endpoints")
         routes = [route.to_data() for route in self.routes]
+        middleware = _middleware_data(list(self.middleware))
+        for index, route in enumerate(self.routes):
+            calls: list[tuple[str, str]] = []
+            _service_calls(route.response, calls)
+            for method, path in calls:
+                candidates = sum(
+                    1 for target, candidate in enumerate(self.routes)
+                    if target != index and candidate.path == path and candidate.method == method)
+                if candidates != 1:
+                    raise IrError(
+                        "service calls require exactly one same-bundle route target; "
+                        "ambiguous, unresolved and nonlocal targets remain manual")
         for index, route in enumerate(routes):
             for previous in routes[:index]:
                 left, right = previous["path"].split("/"), route["path"].split("/")
@@ -301,7 +422,9 @@ class RouteBundle:
                         a == b or a.startswith("{") or b.startswith("{") for a, b in zip(left, right))
                         and (previous["path"] != route["path"] or previous["method"] == route["method"])):
                     raise IrError("route matchers overlap or duplicate an endpoint")
-        value = {"schema": self.schema, "routes": routes}
+        value: dict[str, Any] = {"schema": self.schema, "routes": routes}
+        if middleware:
+            value["middleware"] = middleware
         _encoded(value, 1_048_576)
         return value
 
@@ -325,33 +448,102 @@ class StaticText:
 
 
 @dataclass(frozen=True)
+class StaticState:
+    name: str
+    kind: str = field(default="state", init=False)
+
+
+@dataclass(frozen=True)
+class SetState:
+    state: str
+    value: Any
+    kind: str = field(default="set-state", init=False)
+
+
+@dataclass(frozen=True)
+class ToggleState:
+    state: str
+    kind: str = field(default="toggle-state", init=False)
+
+
+ComponentEvent = SetState | ToggleState
+
+
+@dataclass(frozen=True)
 class StaticElement:
     tag: str
     attributes: Mapping[str, str]
     children: Sequence[StaticNode]
+    events: Mapping[str, ComponentEvent] = field(default_factory=dict)
     kind: str = field(default="element", init=False)
 
 
-StaticNode = StaticText | StaticElement
+StaticNode = StaticText | StaticState | StaticElement
+
+
+def _state_literal(value: Any) -> bool:
+    return (value is None or type(value) is bool
+            or type(value) is int and -(2**53 - 1) <= value <= 2**53 - 1
+            or isinstance(value, str) and len(value.encode("utf-8")) <= 65536)
+
+
+def _literal_kind(value: Any) -> int:
+    if value is None:
+        return 0
+    if type(value) is bool:
+        return 1
+    if isinstance(value, str):
+        return 2
+    return 3
+
+
+def _event_from_data(value: Any) -> ComponentEvent:
+    row = _fields(value, {"kind"}, {"state", "value"})
+    if row["kind"] == "set-state":
+        return SetState(_fields(row, {"kind", "state", "value"})["state"], row["value"])
+    if row["kind"] == "toggle-state":
+        return ToggleState(_fields(row, {"kind", "state"})["state"])
+    raise IrError("unsupported component event kind")
+
+
+def _event_data(event: ComponentEvent, states: Mapping[str, Any]) -> dict[str, Any]:
+    if isinstance(event, ToggleState):
+        if type(states.get(event.state)) is not bool:
+            raise IrError("component events need an on* name and a declared state with a matching literal")
+        return {"kind": "toggle-state", "state": event.state}
+    if isinstance(event, SetState):
+        initial = states.get(event.state, None)
+        if (event.state not in states or not _state_literal(event.value)
+                or _literal_kind(event.value) != _literal_kind(initial)):
+            raise IrError("component events need an on* name and a declared state with a matching literal")
+        return {"kind": "set-state", "state": event.state, "value": event.value}
+    raise IrError("unsupported component event")
 
 
 def _static_node_from_data(value: Any, depth: int, count: list[int]) -> StaticNode:
     count[0] += 1
     if depth > 32 or count[0] > 1024:
         raise IrError("static component exceeds its node or depth bound")
-    row = _fields(value, {"kind"}, {"value", "tag", "attributes", "children"})
+    row = _fields(value, {"kind"}, {"value", "name", "tag", "attributes", "events", "children"})
     if row["kind"] == "text":
         return StaticText(_fields(row, {"kind", "value"})["value"])
+    if row["kind"] == "state":
+        return StaticState(_fields(row, {"kind", "name"})["name"])
     if row["kind"] == "element":
-        row = _fields(row, {"kind", "tag", "attributes", "children"})
+        row = _fields(row, {"kind", "tag", "attributes", "children"}, {"events"})
         if not isinstance(row["attributes"], Mapping) or not isinstance(row["children"], list):
             raise IrError("static element requires attributes and children")
+        raw_events = row.get("events", {})
+        if not isinstance(raw_events, Mapping):
+            raise IrError("static element events require an object")
         return StaticElement(row["tag"], dict(row["attributes"]), [
-            _static_node_from_data(child, depth + 1, count) for child in row["children"]])
+            _static_node_from_data(child, depth + 1, count) for child in row["children"]],
+            {name: _event_from_data(event) for name, event in raw_events.items()})
     raise IrError("unsupported static component node")
 
 
-def _static_node(node: StaticNode, depth: int, count: list[int]) -> dict[str, Any]:
+def _static_node(node: StaticNode, depth: int, count: list[int],
+                 states: Mapping[str, Any]) -> dict[str, Any]:
     count[0] += 1
     count[1] = max(count[1], depth)
     if depth > 32 or count[0] > 1024:
@@ -361,10 +553,15 @@ def _static_node(node: StaticNode, depth: int, count: list[int]) -> dict[str, An
                 or len(node.value.encode("utf-8")) > 65536 or node.value.strip() != node.value):
             raise IrError("static text must be bounded and have explicit whitespace")
         return {"kind": "text", "value": node.value}
+    if isinstance(node, StaticState):
+        if not isinstance(node.name, str) or node.name not in states:
+            raise IrError("state references require a declared component state")
+        return {"kind": "state", "name": node.name}
     if isinstance(node, StaticElement):
         if (not isinstance(node.tag, str) or not re.fullmatch(r"[a-z][a-z0-9-]{0,127}", node.tag)
                 or not isinstance(node.attributes, Mapping)
-                or not isinstance(node.children, (list, tuple))):
+                or not isinstance(node.children, (list, tuple))
+                or not isinstance(node.events, Mapping)):
             raise IrError("static element fields are invalid")
         attributes: dict[str, str] = {}
         for name, value in sorted(node.attributes.items()):
@@ -373,28 +570,87 @@ def _static_node(node: StaticNode, depth: int, count: list[int]) -> dict[str, An
                     or not isinstance(value, str) or len(value.encode("utf-8")) > 65536):
                 raise IrError("static component attribute exceeds the literal safe subset")
             attributes[name] = value
-        return {"kind": "element", "tag": node.tag, "attributes": attributes,
-                "children": [_static_node(child, depth + 1, count) for child in node.children]}
+        events: dict[str, Any] = {}
+        for name, event in sorted(node.events.items()):
+            if (not isinstance(name, str) or len(name) > 64
+                    or not re.fullmatch(r"on[A-Z][A-Za-z0-9]*", name)):
+                raise IrError("component events need an on* name and a declared state with a matching literal")
+            events[name] = _event_data(event, states)
+        value: dict[str, Any] = {"kind": "element", "tag": node.tag, "attributes": attributes,
+                "children": [_static_node(child, depth + 1, count, states) for child in node.children]}
+        if events:
+            value["events"] = events
+        return value
     raise IrError("unsupported static component node")
+
+
+@dataclass(frozen=True)
+class ComponentState:
+    name: str
+    setter: str
+    initial: Any
+
+    @classmethod
+    def from_data(cls, value: Any) -> ComponentState:
+        row = _fields(value, {"name", "setter", "initial"})
+        result = cls(row["name"], row["setter"], row["initial"])
+        result.to_data()
+        return result
+
+    def to_data(self) -> dict[str, Any]:
+        if (not isinstance(self.name, str) or not re.fullmatch(r"[a-z_][A-Za-z_0-9]{0,127}", self.name)
+                or not isinstance(self.setter, str)
+                or not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]{0,127}", self.setter)
+                or not _state_literal(self.initial)):
+            raise IrError("component state needs unique simple names and a bounded literal initial value")
+        return {"name": self.name, "setter": self.setter, "initial": self.initial}
 
 
 @dataclass(frozen=True)
 class StaticComponent:
     name: str
     root: StaticNode
+    client: bool = False
+    state: Sequence[ComponentState] = ()
 
     @classmethod
     def from_data(cls, value: Any) -> StaticComponent:
-        row = _fields(value, {"name", "root"})
-        component = cls(row["name"], _static_node_from_data(row["root"], 0, [0]))
+        row = _fields(value, {"name", "root"}, {"client", "state"})
+        raw_state = row.get("state", [])
+        if not isinstance(raw_state, list):
+            raise IrError("component state requires a list")
+        component = cls(row["name"], _static_node_from_data(row["root"], 0, [0]),
+                        row.get("client", False),
+                        [ComponentState.from_data(item) for item in raw_state])
         component.to_data()
         return component
 
     def to_data(self) -> dict[str, Any]:
         if (not isinstance(self.name, str) or not re.fullmatch(r"[A-Z][A-Za-z0-9_]{0,127}", self.name)):
             raise IrError("static component needs a bounded upper-case identifier")
+        if type(self.client) is not bool:
+            raise IrError("component client boundary requires a boolean")
+        if not isinstance(self.state, (list, tuple)) or len(self.state) > 16:
+            raise IrError("component exceeds its state declaration bound")
+        states: dict[str, Any] = {}
+        setters: set[str] = set()
+        serialized_state = []
+        for entry in self.state:
+            row = entry.to_data() if isinstance(entry, ComponentState) else ComponentState.from_data(entry).to_data()
+            if row["name"] in states or row["setter"] in setters:
+                raise IrError("component state names must be unique")
+            states[row["name"]] = row["initial"]
+            setters.add(row["setter"])
+            serialized_state.append(row)
+        if states and not self.client:
+            raise IrError("component state requires an explicit client boundary")
         count = [0, 0]
-        value = {"name": self.name, "root": _static_node(self.root, 0, count)}
+        value: dict[str, Any] = {"name": self.name,
+                                 "root": _static_node(self.root, 0, count, states)}
+        if self.client:
+            value["client"] = True
+        if serialized_state:
+            value["state"] = serialized_state
         encoded = _encoded(value, 1_048_576)
         if not static_resources_admitted(count[0], count[1], len(encoded.encode("utf-8"))):
             raise IrError("static component exceeds its resource policy")
@@ -411,20 +667,23 @@ class ApplicationNode:
     route: HttpRoute | None = None
     boundary: str | None = None
     component: StaticComponent | None = None
+    middleware: Sequence[Mapping[str, Any]] = ()
 
 
 def _node_from_data(value: Any, depth: int, count: list[int]) -> ApplicationNode:
     count[0] += 1
     if depth > 64 or count[0] > 4096:
         raise IrError("application hierarchy exceeds its bounds")
-    row = _fields(value, {"id", "kind", "source", "data", "children"}, {"route", "boundary", "component"})
+    row = _fields(value, {"id", "kind", "source", "data", "children"},
+                  {"route", "boundary", "component", "middleware"})
     if not isinstance(row["children"], list):
         raise IrError("application children require an array")
     route = None if row.get("route") is None else HttpRoute.from_data(row["route"])
     component = None if row.get("component") is None else StaticComponent.from_data(row["component"])
+    middleware = _middleware_data(row.get("middleware", []))
     return ApplicationNode(row["id"], row["kind"], row["source"], row["data"],
                            [_node_from_data(child, depth + 1, count) for child in row["children"]],
-                           route, row.get("boundary"), component)
+                           route, row.get("boundary"), component, middleware)
 
 
 def _node_data(node: ApplicationNode, depth: int, ids: set[str]) -> dict[str, Any]:
@@ -444,6 +703,9 @@ def _node_data(node: ApplicationNode, depth: int, ids: set[str]) -> dict[str, An
         result["component"] = node.component.to_data()
     if node.boundary is not None:
         result["boundary"] = node.boundary
+    middleware = _middleware_data(list(node.middleware))
+    if middleware:
+        result["middleware"] = middleware
     return result
 
 

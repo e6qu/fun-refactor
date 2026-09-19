@@ -1,5 +1,6 @@
 use super::{
-    Adapter, HttpExpression, HttpInputSource, HttpRoute, HttpScalar, StaticComponent, StaticNode,
+    Adapter, HttpExpression, HttpInputSource, HttpMiddleware, HttpRoute, HttpScalar,
+    StaticComponent, StaticNode,
 };
 use std::collections::BTreeMap;
 
@@ -7,15 +8,17 @@ fn quoted(value: &str) -> String {
     serde_json::to_string(value).expect("string serialization")
 }
 
-fn static_node(node: &StaticNode) -> String {
+fn static_node(node: &StaticNode, states: &BTreeMap<String, String>) -> String {
     match node {
         StaticNode::Text { value } => value
             .replace('&', "&amp;")
             .replace('<', "&lt;")
             .replace('>', "&gt;"),
+        StaticNode::State { name } => format!("{{{name}}}"),
         StaticNode::Element {
             tag,
             attributes,
+            events,
             children,
         } => {
             let attributes = attributes
@@ -29,11 +32,28 @@ fn static_node(node: &StaticNode) -> String {
                     format!(" {name}=\"{value}\"")
                 })
                 .collect::<String>();
+            let events = events
+                .iter()
+                .map(|(name, event)| {
+                    let handler = match event {
+                        super::ComponentEvent::SetState { state, value } => {
+                            format!("{{() => {}({})}}", states[state], value)
+                        }
+                        super::ComponentEvent::ToggleState { state } => {
+                            format!("{{() => {}((value) => !value)}}", states[state])
+                        }
+                    };
+                    format!(" {name}={handler}")
+                })
+                .collect::<String>();
             if children.is_empty() {
-                format!("<{tag}{attributes} />")
+                format!("<{tag}{attributes}{events} />")
             } else {
-                let children = children.iter().map(static_node).collect::<String>();
-                format!("<{tag}{attributes}>{children}</{tag}>")
+                let children = children
+                    .iter()
+                    .map(|child| static_node(child, states))
+                    .collect::<String>();
+                format!("<{tag}{attributes}{events}>{children}</{tag}>")
             }
         }
     }
@@ -49,11 +69,33 @@ pub fn write_static_component(
         Adapter::Nextjs => ("page.tsx", "Page"),
         _ => return Err("target adapter does not write static frontend components.".into()),
     };
+    let mut head = String::new();
+    if component.client && adapter == Adapter::Nextjs {
+        head.push_str("\"use client\";\n\n");
+    }
+    if !component.state.is_empty() {
+        head.push_str("import { useState } from \"react\";\n\n");
+    }
+    let states: BTreeMap<String, String> = component
+        .state
+        .iter()
+        .map(|state| (state.name.clone(), state.setter.clone()))
+        .collect();
+    let declarations = component
+        .state
+        .iter()
+        .map(|state| {
+            format!(
+                "  const [{}, {}] = useState({});\n",
+                state.name, state.setter, state.initial
+            )
+        })
+        .collect::<String>();
     Ok((
         path.into(),
         format!(
-            "export default function {name}() {{\n  return ({});\n}}\n",
-            static_node(&component.root)
+            "{head}export default function {name}() {{\n{declarations}  return ({});\n}}\n",
+            static_node(&component.root, &states)
         ),
     ))
 }
@@ -73,6 +115,7 @@ fn expression(
         },
         HttpExpression::Path { name } => bindings[name].clone(),
         HttpExpression::Input { name } => bindings[name].clone(),
+        HttpExpression::Service { method, path } => bindings[&format!("{method} {path}")].clone(),
         HttpExpression::Object { fields } => {
             let fields = fields
                 .iter()
@@ -218,6 +261,129 @@ func frQueryInput(values []string) (any, bool) {
 
 "#;
 
+fn python_dependencies(route: &HttpRoute) -> Vec<String> {
+    route
+        .dependencies
+        .iter()
+        .map(|dependency| {
+            let marker = if dependency.security {
+                "Security"
+            } else {
+                "Depends"
+            };
+            format!(
+                "{}={}(fr_dependencies.{})",
+                dependency.binding, marker, dependency.provider
+            )
+        })
+        .collect()
+}
+
+fn typescript_dependencies(route: &HttpRoute, request: &str, nextjs: bool) -> String {
+    let indent = "  ";
+    let mut output = String::new();
+    for dependency in &route.dependencies {
+        let failure = if nextjs {
+            format!(
+                "return Response.json({{ error: \"dependency\", provider: {} }}, {{ status: 401 }});",
+                quoted(&dependency.binding)
+            )
+        } else {
+            format!(
+                "return res.status(401).json({{ error: \"dependency\", provider: {} }});",
+                quoted(&dependency.binding)
+            )
+        };
+        output.push_str(&format!(
+            "{indent}try {{ await frDependencies.{}({request}); }} catch {{ {failure} }}\n",
+            dependency.provider
+        ));
+    }
+    output
+}
+
+fn go_dependencies(route: &HttpRoute) -> Result<String, String> {
+    let mut output = String::new();
+    for dependency in &route.dependencies {
+        if !super::identifier(&dependency.provider) {
+            return Err(
+                "Go net/http dependency providers require simple names in the generated package."
+                    .into(),
+            );
+        }
+        output.push_str(&format!(
+            "\t\tif err := {}(r); err != nil {{\n\t\t\tw.Header().Set(\"Content-Type\", \"application/json\")\n\t\t\tw.WriteHeader(401)\n\t\t\t_ = json.NewEncoder(w).Encode(map[string]any{{\"error\": \"dependency\", \"provider\": {}}})\n\t\t\treturn\n\t\t}}\n",
+            dependency.provider,
+            quoted(&dependency.binding),
+        ));
+    }
+    Ok(output)
+}
+
+fn service_calls(response: &HttpExpression, calls: &mut Vec<(String, String)>) {
+    match response {
+        HttpExpression::Service { method, path } => {
+            let key = (method.clone(), path.clone());
+            if !calls.contains(&key) {
+                calls.push(key);
+            }
+        }
+        HttpExpression::Object { fields } => fields
+            .values()
+            .for_each(|value| service_calls(value, calls)),
+        HttpExpression::Array { items } => {
+            items.iter().for_each(|value| service_calls(value, calls))
+        }
+        _ => (),
+    }
+}
+
+fn service_prelude(
+    route: &HttpRoute,
+    adapter: Adapter,
+    request: &str,
+) -> (String, BTreeMap<String, String>) {
+    let mut calls = Vec::new();
+    service_calls(&route.response, &mut calls);
+    let mut code = String::new();
+    let mut bindings = BTreeMap::new();
+    for (index, (method, path)) in calls.iter().enumerate() {
+        let key = format!("{method} {path}");
+        bindings.insert(key, format!("_fr_value_{index}"));
+        match adapter {
+            Adapter::Fastapi => code.push_str(&format!(
+                "    async with httpx.AsyncClient(base_url=str({request}.base_url)) as _fr_client_{index}:\n        _fr_response_{index} = await _fr_client_{index}.request({}, {})\n\n    if _fr_response_{index}.status_code < 200 or _fr_response_{index}.status_code > 299:\n        return JSONResponse(content={{\"error\": \"upstream\", \"path\": {}}}, status_code=502)\n\n    _fr_value_{index} = _fr_response_{index}.json()\n",
+                quoted(method),
+                quoted(path),
+                quoted(path),
+            )),
+            Adapter::Express => code.push_str(&format!(
+                "  const _fr_response_{index} = await fetch(new URL({}, `http://${{{request}.headers.host ?? \"localhost\"}}`), {{ method: {} }});\n  if (!_fr_response_{index}.ok) return res.status(502).json({{ error: \"upstream\", path: {} }});\n  const _fr_value_{index} = await _fr_response_{index}.json();\n",
+                quoted(path),
+                quoted(method),
+                quoted(path),
+            )),
+            Adapter::Nextjs => code.push_str(&format!(
+                "  const _fr_response_{index} = await fetch(new URL({}, {request}.url), {{ method: {} }});\n\n  if (!_fr_response_{index}.ok) return Response.json({{ error: \"upstream\", path: {} }}, {{ status: 502 }});\n\n  const _fr_value_{index} = await _fr_response_{index}.json();\n",
+                quoted(path),
+                quoted(method),
+                quoted(path),
+            )),
+            Adapter::GoNetHttp => code.push_str(&format!(
+                "\t\t_fr_request_{index}, _fr_error_{index} := http.NewRequest({}, \"http://\" + r.Host + {}, nil)\n\t\tif _fr_error_{index} != nil {{\n\t\t\tw.Header().Set(\"Content-Type\", \"application/json\")\n\t\t\tw.WriteHeader(502)\n\t\t\t_ = json.NewEncoder(w).Encode(map[string]any{{\"error\": \"upstream\", \"path\": {}}})\n\t\t\treturn\n\t\t}}\n\t\t_fr_response_{index}, _fr_error_{index} := http.DefaultClient.Do(_fr_request_{index})\n\t\tif _fr_error_{index} != nil {{\n\t\t\tw.Header().Set(\"Content-Type\", \"application/json\")\n\t\t\tw.WriteHeader(502)\n\t\t\t_ = json.NewEncoder(w).Encode(map[string]any{{\"error\": \"upstream\", \"path\": {}}})\n\t\t\treturn\n\t\t}}\n\t\t_fr_body_{index}, _ := io.ReadAll(_fr_response_{index}.Body)\n\t\t_ = _fr_response_{index}.Body.Close()\n\t\tif _fr_response_{index}.StatusCode < 200 || _fr_response_{index}.StatusCode > 299 {{\n\t\t\tw.Header().Set(\"Content-Type\", \"application/json\")\n\t\t\tw.WriteHeader(502)\n\t\t\t_ = json.NewEncoder(w).Encode(map[string]any{{\"error\": \"upstream\", \"path\": {}}})\n\t\t\treturn\n\t\t}}\n\t\tvar _fr_value_{index} any\n\t\tif json.Unmarshal(_fr_body_{index}, &_fr_value_{index}) != nil {{\n\t\t\tw.Header().Set(\"Content-Type\", \"application/json\")\n\t\t\tw.WriteHeader(502)\n\t\t\t_ = json.NewEncoder(w).Encode(map[string]any{{\"error\": \"upstream\", \"path\": {}}})\n\t\t\treturn\n\t\t}}\n",
+                quoted(method),
+                quoted(path),
+                quoted(path),
+                quoted(path),
+                quoted(path),
+                quoted(path),
+            )),
+            Adapter::React => unreachable!(),
+        }
+    }
+    (code, bindings)
+}
+
 fn python_request(route: &HttpRoute) -> String {
     if route.inputs.is_empty() {
         return String::new();
@@ -335,15 +501,41 @@ fn go_request(route: &HttpRoute) -> String {
     output
 }
 
+fn middleware_names(
+    middleware: &[HttpMiddleware],
+    adapter: Adapter,
+) -> Result<Vec<String>, String> {
+    super::validate_middleware(middleware)?;
+    if middleware.is_empty() {
+        return Ok(Vec::new());
+    }
+    if adapter == Adapter::Fastapi {
+        return Err(
+            "middleware chains currently normalize from FastAPI sources only; the FastAPI target does not register middleware.".into(),
+        );
+    }
+    let mut ordered: Vec<_> = middleware.to_vec();
+    ordered.sort_by_key(|entry| entry.request_order);
+    Ok(ordered.into_iter().map(|entry| entry.name).collect())
+}
+
 pub fn write_routes(
     routes: &[HttpRoute],
+    middleware: &[HttpMiddleware],
     adapter: Adapter,
 ) -> Result<BTreeMap<String, String>, String> {
     super::validate_routes(routes)?;
     if adapter == Adapter::React {
         return Err("React does not provide an HTTP route adapter.".into());
     }
+    let middleware = middleware_names(middleware, adapter)?;
     let has_inputs = routes.iter().any(|route| !route.inputs.is_empty());
+    let has_dependencies = routes.iter().any(|route| !route.dependencies.is_empty());
+    let has_services = routes.iter().any(|route| {
+        let mut calls = Vec::new();
+        service_calls(&route.response, &mut calls);
+        !calls.is_empty()
+    });
     let has_body = routes.iter().any(|route| {
         route
             .inputs
@@ -353,14 +545,21 @@ pub fn write_routes(
     let mut files = BTreeMap::new();
     let mut body = match adapter {
         Adapter::Fastapi => format!(
-            "{}from fastapi import APIRouter, Path{}\nfrom fastapi.responses import JSONResponse\n\nrouter = APIRouter()\n{}",
+            "{}from fastapi import APIRouter, Path{}{}{}\nfrom fastapi.responses import JSONResponse\n\n{}{}router = APIRouter()\n{}",
             if has_inputs { "import math\n" } else { "" },
-            if has_inputs { ", Request" } else { "" },
+            if has_inputs || has_services { ", Request" } else { "" },
+            if has_dependencies { ", Depends" } else { "" },
+            if routes.iter().flat_map(|route| &route.dependencies).any(|dependency| dependency.security) { ", Security" } else { "" },
+            if has_dependencies { "import fr_dependencies\n" } else { "" },
+            if has_services { "import httpx\n\n" } else { "" },
             if has_inputs { PYTHON_VALIDATION } else { "" }
         ),
         Adapter::Express => format!(
-            "import {}{{ Router, type Request, type Response }} from \"express\";\n\nconst router = Router();\n{}export default router;\n{}",
+            "import {}{{ Router, type Request, type Response }} from \"express\";\n{}{}\n\nconst router = Router();\n{}{}\nexport default router;\n{}",
             if has_body { "express, " } else { "" },
+            if has_dependencies { "import * as frDependencies from \"./fr-dependencies.js\";\n" } else { "" },
+            if middleware.is_empty() { String::new() } else { "import * as frMiddleware from \"./fr-middleware.js\";\n".into() },
+            middleware.iter().map(|name| format!("router.use(frMiddleware.{name});\n")).collect::<String>(),
             if has_body {
                 "router.use(express.json({ strict: true, limit: \"1mb\" }));\n"
             } else {
@@ -369,8 +568,10 @@ pub fn write_routes(
             if has_inputs { TYPESCRIPT_VALIDATION } else { "" }
         ),
         Adapter::GoNetHttp => format!(
-            "package frgenerated\n\nimport (\n\t\"encoding/json\"\n\t\"net/http\"\n{} )\n\n{}func Handler() http.Handler {{\n\tmux := http.NewServeMux()\n",
+            "package frgenerated\n\nimport (\n\t\"encoding/json\"\n{}{}\t\"net/http\"\n{} )\n\n{}func Handler() http.Handler {{\n\tmux := http.NewServeMux()\n",
+            if has_services { "\t\"io\"\n" } else { "" },
             if has_inputs { "\t\"strconv\"\n" } else { "" },
+            "",
             if has_inputs { GO_VALIDATION } else { "" }
         )
         .replace("\n )", "\n)"),
@@ -400,10 +601,20 @@ pub fn write_routes(
             };
             bindings.insert(input.name.clone(), value);
         }
+        let request_name = match adapter {
+            Adapter::Fastapi | Adapter::Nextjs => "request",
+            _ => "r",
+        };
+        let request_name = match adapter {
+            Adapter::Express => "req",
+            _ => request_name,
+        };
+        let (services, service_bindings) = service_prelude(route, adapter, request_name);
+        bindings.extend(service_bindings);
         let response = expression(&route.response, adapter, &bindings);
         match adapter {
             Adapter::Fastapi => {
-                let mut params = if route.inputs.is_empty() {
+                let mut params = if route.inputs.is_empty() && services.is_empty() {
                     Vec::new()
                 } else {
                     vec!["request: Request".into()]
@@ -411,13 +622,14 @@ pub fn write_routes(
                 params.extend(parameters.iter().enumerate().map(|(i, name)| {
                     format!("_fr_parameter_{i}: str = Path(alias={})", quoted(name))
                 }));
-                let asynchronous = if route.inputs.is_empty() {
+                params.extend(python_dependencies(route));
+                let asynchronous = if route.inputs.is_empty() && services.is_empty() {
                     ""
                 } else {
                     "async "
                 };
                 let request = python_request(route);
-                body.push_str(&format!("\n@router.{}({})\n{asynchronous}def route_{index}({}):\n{request}    return JSONResponse(content={response}, status_code={})\n", route.method.to_lowercase(), quoted(&route.path), params.join(", "), route.status));
+                body.push_str(&format!("\n@router.{}({})\n{asynchronous}def route_{index}({}):\n{request}{services}    return JSONResponse(content={response}, status_code={})\n", route.method.to_lowercase(), quoted(&route.path), params.join(", "), route.status));
             }
             Adapter::Express => {
                 let path = route
@@ -435,13 +647,14 @@ pub fn write_routes(
                     })
                     .collect::<Vec<_>>()
                     .join("/");
+                let dependencies = typescript_dependencies(route, "req", false);
                 let request = typescript_request(route, "req", false);
                 let invalid = if route.inputs.is_empty() {
                     ""
                 } else {
                     "  if (_fr_issues.length > 0) return res.status(422).json({ error: \"validation\", issues: _fr_issues });\n"
                 };
-                body.push_str(&format!("\nrouter.{}({}, async (req: Request, res: Response) => {{\n{request}{invalid}  res.status({}).json({response});\n}});\n", route.method.to_lowercase(), quoted(&path), route.status));
+                body.push_str(&format!("\nrouter.{}({}, async (req: Request, res: Response) => {{\n{dependencies}{request}{invalid}{services}  res.status({}).json({response});\n}});\n", route.method.to_lowercase(), quoted(&path), route.status));
             }
             Adapter::GoNetHttp => {
                 let path = if route.path == "/" {
@@ -449,8 +662,9 @@ pub fn write_routes(
                 } else {
                     &route.path
                 };
+                let dependencies = go_dependencies(route)?;
                 let request = go_request(route);
-                body.push_str(&format!("\tmux.HandleFunc({}, func(w http.ResponseWriter, r *http.Request) {{\n{request}\t\tw.Header().Set(\"Content-Type\", \"application/json\")\n\t\tw.WriteHeader({})\n\t\t_ = json.NewEncoder(w).Encode({response})\n\t}})\n", quoted(&format!("{} {}", route.method, path)), route.status));
+                body.push_str(&format!("\tmux.HandleFunc({}, func(w http.ResponseWriter, r *http.Request) {{\n{dependencies}{request}{services}\t\tw.Header().Set(\"Content-Type\", \"application/json\")\n\t\tw.WriteHeader({})\n\t\t_ = json.NewEncoder(w).Encode({response})\n\t}})\n", quoted(&format!("{} {}", route.method, path)), route.status));
             }
             Adapter::Nextjs => {
                 let segments = route
@@ -471,7 +685,11 @@ pub fn write_routes(
                 } else {
                     format!("{}/route.ts", segments.join("/"))
                 };
-                let signature = if parameters.is_empty() && route.inputs.is_empty() {
+                let signature = if parameters.is_empty()
+                    && route.inputs.is_empty()
+                    && route.dependencies.is_empty()
+                    && services.is_empty()
+                {
                     String::new()
                 } else {
                     let ty = parameters
@@ -484,7 +702,10 @@ pub fn write_routes(
                     } else {
                         format!(
                             "{}: Request, context: {{ params: Promise<{{ {ty} }}> }}",
-                            if route.inputs.is_empty() {
+                            if route.inputs.is_empty()
+                                && route.dependencies.is_empty()
+                                && services.is_empty()
+                            {
                                 "_request"
                             } else {
                                 "request"
@@ -497,16 +718,37 @@ pub fn write_routes(
                 } else {
                     "  const params = await context.params;\n"
                 };
+                let dependencies = typescript_dependencies(route, "request", true);
                 let request = typescript_request(route, "request", true);
                 let invalid = if route.inputs.is_empty() {
                     ""
                 } else {
                     "  if (_fr_issues.length > 0) return Response.json({ error: \"validation\", issues: _fr_issues }, { status: 422 });\n"
                 };
-                let method = format!("export async function {}({signature}) {{\n{params}{request}{invalid}  return Response.json({response}, {{ status: {} }});\n}}\n", route.method, route.status);
+                let method = format!("export async function {}({signature}) {{\n{params}{dependencies}{request}{invalid}{services}  return Response.json({response}, {{ status: {} }});\n}}\n", route.method, route.status);
+                let dependency_import = if route.dependencies.is_empty() {
+                    None
+                } else {
+                    let depth = path.matches('/').count();
+                    let prefix = if depth == 0 {
+                        ".".into()
+                    } else {
+                        std::iter::repeat_n("..", depth)
+                            .collect::<Vec<_>>()
+                            .join("/")
+                    };
+                    Some(format!(
+                        "import * as frDependencies from \"{prefix}/fr-dependencies.js\";\n"
+                    ))
+                };
                 let file = files.entry(path).or_insert_with(String::new);
                 if !route.inputs.is_empty() && !file.contains("type FrInputKind") {
                     file.push_str(TYPESCRIPT_VALIDATION);
+                }
+                if let Some(import) = dependency_import {
+                    if !file.contains("frDependencies") {
+                        file.insert_str(0, &import);
+                    }
                 }
                 file.push_str(&method);
             }
@@ -521,8 +763,34 @@ pub fn write_routes(
             files.insert("routes.ts".into(), body);
         }
         Adapter::GoNetHttp => {
-            body.push_str("\treturn mux\n}\n");
+            if middleware.is_empty() {
+                body.push_str("\treturn mux\n}\n");
+            } else {
+                body.push_str("\tvar handler http.Handler = mux\n");
+                for name in middleware.iter().rev() {
+                    if !super::identifier(name) {
+                        return Err(
+                            "Go net/http middleware requires simple names in the generated package."
+                                .into(),
+                        );
+                    }
+                    body.push_str(&format!("\thandler = {name}(handler)\n"));
+                }
+                body.push_str("\treturn handler\n}\n");
+            }
             files.insert("routes.go".into(), body);
+        }
+        Adapter::Nextjs if !middleware.is_empty() => {
+            let chain = middleware.iter().rev().fold(
+                "Promise.resolve(NextResponse.next())".to_owned(),
+                |next, name| format!("frMiddleware.{name}(request, () => {next})"),
+            );
+            files.insert(
+                "middleware.ts".into(),
+                format!(
+                    "import {{ NextResponse, type NextRequest }} from \"next/server\";\nimport * as frMiddleware from \"./fr-middleware.js\";\n\nexport async function middleware(request: NextRequest): Promise<NextResponse> {{\n  return {chain};\n}}\n"
+                ),
+            );
         }
         _ => (),
     }
