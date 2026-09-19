@@ -277,8 +277,8 @@ fn framework_report() -> Value {
         "features": FeatureKind::ALL.map(FeatureKind::name),
         "counts":{"cells":cells.len(),"supported":supported,"unsupported":cells.len()-supported},
         "cells":cells,
-        "excluded":["source normalization of request bodies and query validation","middleware","authentication",
-            "service calls","dynamic rendering","implicit HTTP methods","runtime configuration"],
+        "excluded":["source normalization of request bodies and query validation outside the FastAPI declaration subset","configured middleware",
+            "dependency provider behavior","external service calls","effects","implicit HTTP methods","runtime configuration"],
         "claim":"Compatibility is a checked static admission policy. Runtime fixtures remain separate evidence.",
     })
 }
