@@ -227,14 +227,15 @@ The application part of `FrKernels.Project` separates source-reader and target-w
 Readable features are proved writable; compatibility requires a distinct target, a source reader and
 a target writer. Request-input admission permits bounded scalar query inputs on the six modeled
 methods and JSON-body inputs only on POST, PUT and PATCH. A validated endpoint agrees only when its
-method, path, inputs, status and response all agree. Rust, Python and Lean compare 1,296 outputs
-covering the expanded adapter matrix, request admission, status, hierarchy, agreement and resource
-policies. Parsing query or JSON bytes and executing framework code remain runtime-test obligations.
+method, path, inputs, status and response all agree. Rust, Python and Lean compare 1,535 outputs
+covering the expanded adapter matrix, request admission, status, hierarchy, agreement, middleware
+chain, dependency and resource policies. Parsing query or JSON bytes and executing framework code
+remain runtime-test obligations.
 
-The same project kernel anchors seventeen framework policy helpers used after syntax recognition.
-Thirty-nine theorems cover caps, middleware ranks, hook rejection, prefixes, migration, registration, body handling, cutover and dependency edits.
+The same project kernel anchors 32 framework policy helpers used after syntax recognition.
+Theorems cover caps, middleware ranks and chain admission, dependency admission, hook rejection, prefixes, migration, registration, body handling, cutover and dependency edits.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.
-The executable comparison covers 364 Rust and Lean results across output limits, middleware positions, hook placement and finite classification inputs.
+The executable comparison covers 420 Rust and Lean results across output limits, middleware positions, hook placement and finite classification inputs.
 The classification proofs use no axioms. The arithmetic and hook proofs report combinations of Lean's standard `propext`, `Quot.sound` and `Classical.choice` axioms; none uses a custom axiom or compiler-trust tactic.
 The migration laws require a change between the supported framework classes.
 They map gaps to unsupported work, recognized automatic kinds to automatic work and every other fact to an agent decision.
