@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.30.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.29.0...fun-refactor-v0.30.0) (2026-09-19)
+
+
+### Features
+
+* add validated request application IR ([#321](https://github.com/e6qu/fun-refactor/issues/321)) ([252128d](https://github.com/e6qu/fun-refactor/commit/252128d96b6d71c0e7e7b20f34f21a05c00735ef))
+* model application middleware, dependencies, service calls and component state ([#323](https://github.com/e6qu/fun-refactor/issues/323)) ([33b961e](https://github.com/e6qu/fun-refactor/commit/33b961e4789c038279a936257012d4803b70e9ac))
+* read validated FastAPI application inputs ([#322](https://github.com/e6qu/fun-refactor/issues/322)) ([c93efa9](https://github.com/e6qu/fun-refactor/commit/c93efa94596f3c63d0fc9fbdb55f498daa3d873f))
+* ship representative agent acceptance and SDK artifacts ([#320](https://github.com/e6qu/fun-refactor/issues/320)) ([a6c16c1](https://github.com/e6qu/fun-refactor/commit/a6c16c12e95af657328faf4b2e94952e6b261503))
+* unify guided review and delivery ([#319](https://github.com/e6qu/fun-refactor/issues/319)) ([d749a88](https://github.com/e6qu/fun-refactor/commit/d749a88e7fdf4bd4c848913e72b2a8a8faee3b9e))
+
+
+### Fixes
+
+* align the framework audit exclusion list with merged reader support ([06142c5](https://github.com/e6qu/fun-refactor/commit/06142c58f2a9f0c95088b422554a01e6e6f5d950))
+
+
+### Documentation
+
+* reset roadmap and harden agent dogfooding ([#317](https://github.com/e6qu/fun-refactor/issues/317)) ([b1e4082](https://github.com/e6qu/fun-refactor/commit/b1e40823a80041c5f738ae735bc0a557fe868019))
+
 ## [0.29.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.28.0...fun-refactor-v0.29.0) (2026-09-17)
 
 
