@@ -47,7 +47,12 @@ fn behavior_routes() -> (
 
 fn behavior_write(dir: &Path, adapter: Adapter) {
     let (routes, middleware) = behavior_routes();
-    for (path, source) in write_routes(&routes, &middleware, adapter).unwrap() {
+    let middleware = if adapter == Adapter::Fastapi {
+        &[][..]
+    } else {
+        &middleware
+    };
+    for (path, source) in write_routes(&routes, middleware, adapter).unwrap() {
         let path = dir.join(path);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).unwrap();
