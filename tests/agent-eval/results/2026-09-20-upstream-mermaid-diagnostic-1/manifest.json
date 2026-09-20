@@ -1,0 +1,20 @@
+{
+  "schema": "fr-upstream-mermaid-manifest-1",
+  "passed": true,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "Mermaid parser lockfile contained machine-local paths; npm ci failed in a fresh directory",
+  "upstream_commit": "e6e49600ad1e86f1a5bb1e375049534e5a6e2961",
+  "model": "gpt-5.6-luna",
+  "evaluator_sha256": "c55ac985efd6a7b18ae0535bf2e13b2e309132d5b2b9ad4c185d2ea5439b61d1",
+  "files": {
+    "session.json": "3f995bcb8b5b7c935e38b181ae9664bb583e154b568e73c48b59d77cff737354",
+    "prompt.txt": "2faa53711e6c3f0dc666b6bcdf80413b5a51f1ada7af6746bd1aeee57a1486e5",
+    "events.jsonl": "ef830ac10c246027438f76087082271ab0cd8a564a932aa92e1b2c4bc28eaf46",
+    "codex-events.jsonl": "bb64193158a673657d37de0f05d128150f5e84fa7dad21b9e006acea0f8fb379",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-final.txt": "119ffea0616a413046f336ba82d272e51cb644579c2c6f7a54ac3442dacae56a",
+    "codex-run.json": "9c5819013ec5e5d49ff1cf2c663710a140790e3c530525104008d74a6c7e0d4a",
+    "result.json": "94bd6b45137992a0702100dd0c4b12e9cf8c671ef383a69a03a230999ea0c87c",
+    "package-lock.json": "deef31fd74732707b8ed91cccfdb71480c540dca223b1b361a27e54a80efccfe"
+  }
+}

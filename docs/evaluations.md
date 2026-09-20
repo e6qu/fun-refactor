@@ -99,6 +99,22 @@ binds the run. A local rehearsal found that a production build writes generated 
 guided check, which changes the source snapshot. The live workflow therefore uses the read-only
 TypeScript check and keeps the production build in the independent receiver oracle.
 
+The first accepted guided Mermaid write uses MIT-licensed `tomooda/Micromaid` at revision
+`e6e49600ad1e86f1a5bb1e375049534e5a6e2961`. A fresh Codex CLI 0.155.1 agent on
+`gpt-5.6-luna` at low effort made six instrumented calls. It followed the diagram guide, then
+expanded the bounded surface listing from eight to 20 items to find the exact `E` node capability.
+The preview and review changed four identifier occurrences to `EvalStep` in the first README
+flowchart, while retaining its visible label and five edges. The pinned Mermaid parser accepted
+both README diagrams at every applicable check stage; apply, undo, redo and patch delivery passed.
+An independent receiver replayed the patch, verified exact source bytes and graph structure, and
+parsed both diagrams. The agent made no failed or direct project commands and needed no correction.
+CLI usage was 108,869 input tokens, including 96,512 cached, and 1,014 output tokens; billed quota
+was unavailable. This single Mermaid node rename does not establish standalone CSS or authored TSX
+body delivery. The [accepted manifest](../tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json)
+binds the run. A preceding [diagnostic](../tests/agent-eval/results/2026-09-20-upstream-mermaid-diagnostic-1/manifest.json)
+retains a passing edit whose parser lockfile contained local paths and failed `npm ci` in a fresh
+directory. It is excluded from acceptance. The accepted repeat uses a clean portable lockfile.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -111,6 +127,7 @@ TypeScript check and keeps the production build in the independent receiver orac
 | Pinned guided upstream read/trace | `tools/upstream-read-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-read-acceptance/` |
 | Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
 | Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
+| Pinned guided Mermaid node edit | `tools/upstream-mermaid-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
 | Semantic bodies, deltas and intents | `tests/agent-eval/semantic-*.json`, `tools/semantic-*.py` |

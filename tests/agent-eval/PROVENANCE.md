@@ -10,6 +10,8 @@ The accepted guided three-file rename has a separate
 the recorded bytes, not a later edit to the active evaluator.
 The accepted guided React/Tailwind trial has its own
 [runner snapshot](runner-snapshots/upstream-react-agent-2026-09-20.py).
+The guided Mermaid trial likewise retains its exact
+[runner snapshot](runner-snapshots/upstream-mermaid-agent-2026-09-20.py).
 
 `strsim-0.11.1.crate` is the unmodified published source archive for rapidfuzz/strsim-rs 0.11.1.
 The existing Cargo cache supplied these bytes. No source padding or injected bug modifies the benchmark basis.
@@ -72,6 +74,22 @@ calls. The retained review changes one header class. The independent receiver re
 runs the TypeScript/Vite build and checks generated Tailwind CSS. A local rehearsal with the build
 as a workflow check failed source snapshot stability because it wrote `dist/`; the accepted live
 run uses the source-stable `typecheck` script and reserves the build for the receiver oracle.
+
+The [guided Mermaid acceptance](results/2026-09-20-upstream-mermaid-acceptance/manifest.json)
+uses the MIT-licensed `tomooda/Micromaid` archive at commit
+`e6e49600ad1e86f1a5bb1e375049534e5a6e2961`. The archive SHA-256 is
+`2093ba236f1327259765e396223046d0c52e477f32c9c8575c2e1f0885b5c2ef`; the original
+[MIT license](https://github.com/tomooda/Micromaid/blob/e6e49600ad1e86f1a5bb1e375049534e5a6e2961/LICENSE)
+is inside the archive. `git archive HEAD | gzip -n` retained source without Git history. The
+separate [parser manifest](mermaid-oracle/package.json) pins Mermaid 11.12.2 and jsdom 26.1.0;
+its lockfile records the transitive dependencies. A fresh `npm ci` validated that lock before
+the accepted run. The evaluator adds a read-only parser check, disposable Git metadata and a frozen
+`fr` binary. The agent edits the rendered README diagram through a guided surface capability;
+the receiver verifies exact source bytes, patch replay and five graph edges before parsing both
+diagrams with Mermaid. The [diagnostic run](results/2026-09-20-upstream-mermaid-diagnostic-1/manifest.json)
+passed its source and parser checks, but its original npm lockfile contained machine-local paths
+and failed a fresh `npm ci`. That lockfile is retained with the diagnostic and is excluded from
+acceptance. The repeat uses the portable lockfile.
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0

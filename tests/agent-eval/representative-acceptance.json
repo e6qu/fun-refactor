@@ -125,6 +125,23 @@
       "oracle": "exact pinned TSX source, receiver patch replay, TypeScript/Vite build and generated Tailwind CSS",
       "postconditions": ["one header class changed", "eight delivery stages pass", "text-xl selector emitted"],
       "diagnostics": []
+    },
+    {
+      "id": "micromaid-guided-mermaid-node",
+      "covers": ["mermaid"],
+      "manifest": "tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json",
+      "runner": "tools/upstream-mermaid-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-mermaid-agent-2026-09-20.py",
+      "runner_sha256": "c55ac985efd6a7b18ae0535bf2e13b2e309132d5b2b9ad4c185d2ea5439b61d1",
+      "fixture_revision": "tomooda/Micromaid@e6e49600ad1e86f1a5bb1e375049534e5a6e2961",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "exact Markdown source, reviewed patch replay, five-edge graph and pinned Mermaid parser",
+      "postconditions": ["one diagram node renamed at four sites", "eight delivery stages pass", "both flowcharts parse"],
+      "diagnostics": [
+        "tests/agent-eval/results/2026-09-20-upstream-mermaid-diagnostic-1/manifest.json"
+      ]
     }
   ],
   "live_cohorts": [

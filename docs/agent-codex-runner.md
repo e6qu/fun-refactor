@@ -92,5 +92,24 @@ python3 tools/upstream-react-agent.py audit \
   tests/agent-eval/results/DATE-upstream-react-acceptance
 ```
 
+The pinned Micromaid task follows a Markdown diagram guide and renames one Mermaid node. Prepare
+its parser dependencies from the retained lockfile before the live session. The declared check
+parses both diagrams without writing source; the score separately checks exact graph structure and
+receiver patch replay:
+
+```sh
+mkdir -p /tmp/fr-mermaid-oracle
+cp tests/agent-eval/mermaid-oracle/package*.json /tmp/fr-mermaid-oracle/
+(cd /tmp/fr-mermaid-oracle && npm ci --no-audit --no-fund)
+python3 tools/upstream-mermaid-agent.py prepare /tmp/fr-upstream-mermaid \
+  --fr target/debug/fr --deps /tmp/fr-mermaid-oracle/node_modules
+python3 tools/upstream-mermaid-agent.py run /tmp/fr-upstream-mermaid --confirm-agent-spend
+python3 tools/upstream-mermaid-agent.py score /tmp/fr-upstream-mermaid
+python3 tools/upstream-mermaid-agent.py record /tmp/fr-upstream-mermaid \
+  tests/agent-eval/results/DATE-upstream-mermaid-acceptance
+python3 tools/upstream-mermaid-agent.py audit \
+  tests/agent-eval/results/DATE-upstream-mermaid-acceptance
+```
+
 Use `record --diagnostic --reason TEXT` for a scored failure or interrupted run. An interrupted
 run may have no score or run record; its raw prompt and Codex stream remain diagnostic only.
