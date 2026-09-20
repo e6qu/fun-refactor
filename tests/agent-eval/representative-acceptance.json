@@ -110,6 +110,21 @@
       "diagnostics": [
         "tests/agent-eval/results/2026-09-20-upstream-rename-diagnostic-1/manifest.json"
       ]
+    },
+    {
+      "id": "react-guided-tailwind-surface",
+      "covers": ["typescript-react", "css-tailwind"],
+      "manifest": "tests/agent-eval/results/2026-09-20-upstream-react-acceptance/manifest.json",
+      "runner": "tools/upstream-react-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-react-agent-2026-09-20.py",
+      "runner_sha256": "460f96f58183d5615f66f8750d2616f6ac6bfce18cb83245a27b70b78a31f694",
+      "fixture_revision": "aulianza/vite-react-starter@0633ab1ff90cd0a09b70c849718b9504500a7bd5",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "exact pinned TSX source, receiver patch replay, TypeScript/Vite build and generated Tailwind CSS",
+      "postconditions": ["one header class changed", "eight delivery stages pass", "text-xl selector emitted"],
+      "diagnostics": []
     }
   ],
   "live_cohorts": [

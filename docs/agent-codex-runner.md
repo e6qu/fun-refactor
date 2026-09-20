@@ -73,5 +73,24 @@ python3 tools/upstream-rename-agent.py audit \
   tests/agent-eval/results/DATE-upstream-rename-acceptance
 ```
 
+The pinned MIT React/Tailwind task follows a TSX surface guide. Install dependencies from its
+retained `pnpm-lock.yaml` with pnpm 7.33.7 before preparing a session. The agent's declared check
+runs TypeScript without writing files; the score separately replays the patch, builds the receiver
+and checks generated Tailwind CSS:
+
+```sh
+mkdir -p /tmp/fr-react-mit
+tar -xzf tests/agent-eval/react-workspace.tar.gz -C /tmp/fr-react-mit
+(cd /tmp/fr-react-mit && npx --yes pnpm@7.33.7 install --frozen-lockfile --ignore-scripts)
+python3 tools/upstream-react-agent.py prepare /tmp/fr-upstream-react \
+  --fr target/debug/fr --deps /tmp/fr-react-mit/node_modules
+python3 tools/upstream-react-agent.py run /tmp/fr-upstream-react --confirm-agent-spend
+python3 tools/upstream-react-agent.py score /tmp/fr-upstream-react
+python3 tools/upstream-react-agent.py record /tmp/fr-upstream-react \
+  tests/agent-eval/results/DATE-upstream-react-acceptance
+python3 tools/upstream-react-agent.py audit \
+  tests/agent-eval/results/DATE-upstream-react-acceptance
+```
+
 Use `record --diagnostic --reason TEXT` for a scored failure or interrupted run. An interrupted
 run may have no score or run record; its raw prompt and Codex stream remain diagnostic only.

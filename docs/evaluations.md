@@ -83,6 +83,22 @@ languages. The [accepted manifest](../tests/agent-eval/results/2026-09-20-upstre
 binds the run; the preceding diagnostic retains the outer-sandbox launch failure before any agent
 turn.
 
+The first accepted guided TSX/Tailwind write uses the MIT-licensed
+`aulianza/vite-react-starter` revision `0633ab1ff90cd0a09b70c849718b9504500a7bd5`. A fresh
+Codex CLI 0.155.1 agent on `gpt-5.6-luna` at low effort used six instrumented calls to select the
+header's exact `text-lg` class capability, preview `text-xl`, review the complete one-file diff,
+execute and finish. The pinned project's read-only TypeScript check passed at each applicable
+stage; apply, undo, redo and patch delivery all passed. A separate receiver applied the reviewed
+patch, built the project with its lockfile dependencies and found `.text-xl` in the generated
+Tailwind CSS. The source oracle confirms that only that class token changed. The agent used six
+commands, no failed or direct project commands and no human correction. CLI usage was 98,419 input
+tokens, of which 88,320 were cached, and 995 output tokens; billed quota was unavailable. This
+single TSX surface edit does not establish authored TSX body, standalone CSS or Mermaid delivery.
+The [accepted manifest](../tests/agent-eval/results/2026-09-20-upstream-react-acceptance/manifest.json)
+binds the run. A local rehearsal found that a production build writes generated files during a
+guided check, which changes the source snapshot. The live workflow therefore uses the read-only
+TypeScript check and keeps the production build in the independent receiver oracle.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -94,6 +110,7 @@ turn.
 | Representative cross-language acceptance | `tools/representative-acceptance.py`, `tests/agent-eval/representative-acceptance.json` |
 | Pinned guided upstream read/trace | `tools/upstream-read-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-read-acceptance/` |
 | Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
+| Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
 | Semantic bodies, deltas and intents | `tests/agent-eval/semantic-*.json`, `tools/semantic-*.py` |

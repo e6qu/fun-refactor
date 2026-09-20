@@ -8,6 +8,8 @@ runner path in the session and command transcript as historical provenance.
 The accepted guided three-file rename has a separate
 [runner snapshot](runner-snapshots/upstream-rename-agent-2026-09-20.py) with the same rule: audit
 the recorded bytes, not a later edit to the active evaluator.
+The accepted guided React/Tailwind trial has its own
+[runner snapshot](runner-snapshots/upstream-react-agent-2026-09-20.py).
 
 `strsim-0.11.1.crate` is the unmodified published source archive for rapidfuzz/strsim-rs 0.11.1.
 The existing Cargo cache supplied these bytes. No source padding or injected bug modifies the benchmark basis.
@@ -56,6 +58,20 @@ cases. The [diagnostic launch](results/2026-09-20-upstream-rename-diagnostic-1/m
 failed before an agent turn because the outer sandbox blocked Codex CLI initialization. The
 successful retry is the sole accepted rename trial; it demonstrates guided cross-file rename, not
 authored multi-file body changes.
+
+The [guided React/Tailwind acceptance](results/2026-09-20-upstream-react-acceptance/manifest.json)
+uses the MIT-licensed `aulianza/vite-react-starter` archive at commit
+`0633ab1ff90cd0a09b70c849718b9504500a7bd5`. The archive SHA-256 is
+`55ebf1933157c3557d0cae30beffc0fd4c9aac2c519cb9f51c888ed45de969b9`; the original
+[MIT license](https://github.com/aulianza/vite-react-starter/blob/0633ab1ff90cd0a09b70c849718b9504500a7bd5/LICENSE)
+is inside the archive. It was made with `git archive HEAD | gzip -n` from the pinned checkout and
+contains source and `pnpm-lock.yaml`, without Git history or installed dependencies. The local
+dependency installation used pnpm 7.33.7 and the unchanged lockfile. The evaluator adds declared
+checks and disposable Git metadata, freezes `fr`, and restricts the agent to six instrumented
+calls. The retained review changes one header class. The independent receiver replays the patch,
+runs the TypeScript/Vite build and checks generated Tailwind CSS. A local rehearsal with the build
+as a workflow check failed source snapshot stability because it wrote `dist/`; the accepted live
+run uses the source-stable `typecheck` script and reserves the build for the receiver oracle.
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0
