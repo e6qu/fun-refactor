@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import time
+from typing import Any, TypedDict, cast
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,19 +23,47 @@ REQUIRED = {
 }
 
 
+class LiveTrial(TypedDict):
+    id: str
+    manifest: str
+    runner: str
+    runner_snapshot: str
+    runner_sha256: str
+    fixture_revision: str
+    model: str
+    reasoning_effort: str
+    tool_version: str
+    diagnostics: list[str]
+
+
+class Registry(TypedDict):
+    schema: str
+    cases: list[dict[str, Any]]
+    live_trials: list[LiveTrial]
+    live_cohorts: list[dict[str, Any]]
+
+
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load() -> dict[str, object]:
+def load() -> Registry:
     value = json.loads(REGISTRY.read_text())
-    if value.get("schema") != "fr-representative-acceptance-1":
+    if not isinstance(value, dict) or value.get("schema") != "fr-representative-acceptance-1":
         raise ValueError("representative acceptance registry has the wrong schema")
-    return value
+    if any(not isinstance(value.get(name), list) for name in ("cases", "live_trials", "live_cohorts")):
+        raise ValueError("representative acceptance registry has malformed sections")
+    return cast(Registry, value)
 
 
-def audit_upstream_read(trial: dict[str, object]) -> None:
-    runner = ROOT / trial["runner"]
+def audit_upstream_read(trial: LiveTrial) -> None:
+    if (any(not isinstance(trial.get(name), str) for name in
+            ("manifest", "runner", "runner_snapshot", "runner_sha256", "fixture_revision", "model",
+             "reasoning_effort", "tool_version"))
+            or not isinstance(trial.get("diagnostics"), list)
+            or any(not isinstance(name, str) for name in trial["diagnostics"])):
+        raise ValueError("live upstream-read trial has malformed fields")
+    runner = ROOT / trial["runner_snapshot"]
     if not runner.is_file() or digest(runner) != trial["runner_sha256"]:
         raise ValueError("live upstream-read runner changed")
     directory = (ROOT / trial["manifest"]).parent
