@@ -27,8 +27,9 @@ The product is complete when an agent can:
 6. Distinguish syntax, compilation, behavioral execution, model theorems and implementation
    correspondence.
 7. Receive honest support, uncertainty, omission and refusal data for every operation.
-8. Complete representative unfamiliar-project tasks across supported languages and change shapes
-   without exploratory tool calls after guidance or known actionable correctness defects.
+8. Complete the pinned unfamiliar-project acceptance corpus below with live agents across
+   representative languages and change shapes. Make no exploratory tool calls after guidance and
+   resolve known actionable correctness defects.
 
 Completion excludes guesses about runtime behavior from static source. A translated Lean model
 does not prove its source without a checked correspondence boundary.
@@ -36,8 +37,9 @@ does not prove its source without a checked correspondence boundary.
 ## Current baseline
 
 The architecture needed for items 1 through 7 exists. Item 8 has deterministic representative
-breadth and two accepted matched source-writing runs, but autonomous evidence remains narrow. The
-defect ledger currently records no actionable correctness defect.
+breadth and two accepted matched source-writing runs on the same Rust scalar task. Autonomous
+evidence across task shapes remains narrow. The defect ledger records no open actionable
+correctness defect.
 
 | Area | Delivered baseline | Remaining work |
 |---|---|---|
@@ -45,7 +47,7 @@ defect ledger currently records no actionable correctness defect.
 | Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks; local, memory and bounded HTTP stores | Validate on more repositories and storage services |
 | Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden representative acceptance |
 | Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
-| Application migration | Generic application IR for routes and components; authored validation writes to four HTTP adapters; selected FastAPI query/body declarations, ordered middleware, `Depends`/`Security` providers and closed-world service calls read back into the same IR; React/Next state and events behind an explicit client boundary | Configured middleware, provider internals, external services, effects and other framework readers |
+| Application migration | Generic application IR for routes and components; four HTTP adapters write required scalar validation and read their documented source subsets; selected FastAPI middleware, `Depends`/`Security` providers and closed-world service calls; React/Next state and events behind an explicit client boundary | Validation outside each reader subset, configured middleware, provider internals, external services and effects |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
 | Agent evidence | Deterministic cross-language registry, unfamiliar upstream replay, matched context and two accepted source-writing cohorts | Broaden autonomous cross-project, cross-language, multi-file and proof-writing trials |
@@ -74,29 +76,37 @@ patch delivery. A refusal, incorrect preview or impractical workflow is product 
 the same pull request when its root cause belongs to that outcome. Use a direct editor only when
 `fr` has no suitable operation, and retain that boundary in the pull request validation notes.
 
-Completed bulk outcomes: PR 317 reset the roadmap and documentation around the merged product. The
-guided-delivery outcome gave every writable route one immutable `GuideReview`, shared
-Rust/Python/Lean admission cases, structural Lean tactic branches and retained low-effort Codex
-evidence. The representative-acceptance and distribution outcome added two matched source-writing
-runs and a replayable cross-language registry. It also added exact SDK/native/wire compatibility,
-clean-consumer wheel tests, release artifacts and a bounded HTTP Merkle-store adapter. The first
-application-reader increment now recovers required scalar FastAPI `Query(...)` and embedded
-`Body(...)` declarations, including literal aliases, into the executable HTTP IR. Defaults,
-optionality, constraints and dynamic metadata refuse normalization. The application-behavior
-increment adds ordered direct-name middleware chains in reverse registration order, named
-`Depends`/`Security` route providers and closed-world same-application service calls. React/Next
-components gain declared state and literal `on*` events behind an explicit client boundary.
-Configured or computed registrations, provider internals, external or unresolved services, and
-effects refuse with retained evidence. Runtime fixtures execute the middleware order, the 401
-dependency contract and service forwarding through the real adapters.
+### Next bulk outcome: representative guided delivery
 
-### Next bulk outcome: application and semantic IR expansion
+Use pinned unfamiliar projects and independent oracles to test the complete agent workflow. The
+existing representative registry supplies deterministic cases; its two accepted live source-writing
+cohorts repeat one Rust scalar change. Keep deterministic replay, live agent outcomes and population
+claims separate. Pin each task's repository revision, goal, admitted route, allowed tools, exact
+postconditions and compiler, framework or proof oracle before a live run.
 
-Expand high-level changes around concrete cross-stack tasks rather than broad syntax claims.
+The acceptance corpus covers:
 
-- Extend source-side validation reading only when a framework can state the same transport and
-  failure contract. The current FastAPI reader admits its declaration subset. Other framework
-  readers remain explicit omissions instead of inferred checks.
+- An unfamiliar upstream `understand` and `trace` task with bounded reveal and exact evidence.
+- A Rust multi-file change with one complete reviewed delivery.
+- TSX/React and CSS/Tailwind/Mermaid changes through admitted semantic or surface edits.
+- A backend application migration that reads validated inputs from source and writes a different
+  HTTP adapter. Preserve manual boundaries and check the generated runtime behavior.
+- An agent-authored Lean proof with checked submission and explicit correspondence limits.
+
+Acceptance: retain at least one accepted live run for each task shape above. Source-writing runs
+include the guide, preview, checks, apply, undo, redo and patch replay where applicable. The
+independent oracle checks the final source or behavior. Retain refusals and failed attempts as
+evidence; report model settings, calls and context without extrapolating from the cohort. Fix
+actionable product failures exposed by these tasks before marking the outcome complete.
+
+### Following bulk outcome: task-driven application and semantic IR expansion
+
+Expand high-level changes only for concrete failures in the acceptance corpus. All four HTTP
+adapters already read their documented validated-input subsets; report other syntax and native
+failure semantics as explicit boundaries.
+
+- Extend source-side validation only where the IR can state the same transport, success and failure
+  contract.
 - Model configured middleware, provider outputs in responses and service-call request bodies. Add
   them only where the IR can state order, inputs, outputs and refusals.
 - Expand React/Next rendering beyond declared state and literal events through explicit effect
@@ -110,7 +120,7 @@ Acceptance: each new IR construct has reader/writer compatibility cells, negativ
 independent round-trip checks. Behavioral claims have runtime fixtures. Delivery is reversible and
 the correspondence boundary is explicit.
 
-### Following bulk outcome: critical correspondence and resilience
+### Later bulk outcome: critical correspondence and resilience
 
 Reduce the trusted boundary where failure could silently admit stale work, corrupt history or
 misstate evidence.

@@ -193,9 +193,9 @@ fr --json migrate application --project . --to express --out generated
 ```
 
 Agents can also author required query and JSON-body scalar validation through the typed Python
-application IR. `project application` reads the documented required FastAPI scalar declaration
-subset back into that IR. See the [application IR contract](docs/application-ir.md) for exact
-reader, canonicalization and writer boundaries.
+application IR. `project application` reads the documented source subsets from Next.js, FastAPI,
+Express and Go HTTP back into that IR. See the [application IR contract](docs/application-ir.md)
+for exact reader, canonicalization and writer boundaries.
 
 Create and check a project-specific Lean proof package:
 

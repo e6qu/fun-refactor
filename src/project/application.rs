@@ -175,8 +175,8 @@ pub fn adapter_contracts() -> Value {
                 })
                 .collect::<Vec<_>>();
             let mut excluded = vec!["configured middleware", "dependency provider behavior", "external service calls", "effects", "implicit HTTP methods", "runtime configuration"];
-            if source != Adapter::Fastapi {
-                excluded.insert(0, "source normalization of request bodies and query validation");
+            if source != Adapter::React {
+                excluded.insert(0, crate::application_ir::REQUEST_VALIDATION_READER_BOUNDARY);
             }
             json!({"source": source, "reader_features": reader_features, "targets": targets,
                 "excluded": excluded})

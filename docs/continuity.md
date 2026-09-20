@@ -21,27 +21,24 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-Application and semantic IR expansion is active. The authored HTTP IR carries typed required query
-values and JSON-body fields. It has deterministic 422 issues, Python mirrors and four real
-framework runtime fixtures. The compatibility matrix reports readers and writers separately.
-All HTTP adapters write this feature. FastAPI reads required scalar `Query(...)` and embedded
-`Body(...)` declarations with safe literal aliases. Defaults,
-optional types, constraints and dynamic metadata refuse. Native FastAPI error
-payloads and coercion edges remain explicit canonicalization boundaries. FastAPI applications also
-normalize ordered direct-name middleware chains, named `Depends`/`Security` route providers and
-closed-world same-application service calls. React/Next components normalize declared `useState`
-state with literal set or toggle events behind an explicit client boundary. Runtime
-fixtures execute middleware order, the 401 dependency contract and service forwarding through the
-real adapters. Next, model configured middleware, provider outputs, service request bodies and
-effect semantics only where order, data and refusal conditions are explicit.
+Representative guided delivery on pinned unfamiliar projects is active. The deterministic registry
+covers an upstream read, Rust multi-file work, TSX/React and CSS/Tailwind/Mermaid edits, backend
+migration and Lean proof tactics. Two accepted live source-writing cohorts still repeat one Rust
+scalar task. The [roadmap](../PLAN.md) names the next live task corpus and independent oracles.
 
-The completed representative outcome packages a version-matched Python SDK with native releases.
+The authored HTTP IR carries required query and JSON-body scalars with deterministic 422 issues.
+All four HTTP adapters write them and read their documented source subsets. FastAPI also reads
+selected middleware, route providers and same-application service calls. React/Next components
+read declared state and literal events behind a client boundary. Runtime fixtures exercise the
+admitted behavior; native validation differences, configured middleware, provider internals,
+external services and effects remain explicit boundaries. Expand these models against failures in
+the acceptance corpus.
+
+The completed distribution outcome packages a version-matched Python SDK with native releases.
 `fr compatibility` and `FrClient.compatibility()` bind the distribution version, protocol revision
 and schema sets; release CI installs the wheel into an isolated consumer. A bounded HTTP Merkle
-store supplies the existing verified `get`/`put` contract. The representative registry replays an
-unfamiliar upstream workspace, Rust multi-file changes, TSX, CSS/Tailwind/Mermaid, backend migration
-and agent-authored Lean tactics. Two Codex 0.154.0 matched pairs using `gpt-5.6-luna` at low effort
-completed the same scalar source-writing task with reviewed delivery.
+store supplies the existing verified `get`/`put` contract. Two Codex 0.154.0 matched pairs using
+`gpt-5.6-luna` at low effort completed the same scalar source-writing task with reviewed delivery.
 
 ## Validation
 
