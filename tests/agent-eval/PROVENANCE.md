@@ -91,6 +91,14 @@ passed its source and parser checks, but its original npm lockfile contained mac
 and failed a fresh `npm ci`. That lockfile is retained with the diagnostic and is excluded from
 acceptance. The repeat uses the portable lockfile.
 
+The [guided standalone CSS acceptance](results/2026-09-20-upstream-css-acceptance/manifest.json)
+reuses the pinned MIT `aulianza/vite-react-starter` archive, commit and `pnpm-lock.yaml` above.
+The evaluator freezes `fr`, adds a read-only PostCSS check and limits the agent to six instrumented
+calls. It renames one legacy selector in `src/App.css`; all other source bytes stay unchanged.
+The independent receiver replays the reviewed patch, runs the TypeScript/Vite build and checks
+the emitted CSS selector. Current JSX does not use this selector, so the trial establishes source
+delivery and bundling without a rendered UI behavior claim.
+
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0
 arms use `gpt-5.6-luna` at low effort, pass exact-source and 33-case compiled behavior oracles and

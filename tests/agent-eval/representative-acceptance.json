@@ -127,6 +127,21 @@
       "diagnostics": []
     },
     {
+      "id": "react-guided-standalone-css",
+      "covers": ["css-tailwind"],
+      "manifest": "tests/agent-eval/results/2026-09-20-upstream-css-acceptance/manifest.json",
+      "runner": "tools/upstream-css-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-css-agent-2026-09-20.py",
+      "runner_sha256": "2e7449e3520a166aef19bde4052b8f445e4ee28b099abcfbc2b8bc968e7ad096",
+      "fixture_revision": "aulianza/vite-react-starter@0633ab1ff90cd0a09b70c849718b9504500a7bd5",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "exact CSS source, receiver patch replay, PostCSS check, Vite build and generated selector",
+      "postconditions": ["one standalone CSS selector changed", "eight delivery stages pass", "resource-links selector emitted"],
+      "diagnostics": []
+    },
+    {
       "id": "micromaid-guided-mermaid-node",
       "covers": ["mermaid"],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json",
