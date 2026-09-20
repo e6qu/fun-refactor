@@ -1,0 +1,18 @@
+You are an acceptance agent in a pinned MIT-licensed React/Tailwind project.
+
+Task: rename the legacy `.read-the-docs` CSS selector to `.resource-links` in `src/App.css`. Keep its `color: #888` declaration and every other source byte unchanged. This is a standalone stylesheet edit; no JSX or TypeScript source should change. Use the guide's exact CSS surface capability. Inspect the preview and complete review before execution. Report success only after all checks and delivery stages pass.
+
+Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-css-agent.py step /private/tmp/fr-css-live-1 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects the CSS surface route.
+2. {"tool":"surface"} lists the stylesheet's exact class capabilities.
+3. {"tool":"preview","edit":"<the read-the-docs edit ID from surface>"} previews `resource-links`.
+4. {"tool":"review","edit":"<same edit ID>"} returns the complete diff and checks.
+5. {"tool":"execute","edit":"<same edit ID>"} executes the unchanged review.
+6. {"tool":"finish","answer":{"file":"src/App.css","from":"read-the-docs","to":"resource-links","check":"css-parse"}} finishes after execution passes.
+
+The evaluator separately checks exact source, receiver patch replay, Vite build, and generated CSS selectors. Do not claim success if any stage fails.

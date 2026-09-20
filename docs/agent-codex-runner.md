@@ -92,6 +92,21 @@ python3 tools/upstream-react-agent.py audit \
   tests/agent-eval/results/DATE-upstream-react-acceptance
 ```
 
+The pinned standalone CSS task reuses the React archive and its lockfile dependencies. Its
+declared PostCSS check reads the stylesheet without writing source. The independent receiver
+builds the project and verifies the generated selector:
+
+```sh
+python3 tools/upstream-css-agent.py prepare /tmp/fr-upstream-css \
+  --fr target/debug/fr --deps /tmp/fr-react-mit/node_modules
+python3 tools/upstream-css-agent.py run /tmp/fr-upstream-css --confirm-agent-spend
+python3 tools/upstream-css-agent.py score /tmp/fr-upstream-css
+python3 tools/upstream-css-agent.py record /tmp/fr-upstream-css \
+  tests/agent-eval/results/DATE-upstream-css-acceptance
+python3 tools/upstream-css-agent.py audit \
+  tests/agent-eval/results/DATE-upstream-css-acceptance
+```
+
 The pinned Micromaid task follows a Markdown diagram guide and renames one Mermaid node. Prepare
 its parser dependencies from the retained lockfile before the live session. The declared check
 parses both diagrams without writing source; the score separately checks exact graph structure and

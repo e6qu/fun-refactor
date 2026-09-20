@@ -115,6 +115,19 @@ binds the run. A preceding [diagnostic](../tests/agent-eval/results/2026-09-20-u
 retains a passing edit whose parser lockfile contained local paths and failed `npm ci` in a fresh
 directory. It is excluded from acceptance. The accepted repeat uses a clean portable lockfile.
 
+The first accepted guided standalone CSS write uses the same pinned MIT React project as the TSX
+trial. A fresh Codex CLI 0.155.1 agent on `gpt-5.6-luna` at low effort used six instrumented calls.
+It selected the `read-the-docs` definition in `src/App.css`, previewed and reviewed its rename to
+`resource-links`, then executed the unchanged review. The declared PostCSS check parsed the sheet
+before and after the edit. All eight delivery stages passed. An independent receiver replayed the
+patch, verified that only one selector token changed, built the project and found the new selector
+in generated CSS with the old selector absent. The agent made no failed or direct project commands
+and needed no correction. CLI usage was 99,404 input tokens, including 78,080 cached, and 932 output
+tokens; billed quota was unavailable. The selector is not referenced by current JSX, so this trial
+establishes CSS source delivery and bundling without a rendered UI behavior claim. Authored TSX
+bodies remain open. The [accepted manifest](../tests/agent-eval/results/2026-09-20-upstream-css-acceptance/manifest.json)
+binds the run.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -127,6 +140,7 @@ directory. It is excluded from acceptance. The accepted repeat uses a clean port
 | Pinned guided upstream read/trace | `tools/upstream-read-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-read-acceptance/` |
 | Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
 | Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
+| Pinned guided standalone CSS edit | `tools/upstream-css-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-css-acceptance/` |
 | Pinned guided Mermaid node edit | `tools/upstream-mermaid-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
