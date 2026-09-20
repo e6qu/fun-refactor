@@ -100,9 +100,13 @@ def audit_upstream_read(trial: dict[str, object]) -> None:
     usage = next((row["usage"] for row in reversed(codex_rows) if row.get("type") == "turn.completed"), None)
     commands = [row["item"] for row in codex_rows if row.get("type") == "item.completed"
                 and row.get("item", {}).get("type") == "command_execution"]
+    prompt = (directory / "prompt.txt").read_text()
+    recorded_step = re.search(r"(?m)^python3 (\S+/tools/upstream-read-agent\.py step \S+ --request-stdin) <<'FRJSON'$", prompt)
+    if recorded_step is None:
+        raise ValueError("live upstream-read prompt omits its instrumented step")
     if (not isinstance(usage, dict) or not isinstance(usage.get("input_tokens"), int)
-            or any(item.get("exit_code") != 0 or str(runner) not in item.get("command", "")
-                   or " step " not in item.get("command", "") for item in commands)
+            or any(item.get("exit_code") != 0 or recorded_step.group(1) not in item.get("command", "")
+                   for item in commands)
             or result.get("passed") is not True or result.get("answer_oracle") is not True
             or result.get("source_unchanged") is not True or result.get("codex", {}).get("usage") != usage
             or result.get("manual_corrections") != 0):
