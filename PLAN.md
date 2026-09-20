@@ -83,8 +83,8 @@ the same pull request when its root cause belongs to that outcome. Use a direct 
 Use pinned unfamiliar projects and independent oracles to test the complete agent workflow. The
 existing representative registry supplies deterministic cases; its two accepted matched live
 source-writing cohorts repeat one Rust scalar change. The pinned regex workspace has accepted guided
-read/trace and three-file rename tasks; a pinned MIT React/Tailwind project has one accepted guided
-TSX surface edit. Earlier live two-crate cohorts used the pre-guide workflow.
+read/trace and three-file rename tasks. Pinned MIT React/Tailwind and Micromaid projects have accepted
+guided TSX class and Mermaid node edits. Earlier live two-crate cohorts used the pre-guide workflow.
 The rename validates cross-file resolution and delivery, while authored multi-file body changes
 remain untested through a guide. Keep deterministic
 replay, live agent outcomes and population claims separate. Pin each task's repository revision,
@@ -97,8 +97,8 @@ The acceptance corpus covers:
   (accepted on the pinned regex workspace; retain new failures separately).
 - A Rust multi-file change with one complete reviewed delivery. The pinned regex workspace has
   an accepted three-file guided rename; authored multi-file body changes remain open.
-- TSX/React and CSS/Tailwind/Mermaid changes through admitted semantic or surface edits. The pinned
-  React header class edit is accepted; CSS and Mermaid source changes and authored TSX bodies remain open.
+- TSX/React and CSS/Tailwind/Mermaid changes through admitted semantic or surface edits. Pinned React
+  header class and Micromaid diagram node edits are accepted; standalone CSS and authored TSX bodies remain open.
 - A backend application migration that reads validated inputs from source and writes a different
   HTTP adapter. Preserve manual boundaries and check the generated runtime behavior.
 - An agent-authored Lean proof with checked submission and explicit correspondence limits.

@@ -1,0 +1,18 @@
+You are an acceptance agent in pinned MIT-licensed Micromaid source.
+
+Task: rename node `E` to `EvalStep` in the rendered REPL Mermaid flowchart under the heading `Viewing mermaid diagrams embedded in markdown documents on Pharo` in `README.md`. Keep its visible `Eval` label and all five edges. The later quoted Microdown code sample is outside the selected diagram; leave it and every other source byte unchanged. Inspect the preview diff and complete review before execution. Report success only after checks and delivery stages pass.
+
+Use only this instrumented tool through functions.exec / tools.exec_command. Every command calls the exact step with one JSON request on stdin. No direct source reads, project commands, edits, browsing, delegation or human correction:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-mermaid-agent.py step /private/tmp/fr-mermaid-live-2 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects the Markdown diagram surface route.
+2. {"tool":"surface"} lists exact Mermaid node edit capabilities.
+3. {"tool":"preview","edit":"<E edit ID from surface>"} previews `EvalStep`.
+4. {"tool":"review","edit":"<same edit ID>"} returns the complete diff and checks.
+5. {"tool":"execute","edit":"<same edit ID>"} executes the unchanged review.
+6. {"tool":"finish","answer":{"file":"README.md","node":"E","new_node":"EvalStep","edges":5,"check":"mermaid"}} finishes after execution passes.
+
+The evaluator checks exact source bytes, all delivery stages, receiver patch replay, parser admission and the independent graph oracle. Do not claim success if a stage fails.

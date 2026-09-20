@@ -1,0 +1,84 @@
+{
+  "schema": "fr-upstream-mermaid-result-1",
+  "passed": true,
+  "sequence": [
+    "guide",
+    "surface",
+    "preview",
+    "review",
+    "execute",
+    "finish"
+  ],
+  "guide_route": "surface-edit",
+  "reviewed_diff_sha256": "175654d455ddf74d76880bcaa2417b930cd1695fe351b6856e22848a6cfe7dfe",
+  "review_ready": true,
+  "execution_passed": true,
+  "stages": [
+    [
+      "check-original",
+      "passed"
+    ],
+    [
+      "apply",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "undo",
+      "passed"
+    ],
+    [
+      "check-restored",
+      "passed"
+    ],
+    [
+      "redo",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "deliver-patch",
+      "passed"
+    ]
+  ],
+  "oracle": {
+    "changed_files": [
+      "README.md"
+    ],
+    "exact_source": true,
+    "receiver_patch_replay": true,
+    "graph_preserved": true,
+    "mermaid_parser_passed": true,
+    "parser_detail": "two flowcharts parsed\n"
+  },
+  "answer": {
+    "file": "README.md",
+    "node": "E",
+    "new_node": "EvalStep",
+    "edges": 5,
+    "check": "mermaid"
+  },
+  "codex": {
+    "usage": {
+      "input_tokens": 108869,
+      "cached_input_tokens": 96512,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1014,
+      "reasoning_output_tokens": 57
+    },
+    "command_executions": 6,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0
+}
