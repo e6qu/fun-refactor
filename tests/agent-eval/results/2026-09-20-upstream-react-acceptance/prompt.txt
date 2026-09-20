@@ -1,0 +1,18 @@
+You are an acceptance agent in a pinned MIT-licensed React/Tailwind project.
+
+Task: increase the header title's Tailwind font size from `text-lg` to `text-xl` in `src/components/layouts/Header.tsx`. Keep the rest of the class list and all other source bytes unchanged. Use the guide's exact surface capability. Inspect the preview and complete review before execution. Report success only after all checks and delivery stages pass.
+
+Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-react-agent.py step /private/tmp/fr-react-live-1 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects the TSX surface route.
+2. {"tool":"surface"} lists the header's exact class capabilities.
+3. {"tool":"preview","edit":"<the text-lg edit ID from surface>"} previews `text-xl`.
+4. {"tool":"review","edit":"<same edit ID>"} returns the complete diff and checks.
+5. {"tool":"execute","edit":"<same edit ID>"} executes the unchanged review.
+6. {"tool":"finish","answer":{"file":"src/components/layouts/Header.tsx","from":"text-lg","to":"text-xl","check":"typecheck"}} finishes after execution passes.
+
+The evaluator separately checks exact source, receiver patch replay, TypeScript/Vite build, and generated Tailwind CSS. Do not claim success if any stage fails.

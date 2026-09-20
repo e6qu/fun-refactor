@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import time
 from typing import Any, TypedDict, cast
@@ -276,6 +277,121 @@ def audit_upstream_rename(trial: LiveTrial) -> None:
                 raise ValueError(f"live rename diagnostic artifact changed: {artifact}")
 
 
+def audit_upstream_react(trial: LiveTrial) -> None:
+    snapshot = ROOT / trial["runner_snapshot"]
+    directory = (ROOT / trial["manifest"]).parent
+    archive = ROOT / "tests/agent-eval/react-workspace.tar.gz"
+    manifest = json.loads((directory / "manifest.json").read_text())
+    session = json.loads((directory / "session.json").read_text())
+    run = json.loads((directory / "codex-run.json").read_text())
+    result = json.loads((directory / "result.json").read_text())
+    if (not snapshot.is_file() or digest(snapshot) != trial["runner_sha256"]
+            or manifest.get("schema") != "fr-upstream-react-manifest-1"
+            or manifest.get("passed") is not True or manifest.get("acceptance_evidence") is not True
+            or manifest.get("evaluator_sha256") != trial["runner_sha256"]
+            or session.get("evaluator_sha256") != trial["runner_sha256"]
+            or session.get("upstream_commit") != trial["fixture_revision"].split("@")[-1]
+            or session.get("archive_sha256") != digest(archive)
+            or run.get("model") != trial["model"]
+            or run.get("reasoning_effort") != trial["reasoning_effort"]
+            or run.get("codex_version") != trial["tool_version"]
+            or run.get("exit_code") != 0 or run.get("timed_out")
+            or result.get("passed") is not True):
+        raise ValueError("live React trial binding changed")
+    for name, expected in manifest["files"].items():
+        artifact = directory / name
+        if not artifact.is_file() or digest(artifact) != expected:
+            raise ValueError(f"live React artifact changed: {artifact}")
+    if (run.get("prompt_sha256") != digest(directory / "prompt.txt")
+            or run.get("events_sha256") != digest(directory / "codex-events.jsonl")
+            or run.get("stderr_sha256") != digest(directory / "codex-stderr.txt")):
+        raise ValueError("live React Codex transcript binding changed")
+    rows = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
+    if [row["request"].get("tool") for row in rows] != [
+            "guide", "surface", "preview", "review", "execute", "finish"]:
+        raise ValueError("live React tool sequence changed")
+    guide, surface, preview, review, execute, finish = rows
+    source = "src/components/layouts/Header.tsx"
+    edit = [item["edit"]["id"] for item in surface["full"]["items"]
+            if item.get("class_use", {}).get("name") == "text-lg"
+            and item.get("source", {}).get("path") == source]
+    stages = execute["full"]["workflow"]["stages"]
+    expected_stages = ["check-original", "apply", "check-applied", "undo", "check-restored",
+                       "redo", "check-applied", "deliver-patch"]
+    diff = review["full"]["diff"]
+    if (guide["full"].get("state") != "ready"
+            or guide["full"].get("route", {}).get("id") != "surface-edit"
+            or len(edit) != 1
+            or any(row["request"].get("edit") != edit[0] for row in (preview, review, execute))
+            or preview["full"].get("applied") is not False
+            or preview["full"].get("changed") is not True
+            or preview["full"].get("diff") != diff
+            or review["full"].get("ready") is not True
+            or review["full"].get("checks", {}).get("names") != ["typecheck"]
+            or f"--- a/{source}" not in diff or f"+++ b/{source}" not in diff
+            or execute["full"].get("passed") is not True
+            or [item.get("stage") for item in stages] != expected_stages
+            or any(item.get("status") != "passed" for item in stages)
+            or finish["request"].get("answer") != {
+                "file": source, "from": "text-lg", "to": "text-xl", "check": "typecheck"}):
+        raise ValueError("live React guidance, review or delivery changed")
+    with tempfile.TemporaryDirectory(prefix="fr-react-audit-") as temporary:
+        receiver = Path(temporary)
+        with tarfile.open(archive, "r:gz") as contents:
+            original = contents.extractfile(source)
+            lock = contents.extractfile("pnpm-lock.yaml")
+            if original is None or lock is None or sha256_bytes(lock.read()) != session.get("lock_sha256"):
+                raise ValueError("pinned React source or lock is missing")
+            before = original.read()
+        path = receiver / source
+        path.parent.mkdir(parents=True)
+        path.write_bytes(before)
+        replay = subprocess.run(["git", "apply", "-"], cwd=receiver, input=diff.encode(),
+                                capture_output=True, timeout=30)
+        expected = before.replace(b"text-lg font-medium text-black dark:text-white",
+                                  b"text-xl font-medium text-black dark:text-white")
+        if (before.count(b"text-lg font-medium text-black dark:text-white") != 1
+                or replay.returncode != 0 or path.read_bytes() != expected):
+            raise ValueError("live React reviewed diff fails pinned receiver replay")
+    codex_rows = [json.loads(line) for line in (directory / "codex-events.jsonl").read_text().splitlines()]
+    usage = next((row["usage"] for row in reversed(codex_rows) if row.get("type") == "turn.completed"), None)
+    commands = [row["item"] for row in codex_rows if row.get("type") == "item.completed"
+                and row.get("item", {}).get("type") == "command_execution"]
+    recorded_step = re.search(r"(?m)^python3 (\S+/tools/upstream-react-agent\.py step \S+ --request-stdin) <<'FRJSON'$",
+                              (directory / "prompt.txt").read_text())
+    commands_match = False
+    if recorded_step is not None and len(commands) == len(rows):
+        prefix = f'/bin/zsh -lc "python3 {recorded_step.group(1)} <<\'FRJSON\'\n'
+        suffix = '\nFRJSON"'
+        commands_match = all(
+            item.get("exit_code") == 0
+            and item.get("command", "").startswith(prefix)
+            and item.get("command", "").endswith(suffix)
+            and json.loads(item["command"][len(prefix):-len(suffix)].replace('\\"', '"')) == row["request"]
+            for item, row in zip(commands, rows)
+        )
+    if (recorded_step is None or len(commands) != len(rows)
+            or not commands_match
+            or not isinstance(usage, dict) or not isinstance(usage.get("input_tokens"), int)
+            or result.get("codex", {}).get("usage") != usage
+            or result.get("codex", {}).get("direct_project_commands") != []
+            or result.get("manual_corrections") != 0
+            or result.get("reviewed_diff_sha256") != sha256_text(diff)
+            or result.get("stages") != [[name, "passed"] for name in expected_stages]
+            or result.get("oracle", {}).get("changed_files") != [source]
+            or any(result.get("oracle", {}).get(name) is not True for name in
+                   ("exact_source", "receiver_patch_replay", "receiver_build", "generated_text_xl_css"))):
+        raise ValueError("live React score, oracle or Codex provenance changed")
+
+
+def sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
 def audit() -> dict[str, object]:
     registry = load()
     cases = registry.get("cases")
@@ -309,6 +425,8 @@ def audit() -> dict[str, object]:
             audit_upstream_read(trial)
         elif trial.get("id") == "regex-guided-multi-file-rename":
             audit_upstream_rename(trial)
+        elif trial.get("id") == "react-guided-tailwind-surface":
+            audit_upstream_react(trial)
         else:
             raise ValueError("representative acceptance has an unknown live trial")
 
