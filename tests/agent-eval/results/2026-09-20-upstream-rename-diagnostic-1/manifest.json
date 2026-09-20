@@ -1,0 +1,20 @@
+{
+  "schema": "fr-upstream-rename-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "outer sandbox blocked Codex CLI in-process app-server initialization before any agent turn",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator": {
+    "tools/upstream-rename-agent.py": "36ad0c50716837da00ae7cfb68e5f54017037b6618d36f98f8db89f2e5e2a37b",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "files": {
+    "session.json": "8c804a6064ec9d26ab0ff90b036d9dc97f52fc1dfbcfb07925017dafa60e3fcc",
+    "prompt.txt": "13d7b40fbad7fc59e53519f25115c149e4ff6644bb21c6b3f792502c484f8e48",
+    "codex-events.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-stderr.txt": "2d8b902fb51c4fb0108c58a40b037f3ed52641f00cdae67901d7cbda9b4b8473",
+    "codex-run.json": "b0f1c59fe1a6b120a8ac7de18869f63e4f5856c554035251441efed4f662d18e",
+    "result.json": "6b85633a7a9d443e10effb574bd59699219eb20e6bba694030ece2981373cc4f"
+  }
+}

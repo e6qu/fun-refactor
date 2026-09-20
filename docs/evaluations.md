@@ -68,6 +68,21 @@ instrumented exploration boundary. The agent's successful trace still disclosed 
 `field-based` method candidates for unknown receiver types; that uncertainty is the existing B5
 static-analysis boundary, not an exact call claim.
 
+The first accepted guided multi-file write uses the same pinned regex revision. A fresh Codex CLI
+0.155.1 agent on `gpt-5.6-luna` at low effort made five instrumented calls to guide, preview,
+review, execute and finish a `regex_syntax::escape` to `quote_regex` rename. The complete review
+changed the declaration, the CLI caller and the `regex::escape` facade's delegate. The public
+facade kept its name and behavior. The upstream library tests, CLI build and minimal-feature build
+passed at every applicable delivery stage; apply, undo, redo and patch delivery all passed. A
+separate receiver applied the patch to the pinned archive and passed 64 compiled cases against an
+independent character-escaping oracle. Only those three tracked source files changed. The agent
+used five commands, no failed or direct project commands and no human correction. CLI usage was
+83,757 input tokens, of which 68,096 were cached, and 1,095 output tokens; billed quota was
+unavailable. This is one guided rename, not evidence for authored multi-file body edits or other
+languages. The [accepted manifest](../tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/manifest.json)
+binds the run; the preceding diagnostic retains the outer-sandbox launch failure before any agent
+turn.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -78,6 +93,7 @@ static-analysis boundary, not an exact call claim.
 | Matched SDK and direct-file source writing | `tools/matched-agent-source.py`, `tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/` |
 | Representative cross-language acceptance | `tools/representative-acceptance.py`, `tests/agent-eval/representative-acceptance.json` |
 | Pinned guided upstream read/trace | `tools/upstream-read-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-read-acceptance/` |
+| Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
 | Semantic bodies, deltas and intents | `tests/agent-eval/semantic-*.json`, `tools/semantic-*.py` |

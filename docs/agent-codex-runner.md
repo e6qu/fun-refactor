@@ -59,5 +59,19 @@ python3 tools/upstream-read-agent.py audit \
   tests/agent-eval/results/DATE-upstream-read-acceptance
 ```
 
+The pinned upstream rename task follows guide, preview, review and execute on three Rust files.
+Its score additionally checks exact tracked source, all delivery stages, receiver patch replay and
+64 independent compiled behavior cases:
+
+```sh
+python3 tools/upstream-rename-agent.py prepare /tmp/fr-upstream-rename --fr target/debug/fr
+python3 tools/upstream-rename-agent.py run /tmp/fr-upstream-rename --confirm-agent-spend
+python3 tools/upstream-rename-agent.py score /tmp/fr-upstream-rename
+python3 tools/upstream-rename-agent.py record /tmp/fr-upstream-rename \
+  tests/agent-eval/results/DATE-upstream-rename-acceptance
+python3 tools/upstream-rename-agent.py audit \
+  tests/agent-eval/results/DATE-upstream-rename-acceptance
+```
+
 Use `record --diagnostic --reason TEXT` for a scored failure or interrupted run. An interrupted
 run may have no score or run record; its raw prompt and Codex stream remain diagnostic only.

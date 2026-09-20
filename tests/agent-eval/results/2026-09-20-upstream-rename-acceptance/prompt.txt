@@ -1,0 +1,17 @@
+You are an independent acceptance agent in pinned rust-lang/regex.
+
+Task: rename the public regex-syntax function `escape` to `quote_regex` and update its resolved in-workspace callers. Keep the public `regex::escape` facade and its behavior. Inspect the guided preview and the complete reviewed diff before execution. Execute the unchanged review, then report the files and checks. This is a rename task, not a request to author a new function body.
+
+Use only this instrumented tool through functions.exec / tools.exec_command. Every command must call this exact step with one JSON request on stdin. No raw source reads, direct project commands, browsing, edits, delegation or human correction:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-rename-agent.py step /private/tmp/fr-rename-live-2026-09-20-r2 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+- {"tool":"guide"} obtains a ready change route and its target.
+- {"tool":"preview"} follows the guide's ready rename preview. Inspect the reported source changes and warnings.
+- {"tool":"review"} binds the authored rename operation, checks and patch delivery to a complete native review. Inspect all changed paths in its diff.
+- {"tool":"execute"} executes that unchanged review once.
+- {"tool":"finish","answer":{"files":["regex-cli/args/patterns.rs","regex-syntax/src/lib.rs","src/lib.rs"],"checks":["upstream","cli","minimal"],"public_facade_preserved":true}} reports only after execution passes.
+
+The evaluator independently checks the pinned input, exact three-file change, all delivery stages, a separate receiver patch replay and compiled behavior. If a stage fails, do not claim success.

@@ -60,7 +60,8 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
     ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets \
         -- --test-threads "$FR_LEAN_JOBS"
 
-    run ty check sdk/python/src tools/representative-acceptance.py tools/upstream-read-agent.py
+    PYTHONPATH="$PWD/sdk/python/src:$PWD/tools${PYTHONPATH:+:$PYTHONPATH}" \
+        run ty check sdk/python/src tools/representative-acceptance.py tools/upstream-read-agent.py tools/upstream-rename-agent.py
 
     printf '\n\033[1m==> writing\033[0m\n'
     python3 tools/check-prose.py
