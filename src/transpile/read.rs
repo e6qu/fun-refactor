@@ -11051,6 +11051,13 @@ mod typescript {
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
             "if_statement" => {
+                let branch = |node: Node<'_>| {
+                    if node.kind() == "statement_block" {
+                        block(cx, node)
+                    } else {
+                        vec![stmt(cx, node)]
+                    }
+                };
                 let otherwise = cx
                     .field(node, "alternative")
                     .map(|alt| {
@@ -11058,6 +11065,7 @@ mod typescript {
                         match inner.first() {
                             Some(first) if first.kind() == "if_statement" => vec![stmt(cx, *first)],
                             Some(first) if first.kind() == "statement_block" => block(cx, *first),
+                            Some(first) => vec![stmt(cx, *first)],
                             _ => Vec::new(),
                         }
                     })
@@ -11069,7 +11077,7 @@ mod typescript {
                         .unwrap_or(Expr::Null),
                     then: cx
                         .field(node, "consequence")
-                        .map(|b| block(cx, b))
+                        .map(branch)
                         .unwrap_or_default(),
                     otherwise,
                 }

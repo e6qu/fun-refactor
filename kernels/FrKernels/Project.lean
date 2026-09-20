@@ -2,11 +2,10 @@ import Init.Data.List.Sort.Lemmas
 
 namespace FrKernels.Project
 
--- fr:spec src/project/framework_kernel.rs::application_adapter_reads @ fbc379d06d72da174fb82eed9e8a253746583debc06f69d72f4da29347a823ba
+-- fr:spec src/project/framework_kernel.rs::application_adapter_reads @ ee124b9d223f44f88e64083f53fbad5e007e27696be178a1eb9cd0247c390e51
 -- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
 def applicationAdapterReads (adapter feature : Nat) : Bool :=
-  decide ((feature ≤ 1 ∧ adapter ≤ 3) ∨ (feature = 2 ∧ adapter = 1) ∨
-    (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
+  decide ((feature ≤ 2 ∧ adapter ≤ 3) ∨ (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
 
 -- fr:spec src/project/framework_kernel.rs::application_adapter_writes @ 6bc9b4d6aba506f3043aa7bc7fd79a9a683c308c8724df61b897302c952986d0
 -- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
@@ -27,8 +26,7 @@ theorem every_readable_feature_is_writable (adapter feature : Nat)
 
 theorem http_adapters_require_http_features (feature : Nat) (adapter : Nat)
     (http : adapter ≤ 3) (notNext : adapter ≠ 0)
-    (notFastapi : adapter ≠ 1)
-    (accepted : applicationAdapterSupports adapter feature = true) : feature ≤ 1 := by
+    (accepted : applicationAdapterSupports adapter feature = true) : feature ≤ 2 := by
   simp only [applicationAdapterSupports, Bool.and_eq_true, applicationAdapterReads,
     decide_eq_true_eq] at accepted
   omega

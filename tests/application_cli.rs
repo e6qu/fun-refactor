@@ -442,10 +442,13 @@ fn application_report_publishes_every_adapter_feature_pair_and_refusal() {
         feature("fastapi", "express", "validated-json-route")["status"],
         "supported"
     );
-    assert_eq!(
-        feature("express", "fastapi", "validated-json-route")["reason"],
-        "source-reader-does-not-model-validated-json-route"
-    );
+    for source in ["nextjs", "express", "go-net-http"] {
+        assert_eq!(
+            feature(source, "fastapi", "validated-json-route")["status"],
+            "supported",
+            "{source}"
+        );
+    }
 }
 
 #[test]
@@ -768,6 +771,146 @@ fn application_reads_required_fastapi_query_and_embedded_body_inputs() {
                 .len(),
             1
         );
+    }
+}
+
+#[test]
+fn application_reads_explicit_validated_inputs_in_next_express_and_go() {
+    fn routes(node: &Value, found: &mut Vec<Value>) {
+        if node["kind"] == "route" {
+            found.push(node.clone());
+        }
+        for child in node["children"].as_array().into_iter().flatten() {
+            routes(child, found);
+        }
+    }
+
+    let sources = [
+        (
+            "nextjs",
+            "app/records/[id]/route.ts",
+            include_str!("application-fixtures/validated_next.ts"),
+            "/records/{id}",
+        ),
+        (
+            "express",
+            "server.ts",
+            include_str!("application-fixtures/validated_express.ts"),
+            "/records/{id}",
+        ),
+        (
+            "go-net-http",
+            "server.go",
+            include_str!("application-fixtures/validated_go.go"),
+            "/records/{id}",
+        ),
+    ];
+    for (adapter, path, source, expected_path) in sources {
+        let dir = tempfile::tempdir().unwrap();
+        if let Some(parent) = dir.path().join(path).parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(dir.path().join(path), source).unwrap();
+        if adapter != "go-net-http" {
+            fs::write(
+                dir.path().join("package.json"),
+                format!(
+                    r#"{{"dependencies":{{"{}":"1"}}}}"#,
+                    if adapter == "nextjs" {
+                        "next"
+                    } else {
+                        "express"
+                    }
+                ),
+            )
+            .unwrap();
+        }
+        let report = ok(dir.path(), &["project", "application"]);
+        let mut found = Vec::new();
+        for application in report["model"]["applications"].as_array().unwrap() {
+            routes(application, &mut found);
+        }
+        let route = found
+            .iter()
+            .find(|route| route["data"]["route"]["url"] == expected_path)
+            .unwrap_or_else(|| panic!("{adapter}: {found:?}"));
+        assert_eq!(
+            route["data"]["normalization"]["status"], "portable",
+            "{adapter}: {route}"
+        );
+        let mut inputs = vec![json!({"name":"limit", "source":"query", "scalar":"integer"})];
+        if adapter != "go-net-http" {
+            inputs.push(json!({"name":"visible", "source":"json-body", "scalar":"boolean"}));
+        }
+        assert_eq!(route["route"]["inputs"], json!(inputs), "{adapter}");
+        assert_eq!(
+            route["route"]["response"]["fields"]["limit"],
+            json!({"kind":"input", "name":"limit"}),
+            "{adapter}"
+        );
+        if adapter != "go-net-http" {
+            assert_eq!(
+                route["route"]["response"]["fields"]["visible"],
+                json!({"kind":"input", "name":"visible"}),
+                "{adapter}"
+            );
+        }
+        let migration = ok(
+            dir.path(),
+            &[
+                "migrate",
+                "application",
+                "--project",
+                ".",
+                "--to",
+                "fastapi",
+                "--out",
+                "generated",
+            ],
+        );
+        assert_eq!(migration["migration"]["manual_boundaries"], 0, "{adapter}");
+    }
+}
+
+#[test]
+fn application_keeps_unchecked_or_unsupported_validation_manual() {
+    for (path, source, package) in [
+        (
+            "app/records/route.ts",
+            include_str!("application-fixtures/invalid_validated_next.ts"),
+            "next",
+        ),
+        (
+            "server.ts",
+            include_str!("application-fixtures/invalid_validated_express.ts"),
+            "express",
+        ),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        if let Some(parent) = dir.path().join(path).parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(dir.path().join(path), source).unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            format!(r#"{{"dependencies":{{"{package}":"1"}}}}"#),
+        )
+        .unwrap();
+        let report = ok(dir.path(), &["project", "application"]);
+        fn route(node: &Value) -> Option<&Value> {
+            if node["kind"] == "route" {
+                return Some(node);
+            }
+            node["children"].as_array()?.iter().find_map(route)
+        }
+        let found = report["model"]["applications"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find_map(route)
+            .unwrap();
+        assert_eq!(found["data"]["normalization"]["status"], "manual", "{path}");
+        assert!(found["route"].is_null(), "{path}");
     }
 }
 
