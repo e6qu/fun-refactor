@@ -3,6 +3,8 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const SCHEMA: &str = "fr-application-ir-1";
+pub const REQUEST_VALIDATION_READER_BOUNDARY: &str =
+    "request validation outside each HTTP adapter's documented subset";
 mod write;
 pub use write::{write_routes, write_static_component};
 

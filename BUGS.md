@@ -71,6 +71,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B938: **application audit exclusions still claimed only FastAPI could read validated inputs.**
+  The normalizer admitted documented Next.js, Express and Go HTTP subsets. `audit frameworks` and
+  `project application` retained the older exclusion text.
+  Both reports now share one precise reader boundary; a regression checks the four HTTP readers,
+  the exclusion text and the React boundary across both reports.
+
 - [x] B937: **two identical component detail facts on one line broke application assembly.** A pair of
   same-line `onClick` arrow handlers on the same element kind produced one fact identity, and
   `project application` refused the whole model with "application facts repeat an identity."

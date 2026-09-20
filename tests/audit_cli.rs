@@ -73,3 +73,71 @@ fn trust_sections_keep_support_tests_and_proofs_distinct() {
         "inherent-static-boundary"
     );
 }
+
+#[test]
+fn framework_reader_boundaries_match_application_report() {
+    let frameworks = audit("frameworks");
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("README.md"), "# fixture\n").unwrap();
+    let output = Command::new(FR)
+        .args(["--json", "project", "application"])
+        .current_dir(dir.path())
+        .output()
+        .expect("application report should run");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let application: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let boundary = "request validation outside each HTTP adapter's documented subset";
+    assert!(frameworks["report"]["excluded"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(boundary)));
+
+    for source in ["nextjs", "fastapi", "express", "go-net-http"] {
+        let row = application["adapters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["source"] == source)
+            .unwrap();
+        assert!(
+            row["reader_features"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("validated-json-route")),
+            "{source}"
+        );
+        assert!(
+            row["excluded"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(boundary)),
+            "{source}"
+        );
+        let cell = frameworks["report"]["cells"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|cell| {
+                cell["source"] == source
+                    && cell["target"] == "react"
+                    && cell["feature"] == "validated-json-route"
+            })
+            .unwrap();
+        assert_eq!(cell["source_reader"], true, "{source}");
+    }
+
+    let react = application["adapters"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == "react")
+        .unwrap();
+    assert!(!react["excluded"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(boundary)));
+}

@@ -277,7 +277,7 @@ fn framework_report() -> Value {
         "features": FeatureKind::ALL.map(FeatureKind::name),
         "counts":{"cells":cells.len(),"supported":supported,"unsupported":cells.len()-supported},
         "cells":cells,
-        "excluded":["source normalization of request bodies and query validation outside the FastAPI declaration subset","configured middleware",
+        "excluded":[crate::application_ir::REQUEST_VALIDATION_READER_BOUNDARY,"configured middleware",
             "dependency provider behavior","external service calls","effects","implicit HTTP methods","runtime configuration"],
         "claim":"Compatibility is a checked static admission policy. Runtime fixtures remain separate evidence.",
     })
