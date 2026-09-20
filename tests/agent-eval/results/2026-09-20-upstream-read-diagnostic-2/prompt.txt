@@ -1,0 +1,17 @@
+You are an independent acceptance agent in the pinned rust-lang/regex workspace.
+
+Explain where the public regex::escape function sends its input, trace the implementation through the append helper and the metacharacter predicate, and distinguish source evidence from runtime proof. Use bounded fr evidence. The requested declaration is escape in src/lib.rs. Do not use raw source reading, search, Git, browsing, other tools, delegation, or edits. No human correction is available.
+
+Use only this instrumented tool, through functions.exec / tools.exec_command. Every shell command must invoke exactly this step command, with a JSON request on stdin:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-read-agent.py step /private/tmp/fr-upstream-read-20260920-r2 --request-stdin <<'FRJSON'
+{"tool":"guide","goal":{...}}
+FRJSON
+
+Requests:
+- guide: supply an fr-agent-goal-1 object with purpose understand or trace, selector by name escape, scope src/lib.rs, language rust, and automatic operation. Call once for each purpose.
+- follow: {"tool":"follow","guide":0} follows the first ready action of that guide. Follow both guides before source reveal.
+- find: {"tool":"find","name":"...","scope":"..."} returns at most five exact matches. Use it to locate implementation helpers after the trace.
+- show: {"tool":"show","handle":"..."} reveals at most 512 source bytes from a handle returned by guide or find. Reveal the facade, lower-crate escape, append helper and predicate as needed. Do not assume a call edge is behavioral proof.
+- finish: {"tool":"finish","answer":{"delegate_path":"...","append_helper":"...","escape_predicate":"...","trace_confidence":"...","runtime_proven":false,"example_metacharacter":"..."}}. Use the target path of the resolved call, exact helper names, the call edge's confidence and a character visible in the predicate. Finish only after evidence supports all fields.
+
+The evaluator independently checks the pinned source, exact answer, tool sequence, bounded reveals and unchanged workspace. If any evidence is unavailable, report it honestly in the answer.

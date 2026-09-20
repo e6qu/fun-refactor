@@ -1,0 +1,22 @@
+{
+  "schema": "fr-upstream-read-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "Correct live trace rejected by the predeclared scorer because it included the callee symbol after the path.",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator": {
+    "tools/upstream-read-agent.py": "a76bedb6292b860bd1c2184dcad31ec90e4e7f2e7abc130d41aa61de79fc2b0e",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "files": {
+    "session.json": "8a9fccd22b644458a46920adcd49eafbf189b6fe1431e99c3f58a931ba762510",
+    "prompt.txt": "8e2d7a1f1d7f65003247867f64687b44fcc819fa4a60f4381e96b27b70c20402",
+    "events.jsonl": "21d07c5126c772aa81d5910148672dbcad1288b63c132136608959ebd997bcb3",
+    "codex-events.jsonl": "59b9da314e28603baf0ec86b3a9ef01ae4ab5c892f24f6cce1b5b4077bb69d0a",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-final.txt": "718aa05aeb4c5da5ab99c797bbdf0d1ce7956f5ff25926eb2087bcfd0346eba7",
+    "codex-run.json": "37bb6a53245a6ab3ca341321bca712bbc4a8f43f493bbc2e538d081b0d3bda81",
+    "result.json": "598f6810995afb43d20c8c3277e263551c9e09438774a27db1e2b8f839a08a5d"
+  }
+}

@@ -31,6 +31,13 @@ the pinned unfamiliar regex workspace, Rust multi-file reviewed delivery, TSX/Re
 CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its
 replay uses one Cargo and Lean worker and labels a missing toolchain as infrastructure failure.
 
+The [guided upstream read acceptance](results/2026-09-20-upstream-read-acceptance/manifest.json)
+adds one fresh `understand`/`trace` Codex run on the pinned regex archive. The evaluator freezes the
+binary, admits only bounded guide/follow/find/show requests, verifies the cross-crate call and
+checks the agent's answer against source bodies. The retained diagnostics `-diagnostic-1` through
+`-diagnostic-4` preserve the failed launch, malformed goal request, and two evaluator contract
+failures. None is counted as acceptance. The run exercises no source-writing lifecycle.
+
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0
 arms use `gpt-5.6-luna` at low effort, pass exact-source and 33-case compiled behavior oracles and

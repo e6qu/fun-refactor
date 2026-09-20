@@ -1,0 +1,5 @@
+`regex::escape` in `src/lib.rs` delegates to `regex-syntax/src/lib.rs::escape` via an import-qualified call.
+
+The lower-level `escape` creates a `String`, passes it to `escape_into`, then returns it. `escape_into` iterates over characters, calls `is_meta_character`, prepends `\` when true, and appends the character. The predicate includes `.` (among others).
+
+This is source/trace evidence only; no runtime execution was performed, so runtime behavior is not proven.

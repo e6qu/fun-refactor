@@ -58,6 +58,60 @@ fn references(index: &Index, id: SymbolId) -> Vec<(String, Confidence)> {
 }
 
 #[test]
+fn a_rust_crate_path_does_not_resolve_to_the_same_named_local_function() {
+    let (_tmp, root) = workspace(&[
+        (
+            "src/lib.rs",
+            "pub fn escape(input: &str) -> String { regex_syntax::escape(input) }\n\
+             pub fn external(input: &str) -> String { other::escape(input) }\n",
+        ),
+        (
+            "regex-syntax/src/lib.rs",
+            "pub fn escape(input: &str) -> String { input.to_string() }\n",
+        ),
+    ]);
+    let index = index_of(&root);
+    let facade = index
+        .symbols
+        .iter()
+        .find(|s| {
+            s.name == "escape"
+                && s.file.ends_with("src/lib.rs")
+                && !s.file.ends_with("regex-syntax/src/lib.rs")
+        })
+        .expect("facade function");
+    let implementation = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "escape" && s.file.ends_with("regex-syntax/src/lib.rs"))
+        .expect("implementation function");
+    let call = index
+        .references
+        .iter()
+        .find(|r| {
+            r.file == facade.file
+                && r.name == "escape"
+                && r.kind == fun_refactor::model::ReferenceKind::Call
+        })
+        .expect("qualified call");
+    assert_eq!(call.receiver.as_deref(), Some("regex_syntax"));
+    assert!(call.receiver_is_path);
+    assert_eq!(call.target, Some(implementation.id));
+    assert_ne!(call.target, Some(facade.id));
+    let external = index
+        .references
+        .iter()
+        .find(|r| {
+            r.file == facade.file && r.name == "escape" && r.receiver.as_deref() == Some("other")
+        })
+        .expect("external path call");
+    assert_eq!(
+        external.target, None,
+        "an unknown path must stay unresolved"
+    );
+}
+
+#[test]
 fn a_zig_call_through_an_import_binding_resolves_into_that_file() {
     let (_tmp, root) = workspace(&[
         (

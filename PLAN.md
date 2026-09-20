@@ -37,9 +37,11 @@ does not prove its source without a checked correspondence boundary.
 ## Current baseline
 
 The architecture needed for items 1 through 7 exists. Item 8 has deterministic representative
-breadth and two accepted matched source-writing runs on the same Rust scalar task. Autonomous
-evidence across task shapes remains narrow. The defect ledger records no open actionable
-correctness defect.
+breadth and one accepted guided upstream `understand`/`trace` run. Two accepted matched
+source-writing runs still repeat the Rust scalar task. Earlier live agents also made
+two-crate changes on the regex workspace through the pre-guide workflow. Autonomous guided
+source-writing evidence across task shapes remains narrow. The defect ledger records no open
+actionable correctness defect.
 
 | Area | Delivered baseline | Remaining work |
 |---|---|---|
@@ -50,7 +52,7 @@ correctness defect.
 | Application migration | Generic application IR for routes and components; four HTTP adapters write required scalar validation and read their documented source subsets; selected FastAPI middleware, `Depends`/`Security` providers and closed-world service calls; React/Next state and events behind an explicit client boundary | Validation outside each reader subset, configured middleware, provider internals, external services and effects |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
-| Agent evidence | Deterministic cross-language registry, unfamiliar upstream replay, matched context and two accepted source-writing cohorts | Broaden autonomous cross-project, cross-language, multi-file and proof-writing trials |
+| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace, pre-guide multi-file upstream cohorts, matched context and two accepted scalar source-writing cohorts | Broaden guided cross-project, cross-language, multi-file and proof-writing trials |
 | Distribution | Native, WASM and version-matched Python SDK artifacts plus a portable agent skill | Add distribution channels only when consumer demand justifies them |
 
 Run these instead of copying volatile matrices into roadmap prose:
@@ -79,14 +81,17 @@ the same pull request when its root cause belongs to that outcome. Use a direct 
 ### Next bulk outcome: representative guided delivery
 
 Use pinned unfamiliar projects and independent oracles to test the complete agent workflow. The
-existing representative registry supplies deterministic cases; its two accepted live source-writing
-cohorts repeat one Rust scalar change. Keep deterministic replay, live agent outcomes and population
-claims separate. Pin each task's repository revision, goal, admitted route, allowed tools, exact
-postconditions and compiler, framework or proof oracle before a live run.
+existing representative registry supplies deterministic cases; its two accepted matched live
+source-writing cohorts repeat one Rust scalar change. The pinned regex workspace now has an accepted
+guided read/trace task; earlier live two-crate cohorts used the pre-guide workflow. Keep deterministic
+replay, live agent outcomes and population claims separate. Pin each task's repository revision,
+goal, admitted route, allowed tools, exact postconditions and compiler, framework or proof oracle
+before a live run.
 
 The acceptance corpus covers:
 
-- An unfamiliar upstream `understand` and `trace` task with bounded reveal and exact evidence.
+- An unfamiliar upstream `understand` and `trace` task with bounded reveal and exact evidence
+  (accepted on the pinned regex workspace; retain new failures separately).
 - A Rust multi-file change with one complete reviewed delivery.
 - TSX/React and CSS/Tailwind/Mermaid changes through admitted semantic or surface edits.
 - A backend application migration that reads validated inputs from source and writes a different

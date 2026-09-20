@@ -1,0 +1,18 @@
+{
+  "schema": "fr-upstream-read-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "Parent stopped the live run after repeated malformed guide JSON; no project tool request succeeded.",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator": {
+    "tools/upstream-read-agent.py": "314614d48454ab9561c7433a7377e0c9a827dd1677cfffd94c4858508284c229",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "files": {
+    "session.json": "19a04ac6b1162d05ea7964931af55329dad4fb762f2ea5a67a440c5e108ab2d0",
+    "prompt.txt": "41004c306a514cb43c4198055bfb21017045b288c4ef40c2ec8b01df49376642",
+    "codex-events.jsonl": "002262a34bd59ede492ce455974e3003625ddfe3f104af01c1f26fcc013f3c8d",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
