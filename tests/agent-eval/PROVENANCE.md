@@ -5,6 +5,9 @@ that run. Its [runner snapshot](runner-snapshots/upstream-read-agent-2026-09-20.
 those bytes while the active `tools/upstream-read-agent.py` evolves. The representative
 acceptance audit checks the snapshot against the recorded digest and keeps the original
 runner path in the session and command transcript as historical provenance.
+The accepted guided three-file rename has a separate
+[runner snapshot](runner-snapshots/upstream-rename-agent-2026-09-20.py) with the same rule: audit
+the recorded bytes, not a later edit to the active evaluator.
 
 `strsim-0.11.1.crate` is the unmodified published source archive for rapidfuzz/strsim-rs 0.11.1.
 The existing Cargo cache supplied these bytes. No source padding or injected bug modifies the benchmark basis.
@@ -43,6 +46,16 @@ binary, admits only bounded guide/follow/find/show requests, verifies the cross-
 checks the agent's answer against source bodies. The retained diagnostics `-diagnostic-1` through
 `-diagnostic-4` preserve the failed launch, malformed goal request, and two evaluator contract
 failures. None is counted as acceptance. The run exercises no source-writing lifecycle.
+
+The [guided upstream rename acceptance](results/2026-09-20-upstream-rename-acceptance/manifest.json)
+uses the same pinned archive and a frozen local `fr` binary. The live agent follows a ready
+rename guide, inspects a three-file preview and native review, then executes the unchanged review
+with upstream, CLI and minimal-feature checks. The evaluator verifies all eight delivery stages,
+exact tracked source changes, patch replay in a fresh archive and 64 independent compiled behavior
+cases. The [diagnostic launch](results/2026-09-20-upstream-rename-diagnostic-1/manifest.json)
+failed before an agent turn because the outer sandbox blocked Codex CLI initialization. The
+successful retry is the sole accepted rename trial; it demonstrates guided cross-file rename, not
+authored multi-file body changes.
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0

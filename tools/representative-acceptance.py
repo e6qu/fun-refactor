@@ -11,8 +11,11 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 from typing import Any, TypedDict, cast
+
+from agent_eval import regex_workspace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -152,6 +155,127 @@ def audit_upstream_read(trial: LiveTrial) -> None:
                 raise ValueError(f"live upstream-read diagnostic artifact changed: {artifact}")
 
 
+def audit_upstream_rename(trial: LiveTrial) -> None:
+    for name in ("manifest", "runner", "runner_snapshot", "runner_sha256", "fixture_revision",
+                 "model", "reasoning_effort", "tool_version"):
+        if not isinstance(trial.get(name), str):
+            raise ValueError(f"live rename trial omits {name}")
+    if (not isinstance(trial.get("diagnostics"), list)
+            or any(not isinstance(name, str) for name in trial["diagnostics"])):
+        raise ValueError("live rename diagnostics are malformed")
+    snapshot = ROOT / trial["runner_snapshot"]
+    if not snapshot.is_file() or digest(snapshot) != trial["runner_sha256"]:
+        raise ValueError("live rename runner snapshot changed")
+    directory = (ROOT / trial["manifest"]).parent
+    manifest = json.loads((directory / "manifest.json").read_text())
+    if (manifest.get("schema") != "fr-upstream-rename-manifest-1"
+            or manifest.get("passed") is not True or manifest.get("acceptance_evidence") is not True
+            or manifest.get("model") != trial["model"]
+            or manifest.get("upstream_commit") != trial["fixture_revision"].split("@")[-1]):
+        raise ValueError("live rename trial is not accepted as declared")
+    for name, expected in manifest["files"].items():
+        artifact = directory / name
+        if not artifact.is_file() or digest(artifact) != expected:
+            raise ValueError(f"live rename artifact changed: {artifact}")
+    session = json.loads((directory / "session.json").read_text())
+    run = json.loads((directory / "codex-run.json").read_text())
+    result = json.loads((directory / "result.json").read_text())
+    if (session.get("upstream_commit") != manifest["upstream_commit"]
+            or session.get("evaluator", {}).get(trial["runner"]) != trial["runner_sha256"]
+            or run.get("model") != trial["model"]
+            or run.get("reasoning_effort") != trial["reasoning_effort"]
+            or run.get("codex_version") != trial["tool_version"]
+            or run.get("exit_code") != 0 or run.get("timed_out")
+            or run.get("prompt_sha256") != digest(directory / "prompt.txt")
+            or run.get("events_sha256") != digest(directory / "codex-events.jsonl")
+            or run.get("stderr_sha256") != digest(directory / "codex-stderr.txt")):
+        raise ValueError("live rename source or Codex run binding changed")
+    rows = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
+    sequence = [row["request"].get("tool") for row in rows]
+    if sequence != ["guide", "preview", "review", "execute", "finish"]:
+        raise ValueError("live rename tool sequence changed")
+    guide, preview, review, execute, finish = rows
+    expected_files = ["regex-cli/args/patterns.rs", "regex-syntax/src/lib.rs", "src/lib.rs"]
+    expected_stages = ["check-original", "apply", "check-applied", "undo", "check-restored",
+                       "redo", "check-applied", "deliver-patch"]
+    diff = review["full"]["diff"]
+    stages = execute["full"]["workflow"]["stages"]
+    if (guide["full"].get("state") != "ready"
+            or guide["full"].get("route", {}).get("id") != "direct-capability"
+            or preview["full"].get("files_changed") != 3
+            or sorted(Path(change["path"]).name for change in preview["full"]["changes"])
+               != sorted(Path(name).name for name in expected_files)
+            or review["full"].get("ready") is not True
+            or review["full"].get("checks", {}).get("names") != ["upstream", "cli", "minimal"]
+            or any(f"--- a/{name}" not in diff or f"+++ b/{name}" not in diff for name in expected_files)
+            or "regex_syntax::quote_regex(pattern)" not in diff
+            or "pub fn escape(pattern: &str)" not in diff
+            or execute["full"].get("passed") is not True
+            or [item.get("stage") for item in stages] != expected_stages
+            or any(item.get("status") != "passed" for item in stages)
+            or finish["request"].get("answer") != {
+                "files": expected_files, "checks": ["upstream", "cli", "minimal"],
+                "public_facade_preserved": True,
+            }):
+        raise ValueError("live rename guidance, review or delivery changed")
+    with tempfile.TemporaryDirectory(prefix="fr-rename-audit-") as temporary:
+        receiver = Path(temporary) / "project"
+        regex_workspace.unpack(receiver)
+        before = {str(path.relative_to(receiver)): digest(path) for path in receiver.rglob("*") if path.is_file()}
+        replay = subprocess.run(["git", "apply", "-"], cwd=receiver, input=diff.encode(),
+                                capture_output=True, timeout=30)
+        after = {str(path.relative_to(receiver)): digest(path) for path in receiver.rglob("*") if path.is_file()}
+        if (replay.returncode != 0
+                or sorted(name for name in before if before[name] != after.get(name)) != expected_files
+                or "pub fn quote_regex(text: &str) -> String {" not in
+                   (receiver / "regex-syntax/src/lib.rs").read_text()
+                or "regex_syntax::quote_regex(p)" not in
+                   (receiver / "regex-cli/args/patterns.rs").read_text()
+                or "regex_syntax::quote_regex(pattern)" not in (receiver / "src/lib.rs").read_text()):
+            raise ValueError("live rename reviewed diff fails pinned receiver replay")
+    codex_rows = [json.loads(line) for line in (directory / "codex-events.jsonl").read_text().splitlines()]
+    usage = next((row["usage"] for row in reversed(codex_rows) if row.get("type") == "turn.completed"), None)
+    commands = [row["item"] for row in codex_rows if row.get("type") == "item.completed"
+                and row.get("item", {}).get("type") == "command_execution"]
+    recorded_step = re.search(r"(?m)^python3 (\S+/tools/upstream-rename-agent\.py step \S+ --request-stdin) <<'FRJSON'$",
+                              (directory / "prompt.txt").read_text())
+    commands_match = False
+    if recorded_step is not None and len(commands) == len(rows):
+        prefix = f'/bin/zsh -lc "python3 {recorded_step.group(1)} <<\'FRJSON\'\n'
+        suffix = '\nFRJSON"'
+        commands_match = all(
+            item.get("exit_code") == 0
+            and item.get("command", "").startswith(prefix)
+            and item.get("command", "").endswith(suffix)
+            and json.loads(item["command"][len(prefix):-len(suffix)].replace('\\"', '"')) == row["request"]
+            for item, row in zip(commands, rows)
+        )
+    oracle = result.get("oracle", {})
+    if (recorded_step is None or not isinstance(usage, dict)
+            or not isinstance(usage.get("input_tokens"), int)
+            or not commands_match
+            or result.get("passed") is not True or result.get("guide_route") != "direct-capability"
+            or result.get("reviewed_diff_sha256") != hashlib.sha256(diff.encode()).hexdigest()
+            or result.get("stages") != [[name, "passed"] for name in expected_stages]
+            or oracle.get("changed_files") != expected_files
+            or any(oracle.get(name) is not True for name in
+                   ("exact_source", "receiver_patch_replay", "behavior_64_cases"))
+            or result.get("codex", {}).get("usage") != usage
+            or result.get("codex", {}).get("direct_project_commands") != []
+            or result.get("manual_corrections") != 0):
+        raise ValueError("live rename score, oracle or Codex provenance changed")
+    for path_name in trial["diagnostics"]:
+        path = ROOT / path_name
+        diagnostic = json.loads(path.read_text())
+        if (diagnostic.get("passed") is not False or diagnostic.get("acceptance_evidence") is not False
+                or not diagnostic.get("diagnostic_reason")):
+            raise ValueError(f"live rename diagnostic is mislabeled: {path}")
+        for name, expected in diagnostic["files"].items():
+            artifact = path.parent / name
+            if not artifact.is_file() or digest(artifact) != expected:
+                raise ValueError(f"live rename diagnostic artifact changed: {artifact}")
+
+
 def audit() -> dict[str, object]:
     registry = load()
     cases = registry.get("cases")
@@ -181,9 +305,12 @@ def audit() -> dict[str, object]:
     if not isinstance(trials, list) or len(trials) < 1:
         raise ValueError("representative acceptance lacks live upstream guidance")
     for trial in trials:
-        if trial.get("id") != "regex-guided-understand-trace":
+        if trial.get("id") == "regex-guided-understand-trace":
+            audit_upstream_read(trial)
+        elif trial.get("id") == "regex-guided-multi-file-rename":
+            audit_upstream_rename(trial)
+        else:
             raise ValueError("representative acceptance has an unknown live trial")
-        audit_upstream_read(trial)
 
     cohorts = registry.get("live_cohorts")
     if not isinstance(cohorts, list) or len(cohorts) < 2:

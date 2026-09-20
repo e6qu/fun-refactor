@@ -1,0 +1,22 @@
+{
+  "schema": "fr-upstream-rename-manifest-1",
+  "passed": true,
+  "acceptance_evidence": true,
+  "diagnostic_reason": null,
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator": {
+    "tools/upstream-rename-agent.py": "36ad0c50716837da00ae7cfb68e5f54017037b6618d36f98f8db89f2e5e2a37b",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "files": {
+    "session.json": "9d56cb9a65fc8838c1667d574cd2540114e66a151835aeade3ad42234c4d5a9a",
+    "prompt.txt": "710a4b47cda378b18e857d7468463d88efbd2fe49af1fc63086fe345ad63cda7",
+    "events.jsonl": "1967cc4f159d0cca63d97872d55d2b1144e8430f6ab7837d696b8f2c7da29b0d",
+    "codex-events.jsonl": "3564f7b0f1106e0ddf6b158f2ac61eafe491961790f26040810d7548d692f880",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-final.txt": "037d002311b766bf0370d59f395cacb46be8c1989e2900714d8b42a7e032ae0a",
+    "codex-run.json": "add09c69768059cf51875cf1c0dd4724ba3f8cd10829ffcb05df8a68bce7c401",
+    "result.json": "8b7c0cd4115470307c4c213344a1fbe33994c7a3014b34d6eb4ef6982855f459"
+  }
+}

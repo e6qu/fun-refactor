@@ -1,0 +1,90 @@
+{
+  "schema": "fr-upstream-rename-result-1",
+  "passed": true,
+  "sequence": [
+    "guide",
+    "preview",
+    "review",
+    "execute",
+    "finish"
+  ],
+  "guide_route": "direct-capability",
+  "reviewed_diff_sha256": "c64abb9a26a9295357165fb2f5246d987a9c01ea5181931d8f19f41cf6ffd557",
+  "review_ready": true,
+  "execution_passed": true,
+  "stages": [
+    [
+      "check-original",
+      "passed"
+    ],
+    [
+      "apply",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "undo",
+      "passed"
+    ],
+    [
+      "check-restored",
+      "passed"
+    ],
+    [
+      "redo",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "deliver-patch",
+      "passed"
+    ]
+  ],
+  "oracle": {
+    "changed_files": [
+      "regex-cli/args/patterns.rs",
+      "regex-syntax/src/lib.rs",
+      "src/lib.rs"
+    ],
+    "exact_source": true,
+    "receiver_patch_replay": true,
+    "behavior_64_cases": true,
+    "oracle_detail": "64 independent cases passed\n"
+  },
+  "answer": {
+    "files": [
+      "regex-cli/args/patterns.rs",
+      "regex-syntax/src/lib.rs",
+      "src/lib.rs"
+    ],
+    "checks": [
+      "upstream",
+      "cli",
+      "minimal"
+    ],
+    "public_facade_preserved": true
+  },
+  "codex": {
+    "usage": {
+      "input_tokens": 83757,
+      "cached_input_tokens": 68096,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1095,
+      "reasoning_output_tokens": 191
+    },
+    "command_executions": 5,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0
+}

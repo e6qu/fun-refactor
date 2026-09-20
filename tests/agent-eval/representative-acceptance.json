@@ -93,6 +93,23 @@
         "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-3/manifest.json",
         "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-4/manifest.json"
       ]
+    },
+    {
+      "id": "regex-guided-multi-file-rename",
+      "covers": ["rust-multi-file"],
+      "manifest": "tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/manifest.json",
+      "runner": "tools/upstream-rename-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-rename-agent-2026-09-20.py",
+      "runner_sha256": "36ad0c50716837da00ae7cfb68e5f54017037b6618d36f98f8db89f2e5e2a37b",
+      "fixture_revision": "rust-lang/regex@2b527599eb9eea0dcc288c704584f242f26a5c61",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "exact three-file source, declared upstream/CLI/minimal checks, receiver patch replay and 64 independent compiled cases",
+      "postconditions": ["reviewed rename across three files", "eight delivery stages pass", "regex::escape facade preserved"],
+      "diagnostics": [
+        "tests/agent-eval/results/2026-09-20-upstream-rename-diagnostic-1/manifest.json"
+      ]
     }
   ],
   "live_cohorts": [
