@@ -13,7 +13,7 @@ remain explicit in `omissions`; draining output pages cannot recover evidence
 omitted by a source reader. Narrow the scope when those omissions matter.
 
 Route nodes carry a portable `route` when their handler is exactly the admitted
-literal JSON, path-binding and selected FastAPI input subset. The normalizer reads the shared semantic IR,
+literal JSON, path-binding and selected validated-input subsets. The normalizer reads the shared semantic IR,
 then recognizes explicit response wrappers for Next.js, FastAPI, Express and Go
 standard HTTP. Equivalent admitted handlers produce the same response expression.
 FastAPI additionally reads required `str`, `int` and `bool` parameters declared with `Query(...)`
@@ -26,8 +26,13 @@ referencing a dependency binding stays `manual` because provider values are opaq
 A FastAPI response of exactly `requests.METHOD("/literal-path").json()` (or `httpx`) normalizes
 into a portable service call. Absolute URLs, computed paths and non-JSON access stay `manual`.
 A call whose method and path resolve to anything but one sibling route is demoted to `manual`
-during assembly. Other source request bodies, queries, errors and effects also remain
-manual; their source evidence stays intact.
+during assembly. Next.js and Express read direct `z.object` fields validated by
+`safeParse`, followed by an explicit 422 guard. Next.js accepts request JSON and
+`Object.fromEntries(new URL(request.url).searchParams)`; Express accepts `req.body`
+and `req.query`. Go HTTP reads a direct `strconv.Atoi(r.URL.Query().Get("key"))`
+assignment with an immediate 422 error guard. Responses may reference these validated
+fields. Computed schemas, other conversions, and effects remain manual; their source
+evidence stays intact.
 
 FastAPI applications also normalize an ordered middleware chain when every
 `app.add_middleware(Name)` or `@app.middleware("http")` registration is a direct unconfigured
@@ -158,8 +163,8 @@ from the intent's exact revision-bound target; the action does not carry source 
 
 `project application` publishes a complete 5×5×4 source/target/feature matrix for
 the five adapters and four feature kinds. It reports source readers and target writers separately.
-All four HTTP adapters write `validated-json-route`. FastAPI reads the exact declaration subset
-above. The other framework readers retain an explicit omission. Every
+All four HTTP adapters write `validated-json-route` and read the exact subsets
+above. Every
 refused cell names an identical-adapter, missing-reader or missing-writer reason and retains
 `runtime_proved: false`.
 
@@ -256,10 +261,10 @@ installation, registration, URL decoding, implicit methods, configured middlewar
 internals, external services, effects, nested
 request schemas and deployment behavior remain outside this subset.
 
-Reading FastAPI declarations preserves the admitted required inputs and successful response.
+Reading admitted framework declarations preserves required inputs and the successful response.
 Generated targets use the IR's portable validation contract. Duplicate query keys and
 noncanonical integer or Boolean query spellings refuse. Failures use the deterministic issue body.
-Native FastAPI has broader coercions and its own detailed 422 payload. The runtime fixture checks
+Native framework validation may have broader coercions and different 422 payloads. The FastAPI runtime fixture checks
 the shared accepted case and representative rejection statuses. The report keeps
 `runtime_proved: false` because `fr` intentionally canonicalizes framework-specific failure details.
 

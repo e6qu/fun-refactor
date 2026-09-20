@@ -25,8 +25,7 @@ def _encoded(value: Any, limit: int) -> str:
 
 def adapter_reads(adapter: int, feature: int) -> bool:
     return (type(adapter) is int and type(feature) is int and adapter >= 0 and feature >= 0
-            and ((feature <= 1 and adapter <= 3)
-                 or (feature == 2 and adapter == 1)
+            and ((feature <= 2 and adapter <= 3)
                  or (feature == 3 and adapter in (0, 4))))
 
 

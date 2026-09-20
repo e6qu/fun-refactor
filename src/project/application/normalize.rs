@@ -56,26 +56,35 @@ fn handler(node: &ApplicationNode) -> Option<Handler<'_>> {
     })
 }
 
-fn functions(
+#[derive(Clone, Default)]
+struct Module {
+    functions: Vec<Function>,
+    constants: Vec<(String, Expr)>,
+}
+
+fn module(
     project: &Project<'_>,
-    cache: &mut BTreeMap<(PathBuf, String), Vec<Function>>,
+    cache: &mut BTreeMap<(PathBuf, String), Module>,
     path: &Path,
     framework: Framework<'_>,
-) -> Result<Vec<Function>> {
+) -> Result<Module> {
     let key = (path.to_path_buf(), framework.name().to_owned());
-    if let Some(functions) = cache.get(&key) {
-        return Ok(functions.clone());
+    if let Some(module) = cache.get(&key) {
+        return Ok(module.clone());
     }
     let absolute = project.root.join(path);
     let source = project
         .sources
         .get(&absolute)
         .ok_or_else(|| anyhow::anyhow!("captured handler source is unavailable."))?;
-    let found: Vec<Function> = if matches!(framework, Framework::Fastapi) {
-        crate::transpile::fastapi::route_functions(source)?
-            .into_iter()
-            .map(|(_, _, function)| function)
-            .collect()
+    let found = if matches!(framework, Framework::Fastapi) {
+        Module {
+            functions: crate::transpile::fastapi::route_functions(source)?
+                .into_iter()
+                .map(|(_, _, function)| function)
+                .collect(),
+            constants: Vec::new(),
+        }
     } else {
         let language = crate::lang::detect(path)
             .ok_or_else(|| anyhow::anyhow!("handler language is unavailable."))?;
@@ -83,14 +92,17 @@ fn functions(
         if parsed.has_errors() {
             anyhow::bail!("captured handler source does not parse cleanly.");
         }
-        crate::transpile::read_module(language, source, parsed.root())?
-            .items
-            .into_iter()
-            .filter_map(|item| match item {
-                Item::Function(function) => Some(function),
-                _ => None,
-            })
-            .collect()
+        let mut found = Module::default();
+        for item in crate::transpile::read_module(language, source, parsed.root())?.items {
+            match item {
+                Item::Function(function) => found.functions.push(function),
+                Item::Constant(constant) => found
+                    .constants
+                    .push((constant.name.clone(), constant.value.clone())),
+                _ => (),
+            }
+        }
+        found
     };
     cache.insert(key, found.clone());
     Ok(found)
@@ -127,13 +139,27 @@ struct Bindings<'a> {
     next_params: Option<&'a str>,
     request: Option<&'a str>,
     inputs: &'a BTreeMap<String, String>,
+    validated: &'a [String],
 }
 
 fn input_binding(expr: &Expr, bindings: &Bindings<'_>) -> Option<String> {
-    let Expr::Name(name) = expr else {
-        return None;
-    };
-    bindings.inputs.get(name).cloned()
+    if let Expr::Name(name) = expr {
+        return bindings.inputs.get(name).cloned();
+    }
+    if let Expr::Field { of, name } = expr {
+        if let Expr::Field {
+            of: result,
+            name: data,
+        } = &**of
+        {
+            if data == "data"
+                && matches!(&**result, Expr::Name(var) if bindings.validated.contains(var))
+            {
+                return bindings.inputs.get(name).cloned();
+            }
+        }
+    }
+    None
 }
 
 fn path_binding(expr: &Expr, bindings: &Bindings<'_>) -> Option<String> {
@@ -305,23 +331,55 @@ fn status_map(expr: &Expr) -> Option<u16> {
     value.parse().ok()
 }
 
-fn next(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpression)> {
+fn collected_inputs(
+    validated: &[Validated],
+) -> (Vec<HttpInput>, BTreeMap<String, String>, Vec<String>) {
+    let mut inputs = Vec::new();
+    let mut names = BTreeMap::new();
+    let mut variables = Vec::new();
+    for entry in validated {
+        variables.push(entry.variable.clone());
+        for input in &entry.inputs {
+            names.insert(input.name.clone(), input.name.clone());
+            inputs.push(input.clone());
+        }
+    }
+    (inputs, names, variables)
+}
+
+fn next(
+    function: &Function,
+    path: &BTreeSet<String>,
+    constants: &[(String, Expr)],
+) -> Option<(Vec<HttpInput>, u16, HttpExpression)> {
     if !function.exported || !function.is_async {
         return None;
     }
-    let (params, returned) = match function.body.as_slice() {
-        [Stmt::Return(Some(returned))] => (None, returned),
+    let (params, rest) = match function.body.as_slice() {
         [Stmt::Let {
             name,
             value: Some(Expr::Await(value)),
             mutable: false,
             ..
-        }, Stmt::Return(Some(returned))]
+        }, rest @ ..]
             if matches!(&**value, Expr::Field { of, name: field } if field == "params" && matches!(&**of, Expr::Name(_))) =>
         {
-            (Some(name.as_str()), returned)
+            (Some(name.as_str()), rest)
         }
-        _ => return None,
+        rest => (None, rest),
+    };
+    let (validated, consumed) = ts_validation_prefixes(rest, Framework::Next, constants)?;
+    for entry in &validated {
+        if !function
+            .params
+            .iter()
+            .any(|param| param.name == entry.request)
+        {
+            return None;
+        }
+    }
+    let [Stmt::Return(Some(returned))] = &rest[consumed..] else {
+        return None;
     };
     if !path.is_empty() && params.is_none() {
         return None;
@@ -333,6 +391,7 @@ fn next(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpres
         return None;
     }
     let status = args.get(1).map(status_map).unwrap_or(Some(200))?;
+    let (inputs, names, variables) = collected_inputs(&validated);
     let response = expression(
         &args[0],
         &Bindings {
@@ -340,10 +399,362 @@ fn next(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpres
             path,
             next_params: params,
             request: None,
-            inputs: &BTreeMap::new(),
+            inputs: &names,
+            validated: &variables,
         },
     )?;
-    Some((status, response))
+    Some((inputs, status, response))
+}
+
+fn zod_scalar(spec: &Expr, source: HttpInputSource) -> Option<HttpScalar> {
+    if !matches!(spec, Expr::Call { .. }) {
+        return None;
+    }
+    let mut methods = Vec::new();
+    let mut current = spec;
+    loop {
+        match current {
+            Expr::Name(name) if name == "z" => break,
+            Expr::Call { callee, args } if args.is_empty() => {
+                let Expr::Field { of, name } = &**callee else {
+                    return None;
+                };
+                methods.push(name.as_str());
+                current = of;
+            }
+            Expr::Field { of, name } => {
+                methods.push(name.as_str());
+                current = of;
+            }
+            _ => return None,
+        }
+    }
+    methods.reverse();
+    match (source, methods.as_slice()) {
+        (_, ["string"]) => Some(HttpScalar::String),
+        (HttpInputSource::JsonBody, ["number", "int"])
+        | (HttpInputSource::Query, ["coerce", "number", "int"]) => Some(HttpScalar::Integer),
+        (HttpInputSource::JsonBody, ["boolean"]) => Some(HttpScalar::Boolean),
+        _ => None,
+    }
+}
+
+fn zod_fields(
+    constants: &[(String, Expr)],
+    schema: &str,
+    source: HttpInputSource,
+) -> Option<Vec<(String, HttpScalar)>> {
+    let (_, value) = constants.iter().find(|(name, _)| name == schema)?;
+    let (callee, args) = call(value)?;
+    let Expr::Field { of, name } = callee else {
+        return None;
+    };
+    if name != "object" || !matches!(&**of, Expr::Name(base) if base == "z") {
+        return None;
+    }
+    let [Expr::MapLit(entries)] = args else {
+        return None;
+    };
+    let mut fields = Vec::new();
+    for (key, spec) in entries {
+        let name = match key {
+            Expr::Str(key) => key.clone(),
+            Expr::Name(key) => key.clone(),
+            _ => return None,
+        };
+        fields.push((name, zod_scalar(spec, source)?));
+    }
+    Some(fields)
+}
+
+fn ts_guard_422(statement: &Stmt, variable: &str, framework: Framework<'_>) -> bool {
+    let Stmt::If {
+        condition,
+        then,
+        otherwise,
+    } = statement
+    else {
+        return false;
+    };
+    if !otherwise.is_empty()
+        || !matches!(
+            condition,
+            Expr::Unary {
+                op: crate::transpile::ir::UnaryOp::Not,
+                operand,
+            } if matches!(&**operand, Expr::Field { of, name } if name == "success" && matches!(&**of, Expr::Name(var) if var == variable))
+        )
+    {
+        return false;
+    }
+    let [Stmt::Return(Some(failure))] = then.as_slice() else {
+        return false;
+    };
+    let Some((callee, args)) = call(failure) else {
+        return false;
+    };
+    match framework {
+        Framework::Express => {
+            let Some(status_call) = field(callee, "json") else {
+                return false;
+            };
+            let Some((status_callee, status_args)) = call(status_call) else {
+                return false;
+            };
+            args.len() == 1
+                && status_args.len() == 1
+                && field(status_callee, "status").is_some()
+                && matches!(&status_args[0], Expr::Int(status) if status == "422")
+        }
+        Framework::Next => {
+            args.len() == 2
+                && matches!(callee, Expr::Field { of, name } if name == "json" && named(of, "Response"))
+                && status_map(&args[1]) == Some(422)
+        }
+        _ => false,
+    }
+}
+
+fn ts_validation_argument(
+    argument: &Expr,
+    framework: Framework<'_>,
+) -> Option<(HttpInputSource, String)> {
+    match framework {
+        Framework::Express => {
+            let Expr::Field { of, name } = argument else {
+                return None;
+            };
+            let Expr::Name(request) = &**of else {
+                return None;
+            };
+            let source = match name.as_str() {
+                "query" => HttpInputSource::Query,
+                "body" => HttpInputSource::JsonBody,
+                _ => return None,
+            };
+            Some((source, request.clone()))
+        }
+        Framework::Next => {
+            if let Expr::Await(inner) = argument {
+                let (callee, args) = call(inner)?;
+                if !args.is_empty() {
+                    return None;
+                }
+                let Expr::Field { of, name } = callee else {
+                    return None;
+                };
+                if name != "json" {
+                    return None;
+                }
+                let Expr::Name(request) = &**of else {
+                    return None;
+                };
+                return Some((HttpInputSource::JsonBody, request.clone()));
+            }
+            let (callee, args) = call(argument)?;
+            let Expr::Field { of, name } = callee else {
+                return None;
+            };
+            if name != "fromEntries" || !matches!(&**of, Expr::Name(base) if base == "Object") {
+                return None;
+            }
+            let [url] = args else {
+                return None;
+            };
+            let Expr::Field {
+                of: constructed,
+                name: search_params,
+            } = url
+            else {
+                return None;
+            };
+            if search_params != "searchParams" {
+                return None;
+            }
+            let Expr::New { callee, args } = &**constructed else {
+                return None;
+            };
+            if !matches!(&**callee, Expr::Name(name) if name == "URL") {
+                return None;
+            }
+            let [Expr::Field { of, name }] = args.as_slice() else {
+                return None;
+            };
+            if name != "url" {
+                return None;
+            }
+            let Expr::Name(request) = &**of else {
+                return None;
+            };
+            Some((HttpInputSource::Query, request.clone()))
+        }
+        _ => None,
+    }
+}
+
+struct Validated {
+    variable: String,
+    request: String,
+    inputs: Vec<HttpInput>,
+}
+
+fn ts_validation_prefixes(
+    body: &[Stmt],
+    framework: Framework<'_>,
+    constants: &[(String, Expr)],
+) -> Option<(Vec<Validated>, usize)> {
+    let mut validated = Vec::new();
+    let mut index = 0;
+    while let [Stmt::Let {
+        name,
+        value: Some(value),
+        mutable: false,
+        ..
+    }, guard, ..] = &body[index..]
+    {
+        let Some((callee, args)) = call(value) else {
+            break;
+        };
+        let Expr::Field { of, name: method } = callee else {
+            break;
+        };
+        if method != "safeParse" {
+            break;
+        }
+        let Expr::Name(schema) = &**of else {
+            break;
+        };
+        let [argument] = args else {
+            break;
+        };
+        let Some((source, request)) = ts_validation_argument(argument, framework) else {
+            break;
+        };
+        let Some(fields) = zod_fields(constants, schema, source) else {
+            break;
+        };
+        if !ts_guard_422(guard, name, framework) {
+            break;
+        }
+        if validated
+            .iter()
+            .any(|entry: &Validated| entry.variable == *name)
+        {
+            break;
+        }
+        let inputs = fields
+            .into_iter()
+            .map(|(field, scalar)| HttpInput {
+                name: field,
+                source,
+                scalar,
+            })
+            .collect();
+        validated.push(Validated {
+            variable: name.clone(),
+            request,
+            inputs,
+        });
+        index += 2;
+    }
+    Some((validated, index))
+}
+
+fn go_query_key(expr: &Expr) -> Option<(String, String)> {
+    let (callee, args) = call(expr)?;
+    let Expr::Field { of, name } = callee else {
+        return None;
+    };
+    if name != "Get" {
+        return None;
+    }
+    let (inner, inner_args) = call(of)?;
+    if !inner_args.is_empty() {
+        return None;
+    }
+    let Expr::Field { of, name } = inner else {
+        return None;
+    };
+    if name != "Query" {
+        return None;
+    }
+    let Expr::Field { of, name } = &**of else {
+        return None;
+    };
+    if name != "URL" {
+        return None;
+    }
+    let Expr::Name(request) = &**of else {
+        return None;
+    };
+    let [Expr::Str(key)] = args else {
+        return None;
+    };
+    Some((key.clone(), request.clone()))
+}
+
+type GoValidated = (String, String, String, String);
+
+fn go_validation_prefixes(body: &[Stmt]) -> Option<(Vec<GoValidated>, usize)> {
+    let mut validated = Vec::new();
+    let mut index = 0;
+    while let [Stmt::Try {
+        body: attempted,
+        catches,
+        finally,
+        ..
+    }, ..] = &body[index..]
+    {
+        if !finally.is_empty() {
+            break;
+        }
+        let [Stmt::Let {
+            name,
+            value: Some(value),
+            mutable: false,
+            ..
+        }] = attempted.as_slice()
+        else {
+            break;
+        };
+        let [catch] = catches.as_slice() else {
+            break;
+        };
+        if catch.binding.is_none() {
+            break;
+        }
+        let Some((callee, args)) = call(value) else {
+            break;
+        };
+        if !matches!(callee, Expr::Field { of, name } if name == "Atoi" && matches!(&**of, Expr::Name(pkg) if pkg == "strconv"))
+        {
+            break;
+        }
+        let [argument] = args else {
+            break;
+        };
+        let [Stmt::Expr(status), Stmt::Return(None)] = catch.body.as_slice() else {
+            break;
+        };
+        let Some((status_callee, status_args)) = call(status) else {
+            break;
+        };
+        let Some(writer) = field(status_callee, "WriteHeader") else {
+            break;
+        };
+        let Expr::Name(writer) = writer else {
+            break;
+        };
+        if status_args.len() != 1 || !matches!(&status_args[0], Expr::Int(code) if code == "422") {
+            break;
+        }
+        let Some((key, request)) = go_query_key(argument) else {
+            break;
+        };
+        validated.push((name.clone(), key, request, writer.clone()));
+        index += 1;
+    }
+    Some((validated, index))
 }
 
 fn fastapi_callee(expr: &Expr, expected: &str) -> bool {
@@ -509,13 +920,20 @@ fn fastapi(
             next_params: None,
             request: None,
             inputs: &bindings,
+            validated: &[],
         },
     )?;
     Some((inputs, dependencies, status?, response))
 }
 
-fn express(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpression)> {
-    let returned = match function.body.as_slice() {
+fn express(
+    function: &Function,
+    path: &BTreeSet<String>,
+    constants: &[(String, Expr)],
+) -> Option<(Vec<HttpInput>, u16, HttpExpression)> {
+    let (validated, consumed) =
+        ts_validation_prefixes(&function.body, Framework::Express, constants)?;
+    let returned = match &function.body[consumed..] {
         [Stmt::Return(Some(value))] | [Stmt::Expr(value)] => value,
         _ => return None,
     };
@@ -540,6 +958,10 @@ fn express(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExp
         .iter()
         .map(|parameter| parameter.name.as_str())
         .find(|name| *name != response_name)?;
+    if !validated.iter().all(|entry| entry.request == *request) {
+        return None;
+    }
+    let (inputs, names, variables) = collected_inputs(&validated);
     let response = expression(
         &json_args[0],
         &Bindings {
@@ -547,14 +969,19 @@ fn express(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExp
             path,
             next_params: None,
             request: Some(request),
-            inputs: &BTreeMap::new(),
+            inputs: &names,
+            validated: &variables,
         },
     )?;
-    Some((status.parse().ok()?, response))
+    Some((inputs, status.parse().ok()?, response))
 }
 
-fn go(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpression)> {
-    let (status, encoded) = match function.body.as_slice() {
+fn go(
+    function: &Function,
+    path: &BTreeSet<String>,
+) -> Option<(Vec<HttpInput>, u16, HttpExpression)> {
+    let (validated, consumed) = go_validation_prefixes(&function.body)?;
+    let (status, encoded) = match &function.body[consumed..] {
         [Stmt::Expr(status), Stmt::Expr(encoded)] => (status, encoded),
         [Stmt::Expr(status), Stmt::Assign { value: encoded, .. }] => (status, encoded),
         _ => return None,
@@ -588,6 +1015,24 @@ fn go(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpressi
         .iter()
         .map(|parameter| parameter.name.as_str())
         .find(|name| *name != writer)?;
+    if !validated
+        .iter()
+        .all(|(_, _, prefix_request, prefix_writer)| {
+            prefix_request == request && prefix_writer == writer
+        })
+    {
+        return None;
+    }
+    let mut inputs = Vec::new();
+    let mut names = BTreeMap::new();
+    for (local, key, _, _) in &validated {
+        names.insert(local.clone(), key.clone());
+        inputs.push(HttpInput {
+            name: key.clone(),
+            source: HttpInputSource::Query,
+            scalar: HttpScalar::Integer,
+        });
+    }
     let response = expression(
         &encode_args[0],
         &Bindings {
@@ -595,15 +1040,17 @@ fn go(function: &Function, path: &BTreeSet<String>) -> Option<(u16, HttpExpressi
             path,
             next_params: None,
             request: Some(request),
-            inputs: &BTreeMap::new(),
+            inputs: &names,
+            validated: &[],
         },
     )?;
-    Some((status.parse().ok()?, response))
+    Some((inputs, status.parse().ok()?, response))
 }
 
 fn normalize(
     function: &Function,
     framework: Framework<'_>,
+    constants: &[(String, Expr)],
     method: &str,
     path: &str,
 ) -> Option<HttpRoute> {
@@ -617,13 +1064,13 @@ fn normalize(
     };
     let parameters = provisional.parameters().ok()?;
     let (inputs, dependencies, status, response) = match framework {
-        Framework::Next => next(function, &parameters)
-            .map(|(status, response)| (Vec::new(), Vec::new(), status, response)),
+        Framework::Next => next(function, &parameters, constants)
+            .map(|(inputs, status, response)| (inputs, Vec::new(), status, response)),
         Framework::Fastapi => fastapi(function, &parameters),
-        Framework::Express => express(function, &parameters)
-            .map(|(status, response)| (Vec::new(), Vec::new(), status, response)),
+        Framework::Express => express(function, &parameters, constants)
+            .map(|(inputs, status, response)| (inputs, Vec::new(), status, response)),
         Framework::Go => go(function, &parameters)
-            .map(|(status, response)| (Vec::new(), Vec::new(), status, response)),
+            .map(|(inputs, status, response)| (inputs, Vec::new(), status, response)),
         Framework::Other(_) => None,
     }?;
     let route = HttpRoute {
@@ -672,7 +1119,7 @@ fn fastapi_middleware(project: &Project<'_>, root: &str) -> Option<Vec<HttpMiddl
 
 fn normalize_node(
     project: &Project<'_>,
-    cache: &mut BTreeMap<(PathBuf, String), Vec<Function>>,
+    cache: &mut BTreeMap<(PathBuf, String), Module>,
     node: &mut ApplicationNode,
     application_framework: Option<String>,
 ) {
@@ -721,15 +1168,18 @@ fn normalize_node(
         let method = route.get("method").and_then(Value::as_str);
         let path = route.get("url").and_then(Value::as_str);
         let selected = handler(node).and_then(|handler| {
-            let functions = functions(project, cache, Path::new(handler.path), framework).ok()?;
-            functions
-                .into_iter()
+            let module = module(project, cache, Path::new(handler.path), framework).ok()?;
+            module
+                .functions
+                .iter()
                 .find(|function| function.name == handler.name)
+                .map(|function| (function.clone(), module.constants.clone()))
         });
-        node.route = selected
-            .as_ref()
-            .zip(method.zip(path))
-            .and_then(|(function, (method, path))| normalize(function, framework, method, path));
+        node.route = selected.as_ref().zip(method.zip(path)).and_then(
+            |((function, constants), (method, path))| {
+                normalize(function, framework, constants, method, path)
+            },
+        );
         let portable = node.route.is_some();
         let validated = node
             .route

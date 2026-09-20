@@ -3,9 +3,7 @@ pub fn framework_emitted(total: usize, limit: usize) -> usize {
 }
 
 pub fn application_adapter_reads(adapter: usize, feature: usize) -> bool {
-    (feature <= 1 && adapter <= 3)
-        || (feature == 2 && adapter == 1)
-        || (feature == 3 && (adapter == 0 || adapter == 4))
+    (feature <= 2 && adapter <= 3) || (feature == 3 && (adapter == 0 || adapter == 4))
 }
 
 pub fn application_adapter_writes(adapter: usize, feature: usize) -> bool {
