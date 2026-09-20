@@ -44,3 +44,20 @@ Task-specific evaluators may add stronger isolation and oracles. The completion,
 matched-source runners freeze their own binaries, verify exact outputs and retain offline replay
 commands. See [evaluation evidence](evaluations.md) for accepted results, diagnostic history,
 interpretation limits and current economical settings.
+
+The pinned upstream read/trace task runs one guided agent against the retained regex workspace.
+It accepts only instrumented guide, follow, bounded find/show and finish requests. The score
+checks exact source evidence, the cross-crate edge, unchanged source bytes and the Codex tool log.
+
+```sh
+python3 tools/upstream-read-agent.py prepare /tmp/fr-upstream-read --fr target/debug/fr
+python3 tools/upstream-read-agent.py run /tmp/fr-upstream-read --confirm-agent-spend
+python3 tools/upstream-read-agent.py score /tmp/fr-upstream-read
+python3 tools/upstream-read-agent.py record /tmp/fr-upstream-read \
+  tests/agent-eval/results/DATE-upstream-read-acceptance
+python3 tools/upstream-read-agent.py audit \
+  tests/agent-eval/results/DATE-upstream-read-acceptance
+```
+
+Use `record --diagnostic --reason TEXT` for a scored failure or interrupted run. An interrupted
+run may have no score or run record; its raw prompt and Codex stream remain diagnostic only.

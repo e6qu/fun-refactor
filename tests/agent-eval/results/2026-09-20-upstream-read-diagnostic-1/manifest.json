@@ -1,0 +1,19 @@
+{
+  "schema": "fr-upstream-read-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "Codex CLI could not initialize the app-server in the restricted sandbox; later local manual probe events are omitted.",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator": {
+    "tools/upstream-read-agent.py": "b2dd1d8f21ad6e510e0d25ad0629a62bf98a06f82c6bb04f9230823006ee6ff4",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "files": {
+    "session.json": "54b4a42dda52a744e6808501210f536d1779d1688d60660d707085eecaaf6ff7",
+    "prompt.txt": "1af3e9da2138f09fdb48c8767ee3416584a96fc39a187b0ba83e8678e40f53cb",
+    "codex-events.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-stderr.txt": "2d8b902fb51c4fb0108c58a40b037f3ed52641f00cdae67901d7cbda9b4b8473",
+    "codex-run.json": "6f26150ccbf844a4982fb0f3e87dffd8faae7e2570de87a1f0973c934ea10d2b"
+  }
+}

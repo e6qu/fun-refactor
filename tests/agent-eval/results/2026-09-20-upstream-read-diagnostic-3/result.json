@@ -1,0 +1,54 @@
+{
+  "schema": "fr-upstream-read-result-1",
+  "passed": false,
+  "guide_purposes": [
+    "understand",
+    "trace"
+  ],
+  "guide_routes": [
+    "evidence",
+    "evidence"
+  ],
+  "follows": [
+    0,
+    1
+  ],
+  "source_reveal_calls": 4,
+  "shown_paths": [
+    "regex-syntax/src/lib.rs",
+    "src/lib.rs"
+  ],
+  "shown_symbols": [
+    "escape",
+    "escape_into",
+    "is_meta_character"
+  ],
+  "answer": {
+    "delegate_path": "regex-syntax/src/lib.rs::escape",
+    "append_helper": "escape_into",
+    "escape_predicate": "is_meta_character",
+    "trace_confidence": "import-qualified",
+    "runtime_proven": false,
+    "example_metacharacter": "."
+  },
+  "answer_oracle": false,
+  "tool_calls": 12,
+  "source_unchanged": true,
+  "codex": {
+    "usage": {
+      "input_tokens": 248446,
+      "cached_input_tokens": 213760,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1972,
+      "reasoning_output_tokens": 179
+    },
+    "command_executions": 12,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0
+}

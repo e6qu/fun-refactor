@@ -23,8 +23,11 @@ an input outside its syntax, identity, confidence or effect contract.
 
 Representative guided delivery on pinned unfamiliar projects is active. The deterministic registry
 covers an upstream read, Rust multi-file work, TSX/React and CSS/Tailwind/Mermaid edits, backend
-migration and Lean proof tactics. Two accepted live source-writing cohorts still repeat one Rust
-scalar task. The [roadmap](../PLAN.md) names the next live task corpus and independent oracles.
+migration and Lean proof tactics. A live Codex agent completed guided `understand`/`trace` on the
+pinned regex workspace with bounded source reveal and an exact cross-crate trace. Earlier regex
+agents completed two-crate source changes before the guide existed. Two accepted matched live
+source-writing cohorts still repeat one Rust scalar task. The [roadmap](../PLAN.md) names the
+remaining guided task corpus and independent oracles.
 
 The authored HTTP IR carries required query and JSON-body scalars with deterministic 422 issues.
 All four HTTP adapters write them and read their documented source subsets. FastAPI also reads
@@ -67,5 +70,7 @@ cause in the same outcome. Record direct editing only when no suitable `fr` oper
   semantics.
 - Static analysis retains uncertainty around reflection, runtime names, external callbacks and
   unresolved dynamic dispatch.
-- Live source-writing evidence is repeated but still covers one scalar task; the representative
-  cross-language breadth is deterministic rather than a population claim about autonomous agents.
+- Guided live source-writing evidence is repeated but still covers one scalar task; the guided
+  upstream read/trace has one accepted run. Earlier live multi-file cohorts used a pre-guide route.
+  The representative cross-language breadth is deterministic rather than a population claim about
+  autonomous agents.

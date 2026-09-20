@@ -71,6 +71,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B939: **the resolver mistook a qualified Rust crate call for recursion.**
+  In regex, `regex_syntax::escape` in `regex::escape` resolved to the
+  enclosing function. The same-name fallback ignored the crate path. The resolver now maps
+  `regex_syntax` to `regex-syntax/src/lib.rs`. Unknown qualified paths stay unresolved.
+  A regression covers both outcomes, and the retained guided trace confirms the cross-crate edge.
+
 - [x] B938: **application audit exclusions still claimed only FastAPI could read validated inputs.**
   The normalizer admitted documented Next.js, Express and Go HTTP subsets. `audit frameworks` and
   `project application` retained the older exclusion text.
@@ -851,7 +857,7 @@ shows the patch additive. What remains below is a limit of the available source 
 
 - [x] B786: **the sample census was three files and two languages behind.**
   `CROSS_LANGUAGE.md` opened with `web/sample (24 files, 15 languages, 574
-  resolved references)`. The sample holds 27, 17 and 596. The crossings table
+  resolved references)`. The sample then held 27, 17 and 596. The crossings table
   under it was still right, so the line above it read as checked.
 
   `tests/docs_census.rs` indexes the sample and computes all four figures. It

@@ -1,0 +1,22 @@
+{
+  "schema": "fr-upstream-read-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "Correct live trace used two instrumented exploration calls the initial wrapper rejected: a literal helper search and a trace-disclosed handle.",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator": {
+    "tools/upstream-read-agent.py": "b1b008f88be348a96bc483e2a947771cab3c1a31fe473499d5787c4d5746746f",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "files": {
+    "session.json": "2918260d0dbb4d5575851edb47873693952a6d635c6d90e154f14a3506992180",
+    "prompt.txt": "a10617e5aff60a658d14e9af449f982d449f6ba8f68c0ae82ccd13f02623c88f",
+    "events.jsonl": "41c5d770623f3765b97744dbed10a7e9bdf05376c94c47fc5a6c0dc27d59eee2",
+    "codex-events.jsonl": "ee9a274419569afb736fc81c77eda03236e1c458de59dd9b289cabd43acf34db",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-final.txt": "a43be1cd438955e9e96da68cf2b152b010b6ced341d3da4bf2a398e10e088f60",
+    "codex-run.json": "d32c749673ace1899a7c232ea62a74e0461c4c5629e00a191a45c82c5790ae0b",
+    "result.json": "0ff69004a0ad19ba511a257456a67e9f93da89edc8603225a36f98e59c90a211"
+  }
+}

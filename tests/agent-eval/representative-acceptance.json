@@ -73,6 +73,27 @@
       "command": ["cargo", "test", "--test", "agent_intent_cli", "tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history", "--", "--exact", "--test-threads", "1"]
     }
   ],
+  "live_trials": [
+    {
+      "id": "regex-guided-understand-trace",
+      "covers": ["unfamiliar-upstream-understand-trace"],
+      "manifest": "tests/agent-eval/results/2026-09-20-upstream-read-acceptance/manifest.json",
+      "runner": "tools/upstream-read-agent.py",
+      "runner_sha256": "19a4dcec0841049ab0a70b6d1636194a078dc670faf5d03f9fe78b327062a60c",
+      "fixture_revision": "rust-lang/regex@2b527599eb9eea0dcc288c704584f242f26a5c61",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "pinned source delegation and helper bodies, exact cross-crate trace, bounded reveals and unchanged source",
+      "postconditions": ["understand and trace guidance followed", "facade reaches regex-syntax::escape", "runtime proof not claimed"],
+      "diagnostics": [
+        "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-1/manifest.json",
+        "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-2/manifest.json",
+        "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-3/manifest.json",
+        "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-4/manifest.json"
+      ]
+    }
+  ],
   "live_cohorts": [
     {
       "id": "guided-delivery-r1",

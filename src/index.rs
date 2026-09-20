@@ -884,7 +884,6 @@ impl Index {
             }
         }
 
-        // 0.
         if let Some(prefix) = reference.receiver.as_deref().filter(|receiver| {
             reference.receiver_is_path || self.names_a_type(receiver, reference.language)
         }) {
@@ -940,8 +939,23 @@ impl Index {
                                 .is_some_and(|stem| stem == "mod" || stem == "lib")
                                 && s.file
                                     .parent()
+                                    .and_then(|parent| {
+                                        if reference.language == Language::Rust
+                                            && parent.file_name().is_some_and(|dir| dir == "src")
+                                            && s.file.file_stem().is_some_and(|stem| stem == "lib")
+                                        {
+                                            parent.parent()
+                                        } else {
+                                            Some(parent)
+                                        }
+                                    })
                                     .and_then(|d| d.file_name())
-                                    .is_some_and(|dir| dir == segment)))
+                                    .is_some_and(|dir| {
+                                        dir == segment
+                                            || (reference.language == Language::Rust
+                                                && dir.to_string_lossy().replace('-', "_")
+                                                    == segment)
+                                    })))
                 })
                 .collect();
             match in_that_module.len() {
@@ -968,6 +982,17 @@ impl Index {
                 0 => {}
                 _ => return (None, Confidence::FieldBased),
             }
+        }
+
+        // An explicit Rust path cannot use the unqualified in-file fallback.
+        if reference.language == Language::Rust
+            && reference.receiver_is_path
+            && !matches!(
+                reference.receiver.as_deref(),
+                Some("Self" | "crate" | "self" | "super")
+            )
+        {
+            return (None, Confidence::NameOnly);
         }
 
         let scope_chain = own_scopes.clone();

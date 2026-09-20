@@ -51,6 +51,23 @@ and agent-authored Lean tactics. It records each fixture revision, independent o
 postconditions. Audit metadata and real execution remain separate: replay runs one worker and
 reports missing toolchains as infrastructure failures rather than product failures.
 
+The first accepted guided upstream read task uses the pinned `rust-lang/regex` revision
+`2b527599eb9eea0dcc288c704584f242f26a5c61`. A fresh Codex CLI 0.155.1 agent on
+`gpt-5.6-luna` at low effort followed `understand` and `trace` guidance, made 12 instrumented
+calls, revealed five source slices of at most 512 bytes each, and identified the exact
+`regex::escape` to `regex_syntax::escape` edge. The retained independent source oracle checks
+the delegate, append helper, metacharacter predicate and the explicit statement that static
+source did not prove runtime behavior. The source bytes stayed unchanged; no direct project
+commands, failed commands or human corrections occurred. The CLI reported 249,966 input tokens,
+224,000 cached input tokens and 2,166 output tokens; billed quota was unavailable. This is one
+read-only trial, not cross-language or source-writing acceptance. The
+[accepted manifest](../tests/agent-eval/results/2026-09-20-upstream-read-acceptance/manifest.json)
+binds the prompt, tool events, run settings and score. Four preceding diagnostics retain the
+sandbox launch failure, malformed goal transport, overly narrow answer format and overly narrow
+instrumented exploration boundary. The agent's successful trace still disclosed unrelated
+`field-based` method candidates for unknown receiver types; that uncertainty is the existing B5
+static-analysis boundary, not an exact call claim.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -60,6 +77,7 @@ reports missing toolchains as infrastructure failures rather than product failur
 | Matched SDK and direct-file context | `tools/matched-agent-context.py`, `tests/agent-eval/results/2026-09-17-matched-context-acceptance/` |
 | Matched SDK and direct-file source writing | `tools/matched-agent-source.py`, `tests/agent-eval/results/2026-09-18-guided-delivery-acceptance/` |
 | Representative cross-language acceptance | `tools/representative-acceptance.py`, `tests/agent-eval/representative-acceptance.json` |
+| Pinned guided upstream read/trace | `tools/upstream-read-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-read-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
 | Semantic bodies, deltas and intents | `tests/agent-eval/semantic-*.json`, `tools/semantic-*.py` |
@@ -84,6 +102,7 @@ python3 tools/matched-agent-context.py replay tests/agent-eval/results/2026-09-1
 python3 tools/matched-agent-source.py audit tests/agent-eval/results/2026-09-18-guided-delivery-acceptance
 python3 tools/representative-acceptance.py audit
 python3 tools/representative-acceptance.py replay
+python3 tools/upstream-read-agent.py audit tests/agent-eval/results/2026-09-20-upstream-read-acceptance
 ```
 
 Use the [Codex runner guide](agent-codex-runner.md) for live-run isolation and the current economical

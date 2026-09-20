@@ -33,6 +33,96 @@ def load() -> dict[str, object]:
     return value
 
 
+def audit_upstream_read(trial: dict[str, object]) -> None:
+    runner = ROOT / trial["runner"]
+    if not runner.is_file() or digest(runner) != trial["runner_sha256"]:
+        raise ValueError("live upstream-read runner changed")
+    directory = (ROOT / trial["manifest"]).parent
+    manifest = json.loads((directory / "manifest.json").read_text())
+    if (manifest.get("schema") != "fr-upstream-read-manifest-1"
+            or manifest.get("passed") is not True
+            or manifest.get("acceptance_evidence") is not True
+            or manifest.get("model") != trial["model"]):
+        raise ValueError("live upstream-read trial is not accepted as declared")
+    for name, expected in manifest["files"].items():
+        path = directory / name
+        if not path.is_file() or digest(path) != expected:
+            raise ValueError(f"live upstream-read artifact changed: {path}")
+    session = json.loads((directory / "session.json").read_text())
+    run = json.loads((directory / "codex-run.json").read_text())
+    result = json.loads((directory / "result.json").read_text())
+    if (session.get("upstream_commit") != trial["fixture_revision"].split("@")[-1]
+            or session.get("evaluator", {}).get(trial["runner"]) != trial["runner_sha256"]
+            or run.get("model") != trial["model"]
+            or run.get("reasoning_effort") != trial["reasoning_effort"]
+            or run.get("codex_version") != trial["tool_version"]
+            or run.get("exit_code") != 0 or run.get("timed_out")
+            or run.get("prompt_sha256") != digest(directory / "prompt.txt")
+            or run.get("events_sha256") != digest(directory / "codex-events.jsonl")
+            or run.get("stderr_sha256") != digest(directory / "codex-stderr.txt")):
+        raise ValueError("live upstream-read source or Codex run binding changed")
+    rows = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
+    guide_rows = [row for row in rows if row["request"]["tool"] == "guide"]
+    follow_rows = [row for row in rows if row["request"]["tool"] == "follow"]
+    show_rows = [row for row in rows if row["request"]["tool"] == "show"]
+    if ([row["request"]["goal"]["purpose"] for row in guide_rows] != ["understand", "trace"]
+            or [row["full"]["route"]["id"] for row in guide_rows] != ["evidence", "evidence"]
+            or [row["request"]["guide"] for row in follow_rows] != [0, 1]
+            or any(row["source_sha256"] != session["source_sha256"] for row in rows)
+            or not 4 <= len(show_rows) <= 6
+            or rows[-1]["request"]["tool"] != "finish"):
+        raise ValueError("live upstream-read guidance, reveal or source evidence changed")
+    source = {(row["full"]["node"]["path"], row["full"]["node"]["name"]): row["full"]["source"]["text"]
+              for row in show_rows}
+    expected_snippets = {
+        ("src/lib.rs", "escape"): "regex_syntax::escape(pattern)",
+        ("regex-syntax/src/lib.rs", "escape"): "escape_into(text, &mut quoted)",
+        ("regex-syntax/src/lib.rs", "escape_into"): "is_meta_character(c)",
+        ("regex-syntax/src/lib.rs", "is_meta_character"): "'.'",
+    }
+    if (any(row["full"]["source"]["returned_bytes"] > 512 for row in show_rows)
+            or any(snippet not in source.get(key, "") for key, snippet in expected_snippets.items())):
+        raise ValueError("live upstream-read source oracle changed")
+    trace = follow_rows[1]["full"]["selected"]["call_traces"]["callees"]["nodes"]
+    if not any(node["depth"] == 1 and node["symbol"]["path"] == "regex-syntax/src/lib.rs"
+               and node["symbol"]["name"] == "escape" and node["via"]["confidence"] == "import-qualified"
+               for node in trace):
+        raise ValueError("live upstream-read cross-crate edge changed")
+    answer = rows[-1]["request"]["answer"]
+    if (answer.get("delegate_path") not in ("regex-syntax/src/lib.rs", "regex-syntax/src/lib.rs::escape")
+            or answer.get("append_helper") != "escape_into"
+            or answer.get("escape_predicate") != "is_meta_character"
+            or answer.get("trace_confidence") != "import-qualified"
+            or answer.get("runtime_proven") is not False
+            or answer.get("example_metacharacter") not in ".\\+*?()|[]{}^$#&-~"):
+        raise ValueError("live upstream-read answer oracle changed")
+    codex_rows = [json.loads(line) for line in (directory / "codex-events.jsonl").read_text().splitlines()]
+    usage = next((row["usage"] for row in reversed(codex_rows) if row.get("type") == "turn.completed"), None)
+    commands = [row["item"] for row in codex_rows if row.get("type") == "item.completed"
+                and row.get("item", {}).get("type") == "command_execution"]
+    prompt = (directory / "prompt.txt").read_text()
+    recorded_step = re.search(r"(?m)^python3 (\S+/tools/upstream-read-agent\.py step \S+ --request-stdin) <<'FRJSON'$", prompt)
+    if recorded_step is None:
+        raise ValueError("live upstream-read prompt omits its instrumented step")
+    if (not isinstance(usage, dict) or not isinstance(usage.get("input_tokens"), int)
+            or any(item.get("exit_code") != 0 or recorded_step.group(1) not in item.get("command", "")
+                   for item in commands)
+            or result.get("passed") is not True or result.get("answer_oracle") is not True
+            or result.get("source_unchanged") is not True or result.get("codex", {}).get("usage") != usage
+            or result.get("manual_corrections") != 0):
+        raise ValueError("live upstream-read score or Codex provenance changed")
+    for path_name in trial["diagnostics"]:
+        path = ROOT / path_name
+        diagnostic = json.loads(path.read_text())
+        if (diagnostic.get("passed") is not False or diagnostic.get("acceptance_evidence") is not False
+                or not diagnostic.get("diagnostic_reason")):
+            raise ValueError(f"live upstream-read diagnostic is mislabeled: {path}")
+        for name, expected in diagnostic["files"].items():
+            artifact = path.parent / name
+            if not artifact.is_file() or digest(artifact) != expected:
+                raise ValueError(f"live upstream-read diagnostic artifact changed: {artifact}")
+
+
 def audit() -> dict[str, object]:
     registry = load()
     cases = registry.get("cases")
@@ -57,6 +147,14 @@ def audit() -> dict[str, object]:
                 raise ValueError(f"representative acceptance case omits {field}")
     if not REQUIRED <= covered:
         raise ValueError(f"representative acceptance omits {sorted(REQUIRED - covered)}")
+
+    trials = registry.get("live_trials")
+    if not isinstance(trials, list) or len(trials) < 1:
+        raise ValueError("representative acceptance lacks live upstream guidance")
+    for trial in trials:
+        if trial.get("id") != "regex-guided-understand-trace":
+            raise ValueError("representative acceptance has an unknown live trial")
+        audit_upstream_read(trial)
 
     cohorts = registry.get("live_cohorts")
     if not isinstance(cohorts, list) or len(cohorts) < 2:
@@ -105,6 +203,7 @@ def audit() -> dict[str, object]:
         "cases": len(cases),
         "coverage": sorted(covered),
         "live_cohorts": len(cohorts),
+        "live_trials": len(trials),
     }
 
 
