@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.30.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.29.0...fun-refactor-v0.30.0) (2026-09-20)
+
+
+### Features
+
+* add validated request application IR ([#321](https://github.com/e6qu/fun-refactor/issues/321)) ([252128d](https://github.com/e6qu/fun-refactor/commit/252128d96b6d71c0e7e7b20f34f21a05c00735ef))
+* **application:** read validated Next.js, Express, and Go inputs ([#324](https://github.com/e6qu/fun-refactor/issues/324)) ([830b728](https://github.com/e6qu/fun-refactor/commit/830b728ee921b120672b41f3781952ce9243bce1))
+* model application middleware, dependencies, service calls and component state ([#323](https://github.com/e6qu/fun-refactor/issues/323)) ([33b961e](https://github.com/e6qu/fun-refactor/commit/33b961e4789c038279a936257012d4803b70e9ac))
+* read validated FastAPI application inputs ([#322](https://github.com/e6qu/fun-refactor/issues/322)) ([c93efa9](https://github.com/e6qu/fun-refactor/commit/c93efa94596f3c63d0fc9fbdb55f498daa3d873f))
+* ship representative agent acceptance and SDK artifacts ([#320](https://github.com/e6qu/fun-refactor/issues/320)) ([a6c16c1](https://github.com/e6qu/fun-refactor/commit/a6c16c12e95af657328faf4b2e94952e6b261503))
+* unify guided review and delivery ([#319](https://github.com/e6qu/fun-refactor/issues/319)) ([d749a88](https://github.com/e6qu/fun-refactor/commit/d749a88e7fdf4bd4c848913e72b2a8a8faee3b9e))
+
+
+### Fixes
+
+* align application audit and acceptance roadmap ([#325](https://github.com/e6qu/fun-refactor/issues/325)) ([4da7ed5](https://github.com/e6qu/fun-refactor/commit/4da7ed59bf608988464f9b2311b0b277fb771110))
+* align the framework audit exclusion list with merged reader support ([06142c5](https://github.com/e6qu/fun-refactor/commit/06142c58f2a9f0c95088b422554a01e6e6f5d950))
+* resolve Rust crate paths in guided upstream traces ([#326](https://github.com/e6qu/fun-refactor/issues/326)) ([7731729](https://github.com/e6qu/fun-refactor/commit/77317298e5cb505604eeff0f19bc9af574f86ec7))
+
+
+### Documentation
+
+* recount the project kernel anchors and executable cases ([0a937c3](https://github.com/e6qu/fun-refactor/commit/0a937c34b54993e8185d2de4b3b9527a36d63498))
+* reset roadmap and harden agent dogfooding ([#317](https://github.com/e6qu/fun-refactor/issues/317)) ([b1e4082](https://github.com/e6qu/fun-refactor/commit/b1e40823a80041c5f738ae735bc0a557fe868019))
+
+
+### Tests
+
+* accept guided Mermaid node edit ([#330](https://github.com/e6qu/fun-refactor/issues/330)) ([295aa2c](https://github.com/e6qu/fun-refactor/commit/295aa2c841ace010b5d037e6ad8acbd9daeb4b38))
+* accept guided multi-file regex rename ([#328](https://github.com/e6qu/fun-refactor/issues/328)) ([a0f55ef](https://github.com/e6qu/fun-refactor/commit/a0f55efe0824c1156c68792269e97f54b4f090fd))
+* accept guided React Tailwind surface edit ([#329](https://github.com/e6qu/fun-refactor/issues/329)) ([41226d3](https://github.com/e6qu/fun-refactor/commit/41226d3bc9e93648f7035afa98b446ea1d49b1a9))
+
 ## [0.29.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.28.0...fun-refactor-v0.29.0) (2026-09-17)
 
 
