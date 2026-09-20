@@ -683,6 +683,46 @@ fn source_required_routes_need_explicit_bounded_reveal_permission() {
 }
 
 #[test]
+fn source_body_guide_requires_reveal_and_previews_tsx() {
+    let root = tempfile::tempdir().unwrap();
+    let source = "export const Layout = ({ title }: { title: string }) => { return <main>{title}</main>; };\n";
+    std::fs::write(root.path().join("app.tsx"), source).unwrap();
+    let mut request = goal(
+        "change",
+        json!({"name":"Layout","scope":"app.tsx","language":"tsx"}),
+        json!({"kind":"source-body"}),
+    );
+    assert_eq!(guide(root.path(), &request)["state"], "unsupported");
+    request["constraints"] = json!({"allow_source":true});
+    let report = guide(root.path(), &request);
+    assert_eq!(report["state"], "ready", "{report}");
+    assert_eq!(report["route"]["id"], "source-body");
+    assert_eq!(report["route"]["source_required"], true);
+    let revealed = follow(root.path(), &report["actions"][0]);
+    assert!(revealed.to_string().contains("<main>{title}</main>"));
+    let input = tempfile::tempdir().unwrap();
+    let fragment = input.path().join("body.txt");
+    std::fs::write(
+        &fragment,
+        "{ return <main aria-label='content'>{title}</main>; }",
+    )
+    .unwrap();
+    let arguments = args_for(
+        &report["actions"][1],
+        &[("<input-file>", fragment.to_str().unwrap())],
+    );
+    let (passed, preview) = run(root.path(), &arguments, None);
+    assert!(passed, "{preview}");
+    assert_eq!(preview["schema"], "fr-author-1");
+    assert_eq!(preview["applied"], false);
+    assert!(preview["diff"].as_str().unwrap().contains("aria-label"));
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("app.tsx")).unwrap(),
+        source
+    );
+}
+
+#[test]
 fn malformed_goals_refuse_before_project_history_creation() {
     let root = fixture();
     let base = goal(

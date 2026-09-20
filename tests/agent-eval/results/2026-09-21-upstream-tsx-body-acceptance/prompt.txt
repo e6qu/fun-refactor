@@ -1,0 +1,18 @@
+You are an acceptance agent in a pinned MIT-licensed React/Tailwind project.
+
+Task: add an accessible name to the `<main>` rendered by `Layout` in `src/components/layouts/Layout.tsx`. Use `aria-label={layoutType === 'mobile' ? 'Mobile content' : 'Responsive content'}` and keep the existing `className`, children, Header and default layout behavior. The added attribute should be the only source change. Author the complete `Layout` function body from the bounded reveal, including its outer braces. Inspect the preview and complete review before execution. Report success only after all checks and delivery stages pass.
+
+Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-tsx-body-agent.py step /private/tmp/fr-tsx-body-live-2 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects the source body route.
+2. {"tool":"reveal"} shows the bounded `Layout` declaration.
+3. {"tool":"preview","body":"<complete authored TSX function body>"} previews the body edit. JSON-escape line breaks in the body string.
+4. {"tool":"review"} reuses that exact body and returns the complete diff and checks.
+5. {"tool":"execute"} executes the unchanged review.
+6. {"tool":"finish","answer":{"file":"src/components/layouts/Layout.tsx","mobile":"Mobile content","responsive":"Responsive content","check":"typecheck"}} finishes after execution passes.
+
+The evaluator separately checks exact source, receiver patch replay, TypeScript/Vite build and rendered HTML for mobile, responsive and omitted types. Do not claim success if any stage fails.

@@ -42,7 +42,8 @@ and 33-case compiler oracle with no failed commands or human correction. The SDK
 exposed calls and 63,714 input tokens; the direct-file arm used four calls and 68,098 input tokens.
 The observed difference was -4,384 input tokens on this repeat. The
 [repeat manifest](../tests/agent-eval/results/2026-09-18-sdk-release-acceptance/manifest.json) is
-bound to the new SDK runtime.
+bound to the new SDK runtime. Its retained source snapshots preserve the exact evaluator and guide
+bytes used in that run, so the historical result stays auditable as the guide gains new routes.
 
 The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
 live matched cohorts to executable deterministic cases for a pinned unfamiliar upstream workspace,
@@ -128,6 +129,22 @@ establishes CSS source delivery and bundling without a rendered UI behavior clai
 bodies remain open. The [accepted manifest](../tests/agent-eval/results/2026-09-20-upstream-css-acceptance/manifest.json)
 binds the run.
 
+The first accepted guided authored TSX body write also uses the pinned MIT React project. Its
+original `semantic-body` guide refused the `Layout` component because it had no exact semantic IR
+body. The new `source-body` route requires explicit source permission, reveals the bounded
+declaration, and binds a complete agent-authored body to the existing reviewed task writer. A fresh
+Codex CLI 0.155.1 agent on `gpt-5.6-luna` at low effort used six instrumented calls to add a
+conditional accessible name to `Layout`'s `<main>`. The declared TypeScript check and all eight
+delivery stages passed. A separate receiver replayed the reviewed patch, built the project and
+rendered mobile, responsive and omitted-type layouts with the expected labels and classes. The
+source oracle permits either exact position for the new attribute beside `className`; no other
+source byte may change. The agent made no failed or direct project commands and needed no
+correction. CLI usage was 96,815 input tokens, including 86,272 cached, and 1,099 output tokens;
+billed quota was unavailable. The [accepted manifest](../tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/manifest.json)
+binds this single-body result. The preceding [diagnostic](../tests/agent-eval/results/2026-09-21-upstream-tsx-body-diagnostic-1/manifest.json)
+passed delivery and rendering, but a premature oracle required the attribute before `className`.
+It is excluded from acceptance. Authored multi-file body delivery remains open.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -141,6 +158,7 @@ binds the run.
 | Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
 | Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
 | Pinned guided standalone CSS edit | `tools/upstream-css-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-css-acceptance/` |
+| Pinned guided authored TSX body | `tools/upstream-tsx-body-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/` |
 | Pinned guided Mermaid node edit | `tools/upstream-mermaid-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |
@@ -163,7 +181,7 @@ cargo build --features cli
 python3 tools/completion-workflows.py --fr target/debug/fr --output /tmp/completion.json
 python3 tools/completion-workflows.py --audit /tmp/completion.json
 python3 tools/matched-agent-context.py replay tests/agent-eval/results/2026-09-17-matched-context-acceptance
-python3 tools/matched-agent-source.py audit tests/agent-eval/results/2026-09-18-guided-delivery-acceptance
+python3 tools/matched-agent-source.py audit tests/agent-eval/results/2026-09-18-sdk-release-acceptance
 python3 tools/representative-acceptance.py audit
 python3 tools/representative-acceptance.py replay
 python3 tools/upstream-read-agent.py audit tests/agent-eval/results/2026-09-20-upstream-read-acceptance

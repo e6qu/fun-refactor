@@ -142,6 +142,23 @@
       "diagnostics": []
     },
     {
+      "id": "react-guided-tsx-body",
+      "covers": ["typescript-react"],
+      "manifest": "tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/manifest.json",
+      "runner": "tools/upstream-tsx-body-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-tsx-body-agent-2026-09-21.py",
+      "runner_sha256": "20f65e2d1861d67f9ca5e75ba8f961de26fa9b286aaa1e45a67ab398cc86e3ce",
+      "fixture_revision": "aulianza/vite-react-starter@0633ab1ff90cd0a09b70c849718b9504500a7bd5",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "exact TSX body insertion, reviewed patch replay, TypeScript/Vite build and three React server renders",
+      "postconditions": ["one authored Layout body changed", "eight delivery stages pass", "mobile and responsive labels render"],
+      "diagnostics": [
+        "tests/agent-eval/results/2026-09-21-upstream-tsx-body-diagnostic-1/manifest.json"
+      ]
+    },
+    {
       "id": "micromaid-guided-mermaid-node",
       "covers": ["mermaid"],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json",

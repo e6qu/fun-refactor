@@ -72,10 +72,6 @@ def bindings() -> dict[str, str]:
     return {name: digest((ROOT / name).read_bytes()) for name in paths}
 
 
-def binding_snapshot(directory: Path, name: str) -> Path:
-    return directory / "binding-sources" / name
-
-
 def prepare_project(root: Path) -> None:
     (root / "src").mkdir(parents=True)
     (root / ".fr").mkdir()
@@ -465,11 +461,6 @@ def record(directory: Path, destination: Path, diagnostic: bool) -> dict[str, ob
                 files[f"{arm}/{name}"] = digest((target / name).read_bytes())
     report["acceptance_evidence"] = bool(report.get("passed")) and not diagnostic
     report["bindings"] = bindings()
-    for name in report["bindings"]:
-        target = binding_snapshot(destination, name)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / name, target)
-        files[str(target.relative_to(destination))] = digest(target.read_bytes())
     report["files"] = files
     save(destination / "manifest.json", report)
     return report
@@ -477,16 +468,8 @@ def record(directory: Path, destination: Path, diagnostic: bool) -> dict[str, ob
 
 def audit(directory: Path) -> dict[str, object]:
     report = json.loads((directory / "manifest.json").read_text())
-    bound = report.get("bindings")
-    if (report.get("schema") != "fr-matched-source-manifest-1"
-            or not isinstance(bound, dict) or not bound
-            or not set(bound).issubset(bindings())):
+    if report.get("schema") != "fr-matched-source-manifest-1" or report.get("bindings") != bindings():
         raise ValueError("matched source evidence is stale")
-    for name, expected in bound.items():
-        snapshot = binding_snapshot(directory, name)
-        source = snapshot if snapshot.is_file() else ROOT / name
-        if digest(source.read_bytes()) != expected:
-            raise ValueError(f"matched source binding changed: {name}")
     for relative, expected in report.get("files", {}).items():
         if relative == "manifest.json":
             continue
