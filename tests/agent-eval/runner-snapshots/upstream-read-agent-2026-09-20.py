@@ -11,7 +11,6 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import Any, TypedDict, cast
 
 from agent_eval import regex_workspace
 
@@ -22,43 +21,6 @@ EFFORT = "low"
 TIER = "default"
 FILES = ("session.json", "prompt.txt", "events.jsonl", "codex-events.jsonl",
          "codex-stderr.txt", "codex-final.txt", "codex-run.json", "result.json")
-
-
-class SessionConfig(TypedDict):
-    schema: str
-    upstream_commit: str
-    archive_sha256: str
-    lock_sha256: str
-    binary: str
-    binary_sha256: str
-    source_sha256: str
-    evaluator: dict[str, str]
-    manual_corrections: int
-
-
-class Event(TypedDict):
-    request: dict[str, Any]
-    full: dict[str, Any] | None
-    visible: dict[str, Any]
-    source_sha256: str
-
-
-def object_map(value: object, label: str) -> dict[str, Any]:
-    if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
-        raise ValueError(f"{label} must be a JSON object")
-    return cast(dict[str, Any], value)
-
-
-def full_report(row: Event) -> dict[str, Any]:
-    if row["full"] is None:
-        raise ValueError("tool event has no fr report")
-    return row["full"]
-
-
-def string_list(value: object, label: str) -> list[str]:
-    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
-        raise ValueError(f"{label} must be a string list")
-    return cast(list[str], value)
 
 
 def sha(data: bytes) -> str:
@@ -105,14 +67,14 @@ The evaluator independently checks the pinned source, exact answer, tool sequenc
 """
 
 
-def prepare(session: Path, binary: Path) -> SessionConfig:
+def prepare(session: Path, binary: Path) -> dict[str, object]:
     session.mkdir(parents=True, exist_ok=False)
     frozen = session / "fr-bin"
     shutil.copyfile(binary, frozen)
     frozen.chmod(0o555)
     project = session / "project"
     regex_workspace.unpack(project)
-    config: SessionConfig = {"schema": "fr-upstream-read-session-1", "upstream_commit": regex_workspace.COMMIT,
+    config = {"schema": "fr-upstream-read-session-1", "upstream_commit": regex_workspace.COMMIT,
               "archive_sha256": regex_workspace.ARCHIVE_SHA, "lock_sha256": regex_workspace.LOCK_SHA,
               "binary": str(frozen), "binary_sha256": sha(frozen.read_bytes()),
               "source_sha256": source_digest(project), "evaluator": binding(),
@@ -122,40 +84,21 @@ def prepare(session: Path, binary: Path) -> SessionConfig:
     return config
 
 
-def config(session: Path) -> SessionConfig:
-    value = object_map(json.loads((session / "session.json").read_text()), "session")
-    if (value.get("schema") != "fr-upstream-read-session-1" or value.get("evaluator") != binding()
-            or value.get("upstream_commit") != regex_workspace.COMMIT
-            or value.get("archive_sha256") != regex_workspace.ARCHIVE_SHA
-            or value.get("lock_sha256") != regex_workspace.LOCK_SHA
-            or not isinstance(value.get("binary"), str)
-            or not isinstance(value.get("binary_sha256"), str)
-            or not isinstance(value.get("source_sha256"), str)
-            or type(value.get("manual_corrections")) is not int):
+def config(session: Path) -> dict[str, object]:
+    value = json.loads((session / "session.json").read_text())
+    if value["schema"] != "fr-upstream-read-session-1" or value["evaluator"] != binding():
         raise ValueError("session evaluator changed")
     if sha(Path(value["binary"]).read_bytes()) != value["binary_sha256"]:
         raise ValueError("session binary changed")
-    return cast(SessionConfig, value)
+    return value
 
 
-def events(session: Path) -> list[Event]:
+def events(session: Path) -> list[dict[str, object]]:
     path = session / "events.jsonl"
-    if not path.exists():
-        return []
-    rows = []
-    for line in path.read_text().splitlines():
-        row = object_map(json.loads(line), "tool event")
-        object_map(row.get("request"), "tool event request")
-        object_map(row.get("visible"), "tool event response")
-        if row.get("full") is not None:
-            object_map(row["full"], "tool event fr report")
-        if not isinstance(row.get("source_sha256"), str):
-            raise ValueError("tool event has no source digest")
-        rows.append(cast(Event, row))
-    return rows
+    return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
 
 
-def fr(session: Path, arguments: list[str], input_value: object = None) -> dict[str, Any]:
+def fr(session: Path, arguments: list[str], input_value: object = None) -> dict[str, object]:
     selected = config(session)
     command = [selected["binary"], "--json", "--no-cache", "-C", str(session / "project"), *arguments]
     completed = subprocess.run(command, input=(json.dumps(input_value).encode() if input_value is not None else None),
@@ -164,10 +107,10 @@ def fr(session: Path, arguments: list[str], input_value: object = None) -> dict[
         raise ValueError(f"fr returned {completed.returncode}: {completed.stderr.decode(errors='replace')[-512:]}")
     if len(completed.stdout) > 65_536:
         raise ValueError("fr response exceeded the instrumented limit")
-    return object_map(json.loads(completed.stdout), "fr response")
+    return json.loads(completed.stdout)
 
 
-def step(session: Path, request: dict[str, Any]) -> object:
+def step(session: Path, request: dict[str, object]) -> object:
     config(session)
     prior = events(session)
     kind = request.get("tool")
@@ -190,10 +133,10 @@ def step(session: Path, request: dict[str, Any]) -> object:
             raise ValueError("follow requires a returned guide")
         if any(row["request"]["tool"] == "follow" and row["request"]["guide"] == number for row in prior):
             raise ValueError("guide already followed")
-        action = object_map(full_report(guides[number])["actions"][0], "guide action")
-        if action.get("ready") is not True or action.get("writes") is not False:
+        action = guides[number]["full"]["actions"][0]
+        if not action["ready"] or action["writes"]:
             raise ValueError("guide action is not a ready read")
-        full = fr(session, string_list(action["arguments"], "guide arguments"), action.get("input"))
+        full = fr(session, action["arguments"], action.get("input"))
         if full.get("schema") != action["output_schema"]:
             raise ValueError("follow output schema differs from guide")
         visible = {"followed": number, "target": full.get("target"), "selected": full.get("selected"),
@@ -207,11 +150,9 @@ def step(session: Path, request: dict[str, Any]) -> object:
         visible = {"rows": full["rows"], "columns": full["columns"], "revision": full["revision"]}
     elif kind == "show":
         handle = request.get("handle")
-        if not isinstance(handle, str):
-            raise ValueError("show requires a disclosed handle")
-        offered = {full_report(row)["target"]["handle"] for row in prior if row["request"]["tool"] == "guide"}
-        offered.update(full_report(row)["rows"][i][0] for row in prior if row["request"]["tool"] == "find"
-                       for i in range(len(full_report(row)["rows"])))
+        offered = {row["full"]["target"]["handle"] for row in prior if row["request"]["tool"] == "guide"}
+        offered.update(row["full"]["rows"][i][0] for row in prior if row["request"]["tool"] == "find"
+                       for i in range(len(row["full"]["rows"])))
         def disclosed_handles(value: object) -> set[str]:
             if isinstance(value, dict):
                 return ({value["handle"]} if isinstance(value.get("handle"), str) else set()).union(
@@ -300,11 +241,11 @@ def score(session: Path) -> dict[str, object]:
                  and all(answer.get(key) == value for key, value in expected.items())
                  and isinstance(example, str) and len(example) == 1
                  and example in "\\.+*?()|[]{}^$#&-~")
-    shown_paths = {full_report(row).get("node", {}).get("path") for row in shows}
-    shown_symbols = {full_report(row).get("node", {}).get("name") for row in shows}
+    shown_paths = {row["full"].get("node", {}).get("path") for row in shows}
+    shown_symbols = {row["full"].get("node", {}).get("name") for row in shows}
     result = {"schema": "fr-upstream-read-result-1", "passed": False,
               "guide_purposes": [row["request"]["goal"]["purpose"] for row in guides],
-              "guide_routes": [full_report(row)["route"]["id"] for row in guides],
+              "guide_routes": [row["full"]["route"]["id"] for row in guides],
               "follows": [row["request"]["guide"] for row in follows],
               "source_reveal_calls": len(shows), "shown_paths": sorted(path for path in shown_paths if path),
               "shown_symbols": sorted(name for name in shown_symbols if name),
@@ -388,7 +329,7 @@ def main() -> None:
         if args.action == "prepare": result = prepare(args.session.resolve(), args.fr.resolve())
         elif args.action == "step":
             if not args.request_stdin: raise ValueError("step requires --request-stdin")
-            result = step(args.session.resolve(), object_map(json.load(sys.stdin), "tool request"))
+            result = step(args.session.resolve(), json.load(sys.stdin))
         elif args.action == "run":
             if not args.confirm_agent_spend: raise ValueError("--confirm-agent-spend is required")
             result = run(args.session.resolve(), args.codex, args.model, args.effort, args.service_tier, args.timeout)

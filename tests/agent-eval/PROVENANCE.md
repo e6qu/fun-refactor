@@ -1,5 +1,11 @@
 # Agent acceptance source and evidence
 
+The accepted 2026-09-20 guided upstream-read trial pins the exact evaluator bytes used during
+that run. Its [runner snapshot](runner-snapshots/upstream-read-agent-2026-09-20.py) preserves
+those bytes while the active `tools/upstream-read-agent.py` evolves. The representative
+acceptance audit checks the snapshot against the recorded digest and keeps the original
+runner path in the session and command transcript as historical provenance.
+
 `strsim-0.11.1.crate` is the unmodified published source archive for rapidfuzz/strsim-rs 0.11.1.
 The existing Cargo cache supplied these bytes. No source padding or injected bug modifies the benchmark basis.
 
