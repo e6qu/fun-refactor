@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.30.0...fun-refactor-v0.30.1) (2026-09-21)
+
+
+### Tests
+
+* accept guided standalone CSS edit ([#331](https://github.com/e6qu/fun-refactor/issues/331)) ([30e3007](https://github.com/e6qu/fun-refactor/commit/30e30076bdf92d9cf1c711f15086508722113196))
+* accept guided TSX body edit ([#333](https://github.com/e6qu/fun-refactor/issues/333)) ([660367f](https://github.com/e6qu/fun-refactor/commit/660367f26a85723770fe0e2ebee35efccb57957e))
+
 ## [0.30.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.29.0...fun-refactor-v0.30.0) (2026-09-20)
 
 
