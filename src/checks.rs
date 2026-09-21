@@ -218,6 +218,17 @@ fn terminate(child: &mut Child) -> Option<String> {
     group_error.or(child_error)
 }
 
+#[cfg(unix)]
+fn terminate_remaining_group(child: &Child) -> Option<String> {
+    let group = i32::try_from(child.id())
+        .ok()
+        .and_then(rustix::process::Pid::from_raw)?;
+    match rustix::process::kill_process_group(group, rustix::process::Signal::KILL) {
+        Ok(()) | Err(rustix::io::Errno::SRCH) => None,
+        Err(error) => Some(error.to_string()),
+    }
+}
+
 fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Result<Value> {
     let cwd = confined(root, &check.cwd, true)?;
     let mut stdout = tempfile::tempfile()?;
@@ -241,7 +252,14 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
         Ok(mut child) => {
             let status = loop {
                 match child.try_wait() {
-                    Ok(Some(status)) => break Ok(status),
+                    Ok(Some(status)) => {
+                        #[cfg(unix)]
+                        if let Some(error) = terminate_remaining_group(&child) {
+                            termination_attempted = true;
+                            termination_error = Some(error);
+                        }
+                        break Ok(status);
+                    }
                     Ok(None) => (),
                     Err(error) => {
                         termination_attempted = true;
@@ -269,7 +287,10 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
     };
     output_limit |=
         stdout.metadata()?.len() > MAX_CAPTURE || stderr.metadata()?.len() > MAX_CAPTURE;
-    let passed = status.is_some_and(|s| s.success()) && !timed_out && !output_limit;
+    let passed = status.is_some_and(|s| s.success())
+        && !timed_out
+        && !output_limit
+        && termination_error.is_none();
     let retained = if passed && quiet_success { 0 } else { limit };
     let mut result = json!({
         "name": check.name, "argv": check.argv, "cwd": check.cwd, "covers": check.covers,
@@ -403,7 +424,7 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         "execution": if cfg!(unix) {
             concat!(
                 "inherited environment; direct argv; ",
-                "no command sandbox; process-group ",
+                "no command sandbox; process-group completion, ",
                 "timeout and output-limit cleanup; ",
                 "temporary file capture",
             )

@@ -71,6 +71,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B941: **a successful declared check could leave background subprocesses running.** The runner
+  certified stability before a delayed writer changed source. On Unix, normal command completion
+  now kills remaining members of the isolated process group before the runner checks source. A
+  regression proves that a successful parent cannot leave a delayed workspace mutation behind.
+
 - [x] B940: **a timed-out declared check left its subprocesses running.** The runner killed only
   the direct child, then checked the source snapshot. A surviving grandchild could mutate the
   workspace after that apparently stable snapshot. On Unix, every check now runs in its own process

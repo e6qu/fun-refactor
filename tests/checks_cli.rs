@@ -519,6 +519,27 @@ fn timeout_terminates_descendants_before_checking_source_stability() {
     assert!(!root.path().join("late-marker").exists());
 }
 
+#[cfg(unix)]
+#[test]
+fn successful_check_terminates_descendants_before_checking_source_stability() {
+    let root = fixture(vec![check(
+        "background",
+        concat!(
+            "import subprocess; ",
+            "p=['python3','-c',",
+            "\"import time,pathlib; time.sleep(2); ",
+            "pathlib.Path('late-marker').",
+            "write_text('survived')\"]; ",
+            "subprocess.Popen(p)",
+        ),
+    )]);
+    let report = run(&root, &["--run", "background", "--basis", &basis(&root)], 0);
+    assert_eq!(report["results"][0]["passed"], true);
+    assert_eq!(report["source_snapshot_stable"], true);
+    std::thread::sleep(std::time::Duration::from_secs(3));
+    assert!(!root.path().join("late-marker").exists());
+}
+
 #[test]
 fn oversized_capture_fails_even_when_the_child_exits_successfully() {
     let root = fixture(vec![check(

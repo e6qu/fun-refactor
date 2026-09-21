@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-bundle-context-1",
   "passed": true,
-  "binary_sha256": "bb5bd3a308f9046e7d919bf6814dce1479bc311d80b099a2d037466e5a9088a0",
-  "source_commit": "afd99a5edb9bdb06facebebd7d8c225eb865d423",
+  "binary_sha256": "46f64db5ff08a8a5c30c5de5d070f9040d383bbbdf93ea2cd7c848645ecbf345",
+  "source_commit": "5dc375bd53be8eb4a5beda8dc100328f534a2d55",
   "repetitions": 1,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
@@ -15,7 +15,7 @@
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
     "src/project/task.rs": "d99f35813e2dcab0f2b47821389ee798d9868db2f0764b795dc83514818b2143",
     "src/project/batch.rs": "ac2004157090f314b78ec23daba63b7612968b661a5c157ad9a8e369fadad4ff",
-    "src/checks.rs": "3eaca3aafd007aa26094b80b62cf3024fecbe44464125e944eab0151ec2250fc",
+    "src/checks.rs": "e7818ca5e65a755cb33ebd00238e1dd561059ce71a1b0e4a0f9125c4d3b14a04",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
   },
   "fixture": {
@@ -98,16 +98,16 @@
     "separate": {
       "samples": 1,
       "calls": 4,
-      "median_context_bytes": 6829,
+      "median_context_bytes": 6841,
       "median_context_tokens": null,
-      "median_seconds": 0.14421341702109203
+      "median_seconds": 0.139013750012964
     },
     "task": {
       "samples": 1,
       "calls": 1,
       "median_context_bytes": 4715,
       "median_context_tokens": null,
-      "median_seconds": 0.06519108300562948
+      "median_seconds": 0.06293074996210635
     }
   },
   "runs": [
@@ -115,9 +115,9 @@
       "repetition": 1,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "a8c4247684e1c151fa190e5eff1489baa852903e981f42eb9b973c55e95e7ff5",
+      "semantic_sha256": "5d1a32fa8aea0e9014082cda489c6c324c3d4282528a64180e98e85385b5869f",
       "stdout": {
-        "bytes": 6512,
+        "bytes": 6524,
         "tokens": null
       },
       "requests": {
@@ -129,16 +129,16 @@
         "tokens": null
       },
       "context": {
-        "bytes": 6829,
+        "bytes": 6841,
         "tokens": null
       },
-      "seconds": 0.14421341702109203
+      "seconds": 0.139013750012964
     },
     {
       "repetition": 1,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "a8c4247684e1c151fa190e5eff1489baa852903e981f42eb9b973c55e95e7ff5",
+      "semantic_sha256": "5d1a32fa8aea0e9014082cda489c6c324c3d4282528a64180e98e85385b5869f",
       "stdout": {
         "bytes": 4176,
         "tokens": null
@@ -155,7 +155,7 @@
         "bytes": 4715,
         "tokens": null
       },
-      "seconds": 0.06519108300562948
+      "seconds": 0.06293074996210635
     }
   ],
   "source_unchanged": true,

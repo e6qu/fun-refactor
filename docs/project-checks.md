@@ -85,15 +85,19 @@ Standard input is closed. Executable lookup uses the inherited PATH; relative ex
 
 Working directories must exist inside the canonical project root and cannot traverse symlinks.
 Configuration paths cannot traverse symlinks either. Concurrent filesystem replacement remains outside these checks.
-Timeouts terminate and reap the direct child. Descendants can outlive it, including on interruption of `fr` itself.
-Use an external process supervisor when a project needs descendant cleanup or stronger resource isolation.
+On Unix, every command starts in a separate process group. The runner terminates remaining group
+members after the direct command exits and on timeout or excessive output, then checks source
+stability. A descendant can escape by starting a new session. Other platforms clean up only the
+direct child. Interrupting `fr` itself can also leave descendants running. Use an external process
+supervisor when a project needs stronger resource isolation.
 
 Output capture uses temporary files to avoid pipe deadlocks and unbounded in-memory buffering.
 The runner polls every 20 ms and stops a running child above 16 MiB on either stream.
 This is a soft disk limit; a fast writer can exceed it between polls.
 The output budget retains up to 65,536 raw bytes per stream, with exact omitted-byte counts for the observed capture.
 UTF-8 replacement decoding and JSON escaping can expand the displayed text beyond that raw-byte budget.
-Descendant writers can continue changing a capture after the direct child exits.
+Descendants can keep changing a capture until process-group cleanup completes, or longer when they
+escape that group or run on a platform without group cleanup.
 
 Configuration accepts at most 65,536 bytes and 32 checks, with timeouts from 1 through 3,600 seconds.
 Unknown fields refuse. Names are unique ASCII letters, digits, underscores or hyphens, at most 64 bytes.
