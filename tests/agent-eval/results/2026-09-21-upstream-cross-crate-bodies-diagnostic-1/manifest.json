@@ -1,0 +1,20 @@
+{
+  "schema": "fr-upstream-cross-crate-bodies-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "The delivery and independent behavior/allocation oracle passed, but the evaluator source predicate unnecessarily required an intermediate additional variable and rejected the equivalent inline exact-capacity expression.",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator_sha256": "9cb4f17187dc8d629ac626f9083f2ff448e6637124a19c741c8b4a49824e5a59",
+  "files": {
+    "session.json": "8f894982c49f609e2efab4c712f7da83c9bfde3ff500846b4d23d2c921ed491a",
+    "prompt.txt": "466ec5cf917cb66579348e4da559e322a1423f9d8c874e66d55a2df25d4c36f2",
+    "events.jsonl": "8e48eeb6647bff01c6edf40ab84910e982c7a63753fc05e62c4f2dc1d93801ff",
+    "codex-events.jsonl": "a240c532527e3ab280daf5d314e9acb1897ae9deb12f2ee0adc9b07f8286eee6",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-final.txt": "42565784860ae6d27417c526e1f70d30a71ecc7cf7fa0ddca0d26349fcc0f7f9",
+    "codex-run.json": "b3789532a678d147343023ae6c24af14a96cd6e9777f8e1f00874e103b7ca427",
+    "result.json": "91d49f28e41750817ef6ca384ab7009e0156123508c38004c64bf7ffcc6581d8",
+    "runner.py": "9cb4f17187dc8d629ac626f9083f2ff448e6637124a19c741c8b4a49824e5a59"
+  }
+}

@@ -46,11 +46,12 @@ bound to the new SDK runtime. Its retained source snapshots preserve the exact e
 bytes used in that run, so the historical result stays auditable as the guide gains new routes.
 
 The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
-live matched cohorts to executable deterministic cases for a pinned unfamiliar upstream workspace,
-Rust multi-file delivery, TSX/React body changes, CSS/Tailwind/Mermaid surfaces, backend migration
-and agent-authored Lean tactics. It records each fixture revision, independent oracle and exact
-postconditions. Audit metadata and real execution remain separate: replay runs one worker and
-reports missing toolchains as infrastructure failures rather than product failures.
+live matched cohorts to six executable deterministic cases and eight live trials for a pinned
+unfamiliar upstream workspace, Rust multi-file delivery, TSX/React body changes,
+CSS/Tailwind/Mermaid surfaces, backend migration and agent-authored Lean tactics. It records each
+fixture revision, independent oracle and exact postconditions. Audit metadata and real execution
+remain separate: replay runs one worker and reports missing toolchains as infrastructure failures
+rather than product failures.
 
 The first accepted guided upstream read task uses the pinned `rust-lang/regex` revision
 `2b527599eb9eea0dcc288c704584f242f26a5c61`. A fresh Codex CLI 0.155.1 agent on
@@ -156,7 +157,22 @@ direct project commands, failed commands or human corrections occurred. The acce
 unavailable. The [accepted manifest](../tests/agent-eval/results/2026-09-21-upstream-multibody-acceptance/manifest.json)
 binds this one two-file result. The [diagnostic](../tests/agent-eval/results/2026-09-21-upstream-multibody-diagnostic-1/manifest.json)
 records a refused attempt that included declaration signatures in body fragments. The guide now
-names that boundary explicitly. Authored cross-crate Rust bodies remain open.
+names that boundary explicitly.
+
+The first accepted guided cross-crate Rust body task reuses the pinned `rust-lang/regex` archive.
+The `source-bodies` goal selects `regex_syntax::escape_into` and the public `regex::escape` facade
+by exact file scope. A fresh Codex CLI 0.155.1 agent on `gpt-5.6-luna` at low effort revealed both
+declarations, authored both complete bodies, reviewed one two-file diff and passed all eight
+delivery stages with upstream and minimal-feature checks. A fresh receiver replayed the patch and
+compiled offline. Its independent allocator oracle passed 64 behavior combinations, preserved
+append semantics and observed one allocation for each nonempty facade case. The agent made seven
+instrumented calls with no failures, direct project commands or human corrections. CLI usage was
+164,475 input tokens, including 131,328 cached, and 1,485 output tokens; billed quota was
+unavailable. The [accepted manifest](../tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-acceptance/manifest.json)
+binds this one result. Three preceding diagnostics passed delivery and the independent oracle but
+were rejected by source predicates tied to harmless expression structure or local variable names.
+Their frozen evaluators document why implementation-shaped source checks were replaced by the
+compiled behavioral and allocation boundary.
 
 ## Find the underlying evidence
 
@@ -169,6 +185,7 @@ names that boundary explicitly. Authored cross-crate Rust bodies remain open.
 | Representative cross-language acceptance | `tools/representative-acceptance.py`, `tests/agent-eval/representative-acceptance.json` |
 | Pinned guided upstream read/trace | `tools/upstream-read-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-read-acceptance/` |
 | Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
+| Pinned guided cross-crate Rust bodies | `tools/upstream-cross-crate-bodies-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-acceptance/` |
 | Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
 | Pinned guided standalone CSS edit | `tools/upstream-css-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-css-acceptance/` |
 | Pinned guided authored TSX body | `tools/upstream-tsx-body-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/` |

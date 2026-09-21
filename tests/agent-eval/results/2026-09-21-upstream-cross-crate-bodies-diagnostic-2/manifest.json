@@ -1,0 +1,20 @@
+{
+  "schema": "fr-upstream-cross-crate-bodies-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "The delivery and independent behavior/allocation oracle passed, but the evaluator source predicate unnecessarily required the facade buffer variable to be named escaped and rejected the equivalent name buf.",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator_sha256": "69ff858af443af0cbfc54d65401bd1cfcaaa164827dd3e2ead326fc772437d93",
+  "files": {
+    "session.json": "79f5890fcf54048f682ab0dfdaaf4d4e0ab8370fd3505a59ca1b191b02a6115c",
+    "prompt.txt": "2e8d33f59593b25951934099df4f2fce7b67c3b511a20f346ea3b812f05d3153",
+    "events.jsonl": "b89bdfd5c22182cd48f7d70b697235ceeada00f293abea5735bdfbc3dc32a9fb",
+    "codex-events.jsonl": "16198d0fee1836a5118d596f917f82f5b8f8cf6cbdfda188ec62f81dcb94fab0",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-final.txt": "4cdf397efc0851d49f075319cf7ebd6fe8b4a9308d93baeec7582178b82e4f3e",
+    "codex-run.json": "36b300bee2b5eb18821efb2ff16c874e8a98b33a5d38683e3fa5c829d3ebe1f3",
+    "result.json": "c924b696d20f30e218e291ea6a952ee215942bd4788dad0ec3bb4d2698f334e3",
+    "runner.py": "69ff858af443af0cbfc54d65401bd1cfcaaa164827dd3e2ead326fc772437d93"
+  }
+}
