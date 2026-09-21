@@ -494,6 +494,31 @@ fn timeout_reports_failure_and_returns_without_waiting_for_inherited_pipes() {
     assert!(started.elapsed().as_secs() < 8);
 }
 
+#[cfg(unix)]
+#[test]
+fn timeout_terminates_descendants_before_checking_source_stability() {
+    let mut slow = check(
+        "slow",
+        concat!(
+            "import subprocess,time; ",
+            "p=['python3','-c',",
+            "\"import time,pathlib; time.sleep(2); ",
+            "pathlib.Path('late-marker').",
+            "write_text('survived')\"]; ",
+            "subprocess.Popen(p); time.sleep(10)",
+        ),
+    );
+    slow["timeout_seconds"] = json!(1);
+    let root = fixture(vec![slow]);
+    let report = run(&root, &["--run", "slow", "--basis", &basis(&root)], 1);
+    assert_eq!(report["results"][0]["timed_out"], true);
+    assert_eq!(report["results"][0]["termination_scope"], "process-group");
+    assert_eq!(report["results"][0]["termination_error"], Value::Null);
+    assert_eq!(report["source_snapshot_stable"], true);
+    std::thread::sleep(std::time::Duration::from_secs(3));
+    assert!(!root.path().join("late-marker").exists());
+}
+
 #[test]
 fn oversized_capture_fails_even_when_the_child_exits_successfully() {
     let root = fixture(vec![check(
@@ -516,6 +541,30 @@ fn oversized_capture_fails_even_when_the_child_exits_successfully() {
     assert_eq!(report["results"][0]["output_limit_exceeded"], true);
     assert_eq!(report["results"][0]["stdout"]["retained_bytes"], 1);
     assert_eq!(report["results"][0]["stdout"]["text"], "\u{fffd}");
+}
+
+#[cfg(unix)]
+#[test]
+fn oversized_capture_terminates_descendants() {
+    let root = fixture(vec![check(
+        "excess",
+        concat!(
+            "import os,subprocess,time; ",
+            "p=['python3','-c',",
+            "\"import time,pathlib; time.sleep(2); ",
+            "pathlib.Path('late-marker').",
+            "write_text('survived')\"]; ",
+            "subprocess.Popen(p); ",
+            "os.write(1,b'x'*(17*1024*1024)); ",
+            "time.sleep(10)",
+        ),
+    )]);
+    let report = run(&root, &["--run", "excess", "--basis", &basis(&root)], 1);
+    assert_eq!(report["results"][0]["output_limit_exceeded"], true);
+    assert_eq!(report["results"][0]["termination_scope"], "process-group");
+    assert_eq!(report["results"][0]["termination_error"], Value::Null);
+    std::thread::sleep(std::time::Duration::from_secs(3));
+    assert!(!root.path().join("late-marker").exists());
 }
 
 #[test]

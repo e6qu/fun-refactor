@@ -1,13 +1,13 @@
 {
   "schema": "fr-workflow-context-1",
   "passed": true,
-  "binary_sha256": "11c9beae6a37c9465f81b38fb363b66fea32520d1a88b14f7e7717050eb564e5",
-  "source_commit": "7a90a8af8438a60f62ad03f5394603c15526f1fc",
+  "binary_sha256": "bb5bd3a308f9046e7d919bf6814dce1479bc311d80b099a2d037466e5a9088a0",
+  "source_commit": "afd99a5edb9bdb06facebebd7d8c225eb865d423",
   "repetitions": 1,
   "runtime": {
-    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
-    "python": "3.14.6",
-    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "python": "3.12.10",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
   },
   "measurement_files": {
     "tools/workflow-context.py": "32e152499ee4f887562034bba1d53e90e197359700a6d9c87a9d7f692585efda",
@@ -15,8 +15,8 @@
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
     "src/workflow.rs": "0b5a280d99b918e1a33ff301ffa6aa78f56488a447f7242ded4ba43a4aff9f07",
     "src/history.rs": "7ce1f21d25bc9c6883df2a2ff1d6debc4035af834839e3bb9252df9197e07df0",
-    "src/checks.rs": "eb8c9c5a175432ee172a16cb32368b56263947314c1e75673c4f82e41a4d5600",
-    "Cargo.lock": "3807705d6f8ce521b398118d302ff127ccec2aae0e0c42787a1d2a83258a7b0d"
+    "src/checks.rs": "3eaca3aafd007aa26094b80b62cf3024fecbe44464125e944eab0151ec2250fc",
+    "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
   },
   "fixture": {
     "app.py": "def before(value: int) -> int:\n    return value + 1\n",
@@ -52,16 +52,16 @@
     "manual": {
       "samples": 1,
       "calls": 7,
-      "median_context_bytes": 6368,
+      "median_context_bytes": 6446,
       "median_context_tokens": null,
-      "median_seconds": 0.2451511649414897
+      "median_seconds": 0.2773695420473814
     },
     "workflow": {
       "samples": 1,
       "calls": 2,
       "median_context_bytes": 5638,
       "median_context_tokens": null,
-      "median_seconds": 0.20487916690763086
+      "median_seconds": 0.2488962909555994
     }
   },
   "runs": [
@@ -70,7 +70,7 @@
       "arm": "manual",
       "calls": 7,
       "stdout": {
-        "bytes": 5324,
+        "bytes": 5402,
         "tokens": null
       },
       "requests": {
@@ -82,10 +82,10 @@
         "tokens": null
       },
       "context": {
-        "bytes": 6368,
+        "bytes": 6446,
         "tokens": null
       },
-      "seconds": 0.2451511649414897,
+      "seconds": 0.2773695420473814,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -111,7 +111,7 @@
         "bytes": 5638,
         "tokens": null
       },
-      "seconds": 0.20487916690763086,
+      "seconds": 0.2488962909555994,
       "stage_identity": "32263bf7473e46621fe3b58102136762631ed7c8ffd07e36b82b0912b5d491cf",
       "state_identity": "9639cefd281a1f4df2ef164fc6604a587d25aa390d69da181800f8c3e784d28b",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
