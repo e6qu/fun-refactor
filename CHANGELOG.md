@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.30.1...fun-refactor-v0.31.0) (2026-09-21)
+
+
+### Features
+
+* guide multi-file authored bodies ([#334](https://github.com/e6qu/fun-refactor/issues/334)) ([0b7d8ae](https://github.com/e6qu/fun-refactor/commit/0b7d8ae4057eb8050dd62e97b2185009e3f13eff))
+
+
+### Tests
+
+* accept cross-crate authored bodies ([#336](https://github.com/e6qu/fun-refactor/issues/336)) ([493041f](https://github.com/e6qu/fun-refactor/commit/493041f44db64a04fd92b80157ea4b194500355a))
+
 ## [0.30.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.30.0...fun-refactor-v0.30.1) (2026-09-21)
 
 
