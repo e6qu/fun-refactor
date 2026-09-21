@@ -949,6 +949,44 @@ impl Project<'_> {
                             && targets[0]["op"] == op
                     })
             }
+            (Some("source-bodies"), Operation::TaskChange { task_change })
+            | (
+                Some("source-bodies"),
+                Operation::AuthorBatch {
+                    author_batch: task_change,
+                    ..
+                },
+            ) => {
+                let expected = guide["targets"].as_array().map(|targets| {
+                    targets
+                        .iter()
+                        .filter_map(|item| item["handle"].as_str())
+                        .collect::<BTreeSet<_>>()
+                });
+                let authored = task_change
+                    .get("targets")
+                    .or_else(|| task_change.get("operations"))
+                    .and_then(Value::as_array);
+                match (expected, authored) {
+                    (Some(expected), Some(authored)) => {
+                        expected.len() >= 2
+                            && expected.contains(target)
+                            && authored.len() == expected.len()
+                            && authored.iter().all(|item| {
+                                item["op"] == "replace-body"
+                                    && item["handle"]
+                                        .as_str()
+                                        .is_some_and(|handle| expected.contains(handle))
+                            })
+                            && authored
+                                .iter()
+                                .filter_map(|item| item["handle"].as_str())
+                                .collect::<BTreeSet<_>>()
+                                == expected
+                    }
+                    _ => false,
+                }
+            }
             (Some("surface-edit"), Operation::SurfaceEdit { .. }) => true,
             (Some("framework-migration"), Operation::FrameworkMigration { to, feature, .. }) => {
                 guide["route"]["evidence"]["planner"] == "feature"

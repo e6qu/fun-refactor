@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 _PURPOSES = ("understand", "trace", "change", "migrate", "prove")
 _PROOFS = ("none", "model", "implementation")
 _KINDS = ("automatic", "capability", "recipe", "semantic-scalar", "semantic-change",
-          "semantic-body", "source-body", "surface-edit", "framework-migration", "formalize", "proof")
+          "semantic-body", "source-body", "source-bodies", "surface-edit", "framework-migration", "formalize", "proof")
 _GUIDED_OPERATIONS = {
     "evidence": ("project-query",),
     "direct-capability": ("capability",),
@@ -35,6 +35,7 @@ _GUIDED_OPERATIONS = {
     "formalization": ("property-task", "formal-plan"),
     "proof": ("proof-task", "proof-submission"),
     "source-body": ("task-change", "author-batch"),
+    "source-bodies": ("task-change", "author-batch"),
 }
 
 
@@ -88,6 +89,7 @@ class GoalOperation:
             "automatic": (), "capability": ("capability",), "recipe": ("verb",),
             "semantic-scalar": ("operation",), "semantic-change": (), "semantic-body": (),
             "source-body": (),
+            "source-bodies": ("additional",),
             "surface-edit": ("surface",), "framework-migration": ("to",),
             "formalize": (), "proof": ("obligation",),
         }
@@ -98,7 +100,8 @@ class GoalOperation:
             raise FrRuntimeError("goal operation fields do not match its tagged kind")
         value = json.loads(_canonical(dict(self.fields)))
         for name in required[self.kind]:
-            _bounded(value[name], f"operation {name}", 4096)
+            if self.kind != "source-bodies":
+                _bounded(value[name], f"operation {name}", 4096)
         if self.kind == "capability":
             span = value.get("range")
             if "range" in value and (not isinstance(span, dict) or set(span) != {"start", "end"}
@@ -121,6 +124,17 @@ class GoalOperation:
             for name in ("from", "to"):
                 if value[name] is not None and not isinstance(value[name], str):
                     raise FrRuntimeError("scalar values must use text")
+        if self.kind == "source-bodies":
+            additional = value["additional"]
+            if (not isinstance(additional, list) or not 1 <= len(additional) <= 7
+                    or any(not isinstance(item, dict) for item in additional)):
+                raise FrRuntimeError("source-bodies needs one through seven additional selectors")
+            normalized = []
+            for item in additional:
+                if set(item) - {"name", "path", "scope", "kind", "language", "locals"}:
+                    raise FrRuntimeError("additional selector has unknown fields")
+                normalized.append(GoalSelector(**item).to_data())
+            value["additional"] = normalized
         object.__setattr__(self, "fields", value)
 
     def to_data(self) -> dict[str, Any]:
@@ -442,7 +456,7 @@ class GuideReview:
         operation = action.operation.to_data()
         review = self.compiled.at("/action/review")
         route_id = route.get("id") if isinstance(route, Mapping) else None
-        route_code = (5 if route_id == "source-body" else tuple(_GUIDED_OPERATIONS).index(route_id)
+        route_code = (5 if route_id in ("source-body", "source-bodies") else tuple(_GUIDED_OPERATIONS).index(route_id)
                       if route_id in _GUIDED_OPERATIONS else 10)
         basis_matches = (self.compiled.at("/action/basis") == self.compiled.action_basis
                          and isinstance(self.compiled.action_basis, str)

@@ -723,6 +723,75 @@ fn source_body_guide_requires_reveal_and_previews_tsx() {
 }
 
 #[test]
+fn source_bodies_guide_reveals_distinct_targets_and_previews_one_batch() {
+    let root = tempfile::tempdir().unwrap();
+    let layout = "export const Layout = () => { return <main>Content</main>; };\n";
+    let header = "export const Header = () => { return <header>Title</header>; };\n";
+    std::fs::write(root.path().join("Layout.tsx"), layout).unwrap();
+    std::fs::write(root.path().join("Header.tsx"), header).unwrap();
+    let mut request = goal(
+        "change",
+        json!({"name":"Layout","scope":"Layout.tsx","language":"tsx"}),
+        json!({"kind":"source-bodies","additional":[
+            {"name":"Header","scope":"Header.tsx","language":"tsx"}
+        ]}),
+    );
+    assert_eq!(guide(root.path(), &request)["state"], "unsupported");
+    request["constraints"] = json!({"allow_source":true});
+    let report = guide(root.path(), &request);
+    assert_eq!(report["state"], "ready", "{report}");
+    assert_eq!(report["route"]["id"], "source-bodies");
+    assert_eq!(report["targets"].as_array().unwrap().len(), 2);
+    assert_eq!(report["actions"].as_array().unwrap().len(), 3);
+    assert!(follow(root.path(), &report["actions"][0])
+        .to_string()
+        .contains("<main>Content</main>"));
+    assert!(follow(root.path(), &report["actions"][1])
+        .to_string()
+        .contains("<header>Title</header>"));
+    let input = tempfile::tempdir().unwrap();
+    let layout_body = input.path().join("layout.txt");
+    let header_body = input.path().join("header.txt");
+    std::fs::write(
+        &layout_body,
+        "{ return <main aria-label='content'>Content</main>; }",
+    )
+    .unwrap();
+    std::fs::write(
+        &header_body,
+        "{ return <header aria-label='site'>Title</header>; }",
+    )
+    .unwrap();
+    let manifest = input.path().join("batch.json");
+    std::fs::write(
+        &manifest,
+        json!({"operations":[
+            {"op":"replace-body","handle":report["targets"][0]["handle"],"from":layout_body},
+            {"op":"replace-body","handle":report["targets"][1]["handle"],"from":header_body}
+        ]})
+        .to_string(),
+    )
+    .unwrap();
+    let arguments = args_for(
+        &report["actions"][2],
+        &[("<input-file>", manifest.to_str().unwrap())],
+    );
+    let (passed, preview) = run(root.path(), &arguments, None);
+    assert!(passed, "{preview}");
+    assert_eq!(preview["schema"], "fr-author-batch-1");
+    assert_eq!(preview["files_changed"], 2);
+    assert_eq!(preview["applied"], false);
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("Layout.tsx")).unwrap(),
+        layout
+    );
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("Header.tsx")).unwrap(),
+        header
+    );
+}
+
+#[test]
 fn malformed_goals_refuse_before_project_history_creation() {
     let root = fixture();
     let base = goal(

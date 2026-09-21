@@ -93,6 +93,9 @@ enum Operation {
     SemanticChange,
     SemanticBody,
     SourceBody,
+    SourceBodies {
+        additional: Vec<Selector>,
+    },
     SurfaceEdit {
         surface: String,
     },
@@ -295,23 +298,15 @@ fn parse_goal(bytes: &[u8]) -> Result<Goal> {
         );
     }
     if let Some(selector) = &goal.selector {
+        validate_selector(selector)?;
+    }
+    if let Operation::SourceBodies { additional } = &goal.operation {
         ensure!(
-            selector.name.is_some() != selector.path.is_some(),
-            "selector needs exactly one name or path."
+            (1..=7).contains(&additional.len()),
+            "source-bodies needs one through seven additional selectors."
         );
-        for value in [
-            selector.name.as_ref(),
-            selector.path.as_ref(),
-            Some(&selector.scope),
-            selector.kind.as_ref(),
-        ]
-        .into_iter()
-        .flatten()
-        {
-            ensure!(
-                !value.is_empty() && value.len() <= 512 && !value.contains('\0'),
-                "selector fields must be bounded nonempty strings."
-            );
+        for selector in additional {
+            validate_selector(selector)?;
         }
     }
     ensure!(
@@ -328,6 +323,28 @@ fn parse_goal(bytes: &[u8]) -> Result<Goal> {
         "goal checks must be at most 32 unique names."
     );
     Ok(goal)
+}
+
+fn validate_selector(selector: &Selector) -> Result<()> {
+    ensure!(
+        selector.name.is_some() != selector.path.is_some(),
+        "selector needs exactly one name or path."
+    );
+    for value in [
+        selector.name.as_ref(),
+        selector.path.as_ref(),
+        Some(&selector.scope),
+        selector.kind.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        ensure!(
+            !value.is_empty() && value.len() <= 512 && !value.contains('\0'),
+            "selector fields must be bounded nonempty strings."
+        );
+    }
+    Ok(())
 }
 
 pub(crate) fn normalized_goal(bytes: &[u8]) -> Result<Value> {
@@ -373,6 +390,10 @@ impl Project<'_> {
         let Some(selector) = &goal.selector else {
             return Ok(vec![0]);
         };
+        self.guide_select(selector)
+    }
+
+    fn guide_select(&self, selector: &Selector) -> Result<Vec<usize>> {
         if let Some(path) = &selector.path {
             return Ok(vec![self.target(path)?]);
         }
@@ -1021,9 +1042,48 @@ impl Project<'_> {
                     None,
                     vec![author(
                         "input-file",
-                        "complete source body in the target language.",
+                        "complete source body with outer braces; omit the declaration signature.",
                     )],
                 ));
+            }
+            Operation::SourceBodies { additional } => {
+                route = 5;
+                route_name = "source-bodies";
+                source_required = true;
+                let mut selected_targets = vec![selected];
+                for selector in additional {
+                    let matches = self.guide_select(selector)?;
+                    if matches.len() != 1 || selected_targets.contains(&matches[0]) {
+                        supported = false;
+                        refusals.push(
+                            "each additional selector must resolve to one distinct declaration."
+                                .into(),
+                        );
+                        break;
+                    }
+                    selected_targets.push(matches[0]);
+                }
+                supported &= selected_targets
+                    .iter()
+                    .all(|id| self.guide_body_candidate(*id, 0));
+                report["targets"] = json!(selected_targets
+                    .iter()
+                    .map(|id| self.guide_target(*id))
+                    .collect::<Vec<_>>());
+                evidence = json!({"predicate":"task_author_target_candidate","operation":"replace-body",
+                    "target_count":selected_targets.len(),"supported":supported});
+                if supported {
+                    for id in selected_targets {
+                        actions.extend(self.guide_source_actions(id, goal.context.token_limit));
+                    }
+                    actions.push(action(
+                        "preview",
+                        args(&["author", "batch", "--from", "<input-file>"]),
+                        "fr-author-batch-1",
+                        None,
+                        vec![author("input-file", "fr-author-batch-1 manifest with one braced body per guided target; omit declaration signatures.")],
+                    ));
+                }
             }
             Operation::SurfaceEdit { surface } => {
                 route = 6;
@@ -1440,7 +1500,7 @@ impl Project<'_> {
             2 => "recipes",
             3 => "semantic-intent",
             4 => "semantic-change",
-            5 if route_name == "source-body" => "workflow",
+            5 if matches!(route_name, "source-body" | "source-bodies") => "workflow",
             5 => "semantic",
             6 => "surfaces",
             7 => "surfaces",

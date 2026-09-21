@@ -127,6 +127,15 @@ const WORKFLOWS: &[Workflow] = &[
         acceptance_target: "agent_guide_cli::source_body_guide_requires_reveal_and_previews_tsx",
     },
     Workflow {
+        id: "source-bodies",
+        purposes: &["change"],
+        predicate: "distinct task_author_target_candidate declarations + explicit source reveal",
+        operation_kinds: &["task-change", "author-batch"],
+        output_schemas: &["fr-author-batch-1", "fr-task-change-1"],
+        source: "Each exact declaration is revealed before one reviewed multi-target body change.",
+        acceptance_target: "agent_guide_cli::source_bodies_guide_reveals_distinct_targets_and_previews_one_batch",
+    },
+    Workflow {
         id: "surface-edit",
         purposes: &["change"],
         predicate: "surface capability predicate",
@@ -443,7 +452,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!(WORKFLOWS.len(), 11);
+        assert_eq!(WORKFLOWS.len(), 12);
         for route in WORKFLOWS {
             assert!(!route.purposes.is_empty());
             assert!(!route.operation_kinds.is_empty());
