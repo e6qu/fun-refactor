@@ -112,6 +112,25 @@
       ]
     },
     {
+      "id": "regex-guided-cross-crate-bodies",
+      "covers": ["rust-multi-file"],
+      "manifest": "tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-acceptance/manifest.json",
+      "runner": "tools/upstream-cross-crate-bodies-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-cross-crate-bodies-agent-2026-09-21.py",
+      "runner_sha256": "4e966f5aa7228b839e1b766ade01718ddce5c410c83dab14d05a9fc956abc245",
+      "fixture_revision": "rust-lang/regex@2b527599eb9eea0dcc288c704584f242f26a5c61",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "two Rust body boundaries, receiver patch replay, offline builds, 64 independent behavior cases, append semantics and allocation counts",
+      "postconditions": ["two authored bodies changed across crates", "eight delivery stages pass", "nonempty facade calls allocate once"],
+      "diagnostics": [
+        "tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-1/manifest.json",
+        "tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-2/manifest.json",
+        "tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-3/manifest.json"
+      ]
+    },
+    {
       "id": "react-guided-tailwind-surface",
       "covers": ["typescript-react", "css-tailwind"],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-react-acceptance/manifest.json",

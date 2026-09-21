@@ -45,7 +45,7 @@ Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
 The [representative acceptance registry](representative-acceptance.json) binds six deterministic
-cases and seven live trials:
+cases and eight live trials:
 the pinned unfamiliar regex workspace, Rust multi-file reviewed delivery, TSX/React body changes,
 CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its
 replay uses one Cargo and Lean worker and labels a missing toolchain as infrastructure failure.
@@ -124,6 +124,17 @@ in three layout cases. The [diagnostic](results/2026-09-21-upstream-multibody-di
 retains the first attempt, whose body fragments included declaration signatures; review refused
 it and no source was executed. Its original evaluator is retained as `runner.py` there. The
 accepted evaluator is pinned in [its runner snapshot](runner-snapshots/upstream-multibody-agent-2026-09-21.py).
+
+The [guided cross-crate Rust body acceptance](results/2026-09-21-upstream-cross-crate-bodies-acceptance/manifest.json)
+reuses the pinned `rust-lang/regex` archive and lockfile. Its `source-bodies` goal selects
+`regex_syntax::escape_into` and the public `regex::escape` facade in separate crates. The agent
+reveals both declarations, authors both bodies, previews one batch and executes an unchanged
+review with upstream and minimal-feature checks. The receiver replays the patch, compiles offline
+and runs an independent allocator oracle over 64 escaping cases plus append behavior. The accepted
+run observes one allocation for each nonempty facade input. Diagnostics `-diagnostic-1` through
+`-diagnostic-3` passed delivery and that oracle but exposed source predicates coupled to expression
+layout or local names. Each diagnostic retains its evaluator as `runner.py`; the accepted evaluator
+is pinned in [its runner snapshot](runner-snapshots/upstream-cross-crate-bodies-agent-2026-09-21.py).
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0

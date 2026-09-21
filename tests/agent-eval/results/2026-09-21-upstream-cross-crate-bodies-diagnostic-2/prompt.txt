@@ -1,0 +1,19 @@
+You are an acceptance agent in the pinned MIT/Apache-licensed regex workspace.
+
+Task: make `regex_syntax::escape_into` reserve the exact additional byte length before appending, including one extra byte for every regex metacharacter. Make the public `regex::escape` facade construct an empty `String`, call `regex_syntax::escape_into` directly and return that buffer. Preserve escaping and append behavior for ASCII and Unicode, public signatures, no-default-features support and every source byte outside these two bodies. Author each complete Rust body, including its outer braces but omitting its declaration signature. Inspect both bounded reveals, the batch preview and the complete review before execution. Report success only after all checks and delivery stages pass.
+
+Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-cross-crate-bodies-agent.py step /private/tmp/fr-cross-crate-live-0921-2 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects both exact body targets.
+2. {"tool":"reveal-syntax"} shows bounded `regex_syntax::escape_into` source.
+3. {"tool":"reveal-facade"} shows bounded `regex::escape` source.
+4. {"tool":"preview","syntax_body":"<complete escape_into body>","facade_body":"<complete escape body>"} previews both bodies together. JSON-escape line breaks.
+5. {"tool":"review"} reuses those exact bodies and returns the complete two-file diff and checks.
+6. {"tool":"execute"} executes the unchanged review.
+7. {"tool":"finish","answer":{"files":["regex-syntax/src/lib.rs","src/lib.rs"],"checks":["upstream","minimal"],"allocation_calls":1,"append_preserved":true}} finishes after execution passes.
+
+The evaluator separately checks the two-body source boundary, receiver patch replay, offline compilation, 64 independent behavior cases, append semantics and one allocation for every nonempty facade case. Do not claim success if any stage fails.

@@ -1,0 +1,20 @@
+{
+  "schema": "fr-upstream-cross-crate-bodies-manifest-1",
+  "passed": false,
+  "acceptance_evidence": false,
+  "diagnostic_reason": "The delivery and independent behavior/allocation oracle passed, but the evaluator source predicate rejected an equivalent split where additional stores only the metacharacter count and text.len() is added in reserve.",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "model": "gpt-5.6-luna",
+  "evaluator_sha256": "071ec4b9bf88431fda47da54ff1413ecb280ddf440f8a90937198a5e34043abe",
+  "files": {
+    "session.json": "d2690cb4d5f14ecfa48953afc5798098f31c5cad23dd70f480af3a49d8d05063",
+    "prompt.txt": "6518a9242d0d361acc00b006602602eb0d6fffe3db2db5a8dc83053e28329cc4",
+    "events.jsonl": "eee275f7787956182c661af4809df7c63975c5f767d4674421a72201d0afb94d",
+    "codex-events.jsonl": "cc9848a91e11bd20f9326ffe79bb38ed49b055776a5a06ca76c92dfc80ab0d0e",
+    "codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codex-final.txt": "b44e9ab5fadc4d870deb833438f26cd92d6b84ac35bdd68c4e8e4537a53da9cf",
+    "codex-run.json": "37d66f1677fafd223f7aa24ffd0445915aaad80dec37fd8feffd19334442b37f",
+    "result.json": "2fdd80ec5ed228e67d96eb9b4d3c4e291f5b486c116e552bf9c7871e9554fc0b",
+    "runner.py": "071ec4b9bf88431fda47da54ff1413ecb280ddf440f8a90937198a5e34043abe"
+  }
+}

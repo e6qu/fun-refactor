@@ -37,11 +37,10 @@ does not prove its source without a checked correspondence boundary.
 ## Current baseline
 
 The architecture needed for items 1 through 7 exists. Item 8 has deterministic representative
-breadth and one accepted guided upstream `understand`/`trace` run. Two accepted matched
-source-writing runs still repeat the Rust scalar task. Earlier live agents also made
-two-crate changes on the regex workspace through the pre-guide workflow. Autonomous guided
-source-writing evidence across task shapes remains narrow. The defect ledger records no open
-actionable correctness defect.
+breadth and accepted guided upstream read, Rust rename, cross-crate Rust body, TSX, CSS and
+Mermaid runs. Two accepted matched source-writing runs still repeat the Rust scalar task.
+Autonomous guided application migration and proof authoring remain open. The defect ledger records
+no open actionable correctness defect.
 
 | Area | Delivered baseline | Remaining work |
 |---|---|---|
@@ -52,7 +51,7 @@ actionable correctness defect.
 | Application migration | Generic application IR for routes and components; four HTTP adapters write required scalar validation and read their documented source subsets; selected FastAPI middleware, `Depends`/`Security` providers and closed-world service calls; React/Next state and events behind an explicit client boundary | Validation outside each reader subset, configured middleware, provider internals, external services and effects |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
-| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace and three-file rename, pre-guide multi-file upstream cohorts, matched context and two accepted scalar source-writing cohorts | Broaden guided cross-project, cross-language, semantic authoring and proof-writing trials |
+| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace, three-file rename, cross-crate Rust bodies and frontend source writing, plus matched context and two accepted scalar source-writing cohorts | Add live application migration and proof authoring trials; broaden only from observed gaps |
 | Distribution | Native, WASM and version-matched Python SDK artifacts plus a portable agent skill | Add distribution channels only when consumer demand justifies them |
 
 Run these instead of copying volatile matrices into roadmap prose:
@@ -83,27 +82,28 @@ the same pull request when its root cause belongs to that outcome. Use a direct 
 Use pinned unfamiliar projects and independent oracles to test the complete agent workflow. The
 existing representative registry supplies deterministic cases; its two accepted matched live
 source-writing cohorts repeat one Rust scalar change. The pinned regex workspace has accepted guided
-read/trace and three-file rename tasks. Pinned MIT React/Tailwind and Micromaid projects have accepted
-guided TSX class and body, paired Layout/Header bodies, CSS selector and Mermaid node edits.
-Earlier live two-crate cohorts used the pre-guide workflow. The paired TSX trial validates one
-reviewed two-file authored body delivery. Authored cross-crate Rust bodies remain open. Keep deterministic
-replay, live agent outcomes and population claims separate. Pin each task's repository revision,
-goal, admitted route, allowed tools, exact postconditions and compiler, framework or proof oracle
-before a live run.
+read/trace, three-file rename and cross-crate authored body tasks. Pinned MIT React/Tailwind and
+Micromaid projects have accepted guided TSX class and body, paired Layout/Header bodies, CSS selector
+and Mermaid node edits. The remaining live task shapes are application migration and proof
+authoring. Keep deterministic replay, live agent outcomes and population claims separate. Pin each
+task's repository revision, goal, admitted route, allowed tools, exact postconditions and compiler,
+framework or proof oracle before a live run.
 
 The acceptance corpus covers:
 
 - An unfamiliar upstream `understand` and `trace` task with bounded reveal and exact evidence
   (accepted on the pinned regex workspace; retain new failures separately).
 - A Rust multi-file change with one complete reviewed delivery. The pinned regex workspace has
-  an accepted three-file guided rename; authored cross-crate Rust bodies remain open.
+  accepted three-file guided rename and two-file cross-crate authored body deliveries.
 - TSX/React and CSS/Tailwind/Mermaid changes through admitted guides. Pinned React header class,
   standalone CSS selector and authored Layout body edits, plus a Micromaid diagram node edit, are
   accepted. The paired Layout/Header body trial renders three variants and checks both landmarks;
   the CSS selector trial does not establish rendered UI behavior.
 - A backend application migration that reads validated inputs from source and writes a different
-  HTTP adapter. Preserve manual boundaries and check the generated runtime behavior.
-- An agent-authored Lean proof with checked submission and explicit correspondence limits.
+  HTTP adapter. Its deterministic case is accepted; a retained live run remains open. Preserve
+  manual boundaries and check the generated runtime behavior.
+- An agent-authored Lean proof with checked submission and explicit correspondence limits. Its
+  deterministic case is accepted; a retained live run remains open.
 
 Acceptance: retain at least one accepted live run for each task shape above. Source-writing runs
 include the guide, preview, checks, apply, undo, redo and patch replay where applicable. The
