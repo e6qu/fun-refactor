@@ -142,7 +142,8 @@ misstate evidence.
   semantic lowering and history transitions where proofs provide meaningful guarantees.
 - Add checked generation or differential correspondence for those kernels.
 - Use property, fault-injection and crash-recovery tests for filesystem, Git and subprocess behavior
-  that cannot usefully be proved inside Lean.
+  that cannot usefully be proved inside Lean. Declared checks now isolate Unix subprocess groups
+  and terminate descendants before reporting timeout or output-limit failures.
 - Continue measuring and reducing full-gate cost while retaining Lean's default two-job and
   two-thread bounds. Strict anchor checks now extract each source once per invocation, and the
   default gate reuses the CLI binary already built for its integration tests.

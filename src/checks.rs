@@ -6,8 +6,11 @@ use std::collections::BTreeSet;
 use std::fs::{self, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Component, Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 
 const CONFIG: &str = ".fr/checks.json";
 const MAX_CONFIG: u64 = 65536;
@@ -198,20 +201,42 @@ fn output(file: &mut File, limit: usize) -> Result<Value> {
     }))
 }
 
+fn terminate(child: &mut Child) -> Option<String> {
+    #[cfg(unix)]
+    let group_error = i32::try_from(child.id())
+        .ok()
+        .and_then(rustix::process::Pid::from_raw)
+        .and_then(|group| {
+            rustix::process::kill_process_group(group, rustix::process::Signal::KILL)
+                .err()
+                .map(|error| error.to_string())
+        });
+    #[cfg(not(unix))]
+    let group_error = None;
+
+    let child_error = child.kill().err().map(|error| error.to_string());
+    group_error.or(child_error)
+}
+
 fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Result<Value> {
     let cwd = confined(root, &check.cwd, true)?;
     let mut stdout = tempfile::tempfile()?;
     let mut stderr = tempfile::tempfile()?;
     let started = Instant::now();
-    let child = Command::new(&check.argv[0])
+    let mut command = Command::new(&check.argv[0]);
+    command
         .args(&check.argv[1..])
         .current_dir(cwd)
         .stdin(Stdio::null())
         .stdout(Stdio::from(stdout.try_clone()?))
-        .stderr(Stdio::from(stderr.try_clone()?))
-        .spawn();
+        .stderr(Stdio::from(stderr.try_clone()?));
+    #[cfg(unix)]
+    command.process_group(0);
+    let child = command.spawn();
     let mut timed_out = false;
     let mut output_limit = false;
+    let mut termination_attempted = false;
+    let mut termination_error = None;
     let (status, error) = match child {
         Ok(mut child) => {
             let status = loop {
@@ -219,7 +244,8 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
                     Ok(Some(status)) => break Ok(status),
                     Ok(None) => (),
                     Err(error) => {
-                        let _ = child.kill();
+                        termination_attempted = true;
+                        termination_error = terminate(&mut child);
                         let _ = child.wait();
                         break Err(error);
                     }
@@ -228,7 +254,8 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
                 output_limit = stdout.metadata()?.len() > MAX_CAPTURE
                     || stderr.metadata()?.len() > MAX_CAPTURE;
                 if timed_out || output_limit {
-                    let _ = child.kill();
+                    termination_attempted = true;
+                    termination_error = terminate(&mut child);
                     break child.wait();
                 }
                 std::thread::sleep(Duration::from_millis(20));
@@ -244,14 +271,23 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
         stdout.metadata()?.len() > MAX_CAPTURE || stderr.metadata()?.len() > MAX_CAPTURE;
     let passed = status.is_some_and(|s| s.success()) && !timed_out && !output_limit;
     let retained = if passed && quiet_success { 0 } else { limit };
-    Ok(json!({
+    let mut result = json!({
         "name": check.name, "argv": check.argv, "cwd": check.cwd, "covers": check.covers,
         "passed": passed,
         "exit_code": status.and_then(|s| s.code()), "error": error,
         "timed_out": timed_out, "output_limit_exceeded": output_limit,
         "elapsed_ms": started.elapsed().as_millis(),
         "stdout": output(&mut stdout, retained)?, "stderr": output(&mut stderr, retained)?
-    }))
+    });
+    if termination_attempted {
+        result["termination_scope"] = json!(if cfg!(unix) {
+            "process-group"
+        } else {
+            "direct-child"
+        });
+        result["termination_error"] = json!(termination_error);
+    }
+    Ok(result)
 }
 
 pub fn check_evidence_acceptable(
@@ -364,7 +400,21 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         "checks": config.checks, "results": results,
         "not_run": config.checks.iter().filter(|check| !selected.contains(&check.name)).map(|check| &check.name).collect::<Vec<_>>(),
         "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
-        "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+        "execution": if cfg!(unix) {
+            concat!(
+                "inherited environment; direct argv; ",
+                "no command sandbox; process-group ",
+                "timeout and output-limit cleanup; ",
+                "temporary file capture",
+            )
+        } else {
+            concat!(
+                "inherited environment; direct argv; ",
+                "no command sandbox; direct-child ",
+                "timeout and output-limit cleanup; ",
+                "temporary file capture",
+            )
+        },
         "source_snapshot_checked": !results.is_empty()
     });
     if let Some(source_revision) = source_revision {

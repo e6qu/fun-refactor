@@ -1,13 +1,13 @@
 {
   "schema": "fr-task-change-context-2",
   "passed": true,
-  "binary_sha256": "d8180cfca86132ed7f84ed7cee5493da2fa73bfbf371bdbbe8f2edbed1052e4a",
-  "source_commit": "1498bbe7d89ff43520e1b98cf6c4fc9f69e80e6c",
+  "binary_sha256": "bb5bd3a308f9046e7d919bf6814dce1479bc311d80b099a2d037466e5a9088a0",
+  "source_commit": "afd99a5edb9bdb06facebebd7d8c225eb865d423",
   "repetitions": 3,
   "runtime": {
-    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
-    "python": "3.14.6",
-    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "python": "3.12.10",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
   },
   "measurement_files": {
     "tools/task-change-context.py": "898133c484653dedaa989b15179eac8ad5118d0c7bd2697f4433e4b4e1d46d2e",
@@ -18,8 +18,8 @@
     "src/project/author.rs": "db096b866968275e45765add1f796f20ed6a4d724173a4cd5c6f620a6ce6c146",
     "src/workflow.rs": "0b5a280d99b918e1a33ff301ffa6aa78f56488a447f7242ded4ba43a4aff9f07",
     "src/history.rs": "7ce1f21d25bc9c6883df2a2ff1d6debc4035af834839e3bb9252df9197e07df0",
-    "src/checks.rs": "eb8c9c5a175432ee172a16cb32368b56263947314c1e75673c4f82e41a4d5600",
-    "Cargo.lock": "3807705d6f8ce521b398118d302ff127ccec2aae0e0c42787a1d2a83258a7b0d"
+    "src/checks.rs": "3eaca3aafd007aa26094b80b62cf3024fecbe44464125e944eab0151ec2250fc",
+    "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
   },
   "fixture": {
     "src/lib.rs": "pub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",
@@ -67,21 +67,21 @@
       "calls": 5,
       "median_context_bytes": 13686,
       "median_context_tokens": 4623,
-      "median_seconds": 0.5767150429892354
+      "median_seconds": 0.5205511240055785
     },
     "task_change": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 10426,
       "median_context_tokens": 3370,
-      "median_seconds": 0.4863121670205146
+      "median_seconds": 0.44950562401209027
     },
     "change_session": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 10097,
       "median_context_tokens": 3342,
-      "median_seconds": 0.5789939580135979
+      "median_seconds": 0.4879000830114819
     }
   },
   "runs": [
@@ -90,7 +90,7 @@
       "arm": "composed",
       "calls": 5,
       "stdout": {
-        "bytes": 11991,
+        "bytes": 11990,
         "tokens": 4082
       },
       "requests": {
@@ -102,10 +102,10 @@
         "tokens": 382
       },
       "context": {
-        "bytes": 13687,
+        "bytes": 13686,
         "tokens": 4623
       },
-      "seconds": 0.6951915411045775,
+      "seconds": 0.5410741660743952,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -132,7 +132,7 @@
         "bytes": 10426,
         "tokens": 3370
       },
-      "seconds": 0.46178525098366663,
+      "seconds": 0.4648388340137899,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -159,7 +159,7 @@
         "bytes": 10097,
         "tokens": 3342
       },
-      "seconds": 0.5299137910478748,
+      "seconds": 0.5217320009833202,
       "stage_identity": "75896afb9ef5a1b063c8aa43dbcb71b54d45fdbded8e39d1e028da71c394f6c0",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -186,7 +186,7 @@
         "bytes": 10097,
         "tokens": 3342
       },
-      "seconds": 0.5789939580135979,
+      "seconds": 0.4879000830114819,
       "stage_identity": "75896afb9ef5a1b063c8aa43dbcb71b54d45fdbded8e39d1e028da71c394f6c0",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -213,7 +213,7 @@
         "bytes": 10426,
         "tokens": 3370
       },
-      "seconds": 0.4863121670205146,
+      "seconds": 0.44950562401209027,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -240,7 +240,7 @@
         "bytes": 13686,
         "tokens": 4623
       },
-      "seconds": 0.5767150429892354,
+      "seconds": 0.5205511240055785,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -267,7 +267,7 @@
         "bytes": 13686,
         "tokens": 4623
       },
-      "seconds": 0.5555180840310641,
+      "seconds": 0.5163298330153339,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -294,7 +294,7 @@
         "bytes": 10426,
         "tokens": 3370
       },
-      "seconds": 0.5794929169933312,
+      "seconds": 0.39381633297307417,
       "stage_identity": "1a753fc007b756e2dce6059bfdbc393bea9c151ea0f3488c9dfccd7c5710ac54",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -321,7 +321,7 @@
         "bytes": 10097,
         "tokens": 3342
       },
-      "seconds": 0.6079919570474885,
+      "seconds": 0.4772390419966541,
       "stage_identity": "75896afb9ef5a1b063c8aa43dbcb71b54d45fdbded8e39d1e028da71c394f6c0",
       "state_identity": "749c8548d8ae94de56cf600fcf258dbf45a54c76c2d46f9ae2caa53b73b90262",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",

@@ -71,6 +71,13 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B940: **a timed-out declared check left its subprocesses running.** The runner killed only
+  the direct child, then checked the source snapshot. A surviving grandchild could mutate the
+  workspace after that apparently stable snapshot. On Unix, every check now runs in its own process
+  group. Timeout or output-limit cleanup terminates the group before the runner checks source
+  stability. Other platforms retain and report direct-child cleanup. A regression lets a grandchild
+  attempt a delayed write and proves the write never occurs.
+
 - [x] B939: **the resolver mistook a qualified Rust crate call for recursion.**
   In regex, `regex_syntax::escape` in `regex::escape` resolved to the
   enclosing function. The same-name fallback ignored the crate path. The resolver now maps
