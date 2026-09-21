@@ -3645,6 +3645,7 @@ fn check_with(
     let mut debts = Vec::new();
     let mut parsers = Parsers::new();
     let mut extractor = Extractor::new();
+    let mut source_analyses = BTreeMap::new();
 
     for spec in files {
         let text = crate::vfs::read_to_string(&spec)
@@ -3668,7 +3669,13 @@ fn check_with(
                     status: Status::Missing,
                 }
             } else {
-                match declaration_hash(&mut parsers, &mut extractor, &source, &symbol) {
+                match cached_declaration_hash(
+                    &mut source_analyses,
+                    &mut parsers,
+                    &mut extractor,
+                    &source,
+                    &symbol,
+                ) {
                     Ok(actual) if actual.starts_with(&expected) => AnchorReport {
                         spec: spec.clone(),
                         line,
@@ -3708,7 +3715,15 @@ fn check_with(
             let signature_required = require_signatures
                 && detect(&report.source).is_some_and(crate::transpile::can_be_read);
             match signature_mapping(&text, line) {
-                Ok(Some(mapping)) => match mapped_signature(&report, &text, line, &mapping) {
+                Ok(Some(mapping)) => match cached_source_signature(
+                    &mut source_analyses,
+                    &mut parsers,
+                    &mut extractor,
+                    &report.source,
+                    &report.symbol,
+                )
+                .and_then(|source| mapped_signature(&source, &text, line, &mapping))
+                {
                     Ok(()) => {
                         report.signature = Some(SignatureReport {
                             status: Status::Fresh,
@@ -3953,6 +3968,52 @@ fn declaration_hash(
     )))
 }
 
+struct SourceAnalysis {
+    source: String,
+    facts: crate::model::FileFacts,
+}
+
+fn cached_source_analysis<'a>(
+    analyses: &'a mut BTreeMap<PathBuf, SourceAnalysis>,
+    parsers: &mut Parsers,
+    extractor: &mut Extractor,
+    path: &Path,
+) -> Result<&'a SourceAnalysis> {
+    match analyses.entry(path.to_path_buf()) {
+        std::collections::btree_map::Entry::Occupied(entry) => Ok(entry.into_mut()),
+        std::collections::btree_map::Entry::Vacant(entry) => {
+            let language = detect(path).ok_or_else(|| {
+                anyhow::anyhow!("{} has no language this build reads", path.display())
+            })?;
+            let source = crate::vfs::read_to_string(path)
+                .with_context(|| format!("reading {}", path.display()))?;
+            let parsed = parsers.parse(language, &source)?;
+            let facts = extractor.extract(&parsed, path, &source)?;
+            Ok(entry.insert(SourceAnalysis { source, facts }))
+        }
+    }
+}
+
+fn cached_declaration_hash(
+    analyses: &mut BTreeMap<PathBuf, SourceAnalysis>,
+    parsers: &mut Parsers,
+    extractor: &mut Extractor,
+    path: &Path,
+    wanted: &str,
+) -> Result<String> {
+    let language = detect(path)
+        .ok_or_else(|| anyhow::anyhow!("{} has no language this build reads", path.display()))?;
+    if wanted == "__fr_structure__" && language.class() == crate::lang::LanguageClass::Config {
+        let source = crate::vfs::read_to_string(path)
+            .with_context(|| format!("reading {}", path.display()))?;
+        return Ok(hex::encode(Sha256::digest(source.as_bytes())));
+    }
+    let analysis = cached_source_analysis(analyses, parsers, extractor, path)?;
+    Ok(hex::encode(Sha256::digest(
+        declaration_text_from(path, wanted, &analysis.source, &analysis.facts)?.as_bytes(),
+    )))
+}
+
 fn declaration_text(path: &Path, wanted: &str) -> Result<String> {
     declaration_text_with(&mut Parsers::new(), &mut Extractor::new(), path, wanted)
 }
@@ -3972,6 +4033,15 @@ fn declaration_text_with(
     }
     let parsed = parsers.parse(language, &source)?;
     let facts = extractor.extract(&parsed, path, &source)?;
+    declaration_text_from(path, wanted, &source, &facts).map(str::to_owned)
+}
+
+fn declaration_text_from<'a>(
+    path: &Path,
+    wanted: &str,
+    source: &'a str,
+    facts: &'a crate::model::FileFacts,
+) -> Result<&'a str> {
     let matches = facts
         .symbols
         .iter()
@@ -3984,7 +4054,7 @@ fn declaration_text_with(
             matches.len()
         );
     };
-    Ok(symbol.full_span.text(&source).to_string())
+    Ok(symbol.full_span.text(source))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -4032,12 +4102,11 @@ fn signature_part(text: &str) -> Result<SignaturePart> {
 }
 
 fn mapped_signature(
-    anchor: &AnchorReport,
+    source: &[SignaturePart],
     spec: &str,
     anchor_line: usize,
     mapping: &[(SignaturePart, SignaturePart)],
 ) -> Result<()> {
-    let source = source_signature(&anchor.source, &anchor.symbol)?;
     let model = lean_signature(spec, anchor_line)?;
     let expected_source = mapping.iter().map(|(source, _)| source).collect::<Vec<_>>();
     let expected_model = mapping.iter().map(|(_, model)| model).collect::<Vec<_>>();
@@ -4048,6 +4117,21 @@ fn mapped_signature(
         bail!("the Lean declaration no longer matches its explicit map");
     }
     Ok(())
+}
+
+fn cached_source_signature(
+    analyses: &mut BTreeMap<PathBuf, SourceAnalysis>,
+    parsers: &mut Parsers,
+    extractor: &mut Extractor,
+    path: &Path,
+    wanted: &str,
+) -> Result<Vec<SignaturePart>> {
+    if detect(path) == Some(crate::lang::Language::Rust) {
+        let analysis = cached_source_analysis(analyses, parsers, extractor, path)?;
+        rust_signature_from(path, wanted, &analysis.source, &analysis.facts)
+    } else {
+        source_signature(path, wanted)
+    }
 }
 
 fn source_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
@@ -4143,6 +4227,15 @@ fn rust_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
     let mut extractor = Extractor::new();
     let parsed = parsers.parse(crate::lang::Language::Rust, &text)?;
     let facts = extractor.extract(&parsed, path, &text)?;
+    rust_signature_from(path, wanted, &text, &facts)
+}
+
+fn rust_signature_from(
+    path: &Path,
+    wanted: &str,
+    text: &str,
+    facts: &crate::model::FileFacts,
+) -> Result<Vec<SignaturePart>> {
     let matches = facts
         .symbols
         .iter()
@@ -4155,7 +4248,7 @@ fn rust_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
             matches.len()
         );
     };
-    let declaration = symbol.full_span.text(&text);
+    let declaration = symbol.full_span.text(text);
     let open = declaration
         .find('(')
         .context("the Rust declaration has no parameters")?;
