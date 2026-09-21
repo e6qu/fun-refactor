@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.0...fun-refactor-v0.31.1) (2026-09-21)
+
+
+### Tests
+
+* accept guided application migration ([#337](https://github.com/e6qu/fun-refactor/issues/337)) ([9805d95](https://github.com/e6qu/fun-refactor/commit/9805d95b2471c65e1bf70ec78265e270d5a64adc))
+
 ## [0.31.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.30.1...fun-refactor-v0.31.0) (2026-09-21)
 
 
