@@ -1,0 +1,91 @@
+{
+  "schema": "fr-application-migration-agent-result-1",
+  "passed": true,
+  "sequence": [
+    "guide",
+    "preview",
+    "review",
+    "execute",
+    "finish"
+  ],
+  "guide_route": "framework-migration",
+  "reviewed_diff_sha256": "84f9c3cb75fbb83d922e1078f83688de3868de02af7a7587d9e96b02b52df514",
+  "review_ready": true,
+  "execution_passed": true,
+  "stages": [
+    [
+      "check-original",
+      "passed"
+    ],
+    [
+      "apply",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "undo",
+      "passed"
+    ],
+    [
+      "check-restored",
+      "passed"
+    ],
+    [
+      "redo",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "deliver-patch",
+      "passed"
+    ]
+  ],
+  "oracle": {
+    "changed_files": [
+      "generated/routes.go"
+    ],
+    "source_preserved": true,
+    "receiver_patch_replay": true,
+    "go_http_7_cases": true,
+    "oracle_detail": "?   \texample.invalid/fr-application-migration\t[no test files]\n=== RUN   TestMigratedContract\n=== RUN   TestMigratedContract/accepted\n=== RUN   TestMigratedContract/negative\n=== RUN   TestMigratedContract/noncanonical_integer\n=== RUN   TestMigratedContract/duplicate_query\n=== RUN   TestMigratedContract/missing_query\n=== RUN   TestMigratedContract/wrong_body_type\n=== RUN   TestMigratedContract/malformed_body\n--- PASS: TestMigratedContract (0.00s)\n    --- PASS: TestMigratedContract/accepted (0.00s)\n    --- PASS: TestMigratedContract/negative (0.00s)\n    --- PASS: TestMigratedContract/noncanonical_integer (0.00s)\n    --- PASS: TestMigratedContract/duplicate_query (0.00s)\n    --- PASS: TestMigratedContract/missing_query (0.00s)\n    --- PASS: TestMigratedContract/wrong_body_type (0.00s)\n    --- PASS: TestMigratedContract/malformed_body (0.00s)\nPASS\nok  \texample.invalid/fr-application-migration/generated\t0.300s\n"
+  },
+  "answer": {
+    "source": "api.ts",
+    "destination": "generated/routes.go",
+    "method": "POST",
+    "path": "/records/{id}",
+    "status": 201,
+    "inputs": [
+      "path:id",
+      "query:limit:integer",
+      "json-body:visible:boolean"
+    ],
+    "source_preserved": true,
+    "checks": [
+      "go"
+    ]
+  },
+  "codex": {
+    "usage": {
+      "input_tokens": 91325,
+      "cached_input_tokens": 62976,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1062,
+      "reasoning_output_tokens": 137
+    },
+    "command_executions": 5,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0
+}

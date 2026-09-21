@@ -46,7 +46,7 @@ bound to the new SDK runtime. Its retained source snapshots preserve the exact e
 bytes used in that run, so the historical result stays auditable as the guide gains new routes.
 
 The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
-live matched cohorts to six executable deterministic cases and eight live trials for a pinned
+live matched cohorts to six executable deterministic cases and nine live trials for a pinned
 unfamiliar upstream workspace, Rust multi-file delivery, TSX/React body changes,
 CSS/Tailwind/Mermaid surfaces, backend migration and agent-authored Lean tactics. It records each
 fixture revision, independent oracle and exact postconditions. Audit metadata and real execution
@@ -174,6 +174,19 @@ were rejected by source predicates tied to harmless expression structure or loca
 Their frozen evaluators document why implementation-shaped source checks were replaced by the
 compiled behavioral and allocation boundary.
 
+The first accepted guided application migration uses a pinned Express route with validated path,
+query and JSON body inputs. A fresh Codex CLI 0.155.1 agent on `gpt-5.6-luna` at low effort used
+five instrumented calls to select the source-free application IR route, preview a Go HTTP adapter,
+review the complete creation patch and execute all eight delivery stages. The Express source stays
+unchanged for coexistence. A fresh receiver replayed the patch and passed seven real HTTP cases,
+including canonical accepted values and five validation refusals. The agent made no failed or
+direct project commands and needed no correction. CLI usage was 91,325 input tokens, including
+62,976 cached, and 1,062 output tokens; billed quota was unavailable. The trial exposed a Python
+SDK verifier omission for the writable `application-migration` union variant; the regression now
+drives the real guide, review and execution path. The
+[accepted manifest](../tests/agent-eval/results/2026-09-21-application-migration-acceptance/manifest.json)
+binds this result.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -186,6 +199,7 @@ compiled behavioral and allocation boundary.
 | Pinned guided upstream read/trace | `tools/upstream-read-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-read-acceptance/` |
 | Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
 | Pinned guided cross-crate Rust bodies | `tools/upstream-cross-crate-bodies-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-acceptance/` |
+| Guided Express-to-Go application migration | `tools/application-migration-agent.py`, `tests/agent-eval/results/2026-09-21-application-migration-acceptance/` |
 | Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
 | Pinned guided standalone CSS edit | `tools/upstream-css-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-css-acceptance/` |
 | Pinned guided authored TSX body | `tools/upstream-tsx-body-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/` |

@@ -316,7 +316,9 @@ def _tagged_evidence_complete(intent: AgentIntent, packet: Mapping[str, Any]) ->
     proof, validation = review.get("proof"), review.get("proof_validation")
     expectation = intent.action.proof_expectation
     operation = intent.action.operation.to_data()
-    expected_writable = (operation["kind"] in ("task-change", "author-batch", "recipe", "framework-migration", "proof-submission", "surface-edit")
+    expected_writable = (operation["kind"] in ("task-change", "author-batch", "recipe",
+                                                "framework-migration", "application-migration",
+                                                "proof-submission", "surface-edit")
                          or (operation["kind"] == "formal-plan" and operation.get("package") is not None)
                          or (operation["kind"] == "capability" and operation["capability"] in _CAPABILITY_WRITES))
     if (writable is not expected_writable or not isinstance(claims, Mapping)

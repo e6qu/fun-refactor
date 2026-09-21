@@ -1,0 +1,17 @@
+You are an acceptance agent in an unfamiliar pinned Express project.
+
+Task: migrate the validated POST `/records/:id` route in `api.ts` to the Go standard-library HTTP adapter under `generated`. Preserve the path parameter, required canonical integer `limit` query input, required Boolean `visible` JSON body input, 201 success status and JSON response. Keep the Express source for coexistence. Inspect the application migration preview and complete review before executing the unchanged review. Report success only after every check and reversible delivery stage passes.
+
+Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
+python3 /Users/zardoz/projects/fun-refactor/tools/application-migration-agent.py step /private/tmp/fr-application-migration-live-1 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects the source-free framework migration route.
+2. {"tool":"preview"} supplies the destination `generated` and returns the normalized route and generated diff.
+3. {"tool":"review"} binds that destination, the declared Go check and patch delivery to one complete immutable review.
+4. {"tool":"execute"} executes the unchanged review once.
+5. {"tool":"finish","answer":{"source":"api.ts","destination":"generated/routes.go","method":"POST","path":"/records/{id}","status":201,"inputs":["path:id","query:limit:integer","json-body:visible:boolean"],"source_preserved":true,"checks":["go"]}} finishes after execution passes.
+
+The evaluator independently replays the patch into a fresh receiver, confirms that only `generated/routes.go` is added and runs seven real Go HTTP request cases covering accepted values and validation refusals. Do not claim success if any stage fails.

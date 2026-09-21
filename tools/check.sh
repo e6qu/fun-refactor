@@ -61,7 +61,7 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
         -- --test-threads "$FR_LEAN_JOBS"
 
     PYTHONPATH="$PWD/sdk/python/src:$PWD/tools${PYTHONPATH:+:$PYTHONPATH}" \
-        run ty check sdk/python/src tools/representative-acceptance.py tools/source-bodies-context.py tools/upstream-read-agent.py tools/upstream-rename-agent.py tools/upstream-react-agent.py tools/upstream-css-agent.py tools/upstream-tsx-body-agent.py tools/upstream-multibody-agent.py tools/upstream-cross-crate-bodies-agent.py tools/upstream-mermaid-agent.py
+        run ty check sdk/python/src tools/representative-acceptance.py tools/native-intent-context.py tools/source-bodies-context.py tools/upstream-read-agent.py tools/upstream-rename-agent.py tools/upstream-react-agent.py tools/upstream-css-agent.py tools/upstream-tsx-body-agent.py tools/upstream-multibody-agent.py tools/upstream-cross-crate-bodies-agent.py tools/application-migration-agent.py tools/upstream-mermaid-agent.py
 
     printf '\n\033[1m==> writing\033[0m\n'
     python3 tools/check-prose.py

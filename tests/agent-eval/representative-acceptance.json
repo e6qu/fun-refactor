@@ -195,6 +195,21 @@
       ]
     },
     {
+      "id": "express-guided-go-application-migration",
+      "covers": ["backend-migration"],
+      "manifest": "tests/agent-eval/results/2026-09-21-application-migration-acceptance/manifest.json",
+      "runner": "tools/application-migration-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/application-migration-agent-2026-09-21.py",
+      "runner_sha256": "05f322b6aa9f294ccf0ee144fa7aaca31ae78714a7280f9c4990dbd2e6e57c30",
+      "fixture_revision": "94bd31de0176e4960f2c862318ae6987800728bfacb3312d3529661cfdffaf59",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "reviewed Express-to-Go creation patch, source coexistence and seven real Go HTTP accepted/refused cases",
+      "postconditions": ["validated inputs read from source", "eight delivery stages pass", "generated Go handler preserves the portable contract"],
+      "diagnostics": []
+    },
+    {
       "id": "micromaid-guided-mermaid-node",
       "covers": ["mermaid"],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json",
