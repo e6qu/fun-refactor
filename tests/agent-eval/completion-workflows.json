@@ -9,16 +9,16 @@
     "src/project/agent_intent.rs": "312f67460946cd58329414f464a124aec859b2918f07e7ec69d75ea438694320",
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
     "src/project/migration.rs": "d4e408c0eb95b7f4bd6d8d4939bcbe2a4e225222eb67b6a117a501d39128c6b4",
-    "src/spec.rs": "7b0addafe36323feb0809a4df4fc41e990e7816d19c6386c3ae3ddb85d73daff"
+    "src/spec.rs": "0b1b016a5a445923e6ea6bde404e8a289d7563806a174d71be7d05a4f960854b"
   },
-  "binary_sha256": "5bcfaebc713180798fedb480c3667e71006bbbf2c0aeafaaf5fb6bb36a15d6e2",
+  "binary_sha256": "c035a68220af859f1e0e6f87027fe9a1db33f41463e4be78c3600a8c80b63df0",
   "workflows": [
     {
       "id": "understanding",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:f1cf4dda93f91a1166652b3530b42bc428477bf3856fbc3b2c8bc29ab9b28b27",
-      "guide_object_root": "35402b23328a80247f8d6694f4255659afda1eb94635de62fb5a026cc19dc80d",
+      "guide_basis": "frag1:9ab82893406d95b5baf6f5781f021efe6931ecbd24f845022979c936d55b5faa",
+      "guide_object_root": "1c820d9b9828826e4d635510c41709ba3742c4fc9a42b8cfe91e00d580b66b86",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
@@ -57,7 +57,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "11050af72e143fbd46716567b73869b3459996ddcb719027c6f7185b2be6e528"
+            "response_sha256": "59399ab71bd289db0982fe8d2019608a58eb406ff39a92539d502dd78e093f65"
           }
         ]
       },
@@ -76,8 +76,8 @@
       "id": "tracing",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:619b601206c365787f17c0d089b1f03d18b26672892810ef0369e52c55ebc187",
-      "guide_object_root": "846bf01d8f7c87acaf67f1f440c0bb4ebd5e2862eb816e5a4cc01de9dbde4372",
+      "guide_basis": "frag1:ff7d123abe9e8b5807f457a41dc23367173c749d097937283abfc32a411f79d5",
+      "guide_object_root": "dcd276551619e3df7f2b1501741237ef55e2bce02af281ae2f0ce6ae403e7fb5",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
@@ -116,7 +116,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "b7d026cd6d435dee6b5f334dd1b43c53425c711012221c5ecd75f780ddaf1317"
+            "response_sha256": "b10f9008a782bee23de9ee6c38c226ff6dda9146e9d53ff76c0488890e6deeac"
           }
         ]
       },
@@ -135,8 +135,8 @@
       "id": "direct-change",
       "route": "direct-capability",
       "state": "ready",
-      "guide_basis": "frag1:f6f1f354e84daeb8947c175a54a3e351ef934cb2fd4a57c5e794c2cd36409d13",
-      "guide_object_root": "095b1aa51d6ca1e2e1407a7c764dc376e0eb60f97fd5286b164f49f0d83cdbfa",
+      "guide_basis": "frag1:43994b90f48640f6a3c4f522016575b65d9d1faae6f0aa995364441e4b1e09f1",
+      "guide_object_root": "bb48edd3f953fbca55c1a53f46a13a98c1b318c1fea171a381e4d1c404b24233",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 57,
@@ -174,7 +174,7 @@
               "src/lib.rs:1:8",
               "compute"
             ],
-            "response_sha256": "82c8ecbca46e7026afd98516c22cb55fcd25b2aec5caeeef1721f7c6a3351aa7"
+            "response_sha256": "43e62266feae2d7a986a0b20a01611a6c50ed3e310f9502886ae7e3530944716"
           }
         ]
       },
@@ -193,8 +193,8 @@
       "id": "recipe",
       "route": "recipe",
       "state": "needs-authoring",
-      "guide_basis": "frag1:3241f1c4e2e98efb22d17440175a231b2cec1da1183ed701e5cfa32c3f69421b",
-      "guide_object_root": "27c4ae0da136ac2614c6d6cd46e1cb78b360e5aeca0ae9fa60d2119f75dd42a0",
+      "guide_basis": "frag1:9f875b637526d6d5b0ff39787b1229726893779958b9abdfe0edc66b2169754c",
+      "guide_object_root": "77a97dee578ec61c42cfd1241eb9da6d646c83b6606620630ea99e429beead0b",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 72,
@@ -251,8 +251,8 @@
       "id": "semantic-edit",
       "route": "semantic-scalar",
       "state": "ready",
-      "guide_basis": "frag1:e20b09d4e26b63af5582aefbd77d4a6c839cc063cfce74d3eedd19438416a13b",
-      "guide_object_root": "77304550676dc7f54c4bf796284f8d8b5b0267e8529907e6c13e6c281404881c",
+      "guide_basis": "frag1:4156856590f018910d0dcdafd69e7f701e08ce369c6a6db96d770cbbe5203f06",
+      "guide_object_root": "6d9d6857a4ede565507020ecd446bca915d0885326c9659dac054b15e9e8dee1",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 83,
@@ -290,7 +290,7 @@
             "arguments": [
               "project",
               "semantic",
-              "frp1:d1a4d45bdf2abe2d6b21ea77430de75b:52",
+              "frp1:5f0d7992d0df499f6eeab51c7a4ac970:52",
               "--body",
               "--locator-op",
               "set-int",
@@ -302,13 +302,13 @@
               "--intent-to",
               "9"
             ],
-            "response_sha256": "295e00d15acc5d539da5063b0272d30ff1079eaa6de4a83141a3974aa4a50437"
+            "response_sha256": "f4dbb2d30206ca4c48e3782daab5fc6c872c984eda4614865e191cba58c4b869"
           },
           {
             "arguments": [
               "author",
               "edit-body-scalar",
-              "frp1:d1a4d45bdf2abe2d6b21ea77430de75b:52",
+              "frp1:5f0d7992d0df499f6eeab51c7a4ac970:52",
               "--operation",
               "set-int",
               "--from",
@@ -316,7 +316,7 @@
               "--to",
               "9"
             ],
-            "response_sha256": "385ca6bcd0542db7f2be779552ec763ade384cd2a4e7c7f910ad9e2fc05a988b"
+            "response_sha256": "ba9509f6abc7eb14106efb439a81654d5e62b36d1c36afd2b3b0d8b201f4e8f8"
           }
         ]
       },
@@ -335,8 +335,8 @@
       "id": "framework-migration",
       "route": "framework-migration",
       "state": "ready",
-      "guide_basis": "frag1:7064ebc93d2a50a66fdb6a16751faff207235eb9f5977cb00474d82e38386b92",
-      "guide_object_root": "67754eaed32dc32e546f67432b6f9c44f8ca81f488638b106994c54d75dd0b3e",
+      "guide_basis": "frag1:6a12cf026d8ff4ff17ff8dc3eb2c933907a5afc4059026d42762130bf6997367",
+      "guide_object_root": "5ffe380f5efa1c9d92b1315a398ce1cfecca129073ae1a7345f44a9a5a85f98c",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 70,
@@ -373,23 +373,23 @@
             "arguments": [
               "project",
               "features",
-              "frp1:fed3c9f35ac6e5fedafa4b193e431ca5:4",
+              "frp1:ae95eaede6e0159ea3e6567a3f5ff032:4",
               "--limit",
               "8"
             ],
-            "response_sha256": "2008ae4d3acb43d64525c812377eb0ba8dded6695253c09320d1517865c5ab15"
+            "response_sha256": "9b374de15cec07669e4ed6ccebbe35c0814690437314a068c216f7f2e3b7b2f5"
           },
           {
             "arguments": [
               "migrate",
               "feature",
-              "frff1:99230576d822f0f140a1d34d4fe48988",
+              "frff1:c1d7f53d2d355faa1f45ef199a919d39",
               "--to",
               "fastapi",
               "--out",
               "converted/signals.py"
             ],
-            "response_sha256": "4e6b55693116ffdc372d3b5d451063dcf6da9368d25fb99b797e0bc3730194e3"
+            "response_sha256": "f558c3d32983599c3ae164b199f19d8435eca2704594e9c576b0c4c448469cee"
           }
         ]
       },
@@ -408,8 +408,8 @@
       "id": "proof",
       "route": "proof",
       "state": "ready",
-      "guide_basis": "frag1:542f553101ad71af0ad9ad2d779ab0421aa355b86165010840e8877e70f0609e",
-      "guide_object_root": "4862b0e0fbc317b35250881be0886784d6fb309fecf85301f9bbbcdda9096a8a",
+      "guide_basis": "frag1:23c8926abd7004c5ebaa0680223776ab9b87a2f177f374e5f369e5bf80b0b135",
+      "guide_object_root": "3d04b6fa82c7cae136515397483d550d84c443fc69f75b3c2264b8b86518c2d6",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 63,
@@ -462,7 +462,7 @@
               "--token-limit",
               "4096"
             ],
-            "response_sha256": "8fdf0934b003f9fc0145dc486cb3aacdbe8493ddb1f00980cb8a6408998c5977"
+            "response_sha256": "c5b71705306338422e1f3a7ddb33ad71b5412ffe5351c08d291ca1e143ba24f1"
           },
           {
             "arguments": [

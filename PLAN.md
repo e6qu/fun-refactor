@@ -143,7 +143,9 @@ misstate evidence.
 - Add checked generation or differential correspondence for those kernels.
 - Use property, fault-injection and crash-recovery tests for filesystem, Git and subprocess behavior
   that cannot usefully be proved inside Lean.
-- Measure and reduce full-gate cost while retaining Lean's default two-job and two-thread bounds.
+- Continue measuring and reducing full-gate cost while retaining Lean's default two-job and
+  two-thread bounds. Strict anchor checks now extract each source once per invocation, and the
+  default gate reuses the CLI binary already built for its integration tests.
 - Keep proof records explicit about assumptions, trusted tools and unproved host behavior.
 
 Acceptance: strict verification rejects stale anchors, changed signatures, hidden proof debt and

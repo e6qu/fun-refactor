@@ -67,7 +67,11 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
     python3 tools/check-prose.py
 
     printf '\n\033[1m==> capability coverage\033[0m\n'
-    cargo run --quiet --features cli --bin fr -- capabilities --json > "$matrix"
+    # The integration suite uses CARGO_BIN_EXE_fr, so Cargo has already built this
+    # exact default-feature binary. Asking `cargo run` for it again cost almost a
+    # minute on a clean CI runner even though the executable was ready to run.
+    test -x target/debug/fr
+    target/debug/fr capabilities --json > "$matrix"
     python3 tools/capability-report.py "$matrix" "$log"
 
     printf '\n\033[1m==> Lean kernels\033[0m\n'
