@@ -1,0 +1,8 @@
+Migration completed successfully.
+
+- Source preserved: `api.ts`
+- Destination: `generated/routes.go`
+- Route: `POST /records/{id}`
+- Inputs: required `limit` integer query and `visible` Boolean JSON body
+- Success: HTTP 201 JSON response
+- All Go checks and reversible delivery stages passed.

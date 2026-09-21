@@ -37,10 +37,10 @@ does not prove its source without a checked correspondence boundary.
 ## Current baseline
 
 The architecture needed for items 1 through 7 exists. Item 8 has deterministic representative
-breadth and accepted guided upstream read, Rust rename, cross-crate Rust body, TSX, CSS and
-Mermaid runs. Two accepted matched source-writing runs still repeat the Rust scalar task.
-Autonomous guided application migration and proof authoring remain open. The defect ledger records
-no open actionable correctness defect.
+breadth and accepted guided upstream read, Rust rename, cross-crate Rust body, TSX, CSS, Mermaid
+and application migration runs. Two accepted matched source-writing runs still repeat the Rust
+scalar task. Autonomous guided proof authoring remains open. The defect ledger records no open
+actionable correctness defect.
 
 | Area | Delivered baseline | Remaining work |
 |---|---|---|
@@ -51,7 +51,7 @@ no open actionable correctness defect.
 | Application migration | Generic application IR for routes and components; four HTTP adapters write required scalar validation and read their documented source subsets; selected FastAPI middleware, `Depends`/`Security` providers and closed-world service calls; React/Next state and events behind an explicit client boundary | Validation outside each reader subset, configured middleware, provider internals, external services and effects |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
-| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace, three-file rename, cross-crate Rust bodies and frontend source writing, plus matched context and two accepted scalar source-writing cohorts | Add live application migration and proof authoring trials; broaden only from observed gaps |
+| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace, three-file rename, cross-crate Rust bodies, frontend source writing and Express-to-Go application migration, plus matched context and two accepted scalar source-writing cohorts | Add a live proof authoring trial; broaden only from observed gaps |
 | Distribution | Native, WASM and version-matched Python SDK artifacts plus a portable agent skill | Add distribution channels only when consumer demand justifies them |
 
 Run these instead of copying volatile matrices into roadmap prose:
@@ -84,8 +84,9 @@ existing representative registry supplies deterministic cases; its two accepted 
 source-writing cohorts repeat one Rust scalar change. The pinned regex workspace has accepted guided
 read/trace, three-file rename and cross-crate authored body tasks. Pinned MIT React/Tailwind and
 Micromaid projects have accepted guided TSX class and body, paired Layout/Header bodies, CSS selector
-and Mermaid node edits. The remaining live task shapes are application migration and proof
-authoring. Keep deterministic replay, live agent outcomes and population claims separate. Pin each
+and Mermaid node edits. A pinned Express fixture has an accepted guided migration to Go with
+validated path, query and JSON body inputs. The remaining live task shape is proof authoring. Keep
+deterministic replay, live agent outcomes and population claims separate. Pin each
 task's repository revision, goal, admitted route, allowed tools, exact postconditions and compiler,
 framework or proof oracle before a live run.
 
@@ -100,7 +101,7 @@ The acceptance corpus covers:
   accepted. The paired Layout/Header body trial renders three variants and checks both landmarks;
   the CSS selector trial does not establish rendered UI behavior.
 - A backend application migration that reads validated inputs from source and writes a different
-  HTTP adapter. Its deterministic case is accepted; a retained live run remains open. Preserve
+  HTTP adapter. Its deterministic and retained live Express-to-Go cases are accepted. Preserve
   manual boundaries and check the generated runtime behavior.
 - An agent-authored Lean proof with checked submission and explicit correspondence limits. Its
   deterministic case is accepted; a retained live run remains open.

@@ -45,7 +45,7 @@ Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
 The [representative acceptance registry](representative-acceptance.json) binds six deterministic
-cases and eight live trials:
+cases and nine live trials:
 the pinned unfamiliar regex workspace, Rust multi-file reviewed delivery, TSX/React body changes,
 CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its
 replay uses one Cargo and Lean worker and labels a missing toolchain as infrastructure failure.
@@ -135,6 +135,18 @@ run observes one allocation for each nonempty facade input. Diagnostics `-diagno
 `-diagnostic-3` passed delivery and that oracle but exposed source predicates coupled to expression
 layout or local names. Each diagnostic retains its evaluator as `runner.py`; the accepted evaluator
 is pinned in [its runner snapshot](runner-snapshots/upstream-cross-crate-bodies-agent-2026-09-21.py).
+
+The [guided application migration acceptance](results/2026-09-21-application-migration-acceptance/manifest.json)
+uses a pinned Express fixture with a path parameter, required canonical integer query input and
+required Boolean JSON body input. The live agent follows the source-free application IR route,
+previews a Go standard-library HTTP adapter and executes one unchanged review. The source remains
+for coexistence while `generated/routes.go` is created. All eight delivery stages pass the declared
+Go check. A fresh receiver replays the patch and passes seven HTTP cases covering two successful
+responses plus noncanonical, duplicate, missing, mistyped and malformed inputs. The run uses five
+instrumented calls with no failures, direct project commands or human corrections. It also exposed
+and fixed an SDK verifier omission: `ApplicationMigrationOperation` was absent from the typed set of
+writable operations. The evaluator is pinned in
+[its runner snapshot](runner-snapshots/application-migration-agent-2026-09-21.py).
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0

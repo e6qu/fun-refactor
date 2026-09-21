@@ -1,0 +1,50 @@
+{
+  "schema": "fr-application-migration-agent-session-1",
+  "fixture_revision": "94bd31de0176e4960f2c862318ae6987800728bfacb3312d3529661cfdffaf59",
+  "binary": "/private/tmp/fr-application-migration-live-1/fr-bin",
+  "binary_sha256": "c1e88c861c21921d1a62c2e1926e3209da7c0b2f624281ee86876ee31138b41e",
+  "source_files": {
+    ".gitignore": "70a213afeabe5ac38ae4c88b2c7002ce5068b91a3e57a032245ab809dc6fa460",
+    "api.ts": "1672b6011fa20b51a8f6a0190f1db652d406365ab5e0691efb6d86dd116216a5",
+    "baseline.go": "9bd88e9444bc6d2ca6e6603ba689831cbccb807c583d944400d183281811e3a5",
+    "go.mod": "6bc837f30815ee4d1fe66314bbbc98f375dba49c29fa346898e0c589186983b3"
+  },
+  "goal": {
+    "schema": "fr-agent-goal-1",
+    "purpose": "migrate",
+    "target": null,
+    "selector": {
+      "name": null,
+      "path": "api.ts",
+      "scope": ".",
+      "kind": null,
+      "language": null,
+      "locals": false
+    },
+    "operation": {
+      "kind": "framework-migration",
+      "to": "go-net-http"
+    },
+    "constraints": {
+      "allow_source": false
+    },
+    "checks": [
+      "go"
+    ],
+    "proof": "none",
+    "context": {
+      "token_limit": 4096,
+      "packet_limit": 65536
+    },
+    "delivery": {
+      "check-original": true,
+      "compact-success": true,
+      "exercise-reversal": true,
+      "patch": "artifacts/application-migration.patch",
+      "check-output-bytes": 4096
+    }
+  },
+  "evaluator_sha256": "05f322b6aa9f294ccf0ee144fa7aaca31ae78714a7280f9c4990dbd2e6e57c30",
+  "sdk_intent_sha256": "95860c31ca6303bf9cc6c286f039115572563b3d3aff339249e82c107eb960c0",
+  "manual_corrections": 0
+}

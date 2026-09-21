@@ -139,6 +139,23 @@ python3 tools/upstream-multibody-agent.py audit \
   tests/agent-eval/results/DATE-upstream-multibody-acceptance
 ```
 
+The application migration task reads a validated Express route through application IR and writes
+a Go standard-library HTTP adapter. Its declared Go check uses a session-local build cache. The
+score replays the patch in a fresh receiver and exercises accepted, noncanonical, duplicate,
+missing, mistyped and malformed requests:
+
+```sh
+python3 tools/application-migration-agent.py prepare /tmp/fr-application-migration \
+  --fr target/debug/fr
+python3 tools/application-migration-agent.py run /tmp/fr-application-migration \
+  --confirm-agent-spend
+python3 tools/application-migration-agent.py score /tmp/fr-application-migration
+python3 tools/application-migration-agent.py record /tmp/fr-application-migration \
+  tests/agent-eval/results/DATE-application-migration-acceptance
+python3 tools/application-migration-agent.py audit \
+  tests/agent-eval/results/DATE-application-migration-acceptance
+```
+
 The pinned Micromaid task follows a Markdown diagram guide and renames one Mermaid node. Prepare
 its parser dependencies from the retained lockfile before the live session. The declared check
 parses both diagrams without writing source; the score separately checks exact graph structure and

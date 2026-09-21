@@ -140,6 +140,59 @@ print(json.dumps({'passed':result.passed,'stages':len(result.at('/workflow/stage
 }
 
 #[test]
+fn python_guide_reviews_and_executes_application_migration() {
+    let workspace = tempfile::tempdir().unwrap();
+    fs::create_dir_all(workspace.path().join(".fr")).unwrap();
+    fs::create_dir_all(workspace.path().join("artifacts")).unwrap();
+    let source = "function signal(req: Request, res: Response) {\n  return res.status(200).json({id: req.params['id']});\n}\napp.get('/signals/:id', signal);\n";
+    fs::write(workspace.path().join("api.ts"), source).unwrap();
+    fs::write(workspace.path().join(".fr/checks.json"),serde_json::to_vec(&serde_json::json!({"schema":1,"checks":[{"name":"syntax","argv":["true"],"cwd":".","timeout_seconds":10,"covers":["fixture state"]}]})).unwrap()).unwrap();
+    let output = python()
+        .arg("-c")
+        .arg(
+            r#"# => executable guided application migration fixture
+import json, sys
+from pathlib import Path
+from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
+from fr_ir.intent_actions import ApplicationMigrationOperation, TaggedIntentAction
+from fr_ir.ir import TaskDelivery
+from fr_ir.runtime import FrClient
+client=FrClient(sys.argv[1], executable=sys.argv[2])
+delivery=TaskDelivery(patch='artifacts/migration.patch',check_output_bytes=256)
+goal=AgentGoal('migrate',selector=GoalSelector(path='api.ts'),
+    operation=GoalOperation('framework-migration', {'to':'go-net-http'}),
+    checks=('syntax',),delivery=delivery)
+guide=client.guide(goal)
+action=TaggedIntentAction(ApplicationMigrationOperation(
+    to='go-net-http',out='generated',checks=('syntax',),delivery=delivery),
+    diff_bytes=65536,report_bytes=65536)
+review=client.review_guide(guide,action)
+assert review.at('/kind') == 'application-migration'
+assert 'generated/routes.go' in review.at('/diff')
+result=client.execute_guide(review)
+assert result.passed
+assert Path(sys.argv[1], 'api.ts').read_text() == sys.argv[3]
+assert Path(sys.argv[1], 'generated/routes.go').is_file()
+print(json.dumps({'passed':result.passed,'stages':len(result.at('/workflow/stages'))}))
+"#,
+        )
+        .arg(workspace.path())
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg(source)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["stages"], 8);
+}
+
+#[test]
 fn native_intent_context_evidence_is_source_bound_and_arithmetically_valid() {
     let output = python()
         .arg(root().join("tools/native-intent-context.py"))

@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 import tempfile
 
@@ -36,6 +37,16 @@ def canonical(value: object) -> bytes:
 
 def digest(value: object) -> str:
     return hashlib.sha256(canonical(value)).hexdigest()
+
+
+def stable_handles(value: object) -> object:
+    if isinstance(value, str):
+        return re.sub(r"frp1:[0-9a-f]{32}:", "frp1:<revision>:", value)
+    if isinstance(value, list):
+        return [stable_handles(item) for item in value]
+    if isinstance(value, dict):
+        return {key: stable_handles(item) for key, item in value.items()}
+    return value
 
 
 def bindings() -> dict[str, str]:
@@ -83,7 +94,7 @@ def measure(executable: str) -> dict[str, object]:
             "fixture": {
                 "source_sha256": hashlib.sha256((root / "src/lib.rs").read_bytes()).hexdigest(),
                 "purpose": "trace",
-                "selected_sha256": digest(native_selected),
+                "selected_sha256": digest(stable_handles(native_selected)),
             },
             "progressive": {
                 "process_calls": progressive_client.process_calls,
@@ -114,7 +125,11 @@ def audit(value: object) -> None:
     progressive = value.get("progressive")
     native = value.get("native")
     reduction = value.get("reduction")
-    if not all(isinstance(item, dict) for item in (progressive, native, reduction)):
+    if (
+        not isinstance(progressive, dict)
+        or not isinstance(native, dict)
+        or not isinstance(reduction, dict)
+    ):
         raise RuntimeError("native intent evidence rows are malformed")
     if (native["process_calls"] != 1 or native["progressive_disclosure_calls"] != 0
             or progressive["process_calls"] <= native["process_calls"]

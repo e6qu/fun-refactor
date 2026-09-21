@@ -1042,6 +1042,136 @@ def audit_upstream_mermaid(trial: LiveTrial) -> None:
                 raise ValueError(f"live Mermaid diagnostic artifact changed: {artifact}")
 
 
+def audit_application_migration(trial: LiveTrial) -> None:
+    snapshot = ROOT / trial["runner_snapshot"]
+    directory = (ROOT / trial["manifest"]).parent
+    manifest = json.loads((directory / "manifest.json").read_text())
+    session = json.loads((directory / "session.json").read_text())
+    run = json.loads((directory / "codex-run.json").read_text())
+    result = json.loads((directory / "result.json").read_text())
+    if (not snapshot.is_file() or digest(snapshot) != trial["runner_sha256"]
+            or manifest.get("schema") != "fr-application-migration-agent-manifest-1"
+            or manifest.get("passed") is not True
+            or manifest.get("acceptance_evidence") is not True
+            or manifest.get("evaluator_sha256") != trial["runner_sha256"]
+            or manifest.get("fixture_revision") != trial["fixture_revision"]
+            or manifest.get("model") != trial["model"]
+            or session.get("fixture_revision") != trial["fixture_revision"]
+            or session.get("evaluator_sha256") != trial["runner_sha256"]
+            or not isinstance(session.get("sdk_intent_sha256"), str)
+            or run.get("model") != trial["model"]
+            or run.get("reasoning_effort") != trial["reasoning_effort"]
+            or run.get("codex_version") != trial["tool_version"]
+            or run.get("exit_code") != 0 or run.get("timed_out")
+            or result.get("passed") is not True):
+        raise ValueError("live application migration binding changed")
+    for name, expected in manifest["files"].items():
+        artifact = directory / name
+        if not artifact.is_file() or digest(artifact) != expected:
+            raise ValueError(f"live application migration artifact changed: {artifact}")
+    if (run.get("prompt_sha256") != digest(directory / "prompt.txt")
+            or run.get("events_sha256") != digest(directory / "codex-events.jsonl")
+            or run.get("stderr_sha256") != digest(directory / "codex-stderr.txt")):
+        raise ValueError("live application migration Codex transcript binding changed")
+    rows = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
+    if [row["request"].get("tool") for row in rows] != [
+            "guide", "preview", "review", "execute", "finish"]:
+        raise ValueError("live application migration tool sequence changed")
+    guide, preview, review, execute, finish = rows
+    migration = preview["full"].get("migration", {})
+    endpoints = migration.get("endpoints", [])
+    expected_answer = {
+        "source": "api.ts", "destination": "generated/routes.go", "method": "POST",
+        "path": "/records/{id}", "status": 201,
+        "inputs": ["path:id", "query:limit:integer", "json-body:visible:boolean"],
+        "source_preserved": True, "checks": ["go"],
+    }
+    expected_stages = ["check-original", "apply", "check-applied", "undo", "check-restored",
+                       "redo", "check-applied", "deliver-patch"]
+    stages = execute["full"]["workflow"]["stages"]
+    diff = review["full"]["diff"]
+    if (guide["full"].get("state") != "needs-authoring"
+            or guide["full"].get("route", {}).get("id") != "framework-migration"
+            or guide["full"].get("route", {}).get("source_required") is not False
+            or guide["full"].get("route", {}).get("evidence", {}).get("planner") != "application-ir"
+            or preview["full"].get("applied") is not False
+            or migration.get("source_kind") != "project-snapshot"
+            or migration.get("target") != "go-net-http"
+            or migration.get("manual_boundaries") != 0
+            or migration.get("coexistence", {}).get("source_preserved") is not True
+            or len(endpoints) != 1 or endpoints[0].get("method") != "POST"
+            or endpoints[0].get("path") != "/records/{id}" or endpoints[0].get("status") != 201
+            or preview["full"].get("diff") != diff
+            or review["full"].get("ready") is not True
+            or review["full"].get("checks", {}).get("names") != ["go"]
+            or "+++ b/generated/routes.go" not in diff
+            or execute["full"].get("passed") is not True
+            or [item.get("stage") for item in stages] != expected_stages
+            or any(item.get("status") != "passed" for item in stages)
+            or finish["request"].get("answer") != expected_answer):
+        raise ValueError("live application migration guidance, review or delivery changed")
+    source = '''import { z } from "zod";
+const Query = z.object({limit: z.coerce.number().int()});
+const Body = z.object({visible: z.boolean()});
+function show(req: Request, res: Response) {
+  const parsed = Query.safeParse(req.query);
+  if (!parsed.success) return res.status(422).json({error: "validation"});
+  const body = Body.safeParse(req.body);
+  if (!body.success) return res.status(422).json({error: "validation"});
+  return res.status(201).json({id: req.params.id, limit: parsed.data.limit, visible: body.data.visible});
+}
+app.post("/records/:id", show);
+'''
+    with tempfile.TemporaryDirectory(prefix="fr-application-migration-audit-") as temporary:
+        receiver = Path(temporary)
+        (receiver / "api.ts").write_text(source)
+        replay = subprocess.run(["git", "apply", "-"], cwd=receiver, input=diff.encode(),
+                                capture_output=True, timeout=30)
+        generated = receiver / "generated/routes.go"
+        generated_text = generated.read_text() if generated.is_file() else ""
+        if (replay.returncode != 0 or (receiver / "api.ts").read_text() != source
+                or 'mux.HandleFunc("POST /records/{id}"' not in generated_text
+                or 'frReadInput(_fr_raw_0, _fr_present_0, "query", "limit", "integer")'
+                   not in generated_text
+                or 'frReadInput(_fr_body["visible"], _fr_body["visible"] != nil, "json-body", "visible", "boolean")'
+                   not in generated_text
+                or 'w.WriteHeader(201)' not in generated_text):
+            raise ValueError("live application migration reviewed diff fails receiver replay")
+    codex_rows = [json.loads(line) for line in (directory / "codex-events.jsonl").read_text().splitlines()]
+    usage = next((row["usage"] for row in reversed(codex_rows)
+                  if row.get("type") == "turn.completed"), None)
+    commands = [row["item"] for row in codex_rows if row.get("type") == "item.completed"
+                and row.get("item", {}).get("type") == "command_execution"]
+    recorded_step = re.search(
+        r"(?m)^python3 (\S+/tools/application-migration-agent\.py step \S+ --request-stdin) <<'FRJSON'$",
+        (directory / "prompt.txt").read_text())
+    commands_match = False
+    if recorded_step is not None and len(commands) == len(rows):
+        prefix = f"python3 {recorded_step.group(1)} <<'FRJSON'\n"
+        suffix = "\nFRJSON"
+        arguments = [shlex.split(item.get("command", "")) for item in commands]
+        commands_match = all(
+            item.get("exit_code") == 0 and argv[:2] == ["/bin/zsh", "-lc"]
+            and len(argv) == 3 and argv[2].startswith(prefix) and argv[2].endswith(suffix)
+            and json.loads(argv[2][len(prefix):-len(suffix)]) == row["request"]
+            for item, argv, row in zip(commands, arguments, rows)
+        )
+    oracle = result.get("oracle", {})
+    if (not commands_match or not isinstance(usage, dict)
+            or not isinstance(usage.get("input_tokens"), int)
+            or result.get("codex", {}).get("usage") != usage
+            or result.get("codex", {}).get("direct_project_commands") != []
+            or result.get("codex", {}).get("failed_command_executions") != 0
+            or result.get("manual_corrections") != 0
+            or result.get("reviewed_diff_sha256") != sha256_text(diff)
+            or result.get("stages") != [[name, "passed"] for name in expected_stages]
+            or oracle.get("changed_files") != ["generated/routes.go"]
+            or any(oracle.get(name) is not True for name in
+                   ("source_preserved", "receiver_patch_replay", "go_http_7_cases"))
+            or "--- PASS: TestMigratedContract" not in oracle.get("oracle_detail", "")):
+        raise ValueError("live application migration score, oracle or provenance changed")
+
+
 def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -1095,6 +1225,8 @@ def audit() -> dict[str, object]:
             audit_upstream_cross_crate_bodies(trial)
         elif trial.get("id") == "micromaid-guided-mermaid-node":
             audit_upstream_mermaid(trial)
+        elif trial.get("id") == "express-guided-go-application-migration":
+            audit_application_migration(trial)
         else:
             raise ValueError("representative acceptance has an unknown live trial")
 
