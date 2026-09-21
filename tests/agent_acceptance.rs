@@ -58,7 +58,7 @@ fn matched_check_policies_preserve_recorded_outcomes_and_live_diagnostics() {
 }
 
 #[test]
-fn matched_source_writing_evidence_is_bound_and_passing() {
+fn historical_matched_source_writing_evidence_is_bound_and_passing() {
     python(&[
         "tools/matched-agent-source.py",
         "audit",

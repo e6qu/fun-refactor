@@ -42,6 +42,7 @@ preview before formal scaffold authoring.
 | `semantic-scalar` | Live `operation`, exact `from` and new `to` | Semantic locator/intent and task planners |
 | `semantic-change` | Basis-bound typed operations | Semantic change catalog and writer |
 | `semantic-body` | Typed statement tree | Semantic body catalog and writer |
+| `source-body` | Complete body in the target language, after `allow_source: true` | Bounded source reveal and `replace-body` writer |
 | `surface-edit` | `surface`: `styles` or `diagrams`, then returned edit ID and new scalar | CSS/host/Markdown/Mermaid capabilities |
 | `framework-migration` | Advertised destination, feature or application output, and optional registration data | Feature or application IR compatibility |
 | `formalize` | Property tree, then proof tactics | Conservative pure Rust formalization workbench |
@@ -55,6 +56,11 @@ contain `--write` or `--save-plan`. Review and execution use the existing task, 
 migration or proof engine's complete basis.
 Recipe guidance includes only its live verb, relevant selector fields, target values, support and
 matched/refusal expectation forms. Target-kind and language incompatibility refuses before authoring.
+`source-body` requires `constraints.allow_source: true`. Its first action reveals only the selected
+declaration under the goal's token limit. The next action previews a complete body fragment through
+the existing source writer. A typed `TaskChange` binds that body to the reviewed guide, checks and
+delivery stages. Use this route when the semantic body has no exact IR identity but the source
+writer admits the target language.
 
 Exact scalar goals with declared checks produce one complete `fr-task-change-1` preview input.
 Integer/float scalars follow the live unsigned-decimal contract; negatives use explicit unary IR

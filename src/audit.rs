@@ -118,6 +118,15 @@ const WORKFLOWS: &[Workflow] = &[
         acceptance_target: "task_change_cli::reviewed_task_change_accepts_and_binds_a_source_free_semantic_body",
     },
     Workflow {
+        id: "source-body",
+        purposes: &["change"],
+        predicate: "task_author_target_candidate + explicit source reveal",
+        operation_kinds: &["task-change", "author-batch"],
+        output_schemas: &["fr-author-1", "fr-task-change-1"],
+        source: "A bounded reveal is required before the agent authors a complete body.",
+        acceptance_target: "agent_guide_cli::source_body_guide_requires_reveal_and_previews_tsx",
+    },
+    Workflow {
         id: "surface-edit",
         purposes: &["change"],
         predicate: "surface capability predicate",
@@ -434,7 +443,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!(WORKFLOWS.len(), 10);
+        assert_eq!(WORKFLOWS.len(), 11);
         for route in WORKFLOWS {
             assert!(!route.purposes.is_empty());
             assert!(!route.operation_kinds.is_empty());

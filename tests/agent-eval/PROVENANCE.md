@@ -1,5 +1,10 @@
 # Agent acceptance source and evidence
 
+The accepted 2026-09-18 matched source-writing repeat retains all seven bound source files in
+`binding-sources/`. The manifest checks their original digests, allowing the historical result to
+remain auditable after the guide source changes. Current route behavior is covered by separate
+product tests and live trials.
+
 The accepted 2026-09-20 guided upstream-read trial pins the exact evaluator bytes used during
 that run. Its [runner snapshot](runner-snapshots/upstream-read-agent-2026-09-20.py) preserves
 those bytes while the active `tools/upstream-read-agent.py` evolves. The representative
@@ -98,6 +103,16 @@ calls. It renames one legacy selector in `src/App.css`; all other source bytes s
 The independent receiver replays the reviewed patch, runs the TypeScript/Vite build and checks
 the emitted CSS selector. Current JSX does not use this selector, so the trial establishes source
 delivery and bundling without a rendered UI behavior claim.
+
+The [guided authored TSX body acceptance](results/2026-09-21-upstream-tsx-body-acceptance/manifest.json)
+reuses that pinned React archive and lockfile. Its frozen `fr` binary includes the new explicit
+`source-body` route. The evaluator adds a read-only TypeScript check and restricts the agent to six
+instrumented calls. The agent reveals one bounded `Layout.tsx` declaration, authors its complete
+body, reviews the source change and executes checked reversal and patch delivery. The independent
+receiver verifies exact source bytes and patch replay, builds with TypeScript/Vite, then renders
+three React layout variants. The [diagnostic run](results/2026-09-21-upstream-tsx-body-diagnostic-1/manifest.json)
+retains the first passing edit and its original evaluator. Its source oracle rejected an equivalent
+attribute position; it is excluded from acceptance. A fresh repeat passed the corrected oracle.
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0

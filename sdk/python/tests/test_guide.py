@@ -358,6 +358,8 @@ def test_common_guide_review_executes_the_unchanged_native_action():
                      ("syntax",), TaskDelivery())),
     ("semantic-change", "change", GoalOperation("semantic-change"),
      AuthorBatchOperation({"schema": "fr-author-batch-1"}, ("syntax",), TaskDelivery())),
+    ("source-body", "change", GoalOperation("source-body"),
+     AuthorBatchOperation({"schema": "fr-author-batch-1"}, ("syntax",), TaskDelivery())),
     ("surface-edit", "change", GoalOperation("surface-edit", {"surface": "styles"}),
      SurfaceEditOperation("frse1:edit", "blue", ("syntax",), TaskDelivery())),
     ("framework-migration", "migrate",

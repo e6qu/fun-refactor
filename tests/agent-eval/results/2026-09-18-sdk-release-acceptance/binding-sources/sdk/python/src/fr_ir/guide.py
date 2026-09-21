@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 _PURPOSES = ("understand", "trace", "change", "migrate", "prove")
 _PROOFS = ("none", "model", "implementation")
 _KINDS = ("automatic", "capability", "recipe", "semantic-scalar", "semantic-change",
-          "semantic-body", "source-body", "surface-edit", "framework-migration", "formalize", "proof")
+          "semantic-body", "surface-edit", "framework-migration", "formalize", "proof")
 _GUIDED_OPERATIONS = {
     "evidence": ("project-query",),
     "direct-capability": ("capability",),
@@ -34,7 +34,6 @@ _GUIDED_OPERATIONS = {
     "framework-migration": ("framework-migration", "application-migration"),
     "formalization": ("property-task", "formal-plan"),
     "proof": ("proof-task", "proof-submission"),
-    "source-body": ("task-change", "author-batch"),
 }
 
 
@@ -87,7 +86,6 @@ class GoalOperation:
         required = {
             "automatic": (), "capability": ("capability",), "recipe": ("verb",),
             "semantic-scalar": ("operation",), "semantic-change": (), "semantic-body": (),
-            "source-body": (),
             "surface-edit": ("surface",), "framework-migration": ("to",),
             "formalize": (), "proof": ("obligation",),
         }
@@ -442,8 +440,7 @@ class GuideReview:
         operation = action.operation.to_data()
         review = self.compiled.at("/action/review")
         route_id = route.get("id") if isinstance(route, Mapping) else None
-        route_code = (5 if route_id == "source-body" else tuple(_GUIDED_OPERATIONS).index(route_id)
-                      if route_id in _GUIDED_OPERATIONS else 10)
+        route_code = tuple(_GUIDED_OPERATIONS).index(route_id) if route_id in _GUIDED_OPERATIONS else 10
         basis_matches = (self.compiled.at("/action/basis") == self.compiled.action_basis
                          and isinstance(self.compiled.action_basis, str)
                          and re.fullmatch(r"fraa2:[0-9a-f]{64}", self.compiled.action_basis) is not None)

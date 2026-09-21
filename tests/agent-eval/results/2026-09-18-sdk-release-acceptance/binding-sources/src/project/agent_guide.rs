@@ -92,7 +92,6 @@ enum Operation {
     },
     SemanticChange,
     SemanticBody,
-    SourceBody,
     SurfaceEdit {
         surface: String,
     },
@@ -1007,24 +1006,6 @@ impl Project<'_> {
                     )],
                 ));
             }
-            Operation::SourceBody => {
-                route = 5;
-                route_name = "source-body";
-                source_required = true;
-                supported = self.guide_body_candidate(selected, 0);
-                evidence = json!({"predicate":"task_author_target_candidate","operation":"replace-body","supported":supported});
-                actions.extend(self.guide_source_actions(selected, goal.context.token_limit));
-                actions.push(action(
-                    "preview",
-                    args(&["author", "replace-body", &handle, "--from", "<input-file>"]),
-                    "fr-author-1",
-                    None,
-                    vec![author(
-                        "input-file",
-                        "complete source body in the target language.",
-                    )],
-                ));
-            }
             Operation::SurfaceEdit { surface } => {
                 route = 6;
                 route_name = "surface-edit";
@@ -1440,7 +1421,6 @@ impl Project<'_> {
             2 => "recipes",
             3 => "semantic-intent",
             4 => "semantic-change",
-            5 if route_name == "source-body" => "workflow",
             5 => "semantic",
             6 => "surfaces",
             7 => "surfaces",

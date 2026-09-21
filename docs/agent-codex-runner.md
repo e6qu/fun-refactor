@@ -107,6 +107,22 @@ python3 tools/upstream-css-agent.py audit \
   tests/agent-eval/results/DATE-upstream-css-acceptance
 ```
 
+The pinned authored TSX body task uses those same React dependencies. The agent follows an
+explicit source body guide, receives one bounded declaration and submits a complete `Layout` body.
+The independent receiver checks exact source, patch replay, the TypeScript/Vite build and three
+server-rendered layouts:
+
+```sh
+python3 tools/upstream-tsx-body-agent.py prepare /tmp/fr-upstream-tsx-body \
+  --fr target/debug/fr --deps /tmp/fr-react-mit/node_modules
+python3 tools/upstream-tsx-body-agent.py run /tmp/fr-upstream-tsx-body --confirm-agent-spend
+python3 tools/upstream-tsx-body-agent.py score /tmp/fr-upstream-tsx-body
+python3 tools/upstream-tsx-body-agent.py record /tmp/fr-upstream-tsx-body \
+  tests/agent-eval/results/DATE-upstream-tsx-body-acceptance
+python3 tools/upstream-tsx-body-agent.py audit \
+  tests/agent-eval/results/DATE-upstream-tsx-body-acceptance
+```
+
 The pinned Micromaid task follows a Markdown diagram guide and renames one Mermaid node. Prepare
 its parser dependencies from the retained lockfile before the live session. The declared check
 parses both diagrams without writing source; the score separately checks exact graph structure and

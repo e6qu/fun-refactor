@@ -922,18 +922,21 @@ impl Project<'_> {
                             && scalar["to"] == goal["to"]
                     }
                 }),
-            (Some("semantic-change" | "semantic-body"), Operation::TaskChange { task_change })
+            (
+                Some("semantic-change" | "semantic-body" | "source-body"),
+                Operation::TaskChange { task_change },
+            )
             | (
-                Some("semantic-change" | "semantic-body"),
+                Some("semantic-change" | "semantic-body" | "source-body"),
                 Operation::AuthorBatch {
                     author_batch: task_change,
                     ..
                 },
             ) => {
-                let op = if goal["kind"] == "semantic-body" {
-                    "replace-body-semantic"
-                } else {
-                    "edit-body-semantic"
+                let op = match goal["kind"].as_str() {
+                    Some("semantic-body") => "replace-body-semantic",
+                    Some("source-body") => "replace-body",
+                    _ => "edit-body-semantic",
                 };
                 task_change
                     .get("targets")
