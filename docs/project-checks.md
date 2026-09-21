@@ -55,7 +55,8 @@ Coverage descriptions come from project declarations. They do not establish test
 ## Source-bound transaction receipts
 
 An execution report captures `source_revision` before the first selected command and compares it with the revision after every command.
-The revision hashes regular files whose language `fr` recognizes while excluding `.fr-history`, `.git`, `target`, `node_modules` and `.lake` trees.
+The revision hashes each supported source file's path, Git-portable owner executable state and
+content. It excludes `.fr-history`, `.git`, `target`, `node_modules` and `.lake` trees.
 The report sets `source_snapshot_checked: true`; `source_snapshot_stable` and `configuration_stable` must both remain true for `passed: true`.
 The configuration receives a fresh confined read and digest after execution.
 
@@ -72,7 +73,7 @@ Corrupt receipt data makes the journal invalid instead of silently weakening the
 
 This is a boundary-snapshot receipt rather than a filesystem snapshot held during execution.
 A command can mutate and restore a source file between observations.
-Files in unsupported languages, executable identities, dependencies, services, environment variables and external state do not enter the source revision.
+Files in unsupported languages, check executable contents, dependencies, services, environment variables and external state do not enter the source revision.
 The receipt therefore establishes which declared commands passed at one stable observed source boundary; it does not prove their declared coverage or general behavior preservation.
 
 ## Execution boundaries
@@ -87,9 +88,9 @@ Working directories must exist inside the canonical project root and cannot trav
 Configuration paths cannot traverse symlinks either. Concurrent filesystem replacement remains outside these checks.
 On Unix, every command starts in a separate process group. The runner terminates remaining group
 members after the direct command exits and on timeout or excessive output, then checks source
-stability. A descendant can escape by starting a new session. Other platforms clean up only the
-direct child. Interrupting `fr` itself can also leave descendants running. Use an external process
-supervisor when a project needs stronger resource isolation.
+stability. A descendant can escape by entering another process group or starting a new session.
+Other platforms clean up only the direct child. Interrupting `fr` itself can also leave descendants
+running. Use an external process supervisor when a project needs stronger resource isolation.
 
 Output capture uses temporary files to avoid pipe deadlocks and unbounded in-memory buffering.
 The runner polls every 20 ms and stops a running child above 16 MiB on either stream.

@@ -5,7 +5,7 @@ use anyhow::{bail, ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
@@ -497,10 +497,16 @@ pub(crate) fn source_revision(root: &Path) -> Result<String> {
     paths.sort();
     for file in paths {
         let path = file.strip_prefix(root)?.to_string_lossy();
-        let content = crate::vfs::read_to_string(&file)
+        let mut source = File::open(&file)
+            .with_context(|| format!("opening project source {}", file.display()))?;
+        let executable = source.metadata()?.permissions().mode() & 0o100 != 0;
+        let mut content = String::new();
+        source
+            .read_to_string(&mut content)
             .with_context(|| format!("hashing project source {}", file.display()))?;
         digest.update((path.len() as u64).to_le_bytes());
         digest.update(path.as_bytes());
+        digest.update([u8::from(executable)]);
         digest.update((content.len() as u64).to_le_bytes());
         digest.update(content.as_bytes());
     }

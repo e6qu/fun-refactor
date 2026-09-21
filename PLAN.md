@@ -143,8 +143,9 @@ misstate evidence.
 - Add checked generation or differential correspondence for those kernels.
 - Use property, fault-injection and crash-recovery tests for filesystem, Git and subprocess behavior
   that cannot usefully be proved inside Lean. Declared checks now isolate Unix subprocess groups
-  and terminate descendants after command completion or before reporting timeout and output-limit
-  failures.
+  and terminate members that remain in those groups after command completion or before reporting
+  timeout and output-limit failures. Source revisions bind the portable executable state as well as
+  the path and content of each supported source file.
 - Continue measuring and reducing full-gate cost while retaining Lean's default two-job and
   two-thread bounds. Strict anchor checks now extract each source once per invocation, and the
   default gate reuses the CLI binary already built for its integration tests.

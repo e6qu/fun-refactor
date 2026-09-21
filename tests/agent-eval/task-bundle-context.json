@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-bundle-context-1",
   "passed": true,
-  "binary_sha256": "46f64db5ff08a8a5c30c5de5d070f9040d383bbbdf93ea2cd7c848645ecbf345",
-  "source_commit": "5dc375bd53be8eb4a5beda8dc100328f534a2d55",
+  "binary_sha256": "e03df992e427987f2d91910e72d7563033a3a8dc3d30303f244494a1545f3f59",
+  "source_commit": "40e030e26a5a440106be15bbb2fcd2e40fbd1779",
   "repetitions": 1,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
@@ -100,14 +100,14 @@
       "calls": 4,
       "median_context_bytes": 6841,
       "median_context_tokens": null,
-      "median_seconds": 0.139013750012964
+      "median_seconds": 0.1363509999937378
     },
     "task": {
       "samples": 1,
       "calls": 1,
       "median_context_bytes": 4715,
       "median_context_tokens": null,
-      "median_seconds": 0.06293074996210635
+      "median_seconds": 0.061751166998874396
     }
   },
   "runs": [
@@ -115,7 +115,7 @@
       "repetition": 1,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "5d1a32fa8aea0e9014082cda489c6c324c3d4282528a64180e98e85385b5869f",
+      "semantic_sha256": "365bb4a8c8be879c3e0dfe393d19f172fa1821415b2331434de3a0a87d37da47",
       "stdout": {
         "bytes": 6524,
         "tokens": null
@@ -132,13 +132,13 @@
         "bytes": 6841,
         "tokens": null
       },
-      "seconds": 0.139013750012964
+      "seconds": 0.1363509999937378
     },
     {
       "repetition": 1,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "5d1a32fa8aea0e9014082cda489c6c324c3d4282528a64180e98e85385b5869f",
+      "semantic_sha256": "365bb4a8c8be879c3e0dfe393d19f172fa1821415b2331434de3a0a87d37da47",
       "stdout": {
         "bytes": 4176,
         "tokens": null
@@ -155,7 +155,7 @@
         "bytes": 4715,
         "tokens": null
       },
-      "seconds": 0.06293074996210635
+      "seconds": 0.061751166998874396
     }
   ],
   "source_unchanged": true,
