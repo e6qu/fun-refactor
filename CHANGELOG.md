@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.2...fun-refactor-v0.31.3) (2026-09-21)
+
+
+### Fixes
+
+* terminate timed-out check subprocesses ([#342](https://github.com/e6qu/fun-refactor/issues/342)) ([5dc375b](https://github.com/e6qu/fun-refactor/commit/5dc375bd53be8eb4a5beda8dc100328f534a2d55))
+
 ## [0.31.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.1...fun-refactor-v0.31.2) (2026-09-21)
 
 
