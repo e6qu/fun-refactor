@@ -630,6 +630,168 @@ def audit_upstream_tsx_body(trial: LiveTrial) -> None:
                 raise ValueError(f"live TSX body diagnostic artifact changed: {artifact}")
 
 
+def audit_upstream_multibody(trial: LiveTrial) -> None:
+    snapshot = ROOT / trial["runner_snapshot"]
+    directory = (ROOT / trial["manifest"]).parent
+    archive = ROOT / "tests/agent-eval/react-workspace.tar.gz"
+    manifest = json.loads((directory / "manifest.json").read_text())
+    session = json.loads((directory / "session.json").read_text())
+    run = json.loads((directory / "codex-run.json").read_text())
+    result = json.loads((directory / "result.json").read_text())
+    if (not snapshot.is_file() or digest(snapshot) != trial["runner_sha256"]
+            or manifest.get("schema") != "fr-upstream-multibody-manifest-1"
+            or manifest.get("passed") is not True or manifest.get("acceptance_evidence") is not True
+            or manifest.get("evaluator_sha256") != trial["runner_sha256"]
+            or session.get("evaluator_sha256") != trial["runner_sha256"]
+            or session.get("upstream_commit") != trial["fixture_revision"].split("@")[-1]
+            or session.get("archive_sha256") != digest(archive)
+            or run.get("model") != trial["model"]
+            or run.get("reasoning_effort") != trial["reasoning_effort"]
+            or run.get("codex_version") != trial["tool_version"]
+            or run.get("exit_code") != 0 or run.get("timed_out")
+            or result.get("passed") is not True):
+        raise ValueError("live multi-body trial binding changed")
+    for name, expected in manifest["files"].items():
+        artifact = directory / name
+        if not artifact.is_file() or digest(artifact) != expected:
+            raise ValueError(f"live multi-body artifact changed: {artifact}")
+    if (run.get("prompt_sha256") != digest(directory / "prompt.txt")
+            or run.get("events_sha256") != digest(directory / "codex-events.jsonl")
+            or run.get("stderr_sha256") != digest(directory / "codex-stderr.txt")):
+        raise ValueError("live multi-body Codex transcript binding changed")
+    rows = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
+    if [row["request"].get("tool") for row in rows] != [
+            "guide", "reveal-layout", "reveal-header", "preview", "review", "execute", "finish"]:
+        raise ValueError("live multi-body tool sequence changed")
+    guide, layout_reveal, header_reveal, preview, review, execute, finish = rows
+    layout = "src/components/layouts/Layout.tsx"
+    header = "src/components/layouts/Header.tsx"
+    sources = [header, layout]
+    stages = execute["full"]["workflow"]["stages"]
+    expected_stages = ["check-original", "apply", "check-applied", "undo", "check-restored",
+                       "redo", "check-applied", "deliver-patch"]
+    diff = review["full"]["diff"]
+    bodies = [preview["request"].get("layout_body"), preview["request"].get("header_body")]
+    if (guide["full"].get("state") != "ready"
+            or guide["full"].get("route", {}).get("id") != "source-bodies"
+            or guide["full"].get("route", {}).get("source_required") is not True
+            or session.get("goal", {}).get("constraints", {}).get("allow_source") is not True
+            or [item.get("path") for item in guide["full"].get("targets", [])] != [layout, header]
+            or any(row["full"].get("source", {}).get("returned_bytes", 4097) > 4096
+                   for row in (layout_reveal, header_reveal))
+            or "<main className=" not in layout_reveal["full"].get("source", {}).get("text", "")
+            or "<header" not in header_reveal["full"].get("source", {}).get("text", "")
+            or any(not isinstance(body, str) or not 1 <= len(body.encode()) <= 4096 for body in bodies)
+            or preview["full"].get("applied") is not False
+            or preview["full"].get("changed") is not True
+            or preview["full"].get("files_changed") != 2
+            or preview["full"].get("diff") != diff
+            or review["request"] != {"tool": "review"}
+            or execute["request"] != {"tool": "execute"}
+            or review["full"].get("ready") is not True
+            or review["full"].get("checks", {}).get("names") != ["typecheck"]
+            or any(f"--- a/{path}" not in diff or f"+++ b/{path}" not in diff for path in sources)
+            or execute["full"].get("passed") is not True
+            or [item.get("stage") for item in stages] != expected_stages
+            or any(item.get("status") != "passed" for item in stages)
+            or finish["request"].get("answer") != {
+                "files": [layout, header],
+                "mobile": ["Mobile content", "Mobile navigation"],
+                "responsive": ["Responsive content", "Responsive navigation"],
+                "check": "typecheck"}):
+        raise ValueError("live multi-body guidance, review or delivery changed")
+    with tempfile.TemporaryDirectory(prefix="fr-multibody-audit-") as temporary:
+        receiver = Path(temporary)
+        with tarfile.open(archive, "r:gz") as contents:
+            originals = {}
+            for path in sources:
+                member = contents.extractfile(path)
+                if member is None:
+                    raise ValueError("pinned multi-body source is missing")
+                originals[path] = member.read()
+                destination = receiver / path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(originals[path])
+            lock = contents.extractfile("pnpm-lock.yaml")
+            if lock is None or sha256_bytes(lock.read()) != session.get("lock_sha256"):
+                raise ValueError("pinned multi-body lock is missing")
+        replay = subprocess.run(["git", "apply", "-"], cwd=receiver, input=diff.encode(),
+                                capture_output=True, timeout=30)
+        main_before = b"<main className={`layout-container ${layoutType}`}>{children}</main>"
+        main_label = b"aria-label={layoutType === 'mobile' ? 'Mobile content' : 'Responsive content'}"
+        header_before = b"<header\n      className="
+        header_label = b"aria-label={type === 'mobile' ? 'Mobile navigation' : 'Responsive navigation'}"
+        layout_variants = {
+            originals[layout].replace(main_before, b"<main " + main_label +
+                                      b" className={`layout-container ${layoutType}`}>{children}</main>"),
+            originals[layout].replace(main_before,
+                                      b"<main className={`layout-container ${layoutType}`} " + main_label +
+                                      b">{children}</main>"),
+        }
+        header_variants = {
+            originals[header].replace(header_before, b"<header\n      " + header_label + b"\n      className="),
+            originals[header].replace(b"<header\n", b"<header " + header_label + b"\n", 1),
+            originals[header].replace(b"      )}\n    >", b"      )}\n      " + header_label + b"\n    >", 1),
+        }
+        if (replay.returncode != 0 or originals[layout].count(main_before) != 1
+                or originals[header].count(header_before) != 1
+                or (receiver / layout).read_bytes() not in layout_variants
+                or (receiver / header).read_bytes() not in header_variants):
+            raise ValueError("live multi-body reviewed diff fails pinned receiver replay")
+    codex_rows = [json.loads(line) for line in (directory / "codex-events.jsonl").read_text().splitlines()]
+    usage = next((row["usage"] for row in reversed(codex_rows) if row.get("type") == "turn.completed"), None)
+    commands = [row["item"] for row in codex_rows if row.get("type") == "item.completed"
+                and row.get("item", {}).get("type") == "command_execution"]
+    recorded_step = re.search(r"(?m)^python3 (\S+/tools/upstream-multibody-agent\.py step \S+ --request-stdin) <<'FRJSON'$",
+                              (directory / "prompt.txt").read_text())
+    commands_match = False
+    if recorded_step is not None and len(commands) == len(rows):
+        prefix = f"python3 {recorded_step.group(1)} <<'FRJSON'\n"
+        suffix = "\nFRJSON"
+        arguments = [shlex.split(item.get("command", "")) for item in commands]
+        commands_match = all(
+            item.get("exit_code") == 0 and argv[:2] == ["/bin/zsh", "-lc"]
+            and len(argv) == 3 and argv[2].startswith(prefix) and argv[2].endswith(suffix)
+            and json.loads(argv[2][len(prefix):-len(suffix)]) == row["request"]
+            for item, argv, row in zip(commands, arguments, rows)
+        )
+    oracle = result.get("oracle", {})
+    rendered = json.loads(oracle.get("render_detail", "null"))
+    expected_render = [("mobile", "Mobile content", "Mobile navigation", "mobile"),
+                       ("responsive", "Responsive content", "Responsive navigation", "responsive"),
+                       (None, "Responsive content", "Responsive navigation", "responsive")]
+    render_matches = (isinstance(rendered, list) and len(rendered) == 3 and all(
+        item.get("type") == kind and f'aria-label="{main_label}"' in item.get("main", "")
+        and f'class="layout-container {layout_type}"' in item.get("main", "")
+        and f'aria-label="{header_label}"' in item.get("header", "")
+        for item, (kind, main_label, header_label, layout_type) in zip(rendered, expected_render)))
+    if (not commands_match or not isinstance(usage, dict) or not isinstance(usage.get("input_tokens"), int)
+            or result.get("codex", {}).get("usage") != usage
+            or result.get("codex", {}).get("direct_project_commands") != []
+            or result.get("codex", {}).get("failed_command_executions") != 0
+            or result.get("manual_corrections") != 0
+            or result.get("reviewed_diff_sha256") != sha256_text(diff)
+            or result.get("stages") != [[name, "passed"] for name in expected_stages]
+            or oracle.get("changed_files") != sources
+            or any(oracle.get(name) is not True for name in
+                   ("exact_source", "receiver_patch_replay", "receiver_build", "rendered_layout_cases"))
+            or not render_matches):
+        raise ValueError("live multi-body score, oracle or Codex provenance changed")
+    for path_name in trial["diagnostics"]:
+        path = ROOT / path_name
+        diagnostic = json.loads(path.read_text())
+        if (diagnostic.get("schema") != "fr-upstream-multibody-manifest-1"
+                or diagnostic.get("passed") is not False
+                or diagnostic.get("acceptance_evidence") is not False
+                or not diagnostic.get("diagnostic_reason")
+                or diagnostic.get("evaluator_sha256") != diagnostic.get("files", {}).get("runner.py")):
+            raise ValueError(f"live multi-body diagnostic is mislabeled: {path}")
+        for name, expected in diagnostic["files"].items():
+            artifact = path.parent / name
+            if not artifact.is_file() or digest(artifact) != expected:
+                raise ValueError(f"live multi-body diagnostic artifact changed: {artifact}")
+
+
 def audit_upstream_mermaid(trial: LiveTrial) -> None:
     snapshot = ROOT / trial["runner_snapshot"]
     directory = (ROOT / trial["manifest"]).parent
@@ -801,6 +963,8 @@ def audit() -> dict[str, object]:
             audit_upstream_css(trial)
         elif trial.get("id") == "react-guided-tsx-body":
             audit_upstream_tsx_body(trial)
+        elif trial.get("id") == "react-guided-multi-body":
+            audit_upstream_multibody(trial)
         elif trial.get("id") == "micromaid-guided-mermaid-node":
             audit_upstream_mermaid(trial)
         else:

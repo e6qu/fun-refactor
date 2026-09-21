@@ -123,6 +123,22 @@ python3 tools/upstream-tsx-body-agent.py audit \
   tests/agent-eval/results/DATE-upstream-tsx-body-acceptance
 ```
 
+The paired TSX body task selects `Layout` and `Header` through one `source-bodies` goal. The agent
+receives two bounded declarations and submits two braced bodies without their signatures. One
+batch preview and one native review bind both paths. The receiver checks exact source, patch
+replay, the TypeScript/Vite build and both landmarks in three server-rendered layouts:
+
+```sh
+python3 tools/upstream-multibody-agent.py prepare /tmp/fr-upstream-multibody \
+  --fr target/debug/fr --deps /tmp/fr-react-mit/node_modules
+python3 tools/upstream-multibody-agent.py run /tmp/fr-upstream-multibody --confirm-agent-spend
+python3 tools/upstream-multibody-agent.py score /tmp/fr-upstream-multibody
+python3 tools/upstream-multibody-agent.py record /tmp/fr-upstream-multibody \
+  tests/agent-eval/results/DATE-upstream-multibody-acceptance
+python3 tools/upstream-multibody-agent.py audit \
+  tests/agent-eval/results/DATE-upstream-multibody-acceptance
+```
+
 The pinned Micromaid task follows a Markdown diagram guide and renames one Mermaid node. Prepare
 its parser dependencies from the retained lockfile before the live session. The declared check
 parses both diagrams without writing source; the score separately checks exact graph structure and

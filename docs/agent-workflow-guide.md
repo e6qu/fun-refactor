@@ -43,6 +43,7 @@ preview before formal scaffold authoring.
 | `semantic-change` | Basis-bound typed operations | Semantic change catalog and writer |
 | `semantic-body` | Typed statement tree | Semantic body catalog and writer |
 | `source-body` | Complete body in the target language, after `allow_source: true` | Bounded source reveal and `replace-body` writer |
+| `source-bodies` | Complete bodies for one primary and up to seven additional exact declarations | Bounded reveals and one reviewed multi-target body change |
 | `surface-edit` | `surface`: `styles` or `diagrams`, then returned edit ID and new scalar | CSS/host/Markdown/Mermaid capabilities |
 | `framework-migration` | Advertised destination, feature or application output, and optional registration data | Feature or application IR compatibility |
 | `formalize` | Property tree, then proof tactics | Conservative pure Rust formalization workbench |
@@ -61,6 +62,10 @@ declaration under the goal's token limit. The next action previews a complete bo
 the existing source writer. A typed `TaskChange` binds that body to the reviewed guide, checks and
 delivery stages. Use this route when the semantic body has no exact IR identity but the source
 writer admits the target language.
+`source-bodies` uses the primary goal selector plus `operation.additional` selectors. Each must
+resolve to a distinct declaration admitted by `replace-body`. The guide reveals every target
+under the same source limit and previews one `author batch` manifest. Native review checks that
+the authored target set equals the guide's complete target set before one checked delivery.
 
 Exact scalar goals with declared checks produce one complete `fr-task-change-1` preview input.
 Integer/float scalars follow the live unsigned-decimal contract; negatives use explicit unary IR

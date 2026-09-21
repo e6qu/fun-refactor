@@ -159,6 +159,23 @@
       ]
     },
     {
+      "id": "react-guided-multi-body",
+      "covers": ["typescript-react"],
+      "manifest": "tests/agent-eval/results/2026-09-21-upstream-multibody-acceptance/manifest.json",
+      "runner": "tools/upstream-multibody-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-multibody-agent-2026-09-21.py",
+      "runner_sha256": "a38f6fbf9a7ccfd0a9e65d799a38a69cdec76fdb6f9b147047cbc19fefaa0716",
+      "fixture_revision": "aulianza/vite-react-starter@0633ab1ff90cd0a09b70c849718b9504500a7bd5",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "two exact TSX body edits, receiver patch replay, TypeScript/Vite build and three paired React server renders",
+      "postconditions": ["two authored bodies changed in one reviewed delivery", "eight delivery stages pass", "mobile and responsive landmarks render"],
+      "diagnostics": [
+        "tests/agent-eval/results/2026-09-21-upstream-multibody-diagnostic-1/manifest.json"
+      ]
+    },
+    {
       "id": "micromaid-guided-mermaid-node",
       "covers": ["mermaid"],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json",

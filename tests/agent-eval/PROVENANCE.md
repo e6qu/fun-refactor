@@ -44,7 +44,8 @@ Git attributes preserve evidence bytes and allow the context-only space lines th
 Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
-The [representative acceptance registry](representative-acceptance.json) binds six executable cases:
+The [representative acceptance registry](representative-acceptance.json) binds six deterministic
+cases and seven live trials:
 the pinned unfamiliar regex workspace, Rust multi-file reviewed delivery, TSX/React body changes,
 CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its
 replay uses one Cargo and Lean worker and labels a missing toolchain as infrastructure failure.
@@ -113,6 +114,16 @@ receiver verifies exact source bytes and patch replay, builds with TypeScript/Vi
 three React layout variants. The [diagnostic run](results/2026-09-21-upstream-tsx-body-diagnostic-1/manifest.json)
 retains the first passing edit and its original evaluator. Its source oracle rejected an equivalent
 attribute position; it is excluded from acceptance. A fresh repeat passed the corrected oracle.
+
+The [guided paired TSX body acceptance](results/2026-09-21-upstream-multibody-acceptance/manifest.json)
+reuses the pinned MIT React archive and its lockfile. Its frozen `fr` binary includes the
+`source-bodies` route with distinct target admission and explicit braced-body guidance. The agent
+reveals `Layout` and `Header`, authors both bodies, previews one batch and executes one unchanged
+review. The receiver verifies exact source, patch replay, build and both rendered landmark labels
+in three layout cases. The [diagnostic](results/2026-09-21-upstream-multibody-diagnostic-1/manifest.json)
+retains the first attempt, whose body fragments included declaration signatures; review refused
+it and no source was executed. Its original evaluator is retained as `runner.py` there. The
+accepted evaluator is pinned in [its runner snapshot](runner-snapshots/upstream-multibody-agent-2026-09-21.py).
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0

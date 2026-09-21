@@ -23,7 +23,7 @@ fn summary_is_small_and_progressively_reveals_every_detail_section() {
     assert!(serde_json::to_vec(&summary).unwrap().len() < 4096);
     assert_eq!(summary["report"]["counts"]["parser_languages"], 19);
     assert_eq!(summary["report"]["counts"]["capability_cells"], 456);
-    assert_eq!(summary["report"]["counts"]["workflow_routes"], 11);
+    assert_eq!(summary["report"]["counts"]["workflow_routes"], 12);
     assert_eq!(summary["report"]["counts"]["application_cells"], 100);
 
     let sections = summary["report"]["reveal"].as_array().unwrap();

@@ -1,0 +1,90 @@
+{
+  "schema": "fr-upstream-multibody-session-1",
+  "upstream_commit": "0633ab1ff90cd0a09b70c849718b9504500a7bd5",
+  "archive_sha256": "55ebf1933157c3557d0cae30beffc0fd4c9aac2c519cb9f51c888ed45de969b9",
+  "lock_sha256": "66759c39c7c68200aad73087fdfd402d15fd6f2bbb4b57eb1dc509f147e0985d",
+  "binary": "/private/tmp/fr-upstream-multibody-live-3/fr-bin",
+  "binary_sha256": "914b19c66d9a71c9d1ea26ba61d69419dbd316f2dce1fbb38ac667da96db48c5",
+  "deps": "/private/tmp/fr-css-probe/node_modules",
+  "source_files": {
+    ".eslintrc.json": "1b1f63c234c6f8bc7429fd65f6e45774e62a390c5d49f53601a815f100813e58",
+    ".github/FUNDING.yml": "3723140a839c65b9246444f4991de2afb42d1160d2250e7fe42126042ba4ecb7",
+    ".gitignore": "fe718e7babb14f3cbad2d97f08889b9ce5215ed3fe0e43b2b8cfbfb3b9b844e8",
+    ".husky/commit-msg": "526951935f72eb65bec09d9c2596c54dde46073a6ca624408da41d9ec140a807",
+    ".husky/post-merge": "93dd0d8219e88a272e3dc24e5883d28b772299b7db40082e71953501452af428",
+    ".husky/pre-commit": "a47c51a74ca348176a6383d883a80f3ab664b1aa8d4c505d2980c2a0eaf77518",
+    ".prettierrc": "0d27f11fe4295b8ee78451488514d5eb76a803ffa71b3fa6b1ce34c11e7afa2d",
+    "LICENSE": "7eb48c1c23a90a519e9b11eb9c822ea237a8b961d3a5bc08bd1cab893484b7f6",
+    "README.md": "5fc40c8b888099e7d7d40222755c08792d83bfd737f571e184e3dcc7e595e475",
+    "commitlint.config.cjs": "c3bc697e95b71e0f151c077d047ea8e97c2449e75632c6962e302ae1b0d976cf",
+    "index.html": "b24a05f5ac33487dcd51e4f315373b479dd0204ded9a45613d683597ecc9ba97",
+    "package.json": "7e27fb357e2704a1d140bf1376fd10a0f5615836ece8f12de65dbd1f8094e38c",
+    "pnpm-lock.yaml": "66759c39c7c68200aad73087fdfd402d15fd6f2bbb4b57eb1dc509f147e0985d",
+    "postcss.config.js": "e32657baf631d7c5f4dc67b4b2ee0ec8e7d5b3c41860e09cddce7c0377cd80bc",
+    "public/vite.svg": "4a748afd443918bb16591c834c401dae33e87861ab5dbad0811c3a3b4a9214fb",
+    "src/App.css": "a0715e0a09edbd0fbde65816a75e0fa0fc8b314c5260c0768c19bf3aac22621a",
+    "src/App.tsx": "ef6e1b846be08f31f1086ddcfdf676221926eccf6ed9b9ca73f8206ea17472ae",
+    "src/assets/react.svg": "35ef61ed53b323ae94a16a8ec659b3d0af3880698791133f23b084085ab1c2e5",
+    "src/components/Button/Button.tsx": "de4a673870894954bb8fbbdd278939af55826099582aff227025f2a9eff0cf10",
+    "src/components/Button/index.ts": "9ac09683cffc730fc6768c33cb204e004e1c39a8bd30dbe4237a9e5700eed7ef",
+    "src/components/layouts/Header.tsx": "656bd04167844a982dc302211639c3ce97ee89ea52f33214e9647eede80d00e3",
+    "src/components/layouts/Layout.tsx": "7dfbf9168eed79024564a63310f88321c88fde47e5d48e4894952a10af5aeee1",
+    "src/constant/menu.ts": "c1605acf2c63f95ac69448afadad01ffb8f99a25f0b8f15c13d91b888c16c551",
+    "src/helpers/link.ts": "f6ced415f6057a15a65183f0abf3f526847359a49e641f567c643a7a607edf5c",
+    "src/hooks/useTheme.tsx": "7499431e5a278104207f906060b05dff086c0fad38826b4b9e0da6fa143c0a78",
+    "src/main.tsx": "d771851a2b30ab52ecbbefdfbf3cb8e9a0213cd3b593d02191814c9929ff2b0d",
+    "src/styles/global.css": "4c33d8ee482acbcda6aba57508bab92caf4049f30f3797553a98b55e50c65b43",
+    "src/types/menu.ts": "535aa700d18d4bee82f34b8e6fd23dd2d754f95dfc3eed650d02e0e42f9afa24",
+    "src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "tailwind.config.js": "46bafa6c6475bb743ba332a65477f752e1e80aa406702a04a2e654cd26f5a168",
+    "tsconfig.json": "52dd8cd817f8e5ef50cd2364fc9b81ea6b846dcbada1863df48b9ccb59a729e7",
+    "tsconfig.node.json": "9e2abb169ea87b7190613a1d4da57ca608463a453bd4231fa3aeee5e308370dd",
+    "vite.config.ts": "28a1433c16983be23e628c12896cf158a2b1c76da0f81568be3151c32dd94c5f"
+  },
+  "goal": {
+    "schema": "fr-agent-goal-1",
+    "purpose": "change",
+    "target": null,
+    "selector": {
+      "name": "Layout",
+      "path": null,
+      "scope": "src/components/layouts/Layout.tsx",
+      "kind": null,
+      "language": "tsx",
+      "locals": false
+    },
+    "operation": {
+      "kind": "source-bodies",
+      "additional": [
+        {
+          "kind": null,
+          "language": "tsx",
+          "locals": false,
+          "name": "Header",
+          "path": null,
+          "scope": "src/components/layouts/Header.tsx"
+        }
+      ]
+    },
+    "constraints": {
+      "allow_source": true
+    },
+    "checks": [
+      "typecheck"
+    ],
+    "proof": "none",
+    "context": {
+      "token_limit": 4096,
+      "packet_limit": 65536
+    },
+    "delivery": {
+      "check-original": true,
+      "compact-success": true,
+      "exercise-reversal": true,
+      "patch": "artifacts/layout-header.patch",
+      "check-output-bytes": 1024
+    }
+  },
+  "evaluator_sha256": "a38f6fbf9a7ccfd0a9e65d799a38a69cdec76fdb6f9b147047cbc19fefaa0716",
+  "manual_corrections": 0
+}

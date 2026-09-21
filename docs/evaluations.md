@@ -143,7 +143,20 @@ correction. CLI usage was 96,815 input tokens, including 86,272 cached, and 1,09
 billed quota was unavailable. The [accepted manifest](../tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/manifest.json)
 binds this single-body result. The preceding [diagnostic](../tests/agent-eval/results/2026-09-21-upstream-tsx-body-diagnostic-1/manifest.json)
 passed delivery and rendering, but a premature oracle required the attribute before `className`.
-It is excluded from acceptance. Authored multi-file body delivery remains open.
+It is excluded from acceptance. The subsequent paired-body trial covers one two-file TSX change.
+
+The first accepted guided multi-file authored body task reuses the same pinned MIT React archive.
+The `source-bodies` goal selects `Layout` and `Header` as distinct declarations, reveals each under
+the source limit and previews one batch. A fresh Codex CLI 0.155.1 agent on `gpt-5.6-luna` at low
+effort submitted both complete bodies, reviewed the two-file diff and executed all eight checked
+delivery stages. The receiver confirmed exact source insertions, patch replay, the TypeScript/Vite
+build and both accessible landmark labels for mobile, responsive and omitted layout types. No
+direct project commands, failed commands or human corrections occurred. The accepted run used
+118,226 input tokens, including 101,376 cached, and 1,405 output tokens; billed quota was
+unavailable. The [accepted manifest](../tests/agent-eval/results/2026-09-21-upstream-multibody-acceptance/manifest.json)
+binds this one two-file result. The [diagnostic](../tests/agent-eval/results/2026-09-21-upstream-multibody-diagnostic-1/manifest.json)
+records a refused attempt that included declaration signatures in body fragments. The guide now
+names that boundary explicitly. Authored cross-crate Rust bodies remain open.
 
 ## Find the underlying evidence
 
@@ -159,6 +172,7 @@ It is excluded from acceptance. Authored multi-file body delivery remains open.
 | Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
 | Pinned guided standalone CSS edit | `tools/upstream-css-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-css-acceptance/` |
 | Pinned guided authored TSX body | `tools/upstream-tsx-body-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/` |
+| Pinned guided paired TSX bodies | `tools/upstream-multibody-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-multibody-acceptance/` |
 | Pinned guided Mermaid node edit | `tools/upstream-mermaid-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/` |
 | Agent skill reading | `tests/agent-eval/skill-context.json`, `tools/skill-context.py` |
 | Compact context protocols | `tests/agent-eval/context-protocol.json`, `tests/agent-eval/context-protocol-v3.json` |

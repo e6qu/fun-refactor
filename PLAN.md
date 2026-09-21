@@ -84,10 +84,9 @@ Use pinned unfamiliar projects and independent oracles to test the complete agen
 existing representative registry supplies deterministic cases; its two accepted matched live
 source-writing cohorts repeat one Rust scalar change. The pinned regex workspace has accepted guided
 read/trace and three-file rename tasks. Pinned MIT React/Tailwind and Micromaid projects have accepted
-guided TSX class and body, CSS selector and Mermaid node edits. Earlier live two-crate cohorts used
-the pre-guide workflow.
-The rename validates cross-file resolution and delivery, while authored multi-file body changes
-remain untested through a guide. Keep deterministic
+guided TSX class and body, paired Layout/Header bodies, CSS selector and Mermaid node edits.
+Earlier live two-crate cohorts used the pre-guide workflow. The paired TSX trial validates one
+reviewed two-file authored body delivery. Authored cross-crate Rust bodies remain open. Keep deterministic
 replay, live agent outcomes and population claims separate. Pin each task's repository revision,
 goal, admitted route, allowed tools, exact postconditions and compiler, framework or proof oracle
 before a live run.
@@ -97,11 +96,11 @@ The acceptance corpus covers:
 - An unfamiliar upstream `understand` and `trace` task with bounded reveal and exact evidence
   (accepted on the pinned regex workspace; retain new failures separately).
 - A Rust multi-file change with one complete reviewed delivery. The pinned regex workspace has
-  an accepted three-file guided rename; authored multi-file body changes remain open.
+  an accepted three-file guided rename; authored cross-crate Rust bodies remain open.
 - TSX/React and CSS/Tailwind/Mermaid changes through admitted guides. Pinned React header class,
   standalone CSS selector and authored Layout body edits, plus a Micromaid diagram node edit, are
-  accepted. The Layout trial renders three variants; the CSS selector trial does not establish
-  rendered UI behavior. Authored multi-file bodies remain open.
+  accepted. The paired Layout/Header body trial renders three variants and checks both landmarks;
+  the CSS selector trial does not establish rendered UI behavior.
 - A backend application migration that reads validated inputs from source and writes a different
   HTTP adapter. Preserve manual boundaries and check the generated runtime behavior.
 - An agent-authored Lean proof with checked submission and explicit correspondence limits.

@@ -1,0 +1,177 @@
+{
+  "schema": "fr-upstream-multibody-result-1",
+  "passed": true,
+  "sequence": [
+    "guide",
+    "reveal-layout",
+    "reveal-header",
+    "preview",
+    "review",
+    "execute",
+    "finish"
+  ],
+  "guide_route": "source-bodies",
+  "preview": {
+    "applied": false,
+    "atomic_snapshot": false,
+    "behavior_checked": false,
+    "changed": true,
+    "context_basis": "frcb1:dfe4c49d7dec0e1f3067f41cb73f6350a55428ce0f0d59fa1370a092cf798fb8",
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {
+        "file has syntax errors": 1
+      },
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 23,
+      "manifests": {
+        "discovered": 1,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 1,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 274,
+      "unsupported_files": 3
+    },
+    "diff": "--- a/src/components/layouts/Header.tsx\n+++ b/src/components/layouts/Header.tsx\n@@ -9,6 +9,7 @@\n \n   return (\n     <header\n+      aria-label={type === 'mobile' ? 'Mobile navigation' : 'Responsive navigation'}\n       className={clsx(\n         'fixed top-0 z-50 w-full bg-white/10 px-0.5 py-1',\n         'dark:bg-gray-700/10',\n--- a/src/components/layouts/Layout.tsx\n+++ b/src/components/layouts/Layout.tsx\n@@ -11,7 +11,7 @@\n   return (\n     <div className='dark:bg-dark'>\n       <Header type={layoutType} />\n-      <main className={`layout-container ${layoutType}`}>{children}</main>\n+      <main aria-label={layoutType === 'mobile' ? 'Mobile content' : 'Responsive content'} className={`layout-container ${layoutType}`}>{children}</main>\n     </div>\n   );\n };\n",
+    "files_changed": 2,
+    "handle_prefix": "frp1:0561693fa1bf6bbd3c5a809cb45a0174:",
+    "plan_context_basis": "frpb1:2b051f4b4bc5aadbc72a7ae141c4c40ddc127dcd9ce347cdb7a959d0c3530b08",
+    "postconditions": [],
+    "postconditions_held": true,
+    "query": "batch",
+    "revision": "0561693fa1bf6bbd3c5a809cb45a0174db5054bef1b314a8908322f17b1b134c",
+    "saved": false,
+    "schema": "fr-author-batch-1",
+    "span_basis": "original-source",
+    "steps": [
+      {
+        "after_bytes": 298,
+        "after_sha256": "995796ce01d404a7b2bcc45457979b4791e0ef12b24796a2fbdb0a802ccd120a",
+        "before_bytes": 219,
+        "before_sha256": "32a16e1b4277dd6d58b57e8abd1ca6d6bb508528f4bdca3f692ef17434490260",
+        "before_span": {
+          "end": 393,
+          "start": 174
+        },
+        "changed": true,
+        "handle": "frp1:0561693fa1bf6bbd3c5a809cb45a0174:ec4",
+        "operation": "replace-body",
+        "path": "src/components/layouts/Layout.tsx",
+        "preservation": "bytes outside the selected body",
+        "signature": {
+          "basis": "syntax-header",
+          "text": "Layout = ({ children, type }: LayoutProps) =>"
+        }
+      },
+      {
+        "after_bytes": 1142,
+        "after_sha256": "c6ed6630ff302054fe3da31fd3418259d9b0d635111d2f6a01544e2107878c1b",
+        "before_bytes": 1057,
+        "before_sha256": "0ef1c0410df6258dfc8917761efb06c58613f1468822c012256ed9049c0e6be0",
+        "before_span": {
+          "end": 1256,
+          "start": 199
+        },
+        "changed": true,
+        "handle": "frp1:0561693fa1bf6bbd3c5a809cb45a0174:ebb",
+        "operation": "replace-body",
+        "path": "src/components/layouts/Header.tsx",
+        "preservation": "bytes outside the selected body",
+        "signature": {
+          "basis": "syntax-header",
+          "text": "Header = ({ type }: { type: string }) =>"
+        }
+      }
+    ],
+    "transaction": null,
+    "validation": "reparse-strict"
+  },
+  "reviewed_diff_sha256": "55ce0ec718900945ea01dc11141afaf57211b8b47e5ff2b589af5c04efd85612",
+  "review_ready": true,
+  "execution_passed": true,
+  "stages": [
+    [
+      "check-original",
+      "passed"
+    ],
+    [
+      "apply",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "undo",
+      "passed"
+    ],
+    [
+      "check-restored",
+      "passed"
+    ],
+    [
+      "redo",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "deliver-patch",
+      "passed"
+    ]
+  ],
+  "oracle": {
+    "changed_files": [
+      "src/components/layouts/Header.tsx",
+      "src/components/layouts/Layout.tsx"
+    ],
+    "exact_source": true,
+    "receiver_patch_replay": true,
+    "receiver_build": true,
+    "rendered_layout_cases": true,
+    "render_detail": "[{\"type\":\"mobile\",\"main\":\"<main aria-label=\\\"Mobile content\\\" class=\\\"layout-container mobile\\\">\",\"header\":\"<header aria-label=\\\"Mobile navigation\\\" class=\\\"fixed top-0 z-50 w-full bg-white/10 px-0.5 py-1 dark:bg-gray-700/10 shadow-sm\\\">\"},{\"type\":\"responsive\",\"main\":\"<main aria-label=\\\"Responsive content\\\" class=\\\"layout-container responsive\\\">\",\"header\":\"<header aria-label=\\\"Responsive navigation\\\" class=\\\"fixed top-0 z-50 w-full bg-white/10 px-0.5 py-1 dark:bg-gray-700/10 shadow-sm\\\">\"},{\"type\":null,\"main\":\"<main aria-label=\\\"Responsive content\\\" class=\\\"layout-container responsive\\\">\",\"header\":\"<header aria-label=\\\"Responsive navigation\\\" class=\\\"fixed top-0 z-50 w-full bg-white/10 px-0.5 py-1 dark:bg-gray-700/10 shadow-sm\\\">\"}]\n",
+    "render_error": "",
+    "build_detail": "\n> aulianza-vite-react-starter@0.0.0 build\n> tsc && vite build\n\nvite v4.3.9 building for production...\ntransforming...\n✓ 48 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                   0.46 kB │ gzip:  0.30 kB\ndist/assets/react-35ef61ed.svg    4.13 kB │ gzip:  2.14 kB\ndist/assets/index-c1dde333.css   16.64 kB │ gzip:  4.11 kB\ndist/assets/index-70808814.js   152.88 kB │ gzip: 49.97 kB\n✓ built in 669ms\nBrowserslist: caniuse-lite is outdated. Please run:\n  npx update-browserslist-db@latest\n  Why you should do it regularly: https://github.com/browserslist/update-db#readme\n"
+  },
+  "answer": {
+    "files": [
+      "src/components/layouts/Layout.tsx",
+      "src/components/layouts/Header.tsx"
+    ],
+    "mobile": [
+      "Mobile content",
+      "Mobile navigation"
+    ],
+    "responsive": [
+      "Responsive content",
+      "Responsive navigation"
+    ],
+    "check": "typecheck"
+  },
+  "codex": {
+    "usage": {
+      "input_tokens": 118226,
+      "cached_input_tokens": 101376,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1405,
+      "reasoning_output_tokens": 57
+    },
+    "command_executions": 7,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0
+}

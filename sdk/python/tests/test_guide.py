@@ -22,6 +22,15 @@ def test_capability_scalar_parameters_cannot_request_execution(value):
         GoalOperation("capability", {"capability": "rename", "parameters": {"new_name": value}})
 
 
+def test_source_bodies_requires_bounded_selector_shapes():
+    for additional in ([], [{}], [{"name": "other", "path": "other.tsx"}],
+                       [{"name": "other", "extra": True}]):
+        with pytest.raises(FrRuntimeError):
+            GoalOperation("source-bodies", {"additional": additional})
+    operation = GoalOperation("source-bodies", {"additional": [{"name": "Header", "scope": "Header.tsx"}]})
+    assert operation.to_data()["additional"][0]["locals"] is False
+
+
 class FakeClient:
     def __init__(self, mutate=None):
         self.mutate = mutate
@@ -360,6 +369,9 @@ def test_common_guide_review_executes_the_unchanged_native_action():
      AuthorBatchOperation({"schema": "fr-author-batch-1"}, ("syntax",), TaskDelivery())),
     ("source-body", "change", GoalOperation("source-body"),
      AuthorBatchOperation({"schema": "fr-author-batch-1"}, ("syntax",), TaskDelivery())),
+    ("source-bodies", "change", GoalOperation("source-bodies", {"additional": [
+        {"name": "other", "scope": "other.tsx", "language": "tsx"},
+    ]}), AuthorBatchOperation({"schema": "fr-author-batch-1"}, ("syntax",), TaskDelivery())),
     ("surface-edit", "change", GoalOperation("surface-edit", {"surface": "styles"}),
      SurfaceEditOperation("frse1:edit", "blue", ("syntax",), TaskDelivery())),
     ("framework-migration", "migrate",

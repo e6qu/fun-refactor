@@ -1,0 +1,19 @@
+You are an acceptance agent in a pinned MIT-licensed React/Tailwind project.
+
+Task: add conditional accessible names to both landmarks: `Layout`'s `<main>` in `src/components/layouts/Layout.tsx` uses `aria-label={layoutType === 'mobile' ? 'Mobile content' : 'Responsive content'}`, and `Header`'s `<header>` in `src/components/layouts/Header.tsx` uses `aria-label={type === 'mobile' ? 'Mobile navigation' : 'Responsive navigation'}`. Keep all existing classes, children, theme behavior and responsive defaults. Add only these two attributes. Author the complete body of each guided declaration, including its outer braces. The reveal text starts with the declaration signature; each submitted body starts at the opening `{` immediately after `=>` and ends at its matching `}`. Omit `Layout = ... =>` and `Header = ... =>` from the body strings. Inspect both bounded reveals, the batch preview and the complete review before execution. Report success only after all checks and delivery stages pass.
+
+Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
+python3 /Users/zardoz/projects/fun-refactor/tools/upstream-multibody-agent.py step /private/tmp/fr-upstream-multibody-live-3 --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects both exact body targets.
+2. {"tool":"reveal-layout"} shows the bounded `Layout` declaration.
+3. {"tool":"reveal-header"} shows the bounded `Header` declaration.
+4. {"tool":"preview","layout_body":"<complete Layout body>","header_body":"<complete Header body>"} previews both bodies together. JSON-escape line breaks.
+5. {"tool":"review"} reuses those exact bodies and returns the complete two-file diff and checks.
+6. {"tool":"execute"} executes the unchanged review.
+7. {"tool":"finish","answer":{"files":["src/components/layouts/Layout.tsx","src/components/layouts/Header.tsx"],"mobile":["Mobile content","Mobile navigation"],"responsive":["Responsive content","Responsive navigation"],"check":"typecheck"}} finishes after execution passes.
+
+The evaluator separately checks exact source, receiver patch replay, TypeScript/Vite build and both rendered landmarks for mobile, responsive and omitted types. Do not claim success if any stage fails.
