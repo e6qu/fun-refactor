@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.1...fun-refactor-v0.31.2) (2026-09-21)
+
+
+### Performance
+
+* cache strict spec source analysis ([#340](https://github.com/e6qu/fun-refactor/issues/340)) ([afd99a5](https://github.com/e6qu/fun-refactor/commit/afd99a5edb9bdb06facebebd7d8c225eb865d423))
+
 ## [0.31.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.0...fun-refactor-v0.31.1) (2026-09-21)
 
 
