@@ -46,7 +46,7 @@ bound to the new SDK runtime. Its retained source snapshots preserve the exact e
 bytes used in that run, so the historical result stays auditable as the guide gains new routes.
 
 The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
-live matched cohorts to six executable deterministic cases and nine live trials for a pinned
+live matched cohorts to six executable deterministic cases and ten live trials for a pinned
 unfamiliar upstream workspace, Rust multi-file delivery, TSX/React body changes,
 CSS/Tailwind/Mermaid surfaces, backend migration and agent-authored Lean tactics. It records each
 fixture revision, independent oracle and exact postconditions. Audit metadata and real execution
@@ -187,6 +187,18 @@ drives the real guide, review and execution path. The
 [accepted manifest](../tests/agent-eval/results/2026-09-21-application-migration-acceptance/manifest.json)
 binds this result.
 
+The first accepted guided proof-authoring task uses a generated Lean 4.28 package with one
+source-anchored identity theorem and explicit proof debt. A fresh Codex CLI 0.155.1 agent on
+`gpt-5.6-luna` at low effort used seven instrumented calls to select the source-free proof route,
+inspect the exact theorem and contract, author and check `rfl`, preview the proof-region patch,
+review it and execute all eight delivery stages. A fresh receiver replayed the patch and strict
+`fr spec verify` reported one fresh source anchor, zero obligations, zero debts and a successful
+Lean build. The source stayed unchanged, the agent made no failed or direct project commands and
+needed no correction. CLI usage was 116,527 input tokens, including 104,448 cached, and 1,031
+output tokens; billed quota was unavailable. The
+[accepted manifest](../tests/agent-eval/results/2026-09-21-proof-authoring-acceptance/manifest.json)
+binds the evaluator, transcript and result.
+
 ## Find the underlying evidence
 
 | Topic | Retained data or evaluator |
@@ -200,6 +212,7 @@ binds this result.
 | Pinned guided upstream multi-file rename | `tools/upstream-rename-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/` |
 | Pinned guided cross-crate Rust bodies | `tools/upstream-cross-crate-bodies-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-acceptance/` |
 | Guided Express-to-Go application migration | `tools/application-migration-agent.py`, `tests/agent-eval/results/2026-09-21-application-migration-acceptance/` |
+| Guided Lean proof authoring | `tools/proof-authoring-agent.py`, `tests/agent-eval/results/2026-09-21-proof-authoring-acceptance/` |
 | Pinned guided React/Tailwind surface edit | `tools/upstream-react-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-react-acceptance/` |
 | Pinned guided standalone CSS edit | `tools/upstream-css-agent.py`, `tests/agent-eval/results/2026-09-20-upstream-css-acceptance/` |
 | Pinned guided authored TSX body | `tools/upstream-tsx-body-agent.py`, `tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/` |

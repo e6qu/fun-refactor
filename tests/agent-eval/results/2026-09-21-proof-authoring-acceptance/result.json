@@ -1,0 +1,87 @@
+{
+  "schema": "fr-proof-authoring-agent-result-1",
+  "passed": true,
+  "sequence": [
+    "guide",
+    "task",
+    "check",
+    "preview",
+    "review",
+    "execute",
+    "finish"
+  ],
+  "guide_route": "proof",
+  "authored_tactics": "rfl",
+  "reviewed_diff_sha256": "537c92b7b781aaf74b34dd2b017012e23ced717b17ddc5798bdfd16aadf9b7b0",
+  "review_ready": true,
+  "execution_passed": true,
+  "stages": [
+    [
+      "check-original",
+      "passed"
+    ],
+    [
+      "apply",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "undo",
+      "passed"
+    ],
+    [
+      "check-restored",
+      "passed"
+    ],
+    [
+      "redo",
+      "passed"
+    ],
+    [
+      "check-applied",
+      "passed"
+    ],
+    [
+      "deliver-patch",
+      "passed"
+    ]
+  ],
+  "oracle": {
+    "changed_files": [
+      "specs/FrSpecs/SrcLibRsRender.lean"
+    ],
+    "source_preserved": true,
+    "receiver_patch_replay": true,
+    "authored_tactics_preserved": true,
+    "strict_verify": true,
+    "no_proof_debt": true,
+    "oracle_detail": "{\n  \"report\": {\n    \"anchors\": [\n      {\n        \"spec\": \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-authoring-receiver-ac5fjgjy/project/specs/FrSpecs/SrcLibRsRender.lean\",\n        \"line\": 5,\n        \"source\": \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-authoring-receiver-ac5fjgjy/project/src/lib.rs\",\n        \"symbol\": \"render\",\n        \"expected\": \"dbb8f9aafedfeafffa7cfe33630e69a4a67d63b6a08db38688cb157dc583b8ac\",\n        \"actual\": \"dbb8f9aafedfeafffa7cfe33630e69a4a67d63b6a08db38688cb157dc583b8ac\",\n        \"signature\": {\n          \"status\": \"fresh\"\n        },\n        \"status\": \"fresh\"\n      }\n    ],\n    \"obligations\": 0,\n    \"debts\": []\n  },\n  \"packages\": [\n    {\n      \"package\": \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-authoring-receiver-ac5fjgjy/project/specs\",\n      \"passed\": true,\n      \"output\": \"✔ [2/4] Built FrSpecs.SrcLibRsRender (177ms)\\n✔ [3/4] Built FrSpecs (178ms)\\nBuild completed successfully (4 jobs).\\n\"\n    }\n  ]\n}\n"
+  },
+  "answer": {
+    "obligation": "renderModel_identity",
+    "proved": true,
+    "model_theorem_checked": true,
+    "implementation_correspondence": false,
+    "check": "lean"
+  },
+  "codex": {
+    "usage": {
+      "input_tokens": 116527,
+      "cached_input_tokens": 104448,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1031,
+      "reasoning_output_tokens": 107
+    },
+    "command_executions": 7,
+    "failed_command_executions": 0,
+    "direct_project_commands": [],
+    "billed_quota": {
+      "available": false,
+      "value": null
+    }
+  },
+  "manual_corrections": 0
+}

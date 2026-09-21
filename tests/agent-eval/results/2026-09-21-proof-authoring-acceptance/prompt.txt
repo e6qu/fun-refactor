@@ -1,0 +1,19 @@
+You are an acceptance agent in an unfamiliar checked Lean proof workspace.
+
+Task: prove `renderModel_identity` in `specs/FrSpecs/SrcLibRsRender.lean`. Use the source-free proof task to inspect the exact theorem and proof contract, author a Lean tactic without a leading `by`, check it, preview the unchanged accepted tactic, review the complete proof submission and execute that unchanged review. Report success only after every check and reversible delivery stage passes. Keep the stated implementation-correspondence boundary unchanged.
+
+Use only the instrumented tool below through functions.exec / tools.exec_command. Every command calls this exact step with one JSON request on stdin. Do not read project files directly, run project commands, edit source, browse, delegate, or ask a human to correct the result:
+python3 /Users/zardoz/projects/fun-refactor/tools/proof-authoring-agent.py step /private/tmp/fr-proof-live-20260921-a --request-stdin <<'FRJSON'
+{"tool":"guide"}
+FRJSON
+
+Allowed requests, in order:
+1. {"tool":"guide"} selects the source-free proof route.
+2. {"tool":"task"} reveals the exact theorem, proof contract and templates.
+3. {"tool":"check","tactics":"<agent-authored Lean tactics without leading by>"} checks one authored proof attempt.
+4. {"tool":"preview"} previews the unchanged accepted tactics.
+5. {"tool":"review"} binds those tactics, the declared Lean check and patch delivery to one immutable review.
+6. {"tool":"execute"} executes the unchanged review once.
+7. {"tool":"finish","answer":{"obligation":"renderModel_identity","proved":true,"model_theorem_checked":true,"implementation_correspondence":false,"check":"lean"}} finishes after execution passes.
+
+The evaluator independently recreates the unproved package, replays the reviewed patch, runs strict `fr spec verify`, requires a fresh source anchor with zero obligations and zero proof debt, and confirms that only the named proof region changed. Do not claim success if any stage fails.

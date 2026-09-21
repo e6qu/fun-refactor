@@ -1172,6 +1172,162 @@ app.post("/records/:id", show);
         raise ValueError("live application migration score, oracle or provenance changed")
 
 
+def audit_proof_authoring(trial: LiveTrial) -> None:
+    snapshot = ROOT / trial["runner_snapshot"]
+    directory = (ROOT / trial["manifest"]).parent
+    manifest = json.loads((directory / "manifest.json").read_text())
+    session = json.loads((directory / "session.json").read_text())
+    run = json.loads((directory / "codex-run.json").read_text())
+    result = json.loads((directory / "result.json").read_text())
+    if (not snapshot.is_file() or digest(snapshot) != trial["runner_sha256"]
+            or manifest.get("schema") != "fr-proof-authoring-agent-manifest-1"
+            or manifest.get("passed") is not True
+            or manifest.get("acceptance_evidence") is not True
+            or manifest.get("evaluator_sha256") != trial["runner_sha256"]
+            or manifest.get("fixture_revision") != trial["fixture_revision"]
+            or manifest.get("model") != trial["model"]
+            or session.get("schema") != "fr-proof-authoring-agent-session-1"
+            or session.get("fixture_revision") != trial["fixture_revision"]
+            or session.get("evaluator_sha256") != trial["runner_sha256"]
+            or not isinstance(session.get("sdk_intent_sha256"), str)
+            or session.get("manual_corrections") != 0
+            or run.get("schema") != "fr-proof-authoring-agent-run-1"
+            or run.get("model") != trial["model"]
+            or run.get("reasoning_effort") != trial["reasoning_effort"]
+            or run.get("codex_version") != trial["tool_version"]
+            or run.get("exit_code") != 0 or run.get("timed_out")
+            or result.get("schema") != "fr-proof-authoring-agent-result-1"
+            or result.get("passed") is not True):
+        raise ValueError("live proof authoring binding changed")
+    for name, expected in manifest["files"].items():
+        artifact = directory / name
+        if not artifact.is_file() or digest(artifact) != expected:
+            raise ValueError(f"live proof authoring artifact changed: {artifact}")
+    if (run.get("prompt_sha256") != digest(directory / "prompt.txt")
+            or run.get("events_sha256") != digest(directory / "codex-events.jsonl")
+            or run.get("stderr_sha256") != digest(directory / "codex-stderr.txt")):
+        raise ValueError("live proof authoring Codex transcript binding changed")
+    rows = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
+    if [row["request"].get("tool") for row in rows] != [
+            "guide", "task", "check", "preview", "review", "execute", "finish"]:
+        raise ValueError("live proof authoring tool sequence changed")
+    guide, task, checked, preview, review, execute, finish = rows
+    tactics = checked["request"].get("tactics")
+    expected_answer = {
+        "obligation": "renderModel_identity", "proved": True,
+        "model_theorem_checked": True, "implementation_correspondence": False,
+        "check": "lean",
+    }
+    expected_stages = ["check-original", "apply", "check-applied", "undo", "check-restored",
+                       "redo", "check-applied", "deliver-patch"]
+    stages = execute["full"]["workflow"]["stages"]
+    diff = review["full"]["diff"]
+    if (guide["full"].get("state") != "ready"
+            or guide["full"].get("route", {}).get("id") != "proof"
+            or guide["full"].get("route", {}).get("source_required") is not False
+            or guide["full"].get("route", {}).get("evidence", {}).get("obligation")
+               != "renderModel_identity"
+            or task["full"].get("schema") != "fr-proof-task-1"
+            or task["full"].get("goal", {}).get("theorem")
+               != "theorem renderModel_identity (x : Bool) : renderModel x = x"
+            or task["full"].get("contract", {}).get("author") != "agent"
+            or task["full"].get("contract", {}).get("checker")
+               != "leanprover/lean4:v4.28.0"
+            or not isinstance(tactics, str) or not tactics.strip()
+            or checked["full"].get("passed") is not True
+            or checked["full"].get("diagnostics") != []
+            or checked["full"].get("proof_digest") != preview["full"].get("proof_digest")
+            or checked["full"].get("receipt") != preview["full"].get("receipt")
+            or preview["full"].get("applied") is not False
+            or preview["full"].get("diff") != diff
+            or review["full"].get("ready") is not True
+            or review["full"].get("checks", {}).get("names") != ["lean"]
+            or review["full"].get("claims") != {
+                "implementation_correspondence": False, "model_theorem_checked": True}
+            or review["full"].get("proof_validation", {}).get("strict_correspondence") is not True
+            or review["full"].get("proof_validation", {}).get("remaining_obligations") != 0
+            or execute["full"].get("passed") is not True
+            or execute["full"].get("proof", {}).get("proof_digest")
+               != checked["full"].get("proof_digest")
+            or [item.get("stage") for item in stages] != expected_stages
+            or any(item.get("status") != "passed" for item in stages)
+            or finish["request"].get("answer") != expected_answer):
+        raise ValueError("live proof authoring guidance, review or delivery changed")
+    baseline = '''namespace FrSpecs
+
+-- fr:generated-begin formal-kernel
+-- fr:plan e7c05c680d52d54ce9300f1c037f1fe482a5fb2733ba99853a9c93c2fb022d14
+-- fr:spec src/lib.rs::render @ dbb8f9aafedfeafffa7cfe33630e69a4a67d63b6a08db38688cb157dc583b8ac
+-- fr:signature value: bool => value: Bool; return: bool => return: Bool
+def renderModel (value : Bool) : Bool :=
+  value
+
+-- fr:property identity unproved
+theorem renderModel_identity (x : Bool) : renderModel x = x := by
+  -- fr:proof-begin renderModel_identity
+  -- fr:debt renderModel_identity
+  sorry
+  -- fr:proof-end renderModel_identity
+-- fr:generated-end formal-kernel
+
+-- fr:handwritten-begin additional-models-and-proofs
+-- fr:handwritten-end additional-models-and-proofs
+
+end FrSpecs
+'''
+    with tempfile.TemporaryDirectory(prefix="fr-proof-authoring-audit-") as temporary:
+        receiver = Path(temporary)
+        model_path = receiver / "specs/FrSpecs/SrcLibRsRender.lean"
+        model_path.parent.mkdir(parents=True)
+        model_path.write_text(baseline)
+        replay = subprocess.run(["git", "apply", "-"], cwd=receiver, input=diff.encode(),
+                                capture_output=True, timeout=30)
+        model = model_path.read_text()
+        begin = "  -- fr:proof-begin renderModel_identity\n"
+        end = "  -- fr:proof-end renderModel_identity\n"
+        region = model.split(begin, 1)[1].split(end, 1)[0] if (
+            model.count(begin) == 1 and model.count(end) == 1) else None
+        expected_region = "".join(f"  {line}\n" for line in tactics.strip().splitlines())
+        if (replay.returncode != 0 or region != expected_region
+                or "sorry" in model or "fr:debt" in model):
+            raise ValueError("live proof authoring reviewed diff fails receiver replay")
+    codex_rows = [json.loads(line) for line in (directory / "codex-events.jsonl").read_text().splitlines()]
+    usage = next((row["usage"] for row in reversed(codex_rows)
+                  if row.get("type") == "turn.completed"), None)
+    commands = [row["item"] for row in codex_rows if row.get("type") == "item.completed"
+                and row.get("item", {}).get("type") == "command_execution"]
+    recorded_step = re.search(
+        r"(?m)^python3 (\S+/tools/proof-authoring-agent\.py step \S+ --request-stdin) <<'FRJSON'$",
+        (directory / "prompt.txt").read_text())
+    commands_match = False
+    if recorded_step is not None and len(commands) == len(rows):
+        prefix = f"python3 {recorded_step.group(1)} <<'FRJSON'\n"
+        suffix = "\nFRJSON"
+        arguments = [shlex.split(item.get("command", "")) for item in commands]
+        commands_match = all(
+            item.get("exit_code") == 0 and argv[:2] == ["/bin/zsh", "-lc"]
+            and len(argv) == 3 and argv[2].startswith(prefix) and argv[2].endswith(suffix)
+            and json.loads(argv[2][len(prefix):-len(suffix)]) == row["request"]
+            for item, argv, row in zip(commands, arguments, rows)
+        )
+    oracle = result.get("oracle", {})
+    if (not commands_match or not isinstance(usage, dict)
+            or not isinstance(usage.get("input_tokens"), int)
+            or result.get("codex", {}).get("usage") != usage
+            or result.get("codex", {}).get("direct_project_commands") != []
+            or result.get("codex", {}).get("failed_command_executions") != 0
+            or result.get("manual_corrections") != 0
+            or result.get("authored_tactics") != tactics
+            or result.get("reviewed_diff_sha256") != sha256_text(diff)
+            or result.get("stages") != [[name, "passed"] for name in expected_stages]
+            or oracle.get("changed_files") != ["specs/FrSpecs/SrcLibRsRender.lean"]
+            or any(oracle.get(name) is not True for name in (
+                "source_preserved", "receiver_patch_replay", "authored_tactics_preserved",
+                "strict_verify", "no_proof_debt"))
+            or "Build completed successfully" not in oracle.get("oracle_detail", "")):
+        raise ValueError("live proof authoring score, oracle or provenance changed")
+
+
 def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -1227,6 +1383,8 @@ def audit() -> dict[str, object]:
             audit_upstream_mermaid(trial)
         elif trial.get("id") == "express-guided-go-application-migration":
             audit_application_migration(trial)
+        elif trial.get("id") == "guided-lean-proof-authoring":
+            audit_proof_authoring(trial)
         else:
             raise ValueError("representative acceptance has an unknown live trial")
 

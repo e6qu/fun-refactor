@@ -1,0 +1,53 @@
+{
+  "schema": "fr-proof-authoring-agent-session-1",
+  "fixture_revision": "0e89fed414239dab921f93653464687719453e8fedda0e8d998b70b95e673026",
+  "binary": "/private/tmp/fr-proof-live-20260921-a/fr-bin",
+  "binary_sha256": "15dcd40a7044b8a726e1a0aca56c8659767ee0247d5e21c57b2777382a585c96",
+  "source_files": {
+    ".gitignore": "db78149a8b3bd57c2d03dc5e593152f9d0faa350b7e7bdddf9f2a09138bf6f30",
+    "specs/FrSpecs.lean": "8f9796feed4e03a62dcf6ac3d546c9be1acd37a278582a454be1646f066a6ec9",
+    "specs/FrSpecs/SrcLibRsRender.lean": "75b7679b427c9f0038ad6c0849c64eb629cf45c1e76cb5af391561b7825c0e42",
+    "specs/lake-manifest.json": "823948133e4485ef420505d1d8065898b9310cc3096721f11cfb2b9ded3bf467",
+    "specs/lakefile.toml": "0ef98cfa67bdd435d22268ec0f2122cb4893c7025f0ac3ae981f4f3ea569a672",
+    "specs/lean-toolchain": "db7bb24b756d745bbde83fe92718b51bd3625dae3701ba0f598d0eedcd3f3028",
+    "src/lib.rs": "f9b5a3dfbb790049bbbbb424620bc983222162ed83c791f5bcdd55e535483990"
+  },
+  "goal": {
+    "schema": "fr-agent-goal-1",
+    "purpose": "prove",
+    "target": null,
+    "selector": {
+      "name": null,
+      "path": "specs/FrSpecs/SrcLibRsRender.lean",
+      "scope": ".",
+      "kind": null,
+      "language": null,
+      "locals": false
+    },
+    "operation": {
+      "kind": "proof",
+      "obligation": "renderModel_identity"
+    },
+    "constraints": {
+      "allow_source": false
+    },
+    "checks": [
+      "lean"
+    ],
+    "proof": "none",
+    "context": {
+      "token_limit": 4096,
+      "packet_limit": 16384
+    },
+    "delivery": {
+      "check-original": true,
+      "compact-success": true,
+      "exercise-reversal": true,
+      "patch": "artifacts/proof.patch",
+      "check-output-bytes": 4096
+    }
+  },
+  "evaluator_sha256": "107b77f7a62c6b11c96b16b42e076f0b4934e3d03e94028a2176dc8727407d63",
+  "sdk_intent_sha256": "95860c31ca6303bf9cc6c286f039115572563b3d3aff339249e82c107eb960c0",
+  "manual_corrections": 0
+}
