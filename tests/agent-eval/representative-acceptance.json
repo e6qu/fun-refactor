@@ -210,6 +210,21 @@
       "diagnostics": []
     },
     {
+      "id": "guided-lean-proof-authoring",
+      "covers": ["agent-authored-lean-proof"],
+      "manifest": "tests/agent-eval/results/2026-09-21-proof-authoring-acceptance/manifest.json",
+      "runner": "tools/proof-authoring-agent.py",
+      "runner_snapshot": "tests/agent-eval/runner-snapshots/proof-authoring-agent-2026-09-21.py",
+      "runner_sha256": "107b77f7a62c6b11c96b16b42e076f0b4934e3d03e94028a2176dc8727407d63",
+      "fixture_revision": "0e89fed414239dab921f93653464687719453e8fedda0e8d998b70b95e673026",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "tool_version": "codex-cli 0.155.1",
+      "oracle": "agent-authored Lean tactics, reviewed proof-region patch, fresh source anchor, strict verification and zero proof debt",
+      "postconditions": ["source-free proof task followed", "eight delivery stages pass", "fresh receiver verifies the theorem with no sorry"],
+      "diagnostics": []
+    },
+    {
       "id": "micromaid-guided-mermaid-node",
       "covers": ["mermaid"],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json",

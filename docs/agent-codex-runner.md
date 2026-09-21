@@ -156,6 +156,20 @@ python3 tools/application-migration-agent.py audit \
   tests/agent-eval/results/DATE-application-migration-acceptance
 ```
 
+The guided Lean task exposes the exact theorem and proof contract before accepting agent-authored
+tactics. The score recreates the unproved package, replays the reviewed patch and runs strict
+verification in a fresh receiver:
+
+```sh
+python3 tools/proof-authoring-agent.py prepare /tmp/fr-proof-authoring --fr target/debug/fr
+python3 tools/proof-authoring-agent.py run /tmp/fr-proof-authoring --confirm-agent-spend
+python3 tools/proof-authoring-agent.py score /tmp/fr-proof-authoring
+python3 tools/proof-authoring-agent.py record /tmp/fr-proof-authoring \
+  tests/agent-eval/results/DATE-proof-authoring-acceptance
+python3 tools/proof-authoring-agent.py audit \
+  tests/agent-eval/results/DATE-proof-authoring-acceptance
+```
+
 The pinned Micromaid task follows a Markdown diagram guide and renames one Mermaid node. Prepare
 its parser dependencies from the retained lockfile before the live session. The declared check
 parses both diagrams without writing source; the score separately checks exact graph structure and

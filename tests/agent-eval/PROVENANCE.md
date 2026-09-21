@@ -45,7 +45,7 @@ Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
 The [representative acceptance registry](representative-acceptance.json) binds six deterministic
-cases and nine live trials:
+cases and ten live trials:
 the pinned unfamiliar regex workspace, Rust multi-file reviewed delivery, TSX/React body changes,
 CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its
 replay uses one Cargo and Lean worker and labels a missing toolchain as infrastructure failure.
@@ -147,6 +147,16 @@ instrumented calls with no failures, direct project commands or human correction
 and fixed an SDK verifier omission: `ApplicationMigrationOperation` was absent from the typed set of
 writable operations. The evaluator is pinned in
 [its runner snapshot](runner-snapshots/application-migration-agent-2026-09-21.py).
+
+The [guided Lean proof acceptance](results/2026-09-21-proof-authoring-acceptance/manifest.json)
+uses a generated Lean 4.28 package containing one source-anchored identity theorem with explicit
+proof debt. The live agent follows the source-free proof route, inspects the exact theorem and
+contract, authors and checks tactics, previews the proof-region patch and executes one unchanged
+review. All eight delivery stages pass the declared Lean check. A fresh receiver replays the patch;
+strict `fr spec verify` reports one fresh anchor, zero obligations, zero debts and a successful
+package build. The retained run uses seven instrumented calls with no failures, direct project
+commands or human corrections. Its exact evaluator is pinned in
+[the runner snapshot](runner-snapshots/proof-authoring-agent-2026-09-21.py).
 
 The [SDK-release matched cohort](results/2026-09-18-sdk-release-acceptance/manifest.json) repeats the
 guided scalar source-writing comparison after the Python runtime changed. Both Codex CLI 0.154.0

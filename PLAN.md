@@ -5,7 +5,7 @@ bounded semantic structure, exact identities, admitted actions and reviewed deli
 the agent ingest a repository as raw text. Source remains available through explicit bounded reveal
 when structure is insufficient.
 
-This roadmap contains unfinished product work. Current commands belong in the
+This roadmap records the completed product finish line and task-driven follow-on work. Current commands belong in the
 [documentation map](docs/README.md), released changes in the [changelog](CHANGELOG.md), and defects
 in the [defect ledger](BUGS.md). `fr audit` and `fr capabilities` are the live authorities for
 support counts and refusal reasons.
@@ -36,22 +36,21 @@ does not prove its source without a checked correspondence boundary.
 
 ## Current baseline
 
-The architecture needed for items 1 through 7 exists. Item 8 has deterministic representative
-breadth and accepted guided upstream read, Rust rename, cross-crate Rust body, TSX, CSS, Mermaid
-and application migration runs. Two accepted matched source-writing runs still repeat the Rust
-scalar task. Autonomous guided proof authoring remains open. The defect ledger records no open
-actionable correctness defect.
+Items 1 through 8 now have executable evidence. The representative corpus has deterministic breadth
+and accepted guided upstream read, Rust rename, cross-crate Rust body, TSX, CSS, Mermaid,
+application migration and Lean proof-authoring runs. Two accepted matched source-writing cohorts
+also repeat the Rust scalar task. The defect ledger records no open actionable correctness defect.
 
 | Area | Delivered baseline | Remaining work |
 |---|---|---|
 | Project understanding | 19 parser identities; symbols, scopes, types, references, calls, flow, impact, entry points, configuration and cross-stack facts | Preserve uncertainty and expand a language only against a concrete task |
 | Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks; local, memory and bounded HTTP stores | Validate on more repositories and storage services |
-| Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden representative acceptance |
+| Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden only from observed task failures |
 | Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
 | Application migration | Generic application IR for routes and components; four HTTP adapters write required scalar validation and read their documented source subsets; selected FastAPI middleware, `Depends`/`Security` providers and closed-world service calls; React/Next state and events behind an explicit client boundary | Validation outside each reader subset, configured middleware, provider internals, external services and effects |
 | Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
 | Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
-| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace, three-file rename, cross-crate Rust bodies, frontend source writing and Express-to-Go application migration, plus matched context and two accepted scalar source-writing cohorts | Add a live proof authoring trial; broaden only from observed gaps |
+| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace, three-file rename, cross-crate Rust bodies, frontend source writing, Express-to-Go application migration and Lean proof authoring, plus matched context and two accepted scalar source-writing cohorts | Broaden only from observed gaps |
 | Distribution | Native, WASM and version-matched Python SDK artifacts plus a portable agent skill | Add distribution channels only when consumer demand justifies them |
 
 Run these instead of copying volatile matrices into roadmap prose:
@@ -77,7 +76,7 @@ patch delivery. A refusal, incorrect preview or impractical workflow is product 
 the same pull request when its root cause belongs to that outcome. Use a direct editor only when
 `fr` has no suitable operation, and retain that boundary in the pull request validation notes.
 
-### Next bulk outcome: representative guided delivery
+### Completed bulk outcome: representative guided delivery
 
 Use pinned unfamiliar projects and independent oracles to test the complete agent workflow. The
 existing representative registry supplies deterministic cases; its two accepted matched live
@@ -85,8 +84,9 @@ source-writing cohorts repeat one Rust scalar change. The pinned regex workspace
 read/trace, three-file rename and cross-crate authored body tasks. Pinned MIT React/Tailwind and
 Micromaid projects have accepted guided TSX class and body, paired Layout/Header bodies, CSS selector
 and Mermaid node edits. A pinned Express fixture has an accepted guided migration to Go with
-validated path, query and JSON body inputs. The remaining live task shape is proof authoring. Keep
-deterministic replay, live agent outcomes and population claims separate. Pin each
+validated path, query and JSON body inputs. A pinned Lean package has an accepted source-free
+guided proof-authoring run. Keep deterministic replay, live agent outcomes and population claims
+separate. Pin each
 task's repository revision, goal, admitted route, allowed tools, exact postconditions and compiler,
 framework or proof oracle before a live run.
 
@@ -104,15 +104,15 @@ The acceptance corpus covers:
   HTTP adapter. Its deterministic and retained live Express-to-Go cases are accepted. Preserve
   manual boundaries and check the generated runtime behavior.
 - An agent-authored Lean proof with checked submission and explicit correspondence limits. Its
-  deterministic case is accepted; a retained live run remains open.
+  deterministic case and retained live run are accepted.
 
-Acceptance: retain at least one accepted live run for each task shape above. Source-writing runs
-include the guide, preview, checks, apply, undo, redo and patch replay where applicable. The
+Acceptance is complete: each task shape above has at least one accepted live run. Source-writing
+runs include the guide, preview, checks, apply, undo, redo and patch replay where applicable. The
 independent oracle checks the final source or behavior. Retain refusals and failed attempts as
-evidence; report model settings, calls and context without extrapolating from the cohort. Fix
-actionable product failures exposed by these tasks before marking the outcome complete.
+evidence; report model settings, calls and context without extrapolating from the cohort. Use new
+task failures to select further product work.
 
-### Following bulk outcome: task-driven application and semantic IR expansion
+### Next bulk outcome: task-driven application and semantic IR expansion
 
 Expand high-level changes only for concrete failures in the acceptance corpus. All four HTTP
 adapters already read their documented validated-input subsets; report other syntax and native
