@@ -4,7 +4,7 @@ from fr_ir.context import MemoryObjectStore
 from fr_ir.intent import AgentIntent, IntentNeed
 from fr_ir.intent_actions import TaggedIntentAction, TaskChangeOperation
 from fr_ir.ir import ProjectRequest, ProjectReference, TaskChange, TaskDelivery, TaskTarget
-from fr_ir.runtime import FrClient
+from fr_ir.runtime import ByteSpan, FrClient
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 handle = client.project('find', 'render', '--signature').at('/rows/0/0')
 change = TaskChange(
@@ -46,9 +46,9 @@ result = client.execute_guide(compiled)
 from pathlib import Path
 source = (Path(sys.argv[1]) / 'src/lib.rs').read_text()
 start = source.rindex('show("changed")')
-span = {'start':start, 'end':start+4}
+span = ByteSpan(start, start + 4)
 guide = client.guide(AgentGoal('change', selector=GoalSelector(name='caller'),
-    operation=GoalOperation('capability', {'capability':'inline-call', 'range':span}),
+    operation=GoalOperation('capability', {'capability':'inline-call', 'range':span.to_data()}),
     checks=('syntax',), context=GoalLimits(packet_limit=65536),
     delivery=TaskDelivery(patch='artifacts/inline.patch')))
 compiled = client.review_guide(guide, TaggedIntentAction(CapabilityOperation(

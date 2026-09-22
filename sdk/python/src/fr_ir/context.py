@@ -13,7 +13,8 @@ from typing import Any, Mapping, Protocol
 
 from .ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
 from .runtime import (
-    Disclosure, DisclosureAction, FrClient, FrReport, FrRuntimeError, _copy_json, _pointer,
+    Disclosure, DisclosureAction, FrClient, FrReport, FrRuntimeError, SourceFragment,
+    TextLocation, _copy_json, _pointer,
 )
 
 
@@ -370,6 +371,55 @@ class ContextSession:
                 or "~" in section or len(section.encode("utf-8")) > 128):
             raise FrRuntimeError("context section name is invalid")
         return self.reveal(f"/model/{section}", max_calls=max_calls)
+
+    def source_text(self, location: TextLocation, *, max_calls: int = 64) -> str:
+        """Reveal and return one exact AST text location from this bound source revision."""
+        if not isinstance(location, TextLocation):
+            raise FrRuntimeError("source extraction requires a TextLocation")
+        if (isinstance(max_calls, bool) or not isinstance(max_calls, int)
+                or not 1 <= max_calls <= 64):
+            raise FrRuntimeError("source extraction call bound must be 1 through 64")
+        commitment = self._reports[0]._value.get("commitment")
+        source_root = commitment.get("source_root") if isinstance(commitment, Mapping) else None
+        if not isinstance(source_root, str) or _DIGEST.fullmatch(source_root) is None:
+            raise FrRuntimeError("disclosure session has no exact source commitment")
+
+        start_calls = len(self._reports)
+        followed = {report.arguments for report in self._reports}
+        while True:
+            fragments = [fragment for report in self._reports
+                         if (fragment := report.source_fragment) is not None]
+            if fragments:
+                totals = {fragment.total_bytes for fragment in fragments}
+                if (any(fragment.digest != source_root for fragment in fragments)
+                        or len(totals) != 1):
+                    raise FrRuntimeError("revealed source fragments changed their committed source")
+                total = next(iter(totals))
+                if location.span.end > total:
+                    raise FrRuntimeError("text location extends beyond the committed source")
+                output = bytearray()
+                for fragment in sorted(fragments, key=lambda item: item.offset):
+                    encoded = fragment.text.encode("utf-8")
+                    if fragment.offset != len(output):
+                        raise FrRuntimeError("revealed source fragments overlap or leave a gap")
+                    output.extend(encoded)
+                if len(output) >= location.span.end:
+                    try:
+                        return bytes(output[location.span.start:location.span.end]).decode("utf-8")
+                    except UnicodeDecodeError as error:
+                        raise FrRuntimeError(
+                            "text location does not fall on UTF-8 boundaries"
+                        ) from error
+
+            if len(self._reports) - start_calls >= max_calls:
+                raise FrRuntimeError("source extraction exceeded its call bound")
+            action = next((action for report in reversed(self._reports)
+                           for action in report.actions(domain="exact-source")
+                           if action.arguments not in followed), None)
+            if action is None:
+                raise FrRuntimeError("no exact source action reaches the text location")
+            followed.add(action.arguments)
+            self._append(action)
 
     def _remember(self, pointer: str, value: Any, digest: Any) -> Any:
         if not isinstance(digest, str) or merkle_object_digest(value) != digest:

@@ -89,6 +89,16 @@ class ByteSpan:
             raise FrRuntimeError("byte span must contain exactly start and end")
         return cls(value["start"], value["end"])
 
+    def to_data(self) -> dict[str, int]:
+        """Return the public JSON shape for this byte span."""
+        return {"start": self.start, "end": self.end}
+
+    def contains(self, other: ByteSpan) -> bool:
+        """Return whether this span completely contains another span."""
+        if not isinstance(other, ByteSpan):
+            raise FrRuntimeError("byte span containment requires another ByteSpan")
+        return self.start <= other.start <= other.end <= self.end
+
 
 @dataclass(frozen=True, order=True)
 class TextPosition:
@@ -154,6 +164,61 @@ class TextLocation:
             raise FrRuntimeError("text location extends beyond its source")
         try:
             return encoded[self.span.start:self.span.end].decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise FrRuntimeError("text location does not fall on UTF-8 boundaries") from error
+
+
+@dataclass(frozen=True)
+class SourceFragment:
+    """One exact, revision-bound source fragment returned by progressive disclosure."""
+
+    id: str
+    digest: str
+    offset: int
+    text: str
+    total_bytes: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.id, str) or not self.id:
+            raise FrRuntimeError("source fragment id must be nonempty text")
+        if not isinstance(self.digest, str) or re.fullmatch(r"[0-9a-f]{64}", self.digest) is None:
+            raise FrRuntimeError("source fragment digest must be a lowercase SHA-256 digest")
+        _integer(self.offset, "source fragment offset")
+        _integer(self.total_bytes, "source fragment total bytes")
+        if not isinstance(self.text, str):
+            raise FrRuntimeError("source fragment text must be text")
+        if self.span.end > self.total_bytes:
+            raise FrRuntimeError("source fragment extends beyond its committed source")
+
+    @property
+    def span(self) -> ByteSpan:
+        """Return this fragment's half-open span in the complete source."""
+        return ByteSpan(self.offset, self.offset + len(self.text.encode("utf-8")))
+
+    @classmethod
+    def from_data(cls, value: Any) -> SourceFragment:
+        fields = {"id", "domain", "digest", "offset", "returned_bytes", "total_bytes", "text"}
+        if not isinstance(value, Mapping) or set(value) != fields or value.get("domain") != "exact-source":
+            raise FrRuntimeError("exact source fragment has an unsupported shape")
+        fragment = cls(value["id"], value["digest"], value["offset"],
+                       value["text"], value["total_bytes"])
+        if (isinstance(value["returned_bytes"], bool)
+                or not isinstance(value["returned_bytes"], int)
+                or value["returned_bytes"] != fragment.span.end - fragment.span.start):
+            raise FrRuntimeError("source fragment returned byte count does not match its text")
+        return fragment
+
+    def text_at(self, location: TextLocation) -> str:
+        """Extract a covered text location without treating byte offsets as character indexes."""
+        if not isinstance(location, TextLocation):
+            raise FrRuntimeError("source fragment extraction requires a TextLocation")
+        if not self.span.contains(location.span):
+            raise FrRuntimeError("text location is outside this source fragment")
+        encoded = self.text.encode("utf-8")
+        start = location.span.start - self.offset
+        end = location.span.end - self.offset
+        try:
+            return encoded[start:end].decode("utf-8")
         except UnicodeDecodeError as error:
             raise FrRuntimeError("text location does not fall on UTF-8 boundaries") from error
 
@@ -425,6 +490,14 @@ class Disclosure(FrReport):
     def target(self) -> AgentTarget:
         """Return the typed target bound to this disclosure snapshot."""
         return AgentTarget.from_data(self._value.get("target"))
+
+    @property
+    def source_fragment(self) -> SourceFragment | None:
+        """Return the exact source fragment revealed by this response, when present."""
+        revealed = self._value.get("revealed")
+        if not isinstance(revealed, Mapping) or revealed.get("domain") != "exact-source":
+            return None
+        return SourceFragment.from_data(revealed)
 
     def _session_identity(
         self, *, required: bool,

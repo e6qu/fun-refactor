@@ -274,6 +274,9 @@ session = client.context(
     handle, view='evidence', token_limit=4096,
     store=DirectoryObjectStore(sys.argv[3]),
 )
+location = session.latest.target.location
+assert location is not None
+definition_text = session.source_text(location.definition)
 code_map = session.materialize_section('code_map')
 packet = session.packet(
     {'code_map': '/model/code_map'}, include_actions=False, max_bytes=4096,
@@ -290,6 +293,7 @@ result = client.execute(review)
 print(json.dumps({
     'code_map_fields': len(code_map),
     'code_map_mentions_target': 'render' in json.dumps(code_map),
+    'definition_text': definition_text,
     'context_schema': packet.schema,
     'context_calls': session.calls,
     'cached_objects': len(session.cached_digests),
@@ -313,6 +317,10 @@ print(json.dumps({
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert!(report["code_map_fields"].as_u64().unwrap() >= 1);
     assert_eq!(report["code_map_mentions_target"], true);
+    assert_eq!(
+        report["definition_text"],
+        "pub fn render(value: &str) -> String { value.to_owned() }"
+    );
     assert_eq!(report["context_schema"], "fr-agent-context-1");
     assert!(report["context_calls"].as_u64().unwrap() >= 3);
     assert!(report["cached_objects"].as_u64().unwrap() >= 1);

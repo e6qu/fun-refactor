@@ -19,8 +19,8 @@ from fr_ir.ir import (
     merkle_object_digest,
 )
 from fr_ir.runtime import (AgentTarget, ByteSpan, DefinitionLocation, Disclosure,
-                           DisclosureAction, FrClient, FrRuntimeError, TextLocation,
-                           TextPosition, TextRange)
+                           DisclosureAction, FrClient, FrRuntimeError, SourceFragment,
+                           TextLocation, TextPosition, TextRange)
 from fr_ir._version import VERSION
 from fr_ir.http_store import HttpObjectStore
 from fr_ir.context import _context_materialization_admitted, _object_store_admitted
@@ -77,6 +77,106 @@ class TestRuntime:
             "target": {"handle": target.handle, "location": location},
         }, ())
         assert disclosure.target.location == parsed
+
+    @patch("fr_ir.runtime.subprocess.run")
+    def test_context_extracts_a_typed_location_across_exact_source_pages(self, run):
+        source = "α\nfn héllo() {\n    1\n}\n"
+        first = "α\nfn h"
+        second = source[len(first):]
+        first_bytes = len(first.encode())
+        total_bytes = len(source.encode())
+        source_root = "4" * 64
+        handle = "frp1:revision:node"
+        reveal = ["project", "disclose", handle, "--reveal", "frh1:source"]
+        more = ["project", "disclose", handle, "--reveal", "frh1:more",
+                "--cursor", "frdc1:source:7"]
+        base = {
+            "schema": "fr-progressive-disclosure-1",
+            "token_budget": {"limit": 4096, "used_upper_bound": 900},
+            "revision": "1" * 64, "view_basis": "frdv1:" + "2" * 64,
+            "view": "semantic", "profile": "compact",
+            "commitment": {"object_root": "3" * 64, "source_root": source_root},
+            "target": {"handle": handle},
+        }
+        run.side_effect = [
+            completed({**base, "frontier": [{
+                "id": "frh1:source", "domain": "exact-source", "digest": source_root,
+                "offset": 0, "remaining_bytes": total_bytes,
+                "reveal": {"arguments": reveal},
+            }]}),
+            completed({**base, "status": "revealed", "revealed": {
+                "id": "frh1:source", "domain": "exact-source", "digest": source_root,
+                "offset": 0, "returned_bytes": first_bytes, "total_bytes": total_bytes,
+                "text": first,
+            }, "frontier": [{
+                "id": "frh1:more", "domain": "exact-source", "digest": source_root,
+                "offset": first_bytes, "remaining_bytes": total_bytes - first_bytes,
+                "reveal": {"arguments": more},
+            }]}),
+            completed({**base, "status": "revealed", "revealed": {
+                "id": "frh1:more", "domain": "exact-source", "digest": source_root,
+                "offset": first_bytes, "returned_bytes": len(second.encode()),
+                "total_bytes": total_bytes, "text": second,
+            }, "frontier": []}),
+        ]
+        location = TextLocation(
+            ByteSpan(3, total_bytes),
+            TextRange(TextPosition(2, 1), TextPosition(5, 1)),
+        )
+
+        session = self.client.context(handle)
+        assert session.source_text(location) == source.encode()[3:].decode()
+        assert session.calls == 3
+        assert session.latest.source_fragment == SourceFragment(
+            "frh1:more", source_root, first_bytes, second, total_bytes,
+        )
+        assert session.source_text(location) == source.encode()[3:].decode()
+        assert run.call_count == 3
+
+    def test_source_fragments_validate_bytes_and_extract_utf8_locations(self):
+        fragment = SourceFragment.from_data({
+            "id": "frh1:source", "domain": "exact-source", "digest": "a" * 64,
+            "offset": 3, "returned_bytes": 6, "total_bytes": 12, "text": "héllo",
+        })
+        location = TextLocation(
+            ByteSpan(3, 9), TextRange(TextPosition(1, 1), TextPosition(1, 6)),
+        )
+        assert fragment.span == ByteSpan(3, 9)
+        assert fragment.text_at(location) == "héllo"
+        with pytest.raises(FrRuntimeError, match="returned byte count"):
+            SourceFragment.from_data({
+                "id": "frh1:source", "domain": "exact-source", "digest": "a" * 64,
+                "offset": 3, "returned_bytes": 5, "total_bytes": 12, "text": "héllo",
+            })
+
+    @patch("fr_ir.runtime.subprocess.run")
+    def test_context_refuses_source_outside_its_committed_revision(self, run):
+        handle = "frp1:revision:node"
+        action = ["project", "disclose", handle, "--reveal", "frs1:source"]
+        base = {
+            "schema": "fr-progressive-disclosure-1",
+            "token_budget": {"limit": 4096, "used_upper_bound": 900},
+            "revision": "1" * 64, "view_basis": "frdv1:" + "2" * 64,
+            "view": "semantic", "profile": "compact",
+            "commitment": {"object_root": "3" * 64, "source_root": "4" * 64},
+            "target": {"handle": handle},
+        }
+        run.side_effect = [
+            completed({**base, "frontier": [{
+                "id": "frs1:source", "domain": "exact-source", "digest": "4" * 64,
+                "offset": 0, "remaining_bytes": 4, "reveal": {"arguments": action},
+            }]}),
+            completed({**base, "revealed": {
+                "id": "frs1:source", "domain": "exact-source", "digest": "5" * 64,
+                "offset": 0, "returned_bytes": 4, "total_bytes": 4, "text": "name",
+            }}),
+        ]
+        location = TextLocation(
+            ByteSpan(0, 4), TextRange(TextPosition(1, 1), TextPosition(1, 5)),
+        )
+        session = self.client.context(handle)
+        with pytest.raises(FrRuntimeError, match="committed source"):
+            session.source_text(location)
 
     @pytest.mark.parametrize("location", [
         {"span": {"start": True, "end": 4},

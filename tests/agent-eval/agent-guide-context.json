@@ -8,11 +8,11 @@
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
     "sdk/python/src/fr_ir/guide.py": "efb76e603a7eb2f410395bf68d066f381fc3cbf056319c5af4350a6aacc2b4e5",
     "sdk/python/src/fr_ir/ir.py": "9d16f0040919c05061b324d7d9d903a9668f22d81d4e111be6cf0c8d33bace09",
-    "sdk/python/src/fr_ir/runtime.py": "ed814051aafd582006649ad079743d01d87366cca2e0ef95731b632d59b8d96f",
+    "sdk/python/src/fr_ir/runtime.py": "3e16271d6b42a167bc52858ca4397fca24a38e6c4714530264fa927e84e29a8d",
     "kernels/FrKernels/AgentGuide.lean": "7fface87376f694e7dc79f9a2b7d3cd620ddb406016899bf0cb3d158650990fe",
     "src/project/agent_actions.rs": "db15568a1fbd14c9cb037334e7d742df27e93db857c6980ff5e72f32c6e73996",
     "src/project/capability_action.rs": "0015847105a8f4857c698c7f398f70c30064de630a79cb51ee28286211c9c66b",
-    "sdk/python/src/fr_ir/intent_actions.py": "c8c29c1e6bf251f14ca8a8d644bf753c5a7eb932cf6480da5ffd018839c85d42"
+    "sdk/python/src/fr_ir/intent_actions.py": "d73a870e0d103e82391cf0b5a5915c9c0b38e8b6b06af6c315d3481b8f75e46c"
   },
   "manual": {
     "program": "from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget\nfrom fr_ir.runtime import FrClient\nclient = FrClient(WORKSPACE, executable=FR)\nhandle = client.project(\"find\", \"calculate\", \"--signature\").at(\"/rows/0/0\")\nreview = client.review(TaskChange([], [TaskTarget(\n    \"scalar\", handle, \"edit-body-scalar\", scalar=ScalarRequest(\"set-int\", \"7\", \"9\"),\n)], {\"files-changed\": 1, \"edits\": 1, \"changed-operations\": 1,\n    \"paths-changed\": [\"src/lib.rs\"]}, [\"compiler\"],\n    TaskDelivery(patch=\"artifacts/change.patch\", check_output_bytes=256)))\nresult = client.execute(review)\npacket = {\"passed\": result.passed, \"workflow\": result.at(\"/workflow\")}\n",
@@ -94,7 +94,7 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:f634fedd06a0bc9963ddcf9cddd9aa0aac44c2c5870ea8c93d6eb82658b55259"
+          "frtc1:a600307019d487675c839f95b30120dbe5b8882055f85fcf499a824b41ca6dd6"
         ],
         "request_bytes": 598,
         "response_bytes": 4176
@@ -177,7 +177,7 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:01a02c4407d300dce55e8b0603c46b6f87fe594336b4ab6cfc90f890043f9179"
+          "frtc1:6f702b48ab052e62c803b72efcb1e360ad7e86b13e3ec21611e0bde169391387"
         ],
         "request_bytes": 661,
         "response_bytes": 4176
@@ -278,7 +278,7 @@
           "-",
           "--write",
           "--basis",
-          "fraa2:9ed84b60631ad2a4b3150f3ec714db59507de37abb7e96a18c7b3465990b4acc"
+          "fraa2:6c7411b40cddeb985ab1cbe2831b0fafd7a41d0b05e33cb608f475b4500bb8bb"
         ],
         "request_bytes": 1578,
         "response_bytes": 4196
