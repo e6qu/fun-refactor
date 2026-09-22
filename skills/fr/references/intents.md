@@ -34,9 +34,9 @@ revalidates the original goal and guide basis inside the evidence snapshot. Auth
 checks, proof expectation and delivery must agree with that goal. Retain the returned review;
 changed source, input, evidence or package configuration invalidates its `fraa2:` identity.
 
-Task references and `additional_evidence` bind each target in one snapshot. The SDK stores
-selected Merkle roots. File/directory maps provide bounded declaration continuations. Choose
-small projections; increase the packet ceiling only for a complete review.
+`additional_evidence` binds every target and exact declaration location in one snapshot. The SDK
+stores selected Merkle roots. File and directory maps provide bounded continuations. Keep
+projections small; raise the packet ceiling only for a complete review.
 
 Capabilities preserve original scope; restructuring, entry points and stitching can cover the
 workspace. Declaration recipes must resolve exactly the target; ambiguous paths/names require

@@ -431,7 +431,8 @@ impl Project<'_> {
         });
         json!({"handle":self.handle(selected),"name":super::bounded_text(&node.name,160),
             "kind":node.kind,"path":super::bounded_text(&node.path.to_string_lossy(),512),
-            "language":language,"position":position})
+            "language":language,"position":position,
+            "location":symbol.map(|symbol| self.definition_location(symbol))})
     }
 
     fn guide_semantic(&self, selected: usize) -> Result<Value> {

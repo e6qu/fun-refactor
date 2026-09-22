@@ -34,10 +34,10 @@ Known declarations can go directly to `project find`. Use a shallow `project map
 is unknown. A `project batch` can combine bounded lookup, relationship, call, test and gap queries
 against one revision.
 
-Targeted declaration rows bind `location.name` and `location.definition` to both exact byte spans
-and 1-based, half-open line and column ranges. Request the `location` field explicitly on broad
-maps. Use the byte span for source edits and the range for display or editor navigation; both
-belong to the report's project revision.
+Targeted declaration rows and exact guide, disclosure and intent targets bind `location.name` and
+`location.definition` to both exact byte spans and 1-based, half-open line and column ranges.
+Request the `location` field explicitly on broad maps. Use the byte span for source edits and the
+range for display or editor navigation; both belong to the report's project revision.
 
 ```sh
 fr --json project find render --signature

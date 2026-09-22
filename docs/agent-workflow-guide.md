@@ -55,6 +55,8 @@ optional stdin `input` and only the `author_fields` needed by each action. `read
 complete inputs. Templates with author fields require those fields first. Returned arrays never
 contain `--write` or `--save-plan`. Review and execution use the existing task, history, workflow,
 migration or proof engine's complete basis.
+An exact declaration target carries the same `location.name` and `location.definition` byte spans
+and line ranges through its guide, disclosure and native intent packets.
 Recipe guidance includes only its live verb, relevant selector fields, target values, support and
 matched/refusal expectation forms. Target-kind and language incompatibility refuses before authoring.
 `source-body` requires `constraints.allow_source: true`. Its first action reveals only the selected
