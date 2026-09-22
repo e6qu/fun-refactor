@@ -356,8 +356,10 @@ def test_tagged_outer_hash_binds_evidence_and_claims():
 
 
 def test_tagged_operation_mirrors_and_purpose_admission():
+    from fr_ir.runtime import ByteSpan
     operations = (
-        (CapabilityOperation("rename",{"new_name":"display"},checks=("unit",),delivery=TaskDelivery()),"change","capability"),
+        (CapabilityOperation("rename",{"new_name":"display"},range=ByteSpan(3, 9),
+                             checks=("unit",),delivery=TaskDelivery()),"change","capability"),
         (AuthorBatchOperation({"operations":[]},("unit",)),"change","author-batch"),
         (RecipeOperation("schema 1",("unit",)),"change","recipe"),
         (FrameworkMigrationOperation("feature","fastapi","server.py",("unit",)),"migrate","framework-migration"),
@@ -372,7 +374,11 @@ def test_tagged_operation_mirrors_and_purpose_admission():
     for operation,purpose,kind in operations:
         action = TaggedIntentAction(operation)
         assert AgentIntent("target",purpose,action=action).to_data()["action"]["operation"]["kind"] == kind
+        if isinstance(operation, CapabilityOperation):
+            assert operation.to_data()["range"] == {"start": 3, "end": 9}
         with pytest.raises(FrRuntimeError):
             AgentIntent("target","trace" if purpose != "understand" else "unknown",action=action)
+    with pytest.raises(FrRuntimeError, match="nonempty byte span"):
+        CapabilityOperation("inline-call", range={"start": 3, "end": 9})
     with pytest.raises(FrRuntimeError):
         TaggedIntentAction(PropertyTaskOperation(),proof_expectation="implementation")

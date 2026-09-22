@@ -62,6 +62,8 @@ evidence = client.follow_guide(guide.actions()[0])
 definition = guide.target.location
 if definition is not None:
     print(definition.name.range.start.line, definition.name.range.start.col)
+    session = client.context(guide.target.handle)
+    print(session.source_text(definition.definition))
 ```
 
 `AgentGoal` mirrors `fr-agent-goal-1`, including operation, constraints, checks, proof expectations,
@@ -71,6 +73,10 @@ Exact declaration targets expose typed `DefinitionLocation`, `TextLocation`, `Te
 `TextPosition` and `ByteSpan` values from `fr_ir.runtime`. Byte spans and 1-based Unicode
 line/column ranges remain bound to the report revision; `location.text(source)` slices the matching
 UTF-8 source revision without treating byte offsets as Python character indexes.
+`ContextSession.source_text(location)` follows only exact source actions returned by that bound
+session, validates every fragment against its source commitment and stops once the requested typed
+location is covered. `ByteSpan` also serves as the optional range of `CapabilityOperation`, so an
+AST name or definition span can flow into a reviewed capability without rebuilding a raw mapping.
 `complete_guide` follows read and preview actions without writing. Every writable route instead
 uses one `GuideReview`: author the route's typed `TaggedIntentAction`, pass it with the retained
 guide to `client.review_guide`, inspect the native review, then pass that unchanged review to

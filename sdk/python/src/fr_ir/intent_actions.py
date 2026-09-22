@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from .ir import AgentProperty, ProjectRequest, TaskChange, TaskDelivery
-from .runtime import FrRuntimeError
+from .runtime import ByteSpan, FrRuntimeError
 
 
 def _checks(checks: tuple[str, ...], delivery: TaskDelivery) -> None:
@@ -230,7 +230,7 @@ _CAPABILITIES = _CAPABILITY_WRITES | frozenset({"symbols", "impact", "call-graph
 class CapabilityOperation:
     capability: str
     parameters: Mapping[str, str] | None = None
-    range: Mapping[str, int] | None = None
+    range: ByteSpan | None = None
     checks: tuple[str, ...] = ()
     delivery: TaskDelivery | None = None
 
@@ -241,9 +241,8 @@ class CapabilityOperation:
                 not isinstance(key, str) or not key or not isinstance(value, str) or not value
                 or len(value.encode()) > 4096 or "\0" in value for key,value in self.parameters.items())):
             raise FrRuntimeError("capability parameters must be bounded text fields")
-        if self.range is not None and (not isinstance(self.range, Mapping) or set(self.range) != {"start","end"}
-                or any(isinstance(value,bool) or not isinstance(value,int) for value in self.range.values())
-                or not 0 <= self.range["start"] < self.range["end"]):
+        if self.range is not None and (not isinstance(self.range, ByteSpan)
+                                       or self.range.start == self.range.end):
             raise FrRuntimeError("capability range must be a nonempty byte span")
         if self.capability in _CAPABILITY_WRITES:
             if self.delivery is None:
@@ -254,7 +253,8 @@ class CapabilityOperation:
 
     def to_data(self) -> dict[str, Any]:
         return {"kind":"capability","capability":self.capability,
-                "parameters":dict(self.parameters or {}),"range":None if self.range is None else dict(self.range),
+                "parameters":dict(self.parameters or {}),
+                "range":None if self.range is None else self.range.to_data(),
                 "checks":list(self.checks),"delivery":None if self.delivery is None else self.delivery.to_data()}
 
 
