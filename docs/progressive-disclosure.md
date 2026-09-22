@@ -37,6 +37,8 @@ children remain independently addressed holes, so an agent can follow only the b
 expression relevant to its task. A response that cannot fit all children returns a continuation
 bound to the same view, hole, profile, limit and next offset. Source remains a separate explicit
 domain. Revealing it returns UTF-8-safe fragments and a next hole until the declaration is complete.
+Each fragment retains its declaration-relative page offset and carries a file-relative `location`
+with the exact byte span and 1-based line and column range of its returned text.
 
 An authorable scalar carries a `fr-disclosed-edit-1` descriptor when revealed. Its exact preview
 template needs only a replacement value. Equal values at different typed locations receive distinct
