@@ -168,8 +168,9 @@ deep gates pass from a clean build.
   explicit field to preserve bounded context. Python guide, disclosure and compiled-intent targets
   expose typed definition, byte-span and line-range values for direct source work. Every revealed
   exact-source fragment carries its own file-relative typed location while retaining its committed
-  declaration-relative page offset. Bound Python context sessions verify both coordinate systems
-  against the selected definition. Ranged capability operations reuse the same byte-span type.
+  declaration-relative page offset. Python source extraction verifies byte spans, line ranges and
+  page continuity against the exact text and selected definition. Ranged capability operations
+  reuse the same byte-span type.
 - Every mutation has a complete preview whose basis commits all planning inputs.
 - User changes outside selected snapshots survive apply, undo and redo.
 - Unsupported or ambiguous inputs refuse before history creation.

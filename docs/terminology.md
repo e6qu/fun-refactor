@@ -37,7 +37,8 @@ definition, so the syntax fact and editable source coordinates share one revisio
 
 **Source fragment.** One UTF-8-safe page of explicitly revealed declaration source. Its `offset`
 is relative to the committed declaration, while its text location is relative to the complete file.
-Together they let a client verify paging and use AST locations without recalculating file offsets.
+Together they let a client verify paging, byte and line continuity and use AST locations without
+recalculating file offsets.
 
 **Query.** A pattern file under `queries/<language>/facts.scm` that tells the extractor
 which nodes are definitions, references, scopes and imports. A query file holds all of the
