@@ -71,10 +71,17 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B942: **source stability ignored executable-mode changes.** The source revision hashed only
+  paths and contents. A passing command could change a supported source file from non-executable to
+  executable and still record stable evidence. Revisions now bind the Git-portable owner executable
+  bit from the same open file used to read content. A regression proves mode drift fails the check
+  report.
+
 - [x] B941: **a successful declared check could leave background subprocesses running.** The runner
   certified stability before a delayed writer changed source. On Unix, normal command completion
   now kills remaining members of the isolated process group before the runner checks source. A
-  regression proves that a successful parent cannot leave a delayed workspace mutation behind.
+  regression proves that a successful parent cannot leave a delayed workspace mutation in that
+  group behind.
 
 - [x] B940: **a timed-out declared check left its subprocesses running.** The runner killed only
   the direct child, then checked the source snapshot. A surviving grandchild could mutate the

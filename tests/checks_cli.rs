@@ -370,6 +370,30 @@ fn source_drift_fails_the_check_receipt_and_records_nothing() {
     assert!(shown["records"][0].get("check_evidence").is_none());
 }
 
+#[cfg(unix)]
+#[test]
+fn executable_mode_drift_fails_source_stability() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = fixture(vec![check(
+        "mutate",
+        "import os; os.chmod('source.py', 0o755)",
+    )]);
+    let source = root.path().join("source.py");
+    fs::write(&source, "value = 1\n").unwrap();
+    fs::set_permissions(&source, fs::Permissions::from_mode(0o644)).unwrap();
+
+    let report = run(&root, &["--run", "mutate", "--basis", &basis(&root)], 1);
+    assert_eq!(report["results"][0]["passed"], true);
+    assert_eq!(report["results"][0]["source_snapshot_stable"], false);
+    assert_eq!(report["source_snapshot_stable"], false);
+    assert_eq!(report["passed"], false);
+    assert_eq!(
+        fs::metadata(source).unwrap().permissions().mode() & 0o111,
+        0o111
+    );
+}
+
 #[test]
 fn configuration_drift_fails_the_check_receipt_and_records_nothing() {
     let mut mutating = check("mutate", "open('checks.json','a').write(' ')");
