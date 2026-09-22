@@ -383,6 +383,18 @@ class ContextSession:
         source_root = commitment.get("source_root") if isinstance(commitment, Mapping) else None
         if not isinstance(source_root, str) or _DIGEST.fullmatch(source_root) is None:
             raise FrRuntimeError("disclosure session has no exact source commitment")
+        target_location = self._reports[0].target.location
+        if target_location is None:
+            raise FrRuntimeError("disclosure session has no exact definition location")
+        definition = target_location.definition
+        if (not definition.span.contains(location.span)
+                or not definition.range.start <= location.range.start
+                or not location.range.end <= definition.range.end):
+            raise FrRuntimeError("text location lies outside the bound target definition")
+        origin = definition.span.start
+        relative_start = location.span.start - origin
+        relative_end = location.span.end - origin
+        definition_bytes = definition.span.end - origin
 
         start_calls = len(self._reports)
         followed = {report.arguments for report in self._reports}
@@ -395,17 +407,17 @@ class ContextSession:
                         or len(totals) != 1):
                     raise FrRuntimeError("revealed source fragments changed their committed source")
                 total = next(iter(totals))
-                if location.span.end > total:
-                    raise FrRuntimeError("text location extends beyond the committed source")
+                if total != definition_bytes:
+                    raise FrRuntimeError("committed source does not match the bound target definition")
                 output = bytearray()
                 for fragment in sorted(fragments, key=lambda item: item.offset):
                     encoded = fragment.text.encode("utf-8")
                     if fragment.offset != len(output):
                         raise FrRuntimeError("revealed source fragments overlap or leave a gap")
                     output.extend(encoded)
-                if len(output) >= location.span.end:
+                if len(output) >= relative_end:
                     try:
-                        return bytes(output[location.span.start:location.span.end]).decode("utf-8")
+                        return bytes(output[relative_start:relative_end]).decode("utf-8")
                     except UnicodeDecodeError as error:
                         raise FrRuntimeError(
                             "text location does not fall on UTF-8 boundaries"
