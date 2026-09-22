@@ -120,7 +120,14 @@ class ScalarGuideClient(FakeClient):
             return report
         goal = json.loads(input_bytes)
         value = report._value
-        target = {"handle": "frp1:scalar", "path": "app.rs"}
+        target = {"handle": "frp1:scalar", "path": "app.rs", "location": {
+            "name": {"span": {"start": 3, "end": 12},
+                     "range": {"start": {"line": 1, "col": 4},
+                               "end": {"line": 1, "col": 13}}},
+            "definition": {"span": {"start": 0, "end": 20},
+                           "range": {"start": {"line": 1, "col": 1},
+                                     "end": {"line": 3, "col": 2}}},
+        }}
         manifest = {
             "schema": "fr-task-change-1", "requests": [],
             "targets": [{"id": "goal", "handle": target["handle"],
@@ -291,6 +298,9 @@ def test_complete_scalar_guide_returns_its_exact_typed_action_without_reauthorin
         }), checks=("syntax",), delivery=TaskDelivery(),
     )
     guide = guide_goal(ScalarGuideClient(), goal)
+    location = guide.target.location
+    assert location is not None
+    assert location.name.span.start == 3
     action = guide.semantic_scalar_action()
     assert action.operation.to_data() == {
         "kind": "task-change", "task_change": guide.at("/actions/0/input"),

@@ -59,11 +59,18 @@ from fr_ir.guide import AgentGoal, GoalOperation, GoalSelector
 
 guide = client.guide(AgentGoal("understand", selector=GoalSelector(name="render")))
 evidence = client.follow_guide(guide.actions()[0])
+definition = guide.target.location
+if definition is not None:
+    print(definition.name.range.start.line, definition.name.range.start.col)
 ```
 
 `AgentGoal` mirrors `fr-agent-goal-1`, including operation, constraints, checks, proof expectations,
 context limits and delivery. `AgentGuide` verifies the goal identity and Merkle report; following an
 action first revalidates its basis and then checks the exact response contract and byte ceiling.
+Exact declaration targets expose typed `DefinitionLocation`, `TextLocation`, `TextRange`,
+`TextPosition` and `ByteSpan` values from `fr_ir.runtime`. Byte spans and 1-based Unicode
+line/column ranges remain bound to the report revision; `location.text(source)` slices the matching
+UTF-8 source revision without treating byte offsets as Python character indexes.
 `complete_guide` follows read and preview actions without writing. Every writable route instead
 uses one `GuideReview`: author the route's typed `TaggedIntentAction`, pass it with the retained
 guide to `client.review_guide`, inspect the native review, then pass that unchanged review to

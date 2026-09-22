@@ -10,7 +10,7 @@ import tempfile
 from typing import Any, Mapping, TYPE_CHECKING
 
 from .context import merkle_object_digest
-from .runtime import FrReport, FrRuntimeError
+from .runtime import AgentTarget, FrReport, FrRuntimeError
 from .ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget
 from .intent_actions import TaggedIntentAction, TaskChangeOperation, _operation_code
 from .context import ObjectStore
@@ -399,6 +399,11 @@ class AgentGuide:
     def actions(self) -> tuple[GuideAction, ...]:
         return tuple(GuideAction(self, index) for index in range(len(self.at("/actions"))))
 
+    @property
+    def target(self) -> AgentTarget:
+        """Return the typed target selected by this guide."""
+        return AgentTarget.from_data(self.at("/target"))
+
     def semantic_scalar_action(self) -> TaggedIntentAction:
         """Return the exact typed task action already committed by a complete scalar guide."""
         if hashlib.sha256(_canonical(self.to_data())).hexdigest() != self.report_sha256:
@@ -411,18 +416,17 @@ class AgentGuide:
                 or fields.get("to") is None or not self.goal.checks
                 or self.goal.delivery is None):
             raise FrRuntimeError("guide does not contain one complete semantic scalar action")
-        target = self.at("/target")
-        if (not isinstance(target, Mapping) or not isinstance(target.get("handle"), str)
-                or not isinstance(target.get("path"), str)):
+        target = self.target
+        if target.path is None:
             raise FrRuntimeError("scalar guide has no exact target")
         change = TaskChange(
             (),
             (TaskTarget(
-                "goal", target["handle"], "edit-body-scalar",
+                "goal", target.handle, "edit-body-scalar",
                 scalar=ScalarRequest(fields["operation"], fields["from"], fields["to"]),
             ),),
             {"files-changed": 1, "edits": 1, "changed-operations": 1,
-             "paths-changed": [target["path"]]},
+             "paths-changed": [target.path]},
             self.goal.checks,
             self.goal.delivery,
         )
@@ -485,7 +489,7 @@ class GuideReview:
             isinstance(review, Mapping) and review.get("delivery") == (
                 self.guide.goal.delivery.to_data() if self.guide.goal.delivery else None),
             review_shape,
-            self.compiled.intent.target == self.guide.at("/target/handle")
+            self.compiled.intent.target == self.guide.target.handle
             and self.compiled.intent.purpose == self.guide.goal.purpose,
         ):
             raise FrRuntimeError("native guide review is incomplete or does not bind its guide")
@@ -620,7 +624,7 @@ def compile_guided_intent(client: FrClient, guide: AgentGuide, action: TaggedInt
     expected_delivery = guide.goal.delivery.to_data() if guide.goal.delivery is not None else None
     if delivery != expected_delivery:
         raise FrRuntimeError("intent delivery differs from its goal")
-    compiled = client.compile(AgentIntent(guide.at("/target/handle"), guide.goal.purpose,
+    compiled = client.compile(AgentIntent(guide.target.handle, guide.goal.purpose,
         needs=(IntentNeed("map", "code_map", "/target"),),
         token_limit=guide.goal.context.token_limit, packet_limit=guide.goal.context.packet_limit,
         action=action), store=store)
