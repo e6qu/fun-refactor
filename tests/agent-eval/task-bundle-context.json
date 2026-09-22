@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-bundle-context-1",
   "passed": true,
-  "binary_sha256": "e03df992e427987f2d91910e72d7563033a3a8dc3d30303f244494a1545f3f59",
-  "source_commit": "40e030e26a5a440106be15bbb2fcd2e40fbd1779",
+  "binary_sha256": "c59f232a408a154b748ec12ab6ea709ea09999440730db7bffb96df7492f7b4b",
+  "source_commit": "99520d83b0e51f45ffdd03793f0a5567dcbce29f",
   "repetitions": 1,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
@@ -98,16 +98,16 @@
     "separate": {
       "samples": 1,
       "calls": 4,
-      "median_context_bytes": 6841,
+      "median_context_bytes": 7062,
       "median_context_tokens": null,
-      "median_seconds": 0.1363509999937378
+      "median_seconds": 0.8296255840105005
     },
     "task": {
       "samples": 1,
       "calls": 1,
-      "median_context_bytes": 4715,
+      "median_context_bytes": 4936,
       "median_context_tokens": null,
-      "median_seconds": 0.061751166998874396
+      "median_seconds": 0.08043583302060142
     }
   },
   "runs": [
@@ -115,9 +115,9 @@
       "repetition": 1,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "365bb4a8c8be879c3e0dfe393d19f172fa1821415b2331434de3a0a87d37da47",
+      "semantic_sha256": "1482f7f5c37552aeb0c0cbbc1be198e236087e862b61906533e6f8aa4104009e",
       "stdout": {
-        "bytes": 6524,
+        "bytes": 6745,
         "tokens": null
       },
       "requests": {
@@ -129,18 +129,18 @@
         "tokens": null
       },
       "context": {
-        "bytes": 6841,
+        "bytes": 7062,
         "tokens": null
       },
-      "seconds": 0.1363509999937378
+      "seconds": 0.8296255840105005
     },
     {
       "repetition": 1,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "365bb4a8c8be879c3e0dfe393d19f172fa1821415b2331434de3a0a87d37da47",
+      "semantic_sha256": "1482f7f5c37552aeb0c0cbbc1be198e236087e862b61906533e6f8aa4104009e",
       "stdout": {
-        "bytes": 4176,
+        "bytes": 4397,
         "tokens": null
       },
       "requests": {
@@ -152,10 +152,10 @@
         "tokens": null
       },
       "context": {
-        "bytes": 4715,
+        "bytes": 4936,
         "tokens": null
       },
-      "seconds": 0.061751166998874396
+      "seconds": 0.08043583302060142
     }
   ],
   "source_unchanged": true,

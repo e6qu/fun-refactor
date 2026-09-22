@@ -31,6 +31,10 @@ every position in bytes.
 **Span.** A pair of byte offsets that marks a region of a file. A symbol carries two: its
 name span covers the identifier alone, and its full span covers the whole declaration.
 
+**Text location.** One span paired with its 1-based line and column range. Both forms are
+half-open. Declaration reports expose text locations for the symbol name and the complete
+definition, so the syntax fact and editable source coordinates share one revision-bound record.
+
 **Query.** A pattern file under `queries/<language>/facts.scm` that tells the extractor
 which nodes are definitions, references, scopes and imports. A query file holds all of the
 knowledge about one language.

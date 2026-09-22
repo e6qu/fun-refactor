@@ -1,8 +1,8 @@
 use crate::index::Index;
-use crate::model::{Confidence, SymbolId};
+use crate::model::{Confidence, Symbol, SymbolId};
 use crate::parse::{Parsed, Parsers};
 use crate::scan::{scan, ScanOptions, ScanResult};
-use crate::span::{LineIndex, Span};
+use crate::span::{DefinitionLocation, LineIndex, Span};
 use anyhow::{bail, Context, Result};
 use clap::{Subcommand, ValueEnum};
 use digest::RevisionDigest;
@@ -379,6 +379,7 @@ pub enum Field {
     Name,
     Path,
     Line,
+    Location,
     Children,
     Depth,
     Language,
@@ -1034,6 +1035,12 @@ impl<'a> Project<'a> {
                                 .line
                         )
                     }),
+                    Field::Location => {
+                        symbol.map_or(
+                            Value::Null,
+                            |symbol| json!(self.definition_location(symbol)),
+                        )
+                    }
                     Field::Children => json!(node.children.len()),
                     Field::Depth => json!(level),
                     Field::Language => json!(self
@@ -1050,6 +1057,15 @@ impl<'a> Project<'a> {
             rows.push(row);
         }
         Ok(rows)
+    }
+
+    fn definition_location(&self, symbol: &Symbol) -> DefinitionLocation {
+        let source = &self.sources[&symbol.file];
+        let lines = &self.lines[&symbol.file];
+        DefinitionLocation {
+            name: lines.locate(symbol.name_span, source),
+            definition: lines.locate(symbol.full_span, source),
+        }
     }
 
     fn source_slice(&self, id: usize, offset: usize, bytes: usize) -> Result<Value> {
@@ -1096,13 +1112,14 @@ impl<'a> Project<'a> {
             "signature": self.signature(id)?, "qualifier": node.symbol.and_then(|s| self.index.symbol(s)).and_then(|s| s.qualifier.as_ref()).map(|q| bounded_text(q, 160))});
         if node.kind != "directory" {
             let (source, span) = self.source(id)?;
-            let name = node
-                .symbol
-                .and_then(|s| self.index.symbol(s))
-                .map_or(span, |s| s.name_span);
+            let symbol = node.symbol.and_then(|s| self.index.symbol(s));
+            let name = symbol.map_or(span, |s| s.name_span);
             result["node"]["span"] = json!(span);
             result["node"]["position"] =
                 json!(self.lines[&self.root.join(&node.path)].line_col(name.start, source));
+            if let Some(symbol) = symbol {
+                result["node"]["location"] = json!(self.definition_location(symbol));
+            }
         }
         if source_requested {
             result["source"] = self.source_slice(id, offset, bytes)?;

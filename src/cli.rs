@@ -7,7 +7,7 @@ use crate::lang::Language;
 use crate::model::Symbol;
 use crate::parse::Parsers;
 use crate::scan::{scan, ScanOptions};
-use crate::span::{LineCol, LineIndex};
+use crate::span::{LineCol, LineIndex, TextLocation};
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use sha2::{Digest, Sha256};
@@ -7309,6 +7309,7 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
                     "file": d.location.file,
                     "line": d.location.line,
                     "col": d.location.col,
+                    "location": d.declaration,
                 })
             })
             .collect();
@@ -7404,6 +7405,10 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                         "file": u.location.file,
                         "line": u.location.line,
                         "col": u.location.col,
+                        "location": TextLocation {
+                            span: u.location.span,
+                            range: u.location.range,
+                        },
                         "within": u.within,
                         "confidence": u.confidence.as_str(),
                         "preview": u.location.preview,
@@ -7421,6 +7426,7 @@ fn cmd_usages(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
                     "file": d.location.file,
                     "line": d.location.line,
                     "col": d.location.col,
+                    "location": d.declaration,
                     "role": d.role,
                 })
             })
