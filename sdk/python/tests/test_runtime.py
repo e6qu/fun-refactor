@@ -18,7 +18,9 @@ from fr_ir.ir import (
     TaskTarget,
     merkle_object_digest,
 )
-from fr_ir.runtime import Disclosure, DisclosureAction, FrClient, FrRuntimeError
+from fr_ir.runtime import (AgentTarget, ByteSpan, DefinitionLocation, Disclosure,
+                           DisclosureAction, FrClient, FrRuntimeError, TextLocation,
+                           TextPosition, TextRange)
 from fr_ir._version import VERSION
 from fr_ir.http_store import HttpObjectStore
 from fr_ir.context import _context_materialization_admitted, _object_store_admitted
@@ -38,6 +40,55 @@ class TestRuntime:
 
     def teardown_method(self):
         self.temp.cleanup()
+
+    def test_agent_target_exposes_typed_utf8_definition_locations(self):
+        source = "fn héllo() {\n    1\n}\n"
+        location = {
+            "name": {
+                "span": {"start": 3, "end": 9},
+                "range": {"start": {"line": 1, "col": 4},
+                          "end": {"line": 1, "col": 9}},
+            },
+            "definition": {
+                "span": {"start": 0, "end": len(source.encode())},
+                "range": {"start": {"line": 1, "col": 1},
+                          "end": {"line": 3, "col": 2}},
+            },
+        }
+        target = AgentTarget.from_data({
+            "handle": "frp1:revision:node", "name": "héllo", "kind": "function",
+            "path": "src/main.rs", "language": "rust", "position": "src/main.rs:1:4",
+            "location": location,
+        })
+
+        parsed = target.location
+        assert parsed is not None
+        assert parsed == DefinitionLocation(
+            TextLocation(ByteSpan(3, 9), TextRange(TextPosition(1, 4), TextPosition(1, 9))),
+            TextLocation(ByteSpan(0, len(source.encode())),
+                         TextRange(TextPosition(1, 1), TextPosition(3, 2))),
+        )
+        assert parsed.name.text(source) == "héllo"
+        assert parsed.definition.text(source) == source
+
+        disclosure = Disclosure({
+            "schema": "fr-progressive-disclosure-1",
+            "token_budget": {"limit": 4096, "used_upper_bound": 900},
+            "target": {"handle": target.handle, "location": location},
+        }, ())
+        assert disclosure.target.location == parsed
+
+    @pytest.mark.parametrize("location", [
+        {"span": {"start": True, "end": 4},
+         "range": {"start": {"line": 1, "col": 1}, "end": {"line": 1, "col": 5}}},
+        {"span": {"start": 4, "end": 3},
+         "range": {"start": {"line": 1, "col": 1}, "end": {"line": 1, "col": 1}}},
+        {"span": {"start": 0, "end": 4},
+         "range": {"start": {"line": 2, "col": 1}, "end": {"line": 1, "col": 5}}},
+    ])
+    def test_text_locations_refuse_invalid_wire_coordinates(self, location):
+        with pytest.raises(FrRuntimeError):
+            TextLocation.from_data(location)
 
     @patch("fr_ir.runtime.subprocess.run")
     def test_client_returns_structured_values_without_a_shell(self, run):

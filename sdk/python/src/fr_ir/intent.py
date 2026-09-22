@@ -10,7 +10,7 @@ from typing import Any, Mapping, TYPE_CHECKING
 from .context import ContextSession, ObjectStore, merkle_object_digest, store_merkle_value
 from .ir import TaskChange
 from .intent_actions import TaggedIntentAction, _operation_code, _action_purpose_allowed, _review_complete, _CAPABILITY_WRITES
-from .runtime import FrReport, FrRuntimeError
+from .runtime import AgentTarget, FrReport, FrRuntimeError
 
 if TYPE_CHECKING:
     from .runtime import FrClient
@@ -181,6 +181,11 @@ class PreparedIntent:
     def to_data(self) -> Mapping[str, Any]:
         return self.packet.to_data()
 
+    @property
+    def target(self) -> AgentTarget:
+        """Return the typed target bound to this prepared snapshot."""
+        return AgentTarget.from_data(self.packet.at("/target"))
+
 
 @dataclass(frozen=True)
 class CompiledIntent:
@@ -197,6 +202,11 @@ class CompiledIntent:
 
     def to_data(self) -> Mapping[str, Any]:
         return self.packet.to_data()
+
+    @property
+    def target(self) -> AgentTarget:
+        """Return the typed target bound to this compiled snapshot."""
+        return AgentTarget.from_data(self.packet.at("/target"))
 
 
 @dataclass(frozen=True)

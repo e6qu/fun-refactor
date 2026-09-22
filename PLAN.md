@@ -165,7 +165,8 @@ deep gates pass from a clean build.
 - Targeted declaration evidence binds each AST-derived symbol to its exact name and definition byte
   spans. It supplies corresponding 1-based line and column ranges from the same project revision.
   Exact guide, disclosure and intent targets retain that contract. Broad maps expose it as an
-  explicit field to preserve bounded context.
+  explicit field to preserve bounded context. Python guide, disclosure and compiled-intent targets
+  expose typed definition, byte-span and line-range values for direct source work.
 - Every mutation has a complete preview whose basis commits all planning inputs.
 - User changes outside selected snapshots survive apply, undo and redo.
 - Unsupported or ambiguous inputs refuse before history creation.

@@ -78,7 +78,14 @@ class FakeNativeClient:
         value = {
             "schema": "fr-agent-context-1", "revision": "r", "context_basis": "c",
             "view_basis": "v", "object_root": "o", "view": "evidence", "profile": "compact",
-            "target": {"handle": intent["target"]}, "calls": 0,
+            "target": {"handle": intent["target"], "location": {
+                "name": {"span": {"start": 3, "end": 9},
+                         "range": {"start": {"line": 1, "col": 4},
+                                   "end": {"line": 1, "col": 9}}},
+                "definition": {"span": {"start": 0, "end": 16},
+                               "range": {"start": {"line": 1, "col": 1},
+                                         "end": {"line": 1, "col": 17}}},
+            }}, "calls": 0,
             "intent": {"schema": "fr-agent-intent-1", "purpose": intent["purpose"],
                        "manifest_sha256": digest, "basis": f"frai1:{digest}"},
             "selected": selected,
@@ -200,6 +207,9 @@ class TestIntent:
         )
         compiled = compile_intent(client, intent)
         assert compiled.action_basis == f"fraa1:{'0' * 64}"
+        location = compiled.target.location
+        assert location is not None
+        assert location.definition.span.end == 16
         assert compiled.at("/action/review/targets/0/handle") == "target"
         result = execute_intent(client, compiled)
         assert result.passed

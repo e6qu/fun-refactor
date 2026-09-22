@@ -62,6 +62,167 @@ class FrRuntimeError(RuntimeError):
         self.report = dict(report) if report is not None else None
 
 
+def _integer(value: Any, label: str, *, positive: bool = False) -> int:
+    if (isinstance(value, bool) or not isinstance(value, int)
+            or value < (1 if positive else 0)):
+        qualifier = "positive" if positive else "nonnegative"
+        raise FrRuntimeError(f"{label} must be a {qualifier} integer")
+    return value
+
+
+@dataclass(frozen=True, order=True)
+class ByteSpan:
+    """A half-open UTF-8 byte range in source text."""
+
+    start: int
+    end: int
+
+    def __post_init__(self) -> None:
+        _integer(self.start, "byte span start")
+        _integer(self.end, "byte span end")
+        if self.end < self.start:
+            raise FrRuntimeError("byte span end must not precede its start")
+
+    @classmethod
+    def from_data(cls, value: Any) -> ByteSpan:
+        if not isinstance(value, Mapping) or set(value) != {"start", "end"}:
+            raise FrRuntimeError("byte span must contain exactly start and end")
+        return cls(value["start"], value["end"])
+
+
+@dataclass(frozen=True, order=True)
+class TextPosition:
+    """A 1-based line and Unicode-column position in source text."""
+
+    line: int
+    col: int
+
+    def __post_init__(self) -> None:
+        _integer(self.line, "text position line", positive=True)
+        _integer(self.col, "text position column", positive=True)
+
+    @classmethod
+    def from_data(cls, value: Any) -> TextPosition:
+        if not isinstance(value, Mapping) or set(value) != {"line", "col"}:
+            raise FrRuntimeError("text position must contain exactly line and col")
+        return cls(value["line"], value["col"])
+
+
+@dataclass(frozen=True)
+class TextRange:
+    """A half-open range between two 1-based source positions."""
+
+    start: TextPosition
+    end: TextPosition
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.start, TextPosition) or not isinstance(self.end, TextPosition):
+            raise FrRuntimeError("text range endpoints must be TextPosition values")
+        if self.end < self.start:
+            raise FrRuntimeError("text range end must not precede its start")
+
+    @classmethod
+    def from_data(cls, value: Any) -> TextRange:
+        if not isinstance(value, Mapping) or set(value) != {"start", "end"}:
+            raise FrRuntimeError("text range must contain exactly start and end")
+        return cls(TextPosition.from_data(value["start"]), TextPosition.from_data(value["end"]))
+
+
+@dataclass(frozen=True)
+class TextLocation:
+    """Matching half-open UTF-8 byte and 1-based line/column ranges."""
+
+    span: ByteSpan
+    range: TextRange
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.span, ByteSpan) or not isinstance(self.range, TextRange):
+            raise FrRuntimeError("text location fields have invalid types")
+
+    @classmethod
+    def from_data(cls, value: Any) -> TextLocation:
+        if not isinstance(value, Mapping) or set(value) != {"span", "range"}:
+            raise FrRuntimeError("text location must contain exactly span and range")
+        return cls(ByteSpan.from_data(value["span"]), TextRange.from_data(value["range"]))
+
+    def text(self, source: str) -> str:
+        """Slice this location from the exact UTF-8 source revision it describes."""
+        if not isinstance(source, str):
+            raise FrRuntimeError("text location source must be text")
+        encoded = source.encode("utf-8")
+        if self.span.end > len(encoded):
+            raise FrRuntimeError("text location extends beyond its source")
+        try:
+            return encoded[self.span.start:self.span.end].decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise FrRuntimeError("text location does not fall on UTF-8 boundaries") from error
+
+
+@dataclass(frozen=True)
+class DefinitionLocation:
+    """The exact identifier and complete AST definition locations for one symbol."""
+
+    name: TextLocation
+    definition: TextLocation
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.name, TextLocation) or not isinstance(self.definition, TextLocation):
+            raise FrRuntimeError("definition location fields must be TextLocation values")
+        if not (self.definition.span.start <= self.name.span.start <= self.name.span.end
+                <= self.definition.span.end):
+            raise FrRuntimeError("definition location must contain its name location")
+        if not (self.definition.range.start <= self.name.range.start
+                <= self.name.range.end <= self.definition.range.end):
+            raise FrRuntimeError("definition line range must contain its name range")
+
+    @classmethod
+    def from_data(cls, value: Any) -> DefinitionLocation:
+        if not isinstance(value, Mapping) or set(value) != {"name", "definition"}:
+            raise FrRuntimeError("definition location must contain exactly name and definition")
+        return cls(TextLocation.from_data(value["name"]),
+                   TextLocation.from_data(value["definition"]))
+
+
+@dataclass(frozen=True)
+class AgentTarget:
+    """A revision-bound agent target with an optional exact AST definition location."""
+
+    handle: str
+    name: str | None = None
+    kind: str | None = None
+    path: str | None = None
+    language: str | None = None
+    position: str | None = None
+    location: DefinitionLocation | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.handle, str) or not self.handle:
+            raise FrRuntimeError("agent target handle must be nonempty text")
+        for name in ("name", "kind", "path", "language", "position"):
+            value = getattr(self, name)
+            if value is not None and not isinstance(value, str):
+                raise FrRuntimeError(f"agent target {name} must be text or null")
+        if self.location is not None and not isinstance(self.location, DefinitionLocation):
+            raise FrRuntimeError("agent target location must be a DefinitionLocation or null")
+
+    @classmethod
+    def from_data(cls, value: Any) -> AgentTarget:
+        fields = {"handle", "name", "kind", "path", "language", "position", "location"}
+        if (not isinstance(value, Mapping) or not set(value) <= fields
+                or not isinstance(value.get("handle"), str) or not value["handle"]):
+            raise FrRuntimeError("agent target has an unsupported shape")
+        for name in fields - {"handle", "location"}:
+            field_value = value.get(name)
+            if field_value is not None and not isinstance(field_value, str):
+                raise FrRuntimeError(f"agent target {name} must be text or null")
+        location = value.get("location")
+        return cls(
+            value["handle"], value.get("name"), value.get("kind"), value.get("path"),
+            value.get("language"), value.get("position"),
+            DefinitionLocation.from_data(location) if location is not None else None,
+        )
+
+
 def _copy_json(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, allow_nan=False))
 
@@ -259,6 +420,11 @@ class Disclosure(FrReport):
 
         visit(self._value)
         return tuple(found)
+
+    @property
+    def target(self) -> AgentTarget:
+        """Return the typed target bound to this disclosure snapshot."""
+        return AgentTarget.from_data(self._value.get("target"))
 
     def _session_identity(
         self, *, required: bool,
