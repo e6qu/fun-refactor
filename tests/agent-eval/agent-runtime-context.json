@@ -10,10 +10,10 @@
     "direct_json": {
       "agent_visible_calls": 5,
       "internal_fr_calls": 5,
-      "agent_visible_bytes": 17689,
+      "agent_visible_bytes": 17908,
       "request_response_bytes": [
         67,
-        1039,
+        1258,
         147,
         4049,
         230,
@@ -88,8 +88,8 @@
   },
   "reduction": {
     "agent_visible_calls": 4,
-    "agent_visible_bytes": 15796,
-    "agent_visible_percent": 89.3
+    "agent_visible_bytes": 16015,
+    "agent_visible_percent": 89.4
   },
   "scope": "One deterministic generic Rust task. Both arms execute the same five fr operations and produce equal source, patch and lifecycle outcomes. Direct JSON counts every request and response at the agent boundary. The runtime arm counts its complete Python program and compact result; intermediate reports stay inside the local process. This does not measure a model, hidden reasoning, tokens, billed quota or population behavior."
 }

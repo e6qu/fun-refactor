@@ -162,6 +162,9 @@ deep gates pass from a clean build.
 - Reports state coverage, omissions, confidence, source basis and uncertainty. Truncation never
   becomes absence.
 - Source-free evidence remains source-free. Exact source requires an explicit bounded action.
+- Targeted declaration evidence binds each AST-derived symbol to its exact name and definition byte
+  spans. It supplies corresponding 1-based line and column ranges from the same project revision.
+  Broad maps expose the same contract as an explicit field to preserve bounded context.
 - Every mutation has a complete preview whose basis commits all planning inputs.
 - User changes outside selected snapshots survive apply, undo and redo.
 - Unsupported or ambiguous inputs refuse before history creation.

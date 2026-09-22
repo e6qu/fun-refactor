@@ -3,7 +3,7 @@
 use crate::analysis::call_graph::Hierarchy;
 use crate::index::Index;
 use crate::model::{Confidence, ReferenceKind, Symbol, SymbolId, SymbolKind};
-use crate::span::{LineIndex, Span};
+use crate::span::{DefinitionLocation, LineIndex, LineRange, Span};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -14,6 +14,7 @@ pub struct Location {
     pub line: usize,
     pub col: usize,
     pub span: Span,
+    pub range: LineRange,
     /// The source line, trimmed, for a preview.
     pub preview: String,
 }
@@ -26,6 +27,7 @@ pub struct Definition {
     pub qualified_name: String,
     pub kind: SymbolKind,
     pub location: Location,
+    pub declaration: DefinitionLocation,
     /// Why this turns up as a definition.
     pub role: DefinitionRole,
 }
@@ -120,7 +122,8 @@ impl Usages {
 fn locate(file: &Path, span: Span) -> Location {
     let source = crate::vfs::read_to_string(file).unwrap_or_default();
     let index = LineIndex::new(&source);
-    let pos = index.line_col(span.start, &source);
+    let text_location = index.locate(span, &source);
+    let pos = text_location.range.start;
     let preview = index
         .line_span(pos.line)
         .map(|l| l.text(&source).trim().to_string())
@@ -130,17 +133,24 @@ fn locate(file: &Path, span: Span) -> Location {
         line: pos.line,
         col: pos.col,
         span,
+        range: text_location.range,
         preview,
     }
 }
 
 fn definition_of(symbol: &Symbol, role: DefinitionRole) -> Definition {
+    let source = crate::vfs::read_to_string(&symbol.file).unwrap_or_default();
+    let lines = LineIndex::new(&source);
     Definition {
         symbol: symbol.id,
         name: symbol.name.clone(),
         qualified_name: symbol.qualified_name(),
         kind: symbol.kind,
         location: locate(&symbol.file, symbol.name_span),
+        declaration: DefinitionLocation {
+            name: lines.locate(symbol.name_span, &source),
+            definition: lines.locate(symbol.full_span, &source),
+        },
         role,
     }
 }
@@ -420,6 +430,14 @@ impl Shape for Square {
             .expect("a call position resolves");
         assert_eq!(at_use.primary().unwrap().name, "target");
         assert_eq!(at_use.primary().unwrap().location.line, 1);
+        let declaration = at_use.primary().unwrap().declaration;
+        assert_eq!(declaration.name.span.text(src), "target");
+        assert_eq!(declaration.name.range.start.line, 1);
+        assert_eq!(declaration.name.range.start.col, 4);
+        assert_eq!(declaration.name.range.end.col, 10);
+        assert_eq!(declaration.definition.span.text(src), "fn target() {}");
+        assert_eq!(declaration.definition.range.start.col, 1);
+        assert_eq!(declaration.definition.range.end.col, 15);
     }
 
     #[test]

@@ -246,12 +246,60 @@ fn usages_reports_the_definition_sites_apart_from_the_uses() {
     assert_eq!(definitions.len(), 1, "got {definitions:?}");
     assert_eq!(definitions[0]["line"], 3);
     assert_eq!(definitions[0]["col"], 6);
+    assert_eq!(
+        definitions[0]["location"]["name"]["range"]["start"]["line"],
+        3
+    );
+    assert_eq!(
+        definitions[0]["location"]["name"]["range"]["start"]["col"],
+        6
+    );
+    assert_eq!(
+        definitions[0]["location"]["name"]["range"]["end"]["col"],
+        12
+    );
+    assert_eq!(
+        definitions[0]["location"]["definition"]["range"]["start"]["col"],
+        1
+    );
+    assert_eq!(
+        printed["usages"][0]["location"]["range"]["start"]["line"],
+        8
+    );
+    let use_start = HELPER_AND_CALLER[0].1.rfind("Helper").unwrap();
+    assert_eq!(printed["usages"][0]["location"]["span"]["start"], use_start);
+    assert_eq!(
+        printed["usages"][0]["location"]["span"]["end"],
+        use_start + "Helper".len()
+    );
     assert!(
         definitions[0]["file"]
             .as_str()
             .is_some_and(|f| f.ends_with("a.go")),
         "got {definitions:?}"
     );
+}
+
+#[test]
+fn definitions_bind_the_ast_name_and_full_definition_to_text_locations() {
+    let tmp = workspace(&[(
+        "service.py",
+        "class Service:\n    def run(self, name: str) -> str:\n        return name\n",
+    )]);
+    let (printed, _, ok) = run_json(&tmp, &["def", "run", "--json"]);
+    assert!(ok);
+    let definition = &printed.as_array().expect("definitions")[0];
+    assert_eq!(definition["line"], 2);
+    assert_eq!(definition["col"], 9);
+    assert_eq!(definition["location"]["name"]["range"]["start"]["line"], 2);
+    assert_eq!(definition["location"]["name"]["range"]["start"]["col"], 9);
+    assert_eq!(definition["location"]["name"]["range"]["end"]["col"], 12);
+    assert_eq!(
+        definition["location"]["definition"]["range"]["start"]["col"],
+        5
+    );
+    assert_eq!(definition["location"]["name"]["span"]["start"], 23);
+    assert_eq!(definition["location"]["definition"]["span"]["start"], 19);
 }
 
 #[test]

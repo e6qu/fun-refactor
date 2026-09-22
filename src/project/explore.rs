@@ -176,6 +176,7 @@ impl Project<'_> {
                         )
                         .line
                 });
+                let location = symbol.map(|symbol| self.definition_location(symbol));
                 let arguments = behavior_arguments(options, self.handle(*id));
                 json!({
                     "handle": self.handle(*id),
@@ -183,6 +184,7 @@ impl Project<'_> {
                     "name": bounded_text(&node.name, 160),
                     "path": bounded_text(&node.path.to_string_lossy(), 256),
                     "line": line,
+                    "location": location,
                     "next": {"reason": "inspect-behavior", "arguments": arguments}
                 })
             })

@@ -2393,6 +2393,56 @@ fn source_pages_reassemble_unicode_and_show_has_no_body_by_default() {
 }
 
 #[test]
+fn declaration_locations_bind_ast_spans_to_text_ranges_across_agent_surfaces() {
+    let dir = fixture();
+    let source = fs::read_to_string(dir.path().join("src/app.py")).unwrap();
+    let found = ok(dir.path(), &["project", "find", "run"]);
+    let row = &rows(&found)[0];
+    let location = &row["location"];
+    let name_span: fun_refactor::span::Span =
+        serde_json::from_value(location["name"]["span"].clone()).unwrap();
+    let definition_span: fun_refactor::span::Span =
+        serde_json::from_value(location["definition"]["span"].clone()).unwrap();
+
+    assert_eq!(name_span.text(&source), "run");
+    assert!(definition_span.text(&source).starts_with("def run("));
+    assert!(definition_span.contains(name_span));
+    assert_eq!(
+        location["name"]["range"],
+        serde_json::json!({"start": {"line": 4, "col": 9}, "end": {"line": 4, "col": 12}})
+    );
+    assert_eq!(
+        location["definition"]["range"]["start"],
+        serde_json::json!({"line": 4, "col": 5})
+    );
+
+    let handle = row["handle"].as_str().unwrap();
+    let shown = ok(dir.path(), &["project", "show", handle]);
+    assert_eq!(shown["node"]["location"], location.clone());
+
+    let mapped = ok(
+        dir.path(),
+        &[
+            "project",
+            "map",
+            "src/app.py",
+            "--depth",
+            "8",
+            "--fields",
+            "handle,name,location",
+        ],
+    );
+    let mapped_run = rows(&mapped)
+        .into_iter()
+        .find(|record| record["name"] == "run")
+        .unwrap();
+    assert_eq!(mapped_run["location"], location.clone());
+
+    let explored = ok(dir.path(), &["project", "explore", "run"]);
+    assert_eq!(explored["rows"][0]["location"], location.clone());
+}
+
+#[test]
 fn relations_are_bounded_and_preserve_targets_confidence_and_unknowns() {
     let dir = fixture();
     let report = mapped(dir.path());

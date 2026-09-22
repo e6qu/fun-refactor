@@ -60,7 +60,7 @@ impl fmt::Display for Span {
     }
 }
 
-/// A 1-based line/column position, derived from a byte offset for display only.
+/// A 1-based line/column position derived from a byte offset.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LineCol {
     pub line: usize,
@@ -71,6 +71,24 @@ impl fmt::Display for LineCol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.line, self.col)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineRange {
+    pub start: LineCol,
+    pub end: LineCol,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextLocation {
+    pub span: Span,
+    pub range: LineRange,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DefinitionLocation {
+    pub name: TextLocation,
+    pub definition: TextLocation,
 }
 
 /// Maps byte offsets to line/column positions for one source file.
@@ -130,6 +148,16 @@ impl LineIndex {
         LineCol {
             line: line + 1,
             col,
+        }
+    }
+
+    pub fn locate(&self, span: Span, source: &str) -> TextLocation {
+        TextLocation {
+            span,
+            range: LineRange {
+                start: self.line_col(span.start, source),
+                end: self.line_col(span.end, source),
+            },
         }
     }
 
@@ -215,6 +243,17 @@ mod tests {
         let b = Span::new(5, 10);
         assert!(!a.overlaps(b));
         assert!(!b.overlaps(a));
+    }
+
+    #[test]
+    fn text_locations_pair_byte_spans_with_half_open_unicode_ranges() {
+        let source = "first\n  λ名();\n";
+        let start = source.find('λ').unwrap();
+        let span = Span::new(start, start + "λ名".len());
+        let location = LineIndex::new(source).locate(span, source);
+        assert_eq!(location.span, span);
+        assert_eq!(location.range.start, LineCol { line: 2, col: 3 });
+        assert_eq!(location.range.end, LineCol { line: 2, col: 5 });
     }
 
     #[test]

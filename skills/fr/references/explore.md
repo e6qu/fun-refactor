@@ -32,8 +32,10 @@ names or handles under one revision and budget. `--contains` is a literal-substr
 status before claiming absence. Handles may be `outside-scope`, `not-a-declaration` or omitted;
 stale handles refuse instead of becoming names.
 Use maps when hierarchy matters. Choose `<HANDLE>` from a declaration row. Full handles include their source revision.
-Use a short ID only with its returned `--revision`. `show` gives the declaration's 1-based position.
-Its syntax header can contain defaults and attributes; it is not a complete semantic contract.
+Use a short ID only with its returned `--revision`. Targeted rows and `show` expose
+`location.name` and `location.definition`, each with an exact byte span and a 1-based, half-open
+line/column range. Add `location` to broad map fields when needed. A syntax header can contain
+defaults and attributes; it is not a complete semantic contract.
 
 Request `--source` only when needed. Offsets count bytes from the selected node's start. For another
 slice, pass `next_offset` with `--offset`; this preserves UTF-8 boundaries.

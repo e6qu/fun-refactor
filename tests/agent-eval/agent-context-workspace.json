@@ -10,10 +10,10 @@
     "progressive_reports": {
       "agent_visible_calls": 16,
       "internal_fr_calls": 16,
-      "agent_visible_bytes": 59825,
+      "agent_visible_bytes": 60046,
       "request_response_bytes": [
         67,
-        1039,
+        1260,
         169,
         4049,
         230,
@@ -194,7 +194,7 @@
   },
   "reduction": {
     "agent_visible_calls": 15,
-    "agent_visible_bytes": 55275,
+    "agent_visible_bytes": 55496,
     "agent_visible_percent": 92.4
   },
   "scope": "One deterministic generic Rust project. Both arms perform identical handle discovery, bounded exact disclosure traversal, recursive code-map materialization, digest checks and object-store writes. The report arm counts every fr request and response at the agent boundary. The packet arm counts its complete Python program and final selected packet while intermediate reports remain local. This does not run a model or measure tokens, hidden reasoning, billed quota or population behavior."

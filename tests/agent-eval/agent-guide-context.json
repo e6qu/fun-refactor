@@ -2,7 +2,7 @@
   "schema": "fr-agent-guide-context-1",
   "bindings": {
     "tools/agent-guide-context.py": "3b9953e9f7c6816271109245c25d05879f26f27f56d693fb8b9d6574aaede920",
-    "src/cli.rs": "bdd612faa694c4ea45e55e7c59a0f2f881efafcfae6a729e8f284a46dd9bae0a",
+    "src/cli.rs": "c62d50c60cc1508570d04f225a0e42c000f5d22086fdb5947d448fc7ede41497",
     "src/capabilities.rs": "e221fca5fcf5227206a7eea7a3cff2b1222badd7b6f5ba9cec2969d7ba1b6a3e",
     "src/project/agent_guide.rs": "a57eb3289a3d1796d077cdf6e6730a973e67d5f389427c5c45cdddc0ae88fb51",
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
@@ -76,7 +76,7 @@
           "--signature"
         ],
         "request_bytes": 58,
-        "response_bytes": 1044
+        "response_bytes": 1262
       },
       {
         "arguments": [
@@ -94,15 +94,15 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:9d87202aba55087c17c82cd7d162bb26d9bedcdd4620b8240b2c4d03ea07e1fb"
+          "frtc1:0fef721974c1cddabfe31d2a20fef2c57f135a6f2490d09e37e5132c75ef6ec5"
         ],
         "request_bytes": 598,
         "response_bytes": 4176
       }
     ],
     "internal_request_bytes": 1161,
-    "internal_response_bytes": 10421,
-    "internal_exchange_bytes": 11582,
+    "internal_response_bytes": 10639,
+    "internal_exchange_bytes": 11800,
     "source_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
     "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596",
     "behavior_oracle_cases": 33
@@ -168,7 +168,7 @@
           "-"
         ],
         "request_bytes": 568,
-        "response_bytes": 5692
+        "response_bytes": 5910
       },
       {
         "arguments": [
@@ -177,15 +177,15 @@
           "-",
           "--write",
           "--basis",
-          "frtc1:3317edbc099e0736753a0d56e94194261abcfb2130c7bd44767fa46a7be57007"
+          "frtc1:bd9be2dc265c36cfb4313e31d39bde41137f5ae66f3136cad178e29fb9cad24b"
         ],
         "request_bytes": 661,
         "response_bytes": 4176
       }
     ],
     "internal_request_bytes": 1229,
-    "internal_response_bytes": 9868,
-    "internal_exchange_bytes": 11097,
+    "internal_response_bytes": 10086,
+    "internal_exchange_bytes": 11315,
     "source_sha256": "0a4da2053b66b11e1de8bf334497044b880706c3d174b6aa48ff7415b2ae7403",
     "patch_sha256": "6c8e54715cb2b92ef78db4487dccebd127e001bff92c5637a0b5076ab44bd596",
     "behavior_oracle_cases": 33
@@ -278,7 +278,7 @@
           "-",
           "--write",
           "--basis",
-          "fraa2:bceb017c81408ca840cb73ca806a27105bb9f1034d891a3130a994a4f6d0267b"
+          "fraa2:77ce9700801ef3a7b9ba95acf8f91989060998238f84ac983a9eec5f16422c74"
         ],
         "request_bytes": 1578,
         "response_bytes": 4196
@@ -304,12 +304,12 @@
   "difference": {
     "agent_exchange_bytes": -15,
     "process_calls": 1,
-    "internal_exchange_bytes": 14117
+    "internal_exchange_bytes": 13899
   },
   "inline_difference": {
     "agent_exchange_bytes": -77,
     "process_calls": 2,
-    "internal_exchange_bytes": 14602
+    "internal_exchange_bytes": 14384
   },
   "claim": "Fixed complete agent programs and serialized protocol bytes; no model, token, quota or population claim."
 }

@@ -350,9 +350,9 @@ class TaskChangeEvidence(unittest.TestCase):
         self.assertEqual(report["summary"]["composed"]["calls"], 5)
         self.assertEqual(report["summary"]["task_change"]["calls"], 2)
         self.assertEqual(report["summary"]["change_session"]["calls"], 2)
-        self.assertEqual(report["summary"]["composed"]["median_context_tokens"], 4623)
-        self.assertEqual(report["summary"]["task_change"]["median_context_tokens"], 3370)
-        self.assertEqual(report["summary"]["change_session"]["median_context_tokens"], 3342)
+        self.assertEqual(report["summary"]["composed"]["median_context_tokens"], 4697)
+        self.assertEqual(report["summary"]["task_change"]["median_context_tokens"], 3444)
+        self.assertEqual(report["summary"]["change_session"]["median_context_tokens"], 3416)
         for repetition in range(1, 4):
             pair = {run["arm"]: run for run in report["runs"]
                     if run["repetition"] == repetition}

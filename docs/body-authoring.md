@@ -25,6 +25,14 @@ A short ID requires the map's `--revision`; a full handle includes its revision.
 Use the same workspace root and scan options as the map.
 Source, manifest and inventory changes invalidate handles; obtain a new map after those changes.
 
+Targeted declaration rows from `project find`, `select` and `explore` carry `location`.
+Request `--fields handle,name,location` when a hierarchy map also needs edit coordinates.
+`location.name` identifies the declaration's identifier, while `location.definition` covers the
+complete syntax definition. Each contains a half-open byte `span` and a half-open, 1-based line and
+column `range`. `project show` retains the same location object.
+Agents can select through the handle, edit through byte coordinates and present line coordinates
+without guessing how a syntax node maps back to source text.
+
 ## Input and supported scope
 
 The input file contains exactly one complete block in a brace-delimited target language, including braces.

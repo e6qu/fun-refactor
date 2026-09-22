@@ -115,6 +115,7 @@ impl Project<'_> {
             Field::Name,
             Field::Path,
             Field::Line,
+            Field::Location,
         ];
         if options.signature {
             fields.push(Field::Signature);
@@ -249,6 +250,7 @@ impl Project<'_> {
             Field::Name,
             Field::Path,
             Field::Line,
+            Field::Location,
         ];
         if options.signature {
             fields.push(Field::Signature);
