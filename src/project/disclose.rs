@@ -1,4 +1,5 @@
 use super::{bounded_text, hash, source_slice_length, AgentProfile, Project};
+use crate::span::{LineIndex, Span};
 use anyhow::{bail, ensure, Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -1509,6 +1510,13 @@ impl Project<'_> {
             source_hole_id(&view.basis, &view.source_root, offset)? == wanted,
             "stale or conflicting source hole; use an exact returned reveal action."
         );
+        let id = self.resolve_handle(&view.target)?;
+        let (source, definition) = self.source(id)?;
+        ensure!(
+            source[definition.start..definition.end] == view.source,
+            "committed source no longer matches its target definition."
+        );
+        let lines = LineIndex::new(source);
         let mut best = None;
         let mut low = 1usize;
         let mut high = view.source.len().saturating_sub(offset).max(1);
@@ -1522,12 +1530,17 @@ impl Project<'_> {
                 continue;
             }
             let end = offset + length;
+            let location = lines.locate(
+                Span::new(definition.start + offset, definition.start + end),
+                source,
+            );
             let mut report = base.clone();
             report["status"] = json!("revealed");
             report["revealed"] = json!({
                 "id": wanted, "domain": "exact-source", "digest": view.source_root,
                 "offset": offset, "returned_bytes": length, "total_bytes": view.source.len(),
-                "text": &view.source[offset..end]
+                "text": &view.source[offset..end],
+                "location": location
             });
             report["supersedes"] = json!(wanted);
             report["frontier"] = if end < view.source.len() {

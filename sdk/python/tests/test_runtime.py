@@ -82,7 +82,7 @@ class TestRuntime:
     def test_context_extracts_a_typed_location_across_exact_source_pages(self, run):
         source = "α\nfn héllo() {\n    1\n}\n"
         origin = 37
-        first = "α\nfn h"
+        first = "α\nfn héllo"
         second = source[len(first):]
         first_bytes = len(first.encode())
         total_bytes = len(source.encode())
@@ -119,7 +119,11 @@ class TestRuntime:
             completed({**base, "status": "revealed", "revealed": {
                 "id": "frh1:source", "domain": "exact-source", "digest": source_root,
                 "offset": 0, "returned_bytes": first_bytes, "total_bytes": total_bytes,
-                "text": first,
+                "text": first, "location": {
+                    "span": {"start": origin, "end": origin + first_bytes},
+                    "range": {"start": {"line": 3, "col": 1},
+                              "end": {"line": 4, "col": 9}},
+                },
             }, "frontier": [{
                 "id": "frh1:more", "domain": "exact-source", "digest": source_root,
                 "offset": first_bytes, "remaining_bytes": total_bytes - first_bytes,
@@ -128,7 +132,12 @@ class TestRuntime:
             completed({**base, "status": "revealed", "revealed": {
                 "id": "frh1:more", "domain": "exact-source", "digest": source_root,
                 "offset": first_bytes, "returned_bytes": len(second.encode()),
-                "total_bytes": total_bytes, "text": second,
+                "total_bytes": total_bytes, "text": second, "location": {
+                    "span": {"start": origin + first_bytes,
+                             "end": origin + total_bytes},
+                    "range": {"start": {"line": 4, "col": 9},
+                              "end": {"line": 7, "col": 1}},
+                },
             }, "frontier": []}),
         ]
         location = TextLocation(
@@ -141,7 +150,16 @@ class TestRuntime:
         assert session.calls == 3
         assert session.latest.source_fragment == SourceFragment(
             "frh1:more", source_root, first_bytes, second, total_bytes,
+            TextLocation(
+                ByteSpan(origin + first_bytes, origin + total_bytes),
+                TextRange(TextPosition(4, 9), TextPosition(7, 1)),
+            ),
         )
+        first_fragment = session.reports[1].source_fragment
+        target_location = session.latest.target.location
+        assert first_fragment is not None
+        assert target_location is not None
+        assert first_fragment.text_at(target_location.name) == "héllo"
         assert session.source_text(location) == source.encode()[3:].decode()
         assert run.call_count == 3
         with pytest.raises(FrRuntimeError, match="outside the bound target"):
@@ -154,16 +172,28 @@ class TestRuntime:
         fragment = SourceFragment.from_data({
             "id": "frh1:source", "domain": "exact-source", "digest": "a" * 64,
             "offset": 3, "returned_bytes": 6, "total_bytes": 12, "text": "héllo",
+            "location": {
+                "span": {"start": 14, "end": 20},
+                "range": {"start": {"line": 2, "col": 1},
+                          "end": {"line": 2, "col": 6}},
+            },
         })
         location = TextLocation(
-            ByteSpan(3, 9), TextRange(TextPosition(1, 1), TextPosition(1, 6)),
+            ByteSpan(14, 20), TextRange(TextPosition(2, 1), TextPosition(2, 6)),
         )
-        assert fragment.span == ByteSpan(3, 9)
+        assert fragment.span == ByteSpan(14, 20)
+        assert fragment.origin == 11
+        assert fragment.source_span == ByteSpan(11, 23)
         assert fragment.text_at(location) == "héllo"
         with pytest.raises(FrRuntimeError, match="returned byte count"):
             SourceFragment.from_data({
                 "id": "frh1:source", "domain": "exact-source", "digest": "a" * 64,
                 "offset": 3, "returned_bytes": 5, "total_bytes": 12, "text": "héllo",
+                "location": {
+                    "span": {"start": 14, "end": 20},
+                    "range": {"start": {"line": 2, "col": 1},
+                              "end": {"line": 2, "col": 6}},
+                },
             })
 
     @patch("fr_ir.runtime.subprocess.run")
@@ -197,6 +227,11 @@ class TestRuntime:
             completed({**base, "revealed": {
                 "id": "frs1:source", "domain": "exact-source", "digest": "5" * 64,
                 "offset": 0, "returned_bytes": 4, "total_bytes": 4, "text": "name",
+                "location": {
+                    "span": {"start": 0, "end": 4},
+                    "range": {"start": {"line": 1, "col": 1},
+                              "end": {"line": 1, "col": 5}},
+                },
             }}),
         ]
         location = TextLocation(

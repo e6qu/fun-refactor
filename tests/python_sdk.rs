@@ -278,6 +278,9 @@ session = client.context(
 location = session.latest.target.location
 assert location is not None
 definition_text = session.source_text(location.definition)
+fragment = next(report.source_fragment for report in session.reports
+                if report.source_fragment is not None)
+name_text = fragment.text_at(location.name)
 code_map = session.materialize_section('code_map')
 packet = session.packet(
     {'code_map': '/model/code_map'}, include_actions=False, max_bytes=4096,
@@ -296,6 +299,8 @@ print(json.dumps({
     'code_map_mentions_target': 'render' in json.dumps(code_map),
     'definition_start': location.definition.span.start,
     'definition_text': definition_text,
+    'fragment_name_text': name_text,
+    'fragment_source_span': fragment.source_span.to_data(),
     'context_schema': packet.schema,
     'context_calls': session.calls,
     'cached_objects': len(session.cached_digests),
@@ -323,6 +328,15 @@ print(json.dumps({
     assert_eq!(
         report["definition_text"],
         "pub fn render(value: &str) -> String { value.to_owned() }"
+    );
+    assert_eq!(report["fragment_name_text"], "render");
+    assert_eq!(
+        report["fragment_source_span"],
+        serde_json::json!({
+            "start": report["definition_start"],
+            "end": report["definition_start"].as_u64().unwrap() +
+                report["definition_text"].as_str().unwrap().len() as u64,
+        })
     );
     assert_eq!(report["context_schema"], "fr-agent-context-1");
     assert!(report["context_calls"].as_u64().unwrap() >= 3);

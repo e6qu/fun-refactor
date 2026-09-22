@@ -234,6 +234,7 @@ fn progressive_disclosure_starts_source_free_and_follows_exact_semantic_and_sour
     assert_disclosure_budget(&source);
     assert_eq!(source["commitment"], initial["commitment"]);
     assert_eq!(source["revealed"]["domain"], "exact-source");
+    assert_eq!(source["revealed"]["location"], location["definition"]);
     assert!(source["revealed"]["text"]
         .as_str()
         .unwrap()
@@ -420,7 +421,12 @@ fn progressive_source_reveals_are_utf8_safe_bounded_and_reconstruct_exactly() {
     fs::create_dir(dir.path().join("src")).unwrap();
     let body = "λ名🙂\\\"".repeat(1_500);
     let declaration = format!("def render():\n    return {body:?}\n");
-    fs::write(dir.path().join("src/app.py"), &declaration).unwrap();
+    let prefix = "# π before\n";
+    fs::write(
+        dir.path().join("src/app.py"),
+        format!("{prefix}{declaration}"),
+    )
+    .unwrap();
     let found = ok(dir.path(), &["project", "find", "render"]);
     let handle = found["rows"][0][0].as_str().unwrap();
     let initial = ok(
@@ -430,9 +436,18 @@ fn progressive_source_reveals_are_utf8_safe_bounded_and_reconstruct_exactly() {
     let mut arguments = exact_arguments(&initial["frontier"][1]["reveal"]["arguments"]);
     let mut reconstructed = String::new();
     let mut pages = 0;
+    let definition = &initial["target"]["location"]["definition"];
+    let mut file_offset = definition["span"]["start"].as_u64().unwrap();
+    let mut line_position = definition["range"]["start"].clone();
     loop {
         let report = ok_owned(dir.path(), &arguments);
         assert_disclosure_budget(&report);
+        let fragment = &report["revealed"];
+        assert_eq!(fragment["offset"], reconstructed.len() as u64);
+        assert_eq!(fragment["location"]["span"]["start"], file_offset);
+        assert_eq!(fragment["location"]["range"]["start"], line_position);
+        file_offset = fragment["location"]["span"]["end"].as_u64().unwrap();
+        line_position = fragment["location"]["range"]["end"].clone();
         reconstructed.push_str(report["revealed"]["text"].as_str().unwrap());
         pages += 1;
         let Some(next) = report["frontier"].as_array().unwrap().first() else {
@@ -441,6 +456,8 @@ fn progressive_source_reveals_are_utf8_safe_bounded_and_reconstruct_exactly() {
         arguments = exact_arguments(&next["reveal"]["arguments"]);
     }
     assert!(pages > 2);
+    assert_eq!(file_offset, definition["span"]["end"].as_u64().unwrap());
+    assert_eq!(line_position, definition["range"]["end"]);
     assert_eq!(reconstructed, declaration.trim_end());
 }
 

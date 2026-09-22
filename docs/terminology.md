@@ -35,6 +35,10 @@ name span covers the identifier alone, and its full span covers the whole declar
 half-open. Declaration reports expose text locations for the symbol name and the complete
 definition, so the syntax fact and editable source coordinates share one revision-bound record.
 
+**Source fragment.** One UTF-8-safe page of explicitly revealed declaration source. Its `offset`
+is relative to the committed declaration, while its text location is relative to the complete file.
+Together they let a client verify paging and use AST locations without recalculating file offsets.
+
 **Query.** A pattern file under `queries/<language>/facts.scm` that tells the extractor
 which nodes are definitions, references, scopes and imports. A query file holds all of the
 knowledge about one language.

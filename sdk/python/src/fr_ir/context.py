@@ -409,6 +409,8 @@ class ContextSession:
                 total = next(iter(totals))
                 if total != definition_bytes:
                     raise FrRuntimeError("committed source does not match the bound target definition")
+                if any(fragment.source_span != definition.span for fragment in fragments):
+                    raise FrRuntimeError("source fragment locations do not match the bound target definition")
                 output = bytearray()
                 for fragment in sorted(fragments, key=lambda item: item.offset):
                     encoded = fragment.text.encode("utf-8")

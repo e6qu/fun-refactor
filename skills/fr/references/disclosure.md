@@ -54,9 +54,9 @@ Replacement accepts the bound category; insert and append accept a statement; de
 value. Batch and task manifests carry `disclosed_ir: {edit,value?}`. Reveal a fresh capability after
 any source change.
 
-Use the `exact-source` hole only when semantic structure cannot support the edit or review. Source
-pages place their continuation hole in `frontier`; follow its exact action until the frontier is
-empty. Every response states a conservative token upper bound based on serialized UTF-8 bytes.
+Use `exact-source` only when structure is insufficient. Follow exact `frontier` actions until empty.
+Page `offset` is declaration-relative; typed `location` is file-relative and matches target
+locations. Every response gives a conservative token bound over serialized UTF-8 bytes.
 `compact` accepts at most 4096. Use `--profile expanded --token-limit N` explicitly, up to 16384,
 when the compact envelope or a single child cannot fit.
 

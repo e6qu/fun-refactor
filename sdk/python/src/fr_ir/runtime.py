@@ -170,13 +170,14 @@ class TextLocation:
 
 @dataclass(frozen=True)
 class SourceFragment:
-    """One exact, revision-bound source fragment returned by progressive disclosure."""
+    """One exact, file-located source fragment returned by progressive disclosure."""
 
     id: str
     digest: str
     offset: int
     text: str
     total_bytes: int
+    location: TextLocation
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, str) or not self.id:
@@ -187,24 +188,41 @@ class SourceFragment:
         _integer(self.total_bytes, "source fragment total bytes")
         if not isinstance(self.text, str):
             raise FrRuntimeError("source fragment text must be text")
-        if self.span.end > self.total_bytes:
+        if not isinstance(self.location, TextLocation):
+            raise FrRuntimeError("source fragment location must be a TextLocation")
+        if self.offset + len(self.text.encode("utf-8")) > self.total_bytes:
             raise FrRuntimeError("source fragment extends beyond its committed source")
+        if self.location.span.end - self.location.span.start != len(self.text.encode("utf-8")):
+            raise FrRuntimeError("source fragment location does not match its text")
+        if self.location.span.start < self.offset:
+            raise FrRuntimeError("source fragment location precedes its relative offset")
 
     @property
     def span(self) -> ByteSpan:
-        """Return this fragment's half-open span in the complete source."""
-        return ByteSpan(self.offset, self.offset + len(self.text.encode("utf-8")))
+        """Return this fragment's file-relative half-open byte span."""
+        return self.location.span
+
+    @property
+    def origin(self) -> int:
+        """Return the file offset of the committed declaration source."""
+        return self.location.span.start - self.offset
+
+    @property
+    def source_span(self) -> ByteSpan:
+        """Return the complete committed declaration's file-relative byte span."""
+        return ByteSpan(self.origin, self.origin + self.total_bytes)
 
     @classmethod
     def from_data(cls, value: Any) -> SourceFragment:
-        fields = {"id", "domain", "digest", "offset", "returned_bytes", "total_bytes", "text"}
+        fields = {"id", "domain", "digest", "offset", "returned_bytes", "total_bytes", "text",
+                  "location"}
         if not isinstance(value, Mapping) or set(value) != fields or value.get("domain") != "exact-source":
             raise FrRuntimeError("exact source fragment has an unsupported shape")
-        fragment = cls(value["id"], value["digest"], value["offset"],
-                       value["text"], value["total_bytes"])
+        fragment = cls(value["id"], value["digest"], value["offset"], value["text"],
+                       value["total_bytes"], TextLocation.from_data(value["location"]))
         if (isinstance(value["returned_bytes"], bool)
                 or not isinstance(value["returned_bytes"], int)
-                or value["returned_bytes"] != fragment.span.end - fragment.span.start):
+                or value["returned_bytes"] != len(fragment.text.encode("utf-8"))):
             raise FrRuntimeError("source fragment returned byte count does not match its text")
         return fragment
 
@@ -214,9 +232,12 @@ class SourceFragment:
             raise FrRuntimeError("source fragment extraction requires a TextLocation")
         if not self.span.contains(location.span):
             raise FrRuntimeError("text location is outside this source fragment")
+        if (not self.location.range.start <= location.range.start
+                or not location.range.end <= self.location.range.end):
+            raise FrRuntimeError("text line range is outside this source fragment")
         encoded = self.text.encode("utf-8")
-        start = location.span.start - self.offset
-        end = location.span.end - self.offset
+        start = location.span.start - self.span.start
+        end = location.span.end - self.span.start
         try:
             return encoded[start:end].decode("utf-8")
         except UnicodeDecodeError as error:
