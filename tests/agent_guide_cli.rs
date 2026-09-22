@@ -434,6 +434,14 @@ fn guide_resolves_names_and_compiles_source_free_evidence_deterministically() {
         .starts_with("frp1:"));
     assert_eq!(report["target"]["language"], "rust");
     assert_eq!(
+        report["target"]["location"]["name"]["span"],
+        json!({"start": 7, "end": 16})
+    );
+    assert_eq!(
+        report["target"]["location"]["name"]["range"],
+        json!({"start": {"line": 1, "col": 8}, "end": {"line": 1, "col": 17}})
+    );
+    assert_eq!(
         report["serialized_bytes"].as_u64().unwrap() as usize,
         serde_json::to_vec(&report).unwrap().len()
     );
@@ -467,6 +475,7 @@ fn guide_resolves_names_and_compiles_source_free_evidence_deterministically() {
     assert!(!report.to_string().contains("value + 7"));
     let evidence = follow(root.path(), &report["actions"][0]);
     assert_eq!(evidence["target"]["handle"], report["target"]["handle"]);
+    assert_eq!(evidence["target"]["location"], report["target"]["location"]);
     assert!(!root.path().join(".fr-history").exists());
     std::fs::write(
         root.path().join("app.rs"),

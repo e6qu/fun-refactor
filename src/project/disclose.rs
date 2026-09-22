@@ -1006,7 +1006,9 @@ fn base(project: &Project<'_>, view: &View, options: &Options) -> Result<Value> 
         "handle": view.target,
         "name": node.name,
         "kind": node.kind,
-        "path": node.path
+        "path": node.path,
+        "location": node.symbol.and_then(|symbol| project.index.symbol(symbol))
+            .map(|symbol| project.definition_location(symbol))
     });
     report["view_basis"] = json!(view.basis);
     report["commitment"] = json!({
@@ -1080,7 +1082,9 @@ impl Project<'_> {
             "handle": view.target,
             "name": node.name,
             "kind": node.kind,
-            "path": node.path
+            "path": node.path,
+            "location": node.symbol.and_then(|symbol| self.index.symbol(symbol))
+                .map(|symbol| self.definition_location(symbol))
         });
         report["calls"] = json!(0);
         report["selected"] = Value::Object(selected);
@@ -1462,7 +1466,7 @@ impl Project<'_> {
                 }
                 report["instructions"] = match options.view {
                     DisclosureView::Semantic => json!("Prefer a relevant semantic_shortcuts action. Editable counts identify authorable scalar and IR descendants without revealing them. Structural IR descriptors require the expanded profile. Reveal the semantic root for complete hierarchy or the exact-source hole only when source is necessary."),
-                    DisclosureView::Evidence => json!("Prefer a relevant evidence_shortcuts action for code_map, call_traces, impact or sources_and_sinks. Object digests address reusable Merkle subtrees. Follow exact returned actions and reveal exact source only when structured evidence is insufficient; request --proofs only when independently verifying a subtree."),
+                    DisclosureView::Evidence => json!("Follow evidence_shortcuts; reveal source only when needed, and add --proofs only to verify a subtree."),
                     DisclosureView::Project => json!("Prefer a relevant project_shortcuts action for technologies, packages, applications, styles or documents_and_diagrams. Follow exact returned actions and reveal exact source only when a high-level fact or explicit gap is insufficient."),
                     DisclosureView::Application => json!("Follow application_shortcuts to application children or reader omissions. Fact identities, confidence and conversion boundaries are retained. Request only relevant descendants; object digests address reusable Merkle objects. The view supplies no source text or runtime proof."),
                 };

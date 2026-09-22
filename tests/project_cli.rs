@@ -193,12 +193,14 @@ fn progressive_disclosure_starts_source_free_and_follows_exact_semantic_and_sour
     let dir = fixture();
     let found = ok(dir.path(), &["project", "find", "run"]);
     let handle = found["rows"][0][0].as_str().unwrap();
+    let location = rows(&found)[0]["location"].clone();
     let initial = ok(
         dir.path(),
         &["project", "disclose", handle, "--token-limit", "4096"],
     );
     assert_disclosure_budget(&initial);
     assert_eq!(initial["schema"], "fr-progressive-disclosure-1");
+    assert_eq!(initial["target"]["location"], location);
     assert_eq!(initial["status"], "frontier");
     assert!(initial.get("model").is_none());
     assert!(initial.get("text").is_none());

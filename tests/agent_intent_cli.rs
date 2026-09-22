@@ -140,6 +140,10 @@ fn native_intent_compiles_selected_evidence_in_one_snapshot() {
     assert_eq!(report["query"], "intent");
     assert_eq!(report["intent"]["purpose"], "trace");
     assert_eq!(report["target"]["handle"], handle);
+    assert_eq!(
+        report["target"]["location"]["name"]["span"],
+        json!({"start": 7, "end": 13})
+    );
     assert_eq!(report["calls"], 0);
     assert_eq!(report["execution"]["engine"], "native");
     assert_eq!(report["execution"]["project_snapshots"], 1);

@@ -8,51 +8,101 @@
   },
   "arms": {
     "progressive_reports": {
-      "agent_visible_calls": 16,
-      "internal_fr_calls": 16,
-      "agent_visible_bytes": 60046,
+      "agent_visible_calls": 24,
+      "internal_fr_calls": 24,
+      "agent_visible_bytes": 89677,
       "request_response_bytes": [
         67,
         1260,
         169,
-        4049,
+        4060,
         230,
-        3462,
+        3683,
         230,
-        3497,
+        3718,
         230,
-        3803,
+        3981,
         316,
-        3499,
-        230,
-        3845,
+        3045,
         316,
-        3889,
+        3720,
         230,
-        3850,
-        230,
-        3854,
+        3983,
         316,
-        3466,
-        230,
-        3173,
-        230,
-        3855,
+        3085,
         316,
-        3875,
+        3718,
         230,
-        3020,
+        3981,
+        316,
+        3092,
+        316,
+        3391,
         230,
-        3849
+        3985,
+        316,
+        3092,
+        316,
+        3687,
+        230,
+        3394,
+        230,
+        3986,
+        316,
+        3094,
+        316,
+        3704,
+        230,
+        3241,
+        316,
+        3382,
+        230,
+        3980,
+        316,
+        3087
       ],
       "packet": {
         "schema": "fr-agent-context-1",
         "view": "evidence",
-        "calls": 15,
-        "serialized_bytes": 3864,
+        "calls": 23,
+        "serialized_bytes": 4085,
         "cached_objects": 32,
         "target": {
           "kind": "function",
+          "location": {
+            "definition": {
+              "range": {
+                "end": {
+                  "col": 59,
+                  "line": 2
+                },
+                "start": {
+                  "col": 1,
+                  "line": 2
+                }
+              },
+              "span": {
+                "end": 95,
+                "start": 37
+              }
+            },
+            "name": {
+              "range": {
+                "end": {
+                  "col": 14,
+                  "line": 2
+                },
+                "start": {
+                  "col": 8,
+                  "line": 2
+                }
+              },
+              "span": {
+                "end": 50,
+                "start": 44
+              }
+            }
+          },
           "name": "render",
           "path": "src/lib.rs"
         },
@@ -116,20 +166,54 @@
     },
     "selected_packet": {
       "agent_visible_calls": 1,
-      "internal_fr_calls": 16,
-      "agent_visible_bytes": 4550,
+      "internal_fr_calls": 24,
+      "agent_visible_bytes": 4771,
       "request_response_bytes": [
         686,
-        3864
+        4085
       ],
       "packet": {
         "schema": "fr-agent-context-1",
         "view": "evidence",
-        "calls": 15,
-        "serialized_bytes": 3864,
+        "calls": 23,
+        "serialized_bytes": 4085,
         "cached_objects": 32,
         "target": {
           "kind": "function",
+          "location": {
+            "definition": {
+              "range": {
+                "end": {
+                  "col": 59,
+                  "line": 2
+                },
+                "start": {
+                  "col": 1,
+                  "line": 2
+                }
+              },
+              "span": {
+                "end": 95,
+                "start": 37
+              }
+            },
+            "name": {
+              "range": {
+                "end": {
+                  "col": 14,
+                  "line": 2
+                },
+                "start": {
+                  "col": 8,
+                  "line": 2
+                }
+              },
+              "span": {
+                "end": 50,
+                "start": 44
+              }
+            }
+          },
           "name": "render",
           "path": "src/lib.rs"
         },
@@ -193,9 +277,9 @@
     }
   },
   "reduction": {
-    "agent_visible_calls": 15,
-    "agent_visible_bytes": 55496,
-    "agent_visible_percent": 92.4
+    "agent_visible_calls": 23,
+    "agent_visible_bytes": 84906,
+    "agent_visible_percent": 94.7
   },
   "scope": "One deterministic generic Rust project. Both arms perform identical handle discovery, bounded exact disclosure traversal, recursive code-map materialization, digest checks and object-store writes. The report arm counts every fr request and response at the agent boundary. The packet arm counts its complete Python program and final selected packet while intermediate reports remain local. This does not run a model or measure tokens, hidden reasoning, billed quota or population behavior."
 }
