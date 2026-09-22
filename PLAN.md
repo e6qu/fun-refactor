@@ -167,8 +167,9 @@ deep gates pass from a clean build.
   Exact guide, disclosure and intent targets retain that contract. Broad maps expose it as an
   explicit field to preserve bounded context. Python guide, disclosure and compiled-intent targets
   expose typed definition, byte-span and line-range values for direct source work. Bound Python
-  context sessions reveal those locations through committed source fragments and reuse the same
-  byte-span type for ranged capability operations.
+  context sessions bind file-relative locations to the selected definition. They translate those
+  locations against declaration-relative committed source fragments. Ranged capability operations
+  reuse the same byte-span type.
 - Every mutation has a complete preview whose basis commits all planning inputs.
 - User changes outside selected snapshots survive apply, undo and redo.
 - Unsupported or ambiguous inputs refuse before history creation.

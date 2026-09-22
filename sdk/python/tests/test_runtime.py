@@ -81,6 +81,7 @@ class TestRuntime:
     @patch("fr_ir.runtime.subprocess.run")
     def test_context_extracts_a_typed_location_across_exact_source_pages(self, run):
         source = "α\nfn héllo() {\n    1\n}\n"
+        origin = 37
         first = "α\nfn h"
         second = source[len(first):]
         first_bytes = len(first.encode())
@@ -96,7 +97,18 @@ class TestRuntime:
             "revision": "1" * 64, "view_basis": "frdv1:" + "2" * 64,
             "view": "semantic", "profile": "compact",
             "commitment": {"object_root": "3" * 64, "source_root": source_root},
-            "target": {"handle": handle},
+            "target": {"handle": handle, "location": {
+                "name": {
+                    "span": {"start": origin + 6, "end": origin + 12},
+                    "range": {"start": {"line": 4, "col": 4},
+                              "end": {"line": 4, "col": 9}},
+                },
+                "definition": {
+                    "span": {"start": origin, "end": origin + total_bytes},
+                    "range": {"start": {"line": 3, "col": 1},
+                              "end": {"line": 7, "col": 1}},
+                },
+            }},
         }
         run.side_effect = [
             completed({**base, "frontier": [{
@@ -120,8 +132,8 @@ class TestRuntime:
             }, "frontier": []}),
         ]
         location = TextLocation(
-            ByteSpan(3, total_bytes),
-            TextRange(TextPosition(2, 1), TextPosition(5, 1)),
+            ByteSpan(origin + 3, origin + total_bytes),
+            TextRange(TextPosition(4, 1), TextPosition(7, 1)),
         )
 
         session = self.client.context(handle)
@@ -132,6 +144,11 @@ class TestRuntime:
         )
         assert session.source_text(location) == source.encode()[3:].decode()
         assert run.call_count == 3
+        with pytest.raises(FrRuntimeError, match="outside the bound target"):
+            session.source_text(TextLocation(
+                ByteSpan(origin - 1, origin + 3),
+                TextRange(TextPosition(2, 1), TextPosition(3, 4)),
+            ))
 
     def test_source_fragments_validate_bytes_and_extract_utf8_locations(self):
         fragment = SourceFragment.from_data({
@@ -159,7 +176,18 @@ class TestRuntime:
             "revision": "1" * 64, "view_basis": "frdv1:" + "2" * 64,
             "view": "semantic", "profile": "compact",
             "commitment": {"object_root": "3" * 64, "source_root": "4" * 64},
-            "target": {"handle": handle},
+            "target": {"handle": handle, "location": {
+                "name": {
+                    "span": {"start": 0, "end": 4},
+                    "range": {"start": {"line": 1, "col": 1},
+                              "end": {"line": 1, "col": 5}},
+                },
+                "definition": {
+                    "span": {"start": 0, "end": 4},
+                    "range": {"start": {"line": 1, "col": 1},
+                              "end": {"line": 1, "col": 5}},
+                },
+            }},
         }
         run.side_effect = [
             completed({**base, "frontier": [{

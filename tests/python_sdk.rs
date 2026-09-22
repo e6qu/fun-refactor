@@ -244,7 +244,8 @@ fn python_runtime_discovers_discloses_reviews_and_executes_without_json_glue() {
     fs::create_dir_all(workspace.path().join("artifacts")).unwrap();
     fs::write(
         workspace.path().join("src/lib.rs"),
-        "pub fn render(value: &str) -> String { value.to_owned() }\n\
+        "const PREFIX: &str = \"before\";\n\
+         pub fn render(value: &str) -> String { value.to_owned() }\n\
          pub fn caller() -> String { render(\"ok\") }\n",
     )
     .unwrap();
@@ -293,6 +294,7 @@ result = client.execute(review)
 print(json.dumps({
     'code_map_fields': len(code_map),
     'code_map_mentions_target': 'render' in json.dumps(code_map),
+    'definition_start': location.definition.span.start,
     'definition_text': definition_text,
     'context_schema': packet.schema,
     'context_calls': session.calls,
@@ -317,6 +319,7 @@ print(json.dumps({
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert!(report["code_map_fields"].as_u64().unwrap() >= 1);
     assert_eq!(report["code_map_mentions_target"], true);
+    assert!(report["definition_start"].as_u64().unwrap() > 0);
     assert_eq!(
         report["definition_text"],
         "pub fn render(value: &str) -> String { value.to_owned() }"
