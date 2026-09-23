@@ -298,3 +298,5 @@ The result also retains passing and failing check reports, verified Merkle roots
 and invalidation after a source edit. Executable hashes identify commands; their outputs retain
 explicit coverage. Neither implies complete compiler semantics or trusted execution attestation.
 Run with `--output FILE`, then use `--audit FILE` to validate its source bindings and retained records.
+The [retained result](../tests/agent-eval/results/2026-09-23-semantic-evidence/result.json) binds the
+implementation, evaluator, fixture, independent coordinates and command outcomes to the recorded run.
