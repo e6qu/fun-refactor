@@ -28,10 +28,10 @@ Earlier guided delivery results remain regression evidence in the [evaluation re
 
 | Milestone | Status | Dependency | Completion evidence |
 |---|---|---|---|
-| A. Exact evidence and investigation | Next | Existing discovery and delivery | Unknown-target bug and feature tasks |
-| B. Control flow, dataflow and sources/sinks | Pending | A's occurrence and evidence contracts | Independently checked flow witnesses and negative cases |
-| C. Incremental analysis and resumable plans | Pending | A's task contract; dependency records for each reused analysis | Resume tests and agreement with clean rebuilds |
-| D. Changes, translation and proof obligations | Pending | Relevant evidence from A and B | Checked changes, translations and old/new proof tasks |
+| A. Exact evidence and investigation | In progress | Existing discovery and delivery | Unknown-target bug and feature tasks |
+| B. Control flow, dataflow and sources/sinks | In progress | A's occurrence and evidence contracts | Independently checked flow witnesses and negative cases |
+| C. Incremental analysis and resumable plans | In progress | A's task contract; dependency records for each reused analysis | Resume tests and agreement with clean rebuilds |
+| D. Changes, translation and proof obligations | In progress | Relevant evidence from A and B | Checked changes, translations and old/new proof tasks |
 
 Start with A. Build the smallest useful task plan there and add persistence and invalidation in C.
 C and D can advance when their specific prerequisites exist. Formal verification and evaluation
@@ -119,18 +119,29 @@ Pinned tasks cover structural changes, translation, existing-code proofs and new
 Strict verification rejects stale evidence and hidden proof debt. Delivery passes reversal and patch replay.
 Source implementation claims require a checked correspondence argument or verified generation path.
 
-## Immediate next delivery
+## Current implementation and remaining gates
 
-Complete the first slice of A: exact relationship and flow locations with a pinned bug investigation fixture.
+The [investigation contract](docs/agent-investigations.md) documents exact relationship/reference/flow
+occurrences, bounded Python scalar propagation, dependency-bound local plans, immutable plan storage,
+syntactic correspondence and the expanded Python reviewed writer. The
+[integration tests](tests/investigation.rs) and [SDK tests](sdk/python/tests/test_investigation.py)
+exercise those routes. The [deterministic evaluator](tools/investigation-acceptance.py) pins unknown-target
+bug and feature requirements, reviewed repair/insertion, reversal and independent patch replay.
 
-1. Select a reproducible bug task and pin its independent oracle before implementation.
-2. Record the current discovery result, missing occurrence evidence and context cost.
-3. Extend the shared location contract through native reports, bounded disclosure and typed Python access.
-4. Verify occurrence identity, byte/line agreement, ambiguity, stale inputs and response budgets.
-5. Replay the investigation and retain its result. Update A's checklist with links to the evidence.
+These are substantial implementation advances across A–D; the complete milestone gates remain open:
 
-Use the observed gap to choose the next slice of A or B. Keep the complete feature task as A's
-remaining acceptance obligation until its independent oracle passes.
+- A: semantic-node origin maps, compiler/build evidence and live unknown-target investigation trials.
+- B: an explicit control-flow graph, convergent loop/recursive summaries, exceptional exits and a
+  broader independently measured positive/negative corpus. Current loop witnesses report incomplete.
+- C: automatic semantic dependency coverage, analysis-result reuse, comprehensive incremental/clean
+  rebuild comparison and representative latency/memory measurements. Plans currently reuse validated
+  evidence; they do not implement an incremental dataflow cache.
+- D: new translation domains and old/new source correspondence proofs, plus host fault injection.
+  Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
+
+No milestone is complete. The remaining checklists retain their full outcome requirements; a partial
+implementation does not close a multi-part item. Extend the pinned corpus and close these gates in
+substantial integrated deliveries with the same evidence discipline.
 
 ## Rules for every milestone
 

@@ -1,4 +1,3 @@
-//! Bounded, path-insensitive scalar value propagation for a declared Python subset.
 use super::{hash, occurrence::Occurrence, Project};
 use crate::{lang::Language, parse::Parsers, span::Span};
 use anyhow::{ensure, Context, Result};
@@ -11,9 +10,7 @@ use tree_sitter::Node;
 
 #[derive(Args)]
 pub struct Options {
-    /// Exact revision-bound function handle.
     target: String,
-    /// Versioned source, sink, propagation and sanitizer contracts.
     #[arg(long)]
     rules: Option<std::path::PathBuf>,
     #[arg(long, default_value_t = 256)]
@@ -22,6 +19,8 @@ pub struct Options {
     depth: usize,
     #[arg(long, default_value = "generic")]
     context: String,
+    #[arg(long, default_value_t = 65536)]
+    bytes: usize,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -34,7 +33,6 @@ pub struct Rules {
     pub sinks: BTreeSet<String>,
     #[serde(default)]
     pub propagators: BTreeSet<String>,
-    /// Function name to the sole context in which its returned scalar removes origins.
     #[serde(default)]
     pub sanitizers: BTreeMap<String, String>,
 }
@@ -186,7 +184,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             for trace in flow.values() {
                 self.witnesses.push(json!({"sink": name,
                 "context": self.context, "rules": self.rules.version, "trace": trace,
-                "claim": "possible-value-propagation; path feasibility unchecked"}));
+                "claim": "possible-value-propagation; path feasibility unchecked."}));
             }
             return joined;
         }
@@ -212,7 +210,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("call-depth-budget");
             return joined;
         }
-        self.invoke(&name, function, arguments)
+        let result = self.invoke(&name, function, arguments);
+        self.extend(result, node, "call-result")
     }
     fn invoke(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>) -> Flow {
         if function
@@ -336,7 +335,6 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 return alternatives;
             }
             "while_statement" | "for_statement" => {
-                // Retain zero and one iteration witnesses. No fixed-point/safety claim.
                 self.cutoff("loop-fixed-point-unchecked");
                 let mut alternatives = vec![state.clone()];
                 if let Some(condition) = node.child_by_field_name("condition") {
@@ -360,6 +358,10 @@ impl Project<'_> {
             (1..=4096).contains(&options.steps) && (1..=32).contains(&options.depth),
             "invalid analysis budget"
         );
+        ensure!(
+            (2048..=1_048_576).contains(&options.bytes),
+            "invalid response byte budget"
+        );
         let selected = self.target(&options.target)?;
         let symbol = self.nodes[selected]
             .symbol
@@ -367,7 +369,7 @@ impl Project<'_> {
             .context("select a function")?;
         ensure!(
             symbol.language == Language::Python,
-            "dataflow admits the Python scalar subset only"
+            "dataflow admits the Python scalar subset only."
         );
         let source = &self.sources[&symbol.file];
         let parsed = Parsers::new().parse(Language::Python, source)?;
@@ -393,7 +395,7 @@ impl Project<'_> {
             .context("select a top-level scalar function")?;
         ensure!(
             Span::from(function) == symbol.full_span,
-            "selected function does not match top-level definition"
+            "selected function does not match top-level definition."
         );
         let rules = if let Some(path) = &options.rules {
             ensure!(
@@ -415,7 +417,7 @@ impl Project<'_> {
             {
                 ensure!(
                     names.insert(name) && !functions.contains_key(name),
-                    "rule overlaps another rule or local definition"
+                    "rule overlaps another rule or local definition."
                 );
             }
             rules
@@ -465,16 +467,49 @@ impl Project<'_> {
             })
             .collect();
         let returns = analyzer.invoke(&symbol.name, function, arguments);
-        Ok(
-            json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
+        let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
             "semantics": "python-scalar-explicit-values-1", "claim": "possible-value-propagation",
-            "scope": "selected function and direct helpers in the same file",
+            "scope": "selected function and direct helpers in the same file.",
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
-            "assumptions": ["scalar values; no aliases, monkey patching or implicit flows", "branch feasibility unchecked",
-                "external rules are caller-supplied contracts", "exceptions and resource effects are outside this model"],
+            "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
+                "external rules are caller-supplied contracts.", "exceptions and resource effects are outside this model."],
             "rules_digest": rules_digest, "context": options.context,
             "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses,
-            "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth}}),
-        )
+            "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
+        let mut omitted = serde_json::Map::new();
+        for field in ["events", "witnesses", "returns"] {
+            if serde_json::to_vec(&report)?.len() + 512 <= options.bytes {
+                break;
+            }
+            let count = report[field]
+                .as_array()
+                .map(Vec::len)
+                .or_else(|| report[field].as_object().map(serde_json::Map::len))
+                .unwrap_or(0);
+            omitted.insert(field.into(), json!(count));
+            report[field] = if field == "returns" {
+                json!({})
+            } else {
+                json!([])
+            };
+            report["complete"] = json!(false);
+            report["omitted"] = json!(omitted);
+            if !report["cutoffs"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v == "response-budget")
+            {
+                report["cutoffs"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!("response-budget"));
+            }
+        }
+        ensure!(
+            serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+            "response metadata exceeds byte budget"
+        );
+        Ok(report)
     }
 }

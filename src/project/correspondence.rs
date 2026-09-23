@@ -1,4 +1,3 @@
-//! Content identity and cross-revision candidates never renew action handles.
 use super::{hash, page, Project};
 use anyhow::{ensure, Result};
 use clap::Args;
@@ -10,7 +9,6 @@ use std::path::PathBuf;
 pub struct Options {
     #[arg(default_value = ".")]
     target: String,
-    /// Previously retained identity report. Compare candidates without rebinding actions.
     #[arg(long)]
     from: Option<PathBuf>,
     #[arg(long, default_value_t = 40)]

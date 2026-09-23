@@ -218,11 +218,11 @@ fn target_code(file: bool, kind: Option<SymbolKind>) -> usize {
 pub fn task_author_target_candidate(operation: usize, language: usize, target: usize) -> bool {
     match operation {
         0 | 4 | 5 | 6 | 7 | 8 | 9 => {
-            matches!(language, 0 | 1 | 3 | 4 | 5)
+            matches!(language, 0 | 1 | 3 | 4 | 5 | 6)
                 && (matches!(target, 1 | 2) || matches!(language, 4 | 5) && target == 3)
         }
         1 => language == 0 && matches!(target, 1 | 2),
-        2 => language == 0 && matches!(target, 0 | 2 | 4 | 5),
+        2 => language == 0 && matches!(target, 0 | 2 | 4 | 5) || language == 6 && target == 0,
         3 => target == 0,
         _ => false,
     }

@@ -299,3 +299,213 @@ fn correspondence_reports_moves_duplicates_and_deletion_without_rebinding() {
     fs::remove_file(dir.path().join("duplicate.py")).unwrap();
     assert_eq!(report(dir.path(), &args)["items"][0]["status"], "missing");
 }
+
+#[test]
+fn negative_lookups_configuration_and_analyzer_versions_invalidate() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("subject.py"),
+        "def caller():\n    return missing()\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("pyproject.toml"),
+        "[project]\nname = 'subject'\nversion = '1'\n",
+    )
+    .unwrap();
+    let file = tempfile::NamedTempFile::new().unwrap();
+    let document = serde_json::json!({"schema":"fr-investigation-plan-1", "goal":"resolve", "acceptance":["checked"], "steps":[
+        {"id":"lookup", "question":"missing?", "inputs":[{"kind":"lookup","key":"missing","digest":null}]},
+        {"id":"config", "question":"config?", "inputs":[{"kind":"configuration","key":"pyproject.toml","digest":null}]},
+        {"id":"version", "question":"version?", "inputs":[{"kind":"analyzer","key":"native","digest":null}]}
+    ]});
+    fs::write(file.path(), document.to_string()).unwrap();
+    let initial = report(
+        dir.path(),
+        &[
+            "project",
+            "investigate",
+            "--from",
+            file.path().to_str().unwrap(),
+        ],
+    );
+    let mut retained = initial["plan"].clone();
+    retained["steps"][2]["inputs"][0]["digest"] = serde_json::json!("old-analyzer");
+    fs::write(file.path(), retained.to_string()).unwrap();
+    fs::write(
+        dir.path().join("added.py"),
+        "def missing():\n    return 1\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("pyproject.toml"),
+        "[project]\nname = 'subject'\nversion = '2'\n",
+    )
+    .unwrap();
+    let resumed = report(
+        dir.path(),
+        &[
+            "project",
+            "investigate",
+            "--from",
+            file.path().to_str().unwrap(),
+        ],
+    );
+    assert_eq!(
+        resumed["invalidated"],
+        serde_json::json!(["lookup", "config", "version"])
+    );
+}
+
+#[test]
+fn unknown_target_bug_and_feature_pass_review_reversal_and_patch_replay() {
+    let result = tempfile::tempdir().unwrap();
+    let output = Command::new("python3")
+        .args([
+            "tools/investigation-acceptance.py",
+            "--fr",
+            env!("CARGO_BIN_EXE_fr"),
+            "--output",
+        ])
+        .arg(result.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value: Value =
+        serde_json::from_slice(&fs::read(result.path().join("result.json")).unwrap()).unwrap();
+    assert_eq!(value["receiver_oracle_passed"], true);
+}
+
+#[test]
+fn python_insertion_refuses_collisions_and_non_function_fragments() {
+    for (source, fragment) in [
+        ("quote = 1\n", "def quote():\n    return 2\n"),
+        (
+            "from other import thing as quote\n",
+            "def quote():\n    return 2\n",
+        ),
+        ("from other import *\n", "def quote():\n    return 2\n"),
+        ("def existing():\n    pass\n", "value = 2\n"),
+        (
+            "def existing():\n    pass\n",
+            "def one():\n    pass\ndef two():\n    pass\n",
+        ),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("subject.py"), source).unwrap();
+        let found = report(
+            dir.path(),
+            &[
+                "project",
+                "map",
+                "subject.py",
+                "--depth",
+                "0",
+                "--fields",
+                "handle",
+            ],
+        );
+        let fragment_file = tempfile::NamedTempFile::new().unwrap();
+        fs::write(fragment_file.path(), fragment).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+            .args(["--json", "-C"])
+            .arg(dir.path())
+            .args([
+                "author",
+                "insert-declaration",
+                found["rows"][0][0].as_str().unwrap(),
+                "--from",
+            ])
+            .arg(fragment_file.path())
+            .output()
+            .unwrap();
+        assert!(
+            !output.status.success(),
+            "refusal expected: {source} {fragment}"
+        );
+        assert_eq!(
+            fs::read_to_string(dir.path().join("subject.py")).unwrap(),
+            source
+        );
+    }
+}
+
+#[test]
+fn cycles_missing_evidence_and_changed_acceptance_cannot_complete() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("subject.py"),
+        "def checkout():\n    return 1\n",
+    )
+    .unwrap();
+    let file = tempfile::NamedTempFile::new().unwrap();
+    let mut document = plan();
+    document["steps"][0]["depends_on"] = serde_json::json!(["consumer"]);
+    fs::write(file.path(), document.to_string()).unwrap();
+    let command = |transition: Option<&str>| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_fr"));
+        command
+            .args(["--json", "-C"])
+            .arg(dir.path())
+            .args(["project", "investigate", "--from"])
+            .arg(file.path());
+        if let Some(transition) = transition {
+            command.args(["--transition", transition]);
+        }
+        command.output().unwrap()
+    };
+    assert!(!command(None).status.success());
+    fs::write(file.path(), plan().to_string()).unwrap();
+    assert!(!command(Some("diagnose:satisfy")).status.success());
+    let started = report(
+        dir.path(),
+        &[
+            "project",
+            "investigate",
+            "--from",
+            file.path().to_str().unwrap(),
+            "--transition",
+            "diagnose:start",
+        ],
+    );
+    let mut changed = started["plan"].clone();
+    changed["steps"][0]["evidence"] = serde_json::json!([{"id":"oracle","kind":"check", "passed":true, "input_digest":started["input_digests"]["diagnose"],"reference":"oracle.json"}]);
+    changed["steps"][0]["question"] = serde_json::json!("a different property");
+    fs::write(file.path(), changed.to_string()).unwrap();
+    assert!(!command(Some("diagnose:satisfy")).status.success());
+}
+
+#[test]
+fn flow_response_budget_reports_omission_and_shadowed_calls_stay_unknown() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("subject.py"),
+        "def helper(x):\n    return x\ndef run(helper, x):\n    return helper(x)\n",
+    )
+    .unwrap();
+    let handle = function_handle(dir.path(), "run");
+    let result = report(dir.path(), &["project", "dataflow", &handle]);
+    assert_eq!(result["complete"], false);
+    assert!(result["cutoffs"].to_string().contains("ambiguous-call"));
+    let mut source = String::from("def long(x):\n");
+    for _ in 0..60 {
+        source.push_str("    x = x + 1\n");
+    }
+    source.push_str("    return x\n");
+    fs::write(dir.path().join("long.py"), source).unwrap();
+    let handle = function_handle(dir.path(), "long");
+    let result = report(
+        dir.path(),
+        &[
+            "project", "dataflow", &handle, "--bytes", "4096", "--steps", "512",
+        ],
+    );
+    assert_eq!(result["complete"], false);
+    assert!(result["cutoffs"].to_string().contains("response-budget"));
+    assert!(serde_json::to_vec(&result).unwrap().len() < 4096);
+}

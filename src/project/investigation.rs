@@ -1,4 +1,3 @@
-//! Local investigation plans. Plan claims never authorize mutation or attest tool execution.
 use super::{hash, Project};
 use anyhow::{bail, ensure, Context, Result};
 use clap::Args;
@@ -11,10 +10,8 @@ pub const ANALYZER: &str = "fr-investigation-1";
 
 #[derive(Args)]
 pub struct Options {
-    /// JSON plan to validate and resume; the updated plan is returned without writing it.
     #[arg(long)]
     from: PathBuf,
-    /// Explicit step transition: STEP:start, STEP:satisfy, STEP:block, or STEP:reset.
     #[arg(long)]
     transition: Option<String>,
 }
@@ -48,7 +45,6 @@ pub struct Step {
     pub required_checks: Vec<String>,
     #[serde(default)]
     pub satisfies: Vec<String>,
-    /// Existing guide/discovery arguments. Stored as data; never executed by resumption.
     #[serde(default)]
     pub action: Vec<String>,
 }
@@ -70,7 +66,6 @@ pub enum State {
 pub struct Dependency {
     pub kind: DependencyKind,
     pub key: String,
-    /// None captures an input only for a new pending step or an explicit reset.
     pub digest: Option<String>,
 }
 
@@ -103,7 +98,6 @@ pub enum EvidenceKind {
     SourceCorrespondence,
 }
 
-/// Small admission kernel: stale prerequisites or missing acceptance evidence refuse completion.
 pub fn transition_allowed(from: State, to: State, prerequisites: bool, evidence: bool) -> bool {
     match (from, to) {
         (State::Ready, State::Running) => prerequisites,
@@ -147,13 +141,12 @@ impl Project<'_> {
                             c,
                             std::path::Component::Normal(_) | std::path::Component::CurDir
                         )),
-                    "dependency path must stay in the workspace"
+                    "dependency path must stay in the workspace."
                 );
                 let path = self.root.join(path);
-                // Only bytes already admitted into the selected snapshot may be dependencies.
                 ensure!(self.sources.contains_key(&path) || self.manifests.snapshots.contains_key(&path)
                     || self.lockfiles.snapshots.contains_key(&path) || !path.try_exists()?,
-                    "dependency exists outside the indexed snapshot; use a workspace dependency and an external check");
+                    "dependency exists outside the indexed snapshot; declare an admitted snapshot input.");
                 hash((
                     self.sources.get(&path),
                     self.manifests.snapshots.get(&path),
@@ -175,7 +168,7 @@ impl Project<'_> {
         );
         ensure!(
             !plan.goal.trim().is_empty() && !plan.acceptance.is_empty(),
-            "goal and acceptance criteria are required"
+            "goal and acceptance criteria are required."
         );
         ensure!(plan.steps.len() <= 256, "plan exceeds 256 steps");
         let mut ids = BTreeSet::new();
@@ -186,7 +179,7 @@ impl Project<'_> {
             );
             ensure!(
                 !step.inputs.is_empty(),
-                "step {} needs explicit input dependencies",
+                "step {} needs explicit input dependencies.",
                 step.id
             );
             ensure!(
@@ -194,7 +187,6 @@ impl Project<'_> {
                 "unknown acceptance criterion"
             );
         }
-        // Topological order makes dependency propagation independent of JSON ordering.
         let mut order = Vec::new();
         let mut visited = BTreeSet::new();
         while order.len() < plan.steps.len() {
@@ -246,7 +238,18 @@ impl Project<'_> {
                 .iter()
                 .map(|id| &bases[id])
                 .collect::<Vec<_>>();
-            let basis = hash((ANALYZER, &step.inputs, parent_bases))?;
+            let basis = hash((
+                ANALYZER,
+                &plan.goal,
+                &plan.acceptance,
+                &step.id,
+                &step.question,
+                &step.inputs,
+                parent_bases,
+                &step.required_checks,
+                &step.satisfies,
+                &step.action,
+            ))?;
             if reset {
                 step.state = State::Pending;
                 step.evidence.clear();
@@ -256,14 +259,7 @@ impl Project<'_> {
             if changed || dependent_stale || evidence_stale {
                 step.state = State::Stale;
                 invalidated.push(step.id.clone());
-            } else if step.state == State::Running {
-                // A reopened process cannot attest that the interrupted operation completed.
-                step.state = if prerequisites {
-                    State::Ready
-                } else {
-                    State::Pending
-                };
-            } else if matches!(step.state, State::Pending | State::Ready) {
+            } else if matches!(step.state, State::Pending | State::Ready | State::Running) {
                 step.state = if prerequisites {
                     State::Ready
                 } else {
@@ -288,7 +284,6 @@ impl Project<'_> {
                         "block" => State::Blocked,
                         _ => bail!("unknown transition event"),
                     };
-                    // A supplied running record may complete only after all inputs were revalidated.
                     let from = if action == "satisfy"
                         && original_state == State::Running
                         && step.state == State::Ready
@@ -321,8 +316,8 @@ impl Project<'_> {
         Ok(
             json!({"schema": "fr-investigation-resume-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(),
             "plan": plan, "input_digests": bases, "invalidated": invalidated, "complete": complete,
-            "claim": "validated agent-reported evidence; references do not attest tool execution",
-            "mutation_authority": false, "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain"}),
+            "claim": "validated agent-reported evidence; references do not attest tool execution.",
+            "mutation_authority": false, "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain."}),
         )
     }
 }

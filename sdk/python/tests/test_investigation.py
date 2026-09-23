@@ -51,3 +51,21 @@ def test_plan_refuses_unknown_fields_and_state():
     plan["execute"] = True
     with pytest.raises(FrRuntimeError, match="unknown"):
         TaskPlan.from_data(plan)
+
+
+def test_tampered_plan_objects_cannot_restore():
+    store = MemoryObjectStore()
+    plan = TaskPlan("goal", ("done",), ())
+    digest = plan.store(store)
+
+    class CorruptStore:
+        def get(self, key):
+            if key == digest:
+                return {"schema": "invented", "kind": "scalar", "value": True}
+            return store.get(key)
+
+        def put(self, key, record):
+            store.put(key, record)
+
+    with pytest.raises((FrRuntimeError, ValueError)):
+        TaskPlan.restore(CorruptStore(), digest)

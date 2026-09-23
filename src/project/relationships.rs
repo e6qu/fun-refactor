@@ -86,7 +86,7 @@ impl Project<'_> {
             .collect::<std::collections::BTreeSet<_>>();
         let origins = match spans.len() {
             0 => super::occurrence::SourceOrigins::Absent {
-                reason: "call graph offset has no indexed reference span".into(),
+                reason: "call graph offset has no indexed reference span.".into(),
             },
             1 => self.occurrence_origins(file, *spans.first().unwrap(), "call"),
             _ => super::occurrence::SourceOrigins::Multiple {
@@ -180,7 +180,7 @@ impl Project<'_> {
         result["analysis"] = analysis;
         result["provenance"] = json!({"rule": "fr-indexed-relationships-1", "revision": self.revision,
             "scope": "indexed workspace", "claim": "candidate-relationships",
-            "assumptions": ["syntax index resolution; no compiler or runtime dispatch guarantee"],
+            "assumptions": ["syntax index resolution; no compiler or runtime dispatch guarantee."],
             "omissions": "see page and analysis diagnostics"});
         if let Some(direction) = direction {
             result["direction"] = json!(direction)

@@ -1,4 +1,3 @@
-//! Revision-bound source occurrences, distinct from declaration handles.
 use super::{hash, Project};
 use crate::span::{Span, TextLocation};
 use anyhow::{ensure, Context, Result};
@@ -16,7 +15,6 @@ pub struct Occurrence {
     pub enclosing: Option<String>,
 }
 
-/// Semantic nodes can be synthetic or combine several source expressions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum SourceOrigins {
@@ -44,9 +42,11 @@ impl Project<'_> {
             .into_owned();
         let enclosing = self
             .index
-            .symbols
-            .iter()
-            .filter(|s| s.file == file && s.full_span.contains(span))
+            .file(file)
+            .into_iter()
+            .flat_map(|info| &info.symbols)
+            .filter_map(|id| self.index.symbol(*id))
+            .filter(|s| s.full_span.contains(span))
             .min_by_key(|s| (s.full_span.len(), s.id))
             .and_then(|s| self.symbol_nodes.get(&s.id))
             .map(|id| self.handle(*id));
