@@ -211,3 +211,20 @@ fn the_function_budget_bounds_wide_call_graphs() {
         64
     );
 }
+
+#[test]
+fn retained_recursive_acceptance_matches_its_implementation_and_oracles() {
+    let output = Command::new("python3")
+        .args([
+            "tools/recursive-flow-acceptance.py",
+            "--audit",
+            "tests/agent-eval/results/2026-09-24-recursive-flow/result.json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
