@@ -1,6 +1,6 @@
 {
   "schema": "fr-semantic-evidence-acceptance-1",
-  "repository_revision": "f6dd34112f2764a9fe26034474756b387b1318fc",
+  "repository_revision": "3fd8a533f2499e4f768555142c606c18faccce13",
   "source_bindings": {
     "tools/semantic-evidence-acceptance.py": "90c2b5843454ab9d4086753ca74ed4a84dd5fc8c0d9271e7e883baab769b3d71",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
@@ -14,7 +14,7 @@
     "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
     "src/transpile/read.rs": "844a3b8efe1fdd15641d07ae7805e338b7dbc79a28d4b8a3aedc31b28b485344",
     "src/transpile/normalize.rs": "423919c79c2ae1d28996c797edbb7fcc311326bcbca6fdacf0b07c84328ba948",
-    "src/transpile/mod.rs": "0cf4a3e1e0d9be58c2d7b788bb638024da8f1bc4eb05582af27ac65c835b2c4e",
+    "src/transpile/mod.rs": "161c93152746fdfe93537dd1e481bc08e7d37b9e71f1d242915788ee7ee71265",
     "src/span.rs": "b6e16d2f1cec39803a55131836ba6fa5f11627ffbb4a973cae1356911997bc29",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0",
     "sdk/python/src/fr_ir/origins.py": "a02639f9c8aeff53bdca23db07ef88585ef4e10991ca54696bc652cf65fedd2e",
@@ -29,25 +29,25 @@
     "tests/agent-eval/semantic-evidence/oracle.py": "955ceda07df9c17e189d173537f6554099d34094b217abf3e7022464e0e70158",
     "tests/agent-eval/semantic-evidence/diagnostics.json": "f7a4dfddb4b5a849515839db40c693d5c3d3bde4ac38dd42df981e139a2c3a14"
   },
-  "binary_sha256": "84718005e4382499c9c7552c02516b32856a4de0fa1df5c3912f5c31ce860fbd",
+  "binary_sha256": "0b0d875846ba5daa87f6fcdd0eee644e48c2f6d7dbcd9e5643791d4533fa0a97",
   "platform": "macOS-15.6.1-arm64-arm-64bit",
   "python": "3.12.10",
   "ordinary_ast": {
-    "seconds": 0.0003494170377962291,
+    "seconds": 0.00020062498515471816,
     "context_bytes": 328,
     "source_reveals": 1,
     "useful_discoveries": 2,
     "tokens": null
   },
   "prior_source_reveal_route": {
-    "seconds": 0.03003495797747746,
+    "seconds": 0.02615958300884813,
     "context_bytes": 5756,
     "source_reveals": 1,
     "process_calls": 2,
     "tokens": null
   },
   "origin_route": {
-    "seconds": 0.03176237503066659,
+    "seconds": 0.03035970905330032,
     "context_bytes": 20219,
     "source_reveals": 0,
     "process_calls": 1,
@@ -84,7 +84,7 @@
   "origin_report": {
     "addressing": {
       "format": "SEMANTIC_BASIS#RFC6901_JSON_POINTER",
-      "root": "frsm1:f878498fd87f6e22ef3ba577cc8a419c72e48349414ee4e6b7e7d198b6acc53f#/model"
+      "root": "frsm1:8efbaf96186491873305b4a68d37b5d67ad40e5f9651868a4b2e41196e0b1acf#/model"
     },
     "analysis_budget": {
       "maximum_source_bytes": 262144,
@@ -98,7 +98,7 @@
       "statements": 4,
       "status": "available"
     },
-    "context_basis": "frcb1:c561f869af6e7751d7d172f8fbbd6c6e44839a59ba828fe586864e5dd3358445",
+    "context_basis": "frcb1:6e61858da40e6590f2b18c793d3f7e2a5900f754be4a6b0de0d65e96012f837c",
     "coverage": {
       "architecture": "not inferred",
       "files_by_gap": {},
@@ -118,7 +118,7 @@
       "unresolved_references": 37,
       "unsupported_files": 0
     },
-    "handle_prefix": "frp1:4c035381666b7d364059da546d683ae9:",
+    "handle_prefix": "frp1:78c2132d0a991163ee8b0f676a63a3ff:",
     "model": {
       "items": [
         {
@@ -277,29 +277,29 @@
         "arguments": [
           "project",
           "semantic",
-          "frp1:4c035381666b7d364059da546d683ae9:10",
+          "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
           "--body",
           "--origins",
           "--nodes",
           "4096"
         ]
       },
-      "input_digest": "d589a827baa55c75fe0487ceaad9d6ab0203541838a1f43af27ad9bdd43987ec",
+      "input_digest": "f0cf773fe39938eddc869fdd0ce99d8684e99444047b592e18278f4b5e7f0f38",
       "inputs": {
         "analyzer": "e648e41b5ad75e4bb4216fe3db78da248d070365ef71afe8d003d021e282a92b",
-        "semantic_basis": "frsm1:f878498fd87f6e22ef3ba577cc8a419c72e48349414ee4e6b7e7d198b6acc53f",
+        "semantic_basis": "frsm1:8efbaf96186491873305b4a68d37b5d67ad40e5f9651868a4b2e41196e0b1acf",
         "source_digest": "dea7a6cfe44e063fd4e8790acc24bdbd9b62561476d8d932db1d2bb54527161c",
         "source_path": "subject.py"
       },
       "items": [
         {
           "body_pointer": null,
-          "id": "frso1:86416f83a7977d15457223e6556354f4bb40c92392e1f0201f5da1a0e845ba7c",
+          "id": "frso1:5a5bedff1b422324090cdedef16fa8a90a3ffc20605c634977fa505d181cf3ab",
           "kind": "function",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:b24eb167660f448c76815d492300a954e34a4bf3ba20128608f472a950441c1b",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:f8e38297c3a8baec4eb2db874d0adbd81d78b43a6526d110965b17af82f1466a",
               "location": {
                 "range": {
                   "end": {
@@ -317,7 +317,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -327,12 +327,12 @@
         },
         {
           "body_pointer": "/body/0",
-          "id": "frso1:eed210b4dc3e4ea57b75f644be4b80fda3e942097571318a1c8dd72c74e5de85",
+          "id": "frso1:49ba3e565a88d64d7c1a0f379a0a6f835802e91b6050faf93f9a159e17a85f59",
           "kind": "let",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:360e2a84bc3f8f3fb3e5b532966737b4492b72159520489e77f4cb498a8475ab",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:4c30d53d368c178baf529475ffbdb053fd1e43521fa04554e582fd8f83d60817",
               "location": {
                 "range": {
                   "end": {
@@ -350,7 +350,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -360,12 +360,12 @@
         },
         {
           "body_pointer": "/body/0/value/value",
-          "id": "frso1:2a821012b1502a49fde24c45980ebaec537168de70c85413a214b01563e4ba6c",
+          "id": "frso1:2eb3fef6098669d6bb43649e3699c8cfd6a76c1d338738515964cf0da7d46cc3",
           "kind": "binary",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:6a555f1e40e55d115cfa44a4cbd50799fb656c70db97407bdbec4db9482cb44b",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:4734b5705b1bce4c921c404022f283c0e702a9096a2bb3cfa4497903d299a4e9",
               "location": {
                 "range": {
                   "end": {
@@ -383,7 +383,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -393,12 +393,12 @@
         },
         {
           "body_pointer": "/body/0/value/value/value/left",
-          "id": "frso1:7219919af093d2ecb9e893ecf098bdce7482b065ec461cf6c44192197385841b",
+          "id": "frso1:863694daba28228ca56aa0081c1c4c8341bf00427139d8206dea6c2a789e72eb",
           "kind": "call",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:26c89028a0fd2bc8a62e81c55d7d0a5da16837a1f1d2fc4aa77077bc73e0aab7",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:40d728968dbf9d98158ad2ffd943d7d2cb809c308bf9811d863c41021f7d5a61",
               "location": {
                 "range": {
                   "end": {
@@ -416,7 +416,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -426,12 +426,12 @@
         },
         {
           "body_pointer": "/body/0/value/value/value/left/value/args/0",
-          "id": "frso1:aab064d67e5c998842cfaa8bd2999cc86c60e7dbd640ce1d0b9897fd864d16ed",
+          "id": "frso1:a4a62d1db267de342779264f32ce0c79677d0e0c57709fb47b6513862088be6f",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:fd41c5a0be85a04634dfd3a1aadecc8f4ac90ba67dcdb0eef249f9859c094fb0",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:b905ed09f079ed5f7441288d1f0e7550a06b4c26caa971056f897af14dcf1517",
               "location": {
                 "range": {
                   "end": {
@@ -449,7 +449,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -459,12 +459,12 @@
         },
         {
           "body_pointer": "/body/0/value/value/value/left/value/callee",
-          "id": "frso1:13d22aa9fdcc01bda7e2e802f2ca5316836518ef3a577a7e14745cedec52b8bc",
+          "id": "frso1:c7a472b544b964347b01eedfc49042d950024bdf2ef685393c556431911e86d4",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:6d6524e023a9a36f9cd7e244f7bbeb6cad136939c512bcef0c6a6638aca7c742",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:8e33c24459782ec66f1ff4842b29d6111185eb4cf11662d09d5e241a58650c8b",
               "location": {
                 "range": {
                   "end": {
@@ -482,7 +482,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -492,12 +492,12 @@
         },
         {
           "body_pointer": "/body/0/value/value/value/right",
-          "id": "frso1:5214b8a74a938e708ef1a7043f8473f168ddeadb5a188595dd32e591aad006d9",
+          "id": "frso1:8a52fc08ab2906f4bb8d9c5e16a2ee486e2dacdaa7a42fa3ea5a7f5c253ad251",
           "kind": "call",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:bcb92e50f9cbce4124b160d192a9850ce6aec4cace304ea9d9b69ed2aff55df0",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:08cc32a8598b8b0e3acb97a39b474ff69a6378f684c5396e59f76875b9c62c07",
               "location": {
                 "range": {
                   "end": {
@@ -515,7 +515,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -525,12 +525,12 @@
         },
         {
           "body_pointer": "/body/0/value/value/value/right/value/args/0",
-          "id": "frso1:5f9283df928285edc6fa83a2efd753152e872621b024b6af8dbc0672dd01c879",
+          "id": "frso1:0f1935843ddb77cfa996321d47719974cd923b6be059ac25fde7c09deffef7b4",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:426101e3c2df21cbab31174676024dfa27bd879a04c6a2ea808dd3649bcd2fe0",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:94f78cd8005748c26a466155202f141cf10221bbd0461eda22c7bbc0de186d96",
               "location": {
                 "range": {
                   "end": {
@@ -548,7 +548,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -558,12 +558,12 @@
         },
         {
           "body_pointer": "/body/0/value/value/value/right/value/callee",
-          "id": "frso1:514bfd9928028edaf32df8eb1c042aae0fd9e099ac37fd8083c79ce667b43d15",
+          "id": "frso1:b674ac7e68dac3ac279078ad4138f9ec6b4b8298c2d84d89b02b89ca27908c27",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:12",
-              "id": "fro1:cdc36eb03f50d3e61b065b90a95c319199e0016f0c290c81602d2b7daf566777",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:12",
+              "id": "fro1:e7cbf1722b297d7cd8625109cad60d692f83cf7f2728ec078493746773c6c7f9",
               "location": {
                 "range": {
                   "end": {
@@ -581,7 +581,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -591,12 +591,12 @@
         },
         {
           "body_pointer": "/body/1",
-          "id": "frso1:82ec8ee36954fa41c12ac36a5863704fde9e8e4cf40c6ef188611a451f1c6eb3",
+          "id": "frso1:10e7cf1ae85184d3f5ab145049955f37ecf2a1c006b3855e64bebe4f213b254a",
           "kind": "assign",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:292e9b48fe18ffd116901db3871261993c152158a0c76740bf8767ad3bb8e326",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:c0c4949e7af41d3a28197beb0347eef8b2ca43b8f6d7695a7231105d9215d780",
               "location": {
                 "range": {
                   "end": {
@@ -614,7 +614,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -624,12 +624,12 @@
         },
         {
           "body_pointer": "/body/1/value/target",
-          "id": "frso1:a94a4053a330db39162f0c1f97d8440944276982c3675d7501769ba3ea0ddc2f",
+          "id": "frso1:75276470938e4bd77dfce56475c6a8ead6bc9f54af88cab2abfa99dc4a880853",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:2a5f6e268787081496f4ad5993de5c4e4e72daf70e5d334022ebb40d9dc1639f",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:b8f0aeb31d36bfa745f9b0a9ac0ef5aa7cfdac383db32f2369bd1aff4be8ef6c",
               "location": {
                 "range": {
                   "end": {
@@ -647,7 +647,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -657,13 +657,13 @@
         },
         {
           "body_pointer": "/body/1/value/value",
-          "id": "frso1:af7b8880a79cdfae7d84ee2665d3b58bf9b17815d015501acd91fc3651112e0b",
+          "id": "frso1:00dd6590211fc2e759310c6e2d3599e867882454069dd0ac7487b46dc00e3abd",
           "kind": "binary",
           "origins": {
             "occurrences": [
               {
-                "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-                "id": "fro1:2a5f6e268787081496f4ad5993de5c4e4e72daf70e5d334022ebb40d9dc1639f",
+                "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+                "id": "fro1:b8f0aeb31d36bfa745f9b0a9ac0ef5aa7cfdac383db32f2369bd1aff4be8ef6c",
                 "location": {
                   "range": {
                     "end": {
@@ -681,12 +681,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+                "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
                 "role": "semantic-origin"
               },
               {
-                "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-                "id": "fro1:d44b5786e29f449d354baa8d593bf4171deec6d2863ded671efd7b299a05729f",
+                "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+                "id": "fro1:55e11377ae095ba939685b2a85dccb51731afaa5a7a1871160ea38eeccb6f1c5",
                 "location": {
                   "range": {
                     "end": {
@@ -704,7 +704,7 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+                "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
                 "role": "semantic-origin"
               }
             ],
@@ -715,12 +715,12 @@
         },
         {
           "body_pointer": "/body/1/value/value/value/left",
-          "id": "frso1:523e494c283c69e9104d5513bb82fd778cafe5e942fa35a5ae18695234aeccfb",
+          "id": "frso1:0e2922369b3621518436a03b28bda70b7a4e67ed9cd4cc1bbcc6a530132b961b",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:2a5f6e268787081496f4ad5993de5c4e4e72daf70e5d334022ebb40d9dc1639f",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:b8f0aeb31d36bfa745f9b0a9ac0ef5aa7cfdac383db32f2369bd1aff4be8ef6c",
               "location": {
                 "range": {
                   "end": {
@@ -738,7 +738,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -748,12 +748,12 @@
         },
         {
           "body_pointer": "/body/1/value/value/value/right",
-          "id": "frso1:98e84b50ee016fad8e09f9690a2a35bb42e601973ba48a7165d826dede056681",
+          "id": "frso1:d31865602ed490c8b73b37a3302c799c4ae32e3abafb7807c424904feb3d1b70",
           "kind": "int",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:d44b5786e29f449d354baa8d593bf4171deec6d2863ded671efd7b299a05729f",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:55e11377ae095ba939685b2a85dccb51731afaa5a7a1871160ea38eeccb6f1c5",
               "location": {
                 "range": {
                   "end": {
@@ -771,7 +771,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -781,12 +781,12 @@
         },
         {
           "body_pointer": "/body/2",
-          "id": "frso1:7686d4bb1f1d3567328990845b7655b3c201c1ac4beb30d4a9763143c5849452",
+          "id": "frso1:24696779a337d5157ea4aeda2a24e7ec4fa41214c334b6c1821f201c41a6dd8e",
           "kind": "if",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:c66c0fdbcc72b88b3bf2476e31f27a6ac2dcddf3a52fc21a7b7e0ae20aa5b46b",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:db359bea7691dbf7fb4b7a46776ff1b19da39ad07928d8de10b9d464663a126a",
               "location": {
                 "range": {
                   "end": {
@@ -804,7 +804,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -814,12 +814,12 @@
         },
         {
           "body_pointer": "/body/2/value/condition",
-          "id": "frso1:0664fe9d7bf5e54e7f12f91ebbf60e87e44daa2cb732e06c37f8ad14e254c2e7",
+          "id": "frso1:7288ed05c35ab4916c5663fd716de09bd9b93712251fc021c89a053d0809e2f8",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:87dba61dd02f248d776e71d5355e6bbf453339556f831bca83d45d4ceb3dcc95",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:11685ee357652d79a97ded01589c231b481a2925c2b7eff769222a51e8d78bc9",
               "location": {
                 "range": {
                   "end": {
@@ -837,7 +837,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -847,12 +847,12 @@
         },
         {
           "body_pointer": "/body/2/value/otherwise/0",
-          "id": "frso1:ea58cd3f09e5e4eb36e1dcf869182faa4e4d30daf60c3063cdc60464a1e8b157",
+          "id": "frso1:61d68830868e373d9eef4ace82312ee4fee2b2510b6002c8f170ba2accc69329",
           "kind": "expr",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:da93d028e2891ae077258ed921745c7e9a30d60ae451fe5dd833d2e5915f6ec3",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:dba4253202f22f6cfc62b32f802b06dd3872613a0fc47ae94d95bd3c04170ef3",
               "location": {
                 "range": {
                   "end": {
@@ -870,7 +870,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -880,7 +880,7 @@
         },
         {
           "body_pointer": "/body/2/value/otherwise/0/value",
-          "id": "frso1:16d0aa3fa9cc75f9dc9651617faeb3276debcb7261c82f074c0c7f64ec5da77d",
+          "id": "frso1:fcf339107c878c2d2dfb035cacc4ca6aa8847efb9796c2dc55b07d78fd67c6a0",
           "kind": "null",
           "origins": {
             "reason": "synthesized, transformed or outside the admitted body mapping.",
@@ -891,12 +891,12 @@
         },
         {
           "body_pointer": "/body/2/value/then/0",
-          "id": "frso1:9b3df69f6d7b05077c54a236d9cfe0f37d3c5ee49a198ca81218de138e25b98d",
+          "id": "frso1:7a8f8a1f179533e0aaa955064934e6bb9f1e10ad929f1252668b5135ebc3bfe1",
           "kind": "assign",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:13",
-              "id": "fro1:c7162c54b62163ebc9d0c909b5affe820fc5669d6aea60d61770adcc67a7b9bc",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:13",
+              "id": "fro1:416a2fc4b138f131a4b2a42523ed60cdf1654c5bfa5e9b03fd4b73a862457be1",
               "location": {
                 "range": {
                   "end": {
@@ -914,7 +914,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -924,12 +924,12 @@
         },
         {
           "body_pointer": "/body/2/value/then/0/value/target",
-          "id": "frso1:be2e30a107550a953f326346452959509b14ad7571367832ec4eab6cea7d50be",
+          "id": "frso1:da6ed993476ec45680708b5e24d27825e699b824a3deecbb1dbecf515711ad0e",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:13",
-              "id": "fro1:9887431af648c275d0b9143ad9251548be6807cdfec1066db44baff7232f26e0",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:13",
+              "id": "fro1:acccb332176009f65321a5e41f3c9cd327e49d4becd63abceeffcfb322d2e3ea",
               "location": {
                 "range": {
                   "end": {
@@ -947,7 +947,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -957,12 +957,12 @@
         },
         {
           "body_pointer": "/body/2/value/then/0/value/value",
-          "id": "frso1:5a4e77bc80a2e3b5fd715a0c60524dee230685fd285a0b340f1f774fa2f8ccee",
+          "id": "frso1:1e1fe3017067e878969a1160cf396234a210ec8306c7801ed7eb3cfcf09d3d31",
           "kind": "binary",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:13",
-              "id": "fro1:6ab48d7da404839f25491400560c34add33df9c4205e314a8c7e25dff0945443",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:13",
+              "id": "fro1:8fd0b4bbfea3053a5338e07820f77e7736ad5f5f6b585ef796b2cb1ddde7cb28",
               "location": {
                 "range": {
                   "end": {
@@ -980,7 +980,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -990,12 +990,12 @@
         },
         {
           "body_pointer": "/body/2/value/then/0/value/value/value/left",
-          "id": "frso1:2a47b6f6875e588791679eec75603369a80b1242b9c5bb8a1496834f35470fb4",
+          "id": "frso1:557f4152ae4e814ea4a939e1a8c2cdae8c8e2a7050968dfaf737ddf890cfc50d",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:13",
-              "id": "fro1:e7b024ce70938bbf9eb4ab027319c5d3bc2e829675c1ebafa608772a603b0d03",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:13",
+              "id": "fro1:0a23428073dffd44315f4f506d67681d18df9f392564daed2bda01c9d4e819e3",
               "location": {
                 "range": {
                   "end": {
@@ -1013,7 +1013,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -1023,12 +1023,12 @@
         },
         {
           "body_pointer": "/body/2/value/then/0/value/value/value/right",
-          "id": "frso1:a86d987d72b99b07e776215e087265164a287f162e792cd6d4ced07ffc802682",
+          "id": "frso1:8396edc8e1e9f2ae5fc0fcfd66f55227d09b3460ee1fdb836c26485b757547e2",
           "kind": "int",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:13",
-              "id": "fro1:4f86690015f418cede181236ec0ada73b267ae8097d8e2041925177107b0d881",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:13",
+              "id": "fro1:57cd27e9a9039ea4da061a2be1afc3f9a2001db4c2eb6ffacddecceebb7c4960",
               "location": {
                 "range": {
                   "end": {
@@ -1046,7 +1046,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -1056,12 +1056,12 @@
         },
         {
           "body_pointer": "/body/3",
-          "id": "frso1:d696e6af55fed2e2031103864b7c9bc151b664c6b71fd181721a8125a1b8827f",
+          "id": "frso1:eaf7498db0a70a44cfa04f6d0e332c72c67bf6addd71e7df036fa953020fa04d",
           "kind": "return",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:6de58a1e4ba65f53bfaaf4877eec770a0d7cdc0972f558b383d1c7b23bcbf47d",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:b00e9da5b2bd2b4abb9143effad9b0c14186e3504e2e2d94f12ba48c1cf4942e",
               "location": {
                 "range": {
                   "end": {
@@ -1079,7 +1079,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -1089,12 +1089,12 @@
         },
         {
           "body_pointer": "/body/3/value",
-          "id": "frso1:92c31cf6e2a9f35cf65f155adaca553ea46255361e36b19d27b0710fc296b3b4",
+          "id": "frso1:cb933327390258856c1dfdb5d3f9e43e20684e1e08a31a7b25c5fd7c195b5834",
           "kind": "name",
           "origins": {
             "occurrence": {
-              "enclosing": "frp1:4c035381666b7d364059da546d683ae9:10",
-              "id": "fro1:c85aca9ee98b7a92a17c244e62de26150a433a02c81a55be242409f00a486b58",
+              "enclosing": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
+              "id": "fro1:0f4f6b4a6c9849e8c48fb4ed08d462be98b5aa96141f14c2b3243fa417d5ea26",
               "location": {
                 "range": {
                   "end": {
@@ -1112,7 +1112,7 @@
                 }
               },
               "path": "subject.py",
-              "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "role": "semantic-origin"
             },
             "status": "exact"
@@ -1129,25 +1129,25 @@
         "returned": 25,
         "total": 25
       },
-      "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+      "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
       "rule_version": "python-body-origins-1",
       "schema": "fr-semantic-origins-1",
       "scope": "selected Python declaration body; other nodes retain absent origins.",
-      "semantic_basis": "frsm1:f878498fd87f6e22ef3ba577cc8a419c72e48349414ee4e6b7e7d198b6acc53f"
+      "semantic_basis": "frsm1:8efbaf96186491873305b4a68d37b5d67ad40e5f9651868a4b2e41196e0b1acf"
     },
     "patterns": [],
     "query": "semantic",
-    "revision": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+    "revision": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
     "schema": "fr-project-1",
     "scope": "Syntax-derived cross-language IR; types can be inferred from local evidence. Pattern rows do not prove behavior.",
     "selection": {
       "body_requested": true,
-      "handle": "frp1:4c035381666b7d364059da546d683ae9:10",
+      "handle": "frp1:78c2132d0a991163ee8b0f676a63a3ff:10",
       "kind": "declaration",
       "language": "python",
       "path": "subject.py"
     },
-    "semantic_basis": "frsm1:f878498fd87f6e22ef3ba577cc8a419c72e48349414ee4e6b7e7d198b6acc53f",
+    "semantic_basis": "frsm1:8efbaf96186491873305b4a68d37b5d67ad40e5f9651868a4b2e41196e0b1acf",
     "semantic_schema": "fr-semantic-model-1",
     "source_policy": "source-free",
     "status": "returned"
@@ -1207,7 +1207,7 @@
         "timed_out": false
       }
     ],
-    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-semantic-evidence-ndg2_s41/project",
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-semantic-evidence-o47k2tw5/project",
     "schema": "fr-checks-1",
     "source_revision": "1427d2e73f759544f3bbc1da51df996beda9323b0b9793a4e939b4d279e30c68",
     "source_snapshot_checked": true,
@@ -1226,7 +1226,7 @@
     },
     "toolchain_stable": true
   },
-  "check_root": "5ff0df8fb38259a2560abde274ffa9f7449ee4b80df030b2d267fb149c468482",
+  "check_root": "241ee62fa4305f241922b30bbd7cdbeb8201b9a5339d543d625b97f91d1d2645",
   "completed_plan": {
     "goal": "retain exact checked evidence",
     "acceptance": [
@@ -1240,7 +1240,7 @@
           {
             "kind": "workspace",
             "key": "selected-project",
-            "digest": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc"
+            "digest": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d"
           },
           {
             "kind": "check-configuration",
@@ -1264,9 +1264,9 @@
           {
             "id": "oracle",
             "kind": "check",
-            "input_digest": "c93eb7c51416e0c44eaf283cf7b5af5f5a99b6d36a60ffbdd7565ffbd496aa18",
+            "input_digest": "0603c888c05b59890459a3f492fe71a316364c854d721474ab8ab9d9e7682c13",
             "passed": true,
-            "reference": "fr-check-report-1:6619f93cdb3f7dad4b1413b8c0c2d4d28a2d45df99f0c51ab3d4c7f394267dc1"
+            "reference": "fr-check-report-1:43f9c3bee26e6483128ccd47748685068f86911d3a0115727b76c9ccdf513ddd"
           }
         ],
         "required_checks": [
@@ -1283,12 +1283,12 @@
     "questions": [],
     "schema": "fr-investigation-plan-1"
   },
-  "plan_root": "bd3eef8ec63efe0795687c820e09283d690a4b9fc81546695417e66fb799165c",
+  "plan_root": "164af20abd793248d5b2e6fe27c57b3a8a7747aba70d392e31487e0b67d8d865",
   "stale": {
     "check_attachment": null,
     "claim": "validated agent-reported evidence; references do not attest tool execution.",
     "complete": false,
-    "context_basis": "frcb1:4c5dafdae74cbed0cc9cdfc8e6eeebf2037a276df85acc77c0eebd3f73a65843",
+    "context_basis": "frcb1:00289eb91963d5a2b74bc3bd291c90502bfb7d50ce58e17308cc0af11a4b2773",
     "coverage": {
       "architecture": "not inferred",
       "files_by_gap": {},
@@ -1309,9 +1309,9 @@
       "unsupported_files": 0
     },
     "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-    "handle_prefix": "frp1:cbb81988f52b615f8d6bed218e20204f:",
+    "handle_prefix": "frp1:edc7d1ce1e8afd79ed168386b7d2cd7b:",
     "input_digests": {
-      "verify": "c93eb7c51416e0c44eaf283cf7b5af5f5a99b6d36a60ffbdd7565ffbd496aa18"
+      "verify": "0603c888c05b59890459a3f492fe71a316364c854d721474ab8ab9d9e7682c13"
     },
     "invalidated": [
       "verify"
@@ -1332,16 +1332,16 @@
           "evidence": [
             {
               "id": "oracle",
-              "input_digest": "c93eb7c51416e0c44eaf283cf7b5af5f5a99b6d36a60ffbdd7565ffbd496aa18",
+              "input_digest": "0603c888c05b59890459a3f492fe71a316364c854d721474ab8ab9d9e7682c13",
               "kind": "check",
               "passed": true,
-              "reference": "fr-check-report-1:6619f93cdb3f7dad4b1413b8c0c2d4d28a2d45df99f0c51ab3d4c7f394267dc1"
+              "reference": "fr-check-report-1:43f9c3bee26e6483128ccd47748685068f86911d3a0115727b76c9ccdf513ddd"
             }
           ],
           "id": "verify",
           "inputs": [
             {
-              "digest": "4c035381666b7d364059da546d683ae9310187033bc1a56c18f230afd8e39afc",
+              "digest": "78c2132d0a991163ee8b0f676a63a3ffe6768dd2d8cc5019849d2a707442fb9d",
               "key": "selected-project",
               "kind": "workspace"
             },
@@ -1372,7 +1372,7 @@
         }
       ]
     },
-    "revision": "cbb81988f52b615f8d6bed218e20204f525eb87cb0ff90735b195ccff25ca6a4",
+    "revision": "edc7d1ce1e8afd79ed168386b7d2cd7b66e1ba47d6bb366268892b194da70851",
     "schema": "fr-investigation-resume-1"
   },
   "failed_checks": {
@@ -1410,7 +1410,7 @@
           "finite Python execution and AST coordinates"
         ],
         "cwd": ".",
-        "elapsed_ms": 20,
+        "elapsed_ms": 30,
         "error": null,
         "exit_code": 1,
         "name": "oracle",
@@ -1432,7 +1432,7 @@
         "timed_out": false
       }
     ],
-    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-semantic-evidence-ndg2_s41/project",
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-semantic-evidence-o47k2tw5/project",
     "schema": "fr-checks-1",
     "source_revision": "b286fb655c2309b0a656e1ce73e5001b1d9f3daf1072f2c41dbe64783ebebaf6",
     "source_snapshot_checked": true,
@@ -1451,7 +1451,7 @@
     },
     "toolchain_stable": true
   },
-  "failed_root": "b7888287b5df9fed8453b377c0f023b9c80228aeddeb05ad323de12ad908d13b",
+  "failed_root": "8e17b7a40c948448acf880a7b8aa4804c4de30ee1488aaaf08235ea52669ef71",
   "failed_plan": {
     "goal": "retain exact checked evidence",
     "acceptance": [
@@ -1465,7 +1465,7 @@
           {
             "kind": "workspace",
             "key": "selected-project",
-            "digest": "cbb81988f52b615f8d6bed218e20204f525eb87cb0ff90735b195ccff25ca6a4"
+            "digest": "edc7d1ce1e8afd79ed168386b7d2cd7b66e1ba47d6bb366268892b194da70851"
           },
           {
             "kind": "check-configuration",
@@ -1489,9 +1489,9 @@
           {
             "id": "oracle",
             "kind": "check",
-            "input_digest": "1bcd7f80279c8a6a3f26ada90fc290b213b622d5e6b1c32ef50ce8f82cc00fd4",
+            "input_digest": "d39ea250ad80b16c3b22e1fdd5fe127db681ec667c0bc589b44c50811c0a09f6",
             "passed": false,
-            "reference": "fr-check-report-1:88ede97fb65d51ec8ff670a9bd43e9a4506a08baf2c6beb32b53b39858a61a51"
+            "reference": "fr-check-report-1:6b0ca550a3843455479b1589131c72778ac5f9839321912ce840bb893b77c501"
           }
         ],
         "required_checks": [
