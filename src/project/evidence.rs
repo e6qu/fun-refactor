@@ -26,6 +26,7 @@ impl Project<'_> {
             "kind": item.kind.as_str(),
             "path": bounded_text(&path, 256),
             "position": position,
+            "origins": self.occurrence_origins(&item.file, item.name_span, "declaration"),
             "language": item.language.name(),
             "exported": item.exported
         })
@@ -162,6 +163,7 @@ impl Project<'_> {
                     "symbol": step.symbol.map(|symbol| self.evidence_symbol(symbol)),
                     "path": bounded_text(&path.to_string_lossy(), 256),
                     "position": position,
+                    "origins": self.occurrence_origins(&step.file, step.span, "flow"),
                     "depth": step.depth,
                     "confidence": step.confidence.as_str()
                 })
