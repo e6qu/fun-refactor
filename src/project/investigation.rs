@@ -161,7 +161,7 @@ impl Project<'_> {
             std::fs::metadata(&options.from)?.len() <= 1_048_576,
             "plan exceeds 1 MiB"
         );
-        let mut plan: Plan = serde_json::from_slice(&std::fs::read(&options.from)?)?;
+        let mut plan: Plan = serde_json::from_slice(&crate::vfs::read(&options.from)?)?;
         ensure!(
             plan.schema == "fr-investigation-plan-1",
             "unsupported plan schema"

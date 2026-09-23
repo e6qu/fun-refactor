@@ -61,7 +61,7 @@ impl Project<'_> {
                 std::fs::metadata(path)?.len() <= 1_048_576,
                 "identity report exceeds 1 MiB"
             );
-            let previous: Value = serde_json::from_slice(&std::fs::read(path)?)?;
+            let previous: Value = serde_json::from_slice(&crate::vfs::read(path)?)?;
             ensure!(
                 previous["query"] == "identities",
                 "expected identity report"

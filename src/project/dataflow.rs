@@ -402,7 +402,7 @@ impl Project<'_> {
                 std::fs::metadata(path)?.len() <= 65536,
                 "rule file exceeds 64 KiB"
             );
-            let rules: Rules = serde_json::from_slice(&std::fs::read(path)?)?;
+            let rules: Rules = serde_json::from_slice(&crate::vfs::read(path)?)?;
             ensure!(
                 !rules.version.is_empty(),
                 "rules require a version identity"
