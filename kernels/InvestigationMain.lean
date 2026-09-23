@@ -3,6 +3,13 @@ import FrKernels.Flow
 open FrKernels.Investigation
 
 def main (args : List String) : IO Unit := do
+  if args == ["flow-summary"] then
+    for useFirst in [false, true] do
+      for useSecond in [false, true] do
+        for first in List.range 16 do
+          for second in List.range 16 do
+            IO.println (FrKernels.Flow.transferMask first second useFirst useSecond)
+    return
   if args == ["check-scope"] then
     for workspace in [false, true] do
       for configuration in [false, true] do

@@ -300,3 +300,17 @@ explicit coverage. Neither implies complete compiler semantics or trusted execut
 Run with `--output FILE`, then use `--audit FILE` to validate its source bindings and retained records.
 The [retained result](../tests/agent-eval/results/2026-09-23-semantic-evidence/result.json) binds the
 implementation, evaluator, fixture, independent coordinates and command outcomes to the recorded run.
+
+## Recursive scalar flow
+
+The [2026-09-24 recursive flow run](../tests/agent-eval/results/2026-09-24-recursive-flow/result.json)
+compares ten pinned functions with the previous incomplete recursive analysis. An independent Python
+oracle executes 44 cases and derives call coordinates from the AST. The new summary mode completes
+all eight admitted cases. Unknown external calls and aliases remain incomplete. The record retains
+return, sink and exceptional effects, input identities and exact witnesses with zero false claims
+within this finite corpus.
+
+Six isolated workers compare cold, warm, unrelated-edit and helper-edit results against clean analysis.
+They record latency, response bytes, native work and peak child/worker RSS. Reuse validates the whole
+file; these measurements do not establish finer cache granularity or a general speed improvement.
+This is deterministic analysis evidence, not a live-agent investigation trial or a security proof.

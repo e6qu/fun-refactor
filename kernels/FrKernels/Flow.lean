@@ -34,6 +34,42 @@ theorem overwrite_preserves_other (environment : Nat → Facts) (target name : N
 
 def maskFacts (mask : Nat) : Facts := fun bit => mask / 2 ^ bit % 2 == 1
 
+def transfer (first second : Facts) (useFirst useSecond : Bool) : Facts :=
+  fun origin => (useFirst && first origin) || (useSecond && second origin)
+
+theorem transfer_no_parameters (first second : Facts) :
+    transfer first second false false = fun _ => false := by
+  funext origin
+  simp [transfer]
+
+theorem transfer_first (first second : Facts) : transfer first second true false = first := by
+  funext origin
+  simp [transfer]
+
+theorem transfer_second (first second : Facts) : transfer first second false true = second := by
+  funext origin
+  simp [transfer]
+
+theorem transfer_both (first second : Facts) : transfer first second true true = join first second := by
+  funext origin
+  simp [transfer, join]
+
+theorem transfer_monotone (first second widerFirst widerSecond : Facts)
+    (useFirst useSecond : Bool)
+    (hfirst : ∀ origin, first origin = true → widerFirst origin = true)
+    (hsecond : ∀ origin, second origin = true → widerSecond origin = true) :
+    ∀ origin, transfer first second useFirst useSecond origin = true →
+      transfer widerFirst widerSecond useFirst useSecond origin = true := by
+  intro origin h
+  simp only [transfer, Bool.or_eq_true, Bool.and_eq_true] at h ⊢
+  rcases h with h | h
+  · exact Or.inl ⟨h.1, hfirst origin h.2⟩
+  · exact Or.inr ⟨h.1, hsecond origin h.2⟩
+
+def transferMask (first second : Nat) (useFirst useSecond : Bool) : Nat :=
+  ((List.range 4).filter fun bit => transfer (maskFacts first) (maskFacts second) useFirst useSecond bit).foldl
+    (fun sum bit => sum + 2 ^ bit) 0
+
 def joinMask (left right : Nat) : Nat :=
   ((List.range 4).filter fun bit => join (maskFacts left) (maskFacts right) bit).foldl
     (fun sum bit => sum + 2 ^ bit) 0
