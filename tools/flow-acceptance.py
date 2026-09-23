@@ -19,9 +19,10 @@ sys.path.insert(0, str(ROOT / "sdk/python/src"))
 from fr_ir.context import DirectoryObjectStore
 from fr_ir.flow import FlowCache
 from fr_ir.runtime import FrClient
+from evidence_basis import file_digest
 
 FIXTURE = ROOT / "tests/agent-eval/flow-fixed-point"
-BINDINGS = ["tools/flow-acceptance.py", "src/project/dataflow.rs", "src/project/control_flow.rs",
+BINDINGS = ["tools/flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs", "src/project/control_flow.rs",
             "src/project/flow_cache.rs", "src/project/occurrence.rs", "src/span.rs", "src/parse.rs", "Cargo.lock",
             "sdk/python/src/fr_ir/flow.py", "sdk/python/src/fr_ir/runtime.py", "sdk/python/src/fr_ir/context.py",
             "sdk/python/src/fr_ir/investigation.py", "kernels/FrKernels/Flow.lean",
@@ -75,7 +76,7 @@ def worker(args):
 
 
 def measure(args):
-    bindings = {path: digest((ROOT / path).read_bytes()) for path in BINDINGS}
+    bindings = {path: file_digest(ROOT / path) for path in BINDINGS}
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     oracle = subprocess.run([sys.executable, str(FIXTURE / "oracle.py")], capture_output=True, text=True, check=True)
     with tempfile.TemporaryDirectory(prefix="fr-flow-eval-") as temporary:
@@ -112,7 +113,7 @@ def measure(args):
 
 def audit(value):
     assert value["schema"] == "fr-flow-acceptance-1"
-    assert value["source_bindings"] == {path: digest((ROOT / path).read_bytes()) for path in BINDINGS}
+    assert value["source_bindings"] == {path: file_digest(ROOT / path) for path in BINDINGS}
     assert value["oracle"]["passed"]
     arms = value["arms"]
     for a, b in [("cold", "warm"), ("unrelated_edit", "unrelated_clean"), ("relevant_edit", "relevant_clean")]:
