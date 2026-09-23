@@ -1,0 +1,17 @@
+{
+  "schema": "fr-recursive-flow-task-1",
+  "baseline": "354d9fb85201a6a0678bf14e9ae7802a0c3ae02a",
+  "language": "Python synchronous scalar functions with positional parameters and explicit value flow",
+  "question": "Which recursive helpers return source values or pass them to sinks, and which erase them or never return normally?",
+  "acceptance": [
+    "Solve direct and mutual recursion with finite symbolic parameter/source summaries.",
+    "Preserve return, sink and explicit exceptional effects with exact occurrences.",
+    "Keep independent call arguments separate; do not invent witnesses after nonreturning calls.",
+    "Keep unknown external calls, aliases, shadowing and exhausted resources incomplete.",
+    "Verify cache reuse against clean analysis and invalidate changed helper definitions and rules."
+  ],
+  "budgets": {"steps": 4096, "call_depth": 8, "functions": 64, "graph_nodes_per_function": 512},
+  "oracle": "oracle.py uses Python execution across a finite count domain and an independent AST coordinate oracle",
+  "edit_boundary": "Direct source edits for a new Rust analysis module, cross-module state, Python SDK types and new fixtures. Existing author operations do not admit this complete change as one structural operation.",
+  "claims": "Finite deterministic corpus; may-value derivations under declared scalar semantics. No path feasibility, runtime termination, security or general speed claim."
+}
