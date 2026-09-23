@@ -723,7 +723,7 @@ impl Project<'_> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "wasm")))]
 mod lattice_tests {
     use super::*;
     use std::process::Command;
