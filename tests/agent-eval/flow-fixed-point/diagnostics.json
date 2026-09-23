@@ -1,0 +1,16 @@
+{
+  "schema": "fr-flow-diagnostics-1",
+  "cases": [
+    {
+      "kind": "implementation-regression",
+      "observation": "The first inputs-only report omitted handle_prefix and coverage. The project context guard refused it before SDK reuse.",
+      "resolution": "Use the same revision envelope as analysis reports; SDK cold/warm and edit tests now pass."
+    },
+    {
+      "kind": "measured-boundary",
+      "observation": "A preview run used zero transfer steps for an unrelated edit but took longer than the corresponding clean analysis.",
+      "resolution": "Keep whole-file reuse opt-in. Retain times and RSS without claiming a speedup."
+    }
+  ],
+  "direct_edit_boundary": "The new graph types, transfer engine and persistence adapter required source edits beyond the existing admitted authoring operations."
+}

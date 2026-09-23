@@ -1,5 +1,9 @@
 # fun-refactor agent SDK for Python
 
+`fr_ir.flow` provides typed control-flow graphs and opt-in `FlowCache` persistence through the
+existing Merkle stores. Input changes recompute; unrelated edits renew evidence handles without
+renewing mutation authority. See the [flow contract](../../docs/agent-investigations.md#verified-result-reuse).
+
 This zero-dependency package constructs source-free `fr-semantic-body-1` payloads. Its four
 namespaces follow the Rust IR hierarchy and retain distinct node types at runtime.
 

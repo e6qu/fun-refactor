@@ -8,8 +8,15 @@ origins remain explicit.
 Use `--steps`, `--depth` and `--bytes` to bound work and output. External source, sink, propagation
 and sanitizer contracts come from `--rules`; `--context` selects the sanitizer context. Check every
 cutoff and omission. A report describes explicit value propagation with unchecked path feasibility.
-It cannot establish application security. Loops, recursion, aliases and unsupported effects remain
-incomplete boundaries.
+It cannot establish application security. While loops use bounded fixed-point analysis. Recursion,
+aliases, exception handlers and unsupported effects remain incomplete boundaries.
+
+Read `control_flow`, `origins` and `summaries` for exact graph nodes and context-specific evaluations.
+Synthetic exits have absent origins. Edges use local IDs; derivations do not prove path feasibility.
+`--inputs-only` fingerprints the defining file, rules, configuration, analyzer and budgets.
+Python `fr_ir.flow.FlowCache` stores complete results in a verified Merkle store and revalidates
+inputs before reuse. Keep its trusted root; stale inputs recompute and tampered objects refuse.
+Reuse renews occurrence handles, never mutation reviews. Measure overhead before relying on speedups.
 
 `fr project investigate --from PLAN` revalidates a local plan and returns updated states without
 writing or executing actions. Use `--transition STEP:start`, `STEP:satisfy`, `STEP:block` or

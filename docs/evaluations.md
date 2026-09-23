@@ -266,3 +266,17 @@ a negative nonmember input that exposed an incomplete first repair.
 
 Reproduce with `python3 tools/investigation-acceptance.py --fr target/debug/fr --output /tmp/investigation`.
 The [investigation contract](agent-investigations.md) states the analysis, persistence and proof boundaries.
+
+## Fixed-point and reuse acceptance
+
+The [flow corpus](../tests/agent-eval/flow-fixed-point/task.json) pins a source that reaches its sink
+only after several loop iterations. An independent Python execution checks that case, overwrites,
+breaks, continues and raises. Native tests also cover unbound names, shadowing, unsupported effects,
+budgets and tampered retained reports. SDK tests compare reused results with clean analysis after
+unrelated edits and force rebuilds after source, rule, configuration, budget or context changes.
+
+Run `python3 tools/flow-acceptance.py --output /tmp/flow-result.json`, then audit with
+`python3 tools/flow-acceptance.py --audit /tmp/flow-result.json`. The evaluator binds its sources,
+binary and repository revision. Isolated workers measure wall time, peak child/worker RSS, native
+response bytes and executed transfer steps. Tokens remain unavailable; this is not a live-agent trial.
+Whole-file reuse is opt-in because small analyses can cost less than restoration and validation.

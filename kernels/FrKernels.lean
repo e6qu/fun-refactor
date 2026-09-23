@@ -29,3 +29,4 @@ import FrKernels.Technology
 import FrKernels.Surface
 
 import FrKernels.Investigation
+import FrKernels.Flow
