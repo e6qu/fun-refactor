@@ -84,8 +84,8 @@ Translation into Lean does not supply that proof either.
 Implementation correspondence needs its own argument or a justified verified generation path.
 Keep assumptions, accepted axioms and trusted components visible in any verification report.
 Markup, stylesheets, configuration and Markdown have no function signature surface in this check;
-their declarations can still use source anchors. Generated kernel planning and scaffolding retain
-their conservative Rust subset because those commands also translate executable function bodies.
+their declarations can still use source anchors. Generated kernel planning and scaffolding admit
+the typed pure subsets in the [formalization contract](agent-formalization.md#supported-kernel).
 
 ## Existing kernels
 

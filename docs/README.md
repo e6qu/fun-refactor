@@ -67,6 +67,7 @@ stages.
 
 - [Development](development.md): build, test, add languages and release.
 - [Roadmap](../PLAN.md): unfinished product outcomes and acceptance gates.
+- [Agent analysis review](agent-analysis-review.md): baseline evidence, analysis gaps and planning architecture.
 - [Known defects](../BUGS.md): actionable defects and durable analysis boundaries.
 - [Continuity](continuity.md): current contributor handoff.
 - [Writing style](style.md): prose rules for user-facing text.

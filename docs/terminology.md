@@ -131,6 +131,10 @@ changes code produces a plan and prints it as a diff. The change reaches disk on
 **Plan.** The set of edits that a refactoring would apply, with the warnings that go with
 them. The tool computes the plan first, and you read it before anything reaches disk.
 
+**Task plan.** The proposed persistent record of a task's acceptance criteria, evidence,
+dependencies, unresolved questions and steps. Mutation steps refer to existing reviewed edit plans.
+The [roadmap](../PLAN.md) tracks implementation of this contract.
+
 **Edit.** One replacement of a span with new text, with the reason recorded beside it.
 
 **Refusal.** A refactoring that declines to proceed and states why. A refusal is a result,

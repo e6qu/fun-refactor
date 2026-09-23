@@ -29,8 +29,8 @@ they never choose an arbitrary declaration. Repeat the goal with one returned fu
 
 The purposes are `understand`, `trace`, `change`, `migrate` and `prove`. `operation` defaults to
 `{"kind":"automatic"}`. Automatic understanding/tracing selects bounded evidence; automatic changes
-select semantic deltas; migration requires an advertised destination; proving selects the Rust
-formalization workbench or a Lean proof task.
+select semantic deltas; migration requires an advertised destination; proving selects the
+formalization workbench for admitted targets or a Lean proof task.
 Automatic Lean declaration goals derive the obligation from its selected name; file goals still
 need an exact obligation. Missing specification packages receive a non-writing initialization
 preview before formal scaffold authoring.

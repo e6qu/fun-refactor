@@ -52,6 +52,8 @@ python3 tools/check-agent-skill.py --fr target/debug/fr
 
 ## Source provenance
 
+Dependency upgrades use the newest stable release that has been public for at least 24 hours.
+
 Tree-sitter grammars are pinned Cargo dependencies. Repository query files live under `queries/`,
 and [their README](../queries/README.md) records conventions. Vendored source and licence details
 live in the [vendor guide](../vendor/README.md). Do not download parsers or grammars at runtime.
