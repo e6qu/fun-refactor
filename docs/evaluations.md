@@ -280,3 +280,6 @@ Run `python3 tools/flow-acceptance.py --output /tmp/flow-result.json`, then audi
 binary and repository revision. Isolated workers measure wall time, peak child/worker RSS, native
 response bytes and executed transfer steps. Tokens remain unavailable; this is not a live-agent trial.
 Whole-file reuse is opt-in because small analyses can cost less than restoration and validation.
+The [retained result](../tests/agent-eval/results/2026-09-23-flow-fixed-point/result.json) records the
+pinned run. [Implementation diagnostics](../tests/agent-eval/flow-fixed-point/diagnostics.json) retain
+the context-envelope refusal and the observed cache-overhead boundary.

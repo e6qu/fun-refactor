@@ -47,7 +47,8 @@ The worklist follows explicit control-flow graphs until origin sets and definite
 While loops include zero or more iterations. Break skips the loop's else suite; continue returns to
 its condition. Elif clauses and explicit raises have separate edges. Return and raise terminate their
 paths. Implicit exceptions, exception handlers, for loops and propagation of helper exceptions remain
-unsupported. Recursive calls, unknown
+unsupported. Annotations and unsupported lexical binding forms also retain explicit cutoffs.
+Recursive calls, unknown
 external calls, aliases, dynamic calls, unsupported syntax, module effects and exhausted budgets
 report cutoffs. A partial report cannot establish absence. The route does not support implicit
 control dependence, mutable objects or resource analysis. A complete report refers only

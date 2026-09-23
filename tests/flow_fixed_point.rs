@@ -243,3 +243,16 @@ fn retained_flow_acceptance_is_source_bound_and_consistent() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+#[test]
+fn annotations_and_unreachable_scope_bindings_never_panic_or_claim_complete() {
+    let dir = fixture();
+    fs::write(dir.path().join("subject.py"), "def annotated():\n    value: int\n    return 1\ndef delayed_binding():\n    return source()\n    def source():\n        return 1\ndef return_annotation() -> dynamic():\n    return 1\n").unwrap();
+    for name in ["annotated", "delayed_binding", "return_annotation"] {
+        assert_eq!(analyze(dir.path(), name, "1024")["complete"], false);
+    }
+    fs::write(dir.path().join("subject.py"), "def walrus():\n    return source()\n    (source := 1)\ndef augmented():\n    return source()\n    source += 1\n").unwrap();
+    for name in ["walrus", "augmented"] {
+        assert_eq!(analyze(dir.path(), name, "1024")["complete"], false);
+    }
+}

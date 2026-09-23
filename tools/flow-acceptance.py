@@ -22,7 +22,9 @@ from fr_ir.runtime import FrClient
 
 FIXTURE = ROOT / "tests/agent-eval/flow-fixed-point"
 BINDINGS = ["tools/flow-acceptance.py", "src/project/dataflow.rs", "src/project/control_flow.rs",
-            "src/project/flow_cache.rs", "sdk/python/src/fr_ir/flow.py", "kernels/FrKernels/Flow.lean",
+            "src/project/flow_cache.rs", "src/project/occurrence.rs", "src/span.rs", "src/parse.rs", "Cargo.lock",
+            "sdk/python/src/fr_ir/flow.py", "sdk/python/src/fr_ir/runtime.py", "sdk/python/src/fr_ir/context.py",
+            "sdk/python/src/fr_ir/investigation.py", "kernels/FrKernels/Flow.lean",
             "tests/agent-eval/flow-fixed-point/subject.py", "tests/agent-eval/flow-fixed-point/oracle.py",
             "tests/agent-eval/flow-fixed-point/task.json", "tests/agent-eval/flow-fixed-point/diagnostics.json"]
 

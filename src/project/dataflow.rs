@@ -272,6 +272,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.extend(result, node, "call-result")
     }
     fn invoke(&mut self, name: &str, function: Node<'t>, arguments: Vec<Flow>) -> Flow {
+        if function.child_by_field_name("return_type").is_some() {
+            self.cutoff("function-annotation-effects");
+        }
         if function
             .children(&mut function.walk())
             .any(|child| child.kind() == "async")
@@ -312,17 +315,42 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         };
         let mut locals = initial.defined.clone();
         for block in &graph.blocks {
-            if let Some(node) = block.syntax.filter(|n| n.kind() == "expression_statement") {
-                for expression in node.named_children(&mut node.walk()) {
-                    if expression.kind() == "assignment" {
-                        if let Some(left) = expression
-                            .child_by_field_name("left")
-                            .filter(|n| n.kind() == "identifier")
-                        {
-                            locals.insert(self.text(left).to_owned());
-                        }
+            if block.operation == Operation::Statement
+                && block.syntax.is_some_and(|n| {
+                    !matches!(
+                        n.kind(),
+                        "expression_statement" | "pass_statement" | "comment"
+                    )
+                })
+            {
+                self.cutoff("unsupported-lexical-binding");
+            }
+        }
+        let mut lexical = function
+            .child_by_field_name("body")
+            .into_iter()
+            .collect::<Vec<_>>();
+        while let Some(node) = lexical.pop() {
+            if matches!(
+                node.kind(),
+                "assignment" | "augmented_assignment" | "named_expression"
+            ) {
+                if let Some(left) = node
+                    .child_by_field_name("left")
+                    .or_else(|| node.child_by_field_name("name"))
+                {
+                    if left.kind() == "identifier" {
+                        locals.insert(self.text(left).to_owned());
+                    } else {
+                        self.cutoff("unsupported-local-binding");
                     }
                 }
+            }
+            if !matches!(
+                node.kind(),
+                "function_definition" | "class_definition" | "lambda"
+            ) {
+                lexical.extend(node.named_children(&mut node.walk()));
             }
         }
         let mut incoming = vec![None; graph.blocks.len()];
@@ -408,8 +436,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             "expression_statement" => {
                 for expression in node.named_children(&mut node.walk()) {
                     if expression.kind() == "assignment" {
-                        let left = expression.child_by_field_name("left").unwrap();
-                        let right = expression.child_by_field_name("right").unwrap();
+                        let (Some(left), Some(right)) = (
+                            expression.child_by_field_name("left"),
+                            expression.child_by_field_name("right"),
+                        ) else {
+                            self.cutoff("unsupported-assignment");
+                            continue;
+                        };
                         let value = self.expression(right, state);
                         if left.kind() == "identifier" {
                             let name = self.text(left).to_owned();
@@ -458,6 +491,17 @@ impl Project<'_> {
         let mut module_effects = false;
         for node in parsed.root().named_children(&mut parsed.root().walk()) {
             if node.kind() == "function_definition" {
+                if node.child_by_field_name("return_type").is_some()
+                    || node
+                        .child_by_field_name("parameters")
+                        .is_some_and(|parameters| {
+                            parameters
+                                .named_children(&mut parameters.walk())
+                                .any(|p| p.kind() != "identifier")
+                        })
+                {
+                    module_effects = true;
+                }
                 let name = &source[node.child_by_field_name("name").unwrap().byte_range()];
                 if functions.insert(name.to_owned(), node).is_some() {
                     ambiguous.insert(name.to_owned());
