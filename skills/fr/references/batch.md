@@ -7,7 +7,7 @@ Save this manifest outside the source tree, substituting paths and exact names n
 ```
 
 ```sh
-fr project batch --from '<PROJECT_QUERIES>' --report-bytes 8192
+fr project batch --from '<PROJECT_QUERIES>' --report-bytes 16384
 ```
 
 For agent behavior discovery, use only `explore` requests and add `--profile compact`. This admits

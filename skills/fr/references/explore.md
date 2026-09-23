@@ -58,8 +58,4 @@ Use [Surfaces](surfaces.md) for framework, style and embedded-diagram discovery,
 or the cross-stack Merkle view.
 Lock evidence does not authenticate its repository or model framework behavior.
 
-For exact use sites, inspect occurrence/origin records in calls, references and evidence disclosure.
-`project dataflow HANDLE` traces the declared Python scalar subset with explicit cutoffs.
-`project identities` compares content and revision identities; correspondence never renews an action.
-Use `project investigate --from PLAN` to revalidate a retained task before resuming.
-See `docs/agent-investigations.md` in the source checkout for contracts and boundaries.
+[Plans](investigations.md).

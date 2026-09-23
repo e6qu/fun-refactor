@@ -60,7 +60,7 @@ def main():
         candidates = [item["value"]["name"] for item in semantic.at("/model/items") if has_subtraction(item)]
         assert len(candidates) == 1
         target = client.project("find", candidates[0]).definition_target()
-        body = "if member:\n    return max(0, amount - 10)\nreturn amount"
+        body = "if member:\n    amount = amount - 10\nreturn max(0, amount)"
         change = TaskChange([], [TaskTarget("repair", target.handle, "replace-body", fragment=body)],
                             {"files-changed": 1, "edits": 1, "paths-changed": ["catalog.py"]}, ["syntax"],
                             TaskDelivery(patch="artifacts/bug.patch"))
