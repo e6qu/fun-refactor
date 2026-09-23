@@ -1,9 +1,9 @@
 {
   "schema": "fr-workflow-context-1",
   "passed": true,
-  "binary_sha256": "c59f232a408a154b748ec12ab6ea709ea09999440730db7bffb96df7492f7b4b",
-  "source_commit": "99520d83b0e51f45ffdd03793f0a5567dcbce29f",
-  "repetitions": 1,
+  "binary_sha256": "aded0ccc9f91d44a112196d865bd7d9ba1e09de1a16a7207302175389630afa8",
+  "source_commit": "4e57f6c9fc73c08f9969b80961fd523ae3e72673",
+  "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
     "python": "3.12.10",
@@ -13,9 +13,9 @@
     "tools/workflow-context.py": "32e152499ee4f887562034bba1d53e90e197359700a6d9c87a9d7f692585efda",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
-    "src/workflow.rs": "0b5a280d99b918e1a33ff301ffa6aa78f56488a447f7242ded4ba43a4aff9f07",
+    "src/workflow.rs": "8ff37cf03e730750dfd5c8cb6f07d9636fb0fa4375627c06fa8f09d946abd6b6",
     "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
-    "src/checks.rs": "e7818ca5e65a755cb33ebd00238e1dd561059ce71a1b0e4a0f9125c4d3b14a04",
+    "src/checks.rs": "4c62e20e0c7f86cc3ac6eb1c6d0dbc5194f0b59822436e0bc5db7ccaacad9bdb",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
   },
   "fixture": {
@@ -39,7 +39,12 @@
       ]
     }
   },
-  "tokenizer": null,
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
   "token_normalization": {
     "pattern": "temporary roots, elapsed milliseconds and isolated lowercase hexadecimal identities",
     "representatives": {
@@ -50,18 +55,18 @@
   },
   "summary": {
     "manual": {
-      "samples": 1,
+      "samples": 3,
       "calls": 7,
       "median_context_bytes": 6482,
-      "median_context_tokens": null,
-      "median_seconds": 0.5455840840004385
+      "median_context_tokens": 2065,
+      "median_seconds": 0.27860345604131
     },
     "workflow": {
-      "samples": 1,
+      "samples": 3,
       "calls": 2,
       "median_context_bytes": 5638,
-      "median_context_tokens": null,
-      "median_seconds": 0.43307441694196314
+      "median_context_tokens": 1896,
+      "median_seconds": 0.24098920897813514
     }
   },
   "runs": [
@@ -71,21 +76,21 @@
       "calls": 7,
       "stdout": {
         "bytes": 5438,
-        "tokens": null
+        "tokens": 1654
       },
       "requests": {
         "bytes": 1044,
-        "tokens": null
+        "tokens": 411
       },
       "artifact": {
         "bytes": 0,
-        "tokens": null
+        "tokens": 0
       },
       "context": {
         "bytes": 6482,
-        "tokens": null
+        "tokens": 2065
       },
-      "seconds": 0.5455840840004385,
+      "seconds": 0.3265093748923391,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -97,21 +102,125 @@
       "calls": 2,
       "stdout": {
         "bytes": 5167,
-        "tokens": null
+        "tokens": 1723
       },
       "requests": {
         "bytes": 153,
-        "tokens": null
+        "tokens": 48
       },
       "artifact": {
         "bytes": 318,
-        "tokens": null
+        "tokens": 125
       },
       "context": {
         "bytes": 5638,
-        "tokens": null
+        "tokens": 1896
       },
-      "seconds": 0.43307441694196314,
+      "seconds": 0.25900674995500594,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 2,
+      "arm": "workflow",
+      "calls": 2,
+      "stdout": {
+        "bytes": 5167,
+        "tokens": 1723
+      },
+      "requests": {
+        "bytes": 153,
+        "tokens": 48
+      },
+      "artifact": {
+        "bytes": 318,
+        "tokens": 125
+      },
+      "context": {
+        "bytes": 5638,
+        "tokens": 1896
+      },
+      "seconds": 0.24098920897813514,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 2,
+      "arm": "manual",
+      "calls": 7,
+      "stdout": {
+        "bytes": 5438,
+        "tokens": 1654
+      },
+      "requests": {
+        "bytes": 1044,
+        "tokens": 411
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 6482,
+        "tokens": 2065
+      },
+      "seconds": 0.26014570891857147,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 3,
+      "arm": "manual",
+      "calls": 7,
+      "stdout": {
+        "bytes": 5438,
+        "tokens": 1654
+      },
+      "requests": {
+        "bytes": 1044,
+        "tokens": 411
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 6482,
+        "tokens": 2065
+      },
+      "seconds": 0.27860345604131,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 3,
+      "arm": "workflow",
+      "calls": 2,
+      "stdout": {
+        "bytes": 5167,
+        "tokens": 1723
+      },
+      "requests": {
+        "bytes": 153,
+        "tokens": 48
+      },
+      "artifact": {
+        "bytes": 318,
+        "tokens": 125
+      },
+      "context": {
+        "bytes": 5638,
+        "tokens": 1896
+      },
+      "seconds": 0.21408800000790507,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
