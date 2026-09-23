@@ -3,7 +3,7 @@
     "sdk/python/src/fr_ir/context.py": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0",
     "sdk/python/src/fr_ir/intent.py": "c41c0f7e50d960ba81f0f630df6dd98df6144ddcc0ccc4f282c85cdfc16a6004",
     "sdk/python/src/fr_ir/intent_actions.py": "d73a870e0d103e82391cf0b5a5915c9c0b38e8b6b06af6c315d3481b8f75e46c",
-    "sdk/python/src/fr_ir/runtime.py": "d515737c2de5cf200d12ca887ccc8af58f2009a6e4cc486666dd08f4242f472e",
+    "sdk/python/src/fr_ir/runtime.py": "c96f8ac90fcf4a7c08790be4819c83347fb547d938c956c1c3c9f4beff9d4aa3",
     "src/project/agent_actions.rs": "db15568a1fbd14c9cb037334e7d742df27e93db857c6980ff5e72f32c6e73996",
     "src/project/agent_intent.rs": "312f67460946cd58329414f464a124aec859b2918f07e7ec69d75ea438694320",
     "src/project/capability_action.rs": "0015847105a8f4857c698c7f398f70c30064de630a79cb51ee28286211c9c66b",
@@ -13,7 +13,7 @@
   "claim": "Deterministic subprocess and serialized-byte measurement; no model, token, quota or population claim.",
   "fixture": {
     "purpose": "trace",
-    "selected_sha256": "dcee31580570c6c525e18027b61454b0d09f06a1e05208596d4fd5a5fc99d87e",
+    "selected_sha256": "80d1ea2f7f97098e67f221208c9619da9422eb72f137665155b17a70f707014f",
     "source_sha256": "23c5b8ae2fd965b231356a74ba4a1f28d3a5da4fb19b0bf6c543e9d56ab07c89"
   },
   "limits": {
@@ -21,19 +21,19 @@
     "progressive_calls": 192
   },
   "native": {
-    "packet_bytes": 5194,
+    "packet_bytes": 5545,
     "process_calls": 1,
     "progressive_disclosure_calls": 0,
-    "response_bytes": 5194
+    "response_bytes": 5545
   },
   "progressive": {
-    "packet_bytes": 4129,
-    "process_calls": 105,
-    "response_bytes": 369742
+    "packet_bytes": 4480,
+    "process_calls": 111,
+    "response_bytes": 391001
   },
   "reduction": {
-    "process_calls": 104,
-    "response_bytes": 364548
+    "process_calls": 110,
+    "response_bytes": 385456
   },
   "schema": "fr-native-intent-context-1"
 }

@@ -385,6 +385,15 @@ store = DirectoryObjectStore(sys.argv[3])
 prepared = client.prepare(intent, store=store)
 compiled = client.compile(intent, store=store)
 assert compiled.at('/selected') == prepared.at('/selected')
+steps = compiled.at('/selected/sources_and_sinks/flows/0/sinks/steps')
+assert len(steps) == 2
+assert len({step['occurrence_id'] for step in steps}) == 2
+with open(sys.argv[1] + '/src/lib.rs', 'rb') as source_file:
+    source = source_file.read()
+for step in steps:
+    assert step['occurrence_id'].startswith('fro1:')
+    assert source[step['span']['start']:step['span']['end']] == b'value'
+    assert step['position']['col'] == step['span']['start'] + 1
 for name, digest in compiled.at('/object_digests').items():
     assert restore_stored_value(store, digest) == compiled.at('/selected/' + name)
 print(json.dumps({

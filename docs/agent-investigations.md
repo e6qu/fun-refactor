@@ -1,11 +1,14 @@
 # Evidence and resumable investigations
 
-`project calls`, `project show --relations` and evidence disclosure now expose source occurrences.
+`project calls`, `project show --relations` and `project dataflow` expose source occurrences.
 An occurrence carries a revision, relative path, half-open UTF-8 span, matching 1-based Unicode
 range, role and enclosing declaration handle. Its `fro1` identity distinguishes two calls on one
 line. Relationship endpoints retain declaration locations separately. A call offset without an
 indexed reference has an absent origin; conflicting spans have multiple origins. Neither case
 creates an invented range. `Occurrence.from_data` and `Occurrence.text` provide typed Python access.
+
+Evidence disclosure uses a compact flow record: path, exact byte span, start position and occurrence
+ID, bound to its disclosure revision. Declaration details remain accessible through their handles.
 
 ## Scalar flow
 
