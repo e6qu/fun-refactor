@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.32.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.3...fun-refactor-v0.32.0) (2026-09-23)
+
+
+### Features
+
+* bind AST definitions to text locations ([#347](https://github.com/e6qu/fun-refactor/issues/347)) ([4fdbfb8](https://github.com/e6qu/fun-refactor/commit/4fdbfb89e79ee7307dd874d51b0cfcd10a5c29f0))
+* locate exact source fragments ([#352](https://github.com/e6qu/fun-refactor/issues/352)) ([e7ec8b1](https://github.com/e6qu/fun-refactor/commit/e7ec8b1d4b1799828571618f1ac13b88be14b363))
+* retain text locations in agent targets ([#348](https://github.com/e6qu/fun-refactor/issues/348)) ([4e582fa](https://github.com/e6qu/fun-refactor/commit/4e582fa8199e59c8d88760169cae6bee3ca235fd))
+* reveal typed source locations in Python ([#350](https://github.com/e6qu/fun-refactor/issues/350)) ([9c3121d](https://github.com/e6qu/fun-refactor/commit/9c3121dac7350dbf641f66e64521118421182429))
+* type agent target locations in Python ([#349](https://github.com/e6qu/fun-refactor/issues/349)) ([a9b9692](https://github.com/e6qu/fun-refactor/commit/a9b9692a3bd084e53efe26fe6c6fd04be7c04697))
+
+
+### Fixes
+
+* bind source executable modes ([#346](https://github.com/e6qu/fun-refactor/issues/346)) ([99520d8](https://github.com/e6qu/fun-refactor/commit/99520d83b0e51f45ffdd03793f0a5567dcbce29f))
+* terminate successful check descendants ([#344](https://github.com/e6qu/fun-refactor/issues/344)) ([40e030e](https://github.com/e6qu/fun-refactor/commit/40e030e26a5a440106be15bbb2fcd2e40fbd1779))
+* translate bound source locations ([#351](https://github.com/e6qu/fun-refactor/issues/351)) ([b290c7d](https://github.com/e6qu/fun-refactor/commit/b290c7d5a7c357b25bcdf563c1c57d89c8eaba5a))
+* verify source line ranges ([#353](https://github.com/e6qu/fun-refactor/issues/353)) ([11b8d09](https://github.com/e6qu/fun-refactor/commit/11b8d099c7cd165edb69df68e84664c356600d7f))
+
 ## [0.31.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.2...fun-refactor-v0.31.3) (2026-09-21)
 
 
