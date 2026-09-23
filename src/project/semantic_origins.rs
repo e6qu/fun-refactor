@@ -9,7 +9,7 @@ pub(super) const RULE: &str = "python-body-origins-1";
 
 #[derive(clap::Args, Default)]
 pub(super) struct OriginOptions {
-    #[arg(long, requires = "body", conflicts_with = "locators_only")]
+    #[arg(long, requires = "body", conflicts_with_all = ["locators_only", "intent_to"])]
     pub origins: bool,
     #[arg(long, default_value_t = 40, requires = "origins")]
     pub origin_limit: usize,
@@ -485,8 +485,12 @@ impl Project<'_> {
             "--nodes",
             "4096",
         ];
+        let mut arguments: Vec<String> = arguments.iter().map(|s| s.to_string()).collect();
+        if report["source_policy"] == "explicit-unsupported-source" {
+            arguments.push("--unsupported-source".into());
+        }
         let continuation = paging["next"].as_str().map(|cursor| {
-            let mut arguments: Vec<String> = arguments.iter().map(|s| s.to_string()).collect();
+            let mut arguments = arguments.clone();
             arguments.extend([
                 "--origin-limit".into(),
                 options.origin_limit.to_string(),

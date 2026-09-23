@@ -249,3 +249,20 @@ def test_changed_review_refuses_before_execution(tmp_path):
     with pytest.raises(FrRuntimeError, match="changed"):
         run_checks(plan, client, "verify", reviewed, MemoryObjectStore())
     assert not (tmp_path / "should-not-run").exists()
+
+
+def test_origin_continuation_preserves_explicit_source_policy(tmp_path):
+    client = client_for(tmp_path, "def total(x):\n    del x\n    return 1\n")
+    first = client.project("semantic", handle(client), "--body", "--origins", "--unsupported-source", "--origin-limit", "1")
+    following = first.at("/origins/continuation/arguments")
+    assert "--unsupported-source" in following
+    second = SemanticOrigins.from_report(client.call(*following))
+    assert second.basis == first.at("/semantic_basis")
+    assert second.report.at("/source_policy") == "explicit-unsupported-source"
+
+
+def test_origins_refuse_edit_plan_only_output(tmp_path):
+    client = client_for(tmp_path)
+    with pytest.raises(FrRuntimeError, match="cannot be used"):
+        client.project("semantic", handle(client), "--body", "--origins", "--locator-op", "set-int",
+                       "--locator-from", "1", "--intent-to", "2")
