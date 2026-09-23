@@ -28,13 +28,17 @@ from fr_ir.runtime import FrClient
 
 client = FrClient(".", executable="fr")
 found = client.project("find", "render", "--signature")
-handle = found.at("/rows/0/0")
+target = found.definition_targets()[0]
 ```
 
 `at` accepts an RFC 6901 pointer and returns only the selected detached Python value. `to_data`
 returns the complete detached object when a local program needs it. Neither method prints the
 report. A failed command raises `FrRuntimeError` with its argument tuple, exit status and structured
 error report when one was returned.
+`definition_targets()` reads tabular `find`, `select` and `map` rows or object-shaped `explore`
+rows. It checks the report revision against every handle, parses each exact AST location and checks
+the reported line before returning typed `AgentTarget` values. A map must request the `location`
+field. Rows without a definition location, such as directories, remain outside the result.
 
 ## Progressive reveal
 
@@ -44,7 +48,7 @@ exact `project disclose --reveal` continuations emitted by `fr`; optional domain
 code choose one branch without showing every report to the model.
 
 ```python
-initial = client.disclose(handle, view="evidence", token_limit=4096)
+initial = client.disclose(target.handle, view="evidence", token_limit=4096)
 action = initial.actions(domain="project-evidence")[0]
 revealed = client.follow(action)
 ```

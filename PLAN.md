@@ -170,7 +170,8 @@ deep gates pass from a clean build.
   exact-source fragment carries its own file-relative typed location while retaining its committed
   declaration-relative page offset. Python source extraction verifies byte spans, line ranges and
   page continuity against the exact text and selected definition. Ranged capability operations
-  reuse the same byte-span type.
+  reuse the same byte-span type. Direct Python project queries translate definition rows into the
+  same revision-checked typed targets without JSON-pointer glue.
 - Every mutation has a complete preview whose basis commits all planning inputs.
 - User changes outside selected snapshots survive apply, undo and redo.
 - Unsupported or ambiguous inputs refuse before history creation.

@@ -20,7 +20,7 @@ SOURCE = "pub fn calculate(value: i64) -> i64 {\n    return value + 7;\n}\n"
 MANUAL = '''from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import FrClient
 client = FrClient(WORKSPACE, executable=FR)
-handle = client.project("find", "calculate", "--signature").at("/rows/0/0")
+handle = client.project("find", "calculate", "--signature").definition_targets()[0].handle
 review = client.review(TaskChange([], [TaskTarget(
     "scalar", handle, "edit-body-scalar", scalar=ScalarRequest("set-int", "7", "9"),
 )], {"files-changed": 1, "edits": 1, "changed-operations": 1,

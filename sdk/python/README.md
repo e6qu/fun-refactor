@@ -23,9 +23,9 @@ from fr_ir.runtime import FrClient
 
 client = FrClient(".")
 found = client.project("find", "render", "--signature")
-handle = found.at("/rows/0/0")
+target = found.definition_targets()[0]
 session = client.context(
-    handle, view="evidence",
+    target.handle, view="evidence",
     store=DirectoryObjectStore("/tmp/fr-objects"),
 )
 code_map = session.materialize_section("code_map")
@@ -81,6 +81,9 @@ to the committed declaration for exact protocol paging. The fragment and session
 and byte spans against revealed text and the target definition. AST locations stay file-relative for capability authoring.
 `ByteSpan` also serves as the optional range of `CapabilityOperation`, so an AST name or definition
 span can flow into a reviewed capability without rebuilding a raw mapping.
+Direct `project find`, `select`, `map` and `explore` reports expose `definition_targets()` as well.
+It checks the report revision, row shape, handle and line before returning the same typed
+`AgentTarget` used by guide, disclosure and intent workflows.
 `complete_guide` follows read and preview actions without writing. Every writable route instead
 uses one `GuideReview`: author the route's typed `TaggedIntentAction`, pass it with the retained
 guide to `client.review_guide`, inspect the native review, then pass that unchanged review to

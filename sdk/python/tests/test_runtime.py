@@ -351,6 +351,66 @@ class TestRuntime:
             report.at("/rows~")
 
     @patch("fr_ir.runtime.subprocess.run")
+    def test_project_rows_expose_revision_bound_typed_definition_targets(self, run):
+        revision = "a" * 64
+        handle = f"frp1:{revision[:32]}:17"
+        location = {
+            "name": {
+                "span": {"start": 13, "end": 19},
+                "range": {"start": {"line": 2, "col": 5},
+                          "end": {"line": 2, "col": 11}},
+            },
+            "definition": {
+                "span": {"start": 9, "end": 30},
+                "range": {"start": {"line": 2, "col": 1},
+                          "end": {"line": 3, "col": 2}},
+            },
+        }
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "find", "revision": revision,
+            "columns": ["handle", "kind", "name", "path", "line", "location"],
+            "rows": [
+                [handle, "function", "render", "src/app.py", 2, location],
+                [f"frp1:{revision[:32]}:18", "directory", "src", "src", None, None],
+            ],
+        })
+        targets = self.client.project("find", "render").definition_targets()
+        assert targets == (AgentTarget(
+            handle, "render", "function", "src/app.py", None, "src/app.py:2:5",
+            DefinitionLocation.from_data(location),
+        ),)
+        assert targets[0].location is not None
+        assert targets[0].location.name.span == ByteSpan(13, 19)
+
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "explore", "revision": revision,
+            "rows": [{
+                "handle": handle, "kind": "function",
+                "name": {"text": "rend", "omitted_bytes": 2},
+                "path": "src/app.py", "line": 2, "location": location,
+            }],
+        })
+        explored = self.client.project("explore", "render").definition_targets()
+        assert explored[0].handle == handle
+        assert explored[0].name is None
+        assert explored[0].location == DefinitionLocation.from_data(location)
+
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "find", "revision": "b" * 64,
+            "columns": ["handle", "location"], "rows": [[handle, location]],
+        })
+        with pytest.raises(FrRuntimeError, match="handle does not match"):
+            self.client.project("find", "render").definition_targets()
+
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "find", "revision": revision,
+            "columns": ["handle", "line", "location"],
+            "rows": [[handle, 3, location]],
+        })
+        with pytest.raises(FrRuntimeError, match="line does not match"):
+            self.client.project("find", "render").definition_targets()
+
+    @patch("fr_ir.runtime.subprocess.run")
     def test_compatibility_requires_exact_versions_and_wire_schemas(self, run):
         compatible = {
             "schema": "fr-sdk-compatibility-1",

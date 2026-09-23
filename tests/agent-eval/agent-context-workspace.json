@@ -2,8 +2,8 @@
   "schema": "fr-agent-context-workspace-eval-1",
   "passed": true,
   "inputs": {
-    "tool_sha256": "495f7efa4b9a06d5608a3d4d99c7896da51c2cac7ae08cf87ad15cbab4326e19",
-    "runtime_sha256": "026bc416ca26f325a34d3cb0bc0fcf7ccd154f2fdd545b2bba98da391ea5e0ce",
+    "tool_sha256": "0698b5af9bef291f2eda3a20c1e652f03bc06495b5b72a1811aef36787d3540c",
+    "runtime_sha256": "8c2912400631395280384d36acbe97dde101cc706fbbb03873872ed7d0feafe1",
     "context_sha256": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0"
   },
   "arms": {
@@ -167,9 +167,9 @@
     "selected_packet": {
       "agent_visible_calls": 1,
       "internal_fr_calls": 24,
-      "agent_visible_bytes": 4771,
+      "agent_visible_bytes": 4784,
       "request_response_bytes": [
-        686,
+        699,
         4085
       ],
       "packet": {
@@ -278,7 +278,7 @@
   },
   "reduction": {
     "agent_visible_calls": 23,
-    "agent_visible_bytes": 84906,
+    "agent_visible_bytes": 84893,
     "agent_visible_percent": 94.7
   },
   "scope": "One deterministic generic Rust project. Both arms perform identical handle discovery, bounded exact disclosure traversal, recursive code-map materialization, digest checks and object-store writes. The report arm counts every fr request and response at the agent boundary. The packet arm counts its complete Python program and final selected packet while intermediate reports remain local. This does not run a model or measure tokens, hidden reasoning, billed quota or population behavior."
