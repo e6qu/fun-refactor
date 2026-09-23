@@ -1,198 +1,163 @@
-# fun-refactor roadmap
+# Agent analysis and planning roadmap
 
-`fr` is a deterministic project-understanding and change engine for agents. It gives an agent
-bounded semantic structure, exact identities, admitted actions and reviewed delivery without making
-the agent ingest a repository as raw text. Source remains available through explicit bounded reveal
-when structure is insufficient.
+Build `fr` into an agent's static analysis, code map and change engine. An agent should start from
+a question or task, discover relevant evidence progressively, plan its work and deliver checked results.
 
-This roadmap records the completed product finish line and task-driven follow-on work. Current commands belong in the
-[documentation map](docs/README.md), released changes in the [changelog](CHANGELOG.md), and defects
-in the [defect ledger](BUGS.md). `fr audit` and `fr capabilities` are the live authorities for
-support counts and refusal reasons.
+This file tracks unfinished outcomes and their completion gates. The [architecture review](docs/agent-analysis-review.md)
+holds the baseline and design rationale. The [documentation map](docs/README.md) describes current features.
+Use `fr --json audit` and `fr capabilities` for live support and refusal reasons.
 
-## Product finish line
+## Completion criteria
 
-The product is complete when an agent can:
+The roadmap is complete when all four milestones pass their gates within explicit language and
+semantic subsets. The acceptance corpus must cover:
 
-1. Express an `understand`, `trace`, `change`, `migrate` or `prove` goal without learning the CLI
-   command tree.
-2. Receive a language-aware route with exact actions, required authored values, result contracts,
-   evidence and unresolved questions.
-3. Inspect only relevant Merkle-addressed project or semantic subtrees and reveal bounded source
-   explicitly when needed.
-4. Use the smallest admitted change mechanism: a built-in refactor, recipe, semantic edit, surface
-   edit, application migration or proof workflow.
-5. Review one complete immutable change, execute only that review, run declared checks, export a Git
-   patch and retain undo/redo evidence.
-6. Distinguish syntax, compilation, behavioral execution, model theorems and implementation
-   correspondence.
-7. Receive honest support, uncertainty, omission and refusal data for every operation.
-8. Complete the pinned unfamiliar-project acceptance corpus below with live agents across
-   representative languages and change shapes. Make no exploratory tool calls after guidance and
-   resolve known actionable correctness defects.
+- Code understanding and control flow, with exact evidence and unresolved relationships.
+- Dataflow and sources/sinks, with bounded witnesses and explicit analysis assumptions.
+- Feature writing and bug fixing from requirements or symptoms without a supplied edit target.
+- Refactoring and structural changes with affected consumers and preservation checks.
+- Translation with declared source/target semantics and independent behavioral checks.
+- Lean properties for existing and new code, including explicit source correspondence obligations.
+- Task resumption after interruption and code changes, with invalidation of dependent evidence.
 
-Completion excludes guesses about runtime behavior from static source. A translated Lean model
-does not prove its source without a checked correspondence boundary.
+Each case needs a pinned repository revision, declared scope, independent oracle and retained result.
+An accepted task establishes its stated outcome. Unsupported behavior remains an explicit boundary.
+Earlier guided delivery results remain regression evidence in the [evaluation registry](tests/agent-eval/representative-acceptance.json).
 
-## Current baseline
+## Milestones and order
 
-Items 1 through 8 now have executable evidence. The representative corpus has deterministic breadth
-and accepted guided upstream read, Rust rename, cross-crate Rust body, TSX, CSS, Mermaid,
-application migration and Lean proof-authoring runs. Two accepted matched source-writing cohorts
-also repeat the Rust scalar task. The defect ledger records no open actionable correctness defect.
+| Milestone | Status | Dependency | Completion evidence |
+|---|---|---|---|
+| A. Exact evidence and investigation | Next | Existing discovery and delivery | Unknown-target bug and feature tasks |
+| B. Control flow, dataflow and sources/sinks | Pending | A's occurrence and evidence contracts | Independently checked flow witnesses and negative cases |
+| C. Incremental analysis and resumable plans | Pending | A's task contract; dependency records for each reused analysis | Resume tests and agreement with clean rebuilds |
+| D. Changes, translation and proof obligations | Pending | Relevant evidence from A and B | Checked changes, translations and old/new proof tasks |
 
-| Area | Delivered baseline | Remaining work |
-|---|---|---|
-| Project understanding | 19 parser identities; symbols, scopes, types, references, calls, flow, impact, entry points, configuration and cross-stack facts | Preserve uncertainty and expand a language only against a concrete task |
-| Agent context | Bounded native intent packets, progressive disclosure, Merkle objects, code maps, traces, impact, sources and sinks; local, memory and bounded HTTP stores | Validate on more repositories and storage services |
-| Agent routing | Structured goals, ten language-aware guide routes and one uniform writable `GuideReview` lifecycle | Broaden only from observed task failures |
-| Code changes | Refactors, recipes, semantic bodies and deltas, scalar intents, batches and surface edits | Reduce uneven semantic authoring and translation coverage |
-| Application migration | Generic application IR for routes and components; four HTTP adapters write required scalar validation and read their documented source subsets; selected FastAPI middleware, `Depends`/`Security` providers and closed-world service calls; React/Next state and events behind an explicit client boundary | Validation outside each reader subset, configured middleware, provider internals, external services and effects |
-| Delivery | Uniform guide review plus checked history, apply, undo, redo, recovery, patches, staging, commits and owned worktrees | Broaden cross-project and cross-language failure testing |
-| Formal methods | Lean admission and transition kernels, strict anchors, signature maps, shared cases and external-project proof scaffolds | Strengthen critical implementation correspondence without overstating host guarantees |
-| Agent evidence | Deterministic cross-language registry, accepted guided upstream read/trace, three-file rename, cross-crate Rust bodies, frontend source writing, Express-to-Go application migration and Lean proof authoring, plus matched context and two accepted scalar source-writing cohorts | Broaden only from observed gaps |
-| Distribution | Native, WASM and version-matched Python SDK artifacts plus a portable agent skill | Add distribution channels only when consumer demand justifies them |
+Start with A. Build the smallest useful task plan there and add persistence and invalidation in C.
+C and D can advance when their specific prerequisites exist. Formal verification and evaluation
+accompany every milestone.
 
-Run these instead of copying volatile matrices into roadmap prose:
+### A. Exact evidence and investigation
 
-```sh
-fr --json audit
-fr --json audit workflows
-fr --json audit frameworks
-fr --json audit proofs
-fr capabilities
-```
+Outcome: an agent can find relevant code and explain a proposed change from exact, bounded evidence.
 
-## Bulk delivery roadmap
+- [ ] Expose exact locations for relationship endpoints, references, call sites and flow occurrences.
+  Distinguish each occurrence from its containing declaration; preserve typed Rust/Python contracts.
+- [ ] Map semantic nodes to source origins. Represent absent and multiple origins explicitly.
+- [ ] Attach analysis rules, input identities, scope, confidence and omissions to facts.
+  Offer bounded explanations and follow actions through existing progressive discovery.
+- [ ] Include relevant build configuration and external evidence in the analysis scope.
+  Preserve toolchain identity and disagreements when a task requires compiler facts.
+- [ ] Add a typed task plan containing acceptance criteria, hypotheses, evidence references,
+  dependencies, unresolved questions and required checks. Reuse guide actions and reviewed delivery.
+- [ ] Pin one bug reproducer and one feature requirement with initially unknown edit targets.
+  Measure the current workflow before extending it.
 
-We group the remaining work into large pull requests that finish an observable product boundary.
-Do not split a coherent outcome only to reduce diff size. Each pull request must keep its code,
-formal models, tests, fixtures, documentation and retained evidence together. Reviewability comes
-from explicit invariants, generated reports and executable acceptance gates.
+Gate: agents discover the relevant occurrences and support their decisions with retained evidence.
+Independent oracles check the diagnosis and final behavior. Tests distinguish same-line calls,
+shadowing, Unicode positions, missing origins, stale revisions and truncated discovery.
 
-Dogfood `fr`, its DSL recipes and reviewed flows for repository changes whenever the requested edit
-has an admitted route. Inspect the preview, execute the unchanged review and exercise history or
-patch delivery. A refusal, incorrect preview or impractical workflow is product evidence: fix it in
-the same pull request when its root cause belongs to that outcome. Use a direct editor only when
-`fr` has no suitable operation, and retain that boundary in the pull request validation notes.
+### B. Control flow, dataflow and sources/sinks
 
-### Completed bulk outcome: representative guided delivery
+Outcome: an agent can explain how control and values reach a use across admitted function boundaries.
 
-Use pinned unfamiliar projects and independent oracles to test the complete agent workflow. The
-existing representative registry supplies deterministic cases; its two accepted matched live
-source-writing cohorts repeat one Rust scalar change. The pinned regex workspace has accepted guided
-read/trace, three-file rename and cross-crate authored body tasks. Pinned MIT React/Tailwind and
-Micromaid projects have accepted guided TSX class and body, paired Layout/Header bodies, CSS selector
-and Mermaid node edits. A pinned Express fixture has an accepted guided migration to Go with
-validated path, query and JSON body inputs. A pinned Lean package has an accepted source-free
-guided proof-authoring run. Keep deterministic replay, live agent outcomes and population claims
-separate. Pin each
-task's repository revision, goal, admitted route, allowed tools, exact postconditions and compiler,
-framework or proof oracle before a live run.
+- [ ] Define analysis semantics for the language subset required by A's tasks.
+  Connect the analysis representation to syntax and authoring IR through explicit origin mappings.
+- [ ] Model control-flow blocks, assignment order, definitions/uses, branches, loops and returns.
+  Model admitted exceptional exits and report unsupported effects.
+- [ ] Add function summaries for argument/parameter transfer, return values and effects.
+  Declare context, recursion, alias and resource policies; preserve unknown external-call boundaries.
+- [ ] Add versioned source, sink, propagation and sanitizer rules with context-specific contracts.
+  Return witnesses with exact occurrences, rule identities, assumptions and cutoffs.
+- [ ] State whether each result describes possible behavior, a proved condition or a heuristic candidate.
+  Keep call reachability, value propagation and feasible paths distinct.
 
-The acceptance corpus covers:
+Gate: trace through a helper, distinguish overwrites and retain branch alternatives.
+Cover loops, recursion, aliases and unknown external calls within the declared subset.
+Find an unsafe path and distinguish a sanitizer that applies in another context.
+Independent positive and negative fixtures measure accuracy; exhausted budgets report incomplete analysis.
 
-- An unfamiliar upstream `understand` and `trace` task with bounded reveal and exact evidence
-  (accepted on the pinned regex workspace; retain new failures separately).
-- A Rust multi-file change with one complete reviewed delivery. The pinned regex workspace has
-  accepted three-file guided rename and two-file cross-crate authored body deliveries.
-- TSX/React and CSS/Tailwind/Mermaid changes through admitted guides. Pinned React header class,
-  standalone CSS selector and authored Layout body edits, plus a Micromaid diagram node edit, are
-  accepted. The paired Layout/Header body trial renders three variants and checks both landmarks;
-  the CSS selector trial does not establish rendered UI behavior.
-- A backend application migration that reads validated inputs from source and writes a different
-  HTTP adapter. Its deterministic and retained live Express-to-Go cases are accepted. Preserve
-  manual boundaries and check the generated runtime behavior.
-- An agent-authored Lean proof with checked submission and explicit correspondence limits. Its
-  deterministic case and retained live run are accepted.
+### C. Incremental analysis and resumable plans
 
-Acceptance is complete: each task shape above has at least one accepted live run. Source-writing
-runs include the guide, preview, checks, apply, undo, redo and patch replay where applicable. The
-independent oracle checks the final source or behavior. Retain refusals and failed attempts as
-evidence; report model settings, calls and context without extrapolating from the cohort. Use new
-task failures to select further product work.
+Outcome: an agent can retain useful work across revisions without reusing stale conclusions or actions.
 
-### Next bulk outcome: task-driven application and semantic IR expansion
+- [ ] Separate revision-bound handles, immutable Merkle object digests and correspondence between revisions.
+  Report matched, ambiguous and missing correspondence before rebinding targets.
+- [ ] Record dependencies on source, imports, configuration, analyzer versions and external summaries.
+  Track negative lookups whose results can change when new declarations appear.
+- [ ] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
+  Fall back to a complete rebuild when dependency coverage is insufficient.
+- [ ] Persist task plans locally with pending, ready, running, satisfied, blocked and stale steps.
+  Invalidate dependent evidence and refresh prerequisites before resuming work.
+- [ ] Bind checks and proof results to their inputs. Retain the existing immutable mutation review boundary.
+- [ ] Measure cold, warm and single-edit latency, memory, context bytes and recomputation.
+  Choose cache granularity from those measurements.
 
-Expand high-level changes only for concrete failures in the acceptance corpus. All four HTTP
-adapters already read their documented validated-input subsets; report other syntax and native
-failure semantics as explicit boundaries.
+Gate: reopen an interrupted task, preserve independent evidence and invalidate a changed dependency.
+Exercise renames, moves, deletions, added overloads, configuration drift and analyzer changes.
+Incremental answers agree with clean rebuilds. Tampered objects and stale reviews cannot admit writes.
 
-- Extend source-side validation only where the IR can state the same transport, success and failure
-  contract.
-- Model configured middleware, provider outputs in responses and service-call request bodies. Add
-  them only where the IR can state order, inputs, outputs and refusals.
-- Expand React/Next rendering beyond declared state and literal events through explicit effect
-  semantics; effects remain refusals until then.
-- Bring semantic authoring and executable translation to the language constructs required by the
-  acceptance corpus.
-- Preserve generic adapters; fixtures may use examples, but production recognition and generation
-  must not depend on example names or layouts.
+### D. Changes, translation and proof obligations
 
-Acceptance: each new IR construct has reader/writer compatibility cells, negative cases and
-independent round-trip checks. Behavioral claims have runtime fixtures. Delivery is reversible and
-the correspondence boundary is explicit.
+Outcome: an agent can implement the requested task and state precisely what its checks and proofs establish.
 
-### Later bulk outcome: critical correspondence and resilience
+- [ ] Discover affected consumers, contracts, configuration and tests for feature, bug and structural changes.
+  Deliver the complete change through existing review, history and patch mechanisms.
+- [ ] Expand semantic and application IR only for pinned task requirements.
+  Define transport, effects, success and failure behavior for each new construct.
+- [ ] Define translation domains for arithmetic, exceptions, evaluation order, mutation and effects.
+  Preserve fidelity gaps and compare source/target behavior with independent oracles.
+- [ ] For existing code, retain the property, model and source correspondence obligations.
+  For new code, author the specification and implementation together.
+- [ ] Retain old/new models for refactoring and translation, with preservation or refinement claims.
+  Reject dependent proof evidence after relevant changes.
+- [ ] Check small executable kernels for edit admission, dependency invalidation and task transitions.
+  State trusted components and remaining obligations; use fault injection for host operations.
 
-Reduce the trusted boundary where failure could silently admit stale work, corrupt history or
-misstate evidence.
+Gate: admitted constructs have compatibility cases, explicit refusals and independent behavior checks.
+Pinned tasks cover structural changes, translation, existing-code proofs and new-code specification/proof work.
+Strict verification rejects stale evidence and hidden proof debt. Delivery passes reversal and patch replay.
+Source implementation claims require a checked correspondence argument or verified generation path.
 
-- Extract small executable kernels for canonical serialization, Merkle records, patch planning,
-  semantic lowering and history transitions where proofs provide meaningful guarantees.
-- Add checked generation or differential correspondence for those kernels.
-- Use property, fault-injection and crash-recovery tests for filesystem, Git and subprocess behavior
-  that cannot usefully be proved inside Lean. Declared checks now isolate Unix subprocess groups
-  and terminate members that remain in those groups after command completion or before reporting
-  timeout and output-limit failures. Source revisions bind the portable executable state as well as
-  the path and content of each supported source file.
-- Continue measuring and reducing full-gate cost while retaining Lean's default two-job and
-  two-thread bounds. Strict anchor checks now extract each source once per invocation, and the
-  default gate reuses the CLI binary already built for its integration tests.
-- Keep proof records explicit about assumptions, trusted tools and unproved host behavior.
+## Immediate next delivery
 
-Acceptance: strict verification rejects stale anchors, changed signatures, hidden proof debt and
-correspondence drift. Recovery and patch tests cover injected interruption points. Default, WASM and
-deep gates pass from a clean build.
+Complete the first slice of A: exact relationship and flow locations with a pinned bug investigation fixture.
 
-## Product invariants
+1. Select a reproducible bug task and pin its independent oracle before implementation.
+2. Record the current discovery result, missing occurrence evidence and context cost.
+3. Extend the shared location contract through native reports, bounded disclosure and typed Python access.
+4. Verify occurrence identity, byte/line agreement, ambiguity, stale inputs and response budgets.
+5. Replay the investigation and retain its result. Update A's checklist with links to the evidence.
 
-- Reads and writes stay inside the selected workspace unless a command explicitly names an external
-  read-only toolchain or caller-provided object store.
-- Reports state coverage, omissions, confidence, source basis and uncertainty. Truncation never
-  becomes absence.
-- Source-free evidence remains source-free. Exact source requires an explicit bounded action.
-- Targeted declaration evidence binds each AST-derived symbol to its exact name and definition byte
-  spans. It supplies corresponding 1-based line and column ranges from the same project revision.
-  Exact guide, disclosure and intent targets retain that contract. Broad maps expose it as an
-  explicit field to preserve bounded context. Python guide, disclosure and compiled-intent targets
-  expose typed definition, byte-span and line-range values for direct source work. Every revealed
-  exact-source fragment carries its own file-relative typed location while retaining its committed
-  declaration-relative page offset. Python source extraction verifies byte spans, line ranges and
-  page continuity against the exact text and selected definition. Ranged capability operations
-  reuse the same byte-span type. Direct Python project queries translate definition rows and exact
-  shown nodes into the same revision-checked typed targets without JSON-pointer glue. Exact-one
-  selection refuses absent or ambiguous definitions.
-- Every mutation has a complete preview whose basis commits all planning inputs.
-- User changes outside selected snapshots survive apply, undo and redo.
-- Unsupported or ambiguous inputs refuse before history creation.
-- Content-addressed values use one canonical representation and support independent verification.
-- Python mirrors public IR shapes. Its package root stays empty, with no `__main__.py` and no mutable
-  `__all__`. Python tests use pytest and type-check with `ty`.
-- Dependency upgrades use the newest stable release that has been public for at least 24 hours.
+Use the observed gap to choose the next slice of A or B. Keep the complete feature task as A's
+remaining acceptance obligation until its independent oracle passes.
 
-## Verification policy
+## Rules for every milestone
 
-Formalize properties whose failure could silently change code, admit stale work, corrupt history or
-overstate evidence. Prefer small executable kernels with explicit assumptions over broad models
-without implementation correspondence.
+- Keep source syntax, project relationships, analysis, authoring IR and formal models connected through explicit identities.
+- Bind text locations and evidence to the selected snapshot. Require explicit bounded actions for source reveal.
+- Preserve coverage, assumptions and omissions. Truncation and unknown effects cannot establish absence or safety.
+- Validate dependencies before reusing conclusions. Content equality alone cannot authorize a stale action.
+- Keep agent hypotheses distinct from tool facts. Task completion requires evidence for acceptance criteria.
+- Review every complete mutation before execution. Preserve unrelated user changes, recovery and reversal.
+- Preserve workspace boundaries, ambiguity refusals and independently verifiable canonical Merkle records.
+- Distinguish syntax, compilation, tested behavior, model theorems and source implementation correspondence.
 
-Every proof record names its property, domain, assumptions, Lean declaration, checking toolchain,
-source anchors, signature maps, executable bridge, trusted components and remaining obligations.
-Shared finite cases establish agreement only for those cases. A general implementation claim needs
-a correspondence proof or reviewed verified-generation path.
+## Delivery and acceptance process
 
-Use focused tests while implementing, then run the affected complete gates:
+Before each slice, pin its task, language subset, budgets and oracle. Include positive, negative,
+ambiguous, incomplete and stale cases. Implement code, typed contracts, tests, models and docs together.
+Use `fr` for repository changes when an admitted route exists; retain refusals or direct-edit boundaries.
+
+Compare against ordinary search/source editing and the current `fr` workflow under equivalent conditions.
+Record task success, false claims, useful discoveries, source reveals, context bytes and latency.
+Record tokens only when available. Allow bounded follow-up discovery during investigation.
+
+Keep deterministic checks, analysis accuracy and live-agent results separate. Retain failed attempts.
+Expand live trials across repositories and task shapes; report their scope without extrapolating population claims.
+Audit retained evidence before running fresh paid trials.
+
+Run focused checks during implementation, then the affected complete gates:
 
 ```sh
 PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
@@ -200,25 +165,11 @@ tools/check.sh wasm
 tools/check.sh deep
 ```
 
-The default gate covers formatting, lint, native tests, capability coverage, prose and Lean kernels.
-The WASM gate covers browser builds and APIs. The deep gate covers repository-scale agreement,
-conformance, translation round trips, exhaustive Lean cases and external patch replay. Generated
-code also runs its pinned compiler or framework oracle.
+Follow the [development guide](docs/development.md) for toolchains and resource limits,
+the [SDK contract](sdk/python/README.md) for Python conventions, and the
+[evaluation guide](docs/evaluations.md) for retained evidence. Generated code also needs its declared compiler or runtime oracle.
 
-Rust test fan-out for the default, deep and Lean-kernel gates defaults to two. Lean worker threads
-use the same bound. Builders may set positive `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` values
-explicitly; use `1` for both on a resource-constrained workstation.
-
-## Durable boundaries
-
-These are product constraints, not unfinished roadmap items:
-
-- Static analysis cannot settle runtime-generated names, external callbacks, reflection or every
-  dynamic dispatch target.
-- Package-manager solving belongs to reviewed package-manager commands.
-- Framework facts describe static evidence; compiler and runtime commands provide execution
-  evidence.
-- Browser history handles bounded UTF-8 regular files with projected mode `0644`; native `fr`
-  handles executable files, symlinks, staging, commits and worktrees.
-- A daemon or watch process remains outside scope until measurement shows that bounded batches,
-  caching and concurrent-build coalescing are insufficient.
+Mark a checklist item complete only with linked implementation and passing evidence.
+Mark a milestone complete only after its gate passes; record unresolved work explicitly.
+Keep this file focused on remaining work and move completed detail into the review or evaluation records.
+Defer new parsers, distribution channels and daemon infrastructure until a pinned task or measurement requires them.

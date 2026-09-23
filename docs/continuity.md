@@ -10,7 +10,7 @@ The current system provides:
 
 - Bounded project, semantic, application and evidence models for 19 parser identities.
 - Merkle-addressed progressive disclosure and a Python object-store protocol.
-- Structured goals, ten guide routes and one uniform writable `GuideReview` lifecycle.
+- Structured goals, deterministic guide routes and one uniform writable `GuideReview` lifecycle.
 - Built-in refactors, recipes, semantic and surface edits, application migration and proof work.
 - Checks, history, apply, undo, redo, recovery, patches and reviewed Git operations.
 - Lean admission and transition kernels with strict source anchors and shared executable cases.
@@ -21,27 +21,40 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-Representative guided delivery on pinned unfamiliar projects is active. The deterministic registry
-covers an upstream read, Rust multi-file work, TSX/React and CSS/Tailwind/Mermaid edits, backend
-migration and Lean proof tactics. A live Codex agent completed guided `understand`/`trace` on the
-pinned regex workspace with bounded source reveal and an exact cross-crate trace. Earlier regex
-agents completed two-crate source changes before the guide existed. Two accepted matched live
-source-writing cohorts still repeat one Rust scalar task. The [roadmap](../PLAN.md) names the
-remaining guided task corpus and independent oracles.
+The representative guided delivery milestone is complete for its pinned acceptance corpus.
+Accepted live trials cover upstream read/trace, multi-file Rust rename and body edits, frontend
+changes, application migration and Lean proof authoring. Two matched cohorts repeat one scalar
+source-writing task. The [evaluation guide](evaluations.md) records each result and its limits.
 
-The authored HTTP IR carries required query and JSON-body scalars with deterministic 422 issues.
-All four HTTP adapters write them and read their documented source subsets. FastAPI also reads
-selected middleware, route providers and same-application service calls. React/Next components
-read declared state and literal events behind a client boundary. Runtime fixtures exercise the
-admitted behavior; native validation differences, configured middleware, provider internals,
-external services and effects remain explicit boundaries. Expand these models against failures in
-the acceptance corpus.
+The active direction is agent analysis and task planning. The [architecture review](agent-analysis-review.md)
+assesses the baseline at `c22ba827`. The [roadmap](../PLAN.md) defines pending outcomes and acceptance:
 
-The completed distribution outcome packages a version-matched Python SDK with native releases.
-`fr compatibility` and `FrClient.compatibility()` bind the distribution version, protocol revision
-and schema sets; release CI installs the wheel into an isolated consumer. A bounded HTTP Merkle
-store supplies the existing verified `get`/`put` contract. Two Codex 0.154.0 matched pairs using
-`gpt-5.6-luna` at low effort completed the same scalar source-writing task with reviewed delivery.
+1. Exact occurrence locations, analysis explanations and task investigation.
+2. Control flow, interprocedural value summaries and rule-based sources/sinks.
+3. Dependency-aware reuse and resumable task plans.
+4. Task-complete changes, translation and explicit proof obligations.
+
+Begin with relationship and flow locations plus a pinned bug investigation fixture.
+Declaration locations and typed Python targets already exist. Evidence rows still expose starting
+positions without a uniform occurrence-range contract. Local value flow explicitly stops at
+function boundaries. Current sources/sinks describe local origins and uses.
+
+Preserve existing progressive disclosure, verified Merkle storage, native intents and immutable
+reviewed delivery. Add dependency evidence before reusing conclusions across revisions.
+A task plan should retain questions, hypotheses, acceptance criteria and stale dependencies.
+The agent continues to author hypotheses, code, properties and tactics.
+
+Application IR expansion follows concrete task requirements. The four HTTP adapters read and write
+their documented validation subsets. Selected FastAPI middleware/providers/service calls and
+React/Next state/events have explicit contracts. Configured middleware, external effects and
+broader validation behavior still need models and independent oracles.
+
+## Recent completion
+
+Merged PRs #347 through #355 bind declaration names and definitions to byte spans and line ranges.
+Guide, disclosure and intent targets retain those locations. Python provides typed targets and
+source fragments, checks source continuity, supports direct queries and refuses ambiguous exact-one
+selection. The next location work concerns analysis occurrences and semantic origins.
 
 ## Validation
 
@@ -65,12 +78,7 @@ cause in the same outcome. Record direct editing only when no suitable `fr` oper
 - Generated formalization covers admitted typed pure declarations and structural snapshots.
 - Parsing, extraction, lowering, hashing, Git, filesystems and runtime behavior remain trusted or
   separately tested unless a proof record states a narrower correspondence claim.
-- Application migration currently models literal JSON routes, path JSON routes, selected required
-  FastAPI request inputs and static React/Next components. Other effects require explicit IR
-  semantics.
-- Static analysis retains uncertainty around reflection, runtime names, external callbacks and
-  unresolved dynamic dispatch.
-- Guided live source-writing evidence is repeated but still covers one scalar task; the guided
-  upstream read/trace has one accepted run. Earlier live multi-file cohorts used a pre-guide route.
-  The representative cross-language breadth is deterministic rather than a population claim about
-  autonomous agents.
+- Application migration covers the documented reader/writer subsets. Static facts alone cannot
+  establish arbitrary middleware, external service behavior or runtime effects.
+- Accepted live trials establish their pinned outcomes. General bug diagnosis, feature discovery,
+  security analysis and task resumption still need dedicated acceptance cases.
