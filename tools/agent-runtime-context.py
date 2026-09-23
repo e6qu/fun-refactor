@@ -110,7 +110,7 @@ from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 root, binary = Path(sys.argv[1]), sys.argv[2]
 client = FrClient(root, executable=binary)
 found = client.project("find", "render", "--signature")
-handle = found.at("/rows/0/0")
+handle = found.definition_targets()[0].handle
 initial = client.disclose(handle, view="evidence", depth=3, token_limit=4096)
 client.follow(initial.actions(domain="project-evidence")[0])
 change = TaskChange(

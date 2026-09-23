@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 
 _BASIS = re.compile(r"^frtc1:[0-9a-f]{64}$")
+_REVISION = re.compile(r"^[0-9a-f]{64}$")
 _MAX_ARGUMENTS = 128
 _MAX_ARGUMENT_BYTES = 16_384
 _PROTOCOL_REVISION = 1
@@ -400,6 +401,78 @@ class FrReport:
     def at(self, pointer: str = "") -> Any:
         """Return a detached value at one RFC 6901 pointer."""
         return _copy_json(_pointer(self._value, pointer))
+
+    def definition_targets(self) -> tuple[AgentTarget, ...]:
+        """Return revision-bound definitions from a project row report."""
+        if self.schema != "fr-project-1" or self._value.get("query") not in {
+            "find", "select", "map", "explore",
+        }:
+            raise FrRuntimeError("report is not a project definition query")
+        revision = self._value.get("revision")
+        if not isinstance(revision, str) or not _REVISION.fullmatch(revision):
+            raise FrRuntimeError("project definition report has no valid revision")
+        rows = self._value.get("rows")
+        if not isinstance(rows, list):
+            raise FrRuntimeError("project definition report has no row array")
+
+        columns_value = self._value.get("columns")
+        columns: tuple[str, ...] | None = None
+        if columns_value is not None:
+            if (not isinstance(columns_value, list)
+                    or any(not isinstance(item, str) or not item for item in columns_value)
+                    or len(set(columns_value)) != len(columns_value)):
+                raise FrRuntimeError("project definition report columns are invalid")
+            columns = tuple(columns_value)
+            if "handle" not in columns or "location" not in columns:
+                raise FrRuntimeError("project report does not expose definition locations")
+
+        def optional_text(row: Mapping[str, Any], name: str) -> str | None:
+            value = row.get(name)
+            if value is None or isinstance(value, str):
+                return value
+            if (isinstance(value, Mapping) and set(value) == {"text", "omitted_bytes"}
+                    and isinstance(value.get("text"), str)
+                    and not isinstance(value.get("omitted_bytes"), bool)
+                    and isinstance(value.get("omitted_bytes"), int)
+                    and value["omitted_bytes"] > 0):
+                return None
+            raise FrRuntimeError(f"project definition {name} is malformed")
+
+        targets: list[AgentTarget] = []
+        handle_pattern = re.compile(rf"^frp1:{revision[:32]}:[0-9a-f]+$")
+        for item in rows:
+            if isinstance(item, Mapping):
+                row = item
+            elif isinstance(item, list) and columns is not None:
+                if len(item) != len(columns):
+                    raise FrRuntimeError("project definition row does not match its columns")
+                row = dict(zip(columns, item, strict=True))
+            else:
+                raise FrRuntimeError("project definition row has an unsupported shape")
+            location_value = row.get("location")
+            if location_value is None:
+                continue
+            handle = row.get("handle")
+            if not isinstance(handle, str) or not handle_pattern.fullmatch(handle):
+                raise FrRuntimeError("project definition handle does not match its revision")
+            location = DefinitionLocation.from_data(location_value)
+            line = row.get("line")
+            if line is not None and (_integer(line, "project definition line", positive=True)
+                                     != location.name.range.start.line):
+                raise FrRuntimeError("project definition line does not match its location")
+            path = optional_text(row, "path")
+            start = location.name.range.start
+            position = f"{path}:{start.line}:{start.col}" if path is not None else None
+            targets.append(AgentTarget(
+                handle,
+                optional_text(row, "name"),
+                optional_text(row, "kind"),
+                path,
+                optional_text(row, "language"),
+                position,
+                location,
+            ))
+        return tuple(targets)
 
 
 @dataclass(frozen=True)

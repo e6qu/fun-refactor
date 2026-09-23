@@ -6,7 +6,7 @@ from fr_ir.intent_actions import TaggedIntentAction, TaskChangeOperation
 from fr_ir.ir import ProjectRequest, ProjectReference, TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import ByteSpan, FrClient
 client = FrClient(sys.argv[1], executable=sys.argv[2])
-handle = client.project('find', 'render', '--signature').at('/rows/0/0')
+handle = client.project('find', 'render', '--signature').definition_targets()[0].handle
 change = TaskChange(
     [ProjectRequest('caller', ['find', 'caller', '--signature'])],
     [TaskTarget('render', handle, 'replace-body', fragment='{ value.to_uppercase() }\n'),

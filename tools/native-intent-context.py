@@ -77,7 +77,7 @@ def measure(executable: str) -> dict[str, object]:
             encoding="utf-8",
         )
         discovery = FrClient(root, executable=executable)
-        handle = discovery.project("find", "render", "--signature").at("/rows/0/0")
+        handle = discovery.project("find", "render", "--signature").definition_targets()[0].handle
         intent = AgentIntent(handle, "trace", call_limit=192, packet_limit=65_536)
 
         progressive_client = CountingClient(root, executable=executable)

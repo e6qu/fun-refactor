@@ -73,7 +73,7 @@ def summarize_packet(packet: dict) -> dict:
 def direct_arm(binary: Path, root: Path, objects: Path) -> dict:
     client = FrClient(root, executable=binary)
     found = client.project("find", "render", "--signature")
-    handle = found.at("/rows/0/0")
+    handle = found.definition_targets()[0].handle
     session = client.context(
         handle, view="evidence", token_limit=4096,
         store=DirectoryObjectStore(objects),
@@ -102,7 +102,7 @@ from fr_ir.context import DirectoryObjectStore
 from fr_ir.runtime import FrClient
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 found = client.project("find", "render", "--signature")
-handle = found.at("/rows/0/0")
+handle = found.definition_targets()[0].handle
 session = client.context(
     handle, view="evidence", token_limit=4096,
     store=DirectoryObjectStore(sys.argv[3]))

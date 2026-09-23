@@ -270,7 +270,7 @@ from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 found = client.project('find', 'render', '--signature')
-handle = found.at('/rows/0/0')
+handle = found.definition_targets()[0].handle
 session = client.context(
     handle, view='evidence', token_limit=4096,
     store=DirectoryObjectStore(sys.argv[3]),
@@ -373,7 +373,7 @@ from fr_ir.runtime import FrClient
 
 client = FrClient(sys.argv[1], executable=sys.argv[2])
 found = client.project('find', 'render', '--signature')
-handle = found.at('/rows/0/0')
+handle = found.definition_targets()[0].handle
 intent = AgentIntent(
     handle, 'trace', call_limit=192, packet_limit=65536,
 )
@@ -454,7 +454,7 @@ from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import FrClient
 
 client = FrClient(sys.argv[1], executable=sys.argv[2])
-handle = client.project('find', 'render', '--signature').at('/rows/0/0')
+handle = client.project('find', 'render', '--signature').definition_targets()[0].handle
 change = TaskChange(
     [],
     [TaskTarget('render-body', handle, 'replace-body',
