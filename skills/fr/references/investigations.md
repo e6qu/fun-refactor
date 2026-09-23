@@ -29,6 +29,12 @@ The Python `fr_ir.investigation.TaskPlan` provides typed plans and persistence t
 verified Merkle store. Keep that store outside the analyzed workspace. Resume after restoration
 before relying on retained evidence.
 
+For Python body provenance, use `project semantic HANDLE --body --origins --origin-limit 40`.
+Follow `origins.continuation` or select one `--origin-pointer`. Missing mappings remain explicit.
+`SemanticOrigins` links those records to authoring pointers and same-revision flow occurrences.
+Use `TaskStep.from_guide` to retain ready guide input. `TaskStep.checked` declares the input scope
+for `investigation_checks.run_checks`; inspect `checks --toolchain` before executing its declarations.
+
 `fr project identities` pages declaration content digests beside current handles. Pass a retained
 report with `--from` to inspect matched, ambiguous and missing correspondence. These are syntactic
 candidates; they never renew a stale mutation review. Follow [Task](task.md) and [Workflow](workflow.md)

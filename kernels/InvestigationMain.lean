@@ -3,6 +3,13 @@ import FrKernels.Flow
 open FrKernels.Investigation
 
 def main (args : List String) : IO Unit := do
+  if args == ["check-scope"] then
+    for workspace in [false, true] do
+      for configuration in [false, true] do
+        for sources in [false, true] do
+          for toolchain in [false, true] do
+            IO.println (checkScopeCovered workspace configuration sources toolchain)
+    return
   if args == ["flow-join"] then
     for left in List.range 16 do
       for right in List.range 16 do

@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
-pub const ANALYZER: &str = "fr-investigation-1";
+pub const ANALYZER: &str = "fr-investigation-2";
 
 #[derive(Args)]
 pub struct Options {
@@ -14,6 +14,12 @@ pub struct Options {
     from: PathBuf,
     #[arg(long)]
     transition: Option<String>,
+    #[arg(long, requires_all = ["checks_digest", "check_step"])]
+    checks_from: Option<PathBuf>,
+    #[arg(long, requires = "checks_from")]
+    checks_digest: Option<String>,
+    #[arg(long, requires = "checks_from")]
+    check_step: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +53,8 @@ pub struct Step {
     pub satisfies: Vec<String>,
     #[serde(default)]
     pub action: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action_input: Option<Value>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,7 +77,7 @@ pub struct Dependency {
     pub digest: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum DependencyKind {
     Source,
@@ -77,6 +85,9 @@ pub enum DependencyKind {
     Lookup,
     Analyzer,
     Workspace,
+    CheckConfiguration,
+    CheckSources,
+    CheckToolchain,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,11 +119,31 @@ pub fn transition_allowed(from: State, to: State, prerequisites: bool, evidence:
     }
 }
 
+pub fn check_scope_covered(
+    workspace: bool,
+    configuration: bool,
+    sources: bool,
+    toolchain: bool,
+) -> bool {
+    workspace && configuration && sources && toolchain
+}
+
 impl Project<'_> {
     fn dependency_digest(&self, dependency: &Dependency) -> Result<String> {
         Ok(match dependency.kind {
-            DependencyKind::Analyzer => hash((ANALYZER, env!("CARGO_PKG_VERSION")))?,
+            DependencyKind::Analyzer => hash((
+                ANALYZER,
+                env!("CARGO_PKG_VERSION"),
+                include_str!("investigation.rs"),
+            ))?,
             DependencyKind::Workspace => self.revision.clone(),
+            DependencyKind::CheckConfiguration => {
+                crate::checks::evidence::configuration_digest(&self.root)?
+            }
+            DependencyKind::CheckSources => crate::history::source_revision(&self.root)?,
+            DependencyKind::CheckToolchain => {
+                crate::checks::evidence::toolchain_digest(&self.root)?
+            }
             DependencyKind::Lookup => {
                 let mut candidates = self
                     .index
@@ -174,6 +205,10 @@ impl Project<'_> {
         let mut ids = BTreeSet::new();
         for step in &plan.steps {
             ensure!(
+                step.action_input.as_ref().is_none_or(Value::is_object),
+                "task action input must be an object"
+            );
+            ensure!(
                 !step.id.is_empty() && ids.insert(step.id.clone()),
                 "duplicate or empty step identity"
             );
@@ -213,6 +248,29 @@ impl Project<'_> {
         if let Some((id, _)) = event {
             ensure!(ids.contains(id), "unknown transition step");
         }
+        let check_attachment = if let Some(path) = &options.checks_from {
+            ensure!(
+                std::fs::metadata(path)?.len() <= 1_048_576,
+                "check report exceeds 1 MiB"
+            );
+            let report: Value = serde_json::from_slice(&crate::vfs::read(path)?)?;
+            let digest = hash(&report)?;
+            ensure!(
+                Some(&digest) == options.checks_digest.as_ref(),
+                "check report digest mismatch"
+            );
+            let step = options
+                .check_step
+                .as_deref()
+                .context("check step is required")?;
+            ensure!(ids.contains(step), "unknown check attachment step");
+            Some((
+                digest,
+                crate::checks::evidence::validate(&self.root, &report)?,
+            ))
+        } else {
+            None
+        };
         let mut states = BTreeMap::new();
         let mut bases = BTreeMap::new();
         let mut invalidated = Vec::new();
@@ -249,7 +307,37 @@ impl Project<'_> {
                 &step.required_checks,
                 &step.satisfies,
                 &step.action,
+                &step.action_input,
             ))?;
+            if options.check_step.as_deref() == Some(&step.id) {
+                let has = |kind| step.inputs.iter().any(|input| input.kind == kind);
+                ensure!(check_scope_covered(has(DependencyKind::Workspace), has(DependencyKind::CheckConfiguration),
+                    has(DependencyKind::CheckSources), has(DependencyKind::CheckToolchain)),
+                    "checked steps require workspace, check-configuration, check-sources and check-toolchain dependencies.");
+                ensure!(
+                    !changed
+                        && !reset
+                        && prerequisites
+                        && matches!(step.state, State::Ready | State::Running),
+                    "check evidence requires a current ready or running step."
+                );
+                let (digest, results) = check_attachment.as_ref().unwrap();
+                for (name, passed) in results {
+                    ensure!(
+                        step.required_checks.contains(name),
+                        "attached check is not required by this step."
+                    );
+                    step.evidence
+                        .retain(|e| e.kind != EvidenceKind::Check || e.id != *name);
+                    step.evidence.push(Evidence {
+                        id: name.clone(),
+                        kind: EvidenceKind::Check,
+                        input_digest: basis.clone(),
+                        passed: *passed,
+                        reference: format!("fr-check-report-1:{digest}"),
+                    });
+                }
+            }
             if reset {
                 step.state = State::Pending;
                 step.evidence.clear();
@@ -317,6 +405,8 @@ impl Project<'_> {
             json!({"schema": "fr-investigation-resume-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(),
             "plan": plan, "input_digests": bases, "invalidated": invalidated, "complete": complete,
             "claim": "validated agent-reported evidence; references do not attest tool execution.",
+            "check_attachment": check_attachment.map(|(digest, results)| json!({"digest":digest,"results":results,
+                "trust":"trusted caller digest binds retained command output, not an execution attestation"})),
             "mutation_authority": false, "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain."}),
         )
     }

@@ -12,6 +12,8 @@ const MAX_SEMANTIC_SOURCE_BYTES: usize = 262_144;
 
 #[derive(Args)]
 pub struct Options {
+    #[command(flatten)]
+    pub(super) provenance: super::semantic_origins::OriginOptions,
     #[arg(
         default_value = ".",
         help = "Indexed file path or revision-bound declaration handle."
@@ -585,6 +587,10 @@ impl Project<'_> {
             report["status"] = json!("omitted-node-budget");
             report["model"] = Value::Null;
             report["patterns"] = json!([]);
+        }
+        if options.provenance.origins {
+            report["origins"] =
+                self.semantic_origins(target, parsed.root(), &report, &options.provenance)?;
         }
         if options.locators_only || options.intent_to.is_some() && !options.locators {
             report.as_object_mut().unwrap().remove("model");

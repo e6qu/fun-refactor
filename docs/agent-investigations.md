@@ -10,6 +10,27 @@ creates an invented range. `Occurrence.from_data` and `Occurrence.text` provide 
 Evidence disclosure uses a compact flow record: path, exact byte span, start position and occurrence
 ID, bound to its disclosure revision. Declaration details remain accessible through their handles.
 
+## Semantic origins
+
+`project semantic HANDLE --body --origins` pages origins beside the existing semantic model.
+Use `--origin-limit` (1–256), `--origin-cursor` or `--origin-pointer` for bounded follow-up queries.
+The `origins.continuation` action retains the snapshot and page identity. A changed revision refuses its cursor.
+Each record binds a semantic node ID, model pointer, optional authoring-body pointer, rule and source origins.
+The report retains analyzer and input digests, scope, confidence, omissions and follow actions.
+
+The admitted mapping covers Python function bodies that remain unchanged through normalization.
+Supported statements and scalar expressions keep their exact syntax spans. Identical calls on one line remain separate.
+An augmented assignment's synthesized binary expression names both contributing operand spans.
+The null expression generated for `pass` has an absent origin. Unsupported mappings also remain absent.
+File-wide queries and other languages retain absent origins. Body pointers require an available authoring-body identity.
+Normalization can change the model's structure; such bodies currently keep absent origins throughout.
+Provenance explains where a node came from. It does not establish behavioral equivalence or compiler semantics.
+Page completeness describes disclosure, not completeness of the origin mapping or runtime analysis.
+
+`SemanticOrigins.inspect` in `fr_ir.origins` validates the typed report. `for_body_pointer` links authoring positions;
+`for_occurrence` matches flow or call evidence by revision, path and exact span. Multiple matches remain visible.
+Source text still requires explicit bounded disclosure or a caller-supplied snapshot through `Occurrence.text`.
+
 ## Scalar flow
 
 Select a fresh top-level Python function, then trace it with an explicit budget:
@@ -146,6 +167,46 @@ correspondence and observations have separate kinds. These are validated agent-r
 a reference is not an attestation that a tool ran. Completion requires covered acceptance criteria
 and no unresolved questions. Neither completion nor content equality grants mutation authority.
 All writes continue through existing immutable reviews, declared checks, history and patch delivery.
+
+`TaskStep.from_guide` retains a ready guide action, its structured stdin and its workspace revision.
+Plan resumption validates that revision before the action remains ready. Plans do not execute retained actions.
+Use the existing guide review and task-change delivery APIs for mutations.
+
+## Executed check evidence
+
+`checks --toolchain` adds resolved executable paths, SHA-256 identities and the check-runner identity.
+With `--run`, it compares those identities before and after execution alongside source and configuration stability.
+It covers every configured command executable. Declare separate identity checks for interpreter imports,
+dynamic libraries, environment variables or compiler version output when they matter to the task.
+Compiler diagnostics and disagreements remain bounded command output with declared coverage.
+The runner does not infer compiler facts from those diagnostics.
+
+```python
+from fr_ir.investigation import TaskPlan, TaskStep
+from fr_ir.investigation_checks import run_checks
+
+plan = TaskPlan("Validate the repair", ("regression passes",), (
+    TaskStep.checked("verify", "Does the regression pass?", checks=("regression",),
+                     satisfies=("regression passes",)),
+))
+reviewed = client.call("checks", "--toolchain")
+# Inspect the declared commands before execution.
+result = run_checks(plan, client, "verify", reviewed, store)
+```
+
+Keep the Merkle store outside the analyzed workspace. `run_checks` requires an unchanged reviewed check listing.
+It captures workspace, check configuration, complete check-source snapshot and executable identities as step dependencies.
+The source snapshot includes ignored source files that the project index may omit.
+The SDK retains passing and failing reports before attaching evidence. A failed check cannot satisfy acceptance.
+A check that changes its inputs leaves a retained report and an attachment error; its dependent step becomes stale.
+Missing configuration or executables refuse validation. Retained plan actions never gain write authority.
+
+The native adapter accepts `project investigate --checks-from REPORT --checks-digest SHA256 --check-step ID`
+alongside `--from PLAN`. It validates the trusted canonical report digest, declared commands, input identities and outcomes.
+`restore_checks` reads a retained report through the verified object store. Reattachment revalidates current native inputs.
+These digests bind trusted local records; they do not attest execution by an untrusted producer.
+Model proofs and source-correspondence claims retain their separate evidence kinds and obligations.
+The Investigation kernel checks the four-class dependency admission law against all sixteen native combinations.
 
 ## Correspondence and checked delivery
 

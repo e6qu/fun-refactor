@@ -5,6 +5,7 @@ pub mod ir;
 pub mod nextjs;
 mod normalize;
 mod read;
+pub(crate) use read::function_at;
 pub mod routes;
 pub mod scaffold;
 pub mod tfjson;

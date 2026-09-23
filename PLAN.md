@@ -44,13 +44,17 @@ Outcome: an agent can find relevant code and explain a proposed change from exac
 - [x] Expose exact locations for relationship endpoints, references, call sites and flow occurrences.
   Distinguish occurrences from their declarations and preserve typed Rust/Python contracts.
   See the [contract](docs/agent-investigations.md) and [passing integration evidence](tests/investigation.rs).
-- [ ] Map semantic nodes to source origins. Represent absent and multiple origins explicitly.
+- [x] Map semantic nodes to source origins. Represent absent and multiple origins explicitly.
+  [Paged Python body provenance](src/project/semantic_origins.rs) links semantic and authoring pointers to syntax.
+  [Independent coordinate tests](tests/semantic_evidence.rs) cover repeated calls, combined origins and missing mappings.
 - [ ] Attach analysis rules, input identities, scope, confidence and omissions to facts.
   Offer bounded explanations and follow actions through existing progressive discovery.
 - [ ] Include relevant build configuration and external evidence in the analysis scope.
   Preserve toolchain identity and disagreements when a task requires compiler facts.
-- [ ] Add a typed task plan containing acceptance criteria, hypotheses, evidence references,
+- [x] Add a typed task plan containing acceptance criteria, hypotheses, evidence references,
   dependencies, unresolved questions and required checks. Reuse guide actions and reviewed delivery.
+  [Typed plans](sdk/python/src/fr_ir/investigation.py) retain guide inputs and bind required checks to declared dependencies.
+  [Check attachment](sdk/python/src/fr_ir/investigation_checks.py) preserves reviewed execution and rejects stale evidence.
 - [ ] Pin one bug reproducer and one feature requirement with initially unknown edit targets.
   Measure the current workflow before extending it.
 
@@ -140,7 +144,8 @@ binds the evaluator, pinned source revision, fixture and passing results.
 
 These are substantial implementation advances across A–D; the complete milestone gates remain open:
 
-- A: semantic-node origin maps, compiler/build evidence and live unknown-target investigation trials.
+- A: origins through normalization and additional languages, compiler facts beyond declared command output,
+  richer fact explanations and live unknown-target investigation trials.
 - B: authoring-IR origin correspondence, recursive summaries, implicit exception/handler semantics
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.
@@ -158,6 +163,10 @@ The [fixed-point corpus](tests/agent-eval/flow-fixed-point/task.json) pins a del
 negative control-transfer cases. The [evaluator](tools/flow-acceptance.py) compares cold, warm and
 single-edit results with clean analysis, including isolated peak RSS and transfer counts.
 The [Flow kernel](kernels/FrKernels/Flow.lean) proves join/overwrite laws; native joins match 1,024 model cases.
+
+The [semantic evidence task](tests/agent-eval/semantic-evidence/task.json) pins Python AST coordinates and declared checks.
+Its [evaluator](tools/semantic-evidence-acceptance.py) compares source reveal with origin lookup and retains passing and failing command evidence.
+Checked plans cover workspace, source, configuration and executable identities; environment and dynamic-library coverage still requires explicit checks.
 
 ## Rules for every milestone
 

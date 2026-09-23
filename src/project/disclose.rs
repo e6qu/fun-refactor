@@ -1218,6 +1218,7 @@ impl Project<'_> {
         }
         let semantic = if options.view == DisclosureView::Semantic {
             let semantic = self.semantic(&super::semantic::Options {
+                provenance: Default::default(),
                 target: options.target.clone(),
                 revision: None,
                 declaration: None,

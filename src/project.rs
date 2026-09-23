@@ -70,6 +70,7 @@ mod semantic;
 pub mod semantic_change;
 pub mod semantic_intent;
 pub mod semantic_ir;
+mod semantic_origins;
 pub(crate) use semantic::minimize as minimize_semantic_report;
 pub use semantic::semantic_section_fits;
 mod service_calls;
@@ -447,7 +448,7 @@ impl<const ENABLED: bool> ConstructionTimer<ENABLED> {
     }
 }
 
-fn hash(value: impl serde::Serialize) -> Result<String> {
+pub(crate) fn hash(value: impl serde::Serialize) -> Result<String> {
     Ok(hex::encode(Sha256::digest(serde_json::to_vec(&value)?)))
 }
 

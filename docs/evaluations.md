@@ -283,3 +283,18 @@ Whole-file reuse is opt-in because small analyses can cost less than restoration
 The [retained result](../tests/agent-eval/results/2026-09-23-flow-fixed-point/result.json) records the
 pinned run. [Implementation diagnostics](../tests/agent-eval/flow-fixed-point/diagnostics.json) retain
 the context-envelope refusal and the observed cache-overhead boundary.
+
+## Semantic provenance and checked plans
+
+The [semantic evidence task](../tests/agent-eval/semantic-evidence/task.json) pins repeated Unicode
+calls, an augmented assignment and a synthesized null. An independent Python AST oracle supplies
+coordinates and executes finite behavior cases. Native and SDK tests cover normalized and shadowed
+bodies, absent origins, page truncation, stale cursors and cross-revision link refusal.
+
+`tools/semantic-evidence-acceptance.py` compares ordinary AST/source inspection, the existing semantic
+plus source-reveal workflow, and paged origin lookup. It records raw report bytes and local latency.
+The two native routes use the same current binary. This is a workflow comparison without a live agent.
+The result also retains passing and failing check reports, verified Merkle roots, completed plans
+and invalidation after a source edit. Executable hashes identify commands; their outputs retain
+explicit coverage. Neither implies complete compiler semantics or trusted execution attestation.
+Run with `--output FILE`, then use `--audit FILE` to validate its source bindings and retained records.
