@@ -41,8 +41,9 @@ accompany every milestone.
 
 Outcome: an agent can find relevant code and explain a proposed change from exact, bounded evidence.
 
-- [ ] Expose exact locations for relationship endpoints, references, call sites and flow occurrences.
-  Distinguish each occurrence from its containing declaration; preserve typed Rust/Python contracts.
+- [x] Expose exact locations for relationship endpoints, references, call sites and flow occurrences.
+  Distinguish occurrences from their declarations and preserve typed Rust/Python contracts.
+  See the [contract](docs/agent-investigations.md) and [passing integration evidence](tests/investigation.rs).
 - [ ] Map semantic nodes to source origins. Represent absent and multiple origins explicitly.
 - [ ] Attach analysis rules, input identities, scope, confidence and omissions to facts.
   Offer bounded explanations and follow actions through existing progressive discovery.
@@ -87,8 +88,9 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
   Track negative lookups whose results can change when new declarations appear.
 - [ ] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
   Fall back to a complete rebuild when dependency coverage is insufficient.
-- [ ] Persist task plans locally with pending, ready, running, satisfied, blocked and stale steps.
+- [x] Persist task plans locally with pending, ready, running, satisfied, blocked and stale steps.
   Invalidate dependent evidence and refresh prerequisites before resuming work.
+  See [native resumption tests](tests/investigation.rs) and [verified SDK persistence](sdk/python/tests/test_investigation.py).
 - [ ] Bind checks and proof results to their inputs. Retain the existing immutable mutation review boundary.
 - [ ] Measure cold, warm and single-edit latency, memory, context bytes and recomputation.
   Choose cache granularity from those measurements.
@@ -127,6 +129,8 @@ syntactic correspondence and the expanded Python reviewed writer. The
 [integration tests](tests/investigation.rs) and [SDK tests](sdk/python/tests/test_investigation.py)
 exercise those routes. The [deterministic evaluator](tools/investigation-acceptance.py) pins unknown-target
 bug and feature requirements, reviewed repair/insertion, reversal and independent patch replay.
+The [retained acceptance](tests/agent-eval/results/2026-09-23-investigation-acceptance/manifest.json)
+binds the evaluator, pinned source revision, fixture and passing results.
 
 These are substantial implementation advances across A–D; the complete milestone gates remain open:
 

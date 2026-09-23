@@ -1,0 +1,9 @@
+diff --git "a/catalog.py" "b/catalog.py"
+--- "a/catalog.py"
++++ "b/catalog.py"
+@@ -12,3 +12,5 @@
+ 
+ def checkout(price, count, member):
+     return discount(subtotal(price, count), member)
++def quote(price, count, member):
++    return {"total": checkout(price, count, member), "currency": "USD"}

@@ -1,0 +1,1658 @@
+{
+  "schema": "fr-investigation-acceptance-1",
+  "cohort": "deterministic replay; no live-agent or population claim",
+  "baseline_bug_failed": true,
+  "receiver_oracle_passed": true,
+  "records": [
+    {
+      "task": "bug",
+      "discovered_target": "discount",
+      "calls": {
+        "analysis": {
+          "callable_nodes": 3,
+          "edges": 2,
+          "file_scope_calls": 0,
+          "hierarchy_gaps": 0,
+          "hierarchy_unsupported_files": {},
+          "scope": "indexed workspace",
+          "unresolved_calls": 5,
+          "unsupported_files": {}
+        },
+        "context_basis": "frcb1:e2ddba6183abb5cbc8ae930bf53bb75e8b728865a0a09c5bf4abec535bde7111",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 2,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 17,
+          "unsupported_files": 1
+        },
+        "direction": "both",
+        "handle_prefix": "frp1:8cd4eb800fdc3134577c2ba301af9218:",
+        "items": [
+          {
+            "callee": null,
+            "caller": null,
+            "confidence": "name-only",
+            "dispatch_candidate": false,
+            "kind": "call",
+            "name": "checkout",
+            "origin": "unresolved",
+            "scope_relation": "outgoing",
+            "site": {
+              "column": 19,
+              "line": 12,
+              "offset": 442,
+              "origins": {
+                "occurrence": {
+                  "enclosing": null,
+                  "id": "fro1:3ce36b6c4ce5c0b7c7037dac61d81d14a870ead830ec724dceae20590d5add2c",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 27,
+                        "line": 12
+                      },
+                      "start": {
+                        "col": 19,
+                        "line": 12
+                      }
+                    },
+                    "span": {
+                      "end": 450,
+                      "start": 442
+                    }
+                  },
+                  "path": "oracle.py",
+                  "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                  "role": "call"
+                },
+                "status": "exact"
+              },
+              "path": "oracle.py"
+            },
+            "status": "unresolved"
+          },
+          {
+            "callee": null,
+            "caller": null,
+            "confidence": "name-only",
+            "dispatch_candidate": false,
+            "kind": "call",
+            "name": "exec_module",
+            "origin": "unresolved",
+            "scope_relation": "outgoing",
+            "site": {
+              "column": 13,
+              "line": 7,
+              "offset": 245,
+              "origins": {
+                "occurrence": {
+                  "enclosing": null,
+                  "id": "fro1:6893aadc258e283e57c5d6c84f772dc3ab3b1a27f624030c9a183477d371378a",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 24,
+                        "line": 7
+                      },
+                      "start": {
+                        "col": 13,
+                        "line": 7
+                      }
+                    },
+                    "span": {
+                      "end": 256,
+                      "start": 245
+                    }
+                  },
+                  "path": "oracle.py",
+                  "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                  "role": "call"
+                },
+                "status": "exact"
+              },
+              "path": "oracle.py"
+            },
+            "status": "unresolved"
+          },
+          {
+            "callee": null,
+            "caller": null,
+            "confidence": "name-only",
+            "dispatch_candidate": false,
+            "kind": "call",
+            "name": "module_from_spec",
+            "origin": "unresolved",
+            "scope_relation": "outgoing",
+            "site": {
+              "column": 25,
+              "line": 6,
+              "offset": 210,
+              "origins": {
+                "occurrence": {
+                  "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:e",
+                  "id": "fro1:ff97650c0fa7f9c98b4939db8c2c87e71c38075056cdfe4ad7b99aeed740152c",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 41,
+                        "line": 6
+                      },
+                      "start": {
+                        "col": 25,
+                        "line": 6
+                      }
+                    },
+                    "span": {
+                      "end": 226,
+                      "start": 210
+                    }
+                  },
+                  "path": "oracle.py",
+                  "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                  "role": "call"
+                },
+                "status": "exact"
+              },
+              "path": "oracle.py"
+            },
+            "status": "unresolved"
+          },
+          {
+            "callee": null,
+            "caller": null,
+            "confidence": "name-only",
+            "dispatch_candidate": false,
+            "kind": "call",
+            "name": "quote",
+            "origin": "unresolved",
+            "scope_relation": "outgoing",
+            "site": {
+              "column": 23,
+              "line": 15,
+              "offset": 615,
+              "origins": {
+                "occurrence": {
+                  "enclosing": null,
+                  "id": "fro1:4d9f7fa47bc4e27a5bf65affd5d6cbb55a693075c936b07976be9a10f737e08a",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 28,
+                        "line": 15
+                      },
+                      "start": {
+                        "col": 23,
+                        "line": 15
+                      }
+                    },
+                    "span": {
+                      "end": 620,
+                      "start": 615
+                    }
+                  },
+                  "path": "oracle.py",
+                  "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                  "role": "call"
+                },
+                "status": "exact"
+              },
+              "path": "oracle.py"
+            },
+            "status": "unresolved"
+          },
+          {
+            "callee": null,
+            "caller": null,
+            "confidence": "name-only",
+            "dispatch_candidate": false,
+            "kind": "call",
+            "name": "spec_from_file_location",
+            "origin": "unresolved",
+            "scope_relation": "outgoing",
+            "site": {
+              "column": 23,
+              "line": 5,
+              "offset": 138,
+              "origins": {
+                "occurrence": {
+                  "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:d",
+                  "id": "fro1:3697f4bd5c8f3858bd1f6e48d7de8c60c0376b2cfceb1991a683b20254ba9629",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 46,
+                        "line": 5
+                      },
+                      "start": {
+                        "col": 23,
+                        "line": 5
+                      }
+                    },
+                    "span": {
+                      "end": 161,
+                      "start": 138
+                    }
+                  },
+                  "path": "oracle.py",
+                  "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                  "role": "call"
+                },
+                "status": "exact"
+              },
+              "path": "oracle.py"
+            },
+            "status": "unresolved"
+          },
+          {
+            "callee": {
+              "handle": "frp1:8cd4eb800fdc3134577c2ba301af9218:2",
+              "kind": "function",
+              "line": 3,
+              "location": {
+                "definition": {
+                  "range": {
+                    "end": {
+                      "col": 25,
+                      "line": 4
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 3
+                    }
+                  },
+                  "span": {
+                    "end": 139,
+                    "start": 87
+                  }
+                },
+                "name": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 3
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 3
+                    }
+                  },
+                  "span": {
+                    "end": 99,
+                    "start": 91
+                  }
+                }
+              },
+              "name": "subtotal",
+              "occurrence": {
+                "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:2",
+                "id": "fro1:8c33e179e94184593c820c1a4133df96eb1f5cd2831ab9004865c74588e1906a",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 3
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 3
+                    }
+                  },
+                  "span": {
+                    "end": 99,
+                    "start": 91
+                  }
+                },
+                "path": "catalog.py",
+                "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                "role": "declaration"
+              },
+              "path": "catalog.py",
+              "qualifier": null
+            },
+            "caller": {
+              "handle": "frp1:8cd4eb800fdc3134577c2ba301af9218:8",
+              "kind": "function",
+              "line": 13,
+              "location": {
+                "definition": {
+                  "range": {
+                    "end": {
+                      "col": 52,
+                      "line": 14
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 13
+                    }
+                  },
+                  "span": {
+                    "end": 321,
+                    "start": 234
+                  }
+                },
+                "name": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 13
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 13
+                    }
+                  },
+                  "span": {
+                    "end": 246,
+                    "start": 238
+                  }
+                }
+              },
+              "name": "checkout",
+              "occurrence": {
+                "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:8",
+                "id": "fro1:db4cd2b9d5ee2d32a0f38ff2e062a918648ce7d52a37ff45ddfe1ff854921da4",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 13
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 13
+                    }
+                  },
+                  "span": {
+                    "end": 246,
+                    "start": 238
+                  }
+                },
+                "path": "catalog.py",
+                "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                "role": "declaration"
+              },
+              "path": "catalog.py",
+              "qualifier": null
+            },
+            "confidence": "exact",
+            "dispatch_candidate": false,
+            "kind": "call",
+            "origin": "resolved",
+            "scope_relation": "internal",
+            "site": {
+              "column": 21,
+              "line": 14,
+              "offset": 290,
+              "origins": {
+                "occurrence": {
+                  "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:8",
+                  "id": "fro1:659ae3e41a301ebaa8812854668957b361fc796e4554eff7e30af169f08c68b2",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 29,
+                        "line": 14
+                      },
+                      "start": {
+                        "col": 21,
+                        "line": 14
+                      }
+                    },
+                    "span": {
+                      "end": 298,
+                      "start": 290
+                    }
+                  },
+                  "path": "catalog.py",
+                  "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                  "role": "call"
+                },
+                "status": "exact"
+              },
+              "path": "catalog.py"
+            },
+            "status": "indexed-target"
+          },
+          {
+            "callee": {
+              "handle": "frp1:8cd4eb800fdc3134577c2ba301af9218:5",
+              "kind": "function",
+              "line": 7,
+              "location": {
+                "definition": {
+                  "range": {
+                    "end": {
+                      "col": 18,
+                      "line": 10
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 7
+                    }
+                  },
+                  "span": {
+                    "end": 231,
+                    "start": 142
+                  }
+                },
+                "name": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 7
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 7
+                    }
+                  },
+                  "span": {
+                    "end": 154,
+                    "start": 146
+                  }
+                }
+              },
+              "name": "discount",
+              "occurrence": {
+                "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:5",
+                "id": "fro1:a3f51e873646dacba4a73e288d355f5fb5689bc6c8bc5fe7b60159eb7788c10e",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 7
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 7
+                    }
+                  },
+                  "span": {
+                    "end": 154,
+                    "start": 146
+                  }
+                },
+                "path": "catalog.py",
+                "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                "role": "declaration"
+              },
+              "path": "catalog.py",
+              "qualifier": null
+            },
+            "caller": {
+              "handle": "frp1:8cd4eb800fdc3134577c2ba301af9218:8",
+              "kind": "function",
+              "line": 13,
+              "location": {
+                "definition": {
+                  "range": {
+                    "end": {
+                      "col": 52,
+                      "line": 14
+                    },
+                    "start": {
+                      "col": 1,
+                      "line": 13
+                    }
+                  },
+                  "span": {
+                    "end": 321,
+                    "start": 234
+                  }
+                },
+                "name": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 13
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 13
+                    }
+                  },
+                  "span": {
+                    "end": 246,
+                    "start": 238
+                  }
+                }
+              },
+              "name": "checkout",
+              "occurrence": {
+                "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:8",
+                "id": "fro1:db4cd2b9d5ee2d32a0f38ff2e062a918648ce7d52a37ff45ddfe1ff854921da4",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 13,
+                      "line": 13
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 13
+                    }
+                  },
+                  "span": {
+                    "end": 246,
+                    "start": 238
+                  }
+                },
+                "path": "catalog.py",
+                "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                "role": "declaration"
+              },
+              "path": "catalog.py",
+              "qualifier": null
+            },
+            "confidence": "exact",
+            "dispatch_candidate": false,
+            "kind": "call",
+            "origin": "resolved",
+            "scope_relation": "internal",
+            "site": {
+              "column": 12,
+              "line": 14,
+              "offset": 281,
+              "origins": {
+                "occurrence": {
+                  "enclosing": "frp1:8cd4eb800fdc3134577c2ba301af9218:8",
+                  "id": "fro1:db00baadb2714eaa279ca90a23e9f3d9ae8e469b7948033568187606c5834209",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 20,
+                        "line": 14
+                      },
+                      "start": {
+                        "col": 12,
+                        "line": 14
+                      }
+                    },
+                    "span": {
+                      "end": 289,
+                      "start": 281
+                    }
+                  },
+                  "path": "catalog.py",
+                  "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+                  "role": "call"
+                },
+                "status": "exact"
+              },
+              "path": "catalog.py"
+            },
+            "status": "indexed-target"
+          }
+        ],
+        "page": {
+          "before": 0,
+          "next": null,
+          "remaining": 0,
+          "returned": 7,
+          "total": 7
+        },
+        "provenance": {
+          "assumptions": [
+            "syntax index resolution; no compiler or runtime dispatch guarantee."
+          ],
+          "claim": "candidate-relationships",
+          "omissions": "see page and analysis diagnostics",
+          "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+          "rule": "fr-indexed-relationships-1",
+          "scope": "indexed workspace"
+        },
+        "query": "calls",
+        "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+        "root": "frp1:8cd4eb800fdc3134577c2ba301af9218:0",
+        "schema": "fr-project-1",
+        "scope": "Call sites and callee definitions within the selection; nested definitions included. Workspace diagnostics share the page."
+      },
+      "semantic": {
+        "addressing": {
+          "format": "SEMANTIC_BASIS#RFC6901_JSON_POINTER",
+          "root": "frsm1:3b8753b34a323d0e8d2203d4989aef1897dc83dca7e2e335de7b927695a18999#/model"
+        },
+        "analysis_budget": {
+          "maximum_source_bytes": 262144,
+          "source_bytes": 322
+        },
+        "context_basis": "frcb1:e2ddba6183abb5cbc8ae930bf53bb75e8b728865a0a09c5bf4abec535bde7111",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 2,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 17,
+          "unsupported_files": 1
+        },
+        "handle_prefix": "frp1:8cd4eb800fdc3134577c2ba301af9218:",
+        "model": {
+          "doc": [
+            "Pinned investigation subject; the initial discount implementation is defective."
+          ],
+          "items": [
+            {
+              "kind": "function",
+              "value": {
+                "body": [
+                  {
+                    "kind": "return",
+                    "value": {
+                      "kind": "binary",
+                      "value": {
+                        "left": {
+                          "kind": "name",
+                          "value": "price"
+                        },
+                        "op": "mul",
+                        "right": {
+                          "kind": "name",
+                          "value": "count"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "exported": true,
+                "name": "subtotal",
+                "params": [
+                  {
+                    "name": "price"
+                  },
+                  {
+                    "name": "count"
+                  }
+                ]
+              }
+            },
+            {
+              "kind": "function",
+              "value": {
+                "body": [
+                  {
+                    "kind": "if",
+                    "value": {
+                      "condition": {
+                        "kind": "name",
+                        "value": "member"
+                      },
+                      "otherwise": [],
+                      "then": [
+                        {
+                          "kind": "return",
+                          "value": {
+                            "kind": "binary",
+                            "value": {
+                              "left": {
+                                "kind": "name",
+                                "value": "amount"
+                              },
+                              "op": "sub",
+                              "right": {
+                                "kind": "int",
+                                "value": "10"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "kind": "return",
+                    "value": {
+                      "kind": "name",
+                      "value": "amount"
+                    }
+                  }
+                ],
+                "exported": true,
+                "name": "discount",
+                "params": [
+                  {
+                    "name": "amount"
+                  },
+                  {
+                    "name": "member"
+                  }
+                ]
+              }
+            },
+            {
+              "kind": "function",
+              "value": {
+                "body": [
+                  {
+                    "kind": "return",
+                    "value": {
+                      "kind": "call",
+                      "value": {
+                        "args": [
+                          {
+                            "kind": "call",
+                            "value": {
+                              "args": [
+                                {
+                                  "kind": "name",
+                                  "value": "price"
+                                },
+                                {
+                                  "kind": "name",
+                                  "value": "count"
+                                }
+                              ],
+                              "callee": {
+                                "kind": "name",
+                                "value": "subtotal"
+                              }
+                            }
+                          },
+                          {
+                            "kind": "name",
+                            "value": "member"
+                          }
+                        ],
+                        "callee": {
+                          "kind": "name",
+                          "value": "discount"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "exported": true,
+                "name": "checkout",
+                "params": [
+                  {
+                    "name": "price"
+                  },
+                  {
+                    "name": "count"
+                  },
+                  {
+                    "name": "member"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "node_budget": {
+          "complete_subtrees_only": true,
+          "limit": 128,
+          "required": 23,
+          "unit": "tagged semantic nodes"
+        },
+        "omitted": {
+          "bodies": 0,
+          "source_fields": 0,
+          "top_level_statements": 0
+        },
+        "patterns": [],
+        "query": "semantic",
+        "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+        "schema": "fr-project-1",
+        "scope": "Syntax-derived cross-language IR; types can be inferred from local evidence. Pattern rows do not prove behavior.",
+        "selection": {
+          "body_requested": true,
+          "handle": "frp1:8cd4eb800fdc3134577c2ba301af9218:1",
+          "kind": "file",
+          "language": "python",
+          "path": "catalog.py"
+        },
+        "semantic_basis": "frsm1:3b8753b34a323d0e8d2203d4989aef1897dc83dca7e2e335de7b927695a18999",
+        "semantic_schema": "fr-semantic-model-1",
+        "source_policy": "source-free",
+        "status": "returned"
+      },
+      "review": {
+        "author": {
+          "atomic_snapshot": false,
+          "behavior_checked": false,
+          "changed": true,
+          "context_inherited": [
+            "coverage",
+            "revision",
+            "handle_prefix"
+          ],
+          "diff": "--- a/catalog.py\n+++ b/catalog.py\n@@ -6,8 +6,8 @@\n \n def discount(amount, member):\n     if member:\n-        return amount - 10\n-    return amount\n+        amount = amount - 10\n+    return max(0, amount)\n \n \n def checkout(price, count, member):\n",
+          "files_changed": 1,
+          "postconditions": [
+            {
+              "actual": 1,
+              "expected": 1,
+              "held": true,
+              "postcondition": "files-changed"
+            },
+            {
+              "actual": 1,
+              "expected": 1,
+              "held": true,
+              "postcondition": "edits"
+            },
+            {
+              "actual": [
+                "catalog.py"
+              ],
+              "expected": [
+                "catalog.py"
+              ],
+              "held": true,
+              "postcondition": "paths-changed"
+            }
+          ],
+          "postconditions_held": true,
+          "query": "batch",
+          "schema": "fr-author-batch-1",
+          "span_basis": "original-source",
+          "steps": [
+            {
+              "after_bytes": 65,
+              "after_sha256": "415abb515a0c8bde4b5d6d77e31a26b978de194641f3f3b899210d8721c52b98",
+              "before_bytes": 55,
+              "before_sha256": "b9669f0a2b9086822c703c06bc211a77da03856bc66d77e7a3dea3dd02a9b612",
+              "before_span": {
+                "end": 231,
+                "start": 176
+              },
+              "changed": true,
+              "handle": "frp1:8cd4eb800fdc3134577c2ba301af9218:5",
+              "operation": "replace-body",
+              "path": "catalog.py",
+              "preservation": "bytes outside the selected body",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "def discount(amount, member):"
+              }
+            }
+          ],
+          "validation": "reparse-strict"
+        },
+        "checks": {
+          "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+          "command": [
+            "fr",
+            "checks",
+            "--run",
+            "syntax",
+            "--basis",
+            "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+            "--quiet-success",
+            "--no-declarations"
+          ],
+          "coverage": [
+            {
+              "covers": [
+                "Python parse; independent behavior checked separately"
+              ],
+              "name": "syntax"
+            }
+          ],
+          "names": [
+            "syntax"
+          ],
+          "selected": true
+        },
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 2,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 17,
+          "unsupported_files": 1
+        },
+        "delivery": {
+          "check_original": true,
+          "check_output_bytes": 2048,
+          "compact_success": true,
+          "exercise_reversal": true,
+          "patch": "artifacts/bug.patch"
+        },
+        "executed": false,
+        "manifest_sha256": "967f29a7f0618c31a249f4efc1ab5bd20ee4d3a95b398a24c895f7d2514b6039",
+        "passed": null,
+        "ready": true,
+        "requests": [],
+        "revision": "8cd4eb800fdc3134577c2ba301af92189f8480888fa649b4578ef734a5127058",
+        "schema": "fr-task-change-1",
+        "stages": [
+          {
+            "stage": "check-original",
+            "status": "pending"
+          },
+          {
+            "stage": "apply",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "undo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-restored",
+            "status": "pending"
+          },
+          {
+            "stage": "redo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "deliver-patch",
+            "status": "pending"
+          }
+        ],
+        "targets": [
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:8cd4eb800fdc3134577c2ba301af9218:5",
+            "id": "repair",
+            "kind": "function",
+            "language": "python",
+            "operation": "replace-body",
+            "path": "catalog.py",
+            "scalar": null,
+            "syntax_preflighted": false
+          }
+        ],
+        "task_basis": "frpt1:8067173673e43418bb77f5f1c22c42b24e9b35847052de65d2111c2cd7fb0229",
+        "task_change_basis": "frtc1:fab27e2484339125fe194c1e7965335acf1e8bf7c06f8bac1a7fa6e77dbe637b",
+        "task_resolution_basis": "frpt2:654357c837424af69814e9941ba1f6ec0a4eba0211d19516ee4684337313774f"
+      },
+      "delivery": {
+        "executed": true,
+        "manifest_sha256": "967f29a7f0618c31a249f4efc1ab5bd20ee4d3a95b398a24c895f7d2514b6039",
+        "passed": true,
+        "reused_transaction": false,
+        "reviewed_context_omitted": [
+          "revision",
+          "task_basis",
+          "task_resolution_basis",
+          "coverage",
+          "requests",
+          "targets",
+          "checks",
+          "delivery",
+          "author",
+          "stages",
+          "ready"
+        ],
+        "saved": true,
+        "schema": "fr-task-change-1",
+        "task_change_basis": "frtc1:fab27e2484339125fe194c1e7965335acf1e8bf7c06f8bac1a7fa6e77dbe637b",
+        "transaction": 1,
+        "workflow": {
+          "executed": true,
+          "manifest_sha256": "a1eb65eb664f3991f09e91717b3fc586aa7e27483bb712fedab5ff9f2d3e08b1",
+          "passed": true,
+          "reviewed_context_omitted": [
+            "manifest_sha256",
+            "record_basis",
+            "transaction_context_basis",
+            "checks",
+            "exercise_reversal",
+            "check_original",
+            "compact_success",
+            "patch",
+            "ready"
+          ],
+          "schema": "fr-workflow-1",
+          "stages": [
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "40cd2046b0687dceb916bb38695fa484a75d1220d19ad2d30909d5a676afca57",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-original",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "apply",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 244,
+                    "path": "catalog.py"
+                  }
+                ],
+                "context_basis": "frtb2:6ec35eaee18d1a6855509edbacbf50aa30c9ed0fcae254f623f4b08c9bde2aa0",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 1
+              },
+              "stage": "apply",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": true,
+                  "receipt": "frce1:6a74e38ba2f7faa8c08d44fb1261eb56d6c63ce2784adc3948e4323c6940c43b",
+                  "transaction": 1
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "abd459037c6c4d070dff402dc7bc37d185d5fc84123bd3d4bad6bf3824c6267f",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "undo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "path": "catalog.py"
+                  }
+                ],
+                "diffs_omitted": true,
+                "transaction": 1
+              },
+              "stage": "undo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "40cd2046b0687dceb916bb38695fa484a75d1220d19ad2d30909d5a676afca57",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-restored",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "redo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 244,
+                    "path": "catalog.py"
+                  }
+                ],
+                "context_basis": "frtb2:6ec35eaee18d1a6855509edbacbf50aa30c9ed0fcae254f623f4b08c9bde2aa0",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 1
+              },
+              "stage": "redo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": false,
+                  "receipt": "frce1:6a74e38ba2f7faa8c08d44fb1261eb56d6c63ce2784adc3948e4323c6940c43b",
+                  "transaction": 1
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "abd459037c6c4d070dff402dc7bc37d185d5fc84123bd3d4bad6bf3824c6267f",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "bytes": 289,
+                "output": "artifacts/bug.patch",
+                "sha256": "cc6e5eb9dcd3b95bf54a6773fce0498cb7cbf74cd7788e3689ed819a93ee0d0e"
+              },
+              "stage": "deliver-patch",
+              "status": "passed"
+            }
+          ],
+          "transaction": 1,
+          "transaction_status": "applied",
+          "workflow_basis": "frwb1:b26074fa9947e119fd5fdd9bbb6bf786dd425574e86b3f6e1c7e22e7b33e8bb5"
+        }
+      },
+      "context_bytes": 12383,
+      "seconds": 0.3682402499835007,
+      "independent_oracle": "passed"
+    },
+    {
+      "task": "feature",
+      "review": {
+        "author": {
+          "atomic_snapshot": false,
+          "behavior_checked": false,
+          "changed": true,
+          "context_inherited": [
+            "coverage",
+            "revision",
+            "handle_prefix"
+          ],
+          "diff": "--- a/catalog.py\n+++ b/catalog.py\n@@ -12,3 +12,5 @@\n \n def checkout(price, count, member):\n     return discount(subtotal(price, count), member)\n+def quote(price, count, member):\n+    return {\"total\": checkout(price, count, member), \"currency\": \"USD\"}\n",
+          "files_changed": 1,
+          "postconditions": [
+            {
+              "actual": 1,
+              "expected": 1,
+              "held": true,
+              "postcondition": "files-changed"
+            },
+            {
+              "actual": 1,
+              "expected": 1,
+              "held": true,
+              "postcondition": "edits"
+            },
+            {
+              "actual": [
+                "catalog.py"
+              ],
+              "expected": [
+                "catalog.py"
+              ],
+              "held": true,
+              "postcondition": "paths-changed"
+            }
+          ],
+          "postconditions_held": true,
+          "query": "batch",
+          "schema": "fr-author-batch-1",
+          "span_basis": "original-source",
+          "steps": [
+            {
+              "after_bytes": 105,
+              "after_sha256": "fe06d30a41337b7d1cb3980978af6d3b4e9fcc3b18de1c63e32806e729d1d120",
+              "before_bytes": 0,
+              "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "before_span": {
+                "end": 332,
+                "start": 332
+              },
+              "changed": true,
+              "handle": "frp1:a473294bd119151d64e2991487967b89:1",
+              "name_check": "all indexed Python binding names; wildcard imports refused.",
+              "name_resolution_checked": false,
+              "operation": "insert-declaration",
+              "path": "catalog.py",
+              "preservation": "all existing source bytes",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "def quote(price, count, member):"
+              }
+            }
+          ],
+          "validation": "reparse-strict"
+        },
+        "checks": {
+          "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+          "command": [
+            "fr",
+            "checks",
+            "--run",
+            "syntax",
+            "--basis",
+            "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+            "--quiet-success",
+            "--no-declarations"
+          ],
+          "coverage": [
+            {
+              "covers": [
+                "Python parse; independent behavior checked separately"
+              ],
+              "name": "syntax"
+            }
+          ],
+          "names": [
+            "syntax"
+          ],
+          "selected": true
+        },
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 2,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 18,
+          "unsupported_files": 2
+        },
+        "delivery": {
+          "check_original": true,
+          "check_output_bytes": 2048,
+          "compact_success": true,
+          "exercise_reversal": true,
+          "patch": "artifacts/feature.patch"
+        },
+        "executed": false,
+        "manifest_sha256": "c11d3efd8e51b0bc4abb2930885a57b45b5a874a0337c58a1c5dd344b07b78b5",
+        "passed": null,
+        "ready": true,
+        "requests": [],
+        "revision": "a473294bd119151d64e2991487967b89e4f9a8ddeb7ce590b396801e62ec2c4f",
+        "schema": "fr-task-change-1",
+        "stages": [
+          {
+            "stage": "check-original",
+            "status": "pending"
+          },
+          {
+            "stage": "apply",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "undo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-restored",
+            "status": "pending"
+          },
+          {
+            "stage": "redo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "deliver-patch",
+            "status": "pending"
+          }
+        ],
+        "targets": [
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:a473294bd119151d64e2991487967b89:1",
+            "id": "feature",
+            "kind": "file",
+            "language": "python",
+            "operation": "insert-declaration",
+            "path": "catalog.py",
+            "scalar": null,
+            "syntax_preflighted": false
+          }
+        ],
+        "task_basis": "frpt1:5b1a76743b0f18ceac2b0551462ab2f8efecd1c27ffe70f6539014a4b9257371",
+        "task_change_basis": "frtc1:68980984be6687148cff84ffb021ea03057c3bbeac9116573d51e15fb7415880",
+        "task_resolution_basis": "frpt2:8abfe997278a28ad9b1570a99f800ab196c38ad77c401514f8c5b419f07ef3af"
+      },
+      "delivery": {
+        "executed": true,
+        "manifest_sha256": "c11d3efd8e51b0bc4abb2930885a57b45b5a874a0337c58a1c5dd344b07b78b5",
+        "passed": true,
+        "reused_transaction": false,
+        "reviewed_context_omitted": [
+          "revision",
+          "task_basis",
+          "task_resolution_basis",
+          "coverage",
+          "requests",
+          "targets",
+          "checks",
+          "delivery",
+          "author",
+          "stages",
+          "ready"
+        ],
+        "saved": true,
+        "schema": "fr-task-change-1",
+        "task_change_basis": "frtc1:68980984be6687148cff84ffb021ea03057c3bbeac9116573d51e15fb7415880",
+        "transaction": 2,
+        "workflow": {
+          "executed": true,
+          "manifest_sha256": "28f81981f67773e71201e56ae34a4a8dd6cd44530241a015c3ef357a928bcaac",
+          "passed": true,
+          "reviewed_context_omitted": [
+            "manifest_sha256",
+            "record_basis",
+            "transaction_context_basis",
+            "checks",
+            "exercise_reversal",
+            "check_original",
+            "compact_success",
+            "patch",
+            "ready"
+          ],
+          "schema": "fr-workflow-1",
+          "stages": [
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "abd459037c6c4d070dff402dc7bc37d185d5fc84123bd3d4bad6bf3824c6267f",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-original",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "apply",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 251,
+                    "path": "catalog.py"
+                  }
+                ],
+                "context_basis": "frtb2:c495fe2c3dc143827bdd8f6ce63bda41887aaee1eeba195c3d65a4773cb648b9",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 2
+              },
+              "stage": "apply",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": true,
+                  "receipt": "frce1:63c5ace5bba45302115d5819f81f2337839f1238031ba859bc81ccf0fc0b4187",
+                  "transaction": 2
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "ed3ddbb0801fc60f928cdc7cbac913a32986907cbf28ca9a84a2897736821549",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "undo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "path": "catalog.py"
+                  }
+                ],
+                "diffs_omitted": true,
+                "transaction": 2
+              },
+              "stage": "undo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "abd459037c6c4d070dff402dc7bc37d185d5fc84123bd3d4bad6bf3824c6267f",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-restored",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "redo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 251,
+                    "path": "catalog.py"
+                  }
+                ],
+                "context_basis": "frtb2:c495fe2c3dc143827bdd8f6ce63bda41887aaee1eeba195c3d65a4773cb648b9",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 2
+              },
+              "stage": "redo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "3fba55ce765d6875bdc8a5e692a02cb6019404dd834b0f6f3a5d4749c4e801c4",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": false,
+                  "receipt": "frce1:63c5ace5bba45302115d5819f81f2337839f1238031ba859bc81ccf0fc0b4187",
+                  "transaction": 2
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "syntax",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "ed3ddbb0801fc60f928cdc7cbac913a32986907cbf28ca9a84a2897736821549",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "bytes": 296,
+                "output": "artifacts/feature.patch",
+                "sha256": "cf397ee461366742431a9ceb8e98b5e4ead76650d19aa1fe4e48bbdd8737958e"
+              },
+              "stage": "deliver-patch",
+              "status": "passed"
+            }
+          ],
+          "transaction": 2,
+          "transaction_status": "applied",
+          "workflow_basis": "frwb1:b6366dd15848a42409600d11610a95291440c2b41f2441a8d11fed007e9accbd"
+        }
+      },
+      "independent_oracle": "passed"
+    }
+  ],
+  "cache_comparison": {
+    "measurements": [
+      {
+        "run": "cold",
+        "seconds": 0.13618062500609085,
+        "context_bytes": 12173
+      },
+      {
+        "run": "warm",
+        "seconds": 0.020771415962371975,
+        "context_bytes": 12173
+      },
+      {
+        "run": "single-edit",
+        "seconds": 0.021578709012828767,
+        "context_bytes": 12173
+      },
+      {
+        "run": "clean-rebuild",
+        "seconds": 0.13597745896549895,
+        "context_bytes": 12173
+      }
+    ],
+    "cold_warm_equal": true,
+    "edit_clean_equal": true,
+    "memory": null,
+    "tokens": null,
+    "scope": "tiny pinned fixture; existing index cache, no new incremental flow cache"
+  }
+}
