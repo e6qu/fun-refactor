@@ -71,14 +71,14 @@ context limits and delivery. `AgentGuide` verifies the goal identity and Merkle 
 action first revalidates its basis and then checks the exact response contract and byte ceiling.
 Exact declaration targets expose typed `DefinitionLocation`, `TextLocation`, `TextRange`,
 `TextPosition` and `ByteSpan` values from `fr_ir.runtime`. Byte spans and 1-based Unicode
-line/column ranges remain bound to the report revision; `location.text(source)` slices the matching
-UTF-8 source revision without treating byte offsets as Python character indexes.
+line/column ranges remain bound to the report revision; `location.text(source)` verifies both
+coordinate forms and slices matching UTF-8 source without treating byte offsets as Python character indexes.
 `ContextSession.source_text(location)` follows only exact source actions returned by that bound
 session, validates every fragment against its source commitment and stops once the requested typed
 location is covered. `SourceFragment.location`, `span` and `source_span` remain file-relative, so
 `fragment.text_at(location)` accepts a covered AST location directly. Its `offset` remains relative
-to the committed declaration for exact protocol paging. The session verifies both coordinate
-systems against its target definition. AST locations stay file-relative for capability authoring.
+to the committed declaration for exact protocol paging. The fragment and session verify line ranges
+and byte spans against revealed text and the target definition. AST locations stay file-relative for capability authoring.
 `ByteSpan` also serves as the optional range of `CapabilityOperation`, so an AST name or definition
 span can flow into a reviewed capability without rebuilding a raw mapping.
 `complete_guide` follows read and preview actions without writing. Every writable route instead

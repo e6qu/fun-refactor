@@ -14,7 +14,7 @@ from typing import Any, Mapping, Protocol
 from .ir import merkle_object_digest, merkle_object_pack, restore_merkle_object
 from .runtime import (
     Disclosure, DisclosureAction, FrClient, FrReport, FrRuntimeError, SourceFragment,
-    TextLocation, _copy_json, _pointer,
+    TextLocation, TextPosition, _advance_text_position, _copy_json, _pointer,
 )
 
 
@@ -412,13 +412,32 @@ class ContextSession:
                 if any(fragment.source_span != definition.span for fragment in fragments):
                     raise FrRuntimeError("source fragment locations do not match the bound target definition")
                 output = bytearray()
-                for fragment in sorted(fragments, key=lambda item: item.offset):
+                ordered = sorted(fragments, key=lambda item: item.offset)
+                for fragment in ordered:
                     encoded = fragment.text.encode("utf-8")
                     if fragment.offset != len(output):
                         raise FrRuntimeError("revealed source fragments overlap or leave a gap")
                     output.extend(encoded)
                 if len(output) >= relative_end:
                     try:
+                        def position(offset: int) -> TextPosition:
+                            if offset == definition_bytes:
+                                return definition.range.end
+                            prefix = bytes(output[:offset]).decode("utf-8")
+                            return _advance_text_position(definition.range.start, prefix)
+
+                        for fragment in ordered:
+                            start = position(fragment.offset)
+                            end = position(fragment.offset + len(fragment.text.encode("utf-8")))
+                            if fragment.location.range.start != start or fragment.location.range.end != end:
+                                raise FrRuntimeError(
+                                    "source fragment line ranges do not match the bound target definition"
+                                )
+                        if (location.range.start != position(relative_start)
+                                or location.range.end != position(relative_end)):
+                            raise FrRuntimeError(
+                                "text location line range does not match the bound target definition"
+                            )
                         return bytes(output[relative_start:relative_end]).decode("utf-8")
                     except UnicodeDecodeError as error:
                         raise FrRuntimeError(

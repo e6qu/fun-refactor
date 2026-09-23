@@ -118,6 +118,29 @@ class TextPosition:
         return cls(value["line"], value["col"])
 
 
+def _advance_text_position(start: TextPosition, text: str) -> TextPosition:
+    """Advance a source position over Unicode text whose first byte is at ``start``."""
+    lines = text.split("\n")
+    if len(lines) == 1:
+        return TextPosition(start.line, start.col + len(text))
+    return TextPosition(start.line + len(lines) - 1, len(lines[-1]) + 1)
+
+
+def _text_position_at(source: str, offset: int) -> TextPosition:
+    """Map one UTF-8 byte offset using the native runtime's trailing-newline rule."""
+    encoded = source.encode("utf-8")
+    if offset > len(encoded):
+        raise FrRuntimeError("text location extends beyond its source")
+    try:
+        prefix = encoded[:offset].decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise FrRuntimeError("text location does not fall on UTF-8 boundaries") from error
+    if offset == len(encoded) and source.endswith("\n"):
+        prefix = prefix[:-1]
+    tail = prefix.rsplit("\n", 1)[-1]
+    return TextPosition(prefix.count("\n") + 1, len(tail) + 1)
+
+
 @dataclass(frozen=True)
 class TextRange:
     """A half-open range between two 1-based source positions."""
@@ -156,16 +179,23 @@ class TextLocation:
         return cls(ByteSpan.from_data(value["span"]), TextRange.from_data(value["range"]))
 
     def text(self, source: str) -> str:
-        """Slice this location from the exact UTF-8 source revision it describes."""
+        """Verify and slice this location from the exact UTF-8 source revision it describes."""
         if not isinstance(source, str):
             raise FrRuntimeError("text location source must be text")
         encoded = source.encode("utf-8")
         if self.span.end > len(encoded):
             raise FrRuntimeError("text location extends beyond its source")
         try:
-            return encoded[self.span.start:self.span.end].decode("utf-8")
+            text = encoded[self.span.start:self.span.end].decode("utf-8")
         except UnicodeDecodeError as error:
             raise FrRuntimeError("text location does not fall on UTF-8 boundaries") from error
+        expected = TextRange(
+            _text_position_at(source, self.span.start),
+            _text_position_at(source, self.span.end),
+        )
+        if self.range != expected:
+            raise FrRuntimeError("text location line range does not match its source")
+        return text
 
 
 @dataclass(frozen=True)
@@ -196,6 +226,12 @@ class SourceFragment:
             raise FrRuntimeError("source fragment location does not match its text")
         if self.location.span.start < self.offset:
             raise FrRuntimeError("source fragment location precedes its relative offset")
+        expected_end = _advance_text_position(self.location.range.start, self.text)
+        allowed_ends = {expected_end}
+        if self.offset + len(self.text.encode("utf-8")) == self.total_bytes and self.text.endswith("\n"):
+            allowed_ends.add(_advance_text_position(self.location.range.start, self.text[:-1]))
+        if self.location.range.end not in allowed_ends:
+            raise FrRuntimeError("source fragment line range does not match its text")
 
     @property
     def span(self) -> ByteSpan:
@@ -239,9 +275,17 @@ class SourceFragment:
         start = location.span.start - self.span.start
         end = location.span.end - self.span.start
         try:
-            return encoded[start:end].decode("utf-8")
+            prefix = encoded[:start].decode("utf-8")
+            text = encoded[start:end].decode("utf-8")
         except UnicodeDecodeError as error:
             raise FrRuntimeError("text location does not fall on UTF-8 boundaries") from error
+        expected_start = (self.location.range.end if start == len(encoded)
+                          else _advance_text_position(self.location.range.start, prefix))
+        expected_end = (self.location.range.end if end == len(encoded)
+                        else _advance_text_position(expected_start, text))
+        if location.range != TextRange(expected_start, expected_end):
+            raise FrRuntimeError("text location line range does not match its source fragment")
+        return text
 
 
 @dataclass(frozen=True)

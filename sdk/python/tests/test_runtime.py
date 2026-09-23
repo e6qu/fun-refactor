@@ -70,6 +70,14 @@ class TestRuntime:
         )
         assert parsed.name.text(source) == "héllo"
         assert parsed.definition.text(source) == source
+        assert TextLocation(
+            ByteSpan(1, 2), TextRange(TextPosition(2, 1), TextPosition(2, 2)),
+        ).text("\nx") == "x"
+        with pytest.raises(FrRuntimeError, match="line range does not match"):
+            TextLocation(
+                parsed.name.span,
+                TextRange(TextPosition(2, 1), TextPosition(2, 6)),
+            ).text(source)
 
         disclosure = Disclosure({
             "schema": "fr-progressive-disclosure-1",
@@ -185,6 +193,21 @@ class TestRuntime:
         assert fragment.origin == 11
         assert fragment.source_span == ByteSpan(11, 23)
         assert fragment.text_at(location) == "héllo"
+        trailing = SourceFragment.from_data({
+            "id": "frh1:trailing", "domain": "exact-source", "digest": "b" * 64,
+            "offset": 0, "returned_bytes": 2, "total_bytes": 2, "text": "x\n",
+            "location": {
+                "span": {"start": 0, "end": 2},
+                "range": {"start": {"line": 1, "col": 1},
+                          "end": {"line": 1, "col": 2}},
+            },
+        })
+        assert trailing.text_at(trailing.location) == "x\n"
+        with pytest.raises(FrRuntimeError, match="line range does not match"):
+            fragment.text_at(TextLocation(
+                ByteSpan(14, 15),
+                TextRange(TextPosition(2, 2), TextPosition(2, 3)),
+            ))
         with pytest.raises(FrRuntimeError, match="returned byte count"):
             SourceFragment.from_data({
                 "id": "frh1:source", "domain": "exact-source", "digest": "a" * 64,
@@ -195,6 +218,65 @@ class TestRuntime:
                               "end": {"line": 2, "col": 6}},
                 },
             })
+        with pytest.raises(FrRuntimeError, match="line range does not match"):
+            SourceFragment.from_data({
+                "id": "frh1:source", "domain": "exact-source", "digest": "a" * 64,
+                "offset": 3, "returned_bytes": 6, "total_bytes": 12, "text": "héllo",
+                "location": {
+                    "span": {"start": 14, "end": 20},
+                    "range": {"start": {"line": 2, "col": 1},
+                              "end": {"line": 2, "col": 5}},
+                },
+            })
+
+    @patch("fr_ir.runtime.subprocess.run")
+    def test_context_rejects_source_fragment_line_range_drift(self, run):
+        source = "fn x() {}"
+        origin = 10
+        source_root = "6" * 64
+        handle = "frp1:revision:node"
+        reveal = ["project", "disclose", handle, "--reveal", "frh1:source"]
+        base = {
+            "schema": "fr-progressive-disclosure-1",
+            "token_budget": {"limit": 4096, "used_upper_bound": 900},
+            "revision": "1" * 64, "view_basis": "frdv1:" + "2" * 64,
+            "view": "semantic", "profile": "compact",
+            "commitment": {"object_root": "3" * 64, "source_root": source_root},
+            "target": {"handle": handle, "location": {
+                "name": {
+                    "span": {"start": origin + 3, "end": origin + 4},
+                    "range": {"start": {"line": 2, "col": 4},
+                              "end": {"line": 2, "col": 5}},
+                },
+                "definition": {
+                    "span": {"start": origin, "end": origin + len(source)},
+                    "range": {"start": {"line": 2, "col": 1},
+                              "end": {"line": 2, "col": 10}},
+                },
+            }},
+        }
+        run.side_effect = [
+            completed({**base, "frontier": [{
+                "id": "frh1:source", "domain": "exact-source", "digest": source_root,
+                "offset": 0, "remaining_bytes": len(source),
+                "reveal": {"arguments": reveal},
+            }]}),
+            completed({**base, "status": "revealed", "revealed": {
+                "id": "frh1:source", "domain": "exact-source", "digest": source_root,
+                "offset": 0, "returned_bytes": len(source), "total_bytes": len(source),
+                "text": source, "location": {
+                    "span": {"start": origin, "end": origin + len(source)},
+                    "range": {"start": {"line": 3, "col": 1},
+                              "end": {"line": 3, "col": 10}},
+                },
+            }, "frontier": []}),
+        ]
+
+        session = self.client.context(handle)
+        location = session.latest.target.location
+        assert location is not None
+        with pytest.raises(FrRuntimeError, match="fragment line ranges do not match"):
+            session.source_text(location.definition)
 
     @patch("fr_ir.runtime.subprocess.run")
     def test_context_refuses_source_outside_its_committed_revision(self, run):
