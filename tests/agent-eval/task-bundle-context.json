@@ -1,9 +1,9 @@
 {
   "schema": "fr-task-bundle-context-1",
   "passed": true,
-  "binary_sha256": "c59f232a408a154b748ec12ab6ea709ea09999440730db7bffb96df7492f7b4b",
-  "source_commit": "99520d83b0e51f45ffdd03793f0a5567dcbce29f",
-  "repetitions": 1,
+  "binary_sha256": "82feb986bc5f3282e4dc7cf1d7e179af998b343d5feac8dd117513d0ab045b7d",
+  "source_commit": "e0ba3faf9fefcdf4afade4a142ac554dd9c29288",
+  "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
     "python": "3.12.10",
@@ -13,7 +13,7 @@
     "tools/task-bundle-context.py": "c89c48eef7b5d3f8bb9c2feec4e838a944633c683041365093010b02048df580",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
-    "src/project/task.rs": "d99f35813e2dcab0f2b47821389ee798d9868db2f0764b795dc83514818b2143",
+    "src/project/task.rs": "d1a04d6226b139bb38545447d63df946e85a7133ce92fdef52efd22131665345",
     "src/project/batch.rs": "ac2004157090f314b78ec23daba63b7612968b661a5c157ad9a8e369fadad4ff",
     "src/checks.rs": "e7818ca5e65a755cb33ebd00238e1dd561059ce71a1b0e4a0f9125c4d3b14a04",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
@@ -86,7 +86,12 @@
       "patch": "artifacts/change.patch"
     }
   },
-  "tokenizer": null,
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
   "token_normalization": {
     "pattern": "isolated lowercase hexadecimal identities of length 32 or 64",
     "representatives": {
@@ -96,18 +101,18 @@
   },
   "summary": {
     "separate": {
-      "samples": 1,
+      "samples": 3,
       "calls": 4,
-      "median_context_bytes": 7062,
-      "median_context_tokens": null,
-      "median_seconds": 0.8296255840105005
+      "median_context_bytes": 8965,
+      "median_context_tokens": 2652,
+      "median_seconds": 0.12326850090175867
     },
     "task": {
-      "samples": 1,
+      "samples": 3,
       "calls": 1,
-      "median_context_bytes": 4936,
-      "median_context_tokens": null,
-      "median_seconds": 0.08043583302060142
+      "median_context_bytes": 6839,
+      "median_context_tokens": 2314,
+      "median_seconds": 0.058527166955173016
     }
   },
   "runs": [
@@ -115,47 +120,139 @@
       "repetition": 1,
       "arm": "separate",
       "calls": 4,
-      "semantic_sha256": "1482f7f5c37552aeb0c0cbbc1be198e236087e862b61906533e6f8aa4104009e",
+      "semantic_sha256": "73a30fe75e14f1f7663fe72b86c25d806c8f935440e5b208acf6a65c95b0b522",
       "stdout": {
-        "bytes": 6745,
-        "tokens": null
+        "bytes": 8648,
+        "tokens": 2544
       },
       "requests": {
         "bytes": 317,
-        "tokens": null
+        "tokens": 108
       },
       "artifact": {
         "bytes": 0,
-        "tokens": null
+        "tokens": 0
       },
       "context": {
-        "bytes": 7062,
-        "tokens": null
+        "bytes": 8965,
+        "tokens": 2652
       },
-      "seconds": 0.8296255840105005
+      "seconds": 0.12326850090175867
     },
     {
       "repetition": 1,
       "arm": "task",
       "calls": 1,
-      "semantic_sha256": "1482f7f5c37552aeb0c0cbbc1be198e236087e862b61906533e6f8aa4104009e",
+      "semantic_sha256": "73a30fe75e14f1f7663fe72b86c25d806c8f935440e5b208acf6a65c95b0b522",
       "stdout": {
-        "bytes": 4397,
-        "tokens": null
+        "bytes": 6300,
+        "tokens": 2163
       },
       "requests": {
         "bytes": 93,
-        "tokens": null
+        "tokens": 30
       },
       "artifact": {
         "bytes": 446,
-        "tokens": null
+        "tokens": 121
       },
       "context": {
-        "bytes": 4936,
-        "tokens": null
+        "bytes": 6839,
+        "tokens": 2314
       },
-      "seconds": 0.08043583302060142
+      "seconds": 0.05636450002202764
+    },
+    {
+      "repetition": 2,
+      "arm": "task",
+      "calls": 1,
+      "semantic_sha256": "73a30fe75e14f1f7663fe72b86c25d806c8f935440e5b208acf6a65c95b0b522",
+      "stdout": {
+        "bytes": 6300,
+        "tokens": 2163
+      },
+      "requests": {
+        "bytes": 93,
+        "tokens": 30
+      },
+      "artifact": {
+        "bytes": 446,
+        "tokens": 121
+      },
+      "context": {
+        "bytes": 6839,
+        "tokens": 2314
+      },
+      "seconds": 0.058527166955173016
+    },
+    {
+      "repetition": 2,
+      "arm": "separate",
+      "calls": 4,
+      "semantic_sha256": "73a30fe75e14f1f7663fe72b86c25d806c8f935440e5b208acf6a65c95b0b522",
+      "stdout": {
+        "bytes": 8648,
+        "tokens": 2544
+      },
+      "requests": {
+        "bytes": 317,
+        "tokens": 108
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 8965,
+        "tokens": 2652
+      },
+      "seconds": 0.12427733303047717
+    },
+    {
+      "repetition": 3,
+      "arm": "separate",
+      "calls": 4,
+      "semantic_sha256": "73a30fe75e14f1f7663fe72b86c25d806c8f935440e5b208acf6a65c95b0b522",
+      "stdout": {
+        "bytes": 8648,
+        "tokens": 2544
+      },
+      "requests": {
+        "bytes": 317,
+        "tokens": 108
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 8965,
+        "tokens": 2652
+      },
+      "seconds": 0.12053287494927645
+    },
+    {
+      "repetition": 3,
+      "arm": "task",
+      "calls": 1,
+      "semantic_sha256": "73a30fe75e14f1f7663fe72b86c25d806c8f935440e5b208acf6a65c95b0b522",
+      "stdout": {
+        "bytes": 6300,
+        "tokens": 2163
+      },
+      "requests": {
+        "bytes": 93,
+        "tokens": 30
+      },
+      "artifact": {
+        "bytes": 446,
+        "tokens": 121
+      },
+      "context": {
+        "bytes": 6839,
+        "tokens": 2314
+      },
+      "seconds": 0.06520112499129027
     }
   ],
   "source_unchanged": true,

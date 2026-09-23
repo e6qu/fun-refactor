@@ -51,11 +51,15 @@ mod features;
 mod find;
 pub use crate::framework_kernel;
 pub use crate::surface_kernel;
+pub mod correspondence;
+pub mod dataflow;
+pub mod investigation;
 mod links;
 mod lockfiles;
 mod manifests;
 pub mod migration;
 mod next_routes;
+pub mod occurrence;
 mod package_features;
 mod relationships;
 mod routes;
@@ -79,6 +83,12 @@ pub use task::task_author_target_candidate;
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Separate immutable declaration content from revision-bound handles.")]
+    Identities(correspondence::Options),
+    #[command(about = "Trace bounded scalar value propagation through Python helpers.")]
+    Dataflow(dataflow::Options),
+    #[command(about = "Validate and resume a dependency-bound local investigation plan.")]
+    Investigate(investigation::Options),
     #[command(about = "Read a versioned application hierarchy with explicit semantic boundaries.")]
     Application(application::Options),
     #[command(about = "Run several bounded read queries against one verified project snapshot.")]
@@ -1167,7 +1177,8 @@ impl<'a> Project<'a> {
                     .context("reference file is outside the source snapshot.")?;
                 rows.push(json!({"direction": direction, "kind": reference.kind, "name": bounded_text(&reference.name, 160),
                     "path": bounded_text(&reference.file.strip_prefix(&self.root)?.to_string_lossy(), 512),
-                    "line": self.lines[&reference.file].line_col(reference.span.start, source).line, "target": target, "confidence": reference.confidence}));
+                    "line": self.lines[&reference.file].line_col(reference.span.start, source).line, "target": target, "confidence": reference.confidence,
+                    "occurrence": self.occurrence(&reference.file, reference.span, "reference")?}));
             }
         }
         let key = format!("frpc1:{}", &hash((&self.revision, "relations", id))?[..32]);
@@ -1450,6 +1461,9 @@ impl<'a> Project<'a> {
 
     pub fn report(&self, command: &Command) -> Result<Value> {
         match command {
+            Command::Identities(options) => self.identities(options),
+            Command::Dataflow(options) => self.dataflow(options),
+            Command::Investigate(options) => self.investigation(options),
             Command::Batch(options) => self.batch(options),
             Command::Task(options) => self.task(options),
             Command::Explore(options) => self.explore(options),

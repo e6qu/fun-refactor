@@ -2182,3 +2182,6 @@ uses exits 1, and the reason names the use.
 - [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md), which references cross a language
   boundary and which do not.
 - [EXAMPLES.md](EXAMPLES.md), every refactoring run against real code.
+
+`project dataflow`, `project investigate` and `project identities` support
+[bounded investigations](docs/agent-investigations.md).

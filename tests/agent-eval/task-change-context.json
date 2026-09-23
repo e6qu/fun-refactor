@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-change-context-2",
   "passed": true,
-  "binary_sha256": "c59f232a408a154b748ec12ab6ea709ea09999440730db7bffb96df7492f7b4b",
-  "source_commit": "99520d83b0e51f45ffdd03793f0a5567dcbce29f",
+  "binary_sha256": "82feb986bc5f3282e4dc7cf1d7e179af998b343d5feac8dd117513d0ab045b7d",
+  "source_commit": "e0ba3faf9fefcdf4afade4a142ac554dd9c29288",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
@@ -14,8 +14,8 @@
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
-    "src/project/task.rs": "d99f35813e2dcab0f2b47821389ee798d9868db2f0764b795dc83514818b2143",
-    "src/project/author.rs": "db096b866968275e45765add1f796f20ed6a4d724173a4cd5c6f620a6ce6c146",
+    "src/project/task.rs": "d1a04d6226b139bb38545447d63df946e85a7133ce92fdef52efd22131665345",
+    "src/project/author.rs": "0ebde9c47d467501ae59421a0b710eb36e5f6ebfa58ac87d6a4ae8145ee66eff",
     "src/workflow.rs": "0b5a280d99b918e1a33ff301ffa6aa78f56488a447f7242ded4ba43a4aff9f07",
     "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
     "src/checks.rs": "e7818ca5e65a755cb33ebd00238e1dd561059ce71a1b0e4a0f9125c4d3b14a04",
@@ -65,23 +65,23 @@
     "composed": {
       "samples": 3,
       "calls": 5,
-      "median_context_bytes": 13905,
-      "median_context_tokens": 4697,
-      "median_seconds": 0.6763541660038754
+      "median_context_bytes": 15805,
+      "median_context_tokens": 5459,
+      "median_seconds": 0.5306942489696667
     },
     "task_change": {
       "samples": 3,
       "calls": 2,
-      "median_context_bytes": 10645,
-      "median_context_tokens": 3444,
-      "median_seconds": 0.512713708973024
+      "median_context_bytes": 12545,
+      "median_context_tokens": 4206,
+      "median_seconds": 0.4734902500640601
     },
     "change_session": {
       "samples": 3,
       "calls": 2,
-      "median_context_bytes": 10316,
-      "median_context_tokens": 3416,
-      "median_seconds": 0.5488856239826418
+      "median_context_bytes": 12216,
+      "median_context_tokens": 4178,
+      "median_seconds": 0.5037393340026028
     }
   },
   "runs": [
@@ -90,8 +90,8 @@
       "arm": "composed",
       "calls": 5,
       "stdout": {
-        "bytes": 12209,
-        "tokens": 4156
+        "bytes": 14110,
+        "tokens": 4918
       },
       "requests": {
         "bytes": 494,
@@ -102,10 +102,10 @@
         "tokens": 382
       },
       "context": {
-        "bytes": 13905,
-        "tokens": 4697
+        "bytes": 15806,
+        "tokens": 5459
       },
-      "seconds": 1.3809886250528507,
+      "seconds": 0.6398012909339741,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -117,8 +117,8 @@
       "arm": "task_change",
       "calls": 2,
       "stdout": {
-        "bytes": 9729,
-        "tokens": 3214
+        "bytes": 11629,
+        "tokens": 3976
       },
       "requests": {
         "bytes": 182,
@@ -129,10 +129,10 @@
         "tokens": 174
       },
       "context": {
-        "bytes": 10645,
-        "tokens": 3444
+        "bytes": 12545,
+        "tokens": 4206
       },
-      "seconds": 0.7056483749765903,
+      "seconds": 0.4734902500640601,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -144,8 +144,8 @@
       "arm": "change_session",
       "calls": 2,
       "stdout": {
-        "bytes": 9471,
-        "tokens": 3181
+        "bytes": 11371,
+        "tokens": 3943
       },
       "requests": {
         "bytes": 182,
@@ -156,10 +156,10 @@
         "tokens": 179
       },
       "context": {
-        "bytes": 10316,
-        "tokens": 3416
+        "bytes": 12216,
+        "tokens": 4178
       },
-      "seconds": 0.6345996659947559,
+      "seconds": 0.49241754098329693,
       "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -171,8 +171,8 @@
       "arm": "change_session",
       "calls": 2,
       "stdout": {
-        "bytes": 9471,
-        "tokens": 3181
+        "bytes": 11371,
+        "tokens": 3943
       },
       "requests": {
         "bytes": 182,
@@ -183,10 +183,10 @@
         "tokens": 179
       },
       "context": {
-        "bytes": 10316,
-        "tokens": 3416
+        "bytes": 12216,
+        "tokens": 4178
       },
-      "seconds": 0.5488856239826418,
+      "seconds": 0.5037393340026028,
       "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -198,8 +198,8 @@
       "arm": "task_change",
       "calls": 2,
       "stdout": {
-        "bytes": 9729,
-        "tokens": 3214
+        "bytes": 11629,
+        "tokens": 3976
       },
       "requests": {
         "bytes": 182,
@@ -210,10 +210,10 @@
         "tokens": 174
       },
       "context": {
-        "bytes": 10645,
-        "tokens": 3444
+        "bytes": 12545,
+        "tokens": 4206
       },
-      "seconds": 0.512713708973024,
+      "seconds": 0.45073512598173693,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -225,8 +225,8 @@
       "arm": "composed",
       "calls": 5,
       "stdout": {
-        "bytes": 12209,
-        "tokens": 4156
+        "bytes": 14109,
+        "tokens": 4918
       },
       "requests": {
         "bytes": 494,
@@ -237,10 +237,10 @@
         "tokens": 382
       },
       "context": {
-        "bytes": 13905,
-        "tokens": 4697
+        "bytes": 15805,
+        "tokens": 5459
       },
-      "seconds": 0.6763541660038754,
+      "seconds": 0.4699522079899907,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -252,8 +252,8 @@
       "arm": "composed",
       "calls": 5,
       "stdout": {
-        "bytes": 12209,
-        "tokens": 4156
+        "bytes": 14109,
+        "tokens": 4918
       },
       "requests": {
         "bytes": 494,
@@ -264,10 +264,10 @@
         "tokens": 382
       },
       "context": {
-        "bytes": 13905,
-        "tokens": 4697
+        "bytes": 15805,
+        "tokens": 5459
       },
-      "seconds": 0.5824019170249812,
+      "seconds": 0.5306942489696667,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -279,8 +279,8 @@
       "arm": "task_change",
       "calls": 2,
       "stdout": {
-        "bytes": 9729,
-        "tokens": 3214
+        "bytes": 11629,
+        "tokens": 3976
       },
       "requests": {
         "bytes": 182,
@@ -291,10 +291,10 @@
         "tokens": 174
       },
       "context": {
-        "bytes": 10645,
-        "tokens": 3444
+        "bytes": 12545,
+        "tokens": 4206
       },
-      "seconds": 0.4984674580045976,
+      "seconds": 0.48438387602800503,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -306,8 +306,8 @@
       "arm": "change_session",
       "calls": 2,
       "stdout": {
-        "bytes": 9471,
-        "tokens": 3181
+        "bytes": 11371,
+        "tokens": 3943
       },
       "requests": {
         "bytes": 182,
@@ -318,10 +318,10 @@
         "tokens": 179
       },
       "context": {
-        "bytes": 10316,
-        "tokens": 3416
+        "bytes": 12216,
+        "tokens": 4178
       },
-      "seconds": 0.5202745419810526,
+      "seconds": 0.5981854590354487,
       "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",

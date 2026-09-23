@@ -162,6 +162,8 @@ impl Project<'_> {
                     "symbol": step.symbol.map(|symbol| self.evidence_symbol(symbol)),
                     "path": bounded_text(&path.to_string_lossy(), 256),
                     "position": position,
+                    "span": step.span,
+                    "occurrence_id": self.occurrence(&step.file, step.span, "flow").ok().map(|occurrence| occurrence.id),
                     "depth": step.depth,
                     "confidence": step.confidence.as_str()
                 })

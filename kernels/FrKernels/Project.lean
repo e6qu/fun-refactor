@@ -683,14 +683,14 @@ theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
   simp [batchSectionFits]
   omega
 
--- fr:spec src/project/task.rs::task_author_target_candidate @ 63975edca5ff3c62b8f9e520b55729cd7784e4e7756000a3fb9ea57476c4ac13
+-- fr:spec src/project/task.rs::task_author_target_candidate @ 29b5f91680d4dcfbd5f7182b82e6ba9355d27745b15234ebc1a2ce658af0e9f6
 -- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
 def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
   match operation with
-  | 0 | 4 | 5 | 6 | 7 | 8 | 9 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
+  | 0 | 4 | 5 | 6 | 7 | 8 | 9 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5 ∨ language = 6) ∧
       (target = 1 ∨ target = 2 ∨ (language = 4 ∨ language = 5) ∧ target = 3))
   | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
-  | 2 => decide (language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5))
+  | 2 => decide ((language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5)) ∨ (language = 6 ∧ target = 0))
   | 3 => decide (target = 0)
   | _ => false
 
@@ -701,7 +701,7 @@ theorem replace_declaration_target_iff (language target : Nat) :
 
 theorem insert_declaration_target_iff (language target : Nat) :
     taskAuthorTargetCandidate 2 language target = true ↔
-      language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5) := by
+      (language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5)) ∨ (language = 6 ∧ target = 0) := by
   simp [taskAuthorTargetCandidate]
 
 theorem organize_imports_requires_file (language target : Nat)

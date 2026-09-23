@@ -62,7 +62,9 @@ impl Project<'_> {
             json!({"handle": self.handle(node), "name": bounded_text(&symbol.name, 160), "kind": symbol.kind,
             "qualifier": symbol.qualifier.as_deref().map(|q| bounded_text(q, 160)),
             "path": bounded_text(&symbol.file.strip_prefix(&self.root)?.to_string_lossy(), 512),
-            "line": self.lines[&symbol.file].line_col(symbol.name_span.start, source).line}),
+            "line": self.lines[&symbol.file].line_col(symbol.name_span.start, source).line,
+            "location": self.definition_location(symbol),
+            "occurrence": self.occurrence(&symbol.file, symbol.name_span, "declaration")?}),
         )
     }
 
@@ -76,9 +78,27 @@ impl Project<'_> {
             "call site is outside its source snapshot."
         );
         let position = self.lines[file].line_col(offset, source);
+        let spans = self
+            .index
+            .references_in(file)
+            .filter(|reference| reference.span.start == offset)
+            .map(|reference| reference.span)
+            .collect::<std::collections::BTreeSet<_>>();
+        let origins = match spans.len() {
+            0 => super::occurrence::SourceOrigins::Absent {
+                reason: "call graph offset has no indexed reference span.".into(),
+            },
+            1 => self.occurrence_origins(file, *spans.first().unwrap(), "call"),
+            _ => super::occurrence::SourceOrigins::Multiple {
+                occurrences: spans
+                    .into_iter()
+                    .map(|span| self.occurrence(file, span, "call"))
+                    .collect::<Result<Vec<_>>>()?,
+            },
+        };
         Ok(
             json!({"path": bounded_text(&file.strip_prefix(&self.root)?.to_string_lossy(), 512),
-            "offset": offset, "line": position.line, "column": position.col}),
+            "offset": offset, "line": position.line, "column": position.col, "origins": origins}),
         )
     }
 
@@ -158,6 +178,10 @@ impl Project<'_> {
         result["items"] = json!(&rows[start..end]);
         result["page"] = page;
         result["analysis"] = analysis;
+        result["provenance"] = json!({"rule": "fr-indexed-relationships-1", "revision": self.revision,
+            "scope": "indexed workspace", "claim": "candidate-relationships",
+            "assumptions": ["syntax index resolution; no compiler or runtime dispatch guarantee."],
+            "omissions": "see page and analysis diagnostics"});
         if let Some(direction) = direction {
             result["direction"] = json!(direction)
         }

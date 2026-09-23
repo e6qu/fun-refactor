@@ -75,3 +75,6 @@ stages.
 
 Historical design work belongs in Git history and retained evaluation fixtures. The active guides
 describe the current product contract.
+
+[Investigation evidence and resumable plans](agent-investigations.md) describes exact occurrences,
+Python scalar flow, dependency invalidation and checked investigation delivery.

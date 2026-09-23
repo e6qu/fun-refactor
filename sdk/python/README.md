@@ -338,3 +338,8 @@ The bounded formal evaluator lives in `fr_ir.formal_kernel`. `KernelValue`, `Ker
 `KernelEvidence` and `SourceBinding` expose separate IR, term, model and language-neutral signature identities.
 `FormalBinding.source_type` aliases the retained legacy wire field.
 See [formalization](../../docs/agent-formalization.md) for structural targets and agent-written correspondence proofs.
+
+Typed `Occurrence` values expose exact use sites. `fr_ir.investigation` provides `TaskPlan`,
+`TaskStep`, dependencies, evidence records and flow witnesses. Plans persist through the existing
+Merkle object store and revalidate dependencies on resume. See the
+[investigation contract](../../docs/agent-investigations.md) for supported semantics and boundaries.

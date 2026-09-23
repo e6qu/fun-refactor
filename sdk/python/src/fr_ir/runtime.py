@@ -200,6 +200,47 @@ class TextLocation:
 
 
 @dataclass(frozen=True)
+class Occurrence:
+    """An exact source use or declaration bound to one project revision."""
+
+    id: str
+    revision: str
+    path: str
+    location: TextLocation
+    role: str
+    enclosing: str | None
+
+    @classmethod
+    def from_data(cls, value: Any) -> Occurrence:
+        if not isinstance(value, Mapping) or set(value) != {
+            "id", "revision", "path", "location", "role", "enclosing",
+        }:
+            raise FrRuntimeError("occurrence fields are invalid")
+        revision = value["revision"]
+        if not isinstance(revision, str) or not _REVISION.fullmatch(revision):
+            raise FrRuntimeError("occurrence revision is invalid")
+        if not isinstance(value["id"], str) or not re.fullmatch(r"fro1:[0-9a-f]{64}", value["id"]):
+            raise FrRuntimeError("occurrence identity is invalid")
+        path = value["path"]
+        if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts:
+            raise FrRuntimeError("occurrence path must be workspace relative")
+        if not isinstance(value["role"], str) or not value["role"]:
+            raise FrRuntimeError("occurrence role is invalid")
+        enclosing = value["enclosing"]
+        if enclosing is not None and (not isinstance(enclosing, str) or not re.fullmatch(
+            rf"frp1:{revision[:32]}:[0-9a-f]+", enclosing,
+        )):
+            raise FrRuntimeError("occurrence enclosing handle belongs to another revision")
+        return cls(value["id"], revision, path, TextLocation.from_data(value["location"]),
+                   value["role"], enclosing)
+
+    def text(self, source: str, *, revision: str) -> str:
+        if revision != self.revision:
+            raise FrRuntimeError("occurrence belongs to another revision")
+        return self.location.text(source)
+
+
+@dataclass(frozen=True)
 class SourceFragment:
     """One exact, file-located source fragment returned by progressive disclosure."""
 

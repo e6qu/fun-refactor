@@ -1,0 +1,11 @@
+{
+  "schema": "fr-investigation-fixture-1",
+  "baseline_revision": "4bd2e378",
+  "scope": "Python scalar functions in catalog.py; deterministic investigation, no live-agent claim",
+  "bug": "A member buying two items at price 3 receives a negative checkout total. Totals must never be negative.",
+  "feature": "Expose a quote operation accepting price, count and membership and returning the checkout total with currency USD.",
+  "unknown_edit_targets": true,
+  "oracle": "python3 oracle.py <subject.py> [--feature]",
+  "budgets": {"relationship_rows": 16, "flow_steps": 128, "source_bytes": 2048},
+  "direct_edit_boundary": "New analyzer and task persistence have no existing fr authoring route. Fixture repairs use reviewed source-body delivery where admitted."
+}

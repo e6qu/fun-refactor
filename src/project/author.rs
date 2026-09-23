@@ -1202,11 +1202,11 @@ impl Project<'_> {
             .file(&path)
             .context("selected file is not indexed.")?;
         ensure!(
-            info.language == Language::Rust,
-            "declaration insertion supports Rust files only."
+            info.language == Language::Rust || info.language == Language::Python && is_file,
+            "declaration insertion supports Rust containers and Python file targets."
         );
         let source = &self.sources[&path];
-        let parsed = Parsers::new().parse(Language::Rust, source)?;
+        let parsed = Parsers::new().parse(info.language, source)?;
         ensure!(
             !parsed.has_errors(),
             "declaration insertion requires a file without parser errors."
@@ -1291,8 +1291,27 @@ impl Project<'_> {
             (body, offset, kind, name)
         };
         let text = fragment(&self.root.join(&options.from))?;
-        let fragment_tree = Parsers::new().parse(Language::Rust, &text)?;
-        let function = function_fragment(&fragment_tree, &text, true, container_kind == "trait")?;
+        let fragment_tree = Parsers::new().parse(info.language, &text)?;
+        let function = if info.language == Language::Python {
+            ensure!(
+                !fragment_tree.has_errors(),
+                "Python declaration fragment contains parser errors."
+            );
+            let declarations: Vec<_> = fragment_tree
+                .root()
+                .named_children(&mut fragment_tree.root().walk())
+                .filter(|node| node.kind() != "comment")
+                .collect();
+            ensure!(
+                declarations.len() == 1
+                    && declarations[0].kind() == "function_definition"
+                    && declarations[0].start_position().column == 0,
+                "Python insertion requires one top-level function declaration."
+            );
+            declarations[0]
+        } else {
+            function_fragment(&fragment_tree, &text, true, container_kind == "trait")?
+        };
         let name = Span::from(
             function
                 .child_by_field_name("name")
@@ -1300,6 +1319,25 @@ impl Project<'_> {
         )
         .text(&text);
         let normalized = name.strip_prefix("r#").unwrap_or(name);
+        if info.language == Language::Python {
+            ensure!(
+                !self
+                    .index
+                    .symbols
+                    .iter()
+                    .any(|symbol| symbol.file == path && symbol.name == name),
+                "an indexed binding already has this name; choose a new declaration name."
+            );
+            ensure!(
+                !info.imports.iter().any(|import| import.is_glob
+                    || import.alias.as_deref() == Some(name)
+                    || import.names.iter().any(|binding| binding.local == name)
+                    || (import.names.is_empty()
+                        && import.alias.is_none()
+                        && import.path.split('.').next() == Some(name))),
+                "Python insertion refuses wildcard imports with unknown bindings."
+            );
+        }
         let mut pending_outer = false;
         let mut cursor = container.walk();
         for item in container.named_children(&mut cursor) {
@@ -1342,7 +1380,7 @@ impl Project<'_> {
         );
         let updated = crate::edit::apply_to_string(source, edits.edits_for(&path).unwrap_or(&[]))?;
         ensure!(
-            !Parsers::new().parse(Language::Rust, &updated)?.has_errors(),
+            !Parsers::new().parse(info.language, &updated)?.has_errors(),
             "insertion introduces parser errors in its destination context."
         );
         let body = function.child_by_field_name("body");
@@ -1364,6 +1402,8 @@ impl Project<'_> {
         }
         report["insertion"] = json!({"before_span": span, "after_span": Span::new(span.start, span.start+inserted.len()), "added_bytes": inserted.len(), "leading_separator": leading, "trailing_separator": newline, "sha256": digest(&inserted)});
         report["name_check"] = json!(match container_kind {
+            "file" if info.language == Language::Python =>
+                "all indexed Python binding names; wildcard imports refused.",
             "file" => "direct top-level item names; Rust namespaces are not distinguished.",
             "inline-module" =>
                 "direct items in the selected module; Rust namespaces are not distinguished.",

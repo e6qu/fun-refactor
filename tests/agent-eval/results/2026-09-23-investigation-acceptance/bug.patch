@@ -1,0 +1,14 @@
+diff --git "a/catalog.py" "b/catalog.py"
+--- "a/catalog.py"
++++ "b/catalog.py"
+@@ -6,8 +6,8 @@
+ 
+ def discount(amount, member):
+     if member:
+-        return amount - 10
+-    return amount
++        amount = amount - 10
++    return max(0, amount)
+ 
+ 
+ def checkout(price, count, member):

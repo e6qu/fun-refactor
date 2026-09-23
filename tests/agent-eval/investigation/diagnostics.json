@@ -1,0 +1,37 @@
+{
+  "schema": "fr-investigation-diagnostics-1",
+  "acceptance": false,
+  "attempts": [
+    {
+      "stage": "baseline",
+      "result": "independent oracle failed on negative member total",
+      "disposition": "expected reproducer"
+    },
+    {
+      "stage": "first reviewed repair",
+      "result": "task target repair does not support replace-body",
+      "disposition": "expanded Python task admission and checked its Lean model"
+    },
+    {
+      "stage": "review after admission",
+      "result": "temporary fragment creation failed with ENOSPC",
+      "disposition": "removed regenerable Rust build caches and reran"
+    },
+    {
+      "stage": "delivery setup",
+      "result": "patch output parent does not exist",
+      "disposition": "create the artifacts directory before review"
+    },
+    {
+      "stage": "feature discovery",
+      "result": "show refused a file path as a declaration handle",
+      "disposition": "obtain a fresh file handle from project map"
+    },
+    {
+      "stage": "extended requirement oracle",
+      "result": "the first repair still returned a negative total for negative nonmember input",
+      "disposition": "retain the reproducer and clamp all totals, matching the original never-negative requirement"
+    }
+  ],
+  "scope": "Implementation diagnostics from the deterministic evaluator, not live-agent trials. Successful acceptance has a separate manifest."
+}

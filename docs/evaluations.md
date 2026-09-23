@@ -248,3 +248,21 @@ python3 tools/upstream-read-agent.py audit tests/agent-eval/results/2026-09-20-u
 Use the [Codex runner guide](agent-codex-runner.md) for live-run isolation and the current economical
 model configuration. Treat token, byte and call counts as properties of the retained run. Recompute
 them after changing prompts, skills, fixtures, model settings or tool output.
+
+## Deterministic investigation acceptance
+
+The [2026-09-23 investigation manifest](../tests/agent-eval/results/2026-09-23-investigation-acceptance/manifest.json)
+pins the evaluator and fixture at revision `27a33953`. A symptom-driven semantic query discovers
+the negative-total repair target. The evaluator reviews the repair and quote insertion separately,
+executes reversal and redo, and replays both patches in a fresh receiver. Six checkout cases and
+two quote cases pass their independent Python oracle. This is deterministic workflow evidence;
+it does not measure live-agent investigation success.
+
+Cold/warm and single-edit/clean-rebuild relationship reports agree on this small fixture. The
+[retained result](../tests/agent-eval/results/2026-09-23-investigation-acceptance/result.json) records
+latency and context bytes; memory and token measurements remain unavailable. The implementation
+[diagnostics](../tests/agent-eval/investigation/diagnostics.json) retain failed attempts, including
+a negative nonmember input that exposed an incomplete first repair.
+
+Reproduce with `python3 tools/investigation-acceptance.py --fr target/debug/fr --output /tmp/investigation`.
+The [investigation contract](agent-investigations.md) states the analysis, persistence and proof boundaries.
