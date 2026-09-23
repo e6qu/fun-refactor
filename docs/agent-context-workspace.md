@@ -10,7 +10,7 @@ from fr_ir.context import DirectoryObjectStore
 from fr_ir.runtime import FrClient
 
 client = FrClient(".", executable="fr")
-target = client.project("find", "render", "--signature").definition_targets()[0]
+target = client.project("find", "render", "--signature").definition_target()
 session = client.context(
     target.handle,
     view="evidence",

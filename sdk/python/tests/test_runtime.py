@@ -351,7 +351,7 @@ class TestRuntime:
             report.at("/rows~")
 
     @patch("fr_ir.runtime.subprocess.run")
-    def test_project_rows_expose_revision_bound_typed_definition_targets(self, run):
+    def test_project_queries_expose_exact_revision_bound_definition_targets(self, run):
         revision = "a" * 64
         handle = f"frp1:{revision[:32]}:17"
         location = {
@@ -381,6 +381,49 @@ class TestRuntime:
         ),)
         assert targets[0].location is not None
         assert targets[0].location.name.span == ByteSpan(13, 19)
+        assert self.client.project("find", "render").definition_target() == targets[0]
+
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "show", "revision": revision,
+            "node": {
+                "handle": handle, "kind": "function", "name": "render",
+                "path": "src/app.py", "position": {"line": 2, "col": 5},
+                "location": location,
+            },
+        })
+        shown = self.client.project("show", handle).definition_target()
+        assert shown == targets[0]
+
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "show", "revision": revision,
+            "node": {
+                "handle": handle, "path": "src/app.py",
+                "position": {"line": 2, "col": 6}, "location": location,
+            },
+        })
+        with pytest.raises(FrRuntimeError, match="position does not match"):
+            self.client.project("show", handle).definition_target()
+
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "find", "revision": revision,
+            "columns": ["handle", "location"],
+            "rows": [
+                [handle, location],
+                [f"frp1:{revision[:32]}:18", location],
+            ],
+        })
+        with pytest.raises(FrRuntimeError, match="2 definitions; expected exactly one"):
+            self.client.project("find", "render").definition_target()
+
+        run.return_value = completed({
+            "schema": "fr-project-1", "query": "show", "revision": revision,
+            "node": {
+                "handle": f"frp1:{revision[:32]}:18", "kind": "directory",
+                "name": "src", "path": "src", "location": None,
+            },
+        })
+        with pytest.raises(FrRuntimeError, match="0 definitions; expected exactly one"):
+            self.client.project("show", handle).definition_target()
 
         run.return_value = completed({
             "schema": "fr-project-1", "query": "explore", "revision": revision,

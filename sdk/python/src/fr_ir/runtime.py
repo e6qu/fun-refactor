@@ -403,19 +403,28 @@ class FrReport:
         return _copy_json(_pointer(self._value, pointer))
 
     def definition_targets(self) -> tuple[AgentTarget, ...]:
-        """Return revision-bound definitions from a project row report."""
-        if self.schema != "fr-project-1" or self._value.get("query") not in {
-            "find", "select", "map", "explore",
+        """Return revision-bound definitions from a project query report."""
+        query = self._value.get("query")
+        if self.schema != "fr-project-1" or query not in {
+            "find", "select", "map", "explore", "show",
         }:
             raise FrRuntimeError("report is not a project definition query")
         revision = self._value.get("revision")
         if not isinstance(revision, str) or not _REVISION.fullmatch(revision):
             raise FrRuntimeError("project definition report has no valid revision")
-        rows = self._value.get("rows")
-        if not isinstance(rows, list):
-            raise FrRuntimeError("project definition report has no row array")
 
-        columns_value = self._value.get("columns")
+        if query == "show":
+            node = self._value.get("node")
+            if not isinstance(node, Mapping):
+                raise FrRuntimeError("project show report has no node object")
+            rows: list[Any] = [node]
+            columns_value = None
+        else:
+            rows_value = self._value.get("rows")
+            if not isinstance(rows_value, list):
+                raise FrRuntimeError("project definition report has no row array")
+            rows = rows_value
+            columns_value = self._value.get("columns")
         columns: tuple[str, ...] | None = None
         if columns_value is not None:
             if (not isinstance(columns_value, list)
@@ -462,6 +471,17 @@ class FrReport:
                 raise FrRuntimeError("project definition line does not match its location")
             path = optional_text(row, "path")
             start = location.name.range.start
+            reported_position = row.get("position")
+            if reported_position is not None:
+                if (not isinstance(reported_position, Mapping)
+                        or set(reported_position) != {"line", "col"}
+                        or _integer(reported_position["line"], "project definition position line",
+                                    positive=True) != start.line
+                        or _integer(reported_position["col"], "project definition position column",
+                                    positive=True) != start.col):
+                    raise FrRuntimeError(
+                        "project definition position does not match its location"
+                    )
             position = f"{path}:{start.line}:{start.col}" if path is not None else None
             targets.append(AgentTarget(
                 handle,
@@ -473,6 +493,15 @@ class FrReport:
                 location,
             ))
         return tuple(targets)
+
+    def definition_target(self) -> AgentTarget:
+        """Return the sole definition, refusing absent or ambiguous selections."""
+        targets = self.definition_targets()
+        if len(targets) != 1:
+            raise FrRuntimeError(
+                f"project definition query returned {len(targets)} definitions; expected exactly one"
+            )
+        return targets[0]
 
 
 @dataclass(frozen=True)
