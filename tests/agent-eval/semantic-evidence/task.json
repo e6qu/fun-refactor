@@ -1,0 +1,16 @@
+{
+  "schema": "fr-semantic-evidence-task-1",
+  "baseline": "d0377ed736baa9a5ead5ae888f87231491681de2",
+  "scope": "Python declaration bodies, syntax provenance and declared check execution",
+  "requirements": [
+    "Locate each same-line call through its authoring IR pointer and exact Unicode source span.",
+    "Represent synthesized nodes and combined source origins without fabricated positions.",
+    "Retain rule, source, analyzer and semantic identities; bounded pages do not establish absence.",
+    "Bind executed checks to workspace and check configuration inputs before completing a task step.",
+    "Preserve failed checks, tool identity output and coverage limits; reject stale or tampered retained evidence."
+  ],
+  "budgets": {"semantic_nodes": 256, "origin_page": 64, "check_output_bytes": 4096},
+  "oracle": "oracle.py",
+  "claims": "Deterministic finite acceptance; no compiler type inference, source equivalence proof or live-agent claim.",
+  "direct_edit_boundary": "New provenance mapping and report adapters exceed the existing admitted structural authoring operations."
+}
