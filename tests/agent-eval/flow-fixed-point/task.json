@@ -1,0 +1,15 @@
+{
+  "schema": "fr-flow-fixed-point-task-1",
+  "baseline": "d6ef1e29",
+  "language": "Python scalar explicit values",
+  "question": "Can a source reach the sink after more than one loop iteration?",
+  "acceptance": [
+    "Retain an exact source-to-sink witness after convergence.",
+    "Do not invent a sink after an unconditional break, continue or raise.",
+    "An exhausted work budget and recursive calls remain incomplete.",
+    "Reused results equal clean analysis after unrelated edits; source, rule, budget and analyzer changes invalidate them."
+  ],
+  "budgets": {"steps": 1024, "call_depth": 8, "graph_nodes_per_function": 512},
+  "oracle": "oracle.py",
+  "claims": "Deterministic finite fixtures; no path-feasibility, security or population claim."
+}

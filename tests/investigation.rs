@@ -105,12 +105,7 @@ fn exhausted_or_unsupported_flow_never_reports_complete() {
     let result = report(dir.path(), &["project", "dataflow", &handle]);
     assert_eq!(result["complete"], false);
     let cutoffs = result["cutoffs"].to_string();
-    for expected in [
-        "loop-fixed-point",
-        "unknown-external",
-        "alias-or",
-        "recursion",
-    ] {
+    for expected in ["unknown-external", "alias-or", "recursion"] {
         assert!(cutoffs.contains(expected), "{result}");
     }
     let bounded = report(

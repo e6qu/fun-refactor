@@ -64,14 +64,18 @@ Outcome: an agent can explain how control and values reach a use across admitted
 
 - [ ] Define analysis semantics for the language subset required by A's tasks.
   Connect the analysis representation to syntax and authoring IR through explicit origin mappings.
-- [ ] Model control-flow blocks, assignment order, definitions/uses, branches, loops and returns.
+- [x] Model control-flow blocks, assignment order, definitions/uses, branches, loops and returns.
   Model admitted exceptional exits and report unsupported effects.
+  The [Python scalar graph](src/project/control_flow.rs) admits while loops and explicit raises;
+  [independent oracles and boundary tests](tests/flow_fixed_point.rs) cover the declared subset.
 - [ ] Add function summaries for argument/parameter transfer, return values and effects.
   Declare context, recursion, alias and resource policies; preserve unknown external-call boundaries.
-- [ ] Add versioned source, sink, propagation and sanitizer rules with context-specific contracts.
+- [x] Add versioned source, sink, propagation and sanitizer rules with context-specific contracts.
   Return witnesses with exact occurrences, rule identities, assumptions and cutoffs.
-- [ ] State whether each result describes possible behavior, a proved condition or a heuristic candidate.
+  See the [analysis implementation](src/project/dataflow.rs) and [rule tests](tests/investigation.rs).
+- [x] State whether each result describes possible behavior, a proved condition or a heuristic candidate.
   Keep call reachability, value propagation and feasible paths distinct.
+  The [contract](docs/agent-investigations.md) separates graph reachability, may-value derivations and model proofs.
 
 Gate: trace through a helper, distinguish overwrites and retain branch alternatives.
 Cover loops, recursion, aliases and unknown external calls within the declared subset.
@@ -86,8 +90,10 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
   Report matched, ambiguous and missing correspondence before rebinding targets.
 - [ ] Record dependencies on source, imports, configuration, analyzer versions and external summaries.
   Track negative lookups whose results can change when new declarations appear.
-- [ ] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
+- [x] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
   Fall back to a complete rebuild when dependency coverage is insufficient.
+  [FlowCache](sdk/python/src/fr_ir/flow.py) uses verified Merkle records with local graph references.
+  [Reuse tests](sdk/python/tests/test_flow.py) cover clean equivalence, invalidation, tampering and incomplete rebuilds.
 - [x] Persist task plans locally with pending, ready, running, satisfied, blocked and stale steps.
   Invalidate dependent evidence and refresh prerequisites before resuming work.
   See [native resumption tests](tests/investigation.rs) and [verified SDK persistence](sdk/python/tests/test_investigation.py).
@@ -135,17 +141,23 @@ binds the evaluator, pinned source revision, fixture and passing results.
 These are substantial implementation advances across A–D; the complete milestone gates remain open:
 
 - A: semantic-node origin maps, compiler/build evidence and live unknown-target investigation trials.
-- B: an explicit control-flow graph, convergent loop/recursive summaries, exceptional exits and a
-  broader independently measured positive/negative corpus. Current loop witnesses report incomplete.
-- C: automatic semantic dependency coverage, analysis-result reuse, comprehensive incremental/clean
-  rebuild comparison and representative latency/memory measurements. Plans currently reuse validated
-  evidence; they do not implement an incremental dataflow cache.
+- B: authoring-IR origin correspondence, recursive summaries, implicit exception/handler semantics
+  and a broader independently measured positive/negative corpus. While loops now reach a bounded
+  fixed point; incomplete work never establishes absence.
+- C: dependency coverage across imported execution, finer summary reuse, comprehensive incremental/clean
+  rebuild comparison and representative measurements. Opt-in whole-file flow reuse now validates
+  source, rules, configuration and analyzer inputs, then renews occurrences after unrelated edits.
 - D: new translation domains and old/new source correspondence proofs, plus host fault injection.
   Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
 
 No milestone is complete. The remaining checklists retain their full outcome requirements; a partial
 implementation does not close a multi-part item. Extend the pinned corpus and close these gates in
 substantial integrated deliveries with the same evidence discipline.
+
+The [fixed-point corpus](tests/agent-eval/flow-fixed-point/task.json) pins a delayed loop flow and
+negative control-transfer cases. The [evaluator](tools/flow-acceptance.py) compares cold, warm and
+single-edit results with clean analysis, including isolated peak RSS and transfer counts.
+The [Flow kernel](kernels/FrKernels/Flow.lean) proves join/overwrite laws; native joins match 1,024 model cases.
 
 ## Rules for every milestone
 
