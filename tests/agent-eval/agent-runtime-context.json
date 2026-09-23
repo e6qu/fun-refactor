@@ -2,8 +2,8 @@
   "schema": "fr-agent-runtime-context-1",
   "passed": true,
   "inputs": {
-    "tool_sha256": "34a031f680039757008274857341504c029a1a830427318d9f5721b991b2731e",
-    "runtime_sha256": "8c2912400631395280384d36acbe97dde101cc706fbbb03873872ed7d0feafe1",
+    "tool_sha256": "a4eec5053653c33733275a785b4ef4c8a19ca74d0e374b4ba5de67d114f0a7d0",
+    "runtime_sha256": "d515737c2de5cf200d12ca887ccc8af58f2009a6e4cc486666dd08f4242f472e",
     "sdk_sha256": "9d16f0040919c05061b324d7d9d903a9668f22d81d4e111be6cf0c8d33bace09"
   },
   "arms": {
@@ -53,9 +53,9 @@
     "python_runtime": {
       "agent_visible_calls": 1,
       "internal_fr_calls": 5,
-      "agent_visible_bytes": 1906,
+      "agent_visible_bytes": 1902,
       "request_response_bytes": [
-        1484,
+        1480,
         422
       ],
       "outcome": {
@@ -88,7 +88,7 @@
   },
   "reduction": {
     "agent_visible_calls": 4,
-    "agent_visible_bytes": 16230,
+    "agent_visible_bytes": 16234,
     "agent_visible_percent": 89.5
   },
   "scope": "One deterministic generic Rust task. Both arms execute the same five fr operations and produce equal source, patch and lifecycle outcomes. Direct JSON counts every request and response at the agent boundary. The runtime arm counts its complete Python program and compact result; intermediate reports stay inside the local process. This does not measure a model, hidden reasoning, tokens, billed quota or population behavior."

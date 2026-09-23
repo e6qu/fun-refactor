@@ -89,7 +89,7 @@ def change(handle: str) -> TaskChange:
 
 def run_arm(root: Path, executable: str, bound: bool) -> dict[str, object]:
     discovery = FrClient(root, executable=executable)
-    handle = discovery.project("find", "render", "--signature").definition_targets()[0].handle
+    handle = discovery.project("find", "render", "--signature").definition_target().handle
     client = CountingClient(root, executable=executable)
     task = change(handle)
     if bound:
