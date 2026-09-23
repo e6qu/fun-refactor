@@ -6,10 +6,13 @@ from enum import Enum
 import json
 from pathlib import Path
 import tempfile
-from typing import Any, Mapping
+from typing import Any, Mapping, TYPE_CHECKING
 
 from .context import ObjectStore, restore_stored_value, store_merkle_value
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
+
+if TYPE_CHECKING:
+    from .guide import GuideAction
 
 
 class StepState(str, Enum):
@@ -27,6 +30,9 @@ class DependencyKind(str, Enum):
     LOOKUP = "lookup"
     ANALYZER = "analyzer"
     WORKSPACE = "workspace"
+    CHECK_CONFIGURATION = "check-configuration"
+    CHECK_SOURCES = "check-sources"
+    CHECK_TOOLCHAIN = "check-toolchain"
 
 
 class EvidenceKind(str, Enum):
@@ -63,6 +69,28 @@ class TaskStep:
     required_checks: tuple[str, ...] = ()
     satisfies: tuple[str, ...] = ()
     action: tuple[str, ...] = ()
+    action_input: Mapping[str, Any] | None = None
+
+    @classmethod
+    def checked(cls, id: str, question: str, *, checks: tuple[str, ...],
+                satisfies: tuple[str, ...] = (), depends_on: tuple[str, ...] = ()) -> TaskStep:
+        if not checks or len(set(checks)) != len(checks):
+            raise FrRuntimeError("checked step needs distinct required checks")
+        return cls(id, question, tuple(Dependency(kind, "selected-project") for kind in (
+            DependencyKind.WORKSPACE, DependencyKind.CHECK_CONFIGURATION,
+            DependencyKind.CHECK_SOURCES, DependencyKind.CHECK_TOOLCHAIN,
+        )), depends_on=depends_on, required_checks=checks, satisfies=satisfies)
+
+    @classmethod
+    def from_guide(cls, id: str, question: str, action: GuideAction, *,
+                   satisfies: tuple[str, ...] = (), depends_on: tuple[str, ...] = ()) -> TaskStep:
+        value = action.to_data()
+        if value.get("ready") is not True or value.get("author_fields"):
+            raise FrRuntimeError("task action requires authored guide inputs")
+        return cls(id, question, (Dependency(DependencyKind.WORKSPACE, "guide-snapshot",
+                                            action.guide.report.at("/revision")),),
+                   depends_on=depends_on, satisfies=satisfies, action=action.arguments,
+                   action_input=value.get("input"))
 
 
 @dataclass(frozen=True)
@@ -86,7 +114,9 @@ class TaskPlan:
             steps = []
             for step in value["steps"]:
                 _fields(step, {"id", "question", "inputs", "depends_on", "state", "evidence",
-                               "required_checks", "satisfies", "action"})
+                               "required_checks", "satisfies", "action", "action_input"})
+                if step.get("action_input") is not None and not isinstance(step["action_input"], Mapping):
+                    raise FrRuntimeError("task action input must be an object")
                 inputs = []
                 for dep in step["inputs"]:
                     _fields(dep, {"kind", "key", "digest"})
@@ -101,7 +131,7 @@ class TaskPlan:
                 steps.append(TaskStep(_text(step["id"]), _text(step["question"]), tuple(inputs),
                                       _texts(step.get("depends_on", [])), StepState(step.get("state", "pending")),
                                       tuple(evidence), _texts(step.get("required_checks", [])),
-                                      _texts(step.get("satisfies", [])), _texts(step.get("action", []))))
+                                      _texts(step.get("satisfies", [])), _texts(step.get("action", [])), step.get("action_input")))
             return cls(_text(value["goal"]), _texts(value["acceptance"]), tuple(steps),
                        _texts(value.get("hypotheses", [])), _texts(value.get("questions", [])))
         except (KeyError, TypeError, ValueError) as error:

@@ -16,8 +16,15 @@ const CONFIG: &str = ".fr/checks.json";
 const MAX_CONFIG: u64 = 65536;
 const MAX_CAPTURE: u64 = 16 * 1024 * 1024;
 
+pub(crate) mod evidence;
+
 #[derive(clap::Args)]
 pub struct Options {
+    #[arg(
+        long,
+        help = "Bind selected executable identities to retained check evidence."
+    )]
+    pub toolchain: bool,
     #[arg(
         long,
         value_delimiter = ',',
@@ -361,6 +368,10 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
     let source_revision = (!selected.is_empty())
         .then(|| crate::history::source_revision(&root))
         .transpose()?;
+    let toolchain = options
+        .toolchain
+        .then(|| evidence::toolchain(&root, &config))
+        .transpose()?;
     if let (Some(transaction), Some(revision)) = (options.record_for, source_revision.as_deref()) {
         crate::history::check_evidence_target(
             &root,
@@ -388,11 +399,15 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
     let source_snapshot_stable = results
         .iter()
         .all(|result| result["source_snapshot_stable"] == true);
+    let toolchain_stable = toolchain
+        .as_ref()
+        .map(|before| evidence::toolchain(&root, &config).map(|after| *before == after))
+        .transpose()?;
     let passed = (!results.is_empty()).then(|| {
         check_evidence_acceptable(
             true,
             commands_passed,
-            configuration_stable,
+            configuration_stable && toolchain_stable != Some(false),
             source_snapshot_stable,
         )
     });
@@ -442,6 +457,10 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         report["configuration_stable"] = json!(configuration_stable);
         report["source_revision"] = json!(source_revision);
         report["source_snapshot_stable"] = json!(source_snapshot_stable);
+    }
+    if let Some(toolchain) = toolchain {
+        report["toolchain"] = toolchain;
+        report["toolchain_stable"] = json!(toolchain_stable);
     }
     if !recorded_evidence.is_null() {
         report["recorded_evidence"] = recorded_evidence;

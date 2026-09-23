@@ -437,6 +437,7 @@ impl Project<'_> {
 
     fn guide_semantic(&self, selected: usize) -> Result<Value> {
         self.semantic(&semantic::Options {
+            provenance: Default::default(),
             target: self.handle(selected),
             revision: None,
             declaration: None,
@@ -841,6 +842,7 @@ impl Project<'_> {
                 }
                 if let (Some(from), Some(to)) = (from, to) {
                     let exact = self.semantic(&semantic::Options {
+                        provenance: Default::default(),
                         target: handle.clone(),
                         revision: None,
                         declaration: None,

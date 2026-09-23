@@ -347,3 +347,8 @@ Typed `Occurrence` values expose exact use sites. `fr_ir.investigation` provides
 `TaskStep`, dependencies, evidence records and flow witnesses. Plans persist through the existing
 Merkle object store and revalidate dependencies on resume. See the
 [investigation contract](../../docs/agent-investigations.md) for supported semantics and boundaries.
+
+`fr_ir.origins.SemanticOrigins` links semantic and authoring pointers to exact, multiple or absent
+source origins. `TaskStep.from_guide` retains ready guide arguments and structured input.
+`TaskStep.checked` and `fr_ir.investigation_checks.run_checks` bind reviewed check results to source,
+configuration and executable identities. Failed checks remain available through verified storage.

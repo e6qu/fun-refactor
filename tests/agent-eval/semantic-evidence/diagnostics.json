@@ -1,0 +1,17 @@
+{
+  "schema": "fr-semantic-evidence-diagnostics-1",
+  "attempts": [
+    {
+      "operation": "fr project find semantic --signature --limit 8",
+      "result": "refused: workspace inventory changed during the project query",
+      "cause": "Implementation edits overlapped a full repository index.",
+      "response": "Use a stable, bounded source directory for discovery and retain the refusal."
+    },
+    {
+      "operation": "first --origins CLI smoke test",
+      "result": "refused during CLI argument validation: duplicate Options group",
+      "cause": "The flattened origin options shared the parent argument group name.",
+      "response": "Give the origin argument group its own type name; native CLI tests exercise the route."
+    }
+  ]
+}

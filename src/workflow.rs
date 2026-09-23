@@ -541,6 +541,7 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
             }
             Stage::CheckOriginal | Stage::CheckApplied | Stage::CheckRestored => {
                 let options = checks::Options {
+                    toolchain: false,
                     run: resolved_checks.clone(),
                     basis: Some(check_basis.clone()),
                     output_bytes: manifest.check_output_bytes,

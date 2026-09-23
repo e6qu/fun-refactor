@@ -5,6 +5,8 @@ pub mod ir;
 pub mod nextjs;
 mod normalize;
 mod read;
+#[cfg(feature = "cli")]
+pub(crate) use read::function_at;
 pub mod routes;
 pub mod scaffold;
 pub mod tfjson;

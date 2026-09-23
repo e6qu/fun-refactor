@@ -32,3 +32,26 @@ theorem changed_input_invalidates (parentStale evidenceStale : Bool) :
   simp [invalidated]
 
 end FrKernels.Investigation
+
+namespace FrKernels.Investigation
+
+def checkScopeCovered (workspace configuration sources toolchain : Bool) : Bool :=
+  workspace && configuration && sources && toolchain
+
+theorem check_scope_requires_sources (workspace configuration toolchain : Bool) :
+    checkScopeCovered workspace configuration false toolchain = false := by
+  simp [checkScopeCovered]
+
+theorem check_scope_requires_configuration (workspace sources toolchain : Bool) :
+    checkScopeCovered workspace false sources toolchain = false := by
+  simp [checkScopeCovered]
+
+theorem check_scope_requires_toolchain (workspace configuration sources : Bool) :
+    checkScopeCovered workspace configuration sources false = false := by
+  simp [checkScopeCovered]
+
+theorem check_scope_requires_workspace (configuration sources toolchain : Bool) :
+    checkScopeCovered false configuration sources toolchain = false := by
+  simp [checkScopeCovered]
+
+end FrKernels.Investigation

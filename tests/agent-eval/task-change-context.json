@@ -1,8 +1,8 @@
 {
   "schema": "fr-task-change-context-2",
   "passed": true,
-  "binary_sha256": "82feb986bc5f3282e4dc7cf1d7e179af998b343d5feac8dd117513d0ab045b7d",
-  "source_commit": "e0ba3faf9fefcdf4afade4a142ac554dd9c29288",
+  "binary_sha256": "aded0ccc9f91d44a112196d865bd7d9ba1e09de1a16a7207302175389630afa8",
+  "source_commit": "4e57f6c9fc73c08f9969b80961fd523ae3e72673",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
@@ -16,9 +16,9 @@
     "src/project/task_change.rs": "bb838c57446bc7f4eff4d5c4398c42874fa8b758901e06c4a455d10053edeb09",
     "src/project/task.rs": "d1a04d6226b139bb38545447d63df946e85a7133ce92fdef52efd22131665345",
     "src/project/author.rs": "0ebde9c47d467501ae59421a0b710eb36e5f6ebfa58ac87d6a4ae8145ee66eff",
-    "src/workflow.rs": "0b5a280d99b918e1a33ff301ffa6aa78f56488a447f7242ded4ba43a4aff9f07",
+    "src/workflow.rs": "8ff37cf03e730750dfd5c8cb6f07d9636fb0fa4375627c06fa8f09d946abd6b6",
     "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
-    "src/checks.rs": "e7818ca5e65a755cb33ebd00238e1dd561059ce71a1b0e4a0f9125c4d3b14a04",
+    "src/checks.rs": "4c62e20e0c7f86cc3ac6eb1c6d0dbc5194f0b59822436e0bc5db7ccaacad9bdb",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
   },
   "fixture": {
@@ -67,21 +67,21 @@
       "calls": 5,
       "median_context_bytes": 15805,
       "median_context_tokens": 5459,
-      "median_seconds": 0.5306942489696667
+      "median_seconds": 0.5475050819804892
     },
     "task_change": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 12545,
       "median_context_tokens": 4206,
-      "median_seconds": 0.4734902500640601
+      "median_seconds": 0.46766662399750203
     },
     "change_session": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 12216,
       "median_context_tokens": 4178,
-      "median_seconds": 0.5037393340026028
+      "median_seconds": 0.5679767499677837
     }
   },
   "runs": [
@@ -90,7 +90,7 @@
       "arm": "composed",
       "calls": 5,
       "stdout": {
-        "bytes": 14110,
+        "bytes": 14109,
         "tokens": 4918
       },
       "requests": {
@@ -102,10 +102,10 @@
         "tokens": 382
       },
       "context": {
-        "bytes": 15806,
+        "bytes": 15805,
         "tokens": 5459
       },
-      "seconds": 0.6398012909339741,
+      "seconds": 0.5269218739704229,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -132,7 +132,7 @@
         "bytes": 12545,
         "tokens": 4206
       },
-      "seconds": 0.4734902500640601,
+      "seconds": 0.4866414580028504,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -159,7 +159,7 @@
         "bytes": 12216,
         "tokens": 4178
       },
-      "seconds": 0.49241754098329693,
+      "seconds": 0.5139403330394998,
       "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -186,7 +186,7 @@
         "bytes": 12216,
         "tokens": 4178
       },
-      "seconds": 0.5037393340026028,
+      "seconds": 0.5949211670667864,
       "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -213,7 +213,7 @@
         "bytes": 12545,
         "tokens": 4206
       },
-      "seconds": 0.45073512598173693,
+      "seconds": 0.4660475830314681,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -240,7 +240,7 @@
         "bytes": 15805,
         "tokens": 5459
       },
-      "seconds": 0.4699522079899907,
+      "seconds": 0.5475050819804892,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -267,7 +267,7 @@
         "bytes": 15805,
         "tokens": 5459
       },
-      "seconds": 0.5306942489696667,
+      "seconds": 0.6012637089588679,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -294,7 +294,7 @@
         "bytes": 12545,
         "tokens": 4206
       },
-      "seconds": 0.48438387602800503,
+      "seconds": 0.46766662399750203,
       "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
@@ -321,7 +321,7 @@
         "bytes": 12216,
         "tokens": 4178
       },
-      "seconds": 0.5981854590354487,
+      "seconds": 0.5679767499677837,
       "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
       "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
       "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
