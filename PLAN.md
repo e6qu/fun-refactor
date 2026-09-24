@@ -47,8 +47,10 @@ Outcome: an agent can find relevant code and explain a proposed change from exac
 - [x] Map semantic nodes to source origins. Represent absent and multiple origins explicitly.
   [Paged Python body provenance](src/project/semantic_origins.rs) links semantic and authoring pointers to syntax.
   [Independent coordinate tests](tests/semantic_evidence.rs) cover repeated calls, combined origins and missing mappings.
-- [ ] Attach analysis rules, input identities, scope, confidence and omissions to facts.
+- [x] Attach analysis rules, input identities, scope, confidence and omissions to facts.
   Offer bounded explanations and follow actions through existing progressive discovery.
+  [Python scalar fact pages](src/project/flow_facts.rs) retain separate analysis and disclosure coverage.
+  [Independent acceptance](tests/agent-eval/results/2026-09-24-flow-facts/result.json) checks exact links, negative cases and stale refusals.
 - [ ] Include relevant build configuration and external evidence in the analysis scope.
   Preserve toolchain identity and disagreements when a task requires compiler facts.
 - [x] Add a typed task plan containing acceptance criteria, hypotheses, evidence references,
@@ -147,8 +149,8 @@ binds the evaluator, pinned source revision, fixture and passing results.
 These are substantial implementation advances across A–D; the complete milestone gates remain open:
 
 - A: origins through normalization and additional languages, compiler facts beyond declared command output,
-  richer fact explanations and live unknown-target investigation trials.
-- B: authoring-IR origin correspondence, imported summaries, implicit exception/handler semantics
+  fact explanations beyond the scalar subset and live unknown-target investigation trials.
+- B: source correspondence beyond exact syntax-origin links, imported summaries, implicit exception/handler semantics
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.
 - C: dependency coverage across imported execution, finer summary reuse, comprehensive incremental/clean
@@ -174,6 +176,11 @@ The [recursive flow task](tests/agent-eval/recursive-flow/task.json) pins positi
 Its [evaluator](tools/recursive-flow-acceptance.py) retains runtime and coordinate oracles plus cold, warm and helper-edit comparisons.
 The opt-in solver covers symbolic positional parameters and explicit scalar effects. Whole-file reuse remains conservative;
 short-circuit call control, heap effects and imported execution remain outside the admitted subset.
+
+The [flow fact task](tests/agent-eval/flow-facts/task.json) pins bounded explanations and exact semantic/authoring links.
+Its [evaluator](tools/flow-facts-acceptance.py) retains paged evidence, independent Unicode coordinates,
+negative cases and stale refusals. Semantic mappings remain explicit when absent or truncated.
+The language semantics item in B remains open pending the unknown-target task requirements and broader correspondence gates.
 
 ## Rules for every milestone
 

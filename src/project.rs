@@ -40,11 +40,14 @@ mod digest;
 mod digest_tests;
 mod disclose;
 mod evidence;
+mod flow_fact_origins;
+mod flow_facts;
 pub use disclose::{
     agent_intent_admitted, context_materialization_admitted, disclosure_budget_admitted,
     disclosure_frontier_after, disclosure_proof_parent, disclosure_proof_step_allowed,
     disclosure_transition_allowed, disclosure_view_admitted, object_merkle, object_store_admitted,
 };
+pub use flow_facts::fact_catalogue_complete;
 mod explore;
 mod fast_routes;
 mod features;
@@ -90,6 +93,8 @@ pub enum Command {
     Identities(correspondence::Options),
     #[command(about = "Trace bounded scalar value propagation through Python helpers.")]
     Dataflow(dataflow::Options),
+    #[command(about = "Page through scalar flow facts and bounded source-linked explanations.")]
+    FlowFacts(flow_facts::Options),
     #[command(about = "Validate and resume a dependency-bound local investigation plan.")]
     Investigate(investigation::Options),
     #[command(about = "Read a versioned application hierarchy with explicit semantic boundaries.")]
@@ -1466,6 +1471,7 @@ impl<'a> Project<'a> {
         match command {
             Command::Identities(options) => self.identities(options),
             Command::Dataflow(options) => self.dataflow(options),
+            Command::FlowFacts(options) => self.flow_facts(options),
             Command::Investigate(options) => self.investigation(options),
             Command::Batch(options) => self.batch(options),
             Command::Task(options) => self.task(options),

@@ -178,7 +178,7 @@ impl Project<'_> {
                 });
                 let location = symbol.map(|symbol| self.definition_location(symbol));
                 let arguments = behavior_arguments(options, self.handle(*id));
-                json!({
+                let mut row = json!({
                     "handle": self.handle(*id),
                     "kind": node.kind,
                     "name": bounded_text(&node.name, 160),
@@ -186,7 +186,18 @@ impl Project<'_> {
                     "line": line,
                     "location": location,
                     "next": {"reason": "inspect-behavior", "arguments": arguments}
-                })
+                });
+                if symbol.is_some_and(|symbol| {
+                    symbol.language == crate::lang::Language::Python
+                        && symbol.kind == crate::model::SymbolKind::Function
+                        && symbol.is_top_level()
+                }) {
+                    row["analysis"] = json!({"arguments":["project","flow-facts",self.handle(*id),
+                        "--limit","8","--steps","1024","--bytes","32768"],
+                        "scope":"Python scalar model; external contracts require explicit --rules.",
+                        "reference":"skills/fr/references/investigations.md"});
+                }
+                row
             })
             .collect::<Vec<_>>();
         let mut continuations = Vec::new();
