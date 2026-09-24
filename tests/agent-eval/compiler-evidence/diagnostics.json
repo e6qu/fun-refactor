@@ -1,0 +1,22 @@
+{
+  "schema": "fr-compiler-evidence-development-diagnostics-1",
+  "implementation_revision": "1a66abb8",
+  "attempts": [
+    {
+      "stage": "default gate, acceptance grading",
+      "result": "failed",
+      "reason": "Putting compiler guidance in the general checks reference exceeded the existing context reduction requirement.",
+      "measured_byte_reduction": -358.0,
+      "resolution": "Move detailed guidance into a separately loaded compiler reference."
+    },
+    {
+      "stage": "skill route check after separating the reference",
+      "result": "failed",
+      "reason": "The added link still exceeded the author-recovery route budget.",
+      "route_bytes": 7240,
+      "budget_bytes": 7168,
+      "resolution": "Tighten the general checks reference while preserving review, execution and evidence rules."
+    }
+  ],
+  "accepted_revision_scope": "The final general checks reference is 1009 bytes, compared with 1027 bytes on the merged base. The route checker passes and the retained fixed-transcript projection reports a 627-byte mean reduction. These are disclosure measurements, not a new live-agent outcome."
+}
