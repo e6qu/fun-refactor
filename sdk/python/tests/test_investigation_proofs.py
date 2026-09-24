@@ -152,21 +152,28 @@ def test_invalid_proof_requirements_refuse(package, spec, theorem):
         ProofRequirement(package, spec, theorem)
 
 
-def test_checker_executable_and_environment_drift_invalidates(project, monkeypatch, tmp_path_factory):
-    import os
+def fake_installation(root, tools, mutate=False):
     import shlex
     import subprocess
 
+    real = Path(subprocess.check_output(["lean", "--print-prefix"], cwd=root / "specs", text=True).strip())
+    tools = tools / "bin"
+    tools.mkdir()
+    lean = tools / "lean"
+    lean.write_text(f'#!/bin/sh\nif [ "$1" = "--print-prefix" ]; then echo {shlex.quote(str(tools.parent))}; else exec {shlex.quote(str(real / "bin/lean"))} "$@"; fi\n')
+    lean.chmod(0o755)
+    lake = tools / "lake"
+    mutation = f'printf "changed = True\\n" > {shlex.quote(str(root / "subject.py"))}\n' if mutate else ""
+    lake.write_text(f'#!/bin/sh\n{mutation}exec {shlex.quote(str(real / "bin/lake"))} "$@"\n')
+    lake.chmod(0o755)
+    return tools, lake
+
+
+def test_checker_executable_and_environment_drift_invalidates(project, monkeypatch, tmp_path_factory):
+    import os
+
     client, root = project
-    tools = tmp_path_factory.mktemp("proof-tools")
-    real_lake = subprocess.check_output(["elan", "which", "lake"], cwd=root / "specs", text=True).strip()
-    real_lean = subprocess.check_output(["elan", "which", "lean"], cwd=root / "specs", text=True).strip()
-    wrapper = tools / "lake"
-    wrapper.write_text(f'#!/bin/sh\nexec {shlex.quote(real_lake)} "$@"\n')
-    wrapper.chmod(0o755)
-    elan = tools / "elan"
-    elan.write_text(f'#!/bin/sh\ncase "$2" in lake) echo {shlex.quote(str(wrapper))};; lean) echo {shlex.quote(real_lean)};; esac\n')
-    elan.chmod(0o755)
+    tools, wrapper = fake_installation(root, tmp_path_factory.mktemp("proof-tools"))
     monkeypatch.setenv("PATH", str(tools) + os.pathsep + os.environ["PATH"])
     run = run_proofs(plan(), client, "proof", ProofReport.review(client), MemoryObjectStore())
     assert run.passed
@@ -180,23 +187,24 @@ def test_checker_executable_and_environment_drift_invalidates(project, monkeypat
 
 def test_source_change_during_checker_execution_refuses_attachment(project, monkeypatch, tmp_path_factory):
     import os
-    import shlex
-    import subprocess
 
     client, root = project
-    tools = tmp_path_factory.mktemp("mutating-checker")
-    real_lake = subprocess.check_output(["elan", "which", "lake"], cwd=root / "specs", text=True).strip()
-    real_lean = subprocess.check_output(["elan", "which", "lean"], cwd=root / "specs", text=True).strip()
-    wrapper = tools / "lake"
-    wrapper.write_text(f'#!/bin/sh\nprintf "changed = True\\n" > {shlex.quote(str(root / "subject.py"))}\nexec {shlex.quote(real_lake)} "$@"\n')
-    wrapper.chmod(0o755)
-    elan = tools / "elan"
-    elan.write_text(f'#!/bin/sh\ncase "$2" in lake) echo {shlex.quote(str(wrapper))};; lean) echo {shlex.quote(real_lean)};; esac\n')
-    elan.chmod(0o755)
+    tools, _ = fake_installation(root, tmp_path_factory.mktemp("mutating-checker"), mutate=True)
     monkeypatch.setenv("PATH", str(tools) + os.pathsep + os.environ["PATH"])
     run = run_proofs(plan(), client, "proof", ProofReport.review(client), MemoryObjectStore())
     assert not run.passed and run.proofs.report.at("/stable") is False
     assert run.resumed.plan.steps[0].state == StepState.STALE
+
+
+def test_direct_lean_installation_does_not_require_elan(project, monkeypatch, tmp_path_factory):
+    import os
+    import shutil
+
+    client, root = project
+    tools, _ = fake_installation(root, tmp_path_factory.mktemp("direct-lean"))
+    monkeypatch.setenv("PATH", str(tools) + os.pathsep + "/usr/bin:/bin")
+    assert shutil.which("elan") is None
+    assert run_proofs(plan(), client, "proof", ProofReport.review(client), MemoryObjectStore()).passed
 
 
 def test_merkle_corruption_refuses(project):
@@ -220,3 +228,15 @@ def test_unimported_modules_build_local_dependencies_and_reject_ambiguous_names(
     assert report.passed
     with pytest.raises(FrRuntimeError, match="ambiguous|missing"):
         attach_proofs(plan().resume(client).plan, client, "proof", report)
+
+
+def test_direct_installation_rejects_an_unpinned_effective_version(project, monkeypatch, tmp_path_factory):
+    import os
+
+    client, root = project
+    tools, _ = fake_installation(root, tmp_path_factory.mktemp("wrong-lean"))
+    lean = tools / "lean"
+    lean.write_text(lean.read_text().replace('else exec', 'elif [ "$1" = "--version" ]; then echo "Lean (version 4.27.0, test)"; else exec'))
+    monkeypatch.setenv("PATH", str(tools) + os.pathsep + os.environ["PATH"])
+    with pytest.raises(FrRuntimeError, match="pinned version"):
+        ProofReport.review(client)

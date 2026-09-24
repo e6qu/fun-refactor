@@ -54,7 +54,7 @@ fn confined(root: &Path, relative: &Path) -> Result<PathBuf> {
 fn file_digest(path: &Path) -> Result<String> {
     let mut file = File::open(path)?;
     ensure!(
-        file.metadata()?.is_file() && file.metadata()?.len() <= 268_435_456,
+        file.metadata()?.is_file() && file.metadata()?.len() <= 2_147_483_648,
         "proof identity exceeds its file budget."
     );
     let mut digest = Sha256::new();
@@ -66,7 +66,7 @@ fn file_digest(path: &Path) -> Result<String> {
             break;
         }
         bytes += n;
-        ensure!(bytes <= 268_435_456, "proof identity exceeds 256 MiB.");
+        ensure!(bytes <= 2_147_483_648, "proof identity exceeds 2 GiB.");
         digest.update(&buffer[..n]);
     }
     Ok(hex::encode(digest.finalize()))
@@ -98,24 +98,37 @@ fn command(program: &Path, cwd: &Path) -> Command {
 }
 
 fn toolchain(package: &Path) -> Result<Value> {
+    let mut resolve = command(Path::new("lean"), package);
+    resolve.arg("--print-prefix");
+    let resolved = crate::checks::bounded_process(resolve, 30, 4096, false)?;
+    ensure!(
+        resolved["passed"] == true && resolved["stdout"]["omitted_bytes"] == 0,
+        "cannot resolve the pinned Lean installation."
+    );
+    let prefix = PathBuf::from(
+        resolved["stdout"]["text"]
+            .as_str()
+            .context("missing Lean installation")?
+            .trim(),
+    )
+    .canonicalize()?;
     let mut programs = BTreeMap::new();
     for name in ["lean", "lake"] {
-        let mut resolve = command(Path::new("elan"), package);
-        resolve.args(["which", name]);
-        let resolved = crate::checks::bounded_process(resolve, 30, 4096, false)?;
-        ensure!(
-            resolved["passed"] == true && resolved["stdout"]["omitted_bytes"] == 0,
-            "cannot resolve the pinned Lean toolchain."
-        );
-        let path = PathBuf::from(
-            resolved["stdout"]["text"]
-                .as_str()
-                .context("missing tool path")?
-                .trim(),
-        )
-        .canonicalize()?;
-        programs.insert(name, json!({"path": path, "sha256": file_digest(&path)?}));
+        let path = prefix.join("bin").join(name).canonicalize()?;
+        programs.insert(name, json!({"path":path,"sha256":file_digest(&path)?}));
     }
+    let mut version = command(&prefix.join("bin/lean"), package);
+    version.arg("--version");
+    let version = crate::checks::bounded_process(version, 30, 4096, false)?;
+    let expected = super::LEAN_TOOLCHAIN.rsplit(":v").next().unwrap();
+    ensure!(
+        version["passed"] == true
+            && version["stdout"]["omitted_bytes"] == 0
+            && version["stdout"]["text"]
+                .as_str()
+                .is_some_and(|text| text.contains(&format!("version {expected},"))),
+        "resolved Lean executable differs from the pinned version."
+    );
     let mut environment = BTreeMap::new();
     for name in ENVIRONMENT {
         environment.insert(
@@ -247,6 +260,10 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         "modules":before.modules,"mutation_authority":false,"source_implementation_proved":false,
         "claim":"Model theorems under Lean definitions and assumptions. No proof of source implementation correspondence."});
     if !options.run {
+        ensure!(
+            serde_json::to_vec_pretty(&result)?.len() <= 1_048_576,
+            "proof review exceeds 1 MiB."
+        );
         return Ok(result);
     }
     ensure!(

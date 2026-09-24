@@ -375,6 +375,8 @@ and an absent or empty dependency manifest. It refuses external packages, execut
 symlinks, more than 128 package files and more than 4 MiB of package content.
 The report ceiling is 1 MiB. A build has 120 seconds; each module check has 30 seconds.
 Execution retains bounded diagnostics and uses the check runner's process-group cleanup.
+Tool discovery accepts direct Lean installations and elan-managed toolchains. It verifies the selected Lean version.
+Executable identities use streaming hashes with a 2 GiB ceiling per file.
 A changed input during execution prevents a passing report.
 
 ```python

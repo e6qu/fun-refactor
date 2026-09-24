@@ -169,3 +169,20 @@ fn retained_proof_acceptance_matches_its_inputs_and_replays_delivery() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+#[test]
+fn proof_review_bounds_escaped_path_disclosure() {
+    let root = tempfile::tempdir().unwrap();
+    report(root.path(), &["spec", "init", "--write"]);
+    let mut directory = root.path().join("specs");
+    for _ in 0..4 {
+        directory.push("\u{1}".repeat(200));
+    }
+    fs::create_dir_all(&directory).unwrap();
+    for index in 0..125 {
+        fs::write(directory.join(format!("{index}.lean")), "x").unwrap();
+    }
+    let output = run(root.path(), &["spec", "retain"]);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("proof review exceeds 1 MiB"));
+}
