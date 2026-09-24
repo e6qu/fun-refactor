@@ -291,3 +291,23 @@ def test_source_changes_between_capture_pages_refuse(project):
             return result
     with pytest.raises(FrRuntimeError, match="stale"):
         DeclarationSnapshot.capture(Drift(), limit=1)
+
+
+def test_added_same_name_declaration_preserves_ambiguity_and_stales_plan(project):
+    client, root = project
+    session = session_fixture(client, root)
+    (root / "subject.py").write_text(SOURCE + "\ndef café(value):\n    return value + 7\n")
+    resumed = session.resume(client)
+    match = resumed.correspondence["target"].matches[0]
+    assert match.status == "ambiguous" and match.candidate_count == 2
+    assert resumed.resumed.plan.steps[0].state == StepState.STALE
+
+
+def test_build_configuration_changes_stale_workspace_targets(project):
+    client, root = project
+    (root / "pyproject.toml").write_text("[project]\nname = 'fixture'\nversion = '1'\n")
+    session = session_fixture(client, root)
+    (root / "pyproject.toml").write_text("[project]\nname = 'fixture'\nversion = '2'\n")
+    resumed = session.resume(client)
+    assert resumed.resumed.invalidated == ("target", "dependent")
+    assert resumed.resumed.plan.steps[2].state == StepState.SATISFIED

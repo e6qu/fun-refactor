@@ -206,6 +206,20 @@ def audit(value):
     oracle = json.loads(subprocess.check_output([sys.executable, str(FIXTURE / "oracle.py")]))
     assert value["oracle"] == oracle and value["coordinates"] == oracle["declarations"]
     assert value["receiver_behavior"] == [0, 2, 9] and value["stale_review_refusal"]
+    assert value["delivery"]["executed"] and value["delivery"]["passed"]
+    stages = value["delivery"]["workflow"]["stages"]
+    assert {"apply", "undo", "redo", "deliver-patch"} <= {stage["stage"] for stage in stages}
+    assert all(stage["status"] == "passed" for stage in stages)
+    assert value["old_review"]["task_change_basis"] != value["fresh_review"]["task_change_basis"]
+    with tempfile.TemporaryDirectory(prefix="fr-correspondence-audit-") as directory:
+        root = Path(directory)
+        source = (FIXTURE / "subject.py").read_text()
+        (root / "moved.py").write_text(source)
+        (root / "change.patch").write_text(value["patch"])
+        run(["git", "init", "-q"], root)
+        run(["git", "apply", "--check", "change.patch"], root)
+        run(["git", "apply", "change.patch"], root)
+        assert (root / "moved.py").read_text() == source.replace("value + 1", "value + 2")
     for name in ("snapshot", "session"):
         assert store_merkle_value(MemoryObjectStore(), value[name]).digest == value[name + "_root"]
     snapshot = DeclarationSnapshot.from_data(value["snapshot"])
