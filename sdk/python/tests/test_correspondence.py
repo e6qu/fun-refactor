@@ -311,3 +311,30 @@ def test_build_configuration_changes_stale_workspace_targets(project):
     resumed = session.resume(client)
     assert resumed.resumed.invalidated == ("target", "dependent")
     assert resumed.resumed.plan.steps[2].state == StepState.SATISFIED
+
+
+def test_capture_rejects_a_valid_correspondence_report(project):
+    client, root = project
+    snapshot = DeclarationSnapshot.capture(client)
+    comparison = snapshot.compare(client)
+    class CrossedQuery:
+        def project(self, *args):
+            return comparison.pages[0].report
+    with pytest.raises(FrRuntimeError, match="another query or scope"):
+        DeclarationSnapshot.capture(CrossedQuery())
+
+
+@pytest.mark.parametrize("operation", ["capture", "compare"])
+def test_requested_scope_cannot_change_in_transport(project, operation):
+    client, root = project
+    snapshot = DeclarationSnapshot.capture(client)
+    class CrossedScope:
+        def project(self, *args):
+            data = client.project(*args).to_data()
+            data["selection"] = "another-scope.py"
+            return FrReport(data, args)
+    with pytest.raises(FrRuntimeError, match="another query or scope"):
+        if operation == "capture":
+            DeclarationSnapshot.capture(CrossedScope())
+        else:
+            snapshot.compare(CrossedScope())

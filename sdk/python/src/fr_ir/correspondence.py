@@ -177,7 +177,11 @@ class IdentityPage:
         args = ["identities", target, "--limit", str(limit), "--bytes", str(max_bytes)]
         if cursor is not None:
             args += ["--cursor", cursor]
-        return cls.from_report(client.project(*args))
+        page = cls.from_report(client.project(*args))
+        if (page.report.at("/query") != "identities" or page.report.at("/selection") != target
+                or page.report.at("/input_digest") is not None or page.report.at("/input_complete") is not True):
+            raise FrRuntimeError("identity capture returned another query or scope")
+        return page
 
 
 @dataclass(frozen=True)
@@ -260,6 +264,8 @@ class DeclarationSnapshot:
                     "--candidates", str(candidates), "--bytes", str(max_bytes)]
             for _ in range(max_pages):
                 page = IdentityPage.from_report(client.project(*args, *(["--cursor", cursor] if cursor else [])))
+                if page.report.at("/query") != "correspondence" or page.report.at("/selection") != target:
+                    raise FrRuntimeError("correspondence returned another query or scope")
                 first = pages[0] if pages else page
                 if (page.revision, page.basis, page.analyzer, page.before, page.total) != (
                         first.revision, first.basis, first.analyzer, len(matches), len(self.items)):
