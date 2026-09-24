@@ -162,9 +162,7 @@ fn build_configuration(root: &Path) -> Result<Value> {
         {
             continue;
         }
-        if path.is_dir() {
-            continue;
-        }
+        ensure!(!path.is_dir(), "Rust build input must be a regular file.");
         ensure!(
             files.len() < 1024,
             "Rust build input count exceeds 1024 files."

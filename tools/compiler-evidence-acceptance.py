@@ -147,6 +147,7 @@ def measure(args):
         "cargo":{"checks":cargo_checks.to_data(),"report":cargo_report},"plan":plan_result,"refusals":refusals,
         "evidence_digest":digest([cases,clipped,cargo_report,plan_result]),"false_claims":0,"useful_discoveries":["E0308 at exact value span","syntax acceptance differs from strict compiler rejection","default configuration passes"],
         "diagnostics":["A Cargo manifest edit initially left retained checks current; automatic Rust build-input identities fixed the gap.",
+                       "A configuration filename replaced by a directory also changes Cargo behavior; unsupported build-input types now refuse evidence.",
                        "The initial identity-file limit excluded the compiler driver; streaming identities now admit 256 MiB files.",
                        "Generated artifacts initially changed the fixture project snapshot; the fixture now declares target/ ignored."],
         "scope":"Six independent runtime cases and exact strict diagnostic coordinates. Real rustc and Cargo invocations. Driver identities are declared when available. Full compiler dependency coverage, execution attestation, runtime safety and source proofs remain outside scope. No live agent or token measurement. Raw retained compiler output can contain rendered source; diagnostic pages omit those fields."}

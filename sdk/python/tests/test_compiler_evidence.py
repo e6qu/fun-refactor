@@ -67,7 +67,7 @@ def test_real_compiler_disagreement_matches_independent_runtime_and_coordinate_o
     assert not first.next(client).collect(client).disclosure_complete
 
 
-@pytest.mark.parametrize("drift", ["source", "configuration", "identity_file", "environment", "unset_environment", "executable", "new_cargo_configuration", "new_toolchain_file"])
+@pytest.mark.parametrize("drift", ["source", "configuration", "identity_file", "environment", "unset_environment", "executable", "new_cargo_configuration", "new_toolchain_file", "cargo_configuration_directory"])
 def test_retained_compiler_evidence_rejects_input_drift(tmp_path, monkeypatch, drift):
     client, identity = workspace(tmp_path, monkeypatch)
     if drift == "executable":
@@ -98,6 +98,8 @@ def test_retained_compiler_evidence_rejects_input_drift(tmp_path, monkeypatch, d
         (client.root / ".cargo/config.toml").write_text('[build]\nrustflags=[]\n')
     elif drift == "new_toolchain_file":
         (client.root / "rust-toolchain.toml").write_text('[toolchain]\nchannel="stable"\n')
+    elif drift == "cargo_configuration_directory":
+        (client.root / ".cargo/config.toml").mkdir(parents=True)
     else:
         wrapper.write_text(wrapper.read_text() + "# changed\n")
     with pytest.raises(FrRuntimeError):
@@ -132,6 +134,9 @@ def test_cargo_envelopes_parent_diagnostics_and_unknown_protocol(tmp_path, monke
     for bad in ['{"reason":"new-protocol-event"}\n', 'not json\n']:
         page = CompilerEvidence.inspect(client, altered_report(checks, text + bad, cargo=True), check="strict", format="cargo-json")
         assert not page.complete
+    original["code"] = {"code":7}
+    malformed = CompilerEvidence.inspect(client, altered_report(checks, json.dumps(original)), check="strict")
+    assert not malformed.complete and "malformed-diagnostic-code" in malformed.report.at("/capture/cutoffs")
 
 
 def test_real_cargo_diagnostics_bind_manifest_and_compiler_environment(tmp_path, monkeypatch):

@@ -145,7 +145,8 @@ and bytes, plus workspace Rust build inputs. The build inputs include `Cargo.tom
 `rust-toolchain`, `rust-toolchain.toml`, `.cargo/config` and `.cargo/config.toml`.
 Adding a previously absent build configuration changes this identity. Discovery excludes `.git`,
 `.fr-history`, `target`, `node_modules`, `.lake` and directory symlinks. It accepts at most 1,024
-build files, 4 MiB per file and 64 MiB in total.
+build files, 4 MiB per file and 64 MiB in total. Unsupported build-input types refuse evidence;
+a directory at a configuration filename can change Cargo behavior.
 
 Declarations can also name environment keys and external identity files:
 

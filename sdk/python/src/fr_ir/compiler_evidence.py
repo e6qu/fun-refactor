@@ -123,6 +123,7 @@ class CompilerEvidence:
                         or type(index) is not int or index < 0
                         or parent is not None and (type(parent) is not int or not 0 <= parent < index)
                         or not isinstance(core["message"], str) or len(core["message"]) > 512
+                        or core["code"] is not None and not isinstance(core["code"], str)
                         or not isinstance(core["level"], str) or not isinstance(core["spans"], list) or len(core["spans"]) > 16):
                     raise FrRuntimeError("compiler diagnostic has inconsistent identity or parent")
                 spans = []

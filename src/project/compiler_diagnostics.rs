@@ -94,9 +94,13 @@ impl Diagnostics {
             self.cutoffs.insert("diagnostic-detail-budget".into());
         }
         let index = self.rows.len();
+        let code = value["code"]["code"].as_str();
+        if !value["code"].is_null() && code.is_none() {
+            self.cutoffs.insert("malformed-diagnostic-code".into());
+        }
         self.rows
             .push(json!({"index":index,"parent":parent,"level":level,
-            "code":value["code"]["code"],"message":message.chars().take(512).collect::<String>(),
+            "code":code,"message":message.chars().take(512).collect::<String>(),
             "spans":spans.iter().take(16).cloned().collect::<Vec<_>>() }));
         for child in children {
             self.diagnostic(child, Some(index), depth + 1);
