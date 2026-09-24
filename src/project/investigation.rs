@@ -20,6 +20,12 @@ pub struct Options {
     checks_digest: Option<String>,
     #[arg(long, requires = "checks_from")]
     check_step: Option<String>,
+    #[arg(long, requires_all = ["proofs_digest", "proof_step"], conflicts_with = "checks_from")]
+    proofs_from: Option<PathBuf>,
+    #[arg(long, requires = "proofs_from")]
+    proofs_digest: Option<String>,
+    #[arg(long, requires = "proofs_from")]
+    proof_step: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +55,8 @@ pub struct Step {
     pub evidence: Vec<Evidence>,
     #[serde(default)]
     pub required_checks: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_proofs: Vec<crate::spec::retained::Requirement>,
     #[serde(default)]
     pub satisfies: Vec<String>,
     #[serde(default)]
@@ -89,6 +97,7 @@ pub enum DependencyKind {
     CheckSources,
     CheckToolchain,
     DeclarationAnalyzer,
+    ProofInputs,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,6 +147,15 @@ impl Project<'_> {
                 include_str!("investigation.rs"),
             ))?,
             DependencyKind::DeclarationAnalyzer => super::correspondence::analyzer_digest()?,
+            DependencyKind::ProofInputs => {
+                match crate::spec::retained::input_digest(&self.root, &dependency.key) {
+                    Ok(digest) => digest,
+                    Err(error) if dependency.digest.is_some() => {
+                        hash(("unavailable-proof-inputs", error.to_string()))?
+                    }
+                    Err(error) => return Err(error),
+                }
+            }
             DependencyKind::Workspace => self.revision.clone(),
             DependencyKind::CheckConfiguration => {
                 crate::checks::evidence::configuration_digest(&self.root)?
@@ -220,6 +238,22 @@ impl Project<'_> {
                 step.id
             );
             ensure!(
+                step.required_proofs.len() <= 64,
+                "step exceeds 64 required proofs."
+            );
+            let mut proofs = BTreeSet::new();
+            for proof in &step.required_proofs {
+                ensure!(crate::spec::retained::requirement_valid(proof) && proofs.insert(proof_id(proof)?),
+                    "required proofs need distinct, normalized package, module and theorem identities.");
+                ensure!(
+                    step.inputs
+                        .iter()
+                        .any(|input| input.kind == DependencyKind::ProofInputs
+                            && input.key == proof.package),
+                    "required proofs need a proof-inputs dependency for their package."
+                );
+            }
+            ensure!(
                 step.satisfies.iter().all(|c| plan.acceptance.contains(c)),
                 "unknown acceptance criterion"
             );
@@ -273,6 +307,31 @@ impl Project<'_> {
         } else {
             None
         };
+        let proof_attachment = if let Some(path) = &options.proofs_from {
+            ensure!(
+                std::fs::metadata(path)?.len() <= 1_048_576,
+                "proof report exceeds 1 MiB."
+            );
+            let report: Value = serde_json::from_slice(&crate::vfs::read(path)?)?;
+            let digest = hash(&report)?;
+            ensure!(
+                Some(&digest) == options.proofs_digest.as_ref(),
+                "proof report digest mismatch."
+            );
+            ensure!(
+                options
+                    .proof_step
+                    .as_ref()
+                    .is_some_and(|step| ids.contains(step)),
+                "unknown proof attachment step."
+            );
+            Some((
+                digest,
+                crate::spec::retained::validate(&self.root, &report)?,
+            ))
+        } else {
+            None
+        };
         let mut states = BTreeMap::new();
         let mut bases = BTreeMap::new();
         let mut invalidated = Vec::new();
@@ -311,6 +370,11 @@ impl Project<'_> {
                 &step.action,
                 &step.action_input,
             ))?;
+            let basis = if step.required_proofs.is_empty() {
+                basis
+            } else {
+                hash((basis, &step.required_proofs))?
+            };
             if options.check_step.as_deref() == Some(&step.id) {
                 let has = |kind| step.inputs.iter().any(|input| input.kind == kind);
                 ensure!(check_scope_covered(has(DependencyKind::Workspace), has(DependencyKind::CheckConfiguration),
@@ -340,6 +404,49 @@ impl Project<'_> {
                     });
                 }
             }
+            if options.proof_step.as_deref() == Some(&step.id) {
+                ensure!(
+                    !changed
+                        && !reset
+                        && prerequisites
+                        && matches!(step.state, State::Ready | State::Running),
+                    "proof evidence requires a current ready or running step."
+                );
+                let (digest, results) = proof_attachment.as_ref().unwrap();
+                let selected = step
+                    .required_proofs
+                    .iter()
+                    .filter(|proof| {
+                        results
+                            .iter()
+                            .any(|(package, _, _)| *package == proof.package)
+                    })
+                    .collect::<Vec<_>>();
+                ensure!(
+                    !selected.is_empty(),
+                    "proof report covers no required theorem."
+                );
+                for proof in selected {
+                    ensure!(
+                        results.contains(&(
+                            proof.package.clone(),
+                            proof.spec.clone(),
+                            proof.theorem.clone()
+                        )),
+                        "required theorem is missing from the checked package."
+                    );
+                    let id = proof_id(proof)?;
+                    step.evidence
+                        .retain(|e| e.kind != EvidenceKind::ModelProof || e.id != id);
+                    step.evidence.push(Evidence {
+                        id,
+                        kind: EvidenceKind::ModelProof,
+                        input_digest: basis.clone(),
+                        passed: true,
+                        reference: format!("fr-proof-evidence-1:{digest}"),
+                    });
+                }
+            }
             if reset {
                 step.state = State::Pending;
                 step.evidence.clear();
@@ -361,6 +468,16 @@ impl Project<'_> {
                     .evidence
                     .iter()
                     .all(|e| e.passed && e.input_digest == basis && !e.reference.is_empty())
+                && step.required_proofs.iter().all(|proof| {
+                    proof_id(proof).is_ok_and(|id| {
+                        step.evidence.iter().any(|e| {
+                            e.kind == EvidenceKind::ModelProof
+                                && e.id == id
+                                && e.passed
+                                && e.reference.starts_with("fr-proof-evidence-1:")
+                        })
+                    })
+                })
                 && step.required_checks.iter().all(|check| {
                     step.evidence
                         .iter()
@@ -409,7 +526,16 @@ impl Project<'_> {
             "claim": "validated agent-reported evidence; references do not attest tool execution.",
             "check_attachment": check_attachment.map(|(digest, results)| json!({"digest":digest,"results":results,
                 "trust":"trusted caller digest binds retained command output, not an execution attestation"})),
+            "proof_attachment": proof_attachment.map(|(digest, results)| json!({"digest":digest,"results":results,
+                "trust":"Trusted caller digest binds retained local Lean output. No execution attestation or source implementation proof."})),
             "mutation_authority": false, "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain."}),
         )
     }
+}
+
+fn proof_id(proof: &crate::spec::retained::Requirement) -> Result<String> {
+    Ok(format!(
+        "fr-model-proof-1:{}",
+        hash((&proof.package, &proof.spec, &proof.theorem))?
+    ))
 }

@@ -14,6 +14,7 @@ fr_configure_lean_resources
     lake exe fr-investigation-kernel >/dev/null
     lake exe fr-investigation-kernel flow-join >/dev/null
     lake exe fr-investigation-kernel check-scope >/dev/null
+    lake exe fr-investigation-kernel proof-evidence >/dev/null
     lake exe fr-investigation-kernel flow-summary >/dev/null
     lake exe fr-investigation-kernel flow-fact-coverage >/dev/null
     lake exe fr-investigation-kernel compiler-coverage >/dev/null

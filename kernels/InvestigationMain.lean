@@ -3,6 +3,13 @@ import FrKernels.Flow
 open FrKernels.Investigation
 
 def main (args : List String) : IO Unit := do
+  if args == ["proof-evidence"] then
+    for executed in [false, true] do
+      for stable in [false, true] do
+        for checked in [false, true] do
+          for debtFree in [false, true] do
+            IO.println (proofAcceptable executed stable checked debtFree)
+    return
   if args == ["compiler-coverage"] then
     for execution in [false, true] do
       for protocol in [false, true] do
