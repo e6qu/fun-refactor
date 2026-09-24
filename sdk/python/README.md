@@ -384,3 +384,34 @@ and exact occurrence. Read actions cannot invoke mutation routes.
 `persist(store)` and `FlowFacts.restore(store, digest)` use the existing verified Merkle object store.
 Restored pages keep their revision and stale actions. See the [fact contract](../../docs/agent-investigations.md#bounded-flow-facts)
 for model boundaries, query limits and independent acceptance.
+
+## Compiler evidence
+
+`fr_ir.compiler_evidence.CompilerEvidence` converts retained, toolchain-bound check output into typed
+Rust diagnostics. It preserves failed compilation and syntax acceptance as separate observations.
+
+```python
+from fr_ir.compiler_evidence import CompilerEvidence
+
+page = CompilerEvidence.inspect(client, retained_checks, check="compiler", format="rustc-json", limit=2)
+diagnostics = page.collect(client, max_pages=16)
+for diagnostic in diagnostics.items:
+    for span in diagnostic.spans:
+        if span.occurrence is not None:
+            location = span.occurrence.location
+```
+
+Use `format="cargo-json"` for Cargo protocol output. `next` and `collect` preserve page and byte
+budgets. They recreate temporary input files from retained checks and revalidate native identities.
+Changed source, build configuration, executable or declared external inputs refuse stale evidence.
+`persist(store)` retains both the page and check report in the verified Merkle store; `restore`
+verifies stored objects. It grants no mutation authority.
+
+`page.attach(plan, client, step)` revalidates inputs and attaches check outcomes plus a compiler
+observation. Use `TaskStep.checked` and declare the checks present in the retained report. A failed
+compiler check cannot satisfy a passing-check requirement. Partial disclosure cannot supply a complete
+compiler observation. Attachments retain the original report digest and plan dependency identities.
+`span.reveal(client)` explicitly requests a bounded source slice when an exact source action exists.
+
+See the [compiler contract](../../docs/project-checks.md#retained-compiler-diagnostics) for trust,
+protocol limits, input declarations and coverage distinctions.

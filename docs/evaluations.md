@@ -329,3 +329,17 @@ more disclosure than the raw flow report. These fixture measurements support bou
 discovery, not a general latency or token claim. Source reveals are zero and tokens are unavailable.
 The artifact retains the baseline, implementation bindings, paged evidence, semantic replies and
 implementation diagnostics. Native tests separately exercise semantic query and origin-page limits.
+
+## Compiler evidence acceptance
+
+The [2026-09-24 compiler acceptance](../tests/agent-eval/results/2026-09-24-compiler-evidence/result.json)
+retains real rustc and Cargo diagnostics for one Rust fixture. Default compilation passes; strict
+configuration reports E0308 at the independently checked byte span. Six executable cases check default
+behavior. The artifact preserves command outcomes, syntax acceptance, plan attachment and rejected
+reuse after source, environment, external identity and newly added Cargo configuration changes.
+
+The adapter adds bounded, typed diagnostic disclosure and input validation. It does not establish a
+context or latency advantage: the small default check has no diagnostics, while each fact page repeats
+its input scope. Measurements retain raw report bytes, page bytes, calls and elapsed time separately.
+Declared compiler driver hashes contribute validation cost. Full compiler dependency discovery and
+source proofs remain open. Synthetic malformed-protocol tests remain separate from real compiler evidence.

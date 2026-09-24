@@ -30,10 +30,13 @@ pub use agent_guide::{
 mod application;
 mod batch;
 mod capability_action;
+mod compiler_diagnostics;
+mod compiler_evidence;
 mod components;
 mod configuration;
 mod context;
 mod contracts;
+pub use compiler_evidence::compiler_evidence_complete;
 mod diagrams;
 mod digest;
 #[cfg(test)]
@@ -95,6 +98,8 @@ pub enum Command {
     Dataflow(dataflow::Options),
     #[command(about = "Page through scalar flow facts and bounded source-linked explanations.")]
     FlowFacts(flow_facts::Options),
+    #[command(about = "Read bounded Rust compiler diagnostics from retained check evidence.")]
+    CompilerEvidence(compiler_evidence::Options),
     #[command(about = "Validate and resume a dependency-bound local investigation plan.")]
     Investigate(investigation::Options),
     #[command(about = "Read a versioned application hierarchy with explicit semantic boundaries.")]
@@ -1472,6 +1477,7 @@ impl<'a> Project<'a> {
             Command::Identities(options) => self.identities(options),
             Command::Dataflow(options) => self.dataflow(options),
             Command::FlowFacts(options) => self.flow_facts(options),
+            Command::CompilerEvidence(options) => self.compiler_evidence(options),
             Command::Investigate(options) => self.investigation(options),
             Command::Batch(options) => self.batch(options),
             Command::Task(options) => self.task(options),

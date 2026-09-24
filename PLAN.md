@@ -51,8 +51,10 @@ Outcome: an agent can find relevant code and explain a proposed change from exac
   Offer bounded explanations and follow actions through existing progressive discovery.
   [Python scalar fact pages](src/project/flow_facts.rs) retain separate analysis and disclosure coverage.
   [Independent acceptance](tests/agent-eval/results/2026-09-24-flow-facts/result.json) checks exact links, negative cases and stale refusals.
-- [ ] Include relevant build configuration and external evidence in the analysis scope.
+- [x] Include relevant build configuration and external evidence in the analysis scope.
   Preserve toolchain identity and disagreements when a task requires compiler facts.
+  [Rust compiler evidence](docs/project-checks.md#retained-compiler-diagnostics) binds declared invocations and workspace build inputs.
+  [Real rustc/Cargo acceptance](tests/agent-eval/results/2026-09-24-compiler-evidence/result.json) preserves exact diagnostics, disagreements and stale refusals.
 - [x] Add a typed task plan containing acceptance criteria, hypotheses, evidence references,
   dependencies, unresolved questions and required checks. Reuse guide actions and reviewed delivery.
   [Typed plans](sdk/python/src/fr_ir/investigation.py) retain guide inputs and bind required checks to declared dependencies.
@@ -148,8 +150,8 @@ binds the evaluator, pinned source revision, fixture and passing results.
 
 These are substantial implementation advances across A–D; the complete milestone gates remain open:
 
-- A: origins through normalization and additional languages, compiler facts beyond declared command output,
-  fact explanations beyond the scalar subset and live unknown-target investigation trials.
+- A: normalization origins, additional languages and compiler adapters, broader dependency discovery,
+  fact explanations beyond scalar analysis and live unknown-target trials.
 - B: source correspondence beyond exact syntax-origin links, imported summaries, implicit exception/handler semantics
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.
@@ -170,7 +172,7 @@ The [Flow kernel](kernels/FrKernels/Flow.lean) proves join/overwrite laws; nativ
 
 The [semantic evidence task](tests/agent-eval/semantic-evidence/task.json) pins Python AST coordinates and declared checks.
 Its [evaluator](tools/semantic-evidence-acceptance.py) compares source reveal with origin lookup and retains passing and failing command evidence.
-Checked plans cover workspace, source, configuration and executable identities; environment and dynamic-library coverage still requires explicit checks.
+Checked plans cover workspace, source, configuration and executable identities. Declared environment keys and external files now enter toolchain freshness checks.
 
 The [recursive flow task](tests/agent-eval/recursive-flow/task.json) pins positive and negative recursive helpers.
 Its [evaluator](tools/recursive-flow-acceptance.py) retains runtime and coordinate oracles plus cold, warm and helper-edit comparisons.
@@ -181,6 +183,10 @@ The [flow fact task](tests/agent-eval/flow-facts/task.json) pins bounded explana
 Its [evaluator](tools/flow-facts-acceptance.py) retains paged evidence, independent Unicode coordinates,
 negative cases and stale refusals. Semantic mappings remain explicit when absent or truncated.
 The language semantics item in B remains open pending the unknown-target task requirements and broader correspondence gates.
+
+The [compiler evidence task](tests/agent-eval/compiler-evidence/task.json) retains Rust diagnostics and explicit syntax/compiler differences.
+Workspace build-input discovery tracks added configuration files. Environment and external toolchain coverage remains declaration-based;
+undeclared dependencies and source correspondence proofs remain open.
 
 ## Rules for every milestone
 
