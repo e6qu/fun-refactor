@@ -42,6 +42,29 @@ pub struct Options {
     reuse_digest: Option<String>,
 }
 
+impl Options {
+    pub(super) fn for_facts(
+        target: &str,
+        rules: Option<std::path::PathBuf>,
+        context: &str,
+        steps: usize,
+        depth: usize,
+    ) -> Self {
+        Self {
+            target: target.into(),
+            summaries: true,
+            rules,
+            steps,
+            depth,
+            context: context.into(),
+            bytes: 1_048_576,
+            inputs_only: false,
+            reuse: None,
+            reuse_digest: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Rules {

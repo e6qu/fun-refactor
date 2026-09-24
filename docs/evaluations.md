@@ -314,3 +314,18 @@ Six isolated workers compare cold, warm, unrelated-edit and helper-edit results 
 They record latency, response bytes, native work and peak child/worker RSS. Reuse validates the whole
 file; these measurements do not establish finer cache granularity or a general speed improvement.
 This is deterministic analysis evidence, not a live-agent investigation trial or a security proof.
+
+## Bounded flow fact acceptance
+
+The [2026-09-24 fact acceptance](../tests/agent-eval/results/2026-09-24-flow-facts/result.json)
+retains two sink witnesses from a recursive Python fixture. An independent oracle executes nine
+cases and checks UTF-8 AST coordinates. Eleven followed semantic links match exact occurrences;
+negative, normalized, unknown and stale cases retain their distinct outcomes.
+
+The first two fact headers use 5,421 bytes, compared with 56,565 bytes for the raw analysis.
+All eight headers require four calls and 20,744 bytes. Both complete explanations require seven
+more calls and 55,461 bytes, plus eleven separate semantic validation calls. Full provenance costs
+more disclosure than the raw flow report. These fixture measurements support bounded initial
+discovery, not a general latency or token claim. Source reveals are zero and tokens are unavailable.
+The artifact retains the baseline, implementation bindings, paged evidence, semantic replies and
+implementation diagnostics. Native tests separately exercise semantic query and origin-page limits.

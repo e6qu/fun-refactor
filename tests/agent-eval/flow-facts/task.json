@@ -1,0 +1,17 @@
+{
+  "schema": "fr-flow-facts-task-1",
+  "baseline": "2393317c8e30f4c645049c1ccf28edcb4f332b02",
+  "question": "Explain each source reaching checkout's sinks with exact occurrences, rule identities and semantic/authoring links without revealing the entire analysis.",
+  "language": "Python scalar explicit-value analysis with positional recursive helpers and caller-supplied external contracts",
+  "acceptance": [
+    "Every fact binds its rule, input identity, scope, confidence and analysis omissions.",
+    "Paged fact and evidence continuations preserve identity and reject stale snapshots or changed rules.",
+    "Repeated Unicode source calls have distinct exact origins checked against an independent AST oracle.",
+    "Evidence links exposed semantic and authoring nodes by exact same-revision source spans; missing and truncated mappings stay explicit.",
+    "Incomplete analysis or disclosure cannot establish absence; explanations never authorize mutation."
+  ],
+  "budgets": {"steps": 4096, "depth": 8, "fact_page": 16, "evidence_page": 8, "semantic_queries_per_page": 8},
+  "oracle": "oracle.py",
+  "edit_boundary": "Direct source edits implement a new Rust command, SDK contracts, tests, Lean model and evaluator. Existing author operations do not admit this complete cross-module change.",
+  "claims": "Deterministic finite fixtures and syntax provenance only; no path feasibility, security, compiler fact or source-correspondence proof."
+}

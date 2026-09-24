@@ -357,3 +357,30 @@ Use `FlowCache.analyze(..., summaries=True, steps=4096)` for symbolic function s
 `analysis.summaries` exposes typed `FunctionSummary` records, parameter transfer and explicit return, sink and raise effects.
 Check both `complete` and `converged` before interpreting missing flows. A converged model does not prove runtime termination.
 Cache reuse covers the whole defining file and renews nested summary occurrences after unrelated edits.
+
+## Paged flow explanations
+
+`fr_ir.flow_facts.FlowFacts` provides typed fact headers and bounded explanations.
+
+```python
+from fr_ir.flow_facts import FlowFacts
+
+page = FlowFacts.inspect(client, target, rules=rules_path, context="html", limit=2)
+facts = page.collect(client, max_pages=16)
+for fact in facts.facts:
+    if fact.kind == "witness":
+        detail = page.explain(client, fact).collect(client, max_pages=16)
+        for point in detail.evidence:
+            if point.mapping["items"]:
+                origins = point.semantic(client)
+```
+
+Check collection coverage before interpreting absence. `collect` requires a page budget of 1–64;
+it retains the continuation when the budget ends. Analysis, disclosure and origin lookup coverage
+remain separate. The SDK validates fact and occurrence identities, input digests, page continuity,
+authoring pointers and fully collected trace digests. Semantic follow actions check the same snapshot
+and exact occurrence. Read actions cannot invoke mutation routes.
+
+`persist(store)` and `FlowFacts.restore(store, digest)` use the existing verified Merkle object store.
+Restored pages keep their revision and stale actions. See the [fact contract](../../docs/agent-investigations.md#bounded-flow-facts)
+for model boundaries, query limits and independent acceptance.

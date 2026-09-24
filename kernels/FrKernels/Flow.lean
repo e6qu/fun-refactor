@@ -1,5 +1,23 @@
 namespace FrKernels.Flow
 
+def factComplete (analysis fromStart noRemaining : Bool) : Bool :=
+  analysis && fromStart && noRemaining
+
+theorem incomplete_analysis_cannot_complete (fromStart noRemaining : Bool) :
+    factComplete false fromStart noRemaining = false := by
+  simp [factComplete]
+
+theorem omitted_prefix_cannot_complete (analysis noRemaining : Bool) :
+    factComplete analysis false noRemaining = false := by
+  simp [factComplete]
+
+theorem omitted_suffix_cannot_complete (analysis fromStart : Bool) :
+    factComplete analysis fromStart false = false := by
+  simp [factComplete]
+
+theorem complete_analysis_and_disclosure : factComplete true true true = true := by
+  rfl
+
 abbrev Facts := Nat → Bool
 
 def join (left right : Facts) : Facts := fun origin => left origin || right origin

@@ -257,3 +257,49 @@ dependency invalidation, correspondence and checked delivery. The SDK suite cove
 coordinate validation. A Lean transition model proves that completion requires evidence and
 prerequisites, with exhaustive agreement against the Rust admission function. This does not prove
 filesystem integrity, parser correctness, the full plan host or source implementation semantics.
+
+## Bounded flow facts
+
+`project flow-facts HANDLE` projects the recursive scalar analysis into fact headers. Each header
+binds a rule, input digest, function scope, confidence, assumptions, omissions and evidence digest.
+`project explore` offers this route for top-level Python functions. External contracts still require
+an explicit `--rules` file.
+
+```sh
+fr --json project flow-facts '<HANDLE>' --rules rules.json --context html --limit 2
+fr --json project flow-facts '<HANDLE>' --rules rules.json --context html --fact '<FACT-ID>' --evidence-limit 2
+```
+
+Follow the returned actions to preserve context, budgets and identities. Fact and evidence pages
+have separate cursors. Changed source revisions, contracts or analysis inputs refuse stale actions.
+Restoring a stored page preserves its old identity; it cannot renew actions or authorize writes.
+
+The report separates three questions:
+
+- `analysis.complete` says whether the declared model finished without cutoffs or omitted analysis.
+- `disclosure.complete` says whether this response contains the selected catalogue or explanation from its start to its end.
+- Each evidence point's `mapping.complete` says whether its semantic origin lookup exhausted the admitted origin records.
+
+Top-level `complete` combines analysis and disclosure coverage. An explanation can be complete while
+some origin mappings are absent. A complete explanation covers one fact, not the entire catalogue.
+A missing witness establishes model absence only after complete analysis and complete catalogue disclosure.
+It does not establish security or path feasibility.
+
+Explanations retain derivation occurrences and occurrence rules. They do not invent dependency edges
+or executable paths. Exact revision, path and byte-span matches link occurrences to semantic origins
+and authoring body pointers. These are syntax relations, not source implementation correspondence proofs.
+Normalized or synthesized nodes can lack mappings. Multiple relations remain visible.
+
+Each explanation page runs at most eight semantic queries. Each query admits 4,096 nodes and reads
+at most 256 origin rows. Each point discloses at most four matching links. Partial queries retain
+continuations and cannot report absent mappings. The semantic reader's source limit is 262,144 bytes.
+Unavailable readers and exhausted budgets retain explicit gaps and bounded follow actions.
+Source text appears only after an explicit source action. Fact pages default to 65,536 bytes;
+`--bytes` accepts 4,096 through 1,048,576. The internal analysis also has a 1 MiB response limit.
+Its omissions remain visible and prevent complete results.
+
+The [retained acceptance](../tests/agent-eval/results/2026-09-24-flow-facts/result.json) compares raw
+analysis and paged facts under the same contracts. The independent oracle executes nine cases and
+checks UTF-8 AST coordinates. Full explanations add provenance and may exceed raw analysis in bytes
+and latency. Four Lean theorems establish disclosure coverage policy; native code matches all eight
+Boolean cases. These checks do not prove the analyzer or its source correspondence.

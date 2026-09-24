@@ -41,3 +41,12 @@ for `investigation_checks.run_checks`; inspect `checks --toolchain` before execu
 report with `--from` to inspect matched, ambiguous and missing correspondence. These are syntactic
 candidates; they never renew a stale mutation review. Follow [Task](task.md) and [Workflow](workflow.md)
 for checked changes, reversal and patch delivery.
+
+For bounded explanations, follow the `analysis` action from a top-level Python exploration row.
+`project flow-facts HANDLE --rules rules.json --context html --limit 2` returns fact headers;
+each fact has a bounded explanation action. Follow returned continuations to keep all input options.
+Read analysis, disclosure and mapping coverage separately. A full explanation covers one fact.
+Missing witnesses establish model absence only with a complete catalogue and complete analysis.
+Occurrences link by exact spans to semantic and authoring pointers; normalized nodes can lack origins.
+These links are syntax evidence and do not prove source correspondence or feasible paths.
+`fr_ir.flow_facts.FlowFacts` validates pages and persists them without refreshing stale actions.

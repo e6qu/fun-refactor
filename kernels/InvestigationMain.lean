@@ -3,6 +3,12 @@ import FrKernels.Flow
 open FrKernels.Investigation
 
 def main (args : List String) : IO Unit := do
+  if args == ["flow-fact-coverage"] then
+    for analysis in [false, true] do
+      for fromStart in [false, true] do
+        for noRemaining in [false, true] do
+          IO.println (FrKernels.Flow.factComplete analysis fromStart noRemaining)
+    return
   if args == ["flow-summary"] then
     for useFirst in [false, true] do
       for useSecond in [false, true] do
