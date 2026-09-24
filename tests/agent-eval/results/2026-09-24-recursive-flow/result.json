@@ -1,10 +1,10 @@
 {
   "schema": "fr-recursive-flow-acceptance-1",
-  "repository_revision": "cb67663010b095b9ac15f50c26e95909b9ad3e59",
+  "repository_revision": "a5d310191aea13b46a9132076cf1a1035cbc88d7",
   "source_bindings": {
     "tools/recursive-flow-acceptance.py": "861b742fdd521ebf383ed20df8d8bf6e6421884d98096958560214001fb2a138",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
-    "src/project/dataflow.rs": "823349e169ecc7bca2cc74ff069444d8a28063ad36edce1868fb9c4a47f0b46c",
+    "src/project/dataflow.rs": "281e9d78410587e52c2e649ebae33c5407f9196739adfc7244bc7093c3b5583e",
     "src/project/flow_summaries.rs": "01c34570961ef09358e886e66492d708e2a06c6bca0e8f61668445f35c99696b",
     "src/project/control_flow.rs": "7530d8fbe4fda2a784ae0892c3202be3887408b9d035cff1d6bf66e63d5bdbec",
     "src/project/flow_cache.rs": "40670500d6d68c135c2ff5cdd8968f54f75bffe0747bd91fc1f350fa3adf3b1c",
@@ -17,14 +17,14 @@
     "sdk/python/src/fr_ir/runtime.py": "c96f8ac90fcf4a7c08790be4819c83347fb547d938c956c1c3c9f4beff9d4aa3",
     "sdk/python/src/fr_ir/context.py": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0",
     "sdk/python/src/fr_ir/investigation.py": "910376c05e887c20763bf966f37493daa3b72b4d60aea3fba7771d31eec9d257",
-    "kernels/FrKernels/Flow.lean": "baab90181628310626d098f3056e55dd7846004c582a0848adb22278fbce3cbe",
-    "kernels/InvestigationMain.lean": "11e099a3013a53a02dd4803baa9d0f39c4ea95e18842cbc2ad849fc4d851bce8",
+    "kernels/FrKernels/Flow.lean": "7d1fd14c15be9755b8db2d0071b41db6b7d0c882f01e98a76d71f0dc46038cb9",
+    "kernels/InvestigationMain.lean": "a43bc9055bed7b8bfc2952d40b5b0d0e708ea1522a60c55c87171b581f5b5adc",
     "tests/agent-eval/recursive-flow/subject.py": "e796014d2e530742d7aab0d668ea0175deac1ff9236a5b090c9a670496dfc14c",
     "tests/agent-eval/recursive-flow/oracle.py": "2912c4f225c95ff9e6f5e2b62f0513dc6a1ecb8c630f12de8fa9561416cda320",
     "tests/agent-eval/recursive-flow/task.json": "bd0373866756373edc22184cca55167f81827349c0e2da006861185927d10ba3",
     "tests/agent-eval/recursive-flow/baseline.json": "9131f7886583d01280f9c90cc0ccfb1fd941bdc9024eb3be079b597b179a742b"
   },
-  "binary_sha256": "03d4c41b11a088fdf81a850f36464fce4f442f91c60da46a0900da744123fab8",
+  "binary_sha256": "4f386f65afbf8b770274d6c946f469871d9df65158a9cf5f5d445773ab04dd9d",
   "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
   "oracle": {
     "call_spans": [
@@ -233,7 +233,7 @@
     "sink_after_raise": false,
     "sink_after_recursion_limit": false
   },
-  "ordinary_ast_runtime_seconds": 0.024573542003054172,
+  "ordinary_ast_runtime_seconds": 0.02472724998369813,
   "baseline": {
     "revision": "354d9fb85201a6a0678bf14e9ae7802a0c3ae02a",
     "cases": {
@@ -387,13 +387,13 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:336ddf697b4e6b924c03ce80c81b65a90ba6bd64077547a81fbc2ba304d9bd3f": {
+                "fro1:760ea64987f37285a0a54998488d677256560b32779b57874d3fbe5d60509b48": {
                   "flow": {
-                    "recursive-1:source:fro1:81176519a8a114c5470f13aeeda05a34e0aeab9d4f2670ff2209a1761805c454": {
+                    "recursive-1:source:fro1:ca4613ee8ec3e85c56a711c660703972be9eba8480023247bceb8574a717fc6b": {
                       "occurrences": [
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-                          "id": "fro1:81176519a8a114c5470f13aeeda05a34e0aeab9d4f2670ff2209a1761805c454",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+                          "id": "fro1:ca4613ee8ec3e85c56a711c660703972be9eba8480023247bceb8574a717fc6b",
                           "location": {
                             "range": {
                               "end": {
@@ -411,12 +411,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "source"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                          "id": "fro1:bf2e27518806a80fe2e7afa8f0ef7e5837263d0266046703edb717c1a4a49cbe",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                          "id": "fro1:053adcceb01f3e180343416c3fe8b9ddfabc3f330501f6db8805cdea15ce6795",
                           "location": {
                             "range": {
                               "end": {
@@ -434,12 +434,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "summary-parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                          "id": "fro1:3a78eb1ac345bf834674127a7f9ad5295eedcda2713a38dfc13d1f7ef0ef2f7a",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                          "id": "fro1:155d56e0a1808546674e867f19ed93844a8b65c9f0328fa0900f91fe9eb7e54c",
                           "location": {
                             "range": {
                               "end": {
@@ -457,12 +457,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                          "id": "fro1:9d82f41fdfb26fe06cb82c2854158075568aa3ddb675bd2c4641aba3243d7823",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                          "id": "fro1:cf5d0d3d645c06b9610be3e8a88dd0f5896e398309234821300b6131a39d073b",
                           "location": {
                             "range": {
                               "end": {
@@ -480,12 +480,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "use"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                          "id": "fro1:2264abdafbbcb9825ed960399756a5d5fd8b8246f8a361b95a4c7150815876cb",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                          "id": "fro1:be5b1123d86d0755c55fd562cec212e7cd9f66b04d05e09882a511cc124285de",
                           "location": {
                             "range": {
                               "end": {
@@ -503,12 +503,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "return"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-                          "id": "fro1:f98432ec9c145f4b13a5676283fcd62c4184ad0288652b33b28b4837f9a761ed",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+                          "id": "fro1:b28eada175c97c9d1bee64eee7eb6d03e0604cce8883edf58dcc175c3d0f7a84",
                           "location": {
                             "range": {
                               "end": {
@@ -526,12 +526,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "call-result"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-                          "id": "fro1:336ddf697b4e6b924c03ce80c81b65a90ba6bd64077547a81fbc2ba304d9bd3f",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+                          "id": "fro1:760ea64987f37285a0a54998488d677256560b32779b57874d3fbe5d60509b48",
                           "location": {
                             "range": {
                               "end": {
@@ -549,17 +549,17 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "sink"
                         }
                       ],
-                      "origin": "recursive-1:source:fro1:81176519a8a114c5470f13aeeda05a34e0aeab9d4f2670ff2209a1761805c454"
+                      "origin": "recursive-1:source:fro1:ca4613ee8ec3e85c56a711c660703972be9eba8480023247bceb8574a717fc6b"
                     }
                   },
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-                    "id": "fro1:336ddf697b4e6b924c03ce80c81b65a90ba6bd64077547a81fbc2ba304d9bd3f",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+                    "id": "fro1:760ea64987f37285a0a54998488d677256560b32779b57874d3fbe5d60509b48",
                     "location": {
                       "range": {
                         "end": {
@@ -577,7 +577,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -599,8 +599,8 @@
                 "argument:relay:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                      "id": "fro1:bf2e27518806a80fe2e7afa8f0ef7e5837263d0266046703edb717c1a4a49cbe",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                      "id": "fro1:053adcceb01f3e180343416c3fe8b9ddfabc3f330501f6db8805cdea15ce6795",
                       "location": {
                         "range": {
                           "end": {
@@ -618,12 +618,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                      "id": "fro1:3a78eb1ac345bf834674127a7f9ad5295eedcda2713a38dfc13d1f7ef0ef2f7a",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                      "id": "fro1:155d56e0a1808546674e867f19ed93844a8b65c9f0328fa0900f91fe9eb7e54c",
                       "location": {
                         "range": {
                           "end": {
@@ -641,12 +641,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                      "id": "fro1:9d82f41fdfb26fe06cb82c2854158075568aa3ddb675bd2c4641aba3243d7823",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                      "id": "fro1:cf5d0d3d645c06b9610be3e8a88dd0f5896e398309234821300b6131a39d073b",
                       "location": {
                         "range": {
                           "end": {
@@ -664,12 +664,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                      "id": "fro1:2264abdafbbcb9825ed960399756a5d5fd8b8246f8a361b95a4c7150815876cb",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                      "id": "fro1:be5b1123d86d0755c55fd562cec212e7cd9f66b04d05e09882a511cc124285de",
                       "location": {
                         "range": {
                           "end": {
@@ -687,7 +687,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "return"
                     }
                   ],
@@ -702,9 +702,9 @@
           "rounds": 4,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "1517cb5fb321358b45bf69f7c2d3fc06f5e8a2a83ddac4b30559c2ea5d8e45e7",
+        "input_digest": "f4ed2d793a9dd9c3b7f969b9d69f7920faa31715ef18e87d7022d28805c65cc7",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -729,8 +729,8 @@
         },
         "origins": {
           "parameter:count": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:6",
-            "id": "fro1:3952c13c71ef4cfe443595776ed32a1f1c7c86e6f24bd6d50bf77b125d8a8596",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:6",
+            "id": "fro1:120d9b14c629986f6fe0bd824ee7f8968bb032f9515087451835412b823d7390",
             "location": {
               "range": {
                 "end": {
@@ -748,12 +748,12 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           },
-          "recursive-1:source:fro1:81176519a8a114c5470f13aeeda05a34e0aeab9d4f2670ff2209a1761805c454": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-            "id": "fro1:81176519a8a114c5470f13aeeda05a34e0aeab9d4f2670ff2209a1761805c454",
+          "recursive-1:source:fro1:ca4613ee8ec3e85c56a711c660703972be9eba8480023247bceb8574a717fc6b": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+            "id": "fro1:ca4613ee8ec3e85c56a711c660703972be9eba8480023247bceb8574a717fc6b",
             "location": {
               "range": {
                 "end": {
@@ -771,17 +771,17 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:5",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
         "witnesses": [
           {
             "claim": "possible-value-propagation; path feasibility unchecked.",
@@ -789,8 +789,8 @@
             "rules": "recursive-1",
             "sink": "sink",
             "site": {
-              "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-              "id": "fro1:336ddf697b4e6b924c03ce80c81b65a90ba6bd64077547a81fbc2ba304d9bd3f",
+              "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+              "id": "fro1:760ea64987f37285a0a54998488d677256560b32779b57874d3fbe5d60509b48",
               "location": {
                 "range": {
                   "end": {
@@ -808,14 +808,14 @@
                 }
               },
               "path": "subject.py",
-              "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+              "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
               "role": "sink"
             },
             "trace": {
               "occurrences": [
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-                  "id": "fro1:81176519a8a114c5470f13aeeda05a34e0aeab9d4f2670ff2209a1761805c454",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+                  "id": "fro1:ca4613ee8ec3e85c56a711c660703972be9eba8480023247bceb8574a717fc6b",
                   "location": {
                     "range": {
                       "end": {
@@ -833,12 +833,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "source"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                  "id": "fro1:bf2e27518806a80fe2e7afa8f0ef7e5837263d0266046703edb717c1a4a49cbe",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                  "id": "fro1:053adcceb01f3e180343416c3fe8b9ddfabc3f330501f6db8805cdea15ce6795",
                   "location": {
                     "range": {
                       "end": {
@@ -856,12 +856,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "summary-parameter"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                  "id": "fro1:3a78eb1ac345bf834674127a7f9ad5295eedcda2713a38dfc13d1f7ef0ef2f7a",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                  "id": "fro1:155d56e0a1808546674e867f19ed93844a8b65c9f0328fa0900f91fe9eb7e54c",
                   "location": {
                     "range": {
                       "end": {
@@ -879,12 +879,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "parameter"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                  "id": "fro1:9d82f41fdfb26fe06cb82c2854158075568aa3ddb675bd2c4641aba3243d7823",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                  "id": "fro1:cf5d0d3d645c06b9610be3e8a88dd0f5896e398309234821300b6131a39d073b",
                   "location": {
                     "range": {
                       "end": {
@@ -902,12 +902,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "use"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                  "id": "fro1:2264abdafbbcb9825ed960399756a5d5fd8b8246f8a361b95a4c7150815876cb",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                  "id": "fro1:be5b1123d86d0755c55fd562cec212e7cd9f66b04d05e09882a511cc124285de",
                   "location": {
                     "range": {
                       "end": {
@@ -925,12 +925,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "return"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-                  "id": "fro1:f98432ec9c145f4b13a5676283fcd62c4184ad0288652b33b28b4837f9a761ed",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+                  "id": "fro1:b28eada175c97c9d1bee64eee7eb6d03e0604cce8883edf58dcc175c3d0f7a84",
                   "location": {
                     "range": {
                       "end": {
@@ -948,12 +948,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "call-result"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:5",
-                  "id": "fro1:336ddf697b4e6b924c03ce80c81b65a90ba6bd64077547a81fbc2ba304d9bd3f",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:5",
+                  "id": "fro1:760ea64987f37285a0a54998488d677256560b32779b57874d3fbe5d60509b48",
                   "location": {
                     "range": {
                       "end": {
@@ -971,18 +971,18 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "sink"
                 }
               ],
-              "origin": "recursive-1:source:fro1:81176519a8a114c5470f13aeeda05a34e0aeab9d4f2670ff2209a1761805c454"
+              "origin": "recursive-1:source:fro1:ca4613ee8ec3e85c56a711c660703972be9eba8480023247bceb8574a717fc6b"
             }
           }
         ]
       },
-      "evidence_digest": "c166a75860295cc75100c9b1a3cd41e93fa164d846cb828e5e4ec80dd8adcddb",
+      "evidence_digest": "6b78b9fd450f725892f29a2a4e73a2c708a8fdb659fe50e07a712b112e8894ee",
       "response_bytes": 40115,
-      "elapsed_seconds": 1.0675665410235524,
+      "elapsed_seconds": 0.2815809999592602,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -1052,12 +1052,12 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:908e7e8a75ab634f341228733d0f3852016b3b54e0a36a2b5b299e30ef164297": {
+                "fro1:24a4d1c0e8bed582893b0d201d707fd1d5ea966200b765c426afc0d474ec1786": {
                   "flow": {},
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:a",
-                    "id": "fro1:908e7e8a75ab634f341228733d0f3852016b3b54e0a36a2b5b299e30ef164297",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:a",
+                    "id": "fro1:24a4d1c0e8bed582893b0d201d707fd1d5ea966200b765c426afc0d474ec1786",
                     "location": {
                       "range": {
                         "end": {
@@ -1075,7 +1075,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -1087,9 +1087,9 @@
           "rounds": 3,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "89e5cb8e2f6998bf577e9aa0cdaa33cb1988841de9cb1159dd0fe71112f5cd95",
+        "input_digest": "67ff600372822ac4bac0f5a440433ff67fe2df876ced987a74889ab2fa4aa1bb",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -1114,8 +1114,8 @@
         },
         "origins": {
           "parameter:count": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:b",
-            "id": "fro1:c1ceaa7555f1ca11d812d51e168e7e55a57bfe9f5ca0591d2029be00c938457f",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:b",
+            "id": "fro1:111cc922a93c77187ecd2289f67794fd950c490d7b2faed3bc3d7791d69e4cad",
             "location": {
               "range": {
                 "end": {
@@ -1133,12 +1133,12 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           },
-          "recursive-1:source:fro1:39a919c530e01680a2affe609b949ff9b2897dad0811594f415d2b871a1e1fe3": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:a",
-            "id": "fro1:39a919c530e01680a2affe609b949ff9b2897dad0811594f415d2b871a1e1fe3",
+          "recursive-1:source:fro1:3d56dc39be602a7efb3df282008c87eea3e281e0ecce7fa59d009c6912af1166": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:a",
+            "id": "fro1:3d56dc39be602a7efb3df282008c87eea3e281e0ecce7fa59d009c6912af1166",
             "location": {
               "range": {
                 "end": {
@@ -1156,22 +1156,22 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:a",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:a",
         "witnesses": []
       },
-      "evidence_digest": "fd75f0eb2db1f82d3928316f7ab54a53bba90506eb0e25fb7e2fab2b7aac5a31",
+      "evidence_digest": "d79f9b10f0188a5ca4ff92f200b665560f48ac17c21bb7268e6a05324ea2f20b",
       "response_bytes": 25584,
-      "elapsed_seconds": 0.19421450002118945,
+      "elapsed_seconds": 0.20272833399940282,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -1229,8 +1229,8 @@
                 "argument:even:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                      "id": "fro1:ddf7b8e2ad5a140edcfeec8eb8fd2c6933b2dd0a1e43b2f42b07db4b4f4a7e45",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                      "id": "fro1:930dc71757916a2457745fcb3a750732e1acd21213a91e2614a4882d97af9f73",
                       "location": {
                         "range": {
                           "end": {
@@ -1248,12 +1248,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                      "id": "fro1:970a04e16427d0194c26aa6dc89da4aceb5daa3885ec2a6d6b59f9391307db03",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                      "id": "fro1:25ccbe2a23c76fa78129f2de92c642427ded5031a7876f27b9b19c7036f011dc",
                       "location": {
                         "range": {
                           "end": {
@@ -1271,12 +1271,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                      "id": "fro1:007346497671e16688761b38399e0766488ec7cd78db6999ead030eb58e02113",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                      "id": "fro1:c0fd30c212b353afabdbdc83264d5f959509a243b09ad0fb6b5d9895689bcecd",
                       "location": {
                         "range": {
                           "end": {
@@ -1294,12 +1294,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                      "id": "fro1:e9a7a487f2dfea9c164a6882d840ef7b035bd57a40d2eed8b99c5cff0ddc755b",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                      "id": "fro1:19ab7548491f47a3326a5fee0629451573458da0b6766a71b59a626f038444d6",
                       "location": {
                         "range": {
                           "end": {
@@ -1317,7 +1317,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "return"
                     }
                   ],
@@ -1339,13 +1339,13 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:9e3922c105a372b38813deae0880bf0162ae94719017714b5f1667c4325e2096": {
+                "fro1:34e2988f4a2d26af339ca33f64bf32cda0c2ea83d2caa5e06accd306da211896": {
                   "flow": {
-                    "recursive-1:source:fro1:1ae9a41c6bae643dbae59dd7ddf51bff40f6a1c1167292877ce030f56fcd1cfe": {
+                    "recursive-1:source:fro1:2d396e853f9068d55bf5aa64ca84fc0af5d7e660a30ec08639af4a58cd277977": {
                       "occurrences": [
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-                          "id": "fro1:1ae9a41c6bae643dbae59dd7ddf51bff40f6a1c1167292877ce030f56fcd1cfe",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+                          "id": "fro1:2d396e853f9068d55bf5aa64ca84fc0af5d7e660a30ec08639af4a58cd277977",
                           "location": {
                             "range": {
                               "end": {
@@ -1363,12 +1363,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "source"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                          "id": "fro1:ddf7b8e2ad5a140edcfeec8eb8fd2c6933b2dd0a1e43b2f42b07db4b4f4a7e45",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                          "id": "fro1:930dc71757916a2457745fcb3a750732e1acd21213a91e2614a4882d97af9f73",
                           "location": {
                             "range": {
                               "end": {
@@ -1386,12 +1386,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "summary-parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                          "id": "fro1:970a04e16427d0194c26aa6dc89da4aceb5daa3885ec2a6d6b59f9391307db03",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                          "id": "fro1:25ccbe2a23c76fa78129f2de92c642427ded5031a7876f27b9b19c7036f011dc",
                           "location": {
                             "range": {
                               "end": {
@@ -1409,12 +1409,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                          "id": "fro1:007346497671e16688761b38399e0766488ec7cd78db6999ead030eb58e02113",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                          "id": "fro1:c0fd30c212b353afabdbdc83264d5f959509a243b09ad0fb6b5d9895689bcecd",
                           "location": {
                             "range": {
                               "end": {
@@ -1432,12 +1432,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "use"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                          "id": "fro1:e9a7a487f2dfea9c164a6882d840ef7b035bd57a40d2eed8b99c5cff0ddc755b",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                          "id": "fro1:19ab7548491f47a3326a5fee0629451573458da0b6766a71b59a626f038444d6",
                           "location": {
                             "range": {
                               "end": {
@@ -1455,12 +1455,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "return"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-                          "id": "fro1:1a043c8eeacdfe1e3783cbb30d2c56bde9f4c8870bd68a50caf87066fb7e4eb7",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+                          "id": "fro1:590e6f9226ce1426e987d3af6f386d24fb31b3c37bb5664fdce32f018c1fac7b",
                           "location": {
                             "range": {
                               "end": {
@@ -1478,12 +1478,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "call-result"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-                          "id": "fro1:9e3922c105a372b38813deae0880bf0162ae94719017714b5f1667c4325e2096",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+                          "id": "fro1:34e2988f4a2d26af339ca33f64bf32cda0c2ea83d2caa5e06accd306da211896",
                           "location": {
                             "range": {
                               "end": {
@@ -1501,17 +1501,17 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "sink"
                         }
                       ],
-                      "origin": "recursive-1:source:fro1:1ae9a41c6bae643dbae59dd7ddf51bff40f6a1c1167292877ce030f56fcd1cfe"
+                      "origin": "recursive-1:source:fro1:2d396e853f9068d55bf5aa64ca84fc0af5d7e660a30ec08639af4a58cd277977"
                     }
                   },
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-                    "id": "fro1:9e3922c105a372b38813deae0880bf0162ae94719017714b5f1667c4325e2096",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+                    "id": "fro1:34e2988f4a2d26af339ca33f64bf32cda0c2ea83d2caa5e06accd306da211896",
                     "location": {
                       "range": {
                         "end": {
@@ -1529,7 +1529,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -1551,8 +1551,8 @@
                 "argument:odd:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:10",
-                      "id": "fro1:ad28a809e80085c7cedc3b2b97165537168c6e18f7ad53c87b7e596fbb5f1945",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:10",
+                      "id": "fro1:ce35e32dbef9838b68550eae83fba5cb06a749bf9adecc4d045d6e0cd1a5be69",
                       "location": {
                         "range": {
                           "end": {
@@ -1570,12 +1570,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:10",
-                      "id": "fro1:9f5f0576316152a5a6cab6912b1bb5f16877a0a4c68b58557776eaae3fe2b60e",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:10",
+                      "id": "fro1:5fa864ea86661c9062b5fece445c23f445ab28c747cb385f02967b7b65280b6f",
                       "location": {
                         "range": {
                           "end": {
@@ -1593,12 +1593,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:f",
-                      "id": "fro1:adaaf67436fae2cc82cd10c7be598b4a396a1add677d050afacaec6903632019",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:f",
+                      "id": "fro1:250f5766ee18c8aa3d86eb187ba7feca0aee3b308f1cd5dfd10c0d75b1d48221",
                       "location": {
                         "range": {
                           "end": {
@@ -1616,12 +1616,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                      "id": "fro1:ddf7b8e2ad5a140edcfeec8eb8fd2c6933b2dd0a1e43b2f42b07db4b4f4a7e45",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                      "id": "fro1:930dc71757916a2457745fcb3a750732e1acd21213a91e2614a4882d97af9f73",
                       "location": {
                         "range": {
                           "end": {
@@ -1639,12 +1639,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                      "id": "fro1:970a04e16427d0194c26aa6dc89da4aceb5daa3885ec2a6d6b59f9391307db03",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                      "id": "fro1:25ccbe2a23c76fa78129f2de92c642427ded5031a7876f27b9b19c7036f011dc",
                       "location": {
                         "range": {
                           "end": {
@@ -1662,12 +1662,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                      "id": "fro1:007346497671e16688761b38399e0766488ec7cd78db6999ead030eb58e02113",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                      "id": "fro1:c0fd30c212b353afabdbdc83264d5f959509a243b09ad0fb6b5d9895689bcecd",
                       "location": {
                         "range": {
                           "end": {
@@ -1685,12 +1685,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                      "id": "fro1:e9a7a487f2dfea9c164a6882d840ef7b035bd57a40d2eed8b99c5cff0ddc755b",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                      "id": "fro1:19ab7548491f47a3326a5fee0629451573458da0b6766a71b59a626f038444d6",
                       "location": {
                         "range": {
                           "end": {
@@ -1708,12 +1708,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "return"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:f",
-                      "id": "fro1:64b9b1d0b7c05cae14795f270e59db7d1dbc3fcdef3b3b0236c2cdd997d16f94",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:f",
+                      "id": "fro1:4d4935461bb83bfd0625014e9c984a4fd27db5e2513394318de2243c5bf6ad91",
                       "location": {
                         "range": {
                           "end": {
@@ -1731,12 +1731,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "call-result"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:f",
-                      "id": "fro1:929d7d5824780875870a2c87a0420cd57b3fa520c6827ff54ee8b9b53466e958",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:f",
+                      "id": "fro1:ae1e94fc628f1bb4352eaf3c127c27c79efff93b8add75aad8b06b1aa32b1c1c",
                       "location": {
                         "range": {
                           "end": {
@@ -1754,7 +1754,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "return"
                     }
                   ],
@@ -1769,9 +1769,9 @@
           "rounds": 4,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "8fe15ab1b65bfa86142b8186d027d62c74b8ecd6cbf7705a6e4fc7cacc9efde9",
+        "input_digest": "4acb843d613f070b6b56a8164a5b55f48e148cbabc94365c81246013cf5ee9f5",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -1796,8 +1796,8 @@
         },
         "origins": {
           "parameter:count": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:13",
-            "id": "fro1:c900ed71061abef69da05330e7b9280505c5ce7c121093ac93ca3e9331ce6b0c",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:13",
+            "id": "fro1:3f242bc5fe02b2b6bbe3ca64929aa86049c16583816148883c9ab569c11855db",
             "location": {
               "range": {
                 "end": {
@@ -1815,12 +1815,12 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           },
-          "recursive-1:source:fro1:1ae9a41c6bae643dbae59dd7ddf51bff40f6a1c1167292877ce030f56fcd1cfe": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-            "id": "fro1:1ae9a41c6bae643dbae59dd7ddf51bff40f6a1c1167292877ce030f56fcd1cfe",
+          "recursive-1:source:fro1:2d396e853f9068d55bf5aa64ca84fc0af5d7e660a30ec08639af4a58cd277977": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+            "id": "fro1:2d396e853f9068d55bf5aa64ca84fc0af5d7e660a30ec08639af4a58cd277977",
             "location": {
               "range": {
                 "end": {
@@ -1838,17 +1838,17 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:12",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
         "witnesses": [
           {
             "claim": "possible-value-propagation; path feasibility unchecked.",
@@ -1856,8 +1856,8 @@
             "rules": "recursive-1",
             "sink": "sink",
             "site": {
-              "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-              "id": "fro1:9e3922c105a372b38813deae0880bf0162ae94719017714b5f1667c4325e2096",
+              "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+              "id": "fro1:34e2988f4a2d26af339ca33f64bf32cda0c2ea83d2caa5e06accd306da211896",
               "location": {
                 "range": {
                   "end": {
@@ -1875,14 +1875,14 @@
                 }
               },
               "path": "subject.py",
-              "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+              "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
               "role": "sink"
             },
             "trace": {
               "occurrences": [
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-                  "id": "fro1:1ae9a41c6bae643dbae59dd7ddf51bff40f6a1c1167292877ce030f56fcd1cfe",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+                  "id": "fro1:2d396e853f9068d55bf5aa64ca84fc0af5d7e660a30ec08639af4a58cd277977",
                   "location": {
                     "range": {
                       "end": {
@@ -1900,12 +1900,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "source"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                  "id": "fro1:ddf7b8e2ad5a140edcfeec8eb8fd2c6933b2dd0a1e43b2f42b07db4b4f4a7e45",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                  "id": "fro1:930dc71757916a2457745fcb3a750732e1acd21213a91e2614a4882d97af9f73",
                   "location": {
                     "range": {
                       "end": {
@@ -1923,12 +1923,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "summary-parameter"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:d",
-                  "id": "fro1:970a04e16427d0194c26aa6dc89da4aceb5daa3885ec2a6d6b59f9391307db03",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:d",
+                  "id": "fro1:25ccbe2a23c76fa78129f2de92c642427ded5031a7876f27b9b19c7036f011dc",
                   "location": {
                     "range": {
                       "end": {
@@ -1946,12 +1946,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "parameter"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                  "id": "fro1:007346497671e16688761b38399e0766488ec7cd78db6999ead030eb58e02113",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                  "id": "fro1:c0fd30c212b353afabdbdc83264d5f959509a243b09ad0fb6b5d9895689bcecd",
                   "location": {
                     "range": {
                       "end": {
@@ -1969,12 +1969,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "use"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:c",
-                  "id": "fro1:e9a7a487f2dfea9c164a6882d840ef7b035bd57a40d2eed8b99c5cff0ddc755b",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:c",
+                  "id": "fro1:19ab7548491f47a3326a5fee0629451573458da0b6766a71b59a626f038444d6",
                   "location": {
                     "range": {
                       "end": {
@@ -1992,12 +1992,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "return"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-                  "id": "fro1:1a043c8eeacdfe1e3783cbb30d2c56bde9f4c8870bd68a50caf87066fb7e4eb7",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+                  "id": "fro1:590e6f9226ce1426e987d3af6f386d24fb31b3c37bb5664fdce32f018c1fac7b",
                   "location": {
                     "range": {
                       "end": {
@@ -2015,12 +2015,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "call-result"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:12",
-                  "id": "fro1:9e3922c105a372b38813deae0880bf0162ae94719017714b5f1667c4325e2096",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:12",
+                  "id": "fro1:34e2988f4a2d26af339ca33f64bf32cda0c2ea83d2caa5e06accd306da211896",
                   "location": {
                     "range": {
                       "end": {
@@ -2038,18 +2038,18 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "sink"
                 }
               ],
-              "origin": "recursive-1:source:fro1:1ae9a41c6bae643dbae59dd7ddf51bff40f6a1c1167292877ce030f56fcd1cfe"
+              "origin": "recursive-1:source:fro1:2d396e853f9068d55bf5aa64ca84fc0af5d7e660a30ec08639af4a58cd277977"
             }
           }
         ]
       },
-      "evidence_digest": "3c066e5d40f6d2ec1276b239d07f86937d0e095a2eb0c1bb46e07b888fa98e5f",
+      "evidence_digest": "64a86d7ae877240cba09d0126ef30d3eef4d98096d30f817b30076f52c2c5b02",
       "response_bytes": 55484,
-      "elapsed_seconds": 0.316528916999232,
+      "elapsed_seconds": 0.3259937909897417,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -2104,13 +2104,13 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f": {
+                "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9": {
                   "flow": {
-                    "recursive-1:source:fro1:f129d59bea3cfd6378765bf1ff152eb8c1c4f258010157776cda356351edd46b": {
+                    "recursive-1:source:fro1:08701f7f7eb171cb4e42e79b0ab6cd8f39ccd728b4c5450df53de5baceb48c9f": {
                       "occurrences": [
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:17",
-                          "id": "fro1:f129d59bea3cfd6378765bf1ff152eb8c1c4f258010157776cda356351edd46b",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:17",
+                          "id": "fro1:08701f7f7eb171cb4e42e79b0ab6cd8f39ccd728b4c5450df53de5baceb48c9f",
                           "location": {
                             "range": {
                               "end": {
@@ -2128,12 +2128,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "source"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:15",
-                          "id": "fro1:acd27df76af1c77a73e8028788c33c36b3f55c7d2f48f6082de0ceb222f1e9fc",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:15",
+                          "id": "fro1:4eda108fece0f4385834b8fdfcc641ed502444df05b51c427b8be5d0bb92ef54",
                           "location": {
                             "range": {
                               "end": {
@@ -2151,12 +2151,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "summary-parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:15",
-                          "id": "fro1:9770ca865b3ec4d72360913ab6e3279c2fa0a977bc6776eec7e57a56b610755d",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:15",
+                          "id": "fro1:3d44764f76a11ce21b19827d3a617822bc08fafc86772721082d0ce9a514bb86",
                           "location": {
                             "range": {
                               "end": {
@@ -2174,12 +2174,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                          "id": "fro1:7652ed53d4af45cbf15c901ae1db140fd71b5d5656b36b05041ab4f3280ad309",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                          "id": "fro1:91767a3ecbe590b66fb3f65833e0508f48bd2b6677a57bb59a20405168d49f8b",
                           "location": {
                             "range": {
                               "end": {
@@ -2197,12 +2197,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "use"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                          "id": "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                          "id": "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9",
                           "location": {
                             "range": {
                               "end": {
@@ -2220,12 +2220,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "sink"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:17",
-                          "id": "fro1:0a06e37ab0de47efb26fd4024efa0dffddcbdf71febd1e82b974a55d59181fa8",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:17",
+                          "id": "fro1:581578b6d120c441f61f579dc36d453b9f4b099992b6c6d8c75c1bf16efb256a",
                           "location": {
                             "range": {
                               "end": {
@@ -2243,17 +2243,17 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "summary-call"
                         }
                       ],
-                      "origin": "recursive-1:source:fro1:f129d59bea3cfd6378765bf1ff152eb8c1c4f258010157776cda356351edd46b"
+                      "origin": "recursive-1:source:fro1:08701f7f7eb171cb4e42e79b0ab6cd8f39ccd728b4c5450df53de5baceb48c9f"
                     }
                   },
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                    "id": "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                    "id": "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9",
                     "location": {
                       "range": {
                         "end": {
@@ -2271,7 +2271,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -2291,13 +2291,13 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f": {
+                "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9": {
                   "flow": {
                     "argument:emit:0": {
                       "occurrences": [
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:15",
-                          "id": "fro1:acd27df76af1c77a73e8028788c33c36b3f55c7d2f48f6082de0ceb222f1e9fc",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:15",
+                          "id": "fro1:4eda108fece0f4385834b8fdfcc641ed502444df05b51c427b8be5d0bb92ef54",
                           "location": {
                             "range": {
                               "end": {
@@ -2315,12 +2315,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "summary-parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:15",
-                          "id": "fro1:9770ca865b3ec4d72360913ab6e3279c2fa0a977bc6776eec7e57a56b610755d",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:15",
+                          "id": "fro1:3d44764f76a11ce21b19827d3a617822bc08fafc86772721082d0ce9a514bb86",
                           "location": {
                             "range": {
                               "end": {
@@ -2338,12 +2338,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "parameter"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                          "id": "fro1:7652ed53d4af45cbf15c901ae1db140fd71b5d5656b36b05041ab4f3280ad309",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                          "id": "fro1:91767a3ecbe590b66fb3f65833e0508f48bd2b6677a57bb59a20405168d49f8b",
                           "location": {
                             "range": {
                               "end": {
@@ -2361,12 +2361,12 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "use"
                         },
                         {
-                          "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                          "id": "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f",
+                          "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                          "id": "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9",
                           "location": {
                             "range": {
                               "end": {
@@ -2384,7 +2384,7 @@
                             }
                           },
                           "path": "subject.py",
-                          "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                          "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                           "role": "sink"
                         }
                       ],
@@ -2393,8 +2393,8 @@
                   },
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                    "id": "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                    "id": "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9",
                     "location": {
                       "range": {
                         "end": {
@@ -2412,7 +2412,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -2424,9 +2424,9 @@
           "rounds": 4,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "c991a41bf86c559e9951f60c99050db95257ed5d1ce722574cea6d33a5be325f",
+        "input_digest": "d689d6d97b73851fbc5b321ce1799f77097c9f1381e627523388f427e7ece5e3",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -2451,8 +2451,8 @@
         },
         "origins": {
           "parameter:count": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:18",
-            "id": "fro1:f88d8bc3befefb8951cb0e0d1507b3b736f20aa61a4974719cf1d767af6a0a1d",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:18",
+            "id": "fro1:21b2592528aa67b9a2cc5fbe92bf28dfcbd10ffa0b087ca94ffede77562642a5",
             "location": {
               "range": {
                 "end": {
@@ -2470,12 +2470,12 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           },
-          "recursive-1:source:fro1:f129d59bea3cfd6378765bf1ff152eb8c1c4f258010157776cda356351edd46b": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:17",
-            "id": "fro1:f129d59bea3cfd6378765bf1ff152eb8c1c4f258010157776cda356351edd46b",
+          "recursive-1:source:fro1:08701f7f7eb171cb4e42e79b0ab6cd8f39ccd728b4c5450df53de5baceb48c9f": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:17",
+            "id": "fro1:08701f7f7eb171cb4e42e79b0ab6cd8f39ccd728b4c5450df53de5baceb48c9f",
             "location": {
               "range": {
                 "end": {
@@ -2493,17 +2493,17 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:17",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:17",
         "witnesses": [
           {
             "claim": "possible-value-propagation; path feasibility unchecked.",
@@ -2511,8 +2511,8 @@
             "rules": "recursive-1",
             "sink": "sink",
             "site": {
-              "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-              "id": "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f",
+              "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+              "id": "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9",
               "location": {
                 "range": {
                   "end": {
@@ -2530,14 +2530,14 @@
                 }
               },
               "path": "subject.py",
-              "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+              "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
               "role": "sink"
             },
             "trace": {
               "occurrences": [
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:17",
-                  "id": "fro1:f129d59bea3cfd6378765bf1ff152eb8c1c4f258010157776cda356351edd46b",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:17",
+                  "id": "fro1:08701f7f7eb171cb4e42e79b0ab6cd8f39ccd728b4c5450df53de5baceb48c9f",
                   "location": {
                     "range": {
                       "end": {
@@ -2555,12 +2555,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "source"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:15",
-                  "id": "fro1:acd27df76af1c77a73e8028788c33c36b3f55c7d2f48f6082de0ceb222f1e9fc",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:15",
+                  "id": "fro1:4eda108fece0f4385834b8fdfcc641ed502444df05b51c427b8be5d0bb92ef54",
                   "location": {
                     "range": {
                       "end": {
@@ -2578,12 +2578,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "summary-parameter"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:15",
-                  "id": "fro1:9770ca865b3ec4d72360913ab6e3279c2fa0a977bc6776eec7e57a56b610755d",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:15",
+                  "id": "fro1:3d44764f76a11ce21b19827d3a617822bc08fafc86772721082d0ce9a514bb86",
                   "location": {
                     "range": {
                       "end": {
@@ -2601,12 +2601,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "parameter"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                  "id": "fro1:7652ed53d4af45cbf15c901ae1db140fd71b5d5656b36b05041ab4f3280ad309",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                  "id": "fro1:91767a3ecbe590b66fb3f65833e0508f48bd2b6677a57bb59a20405168d49f8b",
                   "location": {
                     "range": {
                       "end": {
@@ -2624,12 +2624,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "use"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:14",
-                  "id": "fro1:21de9ddbf6990e078acd726d239f780db4faee7599a9ed36e7c9ab4483b1213f",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:14",
+                  "id": "fro1:ded32fccbe76d3ced6c7017d23de11868dd18ac036881f2caf20fb7d57ecc6f9",
                   "location": {
                     "range": {
                       "end": {
@@ -2647,12 +2647,12 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "sink"
                 },
                 {
-                  "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:17",
-                  "id": "fro1:0a06e37ab0de47efb26fd4024efa0dffddcbdf71febd1e82b974a55d59181fa8",
+                  "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:17",
+                  "id": "fro1:581578b6d120c441f61f579dc36d453b9f4b099992b6c6d8c75c1bf16efb256a",
                   "location": {
                     "range": {
                       "end": {
@@ -2670,18 +2670,18 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                  "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                   "role": "summary-call"
                 }
               ],
-              "origin": "recursive-1:source:fro1:f129d59bea3cfd6378765bf1ff152eb8c1c4f258010157776cda356351edd46b"
+              "origin": "recursive-1:source:fro1:08701f7f7eb171cb4e42e79b0ab6cd8f39ccd728b4c5450df53de5baceb48c9f"
             }
           }
         ]
       },
-      "evidence_digest": "7480de1ddff8946efb1f44d21ce13e04358462d7c4e35bf8658e18e5b7ac734c",
+      "evidence_digest": "ab9aa02feddaa1d2f4d8ab65b695b65c4fa0b969c5a153a0e9a9bf507db3daf2",
       "response_bytes": 39655,
-      "elapsed_seconds": 0.22290241700829938,
+      "elapsed_seconds": 0.2289177499478683,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -2755,9 +2755,9 @@
           "rounds": 2,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "ececa98cf2c234a307a5bc0762b397c3a4061d38551bcee1e51c9b6f36f11eea",
+        "input_digest": "9d0972327e875d37c39f41cb1aa69d22c77d580e5a6a9027b5262fcb97b82f1b",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -2781,9 +2781,9 @@
           "summary_mode": true
         },
         "origins": {
-          "recursive-1:source:fro1:e2039837ae612c9f7246f133376731b02fdd87d9f955532f68e7e5f1569b9458": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1b",
-            "id": "fro1:e2039837ae612c9f7246f133376731b02fdd87d9f955532f68e7e5f1569b9458",
+          "recursive-1:source:fro1:9887ef4aa5e9c088759ff96de5d9d051d6faffc39d44e1ca5c8c0906fb14e55d": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1b",
+            "id": "fro1:9887ef4aa5e9c088759ff96de5d9d051d6faffc39d44e1ca5c8c0906fb14e55d",
             "location": {
               "range": {
                 "end": {
@@ -2801,22 +2801,22 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:1b",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1b",
         "witnesses": []
       },
-      "evidence_digest": "98400cd2f166b6301a5b7cbb8e5ca183fcff3fbd87a4080d197ef2e4eba8db6b",
+      "evidence_digest": "66d710f9abd4b12ecc41818e2788a82063b9415593dc0e4a3a7c3c2e730b2823",
       "response_bytes": 12282,
-      "elapsed_seconds": 0.13865983299911022,
+      "elapsed_seconds": 0.14001787500455976,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -2848,8 +2848,8 @@
           "parameter:error": {
             "occurrences": [
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1f",
-                "id": "fro1:24b7644c021e925599a5dd7e6d6a0324a0e5f8dce25a964788b982872847671b",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1f",
+                "id": "fro1:5fb123529422fad03ad74943140f4bb10feb1cd29246c1e3b1766f0239e4a467",
                 "location": {
                   "range": {
                     "end": {
@@ -2867,12 +2867,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "entry-parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1f",
-                "id": "fro1:eea767007f70ad24a9f2bd35d181447a32152ba276f58e87186115d5844e2f22",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1f",
+                "id": "fro1:c622a8ef129a47548024b587fb628dd8c0c5108bb0b7a3171b7254815f60cebd",
                 "location": {
                   "range": {
                     "end": {
@@ -2890,12 +2890,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "summary-parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1f",
-                "id": "fro1:87a2664f6da7908b62b5f2ce15f357700aabe81f653eae6f358fcc7174a1833c",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1f",
+                "id": "fro1:0d4b72f1663a158edc4798b1ac9a18277b856c6a39b6b8a9ad889d25866a1cbc",
                 "location": {
                   "range": {
                     "end": {
@@ -2913,12 +2913,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1e",
-                "id": "fro1:4dd9d9c3d3a145dd62df926d216c67baf8c66c3ee75dc60bfb8fa94e03101079",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1e",
+                "id": "fro1:aa94e57145fd78cb25f1b7559c5f9fc6086a1226c7f6a2cd4d72e04698b1e4d4",
                 "location": {
                   "range": {
                     "end": {
@@ -2936,12 +2936,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "use"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1d",
-                "id": "fro1:2ea544f96346a53d83c7843c079257a7d005ec7e260bc510f074763bd67dc848",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1d",
+                "id": "fro1:8c47a3add281f1cc946569960c0843fb6453a80542cf7fc4601e3fd74c991000",
                 "location": {
                   "range": {
                     "end": {
@@ -2959,12 +2959,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "summary-parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1d",
-                "id": "fro1:2842b4c5b1fadfbd24a6b145b7b06fe89f6e1b41707db45132977545a414b5dc",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1d",
+                "id": "fro1:d143a44310fa14e9fedb0a3985b62a78432b0d95ce3deb597888275a9477b8bc",
                 "location": {
                   "range": {
                     "end": {
@@ -2982,12 +2982,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1c",
-                "id": "fro1:7bca555cf658e262f71f19acdbd17f5cd8a26b981cfb5a8a5815abd1ae2790f9",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1c",
+                "id": "fro1:7f671dc1383b721f4cb437c5fd9e2fa771e968da28d3afdd9383a745633f928b",
                 "location": {
                   "range": {
                     "end": {
@@ -3005,12 +3005,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "use"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1c",
-                "id": "fro1:0ce042dc46a6776fda802ab4954da5c731649a0bc2321506445b2307a65e0b4e",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1c",
+                "id": "fro1:9201d6990aeddcbc1eb13d91a869f571b91472fc7c9535fb1d4d067260820c98",
                 "location": {
                   "range": {
                     "end": {
@@ -3028,12 +3028,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "raise"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1e",
-                "id": "fro1:765670a62c4e02a13317ac19d1e4cb4f54a40afecd288537f96e17851e6481cd",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1e",
+                "id": "fro1:61e1739c8fff13073c3c207292e16f5f4d3adeadf50c40b261ef580533db7caf",
                 "location": {
                   "range": {
                     "end": {
@@ -3051,7 +3051,7 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "summary-raise"
               }
             ],
@@ -3080,8 +3080,8 @@
                 "argument:exceptional:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1f",
-                      "id": "fro1:eea767007f70ad24a9f2bd35d181447a32152ba276f58e87186115d5844e2f22",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1f",
+                      "id": "fro1:c622a8ef129a47548024b587fb628dd8c0c5108bb0b7a3171b7254815f60cebd",
                       "location": {
                         "range": {
                           "end": {
@@ -3099,12 +3099,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1f",
-                      "id": "fro1:87a2664f6da7908b62b5f2ce15f357700aabe81f653eae6f358fcc7174a1833c",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1f",
+                      "id": "fro1:0d4b72f1663a158edc4798b1ac9a18277b856c6a39b6b8a9ad889d25866a1cbc",
                       "location": {
                         "range": {
                           "end": {
@@ -3122,12 +3122,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1e",
-                      "id": "fro1:4dd9d9c3d3a145dd62df926d216c67baf8c66c3ee75dc60bfb8fa94e03101079",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1e",
+                      "id": "fro1:aa94e57145fd78cb25f1b7559c5f9fc6086a1226c7f6a2cd4d72e04698b1e4d4",
                       "location": {
                         "range": {
                           "end": {
@@ -3145,12 +3145,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1d",
-                      "id": "fro1:2ea544f96346a53d83c7843c079257a7d005ec7e260bc510f074763bd67dc848",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1d",
+                      "id": "fro1:8c47a3add281f1cc946569960c0843fb6453a80542cf7fc4601e3fd74c991000",
                       "location": {
                         "range": {
                           "end": {
@@ -3168,12 +3168,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1d",
-                      "id": "fro1:2842b4c5b1fadfbd24a6b145b7b06fe89f6e1b41707db45132977545a414b5dc",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1d",
+                      "id": "fro1:d143a44310fa14e9fedb0a3985b62a78432b0d95ce3deb597888275a9477b8bc",
                       "location": {
                         "range": {
                           "end": {
@@ -3191,12 +3191,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1c",
-                      "id": "fro1:7bca555cf658e262f71f19acdbd17f5cd8a26b981cfb5a8a5815abd1ae2790f9",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1c",
+                      "id": "fro1:7f671dc1383b721f4cb437c5fd9e2fa771e968da28d3afdd9383a745633f928b",
                       "location": {
                         "range": {
                           "end": {
@@ -3214,12 +3214,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1c",
-                      "id": "fro1:0ce042dc46a6776fda802ab4954da5c731649a0bc2321506445b2307a65e0b4e",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1c",
+                      "id": "fro1:9201d6990aeddcbc1eb13d91a869f571b91472fc7c9535fb1d4d067260820c98",
                       "location": {
                         "range": {
                           "end": {
@@ -3237,12 +3237,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "raise"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1e",
-                      "id": "fro1:765670a62c4e02a13317ac19d1e4cb4f54a40afecd288537f96e17851e6481cd",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1e",
+                      "id": "fro1:61e1739c8fff13073c3c207292e16f5f4d3adeadf50c40b261ef580533db7caf",
                       "location": {
                         "range": {
                           "end": {
@@ -3260,7 +3260,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-raise"
                     }
                   ],
@@ -3282,8 +3282,8 @@
                 "argument:throw:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1d",
-                      "id": "fro1:2ea544f96346a53d83c7843c079257a7d005ec7e260bc510f074763bd67dc848",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1d",
+                      "id": "fro1:8c47a3add281f1cc946569960c0843fb6453a80542cf7fc4601e3fd74c991000",
                       "location": {
                         "range": {
                           "end": {
@@ -3301,12 +3301,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1d",
-                      "id": "fro1:2842b4c5b1fadfbd24a6b145b7b06fe89f6e1b41707db45132977545a414b5dc",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1d",
+                      "id": "fro1:d143a44310fa14e9fedb0a3985b62a78432b0d95ce3deb597888275a9477b8bc",
                       "location": {
                         "range": {
                           "end": {
@@ -3324,12 +3324,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1c",
-                      "id": "fro1:7bca555cf658e262f71f19acdbd17f5cd8a26b981cfb5a8a5815abd1ae2790f9",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1c",
+                      "id": "fro1:7f671dc1383b721f4cb437c5fd9e2fa771e968da28d3afdd9383a745633f928b",
                       "location": {
                         "range": {
                           "end": {
@@ -3347,12 +3347,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1c",
-                      "id": "fro1:0ce042dc46a6776fda802ab4954da5c731649a0bc2321506445b2307a65e0b4e",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1c",
+                      "id": "fro1:9201d6990aeddcbc1eb13d91a869f571b91472fc7c9535fb1d4d067260820c98",
                       "location": {
                         "range": {
                           "end": {
@@ -3370,7 +3370,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "raise"
                     }
                   ],
@@ -3391,9 +3391,9 @@
           "rounds": 4,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "2fb97202e7a715986c321cc5ad9343ec723c1a57449536c0cdf70d5fa9b01027",
+        "input_digest": "a1a042a61a7a5e281f0546d03b2a16abf47b732649aef5afc9962446a35b732a",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -3418,8 +3418,8 @@
         },
         "origins": {
           "parameter:error": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:1f",
-            "id": "fro1:24b7644c021e925599a5dd7e6d6a0324a0e5f8dce25a964788b982872847671b",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1f",
+            "id": "fro1:5fb123529422fad03ad74943140f4bb10feb1cd29246c1e3b1766f0239e4a467",
             "location": {
               "range": {
                 "end": {
@@ -3437,22 +3437,22 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:1e",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:1e",
         "witnesses": []
       },
-      "evidence_digest": "958fbb207d48b4b9b59cdf3e88b2e3c6a09bf134f9e77df6d7334ef8800c9da4",
+      "evidence_digest": "1d8e20031f9fe17ce5b96d5356f2790ee937f4bd4cb02eb90563e046cec16f75",
       "response_bytes": 26260,
-      "elapsed_seconds": 0.16977037501055747,
+      "elapsed_seconds": 0.17589375004172325,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -3510,8 +3510,8 @@
                 "argument:relay:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                      "id": "fro1:bf2e27518806a80fe2e7afa8f0ef7e5837263d0266046703edb717c1a4a49cbe",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                      "id": "fro1:053adcceb01f3e180343416c3fe8b9ddfabc3f330501f6db8805cdea15ce6795",
                       "location": {
                         "range": {
                           "end": {
@@ -3529,12 +3529,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                      "id": "fro1:3a78eb1ac345bf834674127a7f9ad5295eedcda2713a38dfc13d1f7ef0ef2f7a",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                      "id": "fro1:155d56e0a1808546674e867f19ed93844a8b65c9f0328fa0900f91fe9eb7e54c",
                       "location": {
                         "range": {
                           "end": {
@@ -3552,12 +3552,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                      "id": "fro1:9d82f41fdfb26fe06cb82c2854158075568aa3ddb675bd2c4641aba3243d7823",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                      "id": "fro1:cf5d0d3d645c06b9610be3e8a88dd0f5896e398309234821300b6131a39d073b",
                       "location": {
                         "range": {
                           "end": {
@@ -3575,12 +3575,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                      "id": "fro1:2264abdafbbcb9825ed960399756a5d5fd8b8246f8a361b95a4c7150815876cb",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                      "id": "fro1:be5b1123d86d0755c55fd562cec212e7cd9f66b04d05e09882a511cc124285de",
                       "location": {
                         "range": {
                           "end": {
@@ -3598,7 +3598,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "return"
                     }
                   ],
@@ -3620,12 +3620,12 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:85369008e1f882ce26170ecd7140a66bc19e742717d4df960c0d2a62fb59f313": {
+                "fro1:f625a915886fe404501cb9466d8a9ceb499c84b4e92eecc8ce71183419f1fa7b": {
                   "flow": {},
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:20",
-                    "id": "fro1:85369008e1f882ce26170ecd7140a66bc19e742717d4df960c0d2a62fb59f313",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:20",
+                    "id": "fro1:f625a915886fe404501cb9466d8a9ceb499c84b4e92eecc8ce71183419f1fa7b",
                     "location": {
                       "range": {
                         "end": {
@@ -3643,7 +3643,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -3655,9 +3655,9 @@
           "rounds": 3,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "2934db8d7ac3dd667fbbe519a65e1c66fec951ee05e75dbd1251ca37f019ffec",
+        "input_digest": "08460cc0fbce36797191e9adf348b4268aa7ab4095d229960d85c8efdb54c408",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -3682,8 +3682,8 @@
         },
         "origins": {
           "parameter:count": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:21",
-            "id": "fro1:5e94c89437d76e04ca0c4df3c930b05874d0465b66c8041b9519c22763df5783",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:21",
+            "id": "fro1:8113a0b7c2a0c40a47e13d9007d91407fc6914496af867683a04fbe0a157aab7",
             "location": {
               "range": {
                 "end": {
@@ -3701,12 +3701,12 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           },
-          "recursive-1:source:fro1:ee5cf6b35666652762f76701281f31be90e312920e26758ec06d118d0c418f22": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:20",
-            "id": "fro1:ee5cf6b35666652762f76701281f31be90e312920e26758ec06d118d0c418f22",
+          "recursive-1:source:fro1:767d443bac5b353ee40615cfa041087bb5e289d4cabd6c7683fe6ec7f53584be": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:20",
+            "id": "fro1:767d443bac5b353ee40615cfa041087bb5e289d4cabd6c7683fe6ec7f53584be",
             "location": {
               "range": {
                 "end": {
@@ -3724,22 +3724,22 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:20",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:20",
         "witnesses": []
       },
-      "evidence_digest": "5a32ad0eee564a453cdfb0360384ff424407ab485d87fb22ed444a8dc1dac36b",
+      "evidence_digest": "fbc2160653f82146ebb56757bffb9f592e0b2580267889473b3daa60971fe200",
       "response_bytes": 28294,
-      "elapsed_seconds": 0.16457462502876297,
+      "elapsed_seconds": 0.1733138330746442,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -3797,8 +3797,8 @@
                 "argument:relay:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                      "id": "fro1:bf2e27518806a80fe2e7afa8f0ef7e5837263d0266046703edb717c1a4a49cbe",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                      "id": "fro1:053adcceb01f3e180343416c3fe8b9ddfabc3f330501f6db8805cdea15ce6795",
                       "location": {
                         "range": {
                           "end": {
@@ -3816,12 +3816,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:3",
-                      "id": "fro1:3a78eb1ac345bf834674127a7f9ad5295eedcda2713a38dfc13d1f7ef0ef2f7a",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:3",
+                      "id": "fro1:155d56e0a1808546674e867f19ed93844a8b65c9f0328fa0900f91fe9eb7e54c",
                       "location": {
                         "range": {
                           "end": {
@@ -3839,12 +3839,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                      "id": "fro1:9d82f41fdfb26fe06cb82c2854158075568aa3ddb675bd2c4641aba3243d7823",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                      "id": "fro1:cf5d0d3d645c06b9610be3e8a88dd0f5896e398309234821300b6131a39d073b",
                       "location": {
                         "range": {
                           "end": {
@@ -3862,12 +3862,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:2",
-                      "id": "fro1:2264abdafbbcb9825ed960399756a5d5fd8b8246f8a361b95a4c7150815876cb",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:2",
+                      "id": "fro1:be5b1123d86d0755c55fd562cec212e7cd9f66b04d05e09882a511cc124285de",
                       "location": {
                         "range": {
                           "end": {
@@ -3885,7 +3885,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "return"
                     }
                   ],
@@ -3907,12 +3907,12 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:39ac337a7c1c8397276186f75cd4e5a5d27cf971a8d79327e12812e650dee882": {
+                "fro1:e3823cf86936fc4d85678e490cb9a4c74bbdac6e01af07def072317c5223f23f": {
                   "flow": {},
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:22",
-                    "id": "fro1:39ac337a7c1c8397276186f75cd4e5a5d27cf971a8d79327e12812e650dee882",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:22",
+                    "id": "fro1:e3823cf86936fc4d85678e490cb9a4c74bbdac6e01af07def072317c5223f23f",
                     "location": {
                       "range": {
                         "end": {
@@ -3930,7 +3930,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -3942,9 +3942,9 @@
           "rounds": 3,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "e0edcaafd7b90b6d129abe5afc72a4dacbfe1f95fabcd2732dc9026508aad33a",
+        "input_digest": "d806cf7cd880a1109886a712c13778821620e5f8bc8a084fd79fb3ded60b4cff",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -3969,8 +3969,8 @@
         },
         "origins": {
           "parameter:count": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:23",
-            "id": "fro1:b9e1b7754f08a89c20c3006d7d13181921454f6fdd543f7bbdc8a3caa3674a87",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:23",
+            "id": "fro1:7d00ac56b88311c2882ddf1768334acff1f84e5331951c5562b066dd9c734382",
             "location": {
               "range": {
                 "end": {
@@ -3988,12 +3988,12 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           },
-          "recursive-1:source:fro1:5f334a79a4edf6fab8c862fc0f65a342b36ab4aab31854528da99aca41f18f7f": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:22",
-            "id": "fro1:5f334a79a4edf6fab8c862fc0f65a342b36ab4aab31854528da99aca41f18f7f",
+          "recursive-1:source:fro1:76c11210dcae12fe448e9ba07904739041656ccd6e48f4b499203a5749a815fe": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:22",
+            "id": "fro1:76c11210dcae12fe448e9ba07904739041656ccd6e48f4b499203a5749a815fe",
             "location": {
               "range": {
                 "end": {
@@ -4011,22 +4011,22 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:22",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:22",
         "witnesses": []
       },
-      "evidence_digest": "8f295fe4f85a751135890137c7f55cbc1f2ed7160f4e9d9a90f9f37afb986c26",
+      "evidence_digest": "a642ce2686249cab2dd9b3bda56dc3507b3e3fd474733002c2d406806d7cfdb8",
       "response_bytes": 30419,
-      "elapsed_seconds": 0.19038445799378678,
+      "elapsed_seconds": 0.18538358295336366,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -4083,8 +4083,8 @@
                 "argument:unknown:0": {
                   "occurrences": [
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:25",
-                      "id": "fro1:601c7b49bf05b7275c8fd7aace347bd73e27d9cd5e9975667d7e055d3f0381ca",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:25",
+                      "id": "fro1:556cf004ff4f79c17bb0dcf98291ff582a7f4dfefce9f02991da08481876f966",
                       "location": {
                         "range": {
                           "end": {
@@ -4102,12 +4102,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "summary-parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:25",
-                      "id": "fro1:7adde3a7b60bd9a372f93d898148ca55bc2e003342be641232e4e6506ce1bcd9",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:25",
+                      "id": "fro1:7fb049b15b33607dea25553cfac3a346d8000c97ee54fa15f9686df8309bb550",
                       "location": {
                         "range": {
                           "end": {
@@ -4125,12 +4125,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "parameter"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:24",
-                      "id": "fro1:f8040dae5e42f0ce2a50a385472ef718d6aa611473b30467d4f36c7e7bb51cb8",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:24",
+                      "id": "fro1:5105e6a880a70a04117251ab69270f329c55bcdb226c463681f6346c29f5ab70",
                       "location": {
                         "range": {
                           "end": {
@@ -4148,12 +4148,12 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "use"
                     },
                     {
-                      "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:24",
-                      "id": "fro1:1cc3e3aa7ebe78c29f1f25f614ff275ff51be5bd063f4d28e66cfee9ebcf654a",
+                      "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:24",
+                      "id": "fro1:3081b6a8a81606f489f18cda9d798978e5f5a609544764bb45016a33d8c51c6c",
                       "location": {
                         "range": {
                           "end": {
@@ -4171,7 +4171,7 @@
                         }
                       },
                       "path": "subject.py",
-                      "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                      "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                       "role": "return"
                     }
                   ],
@@ -4186,9 +4186,9 @@
           "rounds": 2,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "f03fe32bf72e8cef625ae0835bc1d4e23826f55142216ab2be55dab6dff16f3f",
+        "input_digest": "9eb9761fc1c5792ea852aef7a1b06c094f641208f52a2197bc0d824992c23c2d",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -4213,8 +4213,8 @@
         },
         "origins": {
           "parameter:value": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:25",
-            "id": "fro1:af07cc10e3c6b0d531b2dd1c991ed56fb706882a136d43ff858f3cafc22fe8da",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:25",
+            "id": "fro1:5b3c2e1b3812b8abfd59791741cde999b3058a930a726b2539f11e6cc041ffce",
             "location": {
               "range": {
                 "end": {
@@ -4232,7 +4232,7 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           }
         },
@@ -4240,8 +4240,8 @@
           "parameter:value": {
             "occurrences": [
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:25",
-                "id": "fro1:af07cc10e3c6b0d531b2dd1c991ed56fb706882a136d43ff858f3cafc22fe8da",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:25",
+                "id": "fro1:5b3c2e1b3812b8abfd59791741cde999b3058a930a726b2539f11e6cc041ffce",
                 "location": {
                   "range": {
                     "end": {
@@ -4259,12 +4259,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "entry-parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:25",
-                "id": "fro1:601c7b49bf05b7275c8fd7aace347bd73e27d9cd5e9975667d7e055d3f0381ca",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:25",
+                "id": "fro1:556cf004ff4f79c17bb0dcf98291ff582a7f4dfefce9f02991da08481876f966",
                 "location": {
                   "range": {
                     "end": {
@@ -4282,12 +4282,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "summary-parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:25",
-                "id": "fro1:7adde3a7b60bd9a372f93d898148ca55bc2e003342be641232e4e6506ce1bcd9",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:25",
+                "id": "fro1:7fb049b15b33607dea25553cfac3a346d8000c97ee54fa15f9686df8309bb550",
                 "location": {
                   "range": {
                     "end": {
@@ -4305,12 +4305,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "parameter"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:24",
-                "id": "fro1:f8040dae5e42f0ce2a50a385472ef718d6aa611473b30467d4f36c7e7bb51cb8",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:24",
+                "id": "fro1:5105e6a880a70a04117251ab69270f329c55bcdb226c463681f6346c29f5ab70",
                 "location": {
                   "range": {
                     "end": {
@@ -4328,12 +4328,12 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "use"
               },
               {
-                "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:24",
-                "id": "fro1:1cc3e3aa7ebe78c29f1f25f614ff275ff51be5bd063f4d28e66cfee9ebcf654a",
+                "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:24",
+                "id": "fro1:3081b6a8a81606f489f18cda9d798978e5f5a609544764bb45016a33d8c51c6c",
                 "location": {
                   "range": {
                     "end": {
@@ -4351,24 +4351,24 @@
                   }
                 },
                 "path": "subject.py",
-                "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                 "role": "return"
               }
             ],
             "origin": "parameter:value"
           }
         },
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:24",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:24",
         "witnesses": []
       },
-      "evidence_digest": "a249683e13d01006f446ec69f277c2877bf603f2f38c9bfaa8d891feed2626be",
+      "evidence_digest": "86af7785ba023518c34b1f43002b716475ab869cd9cea70ac1bf08b5656fc245",
       "response_bytes": 11913,
-      "elapsed_seconds": 0.04916204197797924,
+      "elapsed_seconds": 0.050188499968498945,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -4425,12 +4425,12 @@
               ],
               "returns": {},
               "sinks": {
-                "fro1:64477e558e5f425d0036fd4841d2ef4e00420523390a28edfd23367ad326e8c8": {
+                "fro1:950cf2bddc117409e26f3ef0698fda4f4b5e79e2e75ad1348af0246d99abd0a1": {
                   "flow": {},
                   "sink": "sink",
                   "site": {
-                    "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:26",
-                    "id": "fro1:64477e558e5f425d0036fd4841d2ef4e00420523390a28edfd23367ad326e8c8",
+                    "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:26",
+                    "id": "fro1:950cf2bddc117409e26f3ef0698fda4f4b5e79e2e75ad1348af0246d99abd0a1",
                     "location": {
                       "range": {
                         "end": {
@@ -4448,7 +4448,7 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+                    "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
                     "role": "sink"
                   }
                 }
@@ -4460,9 +4460,9 @@
           "rounds": 2,
           "schema": "fr-function-summaries-1"
         },
-        "input_digest": "d5a6a64a3de3dda883b3fa56b0b22a8bf2449be0a0f0b4815f2830d52428f076",
+        "input_digest": "a7afdac2620a94a4efeb7ead0e49ef99d262df96c5f612f15d1f948f90374a11",
         "inputs": {
-          "analyzer": "e510f49e75154f192047cd2ecfaeef73d71752a7913919d1214d35936adbb8ed",
+          "analyzer": "137c6c6261981001d0f56face0db3a5f1fd244220bf1216f82f2e9c230763dd1",
           "budget": {
             "bytes": 1048576,
             "depth": 8,
@@ -4487,8 +4487,8 @@
         },
         "origins": {
           "parameter:value": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:27",
-            "id": "fro1:fc834014fc888f3c35cf3e419944c540eb6dc89cd4c5a15304397a9a6918ccb3",
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:27",
+            "id": "fro1:cf8f9e7268bd7195590fc55449c1c7863c50a4867c66146ef2d7c785a4a98eb3",
             "location": {
               "range": {
                 "end": {
@@ -4506,12 +4506,12 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "entry-parameter"
           },
-          "recursive-1:source:fro1:b624561ab45136d9426d267b44ae0c00c4c1373c72afd34099eb5de9d447aef7": {
-            "enclosing": "frp1:a1933c867e919291ca38c06fd23acf45:26",
-            "id": "fro1:b624561ab45136d9426d267b44ae0c00c4c1373c72afd34099eb5de9d447aef7",
+          "recursive-1:source:fro1:0e7a660ee856fefbeb2ec666ab656d1eaa473b57d6da39aa38a99dd2d6ee63bb": {
+            "enclosing": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:26",
+            "id": "fro1:0e7a660ee856fefbeb2ec666ab656d1eaa473b57d6da39aa38a99dd2d6ee63bb",
             "location": {
               "range": {
                 "end": {
@@ -4529,22 +4529,22 @@
               }
             },
             "path": "subject.py",
-            "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+            "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
             "role": "source"
           }
         },
         "returns": {},
-        "revision": "a1933c867e919291ca38c06fd23acf45594d340b146ea4564a774723cbd8ced3",
+        "revision": "2b7062c2873c0ce7d8dca79dd9d5937a0af73bc62d4730bf35b602c92d5bad23",
         "rules_digest": "5eb8f6434d2801c56cce8be83bf2d52a70f0d4dce2e55ca0152f88b7b185e4ac",
         "schema": "fr-dataflow-1",
         "scope": "selected function and direct helpers in the same file.",
         "semantics": "python-scalar-summaries-1",
-        "target": "frp1:a1933c867e919291ca38c06fd23acf45:26",
+        "target": "frp1:2b7062c2873c0ce7d8dca79dd9d5937a:26",
         "witnesses": []
       },
-      "evidence_digest": "ff48e7dcd86b86a63b6fabd5ebb1e0346a51a88593220bee55592d873e049a93",
+      "evidence_digest": "1caab9ff04adc264624c138a1b7399b6d8d2f1f94d855446a966a270e0b69674",
       "response_bytes": 11595,
-      "elapsed_seconds": 0.0513083339901641,
+      "elapsed_seconds": 0.05036504194140434,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
@@ -4552,85 +4552,85 @@
   },
   "arms": {
     "cold": {
-      "evidence_digest": "392b5a014c709a43eba7e6ee9971030a2ab21c5c7d0c2a01ad89d2713a9c5cfe",
+      "evidence_digest": "f61347e44b61674ed75a27aa384b3548b08816d2ee374923d9d85919b0860bc2",
       "complete": true,
       "reused": false,
       "analysis_steps": 57,
-      "elapsed_seconds": 0.2757172920391895,
+      "elapsed_seconds": 0.27380604203790426,
       "evidence_bytes": 39944,
       "witnesses": 1,
-      "peak_native_child_rss_bytes": 24723456,
-      "peak_worker_rss_bytes": 27033600,
+      "peak_native_child_rss_bytes": 24788992,
+      "peak_worker_rss_bytes": 27230208,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
     },
     "warm": {
-      "evidence_digest": "392b5a014c709a43eba7e6ee9971030a2ab21c5c7d0c2a01ad89d2713a9c5cfe",
+      "evidence_digest": "f61347e44b61674ed75a27aa384b3548b08816d2ee374923d9d85919b0860bc2",
       "complete": true,
       "reused": true,
       "analysis_steps": 0,
-      "elapsed_seconds": 0.2223120839917101,
+      "elapsed_seconds": 0.228356207953766,
       "evidence_bytes": 39944,
       "witnesses": 1,
-      "peak_native_child_rss_bytes": 23642112,
-      "peak_worker_rss_bytes": 26869760,
+      "peak_native_child_rss_bytes": 24215552,
+      "peak_worker_rss_bytes": 28983296,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
     },
     "unrelated_edit": {
-      "evidence_digest": "1dc81971fec22ba03fa3dfa6536227daa2c63b9666426bc51342e06e881a0a7c",
+      "evidence_digest": "e7121acc0ae490db0a2157de25f45b661fc8c9769fcda60a8e5ac5d4d8c3b530",
       "complete": true,
       "reused": true,
       "analysis_steps": 0,
-      "elapsed_seconds": 0.4111342499963939,
+      "elapsed_seconds": 0.2880437079584226,
       "evidence_bytes": 39944,
       "witnesses": 1,
-      "peak_native_child_rss_bytes": 24887296,
-      "peak_worker_rss_bytes": 27164672,
+      "peak_native_child_rss_bytes": 24248320,
+      "peak_worker_rss_bytes": 28016640,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
     },
     "unrelated_clean": {
-      "evidence_digest": "1dc81971fec22ba03fa3dfa6536227daa2c63b9666426bc51342e06e881a0a7c",
+      "evidence_digest": "e7121acc0ae490db0a2157de25f45b661fc8c9769fcda60a8e5ac5d4d8c3b530",
       "complete": true,
       "reused": false,
       "analysis_steps": 57,
-      "elapsed_seconds": 0.1378817920340225,
+      "elapsed_seconds": 0.1412924590986222,
       "evidence_bytes": 39944,
       "witnesses": 1,
-      "peak_native_child_rss_bytes": 25231360,
-      "peak_worker_rss_bytes": 26345472,
+      "peak_native_child_rss_bytes": 25575424,
+      "peak_worker_rss_bytes": 27410432,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
     },
     "helper_edit": {
-      "evidence_digest": "1570d5cf0bcfb8937574ba8b62bf84f52e27c5aa41f119f3f59d686e2c57432b",
+      "evidence_digest": "a0c0a2fd47e88410b7654aee239b91aba9c72b7c87725b686d066821b4022156",
       "complete": true,
       "reused": false,
       "analysis_steps": 57,
-      "elapsed_seconds": 0.30110970803070813,
+      "elapsed_seconds": 0.19384650001302361,
       "evidence_bytes": 32613,
       "witnesses": 0,
-      "peak_native_child_rss_bytes": 25280512,
-      "peak_worker_rss_bytes": 27672576,
+      "peak_native_child_rss_bytes": 25165824,
+      "peak_worker_rss_bytes": 28049408,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null
     },
     "helper_clean": {
-      "evidence_digest": "1570d5cf0bcfb8937574ba8b62bf84f52e27c5aa41f119f3f59d686e2c57432b",
+      "evidence_digest": "a0c0a2fd47e88410b7654aee239b91aba9c72b7c87725b686d066821b4022156",
       "complete": true,
       "reused": false,
       "analysis_steps": 57,
-      "elapsed_seconds": 0.12137437501223758,
+      "elapsed_seconds": 0.122172583010979,
       "evidence_bytes": 32613,
       "witnesses": 0,
-      "peak_native_child_rss_bytes": 24952832,
-      "peak_worker_rss_bytes": 26247168,
+      "peak_native_child_rss_bytes": 24854528,
+      "peak_worker_rss_bytes": 26181632,
       "process_calls": 3,
       "source_reveals": 0,
       "tokens": null

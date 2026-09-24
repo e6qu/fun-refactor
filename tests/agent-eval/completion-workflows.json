@@ -11,18 +11,18 @@
     "src/project/migration.rs": "d4e408c0eb95b7f4bd6d8d4939bcbe2a4e225222eb67b6a117a501d39128c6b4",
     "src/spec.rs": "0b1b016a5a445923e6ea6bde404e8a289d7563806a174d71be7d05a4f960854b"
   },
-  "binary_sha256": "aded0ccc9f91d44a112196d865bd7d9ba1e09de1a16a7207302175389630afa8",
+  "binary_sha256": "4f386f65afbf8b770274d6c946f469871d9df65158a9cf5f5d445773ab04dd9d",
   "workflows": [
     {
       "id": "understanding",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:c80ce9312bde676b38b51256e664920c82a3cefbe7d8337f86088b378b6f33e0",
-      "guide_object_root": "345b699559ae7aa1f0a54d64ffaa76261b71758f4fbc8ac4050fee01b1cea2ea",
+      "guide_basis": "frag1:bbc9547e06aa8c3ad0048b6bed64a8420c951b1b654e27c8a134f06fca5dd2af",
+      "guide_object_root": "9df73a2699037d9cf4493365c0bf70fe01e3ee841975cef57fe2a65a4afff418",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
-        "response_bytes": 4939,
+        "response_bytes": 4988,
         "events": [
           {
             "arguments": [
@@ -30,8 +30,8 @@
               "--help"
             ],
             "request_bytes": 34,
-            "response_bytes": 3736,
-            "response_sha256": "f3860424a7f2eb27b13c97388137ace86551aface4a5bd5032fbc6218ec3e47b"
+            "response_bytes": 3806,
+            "response_sha256": "87b005cac08428f410960d982e88bd2988ca8e244deeb60350831e9011d806c0"
           },
           {
             "arguments": [
@@ -39,8 +39,8 @@
               "--help"
             ],
             "request_bytes": 33,
-            "response_bytes": 1203,
-            "response_sha256": "b23fec3154497204c42ac3a98e4b12e51e7f80dff72399effd75a060d9f36182"
+            "response_bytes": 1182,
+            "response_sha256": "172de3ed1f1d3fa1d6156a22aa6b7993b072a75f4ede87b586a85527c5a13ed2"
           }
         ]
       },
@@ -57,7 +57,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "55e8725cdb7fe393178881eeb55e8a4bd14b2452f73dc522649cbeb53e1fef29"
+            "response_sha256": "7fb959fbc8dafb434bdee5e5aa651a895b5571be2b198de13e5dd1fc0585df90"
           }
         ]
       },
@@ -76,12 +76,12 @@
       "id": "tracing",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:045f62096ee57af2b430f766127d7687803607c7d9607ec0cc97f84f4c81af47",
-      "guide_object_root": "ea2b6ff322b565acd49a8ab6dc0874546ae0b950a79797e01ddfe0901bd3a62b",
+      "guide_basis": "frag1:1f2fefba288821e1879272baa559c7225ac0dd094a529064af0897462f1e9cde",
+      "guide_object_root": "adb572b8f431b311f46bf2412f85822a8d76fc3c6258ce1c582884d0dc005d0a",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
-        "response_bytes": 4939,
+        "response_bytes": 4988,
         "events": [
           {
             "arguments": [
@@ -89,8 +89,8 @@
               "--help"
             ],
             "request_bytes": 34,
-            "response_bytes": 3736,
-            "response_sha256": "f3860424a7f2eb27b13c97388137ace86551aface4a5bd5032fbc6218ec3e47b"
+            "response_bytes": 3806,
+            "response_sha256": "87b005cac08428f410960d982e88bd2988ca8e244deeb60350831e9011d806c0"
           },
           {
             "arguments": [
@@ -98,8 +98,8 @@
               "--help"
             ],
             "request_bytes": 33,
-            "response_bytes": 1203,
-            "response_sha256": "b23fec3154497204c42ac3a98e4b12e51e7f80dff72399effd75a060d9f36182"
+            "response_bytes": 1182,
+            "response_sha256": "172de3ed1f1d3fa1d6156a22aa6b7993b072a75f4ede87b586a85527c5a13ed2"
           }
         ]
       },
@@ -116,7 +116,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "e43c7ccde0f0d9884b753570e21e0613477e9808ecf6b7c26b0433c96bd60178"
+            "response_sha256": "004d24f7b955b2616847d7809ad26eaa7e9659b229b97efc84fdcc79464a59a3"
           }
         ]
       },
@@ -135,20 +135,20 @@
       "id": "direct-change",
       "route": "direct-capability",
       "state": "ready",
-      "guide_basis": "frag1:3a07af55261aab37ba9dcaaa03f550b4f770e8ac8e49a11d7967d9526ee3db9a",
-      "guide_object_root": "c96ac8c3ba3e322696608b52ce615d621c0bd1fce4117e99bdfe82813c0ec02f",
+      "guide_basis": "frag1:98f75f01ea6ef74298e287f5634e377695576f21e38654708488a59c3b5b991f",
+      "guide_object_root": "73ee4f2e897c2504b79de7ea8d1f28cba08a4c7f3ab323dd2a7a212df5bbcf50",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 57,
-        "response_bytes": 5681,
+        "response_bytes": 5639,
         "events": [
           {
             "arguments": [
               "--help"
             ],
             "request_bytes": 24,
-            "response_bytes": 4563,
-            "response_sha256": "12a9c35a45098c4b4344c82c7fdd0d22160b216022b50d4d373f722e63f4dade"
+            "response_bytes": 4542,
+            "response_sha256": "dc267ea3d27bf44e2ef18e3d8692f214d3fdb44bd7ce76941631aa9c5bc0421f"
           },
           {
             "arguments": [
@@ -156,8 +156,8 @@
               "--help"
             ],
             "request_bytes": 33,
-            "response_bytes": 1118,
-            "response_sha256": "2ba58b66c1136d4cd7b903234b51fbc9bf816ba93fcf8e7022a7e91890ba2ab2"
+            "response_bytes": 1097,
+            "response_sha256": "cae762b2b2c4a0aa6e0e332dff3199acaab061640dd86f617b09ab76821c7e44"
           }
         ]
       },
@@ -174,7 +174,7 @@
               "src/lib.rs:1:8",
               "compute"
             ],
-            "response_sha256": "222f14ed9876d5c612377aeb0709ad3be0e9ccc2b91c1f6487462f3f2b03c096"
+            "response_sha256": "97f39c8e44501e66bb9d52a1089abf81652621a03094b28485ae658b4195f3ae"
           }
         ]
       },
@@ -193,12 +193,12 @@
       "id": "recipe",
       "route": "recipe",
       "state": "needs-authoring",
-      "guide_basis": "frag1:22af851bb567375a6da0ee10cd496802120ceeaa3e73edadecc06c7a10226a88",
-      "guide_object_root": "1d7c014edbad006124ae67a228bff1c890c18a5e64c578f6ec29137cef34d6fe",
+      "guide_basis": "frag1:4f06a17681eb4a81f31cd22fa71e3d17436717cbfeed51c40853911bcb67062e",
+      "guide_object_root": "ba4a01950af67a7450c1e3ccb6d73066c390485cd3395e27e59171780ffdb33b",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 72,
-        "response_bytes": 4952,
+        "response_bytes": 4931,
         "events": [
           {
             "arguments": [
@@ -206,8 +206,8 @@
               "--help"
             ],
             "request_bytes": 33,
-            "response_bytes": 1604,
-            "response_sha256": "30d2133a98bb8dd880194039b2b596e5c3256bd03edec239fbae87cf60c345a8"
+            "response_bytes": 1583,
+            "response_sha256": "c82776b9d0e3d9919205481b1aca231f25c19d4366514880a8d0f421901bd858"
           },
           {
             "arguments": [
@@ -251,8 +251,8 @@
       "id": "semantic-edit",
       "route": "semantic-scalar",
       "state": "ready",
-      "guide_basis": "frag1:c1bb79e68952507b1994ccfe0c61357621255a2ce9188d6e4995ed70cd8b58f6",
-      "guide_object_root": "50282a9f51da7ffde1b8e01cca37de8a1a5535981345f0058211b9e9f121685f",
+      "guide_basis": "frag1:90f222311bb495c8a26f9f8ebb1db1fb45ccfb66be1af5e321b0cb1ac4010fec",
+      "guide_object_root": "08c90b96a3f4f943babfade4dd89e403c594a29e98b7eb02edf2aed16ca43ebd",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 83,
@@ -290,7 +290,7 @@
             "arguments": [
               "project",
               "semantic",
-              "frp1:7c6d02b807f46aff1c52cefeb9432746:52",
+              "frp1:e0b57ac39bdec90b31a9e2d14fdc578d:52",
               "--body",
               "--locator-op",
               "set-int",
@@ -302,13 +302,13 @@
               "--intent-to",
               "9"
             ],
-            "response_sha256": "ba78d178d135f232c523e458e94e6c68fd391ec14bb84f3be084f4895b2a5aad"
+            "response_sha256": "45df13094674445ff831e9f02bd2b58bc454a5e96a6b58ab78ed3f308c931cc2"
           },
           {
             "arguments": [
               "author",
               "edit-body-scalar",
-              "frp1:7c6d02b807f46aff1c52cefeb9432746:52",
+              "frp1:e0b57ac39bdec90b31a9e2d14fdc578d:52",
               "--operation",
               "set-int",
               "--from",
@@ -316,7 +316,7 @@
               "--to",
               "9"
             ],
-            "response_sha256": "4102dc0c7c6b463644d00f53b318ad4ef3c3d84da3f41e12bbc4f614d5eecb40"
+            "response_sha256": "b6f53a84ae635567e2eeb8209a483124a186f94828666ef3ac99e92adb5f1bcf"
           }
         ]
       },
@@ -335,12 +335,12 @@
       "id": "framework-migration",
       "route": "framework-migration",
       "state": "ready",
-      "guide_basis": "frag1:58afeaa9ac5e909d437800bff4ffb655192e586c81ecc5f5592fbf7ce1785596",
-      "guide_object_root": "edfe556a43bb8dd72d5acbdd357536e05cde4efdefc0289b808030a0d3487e47",
+      "guide_basis": "frag1:8fed330ca45e0064e1c7f4d4f69be6cf8b8fa6adf2c8452f09bf49eca2ae7e58",
+      "guide_object_root": "d92fdae4a9cb8edbb94ac024ae1c0dbfaf7714358dbb6f598637aa063584a3fe",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 70,
-        "response_bytes": 26296,
+        "response_bytes": 26275,
         "events": [
           {
             "arguments": [
@@ -348,8 +348,8 @@
               "--help"
             ],
             "request_bytes": 34,
-            "response_bytes": 1174,
-            "response_sha256": "191b7522b69efe8d3f830ff36aa240e2d035aec486b155023cdf1d30df057b26"
+            "response_bytes": 1153,
+            "response_sha256": "0255a470c6982ee955bbbe76859de26e87a7ee504c75252038bdc406e5b20edc"
           },
           {
             "arguments": [
@@ -373,23 +373,23 @@
             "arguments": [
               "project",
               "features",
-              "frp1:a15626d08329af3ae51bf443b1f4d3ca:4",
+              "frp1:af8ba8448d9fde8be779ff352ad420ad:4",
               "--limit",
               "8"
             ],
-            "response_sha256": "93efd8fd488257b55c83e7041fab3f3d664c503ea44362e9f2fa876c6429e966"
+            "response_sha256": "9eb69047fc03f9e8679cf161fd4fa1b10ced2dc08388f0b670d11daa57a71a4a"
           },
           {
             "arguments": [
               "migrate",
               "feature",
-              "frff1:ece485ab5526d388a700b56aff135042",
+              "frff1:569be99037e9c3af16bc8bd84342f70b",
               "--to",
               "fastapi",
               "--out",
               "converted/signals.py"
             ],
-            "response_sha256": "2a6b2ec3d38bfb059e2e801b7ab7fd53cd87a4bd147acea4e6187bbbbdb38134"
+            "response_sha256": "b01314cc1912361256ad79530153b685b342cad0eada96f812a77cd58915d617"
           }
         ]
       },
@@ -408,12 +408,12 @@
       "id": "proof",
       "route": "proof",
       "state": "ready",
-      "guide_basis": "frag1:2f1c9620473c9821331a8eee84331add2e3271a5cd23e51f0a7cd64fe8f583f5",
-      "guide_object_root": "312c9f8055aca0bf47e20316f2251811da42608f2d69f86f17a95e24da00eb63",
+      "guide_basis": "frag1:f44be713c86a415759c50d7af6228b52bdaa028c089fbc346008cfc7aa577f6e",
+      "guide_object_root": "43ea9cc3696cd2f07bdc8c70eaca6c7535f33889b540befc90f571779152d100",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 63,
-        "response_bytes": 5178,
+        "response_bytes": 5157,
         "events": [
           {
             "arguments": [
@@ -421,8 +421,8 @@
               "--help"
             ],
             "request_bytes": 31,
-            "response_bytes": 2082,
-            "response_sha256": "1a6e08133ab140ef81a6db1d8fc9c2fa1d908e4026364e853cee599787b1970e"
+            "response_bytes": 2061,
+            "response_sha256": "ea8a91ad8e8eeb67fb5e8f02ff7e41a1286554881130c732e17927166be676b7"
           },
           {
             "arguments": [
@@ -462,7 +462,7 @@
               "--token-limit",
               "4096"
             ],
-            "response_sha256": "3f050933d2ff859c03d6db3e228e86fc019f050b0482ab74acbf7271bcb0a42d"
+            "response_sha256": "8a876208dc15bb8a816500263471e30833ecda605eb0744218314c71a6f314a7"
           },
           {
             "arguments": [
