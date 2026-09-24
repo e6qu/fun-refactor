@@ -174,7 +174,7 @@ def test_checker_executable_and_environment_drift_invalidates(project, monkeypat
     assert "proof" in run.resumed.plan.resume(client).invalidated
     wrapper.write_text(wrapper.read_text().replace("# executable changed\n", ""))
     assert run.resumed.plan.resume(client).complete
-    monkeypatch.setenv("LEAN_NUM_THREADS", "1")
+    monkeypatch.setenv("LEAN_NUM_THREADS", "1" if os.environ.get("LEAN_NUM_THREADS") != "1" else "2")
     assert "proof" in run.resumed.plan.resume(client).invalidated
 
 
