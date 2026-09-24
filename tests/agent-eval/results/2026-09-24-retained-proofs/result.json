@@ -1,9 +1,9 @@
 {
   "schema": "fr-proof-acceptance-1",
-  "repository_revision": "e34981157f34fbc33f0b199bbfc5271de774e1d0",
+  "repository_revision": "35dbf01c7475f6c11c477a23b4eb41f08d781d8b",
   "source_bindings": {
     "src/spec.rs": "9eddd6b500ddd9cebfcb891aac341c97772a3a294022a6db367a78bd4615f5d4",
-    "src/spec/retained.rs": "9ce1dcade60f5c579e39c88a8fff56e8bb1038d8f760b0d91d9c5e59bac1d7f9",
+    "src/spec/retained.rs": "3d9a2656a69d66a3f4f49126738c563c99ae6e3c3c3c153edae53a26ab881964",
     "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
     "src/project/investigation.rs": "f6ac03f999c7e8f5f024e99b953d3daa0e749263e64c473938a7ea4f217295cb",
     "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
@@ -61,7 +61,7 @@
           "kind": "theorem",
           "line": 5,
           "name": "identity",
-          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs/FrSpecs/Model.lean",
+          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project/specs/FrSpecs/Model.lean",
           "status": "checked_by_lean"
         }
       ],
@@ -79,7 +79,7 @@
         "packages": [
           {
             "output": "See retained per-module execution results.",
-            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs",
+            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project/specs",
             "passed": true
           }
         ],
@@ -91,9 +91,9 @@
       }
     },
     "executed": true,
-    "input_digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+    "input_digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
     "inputs": {
-      "analyzer": "a77175051357ab6736e0547cfdabb422bc8c069a15f8cbf64cdf56c90a93f996",
+      "analyzer": "17671b25bf300e95374e50a9fa8996e4b5ad8f436105a4edc3ce564baa17cc9e",
       "files": {
         "FrSpecs.lean": "7d1ab24dfdaa8599c20edea4641797bd13fdd02f717902b79af772ca4cfe0ee6",
         "FrSpecs/Model.lean": "4c1771c88315c1bf8bfb9d04c7ca3a042a9e73ee04ab4bb9703265c4d5393cf1",
@@ -139,7 +139,7 @@
         "command": "lake build --wfail (all selected modules)",
         "module": null,
         "result": {
-          "elapsed_ms": 1265,
+          "elapsed_ms": 1143,
           "error": null,
           "exit_code": 0,
           "output_limit_exceeded": false,
@@ -152,7 +152,7 @@
           },
           "stdout": {
             "encoding": "UTF-8 with replacement; byte counts precede decoding",
-            "omitted_bytes": 108,
+            "omitted_bytes": 109,
             "retained_bytes": 0,
             "text": ""
           },
@@ -163,7 +163,7 @@
         "command": "lean -DwarningAsError=true",
         "module": "FrSpecs/Model.lean",
         "result": {
-          "elapsed_ms": 170,
+          "elapsed_ms": 157,
           "error": null,
           "exit_code": 0,
           "output_limit_exceeded": false,
@@ -187,7 +187,7 @@
         "command": "lean -DwarningAsError=true",
         "module": "FrSpecs.lean",
         "result": {
-          "elapsed_ms": 150,
+          "elapsed_ms": 161,
           "error": null,
           "exit_code": 0,
           "output_limit_exceeded": false,
@@ -208,12 +208,12 @@
         }
       }
     ],
-    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project",
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project",
     "schema": "fr-proof-evidence-1",
     "source_implementation_proved": false,
     "stable": true
   },
-  "original_root": "c98cc933e638528adf49543271321c83192fdbff472d8530567a986629e4c48b",
+  "original_root": "31c316f87ee249e81d1db5aca0092043dbdd1e740b1559fd61abdcb9c3068e33",
   "plan": {
     "goal": "Preserve Boolean identity with retained model evidence",
     "acceptance": [
@@ -227,7 +227,7 @@
           {
             "kind": "proof-inputs",
             "key": "specs",
-            "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3"
+            "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e"
           }
         ],
         "depends_on": [],
@@ -236,9 +236,9 @@
           {
             "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
             "kind": "model-proof",
-            "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+            "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
             "passed": true,
-            "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+            "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
           }
         ],
         "required_checks": [],
@@ -273,7 +273,7 @@
           {
             "id": "read",
             "kind": "observation",
-            "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+            "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
             "passed": true,
             "reference": "independent fixture observation"
           }
@@ -316,12 +316,12 @@
     "questions": [],
     "schema": "fr-investigation-plan-1"
   },
-  "plan_root": "dee2206006c2bbcc92c6c4c02d88b277e3f7a70b8fde483cbbae91317a1c281e",
+  "plan_root": "5f7ac11eda52845f9936d41332240b5d0fb738ca4770a34d20b2576d3dd0f3e3",
   "reopened": {
     "check_attachment": null,
     "claim": "validated agent-reported evidence; references do not attest tool execution.",
     "complete": true,
-    "context_basis": "frcb1:a9b94a6f9e89919771371e6fe235651b34fc2b710d726275565b709c0e6c2689",
+    "context_basis": "frcb1:97347e06930950c7e1839e5390c287a3d69c343a9a06e9688f8ce4a4935e34fe",
     "coverage": {
       "architecture": "not inferred",
       "files_by_gap": {},
@@ -342,11 +342,11 @@
       "unsupported_files": 2
     },
     "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-    "handle_prefix": "frp1:5abea862949bf588934238cc467cf89d:",
+    "handle_prefix": "frp1:be89e316373fb671546290381b567a5e:",
     "input_digests": {
-      "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+      "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
       "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-      "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+      "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
     },
     "invalidated": [],
     "mutation_authority": false,
@@ -365,16 +365,16 @@
           "evidence": [
             {
               "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-              "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+              "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
               "kind": "model-proof",
               "passed": true,
-              "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+              "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
             }
           ],
           "id": "proof",
           "inputs": [
             {
-              "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+              "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
               "key": "specs",
               "kind": "proof-inputs"
             }
@@ -401,7 +401,7 @@
           "evidence": [
             {
               "id": "read",
-              "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+              "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
               "kind": "observation",
               "passed": true,
               "reference": "independent fixture observation"
@@ -448,7 +448,7 @@
       ]
     },
     "proof_attachment": null,
-    "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+    "revision": "be89e316373fb671546290381b567a5e920859c06afca72b6b0ee74e84231088",
     "schema": "fr-investigation-resume-1"
   },
   "cases": {
@@ -457,7 +457,7 @@
         "check_attachment": null,
         "claim": "validated agent-reported evidence; references do not attest tool execution.",
         "complete": false,
-        "context_basis": "frcb1:4d31f0d47db68037d8eeee90b797abfa1b68a2e6211506b3d81be1eb46d0d1a8",
+        "context_basis": "frcb1:c1dbbe6b5b03f25ef25f122acb6683b312e0dc85d0335b8af298bda4fc6b653e",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -478,11 +478,11 @@
           "unsupported_files": 2
         },
         "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-        "handle_prefix": "frp1:2ea028b1f45acbe379e9c9b2397014dc:",
+        "handle_prefix": "frp1:74069edc848f47f39a5a45247f1a690e:",
         "input_digests": {
-          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
           "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+          "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
         },
         "invalidated": [
           "proof",
@@ -504,16 +504,16 @@
               "evidence": [
                 {
                   "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
                   "kind": "model-proof",
                   "passed": true,
-                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                  "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
                 }
               ],
               "id": "proof",
               "inputs": [
                 {
-                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
                   "key": "specs",
                   "kind": "proof-inputs"
                 }
@@ -540,7 +540,7 @@
               "evidence": [
                 {
                   "id": "read",
-                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
                   "kind": "observation",
                   "passed": true,
                   "reference": "independent fixture observation"
@@ -587,7 +587,7 @@
           ]
         },
         "proof_attachment": null,
-        "revision": "2ea028b1f45acbe379e9c9b2397014dc26d851b835a82b86a10ff5ef180c4583",
+        "revision": "74069edc848f47f39a5a45247f1a690e8e761549e4fc0907a8ec19b885aa94d8",
         "schema": "fr-investigation-resume-1"
       },
       "attachment_refusal": "Error: retained proof inputs changed."
@@ -597,7 +597,7 @@
         "check_attachment": null,
         "claim": "validated agent-reported evidence; references do not attest tool execution.",
         "complete": false,
-        "context_basis": "frcb1:e351ba25a140c3018be55a0ac31495dfa0983a33bb72697d8e99fd1c10da5a29",
+        "context_basis": "frcb1:8bbb4c0597d3bb90c25d54b2117b7e3a4bf7a006a035f6b9e88667d7101680d0",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -618,11 +618,11 @@
           "unsupported_files": 2
         },
         "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-        "handle_prefix": "frp1:33362cc52450814bf9a31dad30652858:",
+        "handle_prefix": "frp1:e5682dcc90b8433d6c03a824bbd9dcae:",
         "input_digests": {
-          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
           "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+          "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
         },
         "invalidated": [
           "proof",
@@ -644,16 +644,16 @@
               "evidence": [
                 {
                   "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
                   "kind": "model-proof",
                   "passed": true,
-                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                  "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
                 }
               ],
               "id": "proof",
               "inputs": [
                 {
-                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
                   "key": "specs",
                   "kind": "proof-inputs"
                 }
@@ -680,7 +680,7 @@
               "evidence": [
                 {
                   "id": "read",
-                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
                   "kind": "observation",
                   "passed": true,
                   "reference": "independent fixture observation"
@@ -727,7 +727,7 @@
           ]
         },
         "proof_attachment": null,
-        "revision": "33362cc52450814bf9a31dad306528589f6b444bb77bc830fa362cf999d22da4",
+        "revision": "e5682dcc90b8433d6c03a824bbd9dcae633b727c28a30f2f3ccd5f8d4178d2c0",
         "schema": "fr-investigation-resume-1"
       },
       "attachment_refusal": "Error: retained proof inputs changed."
@@ -737,7 +737,7 @@
         "check_attachment": null,
         "claim": "validated agent-reported evidence; references do not attest tool execution.",
         "complete": false,
-        "context_basis": "frcb1:01d97190bb76d0552b25a01816c3da8c2060afbb4f84b0d8b3215a5d8083ca9a",
+        "context_basis": "frcb1:9d0ac811848423fe93fe712113c52b6aa34539d073e148c4a6ef0689f103cbed",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -758,11 +758,11 @@
           "unsupported_files": 2
         },
         "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-        "handle_prefix": "frp1:bc2cb0fbf7167366c9904cc7f6dc1e4e:",
+        "handle_prefix": "frp1:5ed30da6cc3a8f02f2069457d4aaea65:",
         "input_digests": {
-          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
           "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+          "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
         },
         "invalidated": [
           "proof",
@@ -784,16 +784,16 @@
               "evidence": [
                 {
                   "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
                   "kind": "model-proof",
                   "passed": true,
-                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                  "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
                 }
               ],
               "id": "proof",
               "inputs": [
                 {
-                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
                   "key": "specs",
                   "kind": "proof-inputs"
                 }
@@ -820,7 +820,7 @@
               "evidence": [
                 {
                   "id": "read",
-                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
                   "kind": "observation",
                   "passed": true,
                   "reference": "independent fixture observation"
@@ -867,7 +867,7 @@
           ]
         },
         "proof_attachment": null,
-        "revision": "bc2cb0fbf7167366c9904cc7f6dc1e4e4cb7bcab325809ebbc7889fbb9abf27c",
+        "revision": "5ed30da6cc3a8f02f2069457d4aaea654601ebee627adacd9b76cf2b4c6c70f3",
         "schema": "fr-investigation-resume-1"
       },
       "attachment_refusal": "Error: retained proof inputs changed."
@@ -877,7 +877,7 @@
         "check_attachment": null,
         "claim": "validated agent-reported evidence; references do not attest tool execution.",
         "complete": false,
-        "context_basis": "frcb1:625c561460c9e5cb97a03613520ada570a394d66d42efbf1e1951db718af58c8",
+        "context_basis": "frcb1:765ce2c0623cb4845a0d58902e52dbf15aca4b517ff58de60dd626ada012e2d5",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -898,11 +898,11 @@
           "unsupported_files": 2
         },
         "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-        "handle_prefix": "frp1:79ca1e6c2fc8100e64de5eb1b07d0328:",
+        "handle_prefix": "frp1:b1a6a8bd2eb14f8393760bd3a6167546:",
         "input_digests": {
-          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
           "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+          "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
         },
         "invalidated": [
           "proof",
@@ -924,16 +924,16 @@
               "evidence": [
                 {
                   "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
                   "kind": "model-proof",
                   "passed": true,
-                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                  "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
                 }
               ],
               "id": "proof",
               "inputs": [
                 {
-                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
                   "key": "specs",
                   "kind": "proof-inputs"
                 }
@@ -960,7 +960,7 @@
               "evidence": [
                 {
                   "id": "read",
-                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
                   "kind": "observation",
                   "passed": true,
                   "reference": "independent fixture observation"
@@ -1007,7 +1007,7 @@
           ]
         },
         "proof_attachment": null,
-        "revision": "79ca1e6c2fc8100e64de5eb1b07d03282ec5a5b3cbd589cffe5882cdedd072dc",
+        "revision": "b1a6a8bd2eb14f8393760bd3a616754646df52d0bb609f11c6158dbd53c4a8a3",
         "schema": "fr-investigation-resume-1"
       },
       "attachment_refusal": "Error: retained proof inputs changed."
@@ -1017,7 +1017,7 @@
         "check_attachment": null,
         "claim": "validated agent-reported evidence; references do not attest tool execution.",
         "complete": false,
-        "context_basis": "frcb1:c171ef9971ad32fdca99e444846813a53e092919baab14a2c452aaee1df3540b",
+        "context_basis": "frcb1:10450ff40cdb39f91c336b48ed64a00a7914c7f6ee0e8e4a0b0175271a6e8787",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -1038,11 +1038,11 @@
           "unsupported_files": 2
         },
         "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-        "handle_prefix": "frp1:0d75328730744b3732689626afe7350e:",
+        "handle_prefix": "frp1:c8d044a1d4e9d24716955bdb6e1f8ef8:",
         "input_digests": {
-          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
           "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+          "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
         },
         "invalidated": [
           "proof",
@@ -1064,16 +1064,16 @@
               "evidence": [
                 {
                   "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
                   "kind": "model-proof",
                   "passed": true,
-                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                  "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
                 }
               ],
               "id": "proof",
               "inputs": [
                 {
-                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
                   "key": "specs",
                   "kind": "proof-inputs"
                 }
@@ -1100,7 +1100,7 @@
               "evidence": [
                 {
                   "id": "read",
-                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
                   "kind": "observation",
                   "passed": true,
                   "reference": "independent fixture observation"
@@ -1147,7 +1147,7 @@
           ]
         },
         "proof_attachment": null,
-        "revision": "0d75328730744b3732689626afe7350e19b3b3e76319f03ac552f27b79353a3c",
+        "revision": "c8d044a1d4e9d24716955bdb6e1f8ef8b13cd71b97d1e6ab1da6343ed11b889a",
         "schema": "fr-investigation-resume-1"
       },
       "attachment_refusal": "Error: retained proof inputs changed."
@@ -1157,7 +1157,7 @@
         "check_attachment": null,
         "claim": "validated agent-reported evidence; references do not attest tool execution.",
         "complete": false,
-        "context_basis": "frcb1:a9b94a6f9e89919771371e6fe235651b34fc2b710d726275565b709c0e6c2689",
+        "context_basis": "frcb1:97347e06930950c7e1839e5390c287a3d69c343a9a06e9688f8ce4a4935e34fe",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -1178,11 +1178,11 @@
           "unsupported_files": 2
         },
         "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-        "handle_prefix": "frp1:5abea862949bf588934238cc467cf89d:",
+        "handle_prefix": "frp1:be89e316373fb671546290381b567a5e:",
         "input_digests": {
-          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
           "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+          "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
         },
         "invalidated": [
           "proof",
@@ -1204,16 +1204,16 @@
               "evidence": [
                 {
                   "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
                   "kind": "model-proof",
                   "passed": true,
-                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                  "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
                 }
               ],
               "id": "proof",
               "inputs": [
                 {
-                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
                   "key": "specs",
                   "kind": "proof-inputs"
                 }
@@ -1240,7 +1240,7 @@
               "evidence": [
                 {
                   "id": "read",
-                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
                   "kind": "observation",
                   "passed": true,
                   "reference": "independent fixture observation"
@@ -1287,7 +1287,7 @@
           ]
         },
         "proof_attachment": null,
-        "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+        "revision": "be89e316373fb671546290381b567a5e920859c06afca72b6b0ee74e84231088",
         "schema": "fr-investigation-resume-1"
       },
       "attachment_refusal": "Error: retained proofs require the lakefile generated by fr spec init."
@@ -1297,7 +1297,7 @@
         "check_attachment": null,
         "claim": "validated agent-reported evidence; references do not attest tool execution.",
         "complete": false,
-        "context_basis": "frcb1:a9b94a6f9e89919771371e6fe235651b34fc2b710d726275565b709c0e6c2689",
+        "context_basis": "frcb1:97347e06930950c7e1839e5390c287a3d69c343a9a06e9688f8ce4a4935e34fe",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -1318,11 +1318,11 @@
           "unsupported_files": 2
         },
         "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-        "handle_prefix": "frp1:5abea862949bf588934238cc467cf89d:",
+        "handle_prefix": "frp1:be89e316373fb671546290381b567a5e:",
         "input_digests": {
-          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "dependent": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
           "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+          "proof": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c"
         },
         "invalidated": [
           "proof",
@@ -1344,16 +1344,16 @@
               "evidence": [
                 {
                   "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "input_digest": "600341e0fe520948522df1ed399ba111bf2d243675245b10dcfcdd888286f80c",
                   "kind": "model-proof",
                   "passed": true,
-                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                  "reference": "fr-proof-evidence-1:e0747760487bc6af99f839fdfe2b55ef59634a07e1524bda76ff81ce4f27b75e"
                 }
               ],
               "id": "proof",
               "inputs": [
                 {
-                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "digest": "0592c9f48c7fc6da645cd0ffbfff7b5ecff3a950edacbb59ab5b4325ae804b8e",
                   "key": "specs",
                   "kind": "proof-inputs"
                 }
@@ -1380,7 +1380,7 @@
               "evidence": [
                 {
                   "id": "read",
-                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
                   "kind": "observation",
                   "passed": true,
                   "reference": "independent fixture observation"
@@ -1427,7 +1427,7 @@
           ]
         },
         "proof_attachment": null,
-        "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+        "revision": "be89e316373fb671546290381b567a5e920859c06afca72b6b0ee74e84231088",
         "schema": "fr-investigation-resume-1"
       },
       "attachment_refusal": "Error: retained proofs require the pinned Lean toolchain."
@@ -1484,7 +1484,7 @@
             "start": 35
           },
           "changed": true,
-          "handle": "frp1:5abea862949bf588934238cc467cf89d:12",
+          "handle": "frp1:be89e316373fb671546290381b567a5e:12",
           "operation": "replace-body",
           "path": "subject.py",
           "preservation": "bytes outside the selected body",
@@ -1548,11 +1548,11 @@
       "patch": "artifacts/proved.patch"
     },
     "executed": false,
-    "manifest_sha256": "02ef3a4ef3bd1964ee808121841cd932de7e9d9cd1ecf842838ff009a7a0e38a",
+    "manifest_sha256": "1139a0e7e02fb9df85d9015f0fc148f81318e06c118af9b5712a62eb47a95bc2",
     "passed": null,
     "ready": true,
     "requests": [],
-    "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+    "revision": "be89e316373fb671546290381b567a5e920859c06afca72b6b0ee74e84231088",
     "schema": "fr-task-change-1",
     "stages": [
       {
@@ -1591,7 +1591,7 @@
     "targets": [
       {
         "eligibility": "target-supported",
-        "handle": "frp1:5abea862949bf588934238cc467cf89d:12",
+        "handle": "frp1:be89e316373fb671546290381b567a5e:12",
         "id": "preserve",
         "kind": "function",
         "language": "python",
@@ -1601,9 +1601,9 @@
         "syntax_preflighted": false
       }
     ],
-    "task_basis": "frpt1:e90eb9ae5312ff1ba998a0ca83aea627277286c7c144736591f38729e4e7851e",
-    "task_change_basis": "frtc1:79965e8f68e5592609f379dd47baede5e7a1c6702713394a0336175c854f678e",
-    "task_resolution_basis": "frpt2:1ac848d8bbfc6cb4c76d50dbfd932eac3835a6c72a7793185561411e1efc5506"
+    "task_basis": "frpt1:6ececb1dc8d7aa64e2ca3034e7131172b84b7391086ba08bc1827dc957e4d853",
+    "task_change_basis": "frtc1:5a110dbc9ec33fcd274cfacd61ffeb5070f300f23b15832978d641cb3a5ef065",
+    "task_resolution_basis": "frpt2:5eb5160a9d2951d6d5c7314185cc9e8bc479ae349e2037a90ad1f3fabaaa4b39"
   },
   "fresh_review": {
     "author": {
@@ -1656,7 +1656,7 @@
             "start": 35
           },
           "changed": true,
-          "handle": "frp1:4c484cc4980741f00cec50d15298f45a:12",
+          "handle": "frp1:416ed2935670465469d2a44cfb11b9a5:12",
           "operation": "replace-body",
           "path": "subject.py",
           "preservation": "bytes outside the selected body",
@@ -1720,11 +1720,11 @@
       "patch": "artifacts/proved.patch"
     },
     "executed": false,
-    "manifest_sha256": "3adeb927188a15003d7496f32c80389e73e88ce933ccc8db766a86ef7c9b7890",
+    "manifest_sha256": "a4ea9cc3e9fdff201809dc06cfb8cd050c3f6e75362c925365335059ffaa85f4",
     "passed": null,
     "ready": true,
     "requests": [],
-    "revision": "4c484cc4980741f00cec50d15298f45a403ddb1574604b330462552e949b1204",
+    "revision": "416ed2935670465469d2a44cfb11b9a5968f8174b33718e13d52bb239c43d07b",
     "schema": "fr-task-change-1",
     "stages": [
       {
@@ -1763,7 +1763,7 @@
     "targets": [
       {
         "eligibility": "target-supported",
-        "handle": "frp1:4c484cc4980741f00cec50d15298f45a:12",
+        "handle": "frp1:416ed2935670465469d2a44cfb11b9a5:12",
         "id": "preserve",
         "kind": "function",
         "language": "python",
@@ -1773,14 +1773,14 @@
         "syntax_preflighted": false
       }
     ],
-    "task_basis": "frpt1:2962844366a08e293237511d44df7756b2b97192867da280db65fefee96d6f4f",
-    "task_change_basis": "frtc1:6e9827cdc7166ac2dba5f06ed170bbcaa3ca618b1f78519fd56646e0a65a8775",
-    "task_resolution_basis": "frpt2:1dcadb4728b104c8f93c1e496413b3727e31fa0509a0e84b0f04e60959da5591"
+    "task_basis": "frpt1:46b9d6c044fbecd1c6a41dab08d2b8f866c986a084a6b74760d4a8970480ba7a",
+    "task_change_basis": "frtc1:41fee6614d8ad6712029d1861c9e8b93b1ebbbd68dcc0e385573357da38a5b0d",
+    "task_resolution_basis": "frpt2:57086e5c2f26acae7850f2556824c620e74d2066a0884d49d697aef9c26dd452"
   },
   "stale_review_refusal": "Error: stale or invalid project handle; obtain a fresh project map.",
   "delivery": {
     "executed": true,
-    "manifest_sha256": "3adeb927188a15003d7496f32c80389e73e88ce933ccc8db766a86ef7c9b7890",
+    "manifest_sha256": "a4ea9cc3e9fdff201809dc06cfb8cd050c3f6e75362c925365335059ffaa85f4",
     "passed": true,
     "reused_transaction": false,
     "reviewed_context_omitted": [
@@ -1798,7 +1798,7 @@
     ],
     "saved": true,
     "schema": "fr-task-change-1",
-    "task_change_basis": "frtc1:6e9827cdc7166ac2dba5f06ed170bbcaa3ca618b1f78519fd56646e0a65a8775",
+    "task_change_basis": "frtc1:41fee6614d8ad6712029d1861c9e8b93b1ebbbd68dcc0e385573357da38a5b0d",
     "transaction": 2,
     "workflow": {
       "executed": true,
@@ -2021,7 +2021,7 @@
           "kind": "theorem",
           "line": 5,
           "name": "identity",
-          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs/FrSpecs/Model.lean",
+          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project/specs/FrSpecs/Model.lean",
           "status": "checked_by_lean"
         }
       ],
@@ -2039,7 +2039,7 @@
         "packages": [
           {
             "output": "See retained per-module execution results.",
-            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs",
+            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project/specs",
             "passed": true
           }
         ],
@@ -2051,9 +2051,9 @@
       }
     },
     "executed": true,
-    "input_digest": "9bc866d464be12484da6abde8ef4348b0006213fc2902fd5c51dc59ac6e9e123",
+    "input_digest": "d4269cadb6d2c866c0e5307f8f9e8fc00c623904d089482659a785cfc28296fe",
     "inputs": {
-      "analyzer": "a77175051357ab6736e0547cfdabb422bc8c069a15f8cbf64cdf56c90a93f996",
+      "analyzer": "17671b25bf300e95374e50a9fa8996e4b5ad8f436105a4edc3ce564baa17cc9e",
       "files": {
         "FrSpecs.lean": "7d1ab24dfdaa8599c20edea4641797bd13fdd02f717902b79af772ca4cfe0ee6",
         "FrSpecs/Model.lean": "9c6c96eb4b9c36463c569c048b0f2d6bde090b05e3452c553c89b0671d30b8a6",
@@ -2123,7 +2123,7 @@
         "command": "lean -DwarningAsError=true",
         "module": "FrSpecs/Model.lean",
         "result": {
-          "elapsed_ms": 151,
+          "elapsed_ms": 153,
           "error": null,
           "exit_code": 0,
           "output_limit_exceeded": false,
@@ -2147,7 +2147,7 @@
         "command": "lean -DwarningAsError=true",
         "module": "FrSpecs.lean",
         "result": {
-          "elapsed_ms": 172,
+          "elapsed_ms": 140,
           "error": null,
           "exit_code": 0,
           "output_limit_exceeded": false,
@@ -2168,17 +2168,17 @@
         }
       }
     ],
-    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project",
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project",
     "schema": "fr-proof-evidence-1",
     "source_implementation_proved": false,
     "stable": true
   },
-  "fresh_root": "1d04e3bcf6bf92b3b4d7db25653eb8d7791dde7a466cb09b194c883e63ff878c",
+  "fresh_root": "5dccb953c270af2de1c0728c52c754bb8ff7587cfc5ed4c41732f35820bfc1e7",
   "fresh_plan": {
     "check_attachment": null,
     "claim": "validated agent-reported evidence; references do not attest tool execution.",
     "complete": true,
-    "context_basis": "frcb1:b8e53f3c3c384f85602cd5821a8f8066315140e33450402ddc3cd8bf3af61217",
+    "context_basis": "frcb1:13042069b5552f90533a2e7c866530548d64c146dbd9069e7b2fe1022817f143",
     "coverage": {
       "architecture": "not inferred",
       "files_by_gap": {},
@@ -2199,11 +2199,11 @@
       "unsupported_files": 3
     },
     "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-    "handle_prefix": "frp1:1a2267cd1458cb94a77e93fff228151e:",
+    "handle_prefix": "frp1:1983b8d489585f697b00b45de8b9d477:",
     "input_digests": {
-      "dependent": "791c05fbc1b31a555e103c8e624b424ad44821300186303fb9d5b24c0ecaa510",
+      "dependent": "ca350ccf57d483e322ea66fa453457e45392a33ab98f8b84fc8d0b860aafba7b",
       "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
-      "proof": "45f6c78fa4c994701bb1d135c1c0901222b77e75fdcfc0881fe18853e2b47bf4"
+      "proof": "ee361e32e00c6e9e7db0056c3346d9887323522f26fcd6ce8cac1801c45de1cc"
     },
     "invalidated": [
       "dependent"
@@ -2224,16 +2224,16 @@
           "evidence": [
             {
               "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
-              "input_digest": "45f6c78fa4c994701bb1d135c1c0901222b77e75fdcfc0881fe18853e2b47bf4",
+              "input_digest": "ee361e32e00c6e9e7db0056c3346d9887323522f26fcd6ce8cac1801c45de1cc",
               "kind": "model-proof",
               "passed": true,
-              "reference": "fr-proof-evidence-1:5b99e45b11af7ae5f9d7f55eee532ca0eb9ec701e96b9dd57030a83a4c390def"
+              "reference": "fr-proof-evidence-1:fb7ef55c5897e0f751afa0dab5bb95870edc3630785733b667dc2b324cedd7f0"
             }
           ],
           "id": "proof",
           "inputs": [
             {
-              "digest": "9bc866d464be12484da6abde8ef4348b0006213fc2902fd5c51dc59ac6e9e123",
+              "digest": "d4269cadb6d2c866c0e5307f8f9e8fc00c623904d089482659a785cfc28296fe",
               "key": "specs",
               "kind": "proof-inputs"
             }
@@ -2260,7 +2260,7 @@
           "evidence": [
             {
               "id": "read",
-              "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+              "input_digest": "c1de6d79eb0f46b36a52bb14457c7eb9a3a49cc8963914dc7af0609a451224eb",
               "kind": "observation",
               "passed": true,
               "reference": "independent fixture observation"
@@ -2307,7 +2307,7 @@
       ]
     },
     "proof_attachment": {
-      "digest": "5b99e45b11af7ae5f9d7f55eee532ca0eb9ec701e96b9dd57030a83a4c390def",
+      "digest": "fb7ef55c5897e0f751afa0dab5bb95870edc3630785733b667dc2b324cedd7f0",
       "results": [
         [
           "specs",
@@ -2317,7 +2317,7 @@
       ],
       "trust": "Trusted caller digest binds retained local Lean output. No execution attestation or source implementation proof."
     },
-    "revision": "1a2267cd1458cb94a77e93fff228151e5793e34fa36c7ef5e416d2fd4510cf7f",
+    "revision": "1983b8d489585f697b00b45de8b9d477709db6eeecb272d9210439c219b3eeb4",
     "schema": "fr-investigation-resume-1"
   },
   "orphan": {
@@ -2337,7 +2337,7 @@
           "kind": "theorem",
           "line": 1,
           "name": "impossible",
-          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs/FrSpecs/Model.lean",
+          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project/specs/FrSpecs/Model.lean",
           "status": "unchecked"
         }
       ],
@@ -2355,7 +2355,7 @@
         "packages": [
           {
             "output": "See retained per-module execution results.",
-            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs",
+            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project/specs",
             "passed": false
           }
         ],
@@ -2367,9 +2367,9 @@
       }
     },
     "executed": true,
-    "input_digest": "a00850c45030819c8fa4cb39342f6ab8d51035dc8fdcb541d115fb506d692a47",
+    "input_digest": "c70ac4b5de1664d0184840696ff27aa14bf7738de26ab76307c457f28c65c71e",
     "inputs": {
-      "analyzer": "a77175051357ab6736e0547cfdabb422bc8c069a15f8cbf64cdf56c90a93f996",
+      "analyzer": "17671b25bf300e95374e50a9fa8996e4b5ad8f436105a4edc3ce564baa17cc9e",
       "files": {
         "FrSpecs.lean": "7d1ab24dfdaa8599c20edea4641797bd13fdd02f717902b79af772ca4cfe0ee6",
         "FrSpecs/Model.lean": "ffba238b1aea50028ad525aad76b730dcf3164011ac65d5aa925063da5adaf92",
@@ -2415,7 +2415,7 @@
         "command": "lake build --wfail (all selected modules)",
         "module": null,
         "result": {
-          "elapsed_ms": 248,
+          "elapsed_ms": 263,
           "error": null,
           "exit_code": 1,
           "output_limit_exceeded": false,
@@ -2430,19 +2430,19 @@
             "encoding": "UTF-8 with replacement; byte counts precede decoding",
             "omitted_bytes": 0,
             "retained_bytes": 1026,
-            "text": "✖ [2/3] Building FrSpecs.Model (165ms)\ntrace: .> LEAN_PATH=/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/lib/lean /Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/FrSpecs/Model.lean -o /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/lib/lean/FrSpecs/Model.olean -i /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/lib/lean/FrSpecs/Model.ilean -c /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/ir/FrSpecs/Model.c --setup /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/ir/FrSpecs/Model.setup.json --json\nerror: FrSpecs/Model.lean:1:33: Tactic `assumption` failed\n\n⊢ False\nerror: Lean exited with code 1\n✔ [3/3] Built FrSpecs (158ms)\nSome required targets logged failures:\n- FrSpecs.Model\n"
+            "text": "✖ [2/3] Building FrSpecs.Model (163ms)\ntrace: .> LEAN_PATH=/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-VCX55k/.lake/build/lib/lean /Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-VCX55k/FrSpecs/Model.lean -o /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-VCX55k/.lake/build/lib/lean/FrSpecs/Model.olean -i /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-VCX55k/.lake/build/lib/lean/FrSpecs/Model.ilean -c /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-VCX55k/.lake/build/ir/FrSpecs/Model.c --setup /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-VCX55k/.lake/build/ir/FrSpecs/Model.setup.json --json\nerror: FrSpecs/Model.lean:1:33: Tactic `assumption` failed\n\n⊢ False\nerror: Lean exited with code 1\n✔ [3/3] Built FrSpecs (158ms)\nSome required targets logged failures:\n- FrSpecs.Model\n"
           },
           "timed_out": false
         }
       }
     ],
-    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project",
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-s31sa136/project",
     "schema": "fr-proof-evidence-1",
     "source_implementation_proved": false,
     "stable": true
   },
   "measurement": {
-    "initial_proof_seconds": 4.860249874996953,
+    "initial_proof_seconds": 4.917090083006769,
     "initial_report_bytes": 5159,
     "tokens": null
   },
