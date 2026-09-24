@@ -13,9 +13,17 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
 use tree_sitter::Node;
 
+#[path = "flow_summaries.rs"]
+mod summaries;
+
 #[derive(Args)]
 pub struct Options {
     target: String,
+    #[arg(
+        long,
+        help = "Solve symbolic function summaries, including same-file recursion."
+    )]
+    summaries: bool,
     #[arg(long)]
     rules: Option<std::path::PathBuf>,
     #[arg(long, default_value_t = 256)]
@@ -102,6 +110,11 @@ struct Analyzer<'a, 'p, 't> {
     exceptional_returns: Flow,
     current_block: Option<(String, usize)>,
     origins: BTreeMap<String, Occurrence>,
+    solver: summaries::Solver,
+    normal: bool,
+    normal_return: bool,
+    may_raise: bool,
+    sink_flows: BTreeMap<String, summaries::SinkFlow>,
 }
 
 fn merge(into: &mut Flow, from: Flow) {
@@ -146,6 +159,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         flow
     }
     fn expression(&mut self, node: Node<'t>, env: &Environment) -> Flow {
+        if self.solver.enabled && !self.normal {
+            return Flow::new();
+        }
         if !self.tick(node, "use") {
             return Flow::new();
         }
@@ -178,6 +194,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             | "boolean_operator"
             | "comparison_operator"
             | "parenthesized_expression" => {
+                if self.solver.enabled
+                    && matches!(node.kind(), "boolean_operator" | "comparison_operator")
+                {
+                    let mut pending = vec![node];
+                    while let Some(operand) = pending.pop() {
+                        if operand.kind() == "call" {
+                            self.cutoff("short-circuit-call-control-unchecked");
+                            break;
+                        }
+                        pending.extend(operand.named_children(&mut operand.walk()));
+                    }
+                }
                 let mut flow = Flow::new();
                 for child in node.named_children(&mut node.walk()) {
                     merge(&mut flow, self.expression(child, env));
@@ -207,6 +235,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             }
         }
         let mut joined = Flow::new();
+        if self.solver.enabled && !self.normal {
+            return Flow::new();
+        }
         for argument in &arguments {
             merge(&mut joined, argument.clone());
         }
@@ -235,6 +266,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         }
         if self.rules.sinks.contains(&name) {
             let flow = self.extend(joined.clone(), node, "sink");
+            if self.solver.enabled {
+                self.record_sink(&name, self.occurrence(node, "sink"), flow);
+                return joined;
+            }
             for trace in flow.values() {
                 let key = format!("{:020}:{}", node.start_byte(), trace.origin);
                 let site = self.occurrence(node, "sink");
@@ -260,6 +295,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
+        if self.solver.enabled {
+            return self.summary_call(&name, function, arguments, node);
+        }
         if self.active.contains(&name) {
             self.cutoff(format!("recursion:{name}"));
             return joined;
@@ -374,6 +412,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .clone()
                 .expect("queued blocks have input states");
             let block = &graph.blocks[id];
+            self.normal = true;
+            if self.solver.enabled && block.operation == Operation::Exit {
+                self.normal_return = true;
+            }
             self.current_block = Some((name.to_owned(), id));
             if let Some(node) = block.syntax {
                 if !self.tick(node, "control") {
@@ -385,6 +427,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     Operation::Statement => self.statement(node, &mut state),
                     Operation::Return | Operation::Raise => {
+                        if self.solver.enabled
+                            && block.operation == Operation::Raise
+                            && node.named_child_count() != 1
+                        {
+                            self.cutoff("raise-contract-unchecked");
+                        }
                         let mut value = Flow::new();
                         for expression in node.named_children(&mut node.walk()) {
                             merge(&mut value, self.expression(expression, &state));
@@ -398,10 +446,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                                 "raise"
                             },
                         );
+                        if self.solver.enabled && !self.normal {
+                            continue;
+                        }
                         if block.operation == Operation::Return {
+                            self.normal_return = true;
                             merge(&mut result, value);
                         } else {
-                            if self.active.len() > 1 {
+                            self.may_raise = true;
+                            if !self.solver.enabled && self.active.len() > 1 {
                                 self.cutoff("helper-exception-control-unchecked");
                             }
                             merge(&mut self.exceptional_returns, value);
@@ -409,6 +462,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     }
                     _ => (),
                 }
+            }
+            if self.solver.enabled && !self.normal {
+                continue;
             }
             for (successor, _) in &block.successors {
                 let changed = match &mut incoming[*successor] {
@@ -427,7 +483,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         self.local_bindings.pop();
         self.current_block = parent_block;
         self.summaries.push(json!({"function":name,"inputs":inputs,"return_origins":result.keys().collect::<Vec<_>>(),
-            "block_visits":visits,"converged":queue.is_empty(),"claim":"context-specific evaluation; recursive summaries unsupported"}));
+            "block_visits":visits,"converged":queue.is_empty(),"claim":if self.solver.enabled {"one symbolic summary evaluation; global convergence reported separately"} else {"context-specific evaluation; recursive summaries unsupported"}}));
         result
     }
 
@@ -575,6 +631,7 @@ impl Project<'_> {
             "selection":{"name":symbol.name,"span":symbol.full_span},
             "rules":rules_digest,"context":options.context,
             "budget":{"steps":options.steps,"depth":options.depth,"bytes":options.bytes},
+            "summary_mode":options.summaries,
             "dependency_scope":"entire defining file, negative same-file lookups, all indexed manifests/lockfiles, rules and analyzer; no imported execution"});
         let input_digest = hash(&inputs)?;
         if options.inputs_only {
@@ -622,6 +679,11 @@ impl Project<'_> {
             exceptional_returns: Flow::new(),
             current_block: None,
             origins: BTreeMap::new(),
+            solver: summaries::Solver::new(options.summaries),
+            normal: true,
+            normal_return: false,
+            may_raise: false,
+            sink_flows: BTreeMap::new(),
         };
         if module_effects {
             analyzer.cutoff("module-effects-unchecked");
@@ -660,9 +722,13 @@ impl Project<'_> {
                 )])
             })
             .collect();
-        let returns = analyzer.invoke(&symbol.name, function, arguments);
+        let returns = if options.summaries {
+            analyzer.solve_summaries(&symbol.name, arguments)
+        } else {
+            analyzer.invoke(&symbol.name, function, arguments)
+        };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
-            "semantics": "python-scalar-fixed-point-2", "claim": "possible-value-propagation",
+            "semantics": if options.summaries {"python-scalar-summaries-1"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
             "scope": "selected function and direct helpers in the same file.",
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
@@ -673,12 +739,15 @@ impl Project<'_> {
                 "reason":if options.reuse.is_some() {"retained-result-not-reusable"} else {"no-retained-result"}},
             "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses.into_values().collect::<Vec<_>>(),
             "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
+            "function_summaries":analyzer.solver.report(),
+            "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
         let mut omitted = serde_json::Map::new();
         for field in [
             "control_flow",
             "events",
             "summaries",
+            "function_summaries",
             "witnesses",
             "exceptional_returns",
             "returns",
@@ -695,7 +764,11 @@ impl Project<'_> {
             omitted.insert(field.into(), json!(count));
             report[field] = if matches!(
                 field,
-                "returns" | "exceptional_returns" | "control_flow" | "origins"
+                "returns"
+                    | "exceptional_returns"
+                    | "control_flow"
+                    | "origins"
+                    | "function_summaries"
             ) {
                 json!({})
             } else {

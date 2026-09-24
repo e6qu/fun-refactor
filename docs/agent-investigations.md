@@ -82,12 +82,37 @@ Graphs have at most 512 nodes per function. The step budget covers transfer and 
 the response budget reports omitted sections. Repeated sink/origin pairs retain one derivation.
 These derivations are not executable paths: joins lose branch correlation, and conditions are not solved.
 Context-specific evaluation summaries expose input origins, return origins, block visits and convergence.
-They do not implement recursive summaries or claim runtime termination.
+The default route cuts off recursive calls. It does not claim runtime termination.
+
+### Recursive function summaries
+
+Add `--summaries` to use `python-scalar-summaries-1`. The solver summarizes each reachable function
+with symbolic positional parameters. Each call substitutes its own arguments into return, sink and
+exceptional effects. This keeps separate callers from sharing input values. Direct and mutual recursion
+start with empty summaries and grow monotonically until a global fixed point or a cutoff.
+
+`function_summaries` retains parameter transfer, exact derivations, callees, evaluation counts and convergence.
+`completion.normal_return` distinguishes a constant return from a call with no modeled normal return.
+Explicit helper raises propagate exceptional origins and can prevent subsequent statements from executing.
+An absent normal return is a fact of the admitted model, not a proof of runtime divergence.
+Branch feasibility and implicit Python exceptions remain outside the model.
+
+The solver admits at most 64 functions and 512 control nodes per function. `--steps` covers all rounds.
+`--depth` bounds discovery of new helpers; calls to already discovered recursive functions use their current summary.
+An exhausted budget always makes the result incomplete. Unknown externals, aliases, annotations and
+dynamic calls retain their cutoffs. Calls inside short-circuit expressions and exception causes also remain incomplete.
+All existing rule context and module-effect boundaries still apply. Sources and sinks are external contracts;
+the solver does not inspect imported implementations or track heap effects.
+
+The [retained corpus](../tests/agent-eval/results/2026-09-24-recursive-flow/result.json) compares recursive
+flow against independent Python execution and AST positions. Five Lean theorems establish parameter
+selection and monotonicity in the finite-origin model. Native substitution matches all 1,024 executable
+model cases. These theorems do not prove the parser, solver or Python implementation correspondence.
 
 ## Verified result reuse
 
 `--inputs-only` reports the input identity without running flow transfer. It binds the defining file,
-selection, rules, context, budgets, analyzer implementation and indexed manifests/lockfiles.
+selection, rules, context, summary mode, budgets, analyzer implementation and indexed manifests/lockfiles.
 The whole defining file covers helper bodies, local shadowing and negative same-file lookups.
 Imported execution is outside the subset. Incomplete analyses and skipped configuration snapshots
 cannot be reused. A changed input falls back to clean analysis.

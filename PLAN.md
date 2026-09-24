@@ -72,8 +72,10 @@ Outcome: an agent can explain how control and values reach a use across admitted
   Model admitted exceptional exits and report unsupported effects.
   The [Python scalar graph](src/project/control_flow.rs) admits while loops and explicit raises;
   [independent oracles and boundary tests](tests/flow_fixed_point.rs) cover the declared subset.
-- [ ] Add function summaries for argument/parameter transfer, return values and effects.
+- [x] Add function summaries for argument/parameter transfer, return values and effects.
   Declare context, recursion, alias and resource policies; preserve unknown external-call boundaries.
+  [Symbolic summaries](src/project/flow_summaries.rs) solve direct and mutual recursion within the Python scalar subset.
+  [Independent evidence](tests/agent-eval/results/2026-09-24-recursive-flow/result.json) covers transfer, sink effects, explicit raises and budget boundaries.
 - [x] Add versioned source, sink, propagation and sanitizer rules with context-specific contracts.
   Return witnesses with exact occurrences, rule identities, assumptions and cutoffs.
   See the [analysis implementation](src/project/dataflow.rs) and [rule tests](tests/investigation.rs).
@@ -146,7 +148,7 @@ These are substantial implementation advances across A–D; the complete milesto
 
 - A: origins through normalization and additional languages, compiler facts beyond declared command output,
   richer fact explanations and live unknown-target investigation trials.
-- B: authoring-IR origin correspondence, recursive summaries, implicit exception/handler semantics
+- B: authoring-IR origin correspondence, imported summaries, implicit exception/handler semantics
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.
 - C: dependency coverage across imported execution, finer summary reuse, comprehensive incremental/clean
@@ -167,6 +169,11 @@ The [Flow kernel](kernels/FrKernels/Flow.lean) proves join/overwrite laws; nativ
 The [semantic evidence task](tests/agent-eval/semantic-evidence/task.json) pins Python AST coordinates and declared checks.
 Its [evaluator](tools/semantic-evidence-acceptance.py) compares source reveal with origin lookup and retains passing and failing command evidence.
 Checked plans cover workspace, source, configuration and executable identities; environment and dynamic-library coverage still requires explicit checks.
+
+The [recursive flow task](tests/agent-eval/recursive-flow/task.json) pins positive and negative recursive helpers.
+Its [evaluator](tools/recursive-flow-acceptance.py) retains runtime and coordinate oracles plus cold, warm and helper-edit comparisons.
+The opt-in solver covers symbolic positional parameters and explicit scalar effects. Whole-file reuse remains conservative;
+short-circuit call control, heap effects and imported execution remain outside the admitted subset.
 
 ## Rules for every milestone
 

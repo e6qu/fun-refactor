@@ -22,7 +22,7 @@ from fr_ir.runtime import FrClient
 from evidence_basis import file_digest
 
 FIXTURE = ROOT / "tests/agent-eval/flow-fixed-point"
-BINDINGS = ["tools/flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs", "src/project/control_flow.rs",
+BINDINGS = ["tools/flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs", "src/project/control_flow.rs", "src/project/flow_summaries.rs",
             "src/project/flow_cache.rs", "src/project/occurrence.rs", "src/span.rs", "src/parse.rs", "Cargo.lock",
             "sdk/python/src/fr_ir/flow.py", "sdk/python/src/fr_ir/runtime.py", "sdk/python/src/fr_ir/context.py",
             "sdk/python/src/fr_ir/investigation.py", "kernels/FrKernels/Flow.lean",

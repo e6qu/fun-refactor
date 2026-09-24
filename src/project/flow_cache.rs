@@ -8,6 +8,7 @@ pub(super) fn analyzer_identity() -> Result<String> {
         "python-scalar-fixed-point-2",
         env!("CARGO_PKG_VERSION"),
         include_str!("dataflow.rs"),
+        include_str!("flow_summaries.rs"),
         include_str!("control_flow.rs"),
         include_str!("flow_cache.rs"),
         include_str!("occurrence.rs"),
@@ -30,6 +31,15 @@ fn origins(value: &mut Value, ids: &BTreeMap<String, String>) {
         Value::Array(items) => {
             for item in items {
                 origins(item, ids);
+            }
+        }
+        Value::Object(fields) => {
+            let previous = std::mem::take(fields);
+            for (key, mut value) in previous {
+                let mut key = json!(key);
+                origins(&mut key, ids);
+                origins(&mut value, ids);
+                fields.insert(key.as_str().unwrap().into(), value);
             }
         }
         _ => (),
@@ -110,12 +120,18 @@ impl Project<'_> {
         }
         ensure!(
             report["input_digest"] == hash(inputs)?
-                && report["semantics"] == "python-scalar-fixed-point-2",
+                && report["semantics"]
+                    == if inputs["summary_mode"] == true {
+                        "python-scalar-summaries-1"
+                    } else {
+                        "python-scalar-fixed-point-2"
+                    },
             "retained flow has inconsistent analysis identities."
         );
         let revision = report["revision"].as_str().unwrap_or_default().to_owned();
         let mut ids = BTreeMap::new();
         self.rebind_flow_occurrences(&mut report, file, &revision, &mut ids)?;
+        origins(&mut report["function_summaries"], &ids);
         for field in ["returns", "exceptional_returns", "origins"] {
             if let Some(values) = report[field].as_object_mut() {
                 let old = std::mem::take(values);

@@ -8,8 +8,10 @@ origins remain explicit.
 Use `--steps`, `--depth` and `--bytes` to bound work and output. External source, sink, propagation
 and sanitizer contracts come from `--rules`; `--context` selects the sanitizer context. Check every
 cutoff and omission. A report describes explicit value propagation with unchecked path feasibility.
-It cannot establish application security. While loops use bounded fixed-point analysis. Recursion,
-aliases, exception handlers and unsupported effects remain incomplete boundaries.
+It cannot establish application security. While loops use bounded fixed-point analysis. The default route cuts off recursion.
+Add `--summaries` for symbolic summaries of recursive same-file functions, including return, sink and explicit raise effects.
+Inspect `function_summaries` and `completion`; convergence does not prove runtime termination.
+Aliases, exception handlers and unsupported effects remain incomplete boundaries.
 
 Read `control_flow`, `origins` and `summaries` for exact graph nodes and context-specific evaluations.
 Synthetic exits have absent origins. Edges use local IDs; derivations do not prove path feasibility.

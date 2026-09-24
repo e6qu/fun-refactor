@@ -352,3 +352,8 @@ Merkle object store and revalidate dependencies on resume. See the
 source origins. `TaskStep.from_guide` retains ready guide arguments and structured input.
 `TaskStep.checked` and `fr_ir.investigation_checks.run_checks` bind reviewed check results to source,
 configuration and executable identities. Failed checks remain available through verified storage.
+
+Use `FlowCache.analyze(..., summaries=True, steps=4096)` for symbolic function summaries with bounded recursion.
+`analysis.summaries` exposes typed `FunctionSummary` records, parameter transfer and explicit return, sink and raise effects.
+Check both `complete` and `converged` before interpreting missing flows. A converged model does not prove runtime termination.
+Cache reuse covers the whole defining file and renews nested summary occurrences after unrelated edits.

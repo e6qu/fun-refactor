@@ -1,0 +1,102 @@
+{
+  "revision": "354d9fb85201a6a0678bf14e9ae7802a0c3ae02a",
+  "cases": {
+    "positive": {
+      "complete": false,
+      "cutoffs": [
+        "recursion:relay"
+      ],
+      "witnesses": 2,
+      "response_bytes": 22179,
+      "elapsed_seconds": 0.2668358749942854
+    },
+    "negative": {
+      "complete": false,
+      "cutoffs": [
+        "recursion:erase"
+      ],
+      "witnesses": 1,
+      "response_bytes": 19284,
+      "elapsed_seconds": 0.26350899995304644
+    },
+    "mutual": {
+      "complete": false,
+      "cutoffs": [
+        "recursion:even"
+      ],
+      "witnesses": 2,
+      "response_bytes": 33526,
+      "elapsed_seconds": 0.2649564589955844
+    },
+    "effects": {
+      "complete": false,
+      "cutoffs": [
+        "recursion:emit"
+      ],
+      "witnesses": 1,
+      "response_bytes": 17389,
+      "elapsed_seconds": 0.26361108297714964
+    },
+    "unreachable": {
+      "complete": false,
+      "cutoffs": [
+        "recursion:forever"
+      ],
+      "witnesses": 1,
+      "response_bytes": 13599,
+      "elapsed_seconds": 0.2635574170271866
+    },
+    "exceptional": {
+      "complete": false,
+      "cutoffs": [
+        "helper-exception-control-unchecked"
+      ],
+      "witnesses": 1,
+      "response_bytes": 15331,
+      "elapsed_seconds": 0.268655417021364
+    },
+    "sanitized": {
+      "complete": false,
+      "cutoffs": [
+        "recursion:relay"
+      ],
+      "witnesses": 1,
+      "response_bytes": 19573,
+      "elapsed_seconds": 0.2635920000029728
+    },
+    "separate": {
+      "complete": false,
+      "cutoffs": [
+        "recursion:relay"
+      ],
+      "witnesses": 1,
+      "response_bytes": 26671,
+      "elapsed_seconds": 0.2646695419680327
+    },
+    "unknown": {
+      "complete": false,
+      "cutoffs": [
+        "unknown-external-call:external"
+      ],
+      "witnesses": 0,
+      "response_bytes": 7874,
+      "elapsed_seconds": 0.265606792003382
+    },
+    "aliased": {
+      "complete": false,
+      "cutoffs": [
+        "alias-or-destructuring-assignment",
+        "unsupported-expression:subscript",
+        "unsupported-local-binding"
+      ],
+      "witnesses": 0,
+      "response_bytes": 8197,
+      "elapsed_seconds": 0.2637218330055475
+    }
+  },
+  "diagnostics": [
+    "Discovery with --bytes requires --source; bounded signature discovery succeeded without source reveal.",
+    "Initial mutual-recursion fixture decremented through zero on odd counts; independent runtime oracle caught the defect before implementation. Both functions now have base cases."
+  ],
+  "tokens": null
+}
