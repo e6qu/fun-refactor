@@ -88,6 +88,7 @@ pub enum DependencyKind {
     CheckConfiguration,
     CheckSources,
     CheckToolchain,
+    DeclarationAnalyzer,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -136,6 +137,7 @@ impl Project<'_> {
                 env!("CARGO_PKG_VERSION"),
                 include_str!("investigation.rs"),
             ))?,
+            DependencyKind::DeclarationAnalyzer => super::correspondence::analyzer_digest()?,
             DependencyKind::Workspace => self.revision.clone(),
             DependencyKind::CheckConfiguration => {
                 crate::checks::evidence::configuration_digest(&self.root)?

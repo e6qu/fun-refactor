@@ -1,0 +1,6 @@
+{
+  "schema": "fr-correspondence-diagnostics-1",
+  "attempts": [
+    {"stage": "initial SDK tests", "result": "4 failed, 16 passed", "cause": "Identity capture includes indexed parameters. The tests assumed that every captured row was a function.", "resolution": "Select target handles explicitly with subset; retain parameter coverage in paging tests."}
+  ]
+}

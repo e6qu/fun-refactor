@@ -30,3 +30,4 @@ import FrKernels.Surface
 
 import FrKernels.Investigation
 import FrKernels.Flow
+import FrKernels.Correspondence

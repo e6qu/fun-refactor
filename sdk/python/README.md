@@ -415,3 +415,31 @@ compiler observation. Attachments retain the original report digest and plan dep
 
 See the [compiler contract](../../docs/project-checks.md#retained-compiler-diagnostics) for trust,
 protocol limits, input declarations and coverage distinctions.
+
+## Durable investigation targets
+
+`DeclarationSnapshot` separates declaration content identities, current handles and verified storage roots.
+Capture can include nested parameters and locals. Select the intended handles explicitly.
+
+```python
+from fr_ir.correspondence import DeclarationSnapshot
+from fr_ir.investigation import TaskPlan, TaskStep
+from fr_ir.investigation_session import InvestigationSession, target_inputs
+
+snapshot = DeclarationSnapshot.capture(client, "subject.py")
+selected = snapshot.subset((target.handle,))
+plan = TaskPlan("Diagnose the result", ("diagnosed",), (
+    TaskStep("diagnose", "Which declaration supplies this value?", target_inputs(),
+             satisfies=("diagnosed",)),
+)).resume(client).plan
+session = InvestigationSession.bind(plan, {"diagnose": selected})
+root = session.persist(store)
+reopened = InvestigationSession.restore(store, root).resume(client)
+comparison = reopened.correspondence["diagnose"]
+```
+
+Inspect `comparison.matches`, candidate reasons and `complete` before selecting a current handle.
+Pass an explicit mapping to `reopened.refresh(client, "diagnose", choices, inputs=target_inputs("moved.py"))`.
+Refresh revalidates the selection and clears old evidence and actions. It preserves acceptance requirements.
+New guide actions and mutation reviews remain necessary. Neither equal content nor a stored Merkle root authorizes a write.
+See [correspondence and checked delivery](../../docs/agent-investigations.md#correspondence-and-checked-delivery) for bounds and trust assumptions.

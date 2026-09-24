@@ -235,12 +235,56 @@ The Investigation kernel checks the four-class dependency admission law against 
 
 ## Correspondence and checked delivery
 
-`project identities` pages immutable declaration digests beside current handles. Pass a retained
-identity report with `--from` to obtain matched, ambiguous or missing candidates after a move or
-edit. Identical content takes precedence; same-path/name/kind is a weaker fallback. Multiple equal
-objects remain ambiguous. An unmatched rename can remain missing. These are syntactic candidates,
-not a semantic equivalence proof or automatic rebinding. Only the supplied page participates.
-Declaration objects exclude graph edges, so recursive references do not require recursive hashing.
+`project identities` returns version 2 declaration identities with exact occurrences and lexical scopes.
+Each identity separates the revision handle, declaration content digest and digest with the declaration name removed.
+The SDK persists these records through the existing verified Merkle store. Its storage root identifies the whole snapshot;
+it differs from a declaration content digest and a revision handle. Graph edges stay outside declaration content hashing.
+
+Pass a captured page or SDK snapshot with `--from`; optional `--digest` binds its canonical JSON bytes.
+The command searches indexed declarations within the current target. It combines three candidate rules:
+identical declaration content, identical text except the declaration name, and the same path/scope/name/kind/language.
+A renamed recursive function can remain missing because references inside its body also changed.
+A changed original and its unchanged copy both remain visible. Multiple candidates remain ambiguous.
+Several retained declarations competing for one current candidate also remain ambiguous, even with only one candidate each.
+`matched` means one unshared syntactic candidate. It does not establish semantic equivalence.
+
+`--limit` bounds rows to 1–500. `--candidates` bounds disclosed candidates per row to 1–64, with a default of 16.
+`--bytes` bounds compact report bytes to 4,096–1,048,576, with a default of 32,768.
+A row that cannot fit refuses and asks for a larger byte budget or fewer candidates.
+Candidate counts and conflicts describe the full search; clipped candidate lists make the report incomplete.
+Missing rows describe only the indexed declarations in the selected scope. Read scan coverage before reasoning about repository absence.
+Only supplied old identities participate; a partial old page cannot produce a complete correspondence report.
+Older identity reports lack the version 2 contract and require a fresh capture.
+
+`fr_ir.correspondence` provides `IdentityPage`, `DeclarationIdentity`, `DeclarationSnapshot` and `CorrespondenceReport`.
+Capture uses at most 64 pages and retains `complete=False` when the page budget ends.
+Snapshots admit at most 1,000 identities and 1 MiB of canonical JSON.
+`subset` explicitly selects disclosed handles; its completeness covers that selection only.
+Indexed parameters and local declarations can appear beside functions. Select the intended handles explicitly.
+`compare` validates page continuity, candidate reasons, conflicts and retained input identity.
+`select(client, {old_handle: current_handle})` rechecks the whole comparison before returning fresh read targets.
+It requires complete disclosure and distinct explicit choices. It never chooses the first row automatically.
+Changed source or analyzer rules refuse a stale selection. Local record digests do not authenticate an untrusted producer.
+
+`fr_ir.investigation_session.InvestigationSession` binds selected snapshots to plan steps.
+Use `target_inputs(*source_paths)` to declare workspace and declaration-analyzer dependencies plus explicit source paths.
+Capture the plan dependencies with `plan.resume(client)` before binding the target snapshots.
+Session storage includes the plan and targets; reopening preserves their original revisions.
+Resumption groups targets from the same revision to expose competing candidates across steps.
+A session admits at most 64 target steps and 1,000 distinct target declarations.
+The `declaration-analyzer` dependency invalidates evidence when correspondence rules change.
+
+`resumed.refresh(client, step_id, choices, inputs=target_inputs("moved.py"))` requires a choice for every target of that step.
+It captures the agent's fresh dependency declarations and clears the step's old evidence, action and structured action input.
+It preserves acceptance requirements and independent satisfied evidence. Dependent stale steps need their own refresh.
+Use fresh guide actions and immutable mutation reviews after refresh. Old reviews still refuse after a source change.
+The session never executes an action or rewrites a retained review.
+
+The [retained acceptance](../tests/agent-eval/results/2026-09-24-resumable-correspondence/result.json) covers six correspondence cases,
+interrupted resumption, stale review refusal and fresh delivery with independent patch replay.
+An independent Python AST oracle checks declaration coordinates. Four Lean theorems describe the candidate classification policy;
+native tests compare sixteen cases. These checks do not prove semantic correspondence or host persistence.
+Cold, warm and edited runs retain latency, context bytes and isolated peak RSS. They recompute correspondence on each call.
 
 Python task delivery now admits existing body replacement and insertion of one top-level function
 into a file. Insertion reparses the complete result, refuses existing indexed binding names and
