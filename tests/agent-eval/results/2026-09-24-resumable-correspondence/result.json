@@ -1,6 +1,6 @@
 {
   "schema": "fr-correspondence-acceptance-1",
-  "repository_revision": "628d6c47872d4220f10c1e9bb7aa7fb499b75c87",
+  "repository_revision": "4a32f35f7b9978de996407e9ae8acf44f509d069",
   "source_bindings": {
     "tools/correspondence-acceptance.py": "53c9e7dc25e276a04d3cc45352e90fa07f176d77fbcdaef5ed46c7e6d40a6315",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
@@ -11,7 +11,7 @@
     "src/parse.rs": "170c261df7185a352d7d1d20fa0b15f306cfa17dbd369ea2b21681484b059725",
     "src/span.rs": "b6e16d2f1cec39803a55131836ba6fa5f11627ffbb4a973cae1356911997bc29",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0",
-    "sdk/python/src/fr_ir/correspondence.py": "121768049e61c38302738c72aeb257194b1e23c22648dea408c7f402192a318b",
+    "sdk/python/src/fr_ir/correspondence.py": "30d2d0b7fe1cffdf46a882853cbecb1c40c0077f8fcf590717851ad052a4d245",
     "sdk/python/src/fr_ir/investigation_session.py": "32ab173adecd839b370bac03b2033f30fc02bbebe0ab9d962688c0103b087807",
     "sdk/python/src/fr_ir/investigation.py": "d387795c578a3fa601c5c58444723bfaa88357f8996cd1d65a3f0278921ff431",
     "sdk/python/src/fr_ir/context.py": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0",
@@ -22,9 +22,9 @@
     "tests/agent-eval/resumable-correspondence/subject.py": "08a7fb248695b598bc8db2e42d0b1de2da94eb2d5ef553b70d457724bb21ff48",
     "tests/agent-eval/resumable-correspondence/oracle.py": "f6f9e72e705544d75e5f57db4cacad79b989a536fa332e2b1ca78edef6b3e9f9",
     "tests/agent-eval/resumable-correspondence/baseline.json": "573c8323b63e45a5aaf1c71938ccefd43f75a3907fc428a99b1275d7a52edd7d",
-    "tests/agent-eval/resumable-correspondence/diagnostics.json": "420219597b11b9e6dd639bc5aa95e217c3da8b73173c312ac9f9e34c6d28555f"
+    "tests/agent-eval/resumable-correspondence/diagnostics.json": "750a01ac2875f769c84fe131579923e267f108e6051bfeac2138170ddf736038"
   },
-  "binary_sha256": "c1c3597994d8f1cd6a46875c2e7c052ff200c4dbdcd71467504f876b634ea042",
+  "binary_sha256": "929fc1a688ddb1a4ea3c0bb888391315db17c093b8aca7244ff3cfb4975c8b33",
   "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
   "oracle": {
     "declarations": [
@@ -66,7 +66,7 @@
     }
   ],
   "ordinary_ast": {
-    "seconds": 0.0031597919296473265,
+    "seconds": 0.0011181660229340196,
     "source_reveals": 1,
     "context_bytes": 174,
     "tokens": null
@@ -186,13 +186,13 @@
   },
   "snapshot": {
     "schema": "fr-declaration-snapshot-1",
-    "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+    "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
     "selection": "explicit-declarations",
     "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
     "items": [
       {
-        "handle": "frp1:71f367677151ab54de29687b167a0983:4",
-        "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+        "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+        "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
         "path": "subject.py",
         "name": "café",
         "kind": "function",
@@ -201,8 +201,8 @@
         "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
         "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
         "occurrence": {
-          "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
-          "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+          "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
+          "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
           "path": "subject.py",
           "location": {
             "span": {
@@ -221,13 +221,13 @@
             }
           },
           "role": "declaration",
-          "enclosing": "frp1:71f367677151ab54de29687b167a0983:4"
+          "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4"
         }
       }
     ],
     "complete": true
   },
-  "snapshot_root": "135338b19dc487e8aaaf7ba6a28555e04835f79507735f2b97796de36f3fd084",
+  "snapshot_root": "f73619c363def92540541e5e419a24b2ac283b41c0f3752f4ad71536a0d19c77",
   "session": {
     "schema": "fr-investigation-session-1",
     "plan": {
@@ -243,7 +243,7 @@
             {
               "kind": "workspace",
               "key": "selected-project",
-              "digest": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83"
+              "digest": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214"
             },
             {
               "kind": "declaration-analyzer",
@@ -257,7 +257,7 @@
             {
               "id": "coordinates",
               "kind": "observation",
-              "input_digest": "ce6db29917a9c77eba9614ccdbbc836984f1b6760ac3299a5144dc8a1e183523",
+              "input_digest": "ce8a314adbc66baf62fb013ae7ff5600c173f959fe94afc26d88264b04f4df5b",
               "passed": true,
               "reference": "independent-ast-oracle"
             }
@@ -269,7 +269,7 @@
           "action": [
             "project",
             "show",
-            "frp1:71f367677151ab54de29687b167a0983:4"
+            "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4"
           ],
           "action_input": null
         },
@@ -291,7 +291,7 @@
             {
               "id": "coordinates",
               "kind": "observation",
-              "input_digest": "ebebdf9b6b913ba42455c007d3d7cc778274c1b81a77566ee39273e81b8f7dc6",
+              "input_digest": "baf6497436bc2dc7c141249b29f50aa5ae75da4f061c7303f3063b7f038e0518",
               "passed": true,
               "reference": "independent-ast-oracle"
             }
@@ -335,13 +335,13 @@
     "targets": {
       "target": {
         "schema": "fr-declaration-snapshot-1",
-        "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+        "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
         "selection": "explicit-declarations",
         "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
         "items": [
           {
-            "handle": "frp1:71f367677151ab54de29687b167a0983:4",
-            "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+            "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+            "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
             "path": "subject.py",
             "name": "café",
             "kind": "function",
@@ -350,8 +350,8 @@
             "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
             "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
             "occurrence": {
-              "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
-              "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+              "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
+              "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
               "path": "subject.py",
               "location": {
                 "span": {
@@ -370,7 +370,7 @@
                 }
               },
               "role": "declaration",
-              "enclosing": "frp1:71f367677151ab54de29687b167a0983:4"
+              "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4"
             }
           }
         ],
@@ -378,12 +378,12 @@
       }
     }
   },
-  "session_root": "aa7ee129a8bf879b2f0b32540374e041567de9d170763045e7ff06a7ae47f9d5",
+  "session_root": "0a5d808ee432f7b8ccd0a9938c30de9375f7449ff7dd2bd8a2ce0ca536936190",
   "reopened": {
     "check_attachment": null,
     "claim": "validated agent-reported evidence; references do not attest tool execution.",
     "complete": false,
-    "context_basis": "frcb1:511c33499ecac76791af60e27f42989dab5eb7e718d95f8edfc19c9c696d97ba",
+    "context_basis": "frcb1:18c0a4eead5554482caaf00aa7052112c76ddf860486aa77cb5cd5990d839d89",
     "coverage": {
       "architecture": "not inferred",
       "files_by_gap": {},
@@ -404,11 +404,11 @@
       "unsupported_files": 0
     },
     "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-    "handle_prefix": "frp1:71f367677151ab54de29687b167a0983:",
+    "handle_prefix": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:",
     "input_digests": {
-      "dependent": "ebebdf9b6b913ba42455c007d3d7cc778274c1b81a77566ee39273e81b8f7dc6",
+      "dependent": "baf6497436bc2dc7c141249b29f50aa5ae75da4f061c7303f3063b7f038e0518",
       "independent": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
-      "target": "ce6db29917a9c77eba9614ccdbbc836984f1b6760ac3299a5144dc8a1e183523"
+      "target": "ce8a314adbc66baf62fb013ae7ff5600c173f959fe94afc26d88264b04f4df5b"
     },
     "invalidated": [],
     "mutation_authority": false,
@@ -425,14 +425,14 @@
           "action": [
             "project",
             "show",
-            "frp1:71f367677151ab54de29687b167a0983:4"
+            "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4"
           ],
           "depends_on": [],
           "evidence": [],
           "id": "target",
           "inputs": [
             {
-              "digest": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+              "digest": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
               "key": "selected-project",
               "kind": "workspace"
             },
@@ -457,7 +457,7 @@
           "evidence": [
             {
               "id": "coordinates",
-              "input_digest": "ebebdf9b6b913ba42455c007d3d7cc778274c1b81a77566ee39273e81b8f7dc6",
+              "input_digest": "baf6497436bc2dc7c141249b29f50aa5ae75da4f061c7303f3063b7f038e0518",
               "kind": "observation",
               "passed": true,
               "reference": "independent-ast-oracle"
@@ -503,14 +503,14 @@
         }
       ]
     },
-    "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+    "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
     "schema": "fr-investigation-resume-1"
   },
   "resumed": {
     "check_attachment": null,
     "claim": "validated agent-reported evidence; references do not attest tool execution.",
     "complete": false,
-    "context_basis": "frcb1:72190f4f3ab95826eb1ac9da439826a9abc6510d6864d192c366f916d8030224",
+    "context_basis": "frcb1:e8954149b1c162d4f35038f77aca1e181677330c35ca29e5377416c6b8c5f095",
     "coverage": {
       "architecture": "not inferred",
       "files_by_gap": {},
@@ -531,11 +531,11 @@
       "unsupported_files": 0
     },
     "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
-    "handle_prefix": "frp1:a4024a77947098689c634c33713721d2:",
+    "handle_prefix": "frp1:02c7f9841c3178a90cae225ec69ced95:",
     "input_digests": {
-      "dependent": "ebebdf9b6b913ba42455c007d3d7cc778274c1b81a77566ee39273e81b8f7dc6",
+      "dependent": "baf6497436bc2dc7c141249b29f50aa5ae75da4f061c7303f3063b7f038e0518",
       "independent": "b6ea3a760fe714a259145fbdd3d93dbf12876ee18a7bebdbee728780c1fca8f8",
-      "target": "ce6db29917a9c77eba9614ccdbbc836984f1b6760ac3299a5144dc8a1e183523"
+      "target": "ce8a314adbc66baf62fb013ae7ff5600c173f959fe94afc26d88264b04f4df5b"
     },
     "invalidated": [
       "target",
@@ -555,13 +555,13 @@
           "action": [
             "project",
             "show",
-            "frp1:71f367677151ab54de29687b167a0983:4"
+            "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4"
           ],
           "depends_on": [],
           "evidence": [
             {
               "id": "coordinates",
-              "input_digest": "ce6db29917a9c77eba9614ccdbbc836984f1b6760ac3299a5144dc8a1e183523",
+              "input_digest": "ce8a314adbc66baf62fb013ae7ff5600c173f959fe94afc26d88264b04f4df5b",
               "kind": "observation",
               "passed": true,
               "reference": "independent-ast-oracle"
@@ -570,7 +570,7 @@
           "id": "target",
           "inputs": [
             {
-              "digest": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+              "digest": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
               "key": "selected-project",
               "kind": "workspace"
             },
@@ -595,7 +595,7 @@
           "evidence": [
             {
               "id": "coordinates",
-              "input_digest": "ebebdf9b6b913ba42455c007d3d7cc778274c1b81a77566ee39273e81b8f7dc6",
+              "input_digest": "baf6497436bc2dc7c141249b29f50aa5ae75da4f061c7303f3063b7f038e0518",
               "kind": "observation",
               "passed": true,
               "reference": "independent-ast-oracle"
@@ -641,7 +641,7 @@
         }
       ]
     },
-    "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+    "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
     "schema": "fr-investigation-resume-1"
   },
   "refreshed": {
@@ -659,7 +659,7 @@
             {
               "kind": "workspace",
               "key": "selected-project",
-              "digest": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8"
+              "digest": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7"
             },
             {
               "kind": "declaration-analyzer",
@@ -700,7 +700,7 @@
             {
               "id": "coordinates",
               "kind": "observation",
-              "input_digest": "ebebdf9b6b913ba42455c007d3d7cc778274c1b81a77566ee39273e81b8f7dc6",
+              "input_digest": "baf6497436bc2dc7c141249b29f50aa5ae75da4f061c7303f3063b7f038e0518",
               "passed": true,
               "reference": "independent-ast-oracle"
             }
@@ -744,13 +744,13 @@
     "targets": {
       "target": {
         "schema": "fr-declaration-snapshot-1",
-        "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+        "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
         "selection": "explicit-declarations",
         "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
         "items": [
           {
-            "handle": "frp1:a4024a77947098689c634c33713721d2:4",
-            "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+            "handle": "frp1:02c7f9841c3178a90cae225ec69ced95:4",
+            "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
             "path": "moved.py",
             "name": "café",
             "kind": "function",
@@ -759,8 +759,8 @@
             "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
             "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
             "occurrence": {
-              "id": "fro1:02105e0b16ed729f928adb1381ecc6ae9a49c347ab775369357dae5e6c7f6c82",
-              "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+              "id": "fro1:ff756fceb14e3572e8356e3150317828866e7d9ab0064ab09517343d2c501342",
+              "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
               "path": "moved.py",
               "location": {
                 "span": {
@@ -779,7 +779,7 @@
                 }
               },
               "role": "declaration",
-              "enclosing": "frp1:a4024a77947098689c634c33713721d2:4"
+              "enclosing": "frp1:02c7f9841c3178a90cae225ec69ced95:4"
             }
           }
         ],
@@ -792,10 +792,10 @@
       "pages": [
         {
           "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-          "basis": "frpc1:21e3f20f3d86330aa330fa3725547880",
+          "basis": "frpc1:7d804dab09ac4c6e1842df583f37845b",
           "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
           "complete": true,
-          "context_basis": "frcb1:72190f4f3ab95826eb1ac9da439826a9abc6510d6864d192c366f916d8030224",
+          "context_basis": "frcb1:e8954149b1c162d4f35038f77aca1e181677330c35ca29e5377416c6b8c5f095",
           "coverage": {
             "architecture": "not inferred",
             "files_by_gap": {},
@@ -816,25 +816,25 @@
             "unsupported_files": 0
           },
           "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-          "handle_prefix": "frp1:a4024a77947098689c634c33713721d2:",
+          "handle_prefix": "frp1:02c7f9841c3178a90cae225ec69ced95:",
           "identity_contract": "fr-declaration-identities-2",
           "input_complete": true,
-          "input_digest": "01e9345240078b533d69bd4afe0df2264464c07387b5f6698c1b39d7dcc51e5e",
+          "input_digest": "455602ecb77e06f1f8598762e4cba1fa48e02b3482e8dafbc4ec09216f0e7945",
           "items": [
             {
               "action_rebound": false,
               "candidate_count": 1,
               "candidates": [
                 {
-                  "handle": "frp1:a4024a77947098689c634c33713721d2:4",
+                  "handle": "frp1:02c7f9841c3178a90cae225ec69ced95:4",
                   "kind": "function",
                   "language": "python",
                   "name": "café",
                   "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                   "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                   "occurrence": {
-                    "enclosing": "frp1:a4024a77947098689c634c33713721d2:4",
-                    "id": "fro1:02105e0b16ed729f928adb1381ecc6ae9a49c347ab775369357dae5e6c7f6c82",
+                    "enclosing": "frp1:02c7f9841c3178a90cae225ec69ced95:4",
+                    "id": "fro1:ff756fceb14e3572e8356e3150317828866e7d9ab0064ab09517343d2c501342",
                     "location": {
                       "range": {
                         "end": {
@@ -852,26 +852,26 @@
                       }
                     },
                     "path": "moved.py",
-                    "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+                    "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
                     "role": "declaration"
                   },
                   "path": "moved.py",
-                  "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+                  "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
                   "scope": []
                 }
               ],
               "candidates_complete": true,
               "conflicts": [],
               "previous": {
-                "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+                "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                 "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                 "occurrence": {
-                  "enclosing": "frp1:71f367677151ab54de29687b167a0983:4",
-                  "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
+                  "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+                  "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
                   "location": {
                     "range": {
                       "end": {
@@ -889,17 +889,17 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                  "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                   "role": "declaration"
                 },
                 "path": "subject.py",
-                "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                 "scope": []
               },
               "reasons": [
                 {
                   "content_equal": true,
-                  "handle": "frp1:a4024a77947098689c634c33713721d2:4",
+                  "handle": "frp1:02c7f9841c3178a90cae225ec69ced95:4",
                   "rules": [
                     "identical-declaration-content",
                     "identical-except-declaration-name"
@@ -922,23 +922,23 @@
             "total": 1
           },
           "query": "correspondence",
-          "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+          "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
           "schema": "fr-project-1",
           "selection": "."
         }
       ],
       "complete": true,
-      "seconds": 0.025910708936862648,
+      "seconds": 0.038207291974686086,
       "context_bytes": 3107
     },
     "rename": {
       "pages": [
         {
           "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-          "basis": "frpc1:da94afd0d60d8e7fb9ab4710ad3b69ce",
+          "basis": "frpc1:8a48e01274ef70ae88cd6fc5d0ffb938",
           "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
           "complete": true,
-          "context_basis": "frcb1:7836e81f6f646c830e768d0a79a341e7dd6092ee43fee704db706259d31bb296",
+          "context_basis": "frcb1:7a94927821e3aca3c13b8844f19b6df80fff4b376a2ee26ee68bcc9d3d313922",
           "coverage": {
             "architecture": "not inferred",
             "files_by_gap": {},
@@ -959,25 +959,25 @@
             "unsupported_files": 0
           },
           "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-          "handle_prefix": "frp1:461d5b92d7c7753bc403c8d6e8567df6:",
+          "handle_prefix": "frp1:5185a7046984c1fd2a0e5045ba2b8fa2:",
           "identity_contract": "fr-declaration-identities-2",
           "input_complete": true,
-          "input_digest": "01e9345240078b533d69bd4afe0df2264464c07387b5f6698c1b39d7dcc51e5e",
+          "input_digest": "455602ecb77e06f1f8598762e4cba1fa48e02b3482e8dafbc4ec09216f0e7945",
           "items": [
             {
               "action_rebound": false,
               "candidate_count": 1,
               "candidates": [
                 {
-                  "handle": "frp1:461d5b92d7c7753bc403c8d6e8567df6:4",
+                  "handle": "frp1:5185a7046984c1fd2a0e5045ba2b8fa2:4",
                   "kind": "function",
                   "language": "python",
                   "name": "renamed",
                   "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                   "object_digest": "62688e8a0f27052440a7f3fdb336f43d8d026fde1b5a5d66207070af54cb8b6f",
                   "occurrence": {
-                    "enclosing": "frp1:461d5b92d7c7753bc403c8d6e8567df6:4",
-                    "id": "fro1:1c2f730024c00aee29a25819a4a5638d2a60a10ce0d4af3f698c09c149801bbf",
+                    "enclosing": "frp1:5185a7046984c1fd2a0e5045ba2b8fa2:4",
+                    "id": "fro1:5c635ef83765c5acc0dda6c293d8fd59cc626d4c24fed11c2d3d04c92777a108",
                     "location": {
                       "range": {
                         "end": {
@@ -995,26 +995,26 @@
                       }
                     },
                     "path": "moved.py",
-                    "revision": "461d5b92d7c7753bc403c8d6e8567df611957ae2d65e3df11c299ea477b545d4",
+                    "revision": "5185a7046984c1fd2a0e5045ba2b8fa28be3d53b3648e2c97d738c4927dcf7a3",
                     "role": "declaration"
                   },
                   "path": "moved.py",
-                  "revision": "461d5b92d7c7753bc403c8d6e8567df611957ae2d65e3df11c299ea477b545d4",
+                  "revision": "5185a7046984c1fd2a0e5045ba2b8fa28be3d53b3648e2c97d738c4927dcf7a3",
                   "scope": []
                 }
               ],
               "candidates_complete": true,
               "conflicts": [],
               "previous": {
-                "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+                "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                 "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                 "occurrence": {
-                  "enclosing": "frp1:71f367677151ab54de29687b167a0983:4",
-                  "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
+                  "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+                  "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
                   "location": {
                     "range": {
                       "end": {
@@ -1032,17 +1032,17 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                  "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                   "role": "declaration"
                 },
                 "path": "subject.py",
-                "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                 "scope": []
               },
               "reasons": [
                 {
                   "content_equal": false,
-                  "handle": "frp1:461d5b92d7c7753bc403c8d6e8567df6:4",
+                  "handle": "frp1:5185a7046984c1fd2a0e5045ba2b8fa2:4",
                   "rules": [
                     "identical-except-declaration-name"
                   ]
@@ -1064,23 +1064,23 @@
             "total": 1
           },
           "query": "correspondence",
-          "revision": "461d5b92d7c7753bc403c8d6e8567df611957ae2d65e3df11c299ea477b545d4",
+          "revision": "5185a7046984c1fd2a0e5045ba2b8fa28be3d53b3648e2c97d738c4927dcf7a3",
           "schema": "fr-project-1",
           "selection": "."
         }
       ],
       "complete": true,
-      "seconds": 0.02233733399771154,
+      "seconds": 0.04011241707485169,
       "context_bytes": 3078
     },
     "changed": {
       "pages": [
         {
           "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-          "basis": "frpc1:ccaa2eae487465e1c775d2440153cd39",
+          "basis": "frpc1:efd1bf88bf090e4c2ed61c88dc709309",
           "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
           "complete": true,
-          "context_basis": "frcb1:3e5f254fd1e8c8967abbbd13719ee5fc090c4e4b33f42f303ab1f775ee1bdb08",
+          "context_basis": "frcb1:d31b1c7730f50c192c05c0cb1c743c1fa9d9642487f7e158e97a4abe98ae6b7b",
           "coverage": {
             "architecture": "not inferred",
             "files_by_gap": {},
@@ -1101,25 +1101,25 @@
             "unsupported_files": 0
           },
           "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-          "handle_prefix": "frp1:fbd37465a096519ebedc7c8378afb20b:",
+          "handle_prefix": "frp1:536b8a0224ede2d418e54e6923995f8b:",
           "identity_contract": "fr-declaration-identities-2",
           "input_complete": true,
-          "input_digest": "01e9345240078b533d69bd4afe0df2264464c07387b5f6698c1b39d7dcc51e5e",
+          "input_digest": "455602ecb77e06f1f8598762e4cba1fa48e02b3482e8dafbc4ec09216f0e7945",
           "items": [
             {
               "action_rebound": false,
               "candidate_count": 1,
               "candidates": [
                 {
-                  "handle": "frp1:fbd37465a096519ebedc7c8378afb20b:4",
+                  "handle": "frp1:536b8a0224ede2d418e54e6923995f8b:4",
                   "kind": "function",
                   "language": "python",
                   "name": "café",
                   "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
                   "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
                   "occurrence": {
-                    "enclosing": "frp1:fbd37465a096519ebedc7c8378afb20b:4",
-                    "id": "fro1:213c4c5387dacb76087628641c4f9f12957c1c06b631da53e7f3bdaf1e1a805b",
+                    "enclosing": "frp1:536b8a0224ede2d418e54e6923995f8b:4",
+                    "id": "fro1:468595ec715d5fb2cd42ff0f797c449f06c75e710e2b0b290278b384b5413cf7",
                     "location": {
                       "range": {
                         "end": {
@@ -1137,26 +1137,26 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "fbd37465a096519ebedc7c8378afb20b9b2a2ac668d1959c78f907f8f9d6496f",
+                    "revision": "536b8a0224ede2d418e54e6923995f8ba44895c488b2c7853e110ea126eaa62a",
                     "role": "declaration"
                   },
                   "path": "subject.py",
-                  "revision": "fbd37465a096519ebedc7c8378afb20b9b2a2ac668d1959c78f907f8f9d6496f",
+                  "revision": "536b8a0224ede2d418e54e6923995f8ba44895c488b2c7853e110ea126eaa62a",
                   "scope": []
                 }
               ],
               "candidates_complete": true,
               "conflicts": [],
               "previous": {
-                "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+                "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                 "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                 "occurrence": {
-                  "enclosing": "frp1:71f367677151ab54de29687b167a0983:4",
-                  "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
+                  "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+                  "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
                   "location": {
                     "range": {
                       "end": {
@@ -1174,17 +1174,17 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                  "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                   "role": "declaration"
                 },
                 "path": "subject.py",
-                "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                 "scope": []
               },
               "reasons": [
                 {
                   "content_equal": false,
-                  "handle": "frp1:fbd37465a096519ebedc7c8378afb20b:4",
+                  "handle": "frp1:536b8a0224ede2d418e54e6923995f8b:4",
                   "rules": [
                     "same-path-scope-name-kind"
                   ]
@@ -1206,23 +1206,23 @@
             "total": 1
           },
           "query": "correspondence",
-          "revision": "fbd37465a096519ebedc7c8378afb20b9b2a2ac668d1959c78f907f8f9d6496f",
+          "revision": "536b8a0224ede2d418e54e6923995f8ba44895c488b2c7853e110ea126eaa62a",
           "schema": "fr-project-1",
           "selection": "."
         }
       ],
       "complete": true,
-      "seconds": 0.015751375001855195,
+      "seconds": 0.01793708303011954,
       "context_bytes": 3072
     },
     "copy-and-change": {
       "pages": [
         {
           "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-          "basis": "frpc1:0f1359462a4a72f95e603b0cb1471250",
+          "basis": "frpc1:5da03164ab5d29996a66af8f835fd3a7",
           "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
           "complete": true,
-          "context_basis": "frcb1:50e0f2d4bb1b81381277667b9ce6291c72734eb311b4c1896e8e78ff97053eb1",
+          "context_basis": "frcb1:b2b180696f5fefab7f6236b93a41807157ec46ea835b002c60745e12a25e8a1f",
           "coverage": {
             "architecture": "not inferred",
             "files_by_gap": {},
@@ -1243,25 +1243,25 @@
             "unsupported_files": 0
           },
           "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-          "handle_prefix": "frp1:7831a7f36a67df0a7c4da28911c9f35f:",
+          "handle_prefix": "frp1:f6fe97fb750178707b9a821c06db4d88:",
           "identity_contract": "fr-declaration-identities-2",
           "input_complete": true,
-          "input_digest": "01e9345240078b533d69bd4afe0df2264464c07387b5f6698c1b39d7dcc51e5e",
+          "input_digest": "455602ecb77e06f1f8598762e4cba1fa48e02b3482e8dafbc4ec09216f0e7945",
           "items": [
             {
               "action_rebound": false,
               "candidate_count": 2,
               "candidates": [
                 {
-                  "handle": "frp1:7831a7f36a67df0a7c4da28911c9f35f:2",
+                  "handle": "frp1:f6fe97fb750178707b9a821c06db4d88:2",
                   "kind": "function",
                   "language": "python",
                   "name": "café",
                   "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                   "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                   "occurrence": {
-                    "enclosing": "frp1:7831a7f36a67df0a7c4da28911c9f35f:2",
-                    "id": "fro1:cfd89097d1af7a652609866654416bfe49c286abe93a0a1e373c40a947dbd0ed",
+                    "enclosing": "frp1:f6fe97fb750178707b9a821c06db4d88:2",
+                    "id": "fro1:b97050487dc3a064a70cab6fcca94d9eae474447a770cfa51605571c23fa52ff",
                     "location": {
                       "range": {
                         "end": {
@@ -1279,23 +1279,23 @@
                       }
                     },
                     "path": "copy.py",
-                    "revision": "7831a7f36a67df0a7c4da28911c9f35f75992160fe27d688d09ed610f0e85651",
+                    "revision": "f6fe97fb750178707b9a821c06db4d883a9e701a8a17120caa19b37253a2eaa1",
                     "role": "declaration"
                   },
                   "path": "copy.py",
-                  "revision": "7831a7f36a67df0a7c4da28911c9f35f75992160fe27d688d09ed610f0e85651",
+                  "revision": "f6fe97fb750178707b9a821c06db4d883a9e701a8a17120caa19b37253a2eaa1",
                   "scope": []
                 },
                 {
-                  "handle": "frp1:7831a7f36a67df0a7c4da28911c9f35f:9",
+                  "handle": "frp1:f6fe97fb750178707b9a821c06db4d88:9",
                   "kind": "function",
                   "language": "python",
                   "name": "café",
                   "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
                   "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
                   "occurrence": {
-                    "enclosing": "frp1:7831a7f36a67df0a7c4da28911c9f35f:9",
-                    "id": "fro1:714ceb1abae95937f916f8d942dcd036a09018636adc4fa6b2a4e55bee1506b8",
+                    "enclosing": "frp1:f6fe97fb750178707b9a821c06db4d88:9",
+                    "id": "fro1:657d876e23546ab8b9ca752e39ab7e2a44c364681df4c1e132a2e5483dd126b2",
                     "location": {
                       "range": {
                         "end": {
@@ -1313,26 +1313,26 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "7831a7f36a67df0a7c4da28911c9f35f75992160fe27d688d09ed610f0e85651",
+                    "revision": "f6fe97fb750178707b9a821c06db4d883a9e701a8a17120caa19b37253a2eaa1",
                     "role": "declaration"
                   },
                   "path": "subject.py",
-                  "revision": "7831a7f36a67df0a7c4da28911c9f35f75992160fe27d688d09ed610f0e85651",
+                  "revision": "f6fe97fb750178707b9a821c06db4d883a9e701a8a17120caa19b37253a2eaa1",
                   "scope": []
                 }
               ],
               "candidates_complete": true,
               "conflicts": [],
               "previous": {
-                "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+                "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                 "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                 "occurrence": {
-                  "enclosing": "frp1:71f367677151ab54de29687b167a0983:4",
-                  "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
+                  "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+                  "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
                   "location": {
                     "range": {
                       "end": {
@@ -1350,17 +1350,17 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                  "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                   "role": "declaration"
                 },
                 "path": "subject.py",
-                "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                 "scope": []
               },
               "reasons": [
                 {
                   "content_equal": true,
-                  "handle": "frp1:7831a7f36a67df0a7c4da28911c9f35f:2",
+                  "handle": "frp1:f6fe97fb750178707b9a821c06db4d88:2",
                   "rules": [
                     "identical-declaration-content",
                     "identical-except-declaration-name"
@@ -1368,7 +1368,7 @@
                 },
                 {
                   "content_equal": false,
-                  "handle": "frp1:7831a7f36a67df0a7c4da28911c9f35f:9",
+                  "handle": "frp1:f6fe97fb750178707b9a821c06db4d88:9",
                   "rules": [
                     "same-path-scope-name-kind"
                   ]
@@ -1390,23 +1390,23 @@
             "total": 1
           },
           "query": "correspondence",
-          "revision": "7831a7f36a67df0a7c4da28911c9f35f75992160fe27d688d09ed610f0e85651",
+          "revision": "f6fe97fb750178707b9a821c06db4d883a9e701a8a17120caa19b37253a2eaa1",
           "schema": "fr-project-1",
           "selection": "."
         }
       ],
       "complete": true,
-      "seconds": 0.02159087499603629,
+      "seconds": 0.02622733300086111,
       "context_bytes": 3975
     },
     "duplicates": {
       "pages": [
         {
           "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-          "basis": "frpc1:020f8772b78eee2eb2176a4e13375801",
+          "basis": "frpc1:6a72df7840726d79a97ffc392632302f",
           "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
           "complete": true,
-          "context_basis": "frcb1:4cb8f001062c27e3f63fcf9c163279f63ab7d5134d37fcc76c589b522de89528",
+          "context_basis": "frcb1:b606f2d91d1731d3a014c821577d00abdc002cb78a843cf0c2bd9a78553b02f3",
           "coverage": {
             "architecture": "not inferred",
             "files_by_gap": {},
@@ -1427,25 +1427,25 @@
             "unsupported_files": 0
           },
           "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-          "handle_prefix": "frp1:56584b61c15b5923051738275dd1a612:",
+          "handle_prefix": "frp1:01a406b22b6d23e020bc998f8e132a91:",
           "identity_contract": "fr-declaration-identities-2",
           "input_complete": true,
-          "input_digest": "01e9345240078b533d69bd4afe0df2264464c07387b5f6698c1b39d7dcc51e5e",
+          "input_digest": "455602ecb77e06f1f8598762e4cba1fa48e02b3482e8dafbc4ec09216f0e7945",
           "items": [
             {
               "action_rebound": false,
               "candidate_count": 2,
               "candidates": [
                 {
-                  "handle": "frp1:56584b61c15b5923051738275dd1a612:2",
+                  "handle": "frp1:01a406b22b6d23e020bc998f8e132a91:2",
                   "kind": "function",
                   "language": "python",
                   "name": "café",
                   "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                   "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                   "occurrence": {
-                    "enclosing": "frp1:56584b61c15b5923051738275dd1a612:2",
-                    "id": "fro1:052456ac95e43f419e77cef8862316488adb2c9815b3df43506295743ab7065b",
+                    "enclosing": "frp1:01a406b22b6d23e020bc998f8e132a91:2",
+                    "id": "fro1:8477e390f5267f58cd6e75f22614821a64a446ff6c46d3a3541f3089b46481c8",
                     "location": {
                       "range": {
                         "end": {
@@ -1463,23 +1463,23 @@
                       }
                     },
                     "path": "copy.py",
-                    "revision": "56584b61c15b5923051738275dd1a61252d25918400cc8b8dee63f47d9ecb0a7",
+                    "revision": "01a406b22b6d23e020bc998f8e132a91979d5986b1f647ff16d3aa4228b4b874",
                     "role": "declaration"
                   },
                   "path": "copy.py",
-                  "revision": "56584b61c15b5923051738275dd1a61252d25918400cc8b8dee63f47d9ecb0a7",
+                  "revision": "01a406b22b6d23e020bc998f8e132a91979d5986b1f647ff16d3aa4228b4b874",
                   "scope": []
                 },
                 {
-                  "handle": "frp1:56584b61c15b5923051738275dd1a612:9",
+                  "handle": "frp1:01a406b22b6d23e020bc998f8e132a91:9",
                   "kind": "function",
                   "language": "python",
                   "name": "café",
                   "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                   "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                   "occurrence": {
-                    "enclosing": "frp1:56584b61c15b5923051738275dd1a612:9",
-                    "id": "fro1:349faec43e1777477e4a6fc6a2d464fbc4dd8c27e5d9eef78625b1a6772e2677",
+                    "enclosing": "frp1:01a406b22b6d23e020bc998f8e132a91:9",
+                    "id": "fro1:57603aa81a2d9681ed0353d9f6995f0ead75ba28683c0d79ec81878de2aaa960",
                     "location": {
                       "range": {
                         "end": {
@@ -1497,26 +1497,26 @@
                       }
                     },
                     "path": "subject.py",
-                    "revision": "56584b61c15b5923051738275dd1a61252d25918400cc8b8dee63f47d9ecb0a7",
+                    "revision": "01a406b22b6d23e020bc998f8e132a91979d5986b1f647ff16d3aa4228b4b874",
                     "role": "declaration"
                   },
                   "path": "subject.py",
-                  "revision": "56584b61c15b5923051738275dd1a61252d25918400cc8b8dee63f47d9ecb0a7",
+                  "revision": "01a406b22b6d23e020bc998f8e132a91979d5986b1f647ff16d3aa4228b4b874",
                   "scope": []
                 }
               ],
               "candidates_complete": true,
               "conflicts": [],
               "previous": {
-                "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+                "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                 "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                 "occurrence": {
-                  "enclosing": "frp1:71f367677151ab54de29687b167a0983:4",
-                  "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
+                  "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+                  "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
                   "location": {
                     "range": {
                       "end": {
@@ -1534,17 +1534,17 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                  "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                   "role": "declaration"
                 },
                 "path": "subject.py",
-                "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                 "scope": []
               },
               "reasons": [
                 {
                   "content_equal": true,
-                  "handle": "frp1:56584b61c15b5923051738275dd1a612:2",
+                  "handle": "frp1:01a406b22b6d23e020bc998f8e132a91:2",
                   "rules": [
                     "identical-declaration-content",
                     "identical-except-declaration-name"
@@ -1552,7 +1552,7 @@
                 },
                 {
                   "content_equal": true,
-                  "handle": "frp1:56584b61c15b5923051738275dd1a612:9",
+                  "handle": "frp1:01a406b22b6d23e020bc998f8e132a91:9",
                   "rules": [
                     "identical-declaration-content",
                     "identical-except-declaration-name",
@@ -1576,23 +1576,23 @@
             "total": 1
           },
           "query": "correspondence",
-          "revision": "56584b61c15b5923051738275dd1a61252d25918400cc8b8dee63f47d9ecb0a7",
+          "revision": "01a406b22b6d23e020bc998f8e132a91979d5986b1f647ff16d3aa4228b4b874",
           "schema": "fr-project-1",
           "selection": "."
         }
       ],
       "complete": true,
-      "seconds": 0.016876959009096026,
+      "seconds": 0.017832207959145308,
       "context_bytes": 4042
     },
     "deleted": {
       "pages": [
         {
           "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-          "basis": "frpc1:eab0fa0daac9357e43611c61041e1c14",
+          "basis": "frpc1:e55edd044938a27829ce49887aff5916",
           "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
           "complete": true,
-          "context_basis": "frcb1:ce8c1c03832c3839c99130743b836ec884031e5e96321b70975d6ffb6303099a",
+          "context_basis": "frcb1:9fd53f913a117fdb487971fce226c7571e66ee76f731af142e783f5ffbf9dd23",
           "coverage": {
             "architecture": "not inferred",
             "files_by_gap": {},
@@ -1613,10 +1613,10 @@
             "unsupported_files": 0
           },
           "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-          "handle_prefix": "frp1:1f400adaf13ee45963bbd3c7e2e268b6:",
+          "handle_prefix": "frp1:3855cf039dc8d582c8f10893065d0af8:",
           "identity_contract": "fr-declaration-identities-2",
           "input_complete": true,
-          "input_digest": "01e9345240078b533d69bd4afe0df2264464c07387b5f6698c1b39d7dcc51e5e",
+          "input_digest": "455602ecb77e06f1f8598762e4cba1fa48e02b3482e8dafbc4ec09216f0e7945",
           "items": [
             {
               "action_rebound": false,
@@ -1625,15 +1625,15 @@
               "candidates_complete": true,
               "conflicts": [],
               "previous": {
-                "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+                "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "bf846ab47c286a91ab35aa0c28d0df6fe9f0a0ca5d13041fc9f8484f073440ea",
                 "object_digest": "b0dd204ebaf88d3fa3a2f9d4c1b316c60bc7c4e3716f072f015631e58a82553a",
                 "occurrence": {
-                  "enclosing": "frp1:71f367677151ab54de29687b167a0983:4",
-                  "id": "fro1:8db0a497122b2e8a1a2ccc25ded9569c96b5fd2ea1b2270371ccc8cfc6937f9a",
+                  "enclosing": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
+                  "id": "fro1:2a6f2f9b345b4fedd90cf640287a11158a5d9478f969d0e70feb476b7207263b",
                   "location": {
                     "range": {
                       "end": {
@@ -1651,11 +1651,11 @@
                     }
                   },
                   "path": "subject.py",
-                  "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                  "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                   "role": "declaration"
                 },
                 "path": "subject.py",
-                "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+                "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
                 "scope": []
               },
               "reasons": [],
@@ -1675,13 +1675,13 @@
             "total": 1
           },
           "query": "correspondence",
-          "revision": "1f400adaf13ee45963bbd3c7e2e268b613d064425170c12ba78dd027cf584d98",
+          "revision": "3855cf039dc8d582c8f10893065d0af8509ed0a3585ca86e0cc81b8271ae14e0",
           "schema": "fr-project-1",
           "selection": "."
         }
       ],
       "complete": true,
-      "seconds": 0.02076641598250717,
+      "seconds": 0.022589541971683502,
       "context_bytes": 2206
     }
   },
@@ -1737,7 +1737,7 @@
             "start": 22
           },
           "changed": true,
-          "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+          "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
           "operation": "replace-body",
           "path": "subject.py",
           "preservation": "bytes outside the selected body",
@@ -1801,11 +1801,11 @@
       "patch": null
     },
     "executed": false,
-    "manifest_sha256": "66a519a9855074aa4e79c7c2337da5560fd87128d0dfa78773832912132c9214",
+    "manifest_sha256": "2ced4a9e6b0e5c89e8a06ac2cb5c141548ca6c1d69b8156babef8c0d6c51e723",
     "passed": null,
     "ready": true,
     "requests": [],
-    "revision": "71f367677151ab54de29687b167a0983b23c238c11ff15562552bf0368493e83",
+    "revision": "d717b5c7a3ad359bb9bfb94dc2e180a0198ee5e0b4a4c7fc949b23099a4f9214",
     "schema": "fr-task-change-1",
     "stages": [
       {
@@ -1840,7 +1840,7 @@
     "targets": [
       {
         "eligibility": "target-supported",
-        "handle": "frp1:71f367677151ab54de29687b167a0983:4",
+        "handle": "frp1:d717b5c7a3ad359bb9bfb94dc2e180a0:4",
         "id": "repair",
         "kind": "function",
         "language": "python",
@@ -1850,9 +1850,9 @@
         "syntax_preflighted": false
       }
     ],
-    "task_basis": "frpt1:f7779744161d2945bf13b173fd7239e1bcd8ffdf1580d859e7b794e13576ba23",
-    "task_change_basis": "frtc1:2fb5dfea77a2fe5af2f6f567e6877c15ec09de1198ba012e850ee0cb53c4a56c",
-    "task_resolution_basis": "frpt2:e218a37ce70d47157ef150e3de688d927fb6a139265ae9ef5a6fa71a3a747707"
+    "task_basis": "frpt1:89fcc346b289df45a317b8d425a851a94aab2d7954ce609c1474670e4bdc2ca6",
+    "task_change_basis": "frtc1:66a2b7b07968682d0067c48228ba5a40d319f06f2104479866d4711af6963fec",
+    "task_resolution_basis": "frpt2:ed7c1a026e009a1d4f6386e65e53c54df34db4e1e3c725985f414013d308b693"
   },
   "fresh_review": {
     "author": {
@@ -1905,7 +1905,7 @@
             "start": 22
           },
           "changed": true,
-          "handle": "frp1:a4024a77947098689c634c33713721d2:4",
+          "handle": "frp1:02c7f9841c3178a90cae225ec69ced95:4",
           "operation": "replace-body",
           "path": "moved.py",
           "preservation": "bytes outside the selected body",
@@ -1969,11 +1969,11 @@
       "patch": "artifacts/resumed.patch"
     },
     "executed": false,
-    "manifest_sha256": "6115caf241ce90f7f0cd4a956c92d9c0bb6fc6135c3edc6fdaac2c3cb00c7a3d",
+    "manifest_sha256": "c8c1c6fcd314f79c85062b2cbdb8ecbd6ee2aa36f28940fb12a0f9c6ea636974",
     "passed": null,
     "ready": true,
     "requests": [],
-    "revision": "a4024a77947098689c634c33713721d2d04c81a874aa3cf6fd22839f2b6293e8",
+    "revision": "02c7f9841c3178a90cae225ec69ced958399f08bf206df20e85b6ee651170ed7",
     "schema": "fr-task-change-1",
     "stages": [
       {
@@ -2012,7 +2012,7 @@
     "targets": [
       {
         "eligibility": "target-supported",
-        "handle": "frp1:a4024a77947098689c634c33713721d2:4",
+        "handle": "frp1:02c7f9841c3178a90cae225ec69ced95:4",
         "id": "repair",
         "kind": "function",
         "language": "python",
@@ -2022,13 +2022,13 @@
         "syntax_preflighted": false
       }
     ],
-    "task_basis": "frpt1:e9f608ac519cebddb0454f47703aa77ffdeba29155abf55f4804a12e81e6aa1b",
-    "task_change_basis": "frtc1:08f7c38ddeaf1971dd4e34f1838e46689d181b3e86241a9fc438d48694488918",
-    "task_resolution_basis": "frpt2:e7e061f06da42453802d51348adef838c92ef67e3651af371e168120ef195b70"
+    "task_basis": "frpt1:a7a50e83128ccfda8ea06d5117e2b1c798b9476c544d3ac0d026a0381e818273",
+    "task_change_basis": "frtc1:7eb0eb5962a33a0b1aa1be9b70fa750df462adaebe97bb2071e3894b6bdd50ff",
+    "task_resolution_basis": "frpt2:06228724e2a9c318dcbcd932fd36820a3b54257ffdb5a4b1349f43e834aa5d0a"
   },
   "delivery": {
     "executed": true,
-    "manifest_sha256": "6115caf241ce90f7f0cd4a956c92d9c0bb6fc6135c3edc6fdaac2c3cb00c7a3d",
+    "manifest_sha256": "c8c1c6fcd314f79c85062b2cbdb8ecbd6ee2aa36f28940fb12a0f9c6ea636974",
     "passed": true,
     "reused_transaction": false,
     "reviewed_context_omitted": [
@@ -2046,7 +2046,7 @@
     ],
     "saved": true,
     "schema": "fr-task-change-1",
-    "task_change_basis": "frtc1:08f7c38ddeaf1971dd4e34f1838e46689d181b3e86241a9fc438d48694488918",
+    "task_change_basis": "frtc1:7eb0eb5962a33a0b1aa1be9b70fa750df462adaebe97bb2071e3894b6bdd50ff",
     "transaction": 1,
     "workflow": {
       "executed": true,
@@ -2257,10 +2257,10 @@
     "cold": {
       "report": {
         "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-        "basis": "frpc1:905a4a17933a4533ffdb22ea076bbe65",
+        "basis": "frpc1:c017648476894cdd67e3a3391dd290c1",
         "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
         "complete": true,
-        "context_basis": "frcb1:89c24c0d4257bb95d90f0ed727421dca91ac2ef8b216b14eac91ce6261f4d4da",
+        "context_basis": "frcb1:d4b9abd50c135f86497c7c425837993709fba90b30312bee77bed2ddc5affb17",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -2281,25 +2281,25 @@
           "unsupported_files": 0
         },
         "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-        "handle_prefix": "frp1:58a96d628ceb06b181bf196f7c3b3741:",
+        "handle_prefix": "frp1:d29eecbfaf2328452f8de74536844cca:",
         "identity_contract": "fr-declaration-identities-2",
         "input_complete": true,
-        "input_digest": "019c292f3d55e483072d2226b3f3a0aee608c7085e7f4c910dba2f073bc44b52",
+        "input_digest": "fc50070688dd4e8791fa4da9d21716064fd906a9156a2db51ac18960e8b459db",
         "items": [
           {
             "action_rebound": false,
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
                 "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
-                  "id": "fro1:35464d08b8bb723673b667f1b8cbeee5d8597d26cf3f7653fa505307b07c354c",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:2",
+                  "id": "fro1:a00ff6284f8a19710e56c21b498c3774188fb231301dfdf0fd43c5d0f0c41caf",
                   "location": {
                     "range": {
                       "end": {
@@ -2317,26 +2317,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
               "kind": "function",
               "language": "python",
               "name": "café",
               "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
               "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
-                "id": "fro1:35464d08b8bb723673b667f1b8cbeee5d8597d26cf3f7653fa505307b07c354c",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:2",
+                "id": "fro1:a00ff6284f8a19710e56c21b498c3774188fb231301dfdf0fd43c5d0f0c41caf",
                 "location": {
                   "range": {
                     "end": {
@@ -2354,17 +2354,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -2379,15 +2379,15 @@
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
                 "kind": "function",
                 "language": "python",
                 "name": "stable",
                 "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
                 "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
-                  "id": "fro1:bf5a3eaa0d0099c6cc41924dc9a59711252d6f599e4ad35210958779464a26e5",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:4",
+                  "id": "fro1:bcaee2c6ea5ae2d3593e50833e1d5b3dc66cbeef2e9d630ae92808569cbb21c1",
                   "location": {
                     "range": {
                       "end": {
@@ -2405,26 +2405,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
               "kind": "function",
               "language": "python",
               "name": "stable",
               "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
               "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
-                "id": "fro1:bf5a3eaa0d0099c6cc41924dc9a59711252d6f599e4ad35210958779464a26e5",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:4",
+                "id": "fro1:bcaee2c6ea5ae2d3593e50833e1d5b3dc66cbeef2e9d630ae92808569cbb21c1",
                 "location": {
                   "range": {
                     "end": {
@@ -2442,17 +2442,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -2467,15 +2467,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                  "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                  "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                   "location": {
                     "range": {
                       "end": {
@@ -2493,25 +2493,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                  "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                  "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                   "location": {
                     "range": {
                       "end": {
@@ -2529,11 +2529,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:stable"
                 ]
@@ -2541,18 +2541,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:5"
+              "frp1:d29eecbfaf2328452f8de74536844cca:5"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                 "location": {
                   "range": {
                     "end": {
@@ -2570,11 +2570,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:café"
               ]
@@ -2582,7 +2582,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -2591,7 +2591,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -2605,15 +2605,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                  "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                  "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                   "location": {
                     "range": {
                       "end": {
@@ -2631,25 +2631,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                  "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                  "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                   "location": {
                     "range": {
                       "end": {
@@ -2667,11 +2667,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:stable"
                 ]
@@ -2679,18 +2679,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:3"
+              "frp1:d29eecbfaf2328452f8de74536844cca:3"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                 "location": {
                   "range": {
                     "end": {
@@ -2708,11 +2708,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:stable"
               ]
@@ -2720,7 +2720,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -2728,7 +2728,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -2752,14 +2752,14 @@
           "total": 4
         },
         "query": "correspondence",
-        "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+        "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
         "schema": "fr-project-1",
         "selection": "."
       },
-      "elapsed_seconds": 0.13248220807872713,
+      "elapsed_seconds": 0.14009958400856704,
       "context_bytes": 10623,
-      "peak_native_child_rss_bytes": 25772032,
-      "peak_worker_rss_bytes": 28229632,
+      "peak_native_child_rss_bytes": 26427392,
+      "peak_worker_rss_bytes": 28065792,
       "process_calls": 1,
       "source_reveals": 0,
       "tokens": null,
@@ -2769,10 +2769,10 @@
     "warm": {
       "report": {
         "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-        "basis": "frpc1:905a4a17933a4533ffdb22ea076bbe65",
+        "basis": "frpc1:c017648476894cdd67e3a3391dd290c1",
         "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
         "complete": true,
-        "context_basis": "frcb1:89c24c0d4257bb95d90f0ed727421dca91ac2ef8b216b14eac91ce6261f4d4da",
+        "context_basis": "frcb1:d4b9abd50c135f86497c7c425837993709fba90b30312bee77bed2ddc5affb17",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -2793,25 +2793,25 @@
           "unsupported_files": 0
         },
         "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-        "handle_prefix": "frp1:58a96d628ceb06b181bf196f7c3b3741:",
+        "handle_prefix": "frp1:d29eecbfaf2328452f8de74536844cca:",
         "identity_contract": "fr-declaration-identities-2",
         "input_complete": true,
-        "input_digest": "019c292f3d55e483072d2226b3f3a0aee608c7085e7f4c910dba2f073bc44b52",
+        "input_digest": "fc50070688dd4e8791fa4da9d21716064fd906a9156a2db51ac18960e8b459db",
         "items": [
           {
             "action_rebound": false,
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
                 "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
-                  "id": "fro1:35464d08b8bb723673b667f1b8cbeee5d8597d26cf3f7653fa505307b07c354c",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:2",
+                  "id": "fro1:a00ff6284f8a19710e56c21b498c3774188fb231301dfdf0fd43c5d0f0c41caf",
                   "location": {
                     "range": {
                       "end": {
@@ -2829,26 +2829,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
               "kind": "function",
               "language": "python",
               "name": "café",
               "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
               "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
-                "id": "fro1:35464d08b8bb723673b667f1b8cbeee5d8597d26cf3f7653fa505307b07c354c",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:2",
+                "id": "fro1:a00ff6284f8a19710e56c21b498c3774188fb231301dfdf0fd43c5d0f0c41caf",
                 "location": {
                   "range": {
                     "end": {
@@ -2866,17 +2866,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -2891,15 +2891,15 @@
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
                 "kind": "function",
                 "language": "python",
                 "name": "stable",
                 "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
                 "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
-                  "id": "fro1:bf5a3eaa0d0099c6cc41924dc9a59711252d6f599e4ad35210958779464a26e5",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:4",
+                  "id": "fro1:bcaee2c6ea5ae2d3593e50833e1d5b3dc66cbeef2e9d630ae92808569cbb21c1",
                   "location": {
                     "range": {
                       "end": {
@@ -2917,26 +2917,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
               "kind": "function",
               "language": "python",
               "name": "stable",
               "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
               "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
-                "id": "fro1:bf5a3eaa0d0099c6cc41924dc9a59711252d6f599e4ad35210958779464a26e5",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:4",
+                "id": "fro1:bcaee2c6ea5ae2d3593e50833e1d5b3dc66cbeef2e9d630ae92808569cbb21c1",
                 "location": {
                   "range": {
                     "end": {
@@ -2954,17 +2954,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -2979,15 +2979,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                  "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                  "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                   "location": {
                     "range": {
                       "end": {
@@ -3005,25 +3005,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                  "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                  "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                   "location": {
                     "range": {
                       "end": {
@@ -3041,11 +3041,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:stable"
                 ]
@@ -3053,18 +3053,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:5"
+              "frp1:d29eecbfaf2328452f8de74536844cca:5"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                 "location": {
                   "range": {
                     "end": {
@@ -3082,11 +3082,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:café"
               ]
@@ -3094,7 +3094,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -3103,7 +3103,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -3117,15 +3117,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                  "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                  "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                   "location": {
                     "range": {
                       "end": {
@@ -3143,25 +3143,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                  "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                  "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                  "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                   "location": {
                     "range": {
                       "end": {
@@ -3179,11 +3179,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                  "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "scope": [
                   "function:stable"
                 ]
@@ -3191,18 +3191,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:3"
+              "frp1:d29eecbfaf2328452f8de74536844cca:3"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                 "location": {
                   "range": {
                     "end": {
@@ -3220,11 +3220,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:stable"
               ]
@@ -3232,7 +3232,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -3240,7 +3240,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+                "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -3264,14 +3264,14 @@
           "total": 4
         },
         "query": "correspondence",
-        "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+        "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
         "schema": "fr-project-1",
         "selection": "."
       },
-      "elapsed_seconds": 0.01492691703606397,
+      "elapsed_seconds": 0.017554374993778765,
       "context_bytes": 10623,
-      "peak_native_child_rss_bytes": 22151168,
-      "peak_worker_rss_bytes": 27934720,
+      "peak_native_child_rss_bytes": 21889024,
+      "peak_worker_rss_bytes": 28934144,
       "process_calls": 1,
       "source_reveals": 0,
       "tokens": null,
@@ -3281,10 +3281,10 @@
     "single-edit": {
       "report": {
         "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-        "basis": "frpc1:a3ed77ddd25f63aef1fab5f0884b44c5",
+        "basis": "frpc1:64f9ea6c4d111677f4e48ea4fb08645b",
         "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
         "complete": true,
-        "context_basis": "frcb1:f4837e0050adf0b1f81a52500301db29f8b7fb33256c17a542543f188a81d566",
+        "context_basis": "frcb1:d7440c7aff7d518267cc042840d65e9da8d9f9449ecde039d041e472e302348e",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -3305,25 +3305,25 @@
           "unsupported_files": 0
         },
         "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-        "handle_prefix": "frp1:cb24178451b745712930792927cc0f81:",
+        "handle_prefix": "frp1:a530fb014cfc20d85916826d2f9b2382:",
         "identity_contract": "fr-declaration-identities-2",
         "input_complete": true,
-        "input_digest": "019c292f3d55e483072d2226b3f3a0aee608c7085e7f4c910dba2f073bc44b52",
+        "input_digest": "fc50070688dd4e8791fa4da9d21716064fd906a9156a2db51ac18960e8b459db",
         "items": [
           {
             "action_rebound": false,
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:2",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:2",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
                 "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:2",
-                  "id": "fro1:0363a216ef992b75ff4249e7f5bac8c2191ef9fbfdd038d190df6ef0e9fafc2b",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:2",
+                  "id": "fro1:7543588a1700574a81f6fc5ae0dea56450fc927dc042138bef7837d32cb639ab",
                   "location": {
                     "range": {
                       "end": {
@@ -3341,26 +3341,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
               "kind": "function",
               "language": "python",
               "name": "café",
               "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
               "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
-                "id": "fro1:35464d08b8bb723673b667f1b8cbeee5d8597d26cf3f7653fa505307b07c354c",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:2",
+                "id": "fro1:a00ff6284f8a19710e56c21b498c3774188fb231301dfdf0fd43c5d0f0c41caf",
                 "location": {
                   "range": {
                     "end": {
@@ -3378,17 +3378,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:2",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:2",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -3403,15 +3403,15 @@
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:4",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:4",
                 "kind": "function",
                 "language": "python",
                 "name": "stable",
                 "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
                 "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:4",
-                  "id": "fro1:ed12c53885da75c9402a0416828d15d0d9152c7c46ebc3cb3032e1464281f759",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:4",
+                  "id": "fro1:6dbe15b8648a8d126f7ee1b97093703cd19285256607e3f7d7c0404c001e9a43",
                   "location": {
                     "range": {
                       "end": {
@@ -3429,26 +3429,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
               "kind": "function",
               "language": "python",
               "name": "stable",
               "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
               "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
-                "id": "fro1:bf5a3eaa0d0099c6cc41924dc9a59711252d6f599e4ad35210958779464a26e5",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:4",
+                "id": "fro1:bcaee2c6ea5ae2d3593e50833e1d5b3dc66cbeef2e9d630ae92808569cbb21c1",
                 "location": {
                   "range": {
                     "end": {
@@ -3466,17 +3466,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:4",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:4",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -3491,15 +3491,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:3",
-                  "id": "fro1:48101a1bdb8d72a50f4cb412c44c0ff92d7d8ee23339f5ab6a6d7249783b05c3",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
+                  "id": "fro1:733f83a7dd0200919eee8dbb81de3e22f25c90e8c04a2a43811a3e9e93c370bf",
                   "location": {
                     "range": {
                       "end": {
@@ -3517,25 +3517,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:5",
-                  "id": "fro1:9e09668b72f38df4605f0b8392bb80fd38f202dbef75654f95e921a54fcc7d0e",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
+                  "id": "fro1:44809c5ae5c6fef6bbb9084bc7bd3238b318bca949ad7c5d521a27ef075a1797",
                   "location": {
                     "range": {
                       "end": {
@@ -3553,11 +3553,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:stable"
                 ]
@@ -3565,18 +3565,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:5"
+              "frp1:d29eecbfaf2328452f8de74536844cca:5"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                 "location": {
                   "range": {
                     "end": {
@@ -3594,11 +3594,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:café"
               ]
@@ -3606,7 +3606,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -3615,7 +3615,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -3629,15 +3629,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:3",
-                  "id": "fro1:48101a1bdb8d72a50f4cb412c44c0ff92d7d8ee23339f5ab6a6d7249783b05c3",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
+                  "id": "fro1:733f83a7dd0200919eee8dbb81de3e22f25c90e8c04a2a43811a3e9e93c370bf",
                   "location": {
                     "range": {
                       "end": {
@@ -3655,25 +3655,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:5",
-                  "id": "fro1:9e09668b72f38df4605f0b8392bb80fd38f202dbef75654f95e921a54fcc7d0e",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
+                  "id": "fro1:44809c5ae5c6fef6bbb9084bc7bd3238b318bca949ad7c5d521a27ef075a1797",
                   "location": {
                     "range": {
                       "end": {
@@ -3691,11 +3691,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:stable"
                 ]
@@ -3703,18 +3703,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:3"
+              "frp1:d29eecbfaf2328452f8de74536844cca:3"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                 "location": {
                   "range": {
                     "end": {
@@ -3732,11 +3732,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:stable"
               ]
@@ -3744,7 +3744,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -3752,7 +3752,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -3776,14 +3776,14 @@
           "total": 4
         },
         "query": "correspondence",
-        "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+        "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
         "schema": "fr-project-1",
         "selection": "."
       },
-      "elapsed_seconds": 0.13398829102516174,
+      "elapsed_seconds": 0.13672920793760568,
       "context_bytes": 10623,
-      "peak_native_child_rss_bytes": 25837568,
-      "peak_worker_rss_bytes": 28000256,
+      "peak_native_child_rss_bytes": 25427968,
+      "peak_worker_rss_bytes": 29081600,
       "process_calls": 1,
       "source_reveals": 0,
       "tokens": null,
@@ -3793,10 +3793,10 @@
     "clean-rebuild": {
       "report": {
         "analyzer": "d0dba0f28497c13f9d46a296a5aec24eae599c9f41d56de9584325d41068d21e",
-        "basis": "frpc1:a3ed77ddd25f63aef1fab5f0884b44c5",
+        "basis": "frpc1:64f9ea6c4d111677f4e48ea4fb08645b",
         "claim": "syntactic candidates among indexed declarations in the selected scope; no semantic equivalence or mutation authority.",
         "complete": true,
-        "context_basis": "frcb1:f4837e0050adf0b1f81a52500301db29f8b7fb33256c17a542543f188a81d566",
+        "context_basis": "frcb1:d7440c7aff7d518267cc042840d65e9da8d9f9449ecde039d041e472e302348e",
         "coverage": {
           "architecture": "not inferred",
           "files_by_gap": {},
@@ -3817,25 +3817,25 @@
           "unsupported_files": 0
         },
         "graph_policy": "declaration content excludes graph edges; occurrence handles identify the current revision.",
-        "handle_prefix": "frp1:cb24178451b745712930792927cc0f81:",
+        "handle_prefix": "frp1:a530fb014cfc20d85916826d2f9b2382:",
         "identity_contract": "fr-declaration-identities-2",
         "input_complete": true,
-        "input_digest": "019c292f3d55e483072d2226b3f3a0aee608c7085e7f4c910dba2f073bc44b52",
+        "input_digest": "fc50070688dd4e8791fa4da9d21716064fd906a9156a2db51ac18960e8b459db",
         "items": [
           {
             "action_rebound": false,
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:2",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:2",
                 "kind": "function",
                 "language": "python",
                 "name": "café",
                 "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
                 "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:2",
-                  "id": "fro1:0363a216ef992b75ff4249e7f5bac8c2191ef9fbfdd038d190df6ef0e9fafc2b",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:2",
+                  "id": "fro1:7543588a1700574a81f6fc5ae0dea56450fc927dc042138bef7837d32cb639ab",
                   "location": {
                     "range": {
                       "end": {
@@ -3853,26 +3853,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:2",
               "kind": "function",
               "language": "python",
               "name": "café",
               "name_erased_digest": "80308495803aa55f92ac02d6d6726935faac7ba5a1265179c03936068cbb1e7e",
               "object_digest": "bd29e2447e5746cfdf9481b92512de1b3bd4ab6563571331c2d3b273c037033c",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:2",
-                "id": "fro1:35464d08b8bb723673b667f1b8cbeee5d8597d26cf3f7653fa505307b07c354c",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:2",
+                "id": "fro1:a00ff6284f8a19710e56c21b498c3774188fb231301dfdf0fd43c5d0f0c41caf",
                 "location": {
                   "range": {
                     "end": {
@@ -3890,17 +3890,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:2",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:2",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -3915,15 +3915,15 @@
             "candidate_count": 1,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:4",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:4",
                 "kind": "function",
                 "language": "python",
                 "name": "stable",
                 "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
                 "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:4",
-                  "id": "fro1:ed12c53885da75c9402a0416828d15d0d9152c7c46ebc3cb3032e1464281f759",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:4",
+                  "id": "fro1:6dbe15b8648a8d126f7ee1b97093703cd19285256607e3f7d7c0404c001e9a43",
                   "location": {
                     "range": {
                       "end": {
@@ -3941,26 +3941,26 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": []
               }
             ],
             "candidates_complete": true,
             "conflicts": [],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:4",
               "kind": "function",
               "language": "python",
               "name": "stable",
               "name_erased_digest": "79ed74f69f7f562039ada7fa9e002973064cc6fe963e3e6f5137815fcec92aef",
               "object_digest": "ed5f85794800f9284c1ca8fd5eac6b344800fd29f66be1eb1f40cc49dfde7cf5",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:4",
-                "id": "fro1:bf5a3eaa0d0099c6cc41924dc9a59711252d6f599e4ad35210958779464a26e5",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:4",
+                "id": "fro1:bcaee2c6ea5ae2d3593e50833e1d5b3dc66cbeef2e9d630ae92808569cbb21c1",
                 "location": {
                   "range": {
                     "end": {
@@ -3978,17 +3978,17 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": []
             },
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:4",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:4",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -4003,15 +4003,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:3",
-                  "id": "fro1:48101a1bdb8d72a50f4cb412c44c0ff92d7d8ee23339f5ab6a6d7249783b05c3",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
+                  "id": "fro1:733f83a7dd0200919eee8dbb81de3e22f25c90e8c04a2a43811a3e9e93c370bf",
                   "location": {
                     "range": {
                       "end": {
@@ -4029,25 +4029,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:5",
-                  "id": "fro1:9e09668b72f38df4605f0b8392bb80fd38f202dbef75654f95e921a54fcc7d0e",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
+                  "id": "fro1:44809c5ae5c6fef6bbb9084bc7bd3238b318bca949ad7c5d521a27ef075a1797",
                   "location": {
                     "range": {
                       "end": {
@@ -4065,11 +4065,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:stable"
                 ]
@@ -4077,18 +4077,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:5"
+              "frp1:d29eecbfaf2328452f8de74536844cca:5"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:3",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:3",
-                "id": "fro1:b91f64f281cab184a01866b8c267cc2808fdea0a30ded50493f23c21be37ce7f",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:3",
+                "id": "fro1:180bb15c33dec700bfe1da62c2e762a0acb77565fde92574872da55477b16224",
                 "location": {
                   "range": {
                     "end": {
@@ -4106,11 +4106,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:café"
               ]
@@ -4118,7 +4118,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -4127,7 +4127,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -4141,15 +4141,15 @@
             "candidate_count": 2,
             "candidates": [
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:3",
-                  "id": "fro1:48101a1bdb8d72a50f4cb412c44c0ff92d7d8ee23339f5ab6a6d7249783b05c3",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
+                  "id": "fro1:733f83a7dd0200919eee8dbb81de3e22f25c90e8c04a2a43811a3e9e93c370bf",
                   "location": {
                     "range": {
                       "end": {
@@ -4167,25 +4167,25 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:café"
                 ]
               },
               {
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "kind": "parameter",
                 "language": "python",
                 "name": "value",
                 "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
                 "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
                 "occurrence": {
-                  "enclosing": "frp1:cb24178451b745712930792927cc0f81:5",
-                  "id": "fro1:9e09668b72f38df4605f0b8392bb80fd38f202dbef75654f95e921a54fcc7d0e",
+                  "enclosing": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
+                  "id": "fro1:44809c5ae5c6fef6bbb9084bc7bd3238b318bca949ad7c5d521a27ef075a1797",
                   "location": {
                     "range": {
                       "end": {
@@ -4203,11 +4203,11 @@
                     }
                   },
                   "path": "moved.py",
-                  "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                  "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                   "role": "declaration"
                 },
                 "path": "moved.py",
-                "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+                "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
                 "scope": [
                   "function:stable"
                 ]
@@ -4215,18 +4215,18 @@
             ],
             "candidates_complete": true,
             "conflicts": [
-              "frp1:58a96d628ceb06b181bf196f7c3b3741:3"
+              "frp1:d29eecbfaf2328452f8de74536844cca:3"
             ],
             "previous": {
-              "handle": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
+              "handle": "frp1:d29eecbfaf2328452f8de74536844cca:5",
               "kind": "parameter",
               "language": "python",
               "name": "value",
               "name_erased_digest": "4e4109087c3541b230aec13a19b158f31ea7dd68272f294728cdfa39720eb672",
               "object_digest": "f0b393a987571ca598e1e4dd2fdbb57d36592660527eaf838da0c153baf2a993",
               "occurrence": {
-                "enclosing": "frp1:58a96d628ceb06b181bf196f7c3b3741:5",
-                "id": "fro1:13b0bc220afd80f14c6987acf389559447729fd5f0632f7941251f7345da57a7",
+                "enclosing": "frp1:d29eecbfaf2328452f8de74536844cca:5",
+                "id": "fro1:8f598107f0faa06aa1accb0d77c11b724e0fa3d4cbba40bd8ccdec41735d4950",
                 "location": {
                   "range": {
                     "end": {
@@ -4244,11 +4244,11 @@
                   }
                 },
                 "path": "moved.py",
-                "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+                "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
                 "role": "declaration"
               },
               "path": "moved.py",
-              "revision": "58a96d628ceb06b181bf196f7c3b3741e90dc1baa98a05ce2f46a18c7f996a45",
+              "revision": "d29eecbfaf2328452f8de74536844ccabdf41db03ff67e6dff58fc5c97149fb1",
               "scope": [
                 "function:stable"
               ]
@@ -4256,7 +4256,7 @@
             "reasons": [
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:3",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:3",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name"
@@ -4264,7 +4264,7 @@
               },
               {
                 "content_equal": true,
-                "handle": "frp1:cb24178451b745712930792927cc0f81:5",
+                "handle": "frp1:a530fb014cfc20d85916826d2f9b2382:5",
                 "rules": [
                   "identical-declaration-content",
                   "identical-except-declaration-name",
@@ -4288,14 +4288,14 @@
           "total": 4
         },
         "query": "correspondence",
-        "revision": "cb24178451b745712930792927cc0f81cd5fb6f4cb2a2a2d1c8550e2044ee7ce",
+        "revision": "a530fb014cfc20d85916826d2f9b2382c3c8f0a5b6ad64863cc5f344583d3af4",
         "schema": "fr-project-1",
         "selection": "."
       },
-      "elapsed_seconds": 0.12726241699419916,
+      "elapsed_seconds": 0.1324716660892591,
       "context_bytes": 10623,
-      "peak_native_child_rss_bytes": 25673728,
-      "peak_worker_rss_bytes": 26689536,
+      "peak_native_child_rss_bytes": 26017792,
+      "peak_worker_rss_bytes": 28114944,
       "process_calls": 1,
       "source_reveals": 0,
       "tokens": null,
