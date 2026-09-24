@@ -35,6 +35,32 @@ end FrKernels.Investigation
 
 namespace FrKernels.Investigation
 
+def compilerEvidenceComplete (execution protocol fromStart noRemaining : Bool) : Bool :=
+  execution && protocol && fromStart && noRemaining
+
+theorem compiler_requires_execution (protocol fromStart noRemaining : Bool) :
+    compilerEvidenceComplete false protocol fromStart noRemaining = false := by
+  simp [compilerEvidenceComplete]
+
+theorem compiler_requires_protocol (execution fromStart noRemaining : Bool) :
+    compilerEvidenceComplete execution false fromStart noRemaining = false := by
+  simp [compilerEvidenceComplete]
+
+theorem compiler_requires_prefix (execution protocol noRemaining : Bool) :
+    compilerEvidenceComplete execution protocol false noRemaining = false := by
+  simp [compilerEvidenceComplete]
+
+theorem compiler_requires_suffix (execution protocol fromStart : Bool) :
+    compilerEvidenceComplete execution protocol fromStart false = false := by
+  simp [compilerEvidenceComplete]
+
+theorem compiler_all_inputs_complete : compilerEvidenceComplete true true true true = true := by
+  rfl
+
+end FrKernels.Investigation
+
+namespace FrKernels.Investigation
+
 def checkScopeCovered (workspace configuration sources toolchain : Bool) : Bool :=
   workspace && configuration && sources && toolchain
 

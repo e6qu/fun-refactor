@@ -3,6 +3,13 @@ import FrKernels.Flow
 open FrKernels.Investigation
 
 def main (args : List String) : IO Unit := do
+  if args == ["compiler-coverage"] then
+    for execution in [false, true] do
+      for protocol in [false, true] do
+        for fromStart in [false, true] do
+          for noRemaining in [false, true] do
+            IO.println (compilerEvidenceComplete execution protocol fromStart noRemaining)
+    return
   if args == ["flow-fact-coverage"] then
     for analysis in [false, true] do
       for fromStart in [false, true] do

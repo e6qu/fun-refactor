@@ -137,3 +137,77 @@ target/agent-eval-venv/bin/python tools/checks-context.py --fr target/debug/fr -
 
 CLI regressions separately check failed exits, spawn errors, truncated invalid UTF-8, quiet-success composition and exact declaration reconstruction.
 They also check that omitted declarations cannot bypass configuration review or cause an unselected command to execute.
+
+## Toolchain and Rust build identities
+
+`checks --toolchain` adds `fr-check-toolchain-2` evidence. It binds each executable's resolved path
+and bytes, plus workspace Rust build inputs. The build inputs include `Cargo.toml`, `Cargo.lock`,
+`rust-toolchain`, `rust-toolchain.toml`, `.cargo/config` and `.cargo/config.toml`.
+Adding a previously absent build configuration changes this identity. Discovery excludes `.git`,
+`.fr-history`, `target`, `node_modules`, `.lake` and directory symlinks. It accepts at most 1,024
+build files, 4 MiB per file and 64 MiB in total. Unsupported build-input types refuse evidence;
+a directory at a configuration filename can change Cargo behavior.
+
+Declarations can also name environment keys and external identity files:
+
+```json
+{
+  "name": "compiler",
+  "argv": ["/absolute/toolchain/bin/rustc", "--error-format=json", "--crate-type=lib", "subject.rs"],
+  "cwd": ".",
+  "timeout_seconds": 30,
+  "covers": ["Rust library compilation under the declared flags"],
+  "environment": ["RUSTC_BOOTSTRAP"],
+  "identity_files": ["/absolute/toolchain/lib/librustc_driver.dylib"]
+}
+```
+
+Use the actual installed paths. A launcher such as rustup does not identify the compiler it selects.
+Declare the selected compiler, driver libraries and other relevant external inputs when a check uses a launcher.
+For Cargo, declare relevant keys such as `RUSTC`, `RUSTFLAGS` and `CARGO_ENCODED_RUSTFLAGS`.
+External Cargo configuration and undeclared dependencies remain outside the automatic workspace scope.
+
+Each check admits 32 distinct environment names and 16 distinct identity files. Environment records
+contain names and value digests; they distinguish unset from empty without returning values.
+Identity files can use absolute paths or confined paths relative to the check directory. Records bind
+resolved paths and streaming content hashes, with a 256 MiB limit per file.
+
+Toolchain evidence compares inputs before and after execution. Drift prevents passing evidence.
+The checked-plan SDK also compares the reviewed toolchain before execution. These identities observe
+boundaries; they do not detect a mutate-and-restore operation between observations.
+Existing transaction receipts keep their original source/configuration contract.
+
+## Retained compiler diagnostics
+
+After a reviewed check runs, retain its full JSON report outside the source tree. Keep declarations
+and request enough output for the diagnostic protocol. Rustc writes JSON diagnostics to stderr;
+Cargo's `--message-format=json` writes protocol events to stdout.
+
+```sh
+fr checks --toolchain
+fr checks --toolchain --run compiler --basis '<BASIS>' --output-bytes 65536
+fr --json project compiler-evidence --from checks.json --digest '<REPORT-SHA256>' --check compiler --format rustc-json --limit 8
+```
+
+The report digest is SHA-256 over compact, sorted-key JSON with UTF-8 strings. The Python SDK computes it.
+The adapter executes no compiler commands. It validates retained execution against current source,
+configuration, executable, build and declared external identities. It requires full declarations;
+`--no-declarations` output alone cannot establish those inputs.
+
+Diagnostic facts bind their rule, confidence, parent, input identity and exact admitted source spans.
+The adapter omits compiler-rendered source, suggestions and source-line text. Explicit source actions
+use revision-bound file handles. Macro expansions, external files, unsupported paths and invalid byte
+boundaries retain mapping gaps. Rust parser acceptance and compiler rejection remain separate observations.
+A `syntax-accepted-compiler-error` record preserves that difference without asserting a parser defect.
+
+`capture.complete` covers the retained diagnostic protocol. `disclosure_complete` covers the selected
+page range. `complete` also requires a finished command. A failed compilation can have complete
+diagnostic evidence; it remains a failed check. Missing Cargo completion events, unknown events,
+malformed JSON, clipped streams, exhausted detail budgets and contradictory outcomes prevent completeness.
+Each page admits 1–64 diagnostic rows and a 4 KiB–1 MiB response budget. Parsing admits 1,024 diagnostics,
+eight child levels, 16 spans per diagnostic and 512 message characters. Truncation retains continuations
+or explicit cutoffs. Missing diagnostics never establish runtime safety or source correctness.
+
+The caller's digest binds retained output; it is not an execution attestation. Synthetic protocol tests
+exercise hostile shapes separately from real rustc/Cargo acceptance. Five Lean theorems establish the
+coverage conjunction, and native code agrees on all 16 Boolean cases. These prove no compiler or process semantics.

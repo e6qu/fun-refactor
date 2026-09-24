@@ -79,6 +79,10 @@ struct Check {
     cwd: PathBuf,
     timeout_seconds: u64,
     covers: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    environment: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    identity_files: Vec<PathBuf>,
 }
 
 #[derive(Clone)]
@@ -126,6 +130,7 @@ fn configuration(root: &Path) -> Result<(Configuration, String)> {
     }
     let mut names = BTreeSet::new();
     for check in &config.checks {
+        evidence::validate_declarations(check)?;
         if check.name.is_empty()
             || check.name.len() > 64
             || !check

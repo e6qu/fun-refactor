@@ -303,3 +303,16 @@ analysis and paged facts under the same contracts. The independent oracle execut
 checks UTF-8 AST coordinates. Full explanations add provenance and may exceed raw analysis in bytes
 and latency. Four Lean theorems establish disclosure coverage policy; native code matches all eight
 Boolean cases. These checks do not prove the analyzer or its source correspondence.
+
+## Compiler observations
+
+[Compiler evidence](project-checks.md#retained-compiler-diagnostics) adds Rust diagnostics from retained
+reviewed checks. It binds command flags, source, workspace build configuration and declared external
+identities. Typed pages preserve syntax/compiler differences and exact locations while exposing missing
+mappings. Investigation plans retain these observations alongside the original passing or failing checks.
+
+The [compiler task](../tests/agent-eval/compiler-evidence/task.json) pins a syntax-valid function that
+fails under a strict build configuration. [Acceptance](../tests/agent-eval/results/2026-09-24-compiler-evidence/result.json)
+retains real rustc and Cargo output, an independent six-case runtime oracle and stale-input refusals.
+Coverage remains specific to the declared invocation. Compiler diagnostics do not prove runtime safety,
+complete dependency discovery or implementation correspondence.

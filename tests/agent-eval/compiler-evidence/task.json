@@ -1,0 +1,17 @@
+{
+  "schema": "fr-compiler-evidence-task-1",
+  "baseline": "eacac5ff0774f735ddb06e2f2223ee7417f19365",
+  "question": "Explain why a syntax-valid Rust function fails the strict configuration, preserve the passing default configuration, and reject stale compiler evidence.",
+  "scope": "Rust rustc JSON and Cargo compiler-message diagnostics from explicitly reviewed retained checks; declared executable, external identity files and environment keys",
+  "acceptance": [
+    "Retain passing and failing compiler outcomes separately from parser acceptance.",
+    "Bind diagnostics to source, check configuration, executable and declared external identities.",
+    "Map admitted diagnostic spans exactly; preserve external, invalid, expanded and missing locations.",
+    "Bound diagnostic pages and mark truncated or malformed compiler output incomplete.",
+    "Reject stale source, flags, executable, declared file and environment inputs without executing commands.",
+    "Attach compiler evidence to typed investigation plans without granting mutation authority."
+  ],
+  "budgets": {"retained_stream_bytes": 65536, "diagnostic_page": 8, "response_bytes": 32768},
+  "edit_boundary": "Direct source edits add a native read-only compiler evidence adapter, declared check identities, typed SDK, tests, Lean policy and evaluator. Existing author routes do not admit this complete cross-module change.",
+  "claims": "Compiler diagnostic observations for the declared invocation; no inferred runtime safety, dependency completeness, execution attestation or source proof."
+}

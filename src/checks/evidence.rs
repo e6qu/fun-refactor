@@ -75,12 +75,150 @@ pub(super) fn toolchain(root: &Path, config: &Configuration) -> Result<Value> {
             );
             hash.update(&buffer[..n]);
         }
-        programs
-            .push(json!({"check":check.name,"path":path,"sha256":hex::encode(hash.finalize())}));
+        let mut files = Vec::new();
+        for declared in &check.identity_files {
+            let path = if declared.is_absolute() {
+                declared.clone()
+            } else {
+                root.join(&check.cwd).join(declared)
+            };
+            let resolved = path.canonicalize()?;
+            ensure!(
+                resolved.metadata()?.is_file(),
+                "declared identity must be a regular file."
+            );
+            let mut file = File::open(&resolved)?;
+            ensure!(
+                file.metadata()?.is_file(),
+                "declared identity must be a regular file."
+            );
+            ensure!(
+                file.metadata()?.len() <= 268_435_456,
+                "declared identity file exceeds 256 MiB."
+            );
+            let mut identity = Sha256::new();
+            let mut count = 0;
+            loop {
+                let n = file.read(&mut buffer)?;
+                if n == 0 {
+                    break;
+                }
+                count += n;
+                ensure!(
+                    count <= 268_435_456,
+                    "declared identity file exceeds 256 MiB."
+                );
+                identity.update(&buffer[..n]);
+            }
+            files.push(json!({"declared":declared,"path":resolved,"bytes":count,"sha256":hex::encode(identity.finalize())}));
+        }
+        let environment = check
+            .environment
+            .iter()
+            .map(|name| {
+                let value = std::env::var_os(name).map(|value| value.as_encoded_bytes().to_vec());
+                Ok(json!({"name":name,"digest":crate::project::hash(value)?}))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        programs.push(
+            json!({"check":check.name,"path":path,"sha256":hex::encode(hash.finalize()),
+            "identity_files":files,"environment":environment}),
+        );
     }
-    Ok(json!({"schema":"fr-check-toolchain-1","programs":programs,
+    Ok(
+        json!({"schema":"fr-check-toolchain-2","programs":programs,"build_configuration":build_configuration(root)?,
         "executor":crate::project::hash((include_str!("../checks.rs"), include_str!("evidence.rs")))?,
-        "scope":"command executable bytes; environment, dynamic libraries and interpreter imports require declared identity checks."}))
+        "scope":"command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."}),
+    )
+}
+
+fn build_configuration(root: &Path) -> Result<Value> {
+    let mut files = std::collections::BTreeMap::new();
+    let mut total = 0;
+    for entry in ignore::WalkBuilder::new(root)
+        .standard_filters(false)
+        .follow_links(false)
+        .filter_entry(|entry| {
+            !matches!(
+                entry.file_name().to_str(),
+                Some(".git" | ".fr-history" | "target" | "node_modules" | ".lake")
+            )
+        })
+        .build()
+    {
+        let entry = entry?;
+        let path = entry.path();
+        let name = path.file_name().and_then(|s| s.to_str());
+        let cargo_config = path
+            .parent()
+            .and_then(|p| p.file_name())
+            .is_some_and(|name| name == ".cargo")
+            && matches!(name, Some("config" | "config.toml"));
+        if !cargo_config
+            && !matches!(
+                name,
+                Some("Cargo.toml" | "Cargo.lock" | "rust-toolchain" | "rust-toolchain.toml")
+            )
+        {
+            continue;
+        }
+        ensure!(!path.is_dir(), "Rust build input must be a regular file.");
+        ensure!(
+            files.len() < 1024,
+            "Rust build input count exceeds 1024 files."
+        );
+        let resolved = path.canonicalize()?;
+        ensure!(
+            resolved.metadata()?.is_file(),
+            "Rust build input must be a regular file."
+        );
+        let mut bytes = Vec::new();
+        File::open(&resolved)?
+            .take(4_194_305)
+            .read_to_end(&mut bytes)?;
+        total += bytes.len();
+        ensure!(
+            bytes.len() <= 4_194_304 && total <= 67_108_864,
+            "Rust build inputs exceed the content budget."
+        );
+        files.insert(path.strip_prefix(root)?.to_string_lossy().into_owned(),
+            json!({"path":resolved,"bytes":bytes.len(),"sha256":hex::encode(Sha256::digest(bytes))}));
+    }
+    Ok(json!({"schema":"fr-rust-build-inputs-1","files":files,
+        "scope":"workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."}))
+}
+
+pub(super) fn validate_declarations(check: &Check) -> Result<()> {
+    let mut names = BTreeSet::new();
+    ensure!(
+        check.environment.len() <= 32 && check.identity_files.len() <= 16,
+        "check identity declarations exceed their limits."
+    );
+    for name in &check.environment {
+        ensure!(
+            !name.is_empty()
+                && name.len() <= 128
+                && names.insert(name)
+                && name.bytes().enumerate().all(|(i, byte)| byte == b'_'
+                    || byte.is_ascii_alphabetic()
+                    || i > 0 && byte.is_ascii_digit()),
+            "environment identities need unique variable names."
+        );
+    }
+    let mut files = BTreeSet::new();
+    for path in &check.identity_files {
+        ensure!(
+            !path.as_os_str().is_empty()
+                && files.insert(path)
+                && (path.is_absolute()
+                    || path.components().all(|c| matches!(
+                        c,
+                        std::path::Component::Normal(_) | std::path::Component::CurDir
+                    ))),
+            "identity files need distinct absolute or confined relative paths."
+        );
+    }
+    Ok(())
 }
 
 pub(crate) fn configuration_digest(root: &Path) -> Result<String> {
