@@ -1,0 +1,2298 @@
+{
+  "schema": "fr-compiler-evidence-acceptance-1",
+  "repository_revision": "3d85d29de5ffd8df48f27aafdd88b9c5dafcd4ef",
+  "source_bindings": {
+    "tools/compiler-evidence-acceptance.py": "2d8dceccc0ecbe6a308063fd9f018a449e2e927338eebf112ae91fbd07f25f84",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0",
+    "src/checks.rs": "9739e5465d50bc1f7f097ec3e952e8a840bb4ade7bcf6dd342e43a464fdbae2f",
+    "src/checks/evidence.rs": "ab5df751a00f3a5555fdf914b2f3b720b884ee3952909fab84f894e2f2ce5853",
+    "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
+    "src/project.rs": "7733250f017e7c76c0fe59d9fe6f7fa0a8210d42cbf8d82ea0b8548edc2db1f7",
+    "src/project/compiler_evidence.rs": "9be19cb405aae7d789b5af71991e09a4ffe67340e5b3aeebb7b263255295a34d",
+    "src/project/compiler_diagnostics.rs": "4f4b43641297f204727430e038e3bee2c2606797f29e73292680b1682bd26759",
+    "src/project/occurrence.rs": "82abfedebd940f7a2267cc2f15f37aa0276f175dc44cc1eed5a50cd4798bce43",
+    "src/project/investigation.rs": "9a5368a4504ed498cd118390673d557e5a0d8a957a2956fd90dd727c22aa8f08",
+    "src/parse.rs": "170c261df7185a352d7d1d20fa0b15f306cfa17dbd369ea2b21681484b059725",
+    "src/span.rs": "b6e16d2f1cec39803a55131836ba6fa5f11627ffbb4a973cae1356911997bc29",
+    "sdk/python/src/fr_ir/compiler_evidence.py": "57fd111a70edefa40205c1a824a3f33d7cc185b74c6635490cb575d45fedda7d",
+    "sdk/python/src/fr_ir/investigation.py": "910376c05e887c20763bf966f37493daa3b72b4d60aea3fba7771d31eec9d257",
+    "sdk/python/src/fr_ir/investigation_checks.py": "8a1ed58cf8e1af220bad190d18e3efeb761b58712fe149c6804c4c20964be7fc",
+    "sdk/python/src/fr_ir/runtime.py": "c96f8ac90fcf4a7c08790be4819c83347fb547d938c956c1c3c9f4beff9d4aa3",
+    "sdk/python/src/fr_ir/context.py": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0",
+    "kernels/FrKernels/Investigation.lean": "45355ea7449953a077c756ca9efb644b76c21d09d8a9d7e597869b81ac47fc0d",
+    "kernels/InvestigationMain.lean": "e249980437c6126b905585687104c752c38e8ab70548f3753735f735edab0c8d",
+    "tests/agent-eval/compiler-evidence/subject.rs": "ec3c9d38eed1d4bb7d93b7afb14bdf7eb77bdcb76665898924ffa9df0770a16c",
+    "tests/agent-eval/compiler-evidence/oracle.py": "6c9cbad957fb17dffe96df2705648f8a9a05b97051402814db427cdde1b6efbd",
+    "tests/agent-eval/compiler-evidence/task.json": "540a0ce1a68226d45023b9c98298ab826ebb6f98892b1b03133dbcce3426bcc4",
+    "tests/agent-eval/compiler-evidence/baseline.json": "2acc872bee4def6d691cb8baec77a8a7426c265f334306bd389cae2b359d595a"
+  },
+  "binary_sha256": "136a880af7d85d8a8a7d7a97948ec360b2d1d4fb037cfd4b8ff3378e168213a9",
+  "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+  "compiler_version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "oracle": {
+    "code": "E0308",
+    "default_accepted": true,
+    "primary_span": [
+      65,
+      70
+    ],
+    "runtime_cases": 6,
+    "strict_rejected": true
+  },
+  "ordinary_oracle_seconds": 0.4662762499647215,
+  "baseline": {
+    "schema": "fr-compiler-evidence-baseline-1",
+    "revision": "eacac5ff0774f735ddb06e2f2223ee7417f19365",
+    "compiler_version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "outcomes": {
+      "default": true,
+      "strict": false
+    },
+    "canonical_response_bytes": 5727,
+    "elapsed_seconds": 0.1602898749988526,
+    "process_calls": 2,
+    "source_reveals": 0,
+    "tokens": null,
+    "diagnostics": "Current checks retain raw compiler output but expose no structured diagnostic facts or disagreement records."
+  },
+  "cases": {
+    "default": {
+      "checks": {
+        "basis": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+        "checks": [
+          {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+            ],
+            "name": "default",
+            "timeout_seconds": 30
+          },
+          {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+            ],
+            "name": "strict",
+            "timeout_seconds": 30
+          }
+        ],
+        "configuration": ".fr/checks.json",
+        "configuration_stable": true,
+        "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+        "executed": true,
+        "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+        "not_run": [
+          "strict"
+        ],
+        "passed": true,
+        "results": [
+          {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "elapsed_ms": 42,
+            "error": null,
+            "exit_code": 0,
+            "name": "default",
+            "output_limit_exceeded": false,
+            "passed": true,
+            "source_snapshot_stable": true,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "timed_out": false
+          }
+        ],
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project",
+        "schema": "fr-checks-1",
+        "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+        "source_snapshot_checked": true,
+        "source_snapshot_stable": true,
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        },
+        "toolchain_stable": true
+      },
+      "pages": [
+        {
+          "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+          "basis": "frcpe1:11c472afcea5c84592c316ffc94145a019af1ed6378c4270415f5486d1928649",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 0,
+            "errors": 0,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 0
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": true,
+          "context_basis": "frcb1:8baf4c7234558ea7d0a02d6c293136927ab94e86dd6314fcf3dbe058c9552aa1",
+          "continuation": null,
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [],
+          "disclosure_complete": true,
+          "handle_prefix": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:",
+          "inputs": {
+            "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+            "check": "default",
+            "configuration": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+            "format": "rustc-json",
+            "report": "2833c6f4c9ee686e6fdba1d3e21f9e5a04dc84c8a70b3985346e4d341a72ae69",
+            "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+            "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+            "toolchain": "e28384bf75de721414e806ad217b44cfa5ba118e23a0935d828f21d622b573de"
+          },
+          "items": [],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 0,
+            "passed": true
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 0,
+            "total": 0
+          },
+          "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "check": "default",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        }
+      ],
+      "check_seconds": 2.5960012919967994,
+      "first_page_seconds": 0.6583870839094743,
+      "raw_report_bytes": 5216,
+      "first_page_bytes": 5235,
+      "all_page_bytes": 5235,
+      "check_process_calls": 2,
+      "evidence_process_calls": 1,
+      "source_reveals": 0,
+      "tokens": null
+    },
+    "strict": {
+      "checks": {
+        "basis": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+        "checks": [
+          {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+            ],
+            "name": "default",
+            "timeout_seconds": 30
+          },
+          {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+            ],
+            "name": "strict",
+            "timeout_seconds": 30
+          }
+        ],
+        "configuration": ".fr/checks.json",
+        "configuration_stable": true,
+        "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+        "executed": true,
+        "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+        "not_run": [
+          "default"
+        ],
+        "passed": false,
+        "results": [
+          {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "elapsed_ms": 48,
+            "error": null,
+            "exit_code": 1,
+            "name": "strict",
+            "output_limit_exceeded": false,
+            "passed": false,
+            "source_snapshot_stable": true,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 2305,
+              "text": "{\"$message_type\":\"diagnostic\",\"message\":\"mismatched types\",\"code\":{\"code\":\"E0308\",\"explanation\":\"Expected type did not match the received type.\\n\\nErroneous code examples:\\n\\n```compile_fail,E0308\\nfn plus_one(x: i32) -> i32 {\\n    x + 1\\n}\\n\\nplus_one(\\\"Not a number\\\");\\n//       ^^^^^^^^^^^^^^ expected `i32`, found `&str`\\n\\nif \\\"Not a bool\\\" {\\n// ^^^^^^^^^^^^ expected `bool`, found `&str`\\n}\\n\\nlet x: f32 = \\\"Not a float\\\";\\n//     ---   ^^^^^^^^^^^^^ expected `f32`, found `&str`\\n//     |\\n//     expected due to this\\n```\\n\\nThis error occurs when an expression was used in a place where the compiler\\nexpected an expression of a different type. It can occur in several cases, the\\nmost common being when calling a function and passing an argument which has a\\ndifferent type than the matching type in the function declaration.\\n\"},\"level\":\"error\",\"spans\":[{\"file_name\":\"subject.rs\",\"byte_start\":65,\"byte_end\":70,\"line_start\":3,\"line_end\":3,\"column_start\":7,\"column_end\":12,\"is_primary\":true,\"text\":[{\"text\":\"    { value }\",\"highlight_start\":7,\"highlight_end\":12}],\"label\":\"expected `usize`, found `&str`\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null},{\"file_name\":\"subject.rs\",\"byte_start\":29,\"byte_end\":34,\"line_start\":1,\"line_end\":1,\"column_start\":30,\"column_end\":35,\"is_primary\":false,\"text\":[{\"text\":\"pub fn width(value: &str) -> usize {\",\"highlight_start\":30,\"highlight_end\":35}],\"label\":\"expected `usize` because of return type\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null}],\"children\":[],\"rendered\":\"error[E0308]: mismatched types\\n --> subject.rs:3:7\\n  |\\n1 | pub fn width(value: &str) -> usize {\\n  |                              ----- expected `usize` because of return type\\n2 |     #[cfg(fr_strict)]\\n3 |     { value }\\n  |       ^^^^^ expected `usize`, found `&str`\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"aborting due to 1 previous error\",\"code\":null,\"level\":\"error\",\"spans\":[],\"children\":[],\"rendered\":\"error: aborting due to 1 previous error\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"For more information about this error, try `rustc --explain E0308`.\",\"code\":null,\"level\":\"failure-note\",\"spans\":[],\"children\":[],\"rendered\":\"For more information about this error, try `rustc --explain E0308`.\\n\"}\n"
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "timed_out": false
+          }
+        ],
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project",
+        "schema": "fr-checks-1",
+        "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+        "source_snapshot_checked": true,
+        "source_snapshot_stable": true,
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        },
+        "toolchain_stable": true
+      },
+      "pages": [
+        {
+          "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+          "basis": "frcpe1:b2b555a9c88d5d29dac36da9928aa428380090bf610f9f8a8f2697cb1033d793",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 3,
+            "errors": 2,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 2305
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": false,
+          "context_basis": "frcb1:8baf4c7234558ea7d0a02d6c293136927ab94e86dd6314fcf3dbe058c9552aa1",
+          "continuation": {
+            "arguments": [
+              "project",
+              "compiler-evidence",
+              "--from",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-evidence-6i9tycak/checks.json",
+              "--digest",
+              "2446b56597e81ae326b654833b4942b64ed460511a15543ee962a3aea3374560",
+              "--check",
+              "strict",
+              "--format",
+              "rustc-json",
+              "--limit",
+              "1",
+              "--bytes",
+              "32768",
+              "--cursor",
+              "frce-page:5db40a591b65d34a4509d12aa72bdcaebc7ec6648f2881175afae8f933ea80d2:1"
+            ]
+          },
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [
+            {
+              "claim": "parser acceptance and compiler rejection concern different verification levels.",
+              "diagnostic": "frcd1:ef5f5da50f6fb8f0ea5060ee7a8f707458c8b386fee8eae91599eafb2a9acd22",
+              "kind": "syntax-accepted-compiler-error"
+            }
+          ],
+          "disclosure_complete": false,
+          "handle_prefix": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:",
+          "inputs": {
+            "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+            "check": "strict",
+            "configuration": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+            "format": "rustc-json",
+            "report": "2446b56597e81ae326b654833b4942b64ed460511a15543ee962a3aea3374560",
+            "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+            "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+            "toolchain": "e28384bf75de721414e806ad217b44cfa5ba118e23a0935d828f21d622b573de"
+          },
+          "items": [
+            {
+              "basis": "frcpe1:b2b555a9c88d5d29dac36da9928aa428380090bf610f9f8a8f2697cb1033d793",
+              "core": {
+                "code": "E0308",
+                "confidence": "reported-by-declared-check",
+                "index": 0,
+                "level": "error",
+                "message": "mismatched types",
+                "parent": null,
+                "rule": "rust-compiler-evidence-1:diagnostic",
+                "spans": [
+                  {
+                    "occurrence": {
+                      "enclosing": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:2",
+                      "id": "fro1:ef046890ef7f5e17044a5a95e6978e4f53213dd0a922f257296a182e28e72ac5",
+                      "location": {
+                        "range": {
+                          "end": {
+                            "col": 12,
+                            "line": 3
+                          },
+                          "start": {
+                            "col": 7,
+                            "line": 3
+                          }
+                        },
+                        "span": {
+                          "end": 70,
+                          "start": 65
+                        }
+                      },
+                      "path": "subject.rs",
+                      "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+                      "role": "compiler-primary"
+                    },
+                    "primary": true,
+                    "reason": "Compiler byte offsets in the validated source snapshot.",
+                    "source": {
+                      "arguments": [
+                        "project",
+                        "show",
+                        "frp1:d04c6fa4f0dd94ab8375f89d7676454c:1",
+                        "--source",
+                        "--bytes",
+                        "256",
+                        "--offset",
+                        "65"
+                      ]
+                    },
+                    "status": "exact",
+                    "syntax": "accepted"
+                  },
+                  {
+                    "occurrence": {
+                      "enclosing": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:2",
+                      "id": "fro1:4c20ef16ac11a897256f3dbf9ba1e06847ef17f31274ba74957ba2a5fe48a27d",
+                      "location": {
+                        "range": {
+                          "end": {
+                            "col": 35,
+                            "line": 1
+                          },
+                          "start": {
+                            "col": 30,
+                            "line": 1
+                          }
+                        },
+                        "span": {
+                          "end": 34,
+                          "start": 29
+                        }
+                      },
+                      "path": "subject.rs",
+                      "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+                      "role": "compiler-secondary"
+                    },
+                    "primary": false,
+                    "reason": "Compiler byte offsets in the validated source snapshot.",
+                    "source": {
+                      "arguments": [
+                        "project",
+                        "show",
+                        "frp1:d04c6fa4f0dd94ab8375f89d7676454c:1",
+                        "--source",
+                        "--bytes",
+                        "256",
+                        "--offset",
+                        "29"
+                      ]
+                    },
+                    "status": "exact",
+                    "syntax": "accepted"
+                  }
+                ]
+              },
+              "id": "frcd1:ef5f5da50f6fb8f0ea5060ee7a8f707458c8b386fee8eae91599eafb2a9acd22"
+            }
+          ],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 1,
+            "passed": false
+          },
+          "page": {
+            "before": 0,
+            "next": "frce-page:5db40a591b65d34a4509d12aa72bdcaebc7ec6648f2881175afae8f933ea80d2:1",
+            "remaining": 2,
+            "returned": 1,
+            "total": 3
+          },
+          "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "check": "strict",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        },
+        {
+          "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+          "basis": "frcpe1:b2b555a9c88d5d29dac36da9928aa428380090bf610f9f8a8f2697cb1033d793",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 3,
+            "errors": 2,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 2305
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": false,
+          "context_basis": "frcb1:8baf4c7234558ea7d0a02d6c293136927ab94e86dd6314fcf3dbe058c9552aa1",
+          "continuation": {
+            "arguments": [
+              "project",
+              "compiler-evidence",
+              "--from",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-evidence-tnglitjb/checks.json",
+              "--digest",
+              "2446b56597e81ae326b654833b4942b64ed460511a15543ee962a3aea3374560",
+              "--check",
+              "strict",
+              "--format",
+              "rustc-json",
+              "--limit",
+              "1",
+              "--bytes",
+              "32768",
+              "--cursor",
+              "frce-page:5db40a591b65d34a4509d12aa72bdcaebc7ec6648f2881175afae8f933ea80d2:2"
+            ]
+          },
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [],
+          "disclosure_complete": false,
+          "handle_prefix": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:",
+          "inputs": {
+            "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+            "check": "strict",
+            "configuration": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+            "format": "rustc-json",
+            "report": "2446b56597e81ae326b654833b4942b64ed460511a15543ee962a3aea3374560",
+            "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+            "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+            "toolchain": "e28384bf75de721414e806ad217b44cfa5ba118e23a0935d828f21d622b573de"
+          },
+          "items": [
+            {
+              "basis": "frcpe1:b2b555a9c88d5d29dac36da9928aa428380090bf610f9f8a8f2697cb1033d793",
+              "core": {
+                "code": null,
+                "confidence": "reported-by-declared-check",
+                "index": 1,
+                "level": "error",
+                "message": "aborting due to 1 previous error",
+                "parent": null,
+                "rule": "rust-compiler-evidence-1:diagnostic",
+                "spans": []
+              },
+              "id": "frcd1:4148e7e662211643a271b858e8e98cc8ee557eecbc9e110c8d164b56dcd4d43f"
+            }
+          ],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 1,
+            "passed": false
+          },
+          "page": {
+            "before": 1,
+            "next": "frce-page:5db40a591b65d34a4509d12aa72bdcaebc7ec6648f2881175afae8f933ea80d2:2",
+            "remaining": 1,
+            "returned": 1,
+            "total": 3
+          },
+          "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "check": "strict",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        },
+        {
+          "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+          "basis": "frcpe1:b2b555a9c88d5d29dac36da9928aa428380090bf610f9f8a8f2697cb1033d793",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 3,
+            "errors": 2,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 2305
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": false,
+          "context_basis": "frcb1:8baf4c7234558ea7d0a02d6c293136927ab94e86dd6314fcf3dbe058c9552aa1",
+          "continuation": null,
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [],
+          "disclosure_complete": false,
+          "handle_prefix": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:",
+          "inputs": {
+            "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+            "check": "strict",
+            "configuration": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+            "format": "rustc-json",
+            "report": "2446b56597e81ae326b654833b4942b64ed460511a15543ee962a3aea3374560",
+            "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+            "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+            "toolchain": "e28384bf75de721414e806ad217b44cfa5ba118e23a0935d828f21d622b573de"
+          },
+          "items": [
+            {
+              "basis": "frcpe1:b2b555a9c88d5d29dac36da9928aa428380090bf610f9f8a8f2697cb1033d793",
+              "core": {
+                "code": null,
+                "confidence": "reported-by-declared-check",
+                "index": 2,
+                "level": "failure-note",
+                "message": "For more information about this error, try `rustc --explain E0308`.",
+                "parent": null,
+                "rule": "rust-compiler-evidence-1:diagnostic",
+                "spans": []
+              },
+              "id": "frcd1:57206cbc407182adba66b301f11141b7c20ab4d51e11f15b62d3ecb50d110cd1"
+            }
+          ],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 1,
+            "passed": false
+          },
+          "page": {
+            "before": 2,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 3
+          },
+          "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "check": "strict",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 82989928,
+                      "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                      "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                    }
+                  ],
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        }
+      ],
+      "check_seconds": 2.538822958013043,
+      "first_page_seconds": 0.6406211249995977,
+      "raw_report_bytes": 7748,
+      "first_page_bytes": 7536,
+      "all_page_bytes": 19284,
+      "check_process_calls": 2,
+      "evidence_process_calls": 3,
+      "source_reveals": 0,
+      "tokens": null
+    }
+  },
+  "clipped": {
+    "checks": {
+      "basis": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+      "checks": [
+        {
+          "argv": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "subject.rs"
+          ],
+          "covers": [
+            "default"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+          ],
+          "name": "default",
+          "timeout_seconds": 30
+        },
+        {
+          "argv": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "--cfg",
+            "fr_strict",
+            "subject.rs"
+          ],
+          "covers": [
+            "strict"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+          ],
+          "name": "strict",
+          "timeout_seconds": 30
+        }
+      ],
+      "configuration": ".fr/checks.json",
+      "configuration_stable": true,
+      "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+      "executed": true,
+      "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+      "not_run": [
+        "default"
+      ],
+      "passed": false,
+      "results": [
+        {
+          "argv": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "--cfg",
+            "fr_strict",
+            "subject.rs"
+          ],
+          "covers": [
+            "strict"
+          ],
+          "cwd": ".",
+          "elapsed_ms": 40,
+          "error": null,
+          "exit_code": 1,
+          "name": "strict",
+          "output_limit_exceeded": false,
+          "passed": false,
+          "source_snapshot_stable": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 2241,
+            "retained_bytes": 64,
+            "text": "{\"$message_type\":\"diagnostic\",\"message\":\"mismatched types\",\"code"
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      ],
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project",
+      "schema": "fr-checks-1",
+      "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+      "source_snapshot_checked": true,
+      "source_snapshot_stable": true,
+      "toolchain": {
+        "build_configuration": {
+          "files": {
+            "Cargo.lock": {
+              "bytes": 169,
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+              "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+            },
+            "Cargo.toml": {
+              "bytes": 135,
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+              "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+            }
+          },
+          "schema": "fr-rust-build-inputs-1",
+          "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+        },
+        "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+        "programs": [
+          {
+            "check": "default",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 82989928,
+                "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+              }
+            ],
+            "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+          },
+          {
+            "check": "strict",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 82989928,
+                "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+              }
+            ],
+            "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+          }
+        ],
+        "schema": "fr-check-toolchain-2",
+        "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+      },
+      "toolchain_stable": true
+    },
+    "report": {
+      "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+      "basis": "frcpe1:009d87c294f22fbb9411b7d625fc35659f10d983ff76f77313a34beedbd16bce",
+      "budget": {
+        "limit": 8,
+        "response_bytes": 32768
+      },
+      "capture": {
+        "complete": false,
+        "cutoffs": [
+          "compiler-stream-truncated",
+          "non-json-compiler-output"
+        ],
+        "diagnostics": 0,
+        "errors": 0,
+        "ignored_protocol_events": 0,
+        "omitted_bytes": 2241,
+        "retained_bytes": 64
+      },
+      "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+      "complete": false,
+      "context_basis": "frcb1:8baf4c7234558ea7d0a02d6c293136927ab94e86dd6314fcf3dbe058c9552aa1",
+      "continuation": null,
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 1,
+        "lockfiles": {
+          "discovered": 1,
+          "gaps": 0,
+          "resolutions": 1
+        },
+        "manifests": {
+          "discovered": 1,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 1,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 6,
+        "unsupported_files": 2
+      },
+      "disagreements": [],
+      "disclosure_complete": true,
+      "handle_prefix": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:",
+      "inputs": {
+        "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+        "check": "strict",
+        "configuration": "a257ad49a2ba16d6949f9e2f1de5d233cb8bf0d9ca49cf5c26ef918a4965fab8",
+        "format": "rustc-json",
+        "report": "083e0f2e0a5d835abcf12d12b3a61551470c295abe95bd43825029d3c2d62a26",
+        "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+        "source_revision": "3e2ae9e04c2841ebd2149569bf501db51d0cfb8aa32eaf53b9857675220b1373",
+        "toolchain": "e28384bf75de721414e806ad217b44cfa5ba118e23a0935d828f21d622b573de"
+      },
+      "items": [],
+      "mutation_authority": false,
+      "outcome": {
+        "cargo_success": null,
+        "execution_complete": true,
+        "exit_code": 1,
+        "passed": false
+      },
+      "page": {
+        "before": 0,
+        "next": null,
+        "remaining": 0,
+        "returned": 0,
+        "total": 0
+      },
+      "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+      "schema": "fr-compiler-evidence-1",
+      "scope": {
+        "argv": [
+          "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+          "--crate-type",
+          "lib",
+          "--emit",
+          "metadata",
+          "--out-dir",
+          "target",
+          "--error-format",
+          "json",
+          "--cfg",
+          "fr_strict",
+          "subject.rs"
+        ],
+        "check": "strict",
+        "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+        "covers": [
+          "strict"
+        ],
+        "cwd": ".",
+        "format": "rustc-json",
+        "stream": "stderr",
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        }
+      },
+      "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+    }
+  },
+  "cargo": {
+    "checks": {
+      "basis": "a9ef9ab05dc5b3a53cb06a88f543f8c5f6d1bc6e101732f2b1c66d6583221d0d",
+      "checks": [
+        {
+          "argv": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "subject.rs"
+          ],
+          "covers": [
+            "default"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+          ],
+          "name": "default",
+          "timeout_seconds": 30
+        },
+        {
+          "argv": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "--cfg",
+            "fr_strict",
+            "subject.rs"
+          ],
+          "covers": [
+            "strict"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+          ],
+          "name": "strict",
+          "timeout_seconds": 30
+        },
+        {
+          "argv": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "check",
+            "--offline",
+            "--message-format=json"
+          ],
+          "covers": [
+            "Cargo strict configuration"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTFLAGS",
+            "RUSTC",
+            "CARGO_ENCODED_RUSTFLAGS"
+          ],
+          "identity_files": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
+          ],
+          "name": "cargo",
+          "timeout_seconds": 30
+        }
+      ],
+      "configuration": ".fr/checks.json",
+      "configuration_stable": true,
+      "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+      "executed": true,
+      "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+      "not_run": [
+        "default",
+        "strict"
+      ],
+      "passed": false,
+      "results": [
+        {
+          "argv": [
+            "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "check",
+            "--offline",
+            "--message-format=json"
+          ],
+          "covers": [
+            "Cargo strict configuration"
+          ],
+          "cwd": ".",
+          "elapsed_ms": 137,
+          "error": null,
+          "exit_code": 101,
+          "name": "cargo",
+          "output_limit_exceeded": false,
+          "passed": false,
+          "source_snapshot_stable": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 222,
+            "text": "    Checking compiler_evidence_fixture v0.1.0 (/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project)\nerror: could not compile `compiler_evidence_fixture` (lib) due to 1 previous error\n"
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 3289,
+            "text": "{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"error[E0308]: mismatched types\\n --> subject.rs:3:7\\n  |\\n1 | pub fn width(value: &str) -> usize {\\n  |                              ----- expected `usize` because of return type\\n2 |     #[cfg(fr_strict)]\\n3 |     { value }\\n  |       ^^^^^ expected `usize`, found `&str`\\n\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"error\",\"message\":\"mismatched types\",\"spans\":[{\"byte_end\":70,\"byte_start\":65,\"column_end\":12,\"column_start\":7,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":true,\"label\":\"expected `usize`, found `&str`\",\"line_end\":3,\"line_start\":3,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":12,\"highlight_start\":7,\"text\":\"    { value }\"}]},{\"byte_end\":34,\"byte_start\":29,\"column_end\":35,\"column_start\":30,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":false,\"label\":\"expected `usize` because of return type\",\"line_end\":1,\"line_start\":1,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":35,\"highlight_start\":30,\"text\":\"pub fn width(value: &str) -> usize {\"}]}],\"code\":{\"code\":\"E0308\",\"explanation\":\"Expected type did not match the received type.\\n\\nErroneous code examples:\\n\\n```compile_fail,E0308\\nfn plus_one(x: i32) -> i32 {\\n    x + 1\\n}\\n\\nplus_one(\\\"Not a number\\\");\\n//       ^^^^^^^^^^^^^^ expected `i32`, found `&str`\\n\\nif \\\"Not a bool\\\" {\\n// ^^^^^^^^^^^^ expected `bool`, found `&str`\\n}\\n\\nlet x: f32 = \\\"Not a float\\\";\\n//     ---   ^^^^^^^^^^^^^ expected `f32`, found `&str`\\n//     |\\n//     expected due to this\\n```\\n\\nThis error occurs when an expression was used in a place where the compiler\\nexpected an expression of a different type. It can occur in several cases, the\\nmost common being when calling a function and passing an argument which has a\\ndifferent type than the matching type in the function declaration.\\n\"}}}\n{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"For more information about this error, try `rustc --explain E0308`.\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"failure-note\",\"message\":\"For more information about this error, try `rustc --explain E0308`.\",\"spans\":[],\"code\":null}}\n{\"reason\":\"build-finished\",\"success\":false}\n"
+          },
+          "timed_out": false
+        }
+      ],
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project",
+      "schema": "fr-checks-1",
+      "source_revision": "4db6b0df028602a4e21a9c8633857506c0dcc918937c0428a549388adca91e3a",
+      "source_snapshot_checked": true,
+      "source_snapshot_stable": true,
+      "toolchain": {
+        "build_configuration": {
+          "files": {
+            ".cargo/config.toml": {
+              "bytes": 40,
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/.cargo/config.toml",
+              "sha256": "4d2fdab2ed064c24f4db0c4ab1d7d31f5d7b571077647ea6aeb74b226f408183"
+            },
+            "Cargo.lock": {
+              "bytes": 169,
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+              "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+            },
+            "Cargo.toml": {
+              "bytes": 135,
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+              "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+            }
+          },
+          "schema": "fr-rust-build-inputs-1",
+          "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+        },
+        "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+        "programs": [
+          {
+            "check": "default",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 82989928,
+                "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+              }
+            ],
+            "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+          },
+          {
+            "check": "strict",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 82989928,
+                "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+              }
+            ],
+            "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+            "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+          },
+          {
+            "check": "cargo",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTFLAGS"
+              },
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC"
+              },
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "CARGO_ENCODED_RUSTFLAGS"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 412504,
+                "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+              },
+              {
+                "bytes": 82989928,
+                "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+              }
+            ],
+            "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+            "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+          }
+        ],
+        "schema": "fr-check-toolchain-2",
+        "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+      },
+      "toolchain_stable": true
+    },
+    "report": {
+      "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+      "basis": "frcpe1:4e409745770bb0815abcd833a7afaeace7ae7442bba0ea84fd967c8f907efd83",
+      "budget": {
+        "limit": 64,
+        "response_bytes": 32768
+      },
+      "capture": {
+        "complete": true,
+        "cutoffs": [],
+        "diagnostics": 2,
+        "errors": 1,
+        "ignored_protocol_events": 0,
+        "omitted_bytes": 0,
+        "retained_bytes": 3289
+      },
+      "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+      "complete": true,
+      "context_basis": "frcb1:8baf4c7234558ea7d0a02d6c293136927ab94e86dd6314fcf3dbe058c9552aa1",
+      "continuation": null,
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 1,
+        "lockfiles": {
+          "discovered": 1,
+          "gaps": 0,
+          "resolutions": 1
+        },
+        "manifests": {
+          "discovered": 1,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 1,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 6,
+        "unsupported_files": 2
+      },
+      "disagreements": [
+        {
+          "claim": "parser acceptance and compiler rejection concern different verification levels.",
+          "diagnostic": "frcd1:52064cffdd5642d5173eead3b5fd3f6266a24fd9e3b3c2e406b584f8e92ef0d3",
+          "kind": "syntax-accepted-compiler-error"
+        }
+      ],
+      "disclosure_complete": true,
+      "handle_prefix": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:",
+      "inputs": {
+        "analyzer": "8ff6ca1aea7d65caa2ed0d6d4311dfb85984b22c0c6e2dd4dd67263df105ced4",
+        "check": "cargo",
+        "configuration": "a9ef9ab05dc5b3a53cb06a88f543f8c5f6d1bc6e101732f2b1c66d6583221d0d",
+        "format": "cargo-json",
+        "report": "ea62a24e0002f614766c84b045dc12249f44ca531aa7c455f4a92dd31d3cc5af",
+        "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+        "source_revision": "4db6b0df028602a4e21a9c8633857506c0dcc918937c0428a549388adca91e3a",
+        "toolchain": "e736734ca6f404e0c0b461bf7f7a3c7d5d71622f505673a19d1b91f86665d03e"
+      },
+      "items": [
+        {
+          "basis": "frcpe1:4e409745770bb0815abcd833a7afaeace7ae7442bba0ea84fd967c8f907efd83",
+          "core": {
+            "code": "E0308",
+            "confidence": "reported-by-declared-check",
+            "index": 0,
+            "level": "error",
+            "message": "mismatched types",
+            "parent": null,
+            "rule": "rust-compiler-evidence-1:diagnostic",
+            "spans": [
+              {
+                "occurrence": {
+                  "enclosing": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:2",
+                  "id": "fro1:ef046890ef7f5e17044a5a95e6978e4f53213dd0a922f257296a182e28e72ac5",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 12,
+                        "line": 3
+                      },
+                      "start": {
+                        "col": 7,
+                        "line": 3
+                      }
+                    },
+                    "span": {
+                      "end": 70,
+                      "start": 65
+                    }
+                  },
+                  "path": "subject.rs",
+                  "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+                  "role": "compiler-primary"
+                },
+                "primary": true,
+                "reason": "Compiler byte offsets in the validated source snapshot.",
+                "source": {
+                  "arguments": [
+                    "project",
+                    "show",
+                    "frp1:d04c6fa4f0dd94ab8375f89d7676454c:1",
+                    "--source",
+                    "--bytes",
+                    "256",
+                    "--offset",
+                    "65"
+                  ]
+                },
+                "status": "exact",
+                "syntax": "accepted"
+              },
+              {
+                "occurrence": {
+                  "enclosing": "frp1:d04c6fa4f0dd94ab8375f89d7676454c:2",
+                  "id": "fro1:4c20ef16ac11a897256f3dbf9ba1e06847ef17f31274ba74957ba2a5fe48a27d",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 35,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 30,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 34,
+                      "start": 29
+                    }
+                  },
+                  "path": "subject.rs",
+                  "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+                  "role": "compiler-secondary"
+                },
+                "primary": false,
+                "reason": "Compiler byte offsets in the validated source snapshot.",
+                "source": {
+                  "arguments": [
+                    "project",
+                    "show",
+                    "frp1:d04c6fa4f0dd94ab8375f89d7676454c:1",
+                    "--source",
+                    "--bytes",
+                    "256",
+                    "--offset",
+                    "29"
+                  ]
+                },
+                "status": "exact",
+                "syntax": "accepted"
+              }
+            ]
+          },
+          "id": "frcd1:52064cffdd5642d5173eead3b5fd3f6266a24fd9e3b3c2e406b584f8e92ef0d3"
+        },
+        {
+          "basis": "frcpe1:4e409745770bb0815abcd833a7afaeace7ae7442bba0ea84fd967c8f907efd83",
+          "core": {
+            "code": null,
+            "confidence": "reported-by-declared-check",
+            "index": 1,
+            "level": "failure-note",
+            "message": "For more information about this error, try `rustc --explain E0308`.",
+            "parent": null,
+            "rule": "rust-compiler-evidence-1:diagnostic",
+            "spans": []
+          },
+          "id": "frcd1:a84278957820cf4b9e89332bb2a08afa28f73eece1841c5783614f5cee55ff75"
+        }
+      ],
+      "mutation_authority": false,
+      "outcome": {
+        "cargo_success": false,
+        "execution_complete": true,
+        "exit_code": 101,
+        "passed": false
+      },
+      "page": {
+        "before": 0,
+        "next": null,
+        "remaining": 0,
+        "returned": 2,
+        "total": 2
+      },
+      "revision": "d04c6fa4f0dd94ab8375f89d7676454ccc8e77ea61867a700d0b0ad99cdabcb6",
+      "schema": "fr-compiler-evidence-1",
+      "scope": {
+        "argv": [
+          "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+          "check",
+          "--offline",
+          "--message-format=json"
+        ],
+        "check": "cargo",
+        "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+        "covers": [
+          "Cargo strict configuration"
+        ],
+        "cwd": ".",
+        "format": "cargo-json",
+        "stream": "stdout",
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              ".cargo/config.toml": {
+                "bytes": 40,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/.cargo/config.toml",
+                "sha256": "4d2fdab2ed064c24f4db0c4ab1d7d31f5d7b571077647ea6aeb74b226f408183"
+              },
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "52e3eab731cb4fee12e27240ee57f1bf8ca5223555b8bd23d4f79519d8964bbe",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-bzw4ecm1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+              "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+            },
+            {
+              "check": "cargo",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTFLAGS"
+                },
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC"
+                },
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "CARGO_ENCODED_RUSTFLAGS"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 412504,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+                  "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+                },
+                {
+                  "bytes": 82989928,
+                  "declared": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib",
+                  "sha256": "e1e7eb59d24838803eba09fde57b8aee5271966a7a8b61c694cef4ee34a6ffaa"
+                }
+              ],
+              "path": "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+              "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        }
+      },
+      "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+    }
+  },
+  "plan": {
+    "complete": false,
+    "evidence": [
+      {
+        "kind": "check",
+        "passed": false
+      },
+      {
+        "kind": "observation",
+        "passed": true
+      }
+    ]
+  },
+  "refusals": {
+    "external_identity": true,
+    "environment": true,
+    "new_build_configuration": true,
+    "source": true
+  },
+  "evidence_digest": "c33177f7861f152e66f47914431ae281b7bca51c1b5ffe41432d1c5e4ee7a056",
+  "false_claims": 0,
+  "useful_discoveries": [
+    "E0308 at exact value span",
+    "syntax acceptance differs from strict compiler rejection",
+    "default configuration passes"
+  ],
+  "diagnostics": [
+    "A Cargo manifest edit initially left retained checks current; automatic Rust build-input identities fixed the gap.",
+    "The initial identity-file limit excluded the compiler driver; streaming identities now admit 256 MiB files.",
+    "Generated artifacts initially changed the fixture project snapshot; the fixture now declares target/ ignored."
+  ],
+  "scope": "Six independent runtime cases and exact strict diagnostic coordinates. Real rustc and Cargo invocations. Driver identities are declared when available. Full compiler dependency coverage, execution attestation, runtime safety and source proofs remain outside scope. No live agent or token measurement. Raw retained compiler output can contain rendered source; diagnostic pages omit those fields."
+}

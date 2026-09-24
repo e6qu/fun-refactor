@@ -11,18 +11,18 @@
     "src/project/migration.rs": "d4e408c0eb95b7f4bd6d8d4939bcbe2a4e225222eb67b6a117a501d39128c6b4",
     "src/spec.rs": "0b1b016a5a445923e6ea6bde404e8a289d7563806a174d71be7d05a4f960854b"
   },
-  "binary_sha256": "4f386f65afbf8b770274d6c946f469871d9df65158a9cf5f5d445773ab04dd9d",
+  "binary_sha256": "136a880af7d85d8a8a7d7a97948ec360b2d1d4fb037cfd4b8ff3378e168213a9",
   "workflows": [
     {
       "id": "understanding",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:bbc9547e06aa8c3ad0048b6bed64a8420c951b1b654e27c8a134f06fca5dd2af",
-      "guide_object_root": "9df73a2699037d9cf4493365c0bf70fe01e3ee841975cef57fe2a65a4afff418",
+      "guide_basis": "frag1:4d08f5c70323c878b52898895bdbc5f01834742093e6ad4f211f15194488580a",
+      "guide_object_root": "478454bface448d602e5a7d88660c2f4b56b686aa59cb75d2a06213176acd2c4",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
-        "response_bytes": 4988,
+        "response_bytes": 5112,
         "events": [
           {
             "arguments": [
@@ -30,8 +30,8 @@
               "--help"
             ],
             "request_bytes": 34,
-            "response_bytes": 3806,
-            "response_sha256": "87b005cac08428f410960d982e88bd2988ca8e244deeb60350831e9011d806c0"
+            "response_bytes": 3930,
+            "response_sha256": "612e030f5895de93312950be49d60dc32ed7b75b8da3a443abaff1b917ad2b05"
           },
           {
             "arguments": [
@@ -57,7 +57,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "7fb959fbc8dafb434bdee5e5aa651a895b5571be2b198de13e5dd1fc0585df90"
+            "response_sha256": "4f9ceb0c42f9382437c6a3c0d6d7f6d5872b86d3d5b0709dbc503eceffc92f1b"
           }
         ]
       },
@@ -76,12 +76,12 @@
       "id": "tracing",
       "route": "evidence",
       "state": "ready",
-      "guide_basis": "frag1:1f2fefba288821e1879272baa559c7225ac0dd094a529064af0897462f1e9cde",
-      "guide_object_root": "adb572b8f431b311f46bf2412f85822a8d76fc3c6258ce1c582884d0dc005d0a",
+      "guide_basis": "frag1:01d025fa5fca756eec0dae8254fca7193ef2266b68790f09c9f7cc1ccd4725fd",
+      "guide_object_root": "672d86c020f0a0a1cef9c267dc04ffb1b4fe00254289a3d15961cdc95ab73ba9",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 67,
-        "response_bytes": 4988,
+        "response_bytes": 5112,
         "events": [
           {
             "arguments": [
@@ -89,8 +89,8 @@
               "--help"
             ],
             "request_bytes": 34,
-            "response_bytes": 3806,
-            "response_sha256": "87b005cac08428f410960d982e88bd2988ca8e244deeb60350831e9011d806c0"
+            "response_bytes": 3930,
+            "response_sha256": "612e030f5895de93312950be49d60dc32ed7b75b8da3a443abaff1b917ad2b05"
           },
           {
             "arguments": [
@@ -116,7 +116,7 @@
               "--from",
               "-"
             ],
-            "response_sha256": "004d24f7b955b2616847d7809ad26eaa7e9659b229b97efc84fdcc79464a59a3"
+            "response_sha256": "c870269cef9e1f1ce0d306f5417f5571a69b10d0713e6ce66d1dddb112f4f281"
           }
         ]
       },
@@ -135,8 +135,8 @@
       "id": "direct-change",
       "route": "direct-capability",
       "state": "ready",
-      "guide_basis": "frag1:98f75f01ea6ef74298e287f5634e377695576f21e38654708488a59c3b5b991f",
-      "guide_object_root": "73ee4f2e897c2504b79de7ea8d1f28cba08a4c7f3ab323dd2a7a212df5bbcf50",
+      "guide_basis": "frag1:e0ecc477b0f3a8b75d8cd7ba52b891bffc764940c7c3aab77254a21625eeaa85",
+      "guide_object_root": "f2366246ea92485d56a1a63d8831381310201590e4716f52158e509387514850",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 57,
@@ -174,7 +174,7 @@
               "src/lib.rs:1:8",
               "compute"
             ],
-            "response_sha256": "97f39c8e44501e66bb9d52a1089abf81652621a03094b28485ae658b4195f3ae"
+            "response_sha256": "a6be727e87f972ced8248f54ad7b40410f31a78c8147b74b178768c7b99c63a8"
           }
         ]
       },
@@ -193,8 +193,8 @@
       "id": "recipe",
       "route": "recipe",
       "state": "needs-authoring",
-      "guide_basis": "frag1:4f06a17681eb4a81f31cd22fa71e3d17436717cbfeed51c40853911bcb67062e",
-      "guide_object_root": "ba4a01950af67a7450c1e3ccb6d73066c390485cd3395e27e59171780ffdb33b",
+      "guide_basis": "frag1:c65b8b070a07dd5873efcfa8e7162e7871d0ea6bdb598290df955b515f12dc06",
+      "guide_object_root": "078a4038c57ab70b91d3d8fb9487ece2ccc2a25ba896d7d6395922ac4adf7a26",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 72,
@@ -251,8 +251,8 @@
       "id": "semantic-edit",
       "route": "semantic-scalar",
       "state": "ready",
-      "guide_basis": "frag1:90f222311bb495c8a26f9f8ebb1db1fb45ccfb66be1af5e321b0cb1ac4010fec",
-      "guide_object_root": "08c90b96a3f4f943babfade4dd89e403c594a29e98b7eb02edf2aed16ca43ebd",
+      "guide_basis": "frag1:cf5696ce25a9bddfce5ea12623c9888c267aa44a723c6a6419a63def5c60e32e",
+      "guide_object_root": "52c2e4e96348ba32ff8a61e16c3d8cb74360a7bd4f4a3442b0eff507abfb7f8e",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 83,
@@ -290,7 +290,7 @@
             "arguments": [
               "project",
               "semantic",
-              "frp1:e0b57ac39bdec90b31a9e2d14fdc578d:52",
+              "frp1:b99c18c3dd3757e5e226e640c3d822ae:52",
               "--body",
               "--locator-op",
               "set-int",
@@ -302,13 +302,13 @@
               "--intent-to",
               "9"
             ],
-            "response_sha256": "45df13094674445ff831e9f02bd2b58bc454a5e96a6b58ab78ed3f308c931cc2"
+            "response_sha256": "6583d84f8d2681d549c550c4cf116ef4e0226b59233c8a559bd9415dda7ceba1"
           },
           {
             "arguments": [
               "author",
               "edit-body-scalar",
-              "frp1:e0b57ac39bdec90b31a9e2d14fdc578d:52",
+              "frp1:b99c18c3dd3757e5e226e640c3d822ae:52",
               "--operation",
               "set-int",
               "--from",
@@ -316,7 +316,7 @@
               "--to",
               "9"
             ],
-            "response_sha256": "b6f53a84ae635567e2eeb8209a483124a186f94828666ef3ac99e92adb5f1bcf"
+            "response_sha256": "457ad4f776d178ce8392519873cda30ca026fd5d6dda8a0a49b4896190fcc3fa"
           }
         ]
       },
@@ -335,8 +335,8 @@
       "id": "framework-migration",
       "route": "framework-migration",
       "state": "ready",
-      "guide_basis": "frag1:8fed330ca45e0064e1c7f4d4f69be6cf8b8fa6adf2c8452f09bf49eca2ae7e58",
-      "guide_object_root": "d92fdae4a9cb8edbb94ac024ae1c0dbfaf7714358dbb6f598637aa063584a3fe",
+      "guide_basis": "frag1:ae8be00f93054631effb2c7887bde33872908d57863645761b182be78ad7a5c6",
+      "guide_object_root": "8db87e499aae9f286176f765514711c42dedcb8309fcf5aa11a873c8282f00f4",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 70,
@@ -373,23 +373,23 @@
             "arguments": [
               "project",
               "features",
-              "frp1:af8ba8448d9fde8be779ff352ad420ad:4",
+              "frp1:70c8db1166c0f70e003e960d79d9227f:4",
               "--limit",
               "8"
             ],
-            "response_sha256": "9eb69047fc03f9e8679cf161fd4fa1b10ced2dc08388f0b670d11daa57a71a4a"
+            "response_sha256": "40edacff3f9f56f43146501dfa916995c0a37f83a6be7efe0081df9f9b0f9182"
           },
           {
             "arguments": [
               "migrate",
               "feature",
-              "frff1:569be99037e9c3af16bc8bd84342f70b",
+              "frff1:875899befe0a99237ba333d9dadf9585",
               "--to",
               "fastapi",
               "--out",
               "converted/signals.py"
             ],
-            "response_sha256": "b01314cc1912361256ad79530153b685b342cad0eada96f812a77cd58915d617"
+            "response_sha256": "e3bb1cf77ccc6571652e2afc24339cdc35f572126d31bf881560bc436e709c1e"
           }
         ]
       },
@@ -408,8 +408,8 @@
       "id": "proof",
       "route": "proof",
       "state": "ready",
-      "guide_basis": "frag1:f44be713c86a415759c50d7af6228b52bdaa028c089fbc346008cfc7aa577f6e",
-      "guide_object_root": "43ea9cc3696cd2f07bdc8c70eaca6c7535f33889b540befc90f571779152d100",
+      "guide_basis": "frag1:404b133653eb61b12fee9edc60f29a78e2c2e9aa09cf4399e910da92ba6c8b4d",
+      "guide_object_root": "0025b6b37049457857be170092e09af2815205f36375227ece614b1e505d07e9",
       "manual_discovery": {
         "calls": 2,
         "request_bytes": 63,
@@ -462,7 +462,7 @@
               "--token-limit",
               "4096"
             ],
-            "response_sha256": "8a876208dc15bb8a816500263471e30833ecda605eb0744218314c71a6f314a7"
+            "response_sha256": "2965581a1edee3e45f2c7f0e5fca68571138b103ddd9ea21ef949ddc361f7d59"
           },
           {
             "arguments": [

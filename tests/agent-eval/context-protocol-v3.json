@@ -58,7 +58,7 @@
       },
       "projected": {
         "context": {
-          "bytes": 37982,
+          "bytes": 38959,
           "tokens": null
         },
         "prompt": {
@@ -66,7 +66,7 @@
           "tokens": null
         },
         "visible_output": {
-          "bytes": 33580,
+          "bytes": 34557,
           "tokens": null
         },
         "requests": {
@@ -75,7 +75,7 @@
         },
         "categories": {
           "skill": {
-            "bytes": 7092,
+            "bytes": 8069,
             "tokens": null,
             "seconds": 0.001
           },
@@ -242,14 +242,13 @@
           "event_index": 2,
           "rule": "skill-read",
           "output_paths": [
-            "$.text",
-            "$.total_lines"
+            "$.text"
           ],
           "request_suffix": [],
           "recorded_request_sha256": "87772ff7654717065db41943abfb665affd67b7a5f626f89b4d8e5e4bfee4903",
           "projected_request_sha256": "87772ff7654717065db41943abfb665affd67b7a5f626f89b4d8e5e4bfee4903",
           "recorded_visible_sha256": "80bca98226aa4575d56094dca5cc613ca087aec066610a4e8868474427144823",
-          "projected_visible_sha256": "7e96ec0cd246dbd6401dd9ba0f27a04193fddd4084193105ee1901c4bda4d342"
+          "projected_visible_sha256": "9be9949df49f81700f997076e8e7d5b73ea2b01424d9ff028f7658671fe14382"
         },
         {
           "event_index": 4,
@@ -442,11 +441,11 @@
       },
       "contribution": {
         "bytes": {
-          "skill_and_current_docs": 619,
+          "skill_and_current_docs": -358,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 619
+          "total": -358
         }
       }
     },
@@ -729,7 +728,7 @@
       },
       "projected": {
         "context": {
-          "bytes": 36001,
+          "bytes": 36978,
           "tokens": null
         },
         "prompt": {
@@ -737,7 +736,7 @@
           "tokens": null
         },
         "visible_output": {
-          "bytes": 31599,
+          "bytes": 32576,
           "tokens": null
         },
         "requests": {
@@ -746,7 +745,7 @@
         },
         "categories": {
           "skill": {
-            "bytes": 7092,
+            "bytes": 8069,
             "tokens": null,
             "seconds": 0.003
           },
@@ -913,14 +912,13 @@
           "event_index": 2,
           "rule": "skill-read",
           "output_paths": [
-            "$.text",
-            "$.total_lines"
+            "$.text"
           ],
           "request_suffix": [],
           "recorded_request_sha256": "87772ff7654717065db41943abfb665affd67b7a5f626f89b4d8e5e4bfee4903",
           "projected_request_sha256": "87772ff7654717065db41943abfb665affd67b7a5f626f89b4d8e5e4bfee4903",
           "recorded_visible_sha256": "80bca98226aa4575d56094dca5cc613ca087aec066610a4e8868474427144823",
-          "projected_visible_sha256": "7e96ec0cd246dbd6401dd9ba0f27a04193fddd4084193105ee1901c4bda4d342"
+          "projected_visible_sha256": "9be9949df49f81700f997076e8e7d5b73ea2b01424d9ff028f7658671fe14382"
         },
         {
           "event_index": 3,
@@ -1113,11 +1111,11 @@
       },
       "contribution": {
         "bytes": {
-          "skill_and_current_docs": 619,
+          "skill_and_current_docs": -358,
           "transaction_basis_v2": 0,
           "multi_select": 0,
           "plan_basis": 0,
-          "total": 619
+          "total": -358
         }
       }
     },
@@ -1349,10 +1347,10 @@
   ],
   "summary": {
     "bytes": {
-      "fr_mean": 36991.5,
+      "fr_mean": 37968.5,
       "files_mean": 24581.5,
-      "fr_minus_files": 12410.0,
-      "fr_percent_difference": 50.485120924272316
+      "fr_minus_files": 13387.0,
+      "fr_percent_difference": 54.459654618310516
     }
   },
   "measurement_files": {
@@ -1361,7 +1359,7 @@
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
     "skills/fr/SKILL.md": "eadc09b4fb8055177f387857ea95c245e27a35bf7c2362486700774152a3b5a5",
     "skills/fr/references/author.md": "5b0d5170ac77ceddf39655fbb67a03eeb2a52a96df22d8209e7fadf70671734a",
-    "skills/fr/references/checks.md": "cbb02b7196c590d2cae243d765df19506b7030f34bf0a43a95ecd3d03d2ba34a",
+    "skills/fr/references/checks.md": "9dc49d591e837b6f49187ea4ac76e82da994b58a9ff0e10e69292c6f263d77a6",
     "skills/fr/references/git.md": "2963b05f5d740caca7875adbd560edb3f835dbb816b93b5012627f6e5843e1b8",
     "skills/fr/references/history.md": "ede7ef59d0b667f148cfcafa79476eaa9e2a687eea7121415c51ad8ad222442f",
     "tools/agent-context-protocol-v3.py": "22a403e147132aec8a3ca7e7a40993e866f2af9556d09b93c93c850dd9810b41",
@@ -1445,11 +1443,11 @@
   },
   "contributions": {
     "bytes": {
-      "skill_and_current_docs": 619.0,
+      "skill_and_current_docs": -358.0,
       "transaction_basis_v2": 0.0,
       "multi_select": 0.0,
       "plan_basis": 0.0,
-      "total": 619.0
+      "total": -358.0
     }
   },
   "feature_applicability": {
