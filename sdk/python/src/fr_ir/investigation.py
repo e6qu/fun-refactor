@@ -33,6 +33,7 @@ class DependencyKind(str, Enum):
     CHECK_CONFIGURATION = "check-configuration"
     CHECK_SOURCES = "check-sources"
     CHECK_TOOLCHAIN = "check-toolchain"
+    DECLARATION_ANALYZER = "declaration-analyzer"
 
 
 class EvidenceKind(str, Enum):

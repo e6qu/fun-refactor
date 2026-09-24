@@ -1,0 +1,22 @@
+{
+  "schema": "fr-resumable-correspondence-task-1",
+  "baseline": "36297fb18cc463cbab3f176c93f9de63537ccc20",
+  "scope": "Indexed declaration syntax and explicitly selected investigation targets; no semantic equivalence or automatic mutation rebinding",
+  "requirements": [
+    "Persist declaration content identities separately from revision handles and Merkle storage roots.",
+    "Find moves and identifier-only renames while preserving duplicate, changed-original and shared-candidate ambiguity.",
+    "Bound pages, candidate disclosure and bytes; partial results cannot authorize target refresh.",
+    "Resume an interrupted plan, preserve independent evidence and require explicit fresh inputs for selected targets.",
+    "Reject stale selections, tampered records and old mutation reviews."
+  ],
+  "budgets": {
+    "identities": 1000,
+    "page": 16,
+    "candidates": 16,
+    "response_bytes": 32768,
+    "pages": 64
+  },
+  "oracle": "oracle.py",
+  "claims": "Finite deterministic syntax and state acceptance. No live-agent, semantic equivalence or population performance claim.",
+  "direct_edit_boundary": "The new native correspondence contract and SDK persistence adapters exceed admitted structural authoring routes."
+}

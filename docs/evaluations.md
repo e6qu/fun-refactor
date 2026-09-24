@@ -343,3 +343,18 @@ context or latency advantage: the small default check has no diagnostics, while 
 its input scope. Measurements retain raw report bytes, page bytes, calls and elapsed time separately.
 Declared compiler driver hashes contribute validation cost. Full compiler dependency discovery and
 source proofs remain open. Synthetic malformed-protocol tests remain separate from real compiler evidence.
+
+## Durable target resumption
+
+The [correspondence fixture](../tests/agent-eval/resumable-correspondence/task.json) pins a Unicode declaration and an independent AST oracle.
+The [baseline](../tests/agent-eval/resumable-correspondence/baseline.json) retains a changed original that the old matcher hid behind its unchanged copy.
+The [evaluator](../tools/correspondence-acceptance.py) retains moves, identifier renames, body edits, copies, duplicates and deletion.
+The [result](../tests/agent-eval/results/2026-09-24-resumable-correspondence/result.json) includes interrupted plan resumption and an independent satisfied step.
+Explicit refresh clears stale evidence and actions; the old mutation review refuses.
+A fresh review delivers a checked edit, reversal and patch. An independent receiver applies the patch and checks three finite outputs.
+
+The evaluator records cold, warm and edited identity queries with latency, context bytes and isolated peak RSS.
+Warm and clean reports agree. Every query recomputes correspondence; this slice adds no finer analysis cache.
+The ordinary AST baseline reads the whole tiny source and excludes a native process launch.
+These are deterministic fixture measurements, with no live-agent, token, semantic equivalence or general speed claim.
+Audit the retained result with `python3 tools/correspondence-acceptance.py --audit RESULT`.

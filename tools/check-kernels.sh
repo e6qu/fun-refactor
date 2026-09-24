@@ -10,6 +10,7 @@ fr_configure_lean_resources
 (
     cd kernels
     lake build --wfail
+    lake exe fr-correspondence-kernel >/dev/null
     lake exe fr-investigation-kernel >/dev/null
     lake exe fr-investigation-kernel flow-join >/dev/null
     lake exe fr-investigation-kernel check-scope >/dev/null

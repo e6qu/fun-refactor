@@ -96,8 +96,10 @@ Independent positive and negative fixtures measure accuracy; exhausted budgets r
 
 Outcome: an agent can retain useful work across revisions without reusing stale conclusions or actions.
 
-- [ ] Separate revision-bound handles, immutable Merkle object digests and correspondence between revisions.
+- [x] Separate revision-bound handles, immutable Merkle object digests and correspondence between revisions.
   Report matched, ambiguous and missing correspondence before rebinding targets.
+  [Durable target sessions](sdk/python/src/fr_ir/investigation_session.py) require explicit fresh selections and dependencies.
+  [Retained acceptance](tests/agent-eval/results/2026-09-24-resumable-correspondence/result.json) covers ambiguity, moves, renames and stale review refusal.
 - [ ] Record dependencies on source, imports, configuration, analyzer versions and external summaries.
   Track negative lookups whose results can change when new declarations appear.
 - [x] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
@@ -156,7 +158,8 @@ These are substantial implementation advances across A–D; the complete milesto
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.
 - C: dependency coverage across imported execution, finer summary reuse, comprehensive incremental/clean
-  rebuild comparison and representative measurements. Opt-in whole-file flow reuse now validates
+  rebuild comparison and representative measurements. Durable syntax targets now support explicit refresh after moves or renames.
+  Opt-in whole-file flow reuse now validates
   source, rules, configuration and analyzer inputs, then renews occurrences after unrelated edits.
 - D: new translation domains and old/new source correspondence proofs, plus host fault injection.
   Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
@@ -187,6 +190,11 @@ The language semantics item in B remains open pending the unknown-target task re
 The [compiler evidence task](tests/agent-eval/compiler-evidence/task.json) retains Rust diagnostics and explicit syntax/compiler differences.
 Workspace build-input discovery tracks added configuration files. Environment and external toolchain coverage remains declaration-based;
 undeclared dependencies and source correspondence proofs remain open.
+
+The [correspondence task](tests/agent-eval/resumable-correspondence/task.json) pins durable declaration identities and interrupted resumption.
+Its [evaluator](tools/correspondence-acceptance.py) retains independent coordinates, ambiguity, invalidation and fresh checked patch delivery.
+Target refresh clears old actions and evidence. Content equality never authorizes a stale mutation review.
+Measured fixture latency and memory do not settle the representative cache-granularity gate in C.
 
 ## Rules for every milestone
 

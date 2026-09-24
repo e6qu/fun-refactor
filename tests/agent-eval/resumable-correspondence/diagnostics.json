@@ -1,0 +1,23 @@
+{
+  "schema": "fr-correspondence-diagnostics-1",
+  "attempts": [
+    {
+      "stage": "initial SDK tests",
+      "result": "4 failed, 16 passed",
+      "cause": "Identity capture includes indexed parameters. The tests assumed that every captured row was a function.",
+      "resolution": "Select target handles explicitly with subset; retain parameter coverage in paging tests."
+    },
+    {
+      "stage": "retained delivery audit",
+      "result": "assertion refused an otherwise passing delivery",
+      "cause": "The audit expected a patch stage named patch; the established workflow names it deliver-patch.",
+      "resolution": "Check the existing stage contract and independently replay the retained patch."
+    },
+    {
+      "stage": "final SDK transport review",
+      "result": "3 new regression tests failed against fe6f56ba; all 28 correspondence SDK cases pass with the guards",
+      "cause": "Capture accepted a valid correspondence report as an empty snapshot. Capture and comparison also accepted a different reported search scope.",
+      "resolution": "Require the requested query kind and exact scope before collecting any page. Restart the default and deep gates on the frozen final tree."
+    }
+  ]
+}
