@@ -1,0 +1,2450 @@
+{
+  "schema": "fr-proof-acceptance-1",
+  "repository_revision": "e34981157f34fbc33f0b199bbfc5271de774e1d0",
+  "source_bindings": {
+    "src/spec.rs": "9eddd6b500ddd9cebfcb891aac341c97772a3a294022a6db367a78bd4615f5d4",
+    "src/spec/retained.rs": "9ce1dcade60f5c579e39c88a8fff56e8bb1038d8f760b0d91d9c5e59bac1d7f9",
+    "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
+    "src/project/investigation.rs": "f6ac03f999c7e8f5f024e99b953d3daa0e749263e64c473938a7ea4f217295cb",
+    "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
+    "src/project.rs": "7733250f017e7c76c0fe59d9fe6f7fa0a8210d42cbf8d82ea0b8548edc2db1f7",
+    "src/parse.rs": "170c261df7185a352d7d1d20fa0b15f306cfa17dbd369ea2b21681484b059725",
+    "src/extract.rs": "95e06bdd00533bc2a431a38d10acd80b5c49b1b1fa755f84d2637a69672eb22c",
+    "src/cli.rs": "10cba53a2eeee72eee75ac82c9ad8f466d620ab0974d18895d8c569c5466da3f",
+    "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0",
+    "sdk/python/src/fr_ir/investigation.py": "b251364c431012b07b70d59cb7ebb2ae39fe20c057be553741275a79afb65d71",
+    "sdk/python/src/fr_ir/investigation_proofs.py": "9a18fbb5a66f8be86ffec294371ea479467363069643bcf272e344a2cbfff2c4",
+    "sdk/python/src/fr_ir/context.py": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0",
+    "sdk/python/src/fr_ir/runtime.py": "c96f8ac90fcf4a7c08790be4819c83347fb547d938c956c1c3c9f4beff9d4aa3",
+    "kernels/FrKernels/Investigation.lean": "fc24c7d2c280255fab4bbe863080729bec21b2d6ac35d9014dcfbbbdf03938be",
+    "kernels/InvestigationMain.lean": "7fa7071115138eb8640cb405a04b9546a4ca3daa8982555b0549eeac6ed844b8",
+    "tools/proof-evidence-acceptance.py": "67309f5f597f434ed4d164a3099b05281e86d14881c01c093e417f8352c601e5",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "tests/agent-eval/retained-proofs/task.json": "e3ca9d9bcfa9b1ac0a5e212d87478f5f4bde0f7fadb59038e4293c5cf7f6b98d",
+    "tests/agent-eval/retained-proofs/baseline.json": "b49b59f847a37dc23e11b3d1f85f83f0e94d34821582fd2ca6fc19f5a04a1423",
+    "tests/agent-eval/retained-proofs/subject.py": "77879549fb4d744f53b52be9c5e8f0902d144c8fb1ae79778795533adb9d7138",
+    "tests/agent-eval/retained-proofs/Model.lean": "4c1771c88315c1bf8bfb9d04c7ca3a042a9e73ee04ab4bb9703265c4d5393cf1",
+    "tests/agent-eval/retained-proofs/oracle.py": "e228a35849d55c406d33492ccfa0bd8875887b355d9a0a5893478b4dea21836e"
+  },
+  "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+  "baseline": {
+    "schema": "fr-retained-proofs-baseline-1",
+    "revision": "da49d7afbe2b38cccfc2087220d7321134786d92",
+    "fr_evidence": {
+      "exit_code": 0,
+      "stdout": "{\n  \"schema\": 1,\n  \"verification\": {\n    \"report\": {\n      \"anchors\": [],\n      \"obligations\": 0,\n      \"debts\": []\n    },\n    \"packages\": [\n      {\n        \"package\": \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-baseline-nxbsw77h/specs\",\n        \"passed\": true,\n        \"output\": \"✔ [2/3] Built FrSpecs (1.3s)\\nBuild completed successfully (3 jobs).\\ninfo: fr-specs: no previous manifest, creating one from scratch\\ninfo: toolchain not updated; already up-to-date\\n\"\n      }\n    ]\n  },\n  \"properties\": [\n    {\n      \"spec\": \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-baseline-nxbsw77h/specs/FrSpecs/Orphan.lean\",\n      \"line\": 2,\n      \"name\": \"impossible\",\n      \"kind\": \"theorem\",\n      \"status\": \"checked_by_lean\"\n    }\n  ],\n  \"declared_assumptions\": [],\n  \"axiom_analysis\": \"Declared Lean axiom, opaque and constant syntax only.\",\n  \"trusted_components\": [\n    \"Lean kernel, elaborator and compiler.\",\n    \"Lake package and checked-target selection.\",\n    \"fr parsing, declaration spans, signature checks and SHA-256.\",\n    \"Host filesystem and process execution.\"\n  ],\n  \"correspondence\": {\n    \"source_identity\": \"Declaration bytes match each recorded SHA-256 anchor.\",\n    \"signature_surface\": \"Explicit maps match parsed source and Lean signatures.\",\n    \"tested_implementation_model\": false,\n    \"proved_implementation_model\": false\n  },\n  \"kernel_correspondence\": [],\n  \"remaining_obligations\": [\n    \"No proof currently connects each source implementation to its Lean model.\"\n  ]\n}\n",
+      "stderr": "",
+      "seconds": 1.7206409589853138
+    },
+    "independent_lean": {
+      "exit_code": 1,
+      "stdout": "FrSpecs/Orphan.lean:2:33: error: Tactic `assumption` failed\n\n⊢ False\n",
+      "stderr": ""
+    },
+    "finding": "Default Lake build succeeds without importing the selected orphan module; existing evidence labels its impossible theorem checked_by_lean.",
+    "live_agent": false
+  },
+  "original": {
+    "claim": "Model theorems under Lean definitions and assumptions. No proof of source implementation correspondence.",
+    "evidence": {
+      "axiom_analysis": "Declared Lean axiom, opaque and constant syntax only.",
+      "correspondence": {
+        "proved_implementation_model": false,
+        "signature_surface": "Explicit maps match parsed source and Lean signatures.",
+        "source_identity": "Declaration bytes match each recorded SHA-256 anchor.",
+        "tested_implementation_model": false
+      },
+      "declared_assumptions": [],
+      "kernel_correspondence": [],
+      "properties": [
+        {
+          "kind": "theorem",
+          "line": 5,
+          "name": "identity",
+          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs/FrSpecs/Model.lean",
+          "status": "checked_by_lean"
+        }
+      ],
+      "remaining_obligations": [
+        "No proof currently connects each source implementation to its Lean model."
+      ],
+      "schema": 1,
+      "trusted_components": [
+        "Lean kernel, elaborator and compiler.",
+        "Lake package and checked-target selection.",
+        "fr parsing, declaration spans, signature checks and SHA-256.",
+        "Host filesystem and process execution."
+      ],
+      "verification": {
+        "packages": [
+          {
+            "output": "See retained per-module execution results.",
+            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs",
+            "passed": true
+          }
+        ],
+        "report": {
+          "anchors": [],
+          "debts": [],
+          "obligations": 0
+        }
+      }
+    },
+    "executed": true,
+    "input_digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+    "inputs": {
+      "analyzer": "a77175051357ab6736e0547cfdabb422bc8c069a15f8cbf64cdf56c90a93f996",
+      "files": {
+        "FrSpecs.lean": "7d1ab24dfdaa8599c20edea4641797bd13fdd02f717902b79af772ca4cfe0ee6",
+        "FrSpecs/Model.lean": "4c1771c88315c1bf8bfb9d04c7ca3a042a9e73ee04ab4bb9703265c4d5393cf1",
+        "lakefile.toml": "0ef98cfa67bdd435d22268ec0f2122cb4893c7025f0ac3ae981f4f3ea569a672",
+        "lean-toolchain": "db7bb24b756d745bbde83fe92718b51bd3625dae3701ba0f598d0eedcd3f3028"
+      },
+      "policy": "All recognized workspace source files and all local package files except generated .lake and an empty dependency manifest. Clean build and direct checking of every Lean module. External packages fall outside this contract.",
+      "sources": "ec792054b085cba076d171a2ed1c000f160e7a4180ef76b610175942292179e0",
+      "toolchain": {
+        "environment": {
+          "DYLD_FALLBACK_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "DYLD_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "ELAN_HOME": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "HOME": "61fb645121412772909e616825b7d44b77fad98dba49b4c7e7caa36b258464af",
+          "LD_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "LEAN_NUM_THREADS": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "PATH": "e210ec79f733179ece090ac6f925e5586228e4e23ac5c7f60b0c9a345390cda3",
+          "TMPDIR": "a691a8d9848b7883bfbb060f0e4c96ca36b693f680848758d1f4fcc40fcdaf01"
+        },
+        "pinned": "leanprover/lean4:v4.28.0",
+        "programs": {
+          "lake": {
+            "path": "/Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lake",
+            "sha256": "0e56506385ec20d56bffd7c031c4d48573ab5fdb74e5246ec8c45a220bebc68b"
+          },
+          "lean": {
+            "path": "/Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean",
+            "sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37"
+          }
+        },
+        "trust": "Installed Lean libraries, elaborator, kernel and host execution remain trusted. Executable hashes do not attest execution."
+      }
+    },
+    "modules": [
+      "FrSpecs/Model.lean",
+      "FrSpecs.lean"
+    ],
+    "mutation_authority": false,
+    "package": "specs",
+    "passed": true,
+    "results": [
+      {
+        "command": "lake build --wfail (all selected modules)",
+        "module": null,
+        "result": {
+          "elapsed_ms": 1265,
+          "error": null,
+          "exit_code": 0,
+          "output_limit_exceeded": false,
+          "passed": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 112,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 108,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      },
+      {
+        "command": "lean -DwarningAsError=true",
+        "module": "FrSpecs/Model.lean",
+        "result": {
+          "elapsed_ms": 170,
+          "error": null,
+          "exit_code": 0,
+          "output_limit_exceeded": false,
+          "passed": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      },
+      {
+        "command": "lean -DwarningAsError=true",
+        "module": "FrSpecs.lean",
+        "result": {
+          "elapsed_ms": 150,
+          "error": null,
+          "exit_code": 0,
+          "output_limit_exceeded": false,
+          "passed": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      }
+    ],
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project",
+    "schema": "fr-proof-evidence-1",
+    "source_implementation_proved": false,
+    "stable": true
+  },
+  "original_root": "c98cc933e638528adf49543271321c83192fdbff472d8530567a986629e4c48b",
+  "plan": {
+    "goal": "Preserve Boolean identity with retained model evidence",
+    "acceptance": [
+      "identity model"
+    ],
+    "steps": [
+      {
+        "id": "proof",
+        "question": "Does Lean accept the identity theorem?",
+        "inputs": [
+          {
+            "kind": "proof-inputs",
+            "key": "specs",
+            "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3"
+          }
+        ],
+        "depends_on": [],
+        "state": "satisfied",
+        "evidence": [
+          {
+            "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+            "kind": "model-proof",
+            "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+            "passed": true,
+            "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+          }
+        ],
+        "required_checks": [],
+        "satisfies": [
+          "identity model"
+        ],
+        "action": [],
+        "action_input": null,
+        "required_proofs": [
+          {
+            "package": "specs",
+            "spec": "FrSpecs/Model.lean",
+            "theorem": "identity"
+          }
+        ]
+      },
+      {
+        "id": "dependent",
+        "question": "Does the next conclusion use this theorem?",
+        "inputs": [
+          {
+            "kind": "source",
+            "key": "subject.py",
+            "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a"
+          }
+        ],
+        "depends_on": [
+          "proof"
+        ],
+        "state": "satisfied",
+        "evidence": [
+          {
+            "id": "read",
+            "kind": "observation",
+            "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+            "passed": true,
+            "reference": "independent fixture observation"
+          }
+        ],
+        "required_checks": [],
+        "satisfies": [],
+        "action": [],
+        "action_input": null,
+        "required_proofs": []
+      },
+      {
+        "id": "independent",
+        "question": "Does unrelated source remain understood?",
+        "inputs": [
+          {
+            "kind": "source",
+            "key": "independent.py",
+            "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa"
+          }
+        ],
+        "depends_on": [],
+        "state": "satisfied",
+        "evidence": [
+          {
+            "id": "read",
+            "kind": "observation",
+            "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+            "passed": true,
+            "reference": "independent fixture observation"
+          }
+        ],
+        "required_checks": [],
+        "satisfies": [],
+        "action": [],
+        "action_input": null,
+        "required_proofs": []
+      }
+    ],
+    "hypotheses": [],
+    "questions": [],
+    "schema": "fr-investigation-plan-1"
+  },
+  "plan_root": "dee2206006c2bbcc92c6c4c02d88b277e3f7a70b8fde483cbbae91317a1c281e",
+  "reopened": {
+    "check_attachment": null,
+    "claim": "validated agent-reported evidence; references do not attest tool execution.",
+    "complete": true,
+    "context_basis": "frcb1:a9b94a6f9e89919771371e6fe235651b34fc2b710d726275565b709c0e6c2689",
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 5,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 33,
+      "unsupported_files": 2
+    },
+    "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+    "handle_prefix": "frp1:5abea862949bf588934238cc467cf89d:",
+    "input_digests": {
+      "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+      "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+      "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+    },
+    "invalidated": [],
+    "mutation_authority": false,
+    "plan": {
+      "acceptance": [
+        "identity model"
+      ],
+      "goal": "Preserve Boolean identity with retained model evidence",
+      "hypotheses": [],
+      "questions": [],
+      "schema": "fr-investigation-plan-1",
+      "steps": [
+        {
+          "action": [],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+              "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+              "kind": "model-proof",
+              "passed": true,
+              "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+            }
+          ],
+          "id": "proof",
+          "inputs": [
+            {
+              "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+              "key": "specs",
+              "kind": "proof-inputs"
+            }
+          ],
+          "question": "Does Lean accept the identity theorem?",
+          "required_checks": [],
+          "required_proofs": [
+            {
+              "package": "specs",
+              "spec": "FrSpecs/Model.lean",
+              "theorem": "identity"
+            }
+          ],
+          "satisfies": [
+            "identity model"
+          ],
+          "state": "satisfied"
+        },
+        {
+          "action": [],
+          "depends_on": [
+            "proof"
+          ],
+          "evidence": [
+            {
+              "id": "read",
+              "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent fixture observation"
+            }
+          ],
+          "id": "dependent",
+          "inputs": [
+            {
+              "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+              "key": "subject.py",
+              "kind": "source"
+            }
+          ],
+          "question": "Does the next conclusion use this theorem?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "satisfied"
+        },
+        {
+          "action": [],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "read",
+              "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent fixture observation"
+            }
+          ],
+          "id": "independent",
+          "inputs": [
+            {
+              "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+              "key": "independent.py",
+              "kind": "source"
+            }
+          ],
+          "question": "Does unrelated source remain understood?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "satisfied"
+        }
+      ]
+    },
+    "proof_attachment": null,
+    "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+    "schema": "fr-investigation-resume-1"
+  },
+  "cases": {
+    "source": {
+      "resumed": {
+        "check_attachment": null,
+        "claim": "validated agent-reported evidence; references do not attest tool execution.",
+        "complete": false,
+        "context_basis": "frcb1:4d31f0d47db68037d8eeee90b797abfa1b68a2e6211506b3d81be1eb46d0d1a8",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 5,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 33,
+          "unsupported_files": 2
+        },
+        "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+        "handle_prefix": "frp1:2ea028b1f45acbe379e9c9b2397014dc:",
+        "input_digests": {
+          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+        },
+        "invalidated": [
+          "proof",
+          "dependent"
+        ],
+        "mutation_authority": false,
+        "plan": {
+          "acceptance": [
+            "identity model"
+          ],
+          "goal": "Preserve Boolean identity with retained model evidence",
+          "hypotheses": [],
+          "questions": [],
+          "schema": "fr-investigation-plan-1",
+          "steps": [
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "kind": "model-proof",
+                  "passed": true,
+                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                }
+              ],
+              "id": "proof",
+              "inputs": [
+                {
+                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "key": "specs",
+                  "kind": "proof-inputs"
+                }
+              ],
+              "question": "Does Lean accept the identity theorem?",
+              "required_checks": [],
+              "required_proofs": [
+                {
+                  "package": "specs",
+                  "spec": "FrSpecs/Model.lean",
+                  "theorem": "identity"
+                }
+              ],
+              "satisfies": [
+                "identity model"
+              ],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [
+                "proof"
+              ],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "dependent",
+              "inputs": [
+                {
+                  "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+                  "key": "subject.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does the next conclusion use this theorem?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "independent",
+              "inputs": [
+                {
+                  "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+                  "key": "independent.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does unrelated source remain understood?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "satisfied"
+            }
+          ]
+        },
+        "proof_attachment": null,
+        "revision": "2ea028b1f45acbe379e9c9b2397014dc26d851b835a82b86a10ff5ef180c4583",
+        "schema": "fr-investigation-resume-1"
+      },
+      "attachment_refusal": "Error: retained proof inputs changed."
+    },
+    "model": {
+      "resumed": {
+        "check_attachment": null,
+        "claim": "validated agent-reported evidence; references do not attest tool execution.",
+        "complete": false,
+        "context_basis": "frcb1:e351ba25a140c3018be55a0ac31495dfa0983a33bb72697d8e99fd1c10da5a29",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 5,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 33,
+          "unsupported_files": 2
+        },
+        "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+        "handle_prefix": "frp1:33362cc52450814bf9a31dad30652858:",
+        "input_digests": {
+          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+        },
+        "invalidated": [
+          "proof",
+          "dependent"
+        ],
+        "mutation_authority": false,
+        "plan": {
+          "acceptance": [
+            "identity model"
+          ],
+          "goal": "Preserve Boolean identity with retained model evidence",
+          "hypotheses": [],
+          "questions": [],
+          "schema": "fr-investigation-plan-1",
+          "steps": [
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "kind": "model-proof",
+                  "passed": true,
+                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                }
+              ],
+              "id": "proof",
+              "inputs": [
+                {
+                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "key": "specs",
+                  "kind": "proof-inputs"
+                }
+              ],
+              "question": "Does Lean accept the identity theorem?",
+              "required_checks": [],
+              "required_proofs": [
+                {
+                  "package": "specs",
+                  "spec": "FrSpecs/Model.lean",
+                  "theorem": "identity"
+                }
+              ],
+              "satisfies": [
+                "identity model"
+              ],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [
+                "proof"
+              ],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "dependent",
+              "inputs": [
+                {
+                  "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+                  "key": "subject.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does the next conclusion use this theorem?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "independent",
+              "inputs": [
+                {
+                  "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+                  "key": "independent.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does unrelated source remain understood?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "satisfied"
+            }
+          ]
+        },
+        "proof_attachment": null,
+        "revision": "33362cc52450814bf9a31dad306528589f6b444bb77bc830fa362cf999d22da4",
+        "schema": "fr-investigation-resume-1"
+      },
+      "attachment_refusal": "Error: retained proof inputs changed."
+    },
+    "property": {
+      "resumed": {
+        "check_attachment": null,
+        "claim": "validated agent-reported evidence; references do not attest tool execution.",
+        "complete": false,
+        "context_basis": "frcb1:01d97190bb76d0552b25a01816c3da8c2060afbb4f84b0d8b3215a5d8083ca9a",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 5,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 33,
+          "unsupported_files": 2
+        },
+        "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+        "handle_prefix": "frp1:bc2cb0fbf7167366c9904cc7f6dc1e4e:",
+        "input_digests": {
+          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+        },
+        "invalidated": [
+          "proof",
+          "dependent"
+        ],
+        "mutation_authority": false,
+        "plan": {
+          "acceptance": [
+            "identity model"
+          ],
+          "goal": "Preserve Boolean identity with retained model evidence",
+          "hypotheses": [],
+          "questions": [],
+          "schema": "fr-investigation-plan-1",
+          "steps": [
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "kind": "model-proof",
+                  "passed": true,
+                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                }
+              ],
+              "id": "proof",
+              "inputs": [
+                {
+                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "key": "specs",
+                  "kind": "proof-inputs"
+                }
+              ],
+              "question": "Does Lean accept the identity theorem?",
+              "required_checks": [],
+              "required_proofs": [
+                {
+                  "package": "specs",
+                  "spec": "FrSpecs/Model.lean",
+                  "theorem": "identity"
+                }
+              ],
+              "satisfies": [
+                "identity model"
+              ],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [
+                "proof"
+              ],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "dependent",
+              "inputs": [
+                {
+                  "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+                  "key": "subject.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does the next conclusion use this theorem?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "independent",
+              "inputs": [
+                {
+                  "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+                  "key": "independent.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does unrelated source remain understood?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "satisfied"
+            }
+          ]
+        },
+        "proof_attachment": null,
+        "revision": "bc2cb0fbf7167366c9904cc7f6dc1e4e4cb7bcab325809ebbc7889fbb9abf27c",
+        "schema": "fr-investigation-resume-1"
+      },
+      "attachment_refusal": "Error: retained proof inputs changed."
+    },
+    "addition": {
+      "resumed": {
+        "check_attachment": null,
+        "claim": "validated agent-reported evidence; references do not attest tool execution.",
+        "complete": false,
+        "context_basis": "frcb1:625c561460c9e5cb97a03613520ada570a394d66d42efbf1e1951db718af58c8",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 6,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 34,
+          "unsupported_files": 2
+        },
+        "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+        "handle_prefix": "frp1:79ca1e6c2fc8100e64de5eb1b07d0328:",
+        "input_digests": {
+          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+        },
+        "invalidated": [
+          "proof",
+          "dependent"
+        ],
+        "mutation_authority": false,
+        "plan": {
+          "acceptance": [
+            "identity model"
+          ],
+          "goal": "Preserve Boolean identity with retained model evidence",
+          "hypotheses": [],
+          "questions": [],
+          "schema": "fr-investigation-plan-1",
+          "steps": [
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "kind": "model-proof",
+                  "passed": true,
+                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                }
+              ],
+              "id": "proof",
+              "inputs": [
+                {
+                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "key": "specs",
+                  "kind": "proof-inputs"
+                }
+              ],
+              "question": "Does Lean accept the identity theorem?",
+              "required_checks": [],
+              "required_proofs": [
+                {
+                  "package": "specs",
+                  "spec": "FrSpecs/Model.lean",
+                  "theorem": "identity"
+                }
+              ],
+              "satisfies": [
+                "identity model"
+              ],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [
+                "proof"
+              ],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "dependent",
+              "inputs": [
+                {
+                  "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+                  "key": "subject.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does the next conclusion use this theorem?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "independent",
+              "inputs": [
+                {
+                  "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+                  "key": "independent.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does unrelated source remain understood?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "satisfied"
+            }
+          ]
+        },
+        "proof_attachment": null,
+        "revision": "79ca1e6c2fc8100e64de5eb1b07d03282ec5a5b3cbd589cffe5882cdedd072dc",
+        "schema": "fr-investigation-resume-1"
+      },
+      "attachment_refusal": "Error: retained proof inputs changed."
+    },
+    "deletion": {
+      "resumed": {
+        "check_attachment": null,
+        "claim": "validated agent-reported evidence; references do not attest tool execution.",
+        "complete": false,
+        "context_basis": "frcb1:c171ef9971ad32fdca99e444846813a53e092919baab14a2c452aaee1df3540b",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 4,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 27,
+          "unsupported_files": 2
+        },
+        "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+        "handle_prefix": "frp1:0d75328730744b3732689626afe7350e:",
+        "input_digests": {
+          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+        },
+        "invalidated": [
+          "proof",
+          "dependent"
+        ],
+        "mutation_authority": false,
+        "plan": {
+          "acceptance": [
+            "identity model"
+          ],
+          "goal": "Preserve Boolean identity with retained model evidence",
+          "hypotheses": [],
+          "questions": [],
+          "schema": "fr-investigation-plan-1",
+          "steps": [
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "kind": "model-proof",
+                  "passed": true,
+                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                }
+              ],
+              "id": "proof",
+              "inputs": [
+                {
+                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "key": "specs",
+                  "kind": "proof-inputs"
+                }
+              ],
+              "question": "Does Lean accept the identity theorem?",
+              "required_checks": [],
+              "required_proofs": [
+                {
+                  "package": "specs",
+                  "spec": "FrSpecs/Model.lean",
+                  "theorem": "identity"
+                }
+              ],
+              "satisfies": [
+                "identity model"
+              ],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [
+                "proof"
+              ],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "dependent",
+              "inputs": [
+                {
+                  "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+                  "key": "subject.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does the next conclusion use this theorem?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "independent",
+              "inputs": [
+                {
+                  "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+                  "key": "independent.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does unrelated source remain understood?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "satisfied"
+            }
+          ]
+        },
+        "proof_attachment": null,
+        "revision": "0d75328730744b3732689626afe7350e19b3b3e76319f03ac552f27b79353a3c",
+        "schema": "fr-investigation-resume-1"
+      },
+      "attachment_refusal": "Error: retained proof inputs changed."
+    },
+    "configuration": {
+      "resumed": {
+        "check_attachment": null,
+        "claim": "validated agent-reported evidence; references do not attest tool execution.",
+        "complete": false,
+        "context_basis": "frcb1:a9b94a6f9e89919771371e6fe235651b34fc2b710d726275565b709c0e6c2689",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 5,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 33,
+          "unsupported_files": 2
+        },
+        "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+        "handle_prefix": "frp1:5abea862949bf588934238cc467cf89d:",
+        "input_digests": {
+          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+        },
+        "invalidated": [
+          "proof",
+          "dependent"
+        ],
+        "mutation_authority": false,
+        "plan": {
+          "acceptance": [
+            "identity model"
+          ],
+          "goal": "Preserve Boolean identity with retained model evidence",
+          "hypotheses": [],
+          "questions": [],
+          "schema": "fr-investigation-plan-1",
+          "steps": [
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "kind": "model-proof",
+                  "passed": true,
+                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                }
+              ],
+              "id": "proof",
+              "inputs": [
+                {
+                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "key": "specs",
+                  "kind": "proof-inputs"
+                }
+              ],
+              "question": "Does Lean accept the identity theorem?",
+              "required_checks": [],
+              "required_proofs": [
+                {
+                  "package": "specs",
+                  "spec": "FrSpecs/Model.lean",
+                  "theorem": "identity"
+                }
+              ],
+              "satisfies": [
+                "identity model"
+              ],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [
+                "proof"
+              ],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "dependent",
+              "inputs": [
+                {
+                  "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+                  "key": "subject.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does the next conclusion use this theorem?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "independent",
+              "inputs": [
+                {
+                  "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+                  "key": "independent.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does unrelated source remain understood?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "satisfied"
+            }
+          ]
+        },
+        "proof_attachment": null,
+        "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+        "schema": "fr-investigation-resume-1"
+      },
+      "attachment_refusal": "Error: retained proofs require the lakefile generated by fr spec init."
+    },
+    "toolchain": {
+      "resumed": {
+        "check_attachment": null,
+        "claim": "validated agent-reported evidence; references do not attest tool execution.",
+        "complete": false,
+        "context_basis": "frcb1:a9b94a6f9e89919771371e6fe235651b34fc2b710d726275565b709c0e6c2689",
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 5,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 33,
+          "unsupported_files": 2
+        },
+        "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+        "handle_prefix": "frp1:5abea862949bf588934238cc467cf89d:",
+        "input_digests": {
+          "dependent": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+          "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+          "proof": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9"
+        },
+        "invalidated": [
+          "proof",
+          "dependent"
+        ],
+        "mutation_authority": false,
+        "plan": {
+          "acceptance": [
+            "identity model"
+          ],
+          "goal": "Preserve Boolean identity with retained model evidence",
+          "hypotheses": [],
+          "questions": [],
+          "schema": "fr-investigation-plan-1",
+          "steps": [
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+                  "input_digest": "aaeb28d53644168c4f43527883951d81383bc1a738a182684f4ff4149b2b93f9",
+                  "kind": "model-proof",
+                  "passed": true,
+                  "reference": "fr-proof-evidence-1:2582eeba2f07286d4a6f7222d86dced7e2d6371026bab04485a7e02979e2ba87"
+                }
+              ],
+              "id": "proof",
+              "inputs": [
+                {
+                  "digest": "7a3bda34b8da2d89f70fa070986261cf24bad5c1093bd073984b1cd92c0941f3",
+                  "key": "specs",
+                  "kind": "proof-inputs"
+                }
+              ],
+              "question": "Does Lean accept the identity theorem?",
+              "required_checks": [],
+              "required_proofs": [
+                {
+                  "package": "specs",
+                  "spec": "FrSpecs/Model.lean",
+                  "theorem": "identity"
+                }
+              ],
+              "satisfies": [
+                "identity model"
+              ],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [
+                "proof"
+              ],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "dependent",
+              "inputs": [
+                {
+                  "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+                  "key": "subject.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does the next conclusion use this theorem?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "stale"
+            },
+            {
+              "action": [],
+              "depends_on": [],
+              "evidence": [
+                {
+                  "id": "read",
+                  "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+                  "kind": "observation",
+                  "passed": true,
+                  "reference": "independent fixture observation"
+                }
+              ],
+              "id": "independent",
+              "inputs": [
+                {
+                  "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+                  "key": "independent.py",
+                  "kind": "source"
+                }
+              ],
+              "question": "Does unrelated source remain understood?",
+              "required_checks": [],
+              "satisfies": [],
+              "state": "satisfied"
+            }
+          ]
+        },
+        "proof_attachment": null,
+        "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+        "schema": "fr-investigation-resume-1"
+      },
+      "attachment_refusal": "Error: retained proofs require the pinned Lean toolchain."
+    }
+  },
+  "old_review": {
+    "author": {
+      "atomic_snapshot": false,
+      "behavior_checked": false,
+      "changed": true,
+      "context_inherited": [
+        "coverage",
+        "revision",
+        "handle_prefix"
+      ],
+      "diff": "--- a/subject.py\n+++ b/subject.py\n@@ -1,2 +1,2 @@\n def allowed(ok: bool) -> bool:\n-    return ok\n+    return not not ok\n",
+      "files_changed": 1,
+      "postconditions": [
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "files-changed"
+        },
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "edits"
+        },
+        {
+          "actual": [
+            "subject.py"
+          ],
+          "expected": [
+            "subject.py"
+          ],
+          "held": true,
+          "postcondition": "paths-changed"
+        }
+      ],
+      "postconditions_held": true,
+      "query": "batch",
+      "schema": "fr-author-batch-1",
+      "span_basis": "original-source",
+      "steps": [
+        {
+          "after_bytes": 17,
+          "after_sha256": "b082ec493fb7c091eaff27d24397e78fa772c5c45836167e7fcfbbf598081774",
+          "before_bytes": 9,
+          "before_sha256": "35f1da5ed784c7e5aaf80d2ec81c23c7f135101a0f8023b519a6b50f6f802196",
+          "before_span": {
+            "end": 44,
+            "start": 35
+          },
+          "changed": true,
+          "handle": "frp1:5abea862949bf588934238cc467cf89d:12",
+          "operation": "replace-body",
+          "path": "subject.py",
+          "preservation": "bytes outside the selected body",
+          "signature": {
+            "basis": "syntax-header",
+            "text": "def allowed(ok: bool) -> bool:"
+          }
+        }
+      ],
+      "validation": "reparse-strict"
+    },
+    "checks": {
+      "basis": "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+      "command": [
+        "fr",
+        "checks",
+        "--run",
+        "behavior",
+        "--basis",
+        "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+        "--quiet-success",
+        "--no-declarations"
+      ],
+      "coverage": [
+        {
+          "covers": [
+            "Independent Boolean truth table for the fixture source."
+          ],
+          "name": "behavior"
+        }
+      ],
+      "names": [
+        "behavior"
+      ],
+      "selected": true
+    },
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 5,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 33,
+      "unsupported_files": 2
+    },
+    "delivery": {
+      "check_original": true,
+      "check_output_bytes": 2048,
+      "compact_success": true,
+      "exercise_reversal": true,
+      "patch": "artifacts/proved.patch"
+    },
+    "executed": false,
+    "manifest_sha256": "02ef3a4ef3bd1964ee808121841cd932de7e9d9cd1ecf842838ff009a7a0e38a",
+    "passed": null,
+    "ready": true,
+    "requests": [],
+    "revision": "5abea862949bf588934238cc467cf89dc8da5041cf5f9d129690d91c39b1e915",
+    "schema": "fr-task-change-1",
+    "stages": [
+      {
+        "stage": "check-original",
+        "status": "pending"
+      },
+      {
+        "stage": "apply",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      },
+      {
+        "stage": "undo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-restored",
+        "status": "pending"
+      },
+      {
+        "stage": "redo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      },
+      {
+        "stage": "deliver-patch",
+        "status": "pending"
+      }
+    ],
+    "targets": [
+      {
+        "eligibility": "target-supported",
+        "handle": "frp1:5abea862949bf588934238cc467cf89d:12",
+        "id": "preserve",
+        "kind": "function",
+        "language": "python",
+        "operation": "replace-body",
+        "path": "subject.py",
+        "scalar": null,
+        "syntax_preflighted": false
+      }
+    ],
+    "task_basis": "frpt1:e90eb9ae5312ff1ba998a0ca83aea627277286c7c144736591f38729e4e7851e",
+    "task_change_basis": "frtc1:79965e8f68e5592609f379dd47baede5e7a1c6702713394a0336175c854f678e",
+    "task_resolution_basis": "frpt2:1ac848d8bbfc6cb4c76d50dbfd932eac3835a6c72a7793185561411e1efc5506"
+  },
+  "fresh_review": {
+    "author": {
+      "atomic_snapshot": false,
+      "behavior_checked": false,
+      "changed": true,
+      "context_inherited": [
+        "coverage",
+        "revision",
+        "handle_prefix"
+      ],
+      "diff": "--- a/subject.py\n+++ b/subject.py\n@@ -1,2 +1,2 @@\n def allowed(ok: bool) -> bool:\n-    return ok\n+    return not not ok\n",
+      "files_changed": 1,
+      "postconditions": [
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "files-changed"
+        },
+        {
+          "actual": 1,
+          "expected": 1,
+          "held": true,
+          "postcondition": "edits"
+        },
+        {
+          "actual": [
+            "subject.py"
+          ],
+          "expected": [
+            "subject.py"
+          ],
+          "held": true,
+          "postcondition": "paths-changed"
+        }
+      ],
+      "postconditions_held": true,
+      "query": "batch",
+      "schema": "fr-author-batch-1",
+      "span_basis": "original-source",
+      "steps": [
+        {
+          "after_bytes": 17,
+          "after_sha256": "b082ec493fb7c091eaff27d24397e78fa772c5c45836167e7fcfbbf598081774",
+          "before_bytes": 9,
+          "before_sha256": "35f1da5ed784c7e5aaf80d2ec81c23c7f135101a0f8023b519a6b50f6f802196",
+          "before_span": {
+            "end": 44,
+            "start": 35
+          },
+          "changed": true,
+          "handle": "frp1:4c484cc4980741f00cec50d15298f45a:12",
+          "operation": "replace-body",
+          "path": "subject.py",
+          "preservation": "bytes outside the selected body",
+          "signature": {
+            "basis": "syntax-header",
+            "text": "def allowed(ok: bool) -> bool:"
+          }
+        }
+      ],
+      "validation": "reparse-strict"
+    },
+    "checks": {
+      "basis": "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+      "command": [
+        "fr",
+        "checks",
+        "--run",
+        "behavior",
+        "--basis",
+        "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+        "--quiet-success",
+        "--no-declarations"
+      ],
+      "coverage": [
+        {
+          "covers": [
+            "Independent Boolean truth table for the fixture source."
+          ],
+          "name": "behavior"
+        }
+      ],
+      "names": [
+        "behavior"
+      ],
+      "selected": true
+    },
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 5,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 33,
+      "unsupported_files": 2
+    },
+    "delivery": {
+      "check_original": true,
+      "check_output_bytes": 2048,
+      "compact_success": true,
+      "exercise_reversal": true,
+      "patch": "artifacts/proved.patch"
+    },
+    "executed": false,
+    "manifest_sha256": "3adeb927188a15003d7496f32c80389e73e88ce933ccc8db766a86ef7c9b7890",
+    "passed": null,
+    "ready": true,
+    "requests": [],
+    "revision": "4c484cc4980741f00cec50d15298f45a403ddb1574604b330462552e949b1204",
+    "schema": "fr-task-change-1",
+    "stages": [
+      {
+        "stage": "check-original",
+        "status": "pending"
+      },
+      {
+        "stage": "apply",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      },
+      {
+        "stage": "undo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-restored",
+        "status": "pending"
+      },
+      {
+        "stage": "redo",
+        "status": "pending"
+      },
+      {
+        "stage": "check-applied",
+        "status": "pending"
+      },
+      {
+        "stage": "deliver-patch",
+        "status": "pending"
+      }
+    ],
+    "targets": [
+      {
+        "eligibility": "target-supported",
+        "handle": "frp1:4c484cc4980741f00cec50d15298f45a:12",
+        "id": "preserve",
+        "kind": "function",
+        "language": "python",
+        "operation": "replace-body",
+        "path": "subject.py",
+        "scalar": null,
+        "syntax_preflighted": false
+      }
+    ],
+    "task_basis": "frpt1:2962844366a08e293237511d44df7756b2b97192867da280db65fefee96d6f4f",
+    "task_change_basis": "frtc1:6e9827cdc7166ac2dba5f06ed170bbcaa3ca618b1f78519fd56646e0a65a8775",
+    "task_resolution_basis": "frpt2:1dcadb4728b104c8f93c1e496413b3727e31fa0509a0e84b0f04e60959da5591"
+  },
+  "stale_review_refusal": "Error: stale or invalid project handle; obtain a fresh project map.",
+  "delivery": {
+    "executed": true,
+    "manifest_sha256": "3adeb927188a15003d7496f32c80389e73e88ce933ccc8db766a86ef7c9b7890",
+    "passed": true,
+    "reused_transaction": false,
+    "reviewed_context_omitted": [
+      "revision",
+      "task_basis",
+      "task_resolution_basis",
+      "coverage",
+      "requests",
+      "targets",
+      "checks",
+      "delivery",
+      "author",
+      "stages",
+      "ready"
+    ],
+    "saved": true,
+    "schema": "fr-task-change-1",
+    "task_change_basis": "frtc1:6e9827cdc7166ac2dba5f06ed170bbcaa3ca618b1f78519fd56646e0a65a8775",
+    "transaction": 2,
+    "workflow": {
+      "executed": true,
+      "manifest_sha256": "fd6660c7c8331b2510bb19d4912368cfa36ad6656adf1a50ba5765d7eb619868",
+      "passed": true,
+      "reviewed_context_omitted": [
+        "manifest_sha256",
+        "record_basis",
+        "transaction_context_basis",
+        "checks",
+        "exercise_reversal",
+        "check_original",
+        "compact_success",
+        "patch",
+        "ready"
+      ],
+      "schema": "fr-workflow-1",
+      "stages": [
+        {
+          "result": {
+            "basis": "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+            "passed": true,
+            "recorded_evidence": null,
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "behavior",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "bced69a43ba5c1133ecdd69e9f3eef6cd23d01ffe907deb7ac19799856b96888",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-original",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "action": "apply",
+            "applied": true,
+            "changes": [
+              {
+                "after_exists": true,
+                "after_kind": "regular",
+                "after_mode": 420,
+                "before_exists": true,
+                "before_kind": "regular",
+                "before_mode": 420,
+                "diff_bytes": 120,
+                "path": "subject.py"
+              }
+            ],
+            "context_basis": "frtb2:b132b118a94b0cac7a66531fe6ddc63cfb52d977330a2c40550e637e2d89cdaa",
+            "context_omitted": [
+              "changes[].diff"
+            ],
+            "transaction": 2
+          },
+          "stage": "apply",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "basis": "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+            "passed": true,
+            "recorded_evidence": {
+              "created": true,
+              "receipt": "frce1:dd5e0c16a0b02d2b7b4d6d860af68be3b6c93950a0184496ea40f1fca3585078",
+              "transaction": 2
+            },
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "behavior",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "efcb82835d22736ec458a8cad3721ec7e127196b128b31a83f565dbc0905cd46",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "action": "undo",
+            "applied": true,
+            "changes": [
+              {
+                "after_exists": true,
+                "after_kind": "regular",
+                "after_mode": 420,
+                "before_exists": true,
+                "before_kind": "regular",
+                "before_mode": 420,
+                "path": "subject.py"
+              }
+            ],
+            "diffs_omitted": true,
+            "transaction": 2
+          },
+          "stage": "undo",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "basis": "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+            "passed": true,
+            "recorded_evidence": null,
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "behavior",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "bced69a43ba5c1133ecdd69e9f3eef6cd23d01ffe907deb7ac19799856b96888",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-restored",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "action": "redo",
+            "applied": true,
+            "changes": [
+              {
+                "after_exists": true,
+                "after_kind": "regular",
+                "after_mode": 420,
+                "before_exists": true,
+                "before_kind": "regular",
+                "before_mode": 420,
+                "diff_bytes": 120,
+                "path": "subject.py"
+              }
+            ],
+            "context_basis": "frtb2:b132b118a94b0cac7a66531fe6ddc63cfb52d977330a2c40550e637e2d89cdaa",
+            "context_omitted": [
+              "changes[].diff"
+            ],
+            "transaction": 2
+          },
+          "stage": "redo",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "basis": "5c7d2e926d0f7c85508ee046821e7b26d5e94c15bfaf17e05b4970f9dbfd1f11",
+            "passed": true,
+            "recorded_evidence": {
+              "created": false,
+              "receipt": "frce1:dd5e0c16a0b02d2b7b4d6d860af68be3b6c93950a0184496ea40f1fca3585078",
+              "transaction": 2
+            },
+            "results": [
+              {
+                "exit_code": 0,
+                "name": "behavior",
+                "output_limit_exceeded": false,
+                "passed": true,
+                "source_snapshot_stable": true,
+                "timed_out": false
+              }
+            ],
+            "source_revision": "efcb82835d22736ec458a8cad3721ec7e127196b128b31a83f565dbc0905cd46",
+            "source_snapshot_stable": true,
+            "success_detail": "summary"
+          },
+          "stage": "check-applied",
+          "status": "passed"
+        },
+        {
+          "result": {
+            "bytes": 165,
+            "output": "artifacts/proved.patch",
+            "sha256": "ad6e338c82b588fbceedba98fd04eb25ef73da557156830657606a9f8e501007"
+          },
+          "stage": "deliver-patch",
+          "status": "passed"
+        }
+      ],
+      "transaction": 2,
+      "transaction_status": "applied",
+      "workflow_basis": "frwb1:e2c9f43b3cfe41342e742b269d6d45c7e597f66af09751fb119ae19cca1c0287"
+    }
+  },
+  "patch": "diff --git \"a/subject.py\" \"b/subject.py\"\n--- \"a/subject.py\"\n+++ \"b/subject.py\"\n@@ -1,2 +1,2 @@\n def allowed(ok: bool) -> bool:\n-    return ok\n+    return not not ok\n",
+  "receiver_behavior": [
+    false,
+    true
+  ],
+  "fresh": {
+    "claim": "Model theorems under Lean definitions and assumptions. No proof of source implementation correspondence.",
+    "evidence": {
+      "axiom_analysis": "Declared Lean axiom, opaque and constant syntax only.",
+      "correspondence": {
+        "proved_implementation_model": false,
+        "signature_surface": "Explicit maps match parsed source and Lean signatures.",
+        "source_identity": "Declaration bytes match each recorded SHA-256 anchor.",
+        "tested_implementation_model": false
+      },
+      "declared_assumptions": [],
+      "kernel_correspondence": [],
+      "properties": [
+        {
+          "kind": "theorem",
+          "line": 5,
+          "name": "identity",
+          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs/FrSpecs/Model.lean",
+          "status": "checked_by_lean"
+        }
+      ],
+      "remaining_obligations": [
+        "No proof currently connects each source implementation to its Lean model."
+      ],
+      "schema": 1,
+      "trusted_components": [
+        "Lean kernel, elaborator and compiler.",
+        "Lake package and checked-target selection.",
+        "fr parsing, declaration spans, signature checks and SHA-256.",
+        "Host filesystem and process execution."
+      ],
+      "verification": {
+        "packages": [
+          {
+            "output": "See retained per-module execution results.",
+            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs",
+            "passed": true
+          }
+        ],
+        "report": {
+          "anchors": [],
+          "debts": [],
+          "obligations": 0
+        }
+      }
+    },
+    "executed": true,
+    "input_digest": "9bc866d464be12484da6abde8ef4348b0006213fc2902fd5c51dc59ac6e9e123",
+    "inputs": {
+      "analyzer": "a77175051357ab6736e0547cfdabb422bc8c069a15f8cbf64cdf56c90a93f996",
+      "files": {
+        "FrSpecs.lean": "7d1ab24dfdaa8599c20edea4641797bd13fdd02f717902b79af772ca4cfe0ee6",
+        "FrSpecs/Model.lean": "9c6c96eb4b9c36463c569c048b0f2d6bde090b05e3452c553c89b0671d30b8a6",
+        "lakefile.toml": "0ef98cfa67bdd435d22268ec0f2122cb4893c7025f0ac3ae981f4f3ea569a672",
+        "lean-toolchain": "db7bb24b756d745bbde83fe92718b51bd3625dae3701ba0f598d0eedcd3f3028"
+      },
+      "policy": "All recognized workspace source files and all local package files except generated .lake and an empty dependency manifest. Clean build and direct checking of every Lean module. External packages fall outside this contract.",
+      "sources": "efcb82835d22736ec458a8cad3721ec7e127196b128b31a83f565dbc0905cd46",
+      "toolchain": {
+        "environment": {
+          "DYLD_FALLBACK_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "DYLD_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "ELAN_HOME": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "HOME": "61fb645121412772909e616825b7d44b77fad98dba49b4c7e7caa36b258464af",
+          "LD_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "LEAN_NUM_THREADS": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "PATH": "e210ec79f733179ece090ac6f925e5586228e4e23ac5c7f60b0c9a345390cda3",
+          "TMPDIR": "a691a8d9848b7883bfbb060f0e4c96ca36b693f680848758d1f4fcc40fcdaf01"
+        },
+        "pinned": "leanprover/lean4:v4.28.0",
+        "programs": {
+          "lake": {
+            "path": "/Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lake",
+            "sha256": "0e56506385ec20d56bffd7c031c4d48573ab5fdb74e5246ec8c45a220bebc68b"
+          },
+          "lean": {
+            "path": "/Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean",
+            "sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37"
+          }
+        },
+        "trust": "Installed Lean libraries, elaborator, kernel and host execution remain trusted. Executable hashes do not attest execution."
+      }
+    },
+    "modules": [
+      "FrSpecs/Model.lean",
+      "FrSpecs.lean"
+    ],
+    "mutation_authority": false,
+    "package": "specs",
+    "passed": true,
+    "results": [
+      {
+        "command": "lake build --wfail (all selected modules)",
+        "module": null,
+        "result": {
+          "elapsed_ms": 246,
+          "error": null,
+          "exit_code": 0,
+          "output_limit_exceeded": false,
+          "passed": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 112,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 109,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      },
+      {
+        "command": "lean -DwarningAsError=true",
+        "module": "FrSpecs/Model.lean",
+        "result": {
+          "elapsed_ms": 151,
+          "error": null,
+          "exit_code": 0,
+          "output_limit_exceeded": false,
+          "passed": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      },
+      {
+        "command": "lean -DwarningAsError=true",
+        "module": "FrSpecs.lean",
+        "result": {
+          "elapsed_ms": 172,
+          "error": null,
+          "exit_code": 0,
+          "output_limit_exceeded": false,
+          "passed": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      }
+    ],
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project",
+    "schema": "fr-proof-evidence-1",
+    "source_implementation_proved": false,
+    "stable": true
+  },
+  "fresh_root": "1d04e3bcf6bf92b3b4d7db25653eb8d7791dde7a466cb09b194c883e63ff878c",
+  "fresh_plan": {
+    "check_attachment": null,
+    "claim": "validated agent-reported evidence; references do not attest tool execution.",
+    "complete": true,
+    "context_basis": "frcb1:b8e53f3c3c384f85602cd5821a8f8066315140e33450402ddc3cd8bf3af61217",
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 5,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 33,
+      "unsupported_files": 3
+    },
+    "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+    "handle_prefix": "frp1:1a2267cd1458cb94a77e93fff228151e:",
+    "input_digests": {
+      "dependent": "791c05fbc1b31a555e103c8e624b424ad44821300186303fb9d5b24c0ecaa510",
+      "independent": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+      "proof": "45f6c78fa4c994701bb1d135c1c0901222b77e75fdcfc0881fe18853e2b47bf4"
+    },
+    "invalidated": [
+      "dependent"
+    ],
+    "mutation_authority": false,
+    "plan": {
+      "acceptance": [
+        "identity model"
+      ],
+      "goal": "Preserve Boolean identity with retained model evidence",
+      "hypotheses": [],
+      "questions": [],
+      "schema": "fr-investigation-plan-1",
+      "steps": [
+        {
+          "action": [],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "fr-model-proof-1:fe6cdd3dda3dc642af5c53b28584f93d2a197a58e4d4c60bb2f76dfdfa7dc7f5",
+              "input_digest": "45f6c78fa4c994701bb1d135c1c0901222b77e75fdcfc0881fe18853e2b47bf4",
+              "kind": "model-proof",
+              "passed": true,
+              "reference": "fr-proof-evidence-1:5b99e45b11af7ae5f9d7f55eee532ca0eb9ec701e96b9dd57030a83a4c390def"
+            }
+          ],
+          "id": "proof",
+          "inputs": [
+            {
+              "digest": "9bc866d464be12484da6abde8ef4348b0006213fc2902fd5c51dc59ac6e9e123",
+              "key": "specs",
+              "kind": "proof-inputs"
+            }
+          ],
+          "question": "Does Lean accept the identity theorem?",
+          "required_checks": [],
+          "required_proofs": [
+            {
+              "package": "specs",
+              "spec": "FrSpecs/Model.lean",
+              "theorem": "identity"
+            }
+          ],
+          "satisfies": [
+            "identity model"
+          ],
+          "state": "satisfied"
+        },
+        {
+          "action": [],
+          "depends_on": [
+            "proof"
+          ],
+          "evidence": [
+            {
+              "id": "read",
+              "input_digest": "efd196e8de68914ea307063a57e8849217c3aeace9db1b8624cdf552d7d71c94",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent fixture observation"
+            }
+          ],
+          "id": "dependent",
+          "inputs": [
+            {
+              "digest": "1d7306a49344aecc72b211b6a7e400cbbc42384d296e2003e4d5b6ee3b86041a",
+              "key": "subject.py",
+              "kind": "source"
+            }
+          ],
+          "question": "Does the next conclusion use this theorem?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "stale"
+        },
+        {
+          "action": [],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "read",
+              "input_digest": "d1e5db7b00a4264290478b472043656699b7b8f35c106d8cdd7ac7f269708289",
+              "kind": "observation",
+              "passed": true,
+              "reference": "independent fixture observation"
+            }
+          ],
+          "id": "independent",
+          "inputs": [
+            {
+              "digest": "f06ea2481d8353de5746acae2ed17abac3f7b242e9e00c6b9e4c39a096a3fcfa",
+              "key": "independent.py",
+              "kind": "source"
+            }
+          ],
+          "question": "Does unrelated source remain understood?",
+          "required_checks": [],
+          "satisfies": [],
+          "state": "satisfied"
+        }
+      ]
+    },
+    "proof_attachment": {
+      "digest": "5b99e45b11af7ae5f9d7f55eee532ca0eb9ec701e96b9dd57030a83a4c390def",
+      "results": [
+        [
+          "specs",
+          "FrSpecs/Model.lean",
+          "identity"
+        ]
+      ],
+      "trust": "Trusted caller digest binds retained local Lean output. No execution attestation or source implementation proof."
+    },
+    "revision": "1a2267cd1458cb94a77e93fff228151e5793e34fa36c7ef5e416d2fd4510cf7f",
+    "schema": "fr-investigation-resume-1"
+  },
+  "orphan": {
+    "claim": "Model theorems under Lean definitions and assumptions. No proof of source implementation correspondence.",
+    "evidence": {
+      "axiom_analysis": "Declared Lean axiom, opaque and constant syntax only.",
+      "correspondence": {
+        "proved_implementation_model": false,
+        "signature_surface": "Explicit maps match parsed source and Lean signatures.",
+        "source_identity": "Declaration bytes match each recorded SHA-256 anchor.",
+        "tested_implementation_model": false
+      },
+      "declared_assumptions": [],
+      "kernel_correspondence": [],
+      "properties": [
+        {
+          "kind": "theorem",
+          "line": 1,
+          "name": "impossible",
+          "spec": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs/FrSpecs/Model.lean",
+          "status": "unchecked"
+        }
+      ],
+      "remaining_obligations": [
+        "No proof currently connects each source implementation to its Lean model."
+      ],
+      "schema": 1,
+      "trusted_components": [
+        "Lean kernel, elaborator and compiler.",
+        "Lake package and checked-target selection.",
+        "fr parsing, declaration spans, signature checks and SHA-256.",
+        "Host filesystem and process execution."
+      ],
+      "verification": {
+        "packages": [
+          {
+            "output": "See retained per-module execution results.",
+            "package": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project/specs",
+            "passed": false
+          }
+        ],
+        "report": {
+          "anchors": [],
+          "debts": [],
+          "obligations": 0
+        }
+      }
+    },
+    "executed": true,
+    "input_digest": "a00850c45030819c8fa4cb39342f6ab8d51035dc8fdcb541d115fb506d692a47",
+    "inputs": {
+      "analyzer": "a77175051357ab6736e0547cfdabb422bc8c069a15f8cbf64cdf56c90a93f996",
+      "files": {
+        "FrSpecs.lean": "7d1ab24dfdaa8599c20edea4641797bd13fdd02f717902b79af772ca4cfe0ee6",
+        "FrSpecs/Model.lean": "ffba238b1aea50028ad525aad76b730dcf3164011ac65d5aa925063da5adaf92",
+        "lakefile.toml": "0ef98cfa67bdd435d22268ec0f2122cb4893c7025f0ac3ae981f4f3ea569a672",
+        "lean-toolchain": "db7bb24b756d745bbde83fe92718b51bd3625dae3701ba0f598d0eedcd3f3028"
+      },
+      "policy": "All recognized workspace source files and all local package files except generated .lake and an empty dependency manifest. Clean build and direct checking of every Lean module. External packages fall outside this contract.",
+      "sources": "d151cbcb06e6817a048209c6b575f407e9ce0c935f38cbf4d3f391f604127dc1",
+      "toolchain": {
+        "environment": {
+          "DYLD_FALLBACK_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "DYLD_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "ELAN_HOME": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "HOME": "61fb645121412772909e616825b7d44b77fad98dba49b4c7e7caa36b258464af",
+          "LD_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "LEAN_NUM_THREADS": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "PATH": "e210ec79f733179ece090ac6f925e5586228e4e23ac5c7f60b0c9a345390cda3",
+          "TMPDIR": "a691a8d9848b7883bfbb060f0e4c96ca36b693f680848758d1f4fcc40fcdaf01"
+        },
+        "pinned": "leanprover/lean4:v4.28.0",
+        "programs": {
+          "lake": {
+            "path": "/Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lake",
+            "sha256": "0e56506385ec20d56bffd7c031c4d48573ab5fdb74e5246ec8c45a220bebc68b"
+          },
+          "lean": {
+            "path": "/Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean",
+            "sha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37"
+          }
+        },
+        "trust": "Installed Lean libraries, elaborator, kernel and host execution remain trusted. Executable hashes do not attest execution."
+      }
+    },
+    "modules": [
+      "FrSpecs/Model.lean",
+      "FrSpecs.lean"
+    ],
+    "mutation_authority": false,
+    "package": "specs",
+    "passed": false,
+    "results": [
+      {
+        "command": "lake build --wfail (all selected modules)",
+        "module": null,
+        "result": {
+          "elapsed_ms": 248,
+          "error": null,
+          "exit_code": 1,
+          "output_limit_exceeded": false,
+          "passed": false,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 132,
+            "text": "info: fr-specs: no previous manifest, creating one from scratch\ninfo: toolchain not updated; already up-to-date\nerror: build failed\n"
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 1026,
+            "text": "✖ [2/3] Building FrSpecs.Model (165ms)\ntrace: .> LEAN_PATH=/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/lib/lean /Users/zardoz/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/FrSpecs/Model.lean -o /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/lib/lean/FrSpecs/Model.olean -i /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/lib/lean/FrSpecs/Model.ilean -c /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/ir/FrSpecs/Model.c --setup /private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-retained-proof-LveiVm/.lake/build/ir/FrSpecs/Model.setup.json --json\nerror: FrSpecs/Model.lean:1:33: Tactic `assumption` failed\n\n⊢ False\nerror: Lean exited with code 1\n✔ [3/3] Built FrSpecs (158ms)\nSome required targets logged failures:\n- FrSpecs.Model\n"
+          },
+          "timed_out": false
+        }
+      }
+    ],
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-eval-hl92amyc/project",
+    "schema": "fr-proof-evidence-1",
+    "source_implementation_proved": false,
+    "stable": true
+  },
+  "measurement": {
+    "initial_proof_seconds": 4.860249874996953,
+    "initial_report_bytes": 5159,
+    "tokens": null
+  },
+  "scope": "Finite Boolean source cases and Lean model theorems. Clean package rebuilds deliberately retain no incremental cache claim. Caller-retained execution records remain trusted. Installed Lean libraries remain trusted. No source implementation correspondence proof or live-agent claim."
+}
