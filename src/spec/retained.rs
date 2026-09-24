@@ -288,7 +288,7 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         for (path, bytes) in &before.files {
             let path = scratch.path().join(path);
             std::fs::create_dir_all(path.parent().unwrap())?;
-            std::fs::write(path, bytes)?;
+            crate::vfs::write_bytes(path, bytes)?;
         }
         let tool = |name: &str| -> Result<&Path> {
             Ok(Path::new(

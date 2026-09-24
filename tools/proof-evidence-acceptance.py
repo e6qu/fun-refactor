@@ -23,7 +23,7 @@ from fr_ir.ir import TaskChange, TaskDelivery, TaskTarget
 from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
 
 FIXTURE = ROOT / "tests/agent-eval/retained-proofs"
-BINDINGS = ["src/spec.rs", "src/spec/retained.rs", "src/checks.rs", "src/project/investigation.rs",
+BINDINGS = ["src/vfs.rs", "src/spec.rs", "src/spec/retained.rs", "src/checks.rs", "src/project/investigation.rs",
             "src/history.rs", "src/project.rs", "src/parse.rs", "src/extract.rs", "src/cli.rs", "Cargo.lock",
             "sdk/python/src/fr_ir/investigation.py", "sdk/python/src/fr_ir/investigation_proofs.py",
             "sdk/python/src/fr_ir/context.py", "sdk/python/src/fr_ir/runtime.py",

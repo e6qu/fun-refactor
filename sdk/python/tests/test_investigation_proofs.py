@@ -36,6 +36,7 @@ def plan():
 
 def test_real_proof_checks_unimported_module_and_restores_verified_objects(project):
     client, root = project
+    (root / "specs/asset.bin").write_bytes(bytes([0, 255, 128, 10]))
     review = ProofReport.review(client)
     assert not review.passed and review.report.at("/executed") is False
     store = MemoryObjectStore()

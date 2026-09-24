@@ -77,6 +77,12 @@ mod memory {
         read_to_string(path).map(String::into_bytes)
     }
 
+    pub fn write_bytes(path: &Path, contents: &[u8]) -> io::Result<()> {
+        let text = std::str::from_utf8(contents)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+        write(path, text)
+    }
+
     pub fn write(path: &Path, contents: &str) -> io::Result<()> {
         ACTIVE.with(|a| {
             let handle = Rc::clone(&a.borrow());
@@ -128,6 +134,10 @@ mod backing {
 
     pub fn read(path: &Path) -> io::Result<Vec<u8>> {
         std::fs::read(path)
+    }
+
+    pub fn write_bytes(path: &Path, contents: &[u8]) -> io::Result<()> {
+        std::fs::write(path, contents)
     }
 
     pub fn write(path: &Path, contents: &str) -> io::Result<()> {
@@ -190,6 +200,12 @@ pub fn read(path: impl AsRef<Path>) -> io::Result<Vec<u8>> {
     let path = path.as_ref();
     through_memory!(read(path));
     backing::read(path)
+}
+
+pub fn write_bytes(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> io::Result<()> {
+    let (path, contents) = (path.as_ref(), contents.as_ref());
+    through_memory!(write_bytes(path, contents));
+    backing::write_bytes(path, contents)
 }
 
 /// Replace a file's text.
