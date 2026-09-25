@@ -15,6 +15,9 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
+
+from evidence_basis import file_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/agent-eval/flow-cache"
@@ -25,7 +28,7 @@ from fr_ir.flow import FlowCache
 from fr_ir.flow_dependencies import FlowDependencies
 from fr_ir.runtime import FrClient, FrReport
 
-BINDINGS = ["tools/flow-cache-acceptance.py", "sdk/python/src/fr_ir/flow.py",
+BINDINGS = ["tools/flow-cache-acceptance.py", "tools/evidence_basis.py", "sdk/python/src/fr_ir/flow.py",
             "sdk/python/src/fr_ir/flow_storage.py", "sdk/python/src/fr_ir/context.py",
             "sdk/python/src/fr_ir/flow_dependencies.py",
             "sdk/python/src/fr_ir/ir.py", "sdk/python/src/fr_ir/runtime.py",
@@ -49,8 +52,22 @@ def digest(value):
     return hashlib.sha256(encode(value)).hexdigest()
 
 
+def manifest_basis(data):
+    manifest = tomllib.loads(data.decode())
+    version = manifest["package"]["version"]
+    manifest["package"]["version"] = "<workspace>"
+    for container in [manifest, manifest.get("workspace", {}), *manifest.get("target", {}).values()]:
+        for kind in ("dependencies", "dev-dependencies", "build-dependencies"):
+            for dependency in container.get(kind, {}).values():
+                if (isinstance(dependency, dict) and "path" in dependency
+                        and dependency.get("version") == version):
+                    dependency["version"] = "<workspace>"
+    return encode(manifest)
+
+
 def bindings():
-    return {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in BINDINGS}
+    return {path: hashlib.sha256(manifest_basis((ROOT / path).read_bytes())).hexdigest()
+            if path == "Cargo.toml" else file_digest(ROOT / path) for path in BINDINGS}
 
 
 def legacy_class():
@@ -233,7 +250,11 @@ def measure(args):
 
 
 def audit(value):
-    assert value["schema"] == "fr-flow-cache-acceptance-1" and value["source_bindings"] == bindings()
+    assert value["schema"] == "fr-flow-cache-acceptance-1"
+    current = bindings()
+    changed = sorted(path for path in current.keys() | value["source_bindings"].keys()
+                     if current.get(path) != value["source_bindings"].get(path))
+    assert not changed, f"stale flow-cache evidence: {', '.join(changed)}"
     assert value["task"] == json.loads((FIXTURE / "task.json").read_text())
     assert 3 <= value["repetitions"] <= 7
     expected = {(case, scenario, strategy, repeat) for case in CASES for scenario in ("cold", *SCENARIOS)
