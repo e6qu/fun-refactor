@@ -1,3 +1,5 @@
+pub mod retained;
+
 use crate::edit::{Edit, EditSet};
 use crate::extract::Extractor;
 use crate::lang::detect;
@@ -1999,6 +2001,15 @@ pub fn ci(root: &Path, requested_package: &Path, max_debt: usize) -> Result<CiPl
 
 pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Evidence> {
     let verification = verify(root, inputs, respect_ignore)?;
+    collect_evidence(root, inputs, respect_ignore, verification)
+}
+
+fn collect_evidence(
+    root: &Path,
+    inputs: &[PathBuf],
+    respect_ignore: bool,
+    verification: Verification,
+) -> Result<Evidence> {
     let files = spec_files(root, inputs, respect_ignore)?;
     let mut properties = Vec::new();
     let mut declared_assumptions = Vec::new();
@@ -3605,9 +3616,28 @@ fn verify_with_warnings(
                 .with_context(|| format!("running lake in {}", package.display()))?;
             let mut text = String::from_utf8_lossy(&output.stdout).to_string();
             text.push_str(&String::from_utf8_lossy(&output.stderr));
+            let mut passed = output.status.success();
+            if passed {
+                for spec in spec_files(root, inputs, respect_ignore)? {
+                    if lean_package(root, &spec)? != package {
+                        continue;
+                    }
+                    let mut check = Command::new("lake");
+                    check.args(["env", "lean"]);
+                    if deny_warnings {
+                        check.arg("-DwarningAsError=true");
+                    }
+                    check.arg(&spec).current_dir(&package);
+                    let result = crate::checks::bounded_process(check, 120, 4096, true)?;
+                    passed &= result["passed"] == true;
+                    if result["passed"] != true {
+                        text.push_str(&format!("\nModule {}: {}\n", spec.display(), result));
+                    }
+                }
+            }
             Ok(PackageReport {
                 package,
-                passed: output.status.success(),
+                passed,
                 output: text,
             })
         })

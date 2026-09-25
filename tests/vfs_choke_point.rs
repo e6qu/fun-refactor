@@ -103,3 +103,31 @@ fn byte_reads_preserve_disk_content_and_follow_the_active_workspace() {
     assert_eq!(result.unwrap(), "workspace λ".as_bytes());
     assert_eq!(fun_refactor::vfs::read(&path).unwrap(), [0, 255, 128, 10]);
 }
+
+#[test]
+fn byte_writes_preserve_disk_content_and_follow_the_active_workspace() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("asset.bin");
+    let bytes = [0, 255, 128, 10];
+    fun_refactor::vfs::write_bytes(&path, bytes).unwrap();
+    assert_eq!(fun_refactor::vfs::read(&path).unwrap(), bytes);
+    let handle = fun_refactor::vfs::new_handle([(path.clone(), "memory".to_owned())]);
+    fun_refactor::vfs::activate(&handle);
+    fun_refactor::vfs::write_bytes(&path, "workspace λ".as_bytes()).unwrap();
+    assert_eq!(
+        fun_refactor::vfs::read_to_string(&path).unwrap(),
+        "workspace λ"
+    );
+    assert_eq!(
+        fun_refactor::vfs::write_bytes(&path, bytes)
+            .unwrap_err()
+            .kind(),
+        std::io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        fun_refactor::vfs::read_to_string(&path).unwrap(),
+        "workspace λ"
+    );
+    fun_refactor::vfs::use_filesystem();
+    assert_eq!(fun_refactor::vfs::read(&path).unwrap(), bytes);
+}

@@ -358,3 +358,13 @@ Warm and clean reports agree. Every query recomputes correspondence; this slice 
 The ordinary AST baseline reads the whole tiny source and excludes a native process launch.
 These are deterministic fixture measurements, with no live-agent, token, semantic equivalence or general speed claim.
 Audit the retained result with `python3 tools/correspondence-acceptance.py --audit RESULT`.
+
+## Retained proof evidence
+
+The [proof fixture](../tests/agent-eval/retained-proofs/task.json) pins an unchecked-module baseline and a finite Boolean source task.
+Run `python3 tools/proof-evidence-acceptance.py --output PATH` to retain current execution evidence.
+Run the same script with `--audit PATH` to check its source bindings, Merkle roots, invalidation outcomes and patch replay.
+The evaluator retains old and fresh model reports, seven input changes, independent observations and stale review refusals.
+A separate Python oracle checks both Boolean inputs after applying the retained patch in an independent directory.
+The [current result](../tests/agent-eval/results/2026-09-24-retained-proofs/result.json) records its fixture timing and context bytes.
+These deterministic results make no live-agent, general performance or source correspondence proof claim.

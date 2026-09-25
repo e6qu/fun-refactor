@@ -783,6 +783,10 @@ enum SpecCommand {
         #[arg(long, help = "Write through source history.")]
         write: bool,
     },
+    #[command(
+        about = "Review or execute retained model proofs for a generated local Lean package."
+    )]
+    Retain(crate::spec::retained::Options),
     #[command(about = "Report bounded Lean verification evidence.")]
     Evidence {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
@@ -1276,6 +1280,14 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 max_debt,
                 write,
             } => cmd_spec_ci(cli, package, *max_debt, *write),
+            SpecCommand::Retain(options) => {
+                let report = crate::spec::retained::report(&workspace_root(cli), options)?;
+                println!("{}", serde_json::to_string_pretty(&report)?);
+                if report["executed"] == true && report["passed"] != true {
+                    std::process::exit(1);
+                }
+                Ok(())
+            }
             SpecCommand::Evidence { paths } => cmd_spec_evidence(cli, paths),
             SpecCommand::Check {
                 paths,

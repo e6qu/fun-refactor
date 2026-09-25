@@ -443,3 +443,12 @@ Pass an explicit mapping to `reopened.refresh(client, "diagnose", choices, input
 Refresh revalidates the selection and clears old evidence and actions. It preserves acceptance requirements.
 New guide actions and mutation reviews remain necessary. Neither equal content nor a stored Merkle root authorizes a write.
 See [correspondence and checked delivery](../../docs/agent-investigations.md#correspondence-and-checked-delivery) for bounds and trust assumptions.
+
+### Retained model evidence
+
+`ProofReport.review(client, "specs")` reviews a generated local Lean package.
+`run_proofs(plan, client, step_id, reviewed, store)` executes it and attaches named `ProofRequirement` records.
+Use `TaskStep.proved(...)` to declare the requirements and package dependencies.
+Persist reports with `ProofReport.persist`; restore them through verified Merkle records with `ProofReport.restore`.
+Resume a plan before relying on its proof state. Changed inputs invalidate dependent evidence.
+See [retained model proofs](../../docs/agent-investigations.md#retained-model-proofs) for execution bounds and trust assumptions.

@@ -81,3 +81,26 @@ theorem check_scope_requires_workspace (configuration sources toolchain : Bool) 
   simp [checkScopeCovered]
 
 end FrKernels.Investigation
+
+namespace FrKernels.Investigation
+
+def proofAcceptable (executed stable checked debtFree : Bool) : Bool :=
+  executed && stable && checked && debtFree
+
+theorem proof_requires_execution (stable checked debtFree : Bool) :
+    proofAcceptable false stable checked debtFree = false := by
+  simp [proofAcceptable]
+
+theorem proof_requires_stability (executed checked debtFree : Bool) :
+    proofAcceptable executed false checked debtFree = false := by
+  simp [proofAcceptable]
+
+theorem proof_requires_checked_modules (executed stable debtFree : Bool) :
+    proofAcceptable executed stable false debtFree = false := by
+  simp [proofAcceptable]
+
+theorem proof_requires_no_debt (executed stable checked : Bool) :
+    proofAcceptable executed stable checked false = false := by
+  simp [proofAcceptable]
+
+end FrKernels.Investigation

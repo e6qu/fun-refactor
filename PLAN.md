@@ -109,7 +109,10 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
 - [x] Persist task plans locally with pending, ready, running, satisfied, blocked and stale steps.
   Invalidate dependent evidence and refresh prerequisites before resuming work.
   See [native resumption tests](tests/investigation.rs) and [verified SDK persistence](sdk/python/tests/test_investigation.py).
-- [ ] Bind checks and proof results to their inputs. Retain the existing immutable mutation review boundary.
+- [x] Bind checks and proof results to their inputs. Retain the existing immutable mutation review boundary.
+  [Retained model proofs](src/spec/retained.rs) bind generated local Lean packages, source snapshots and checker identities.
+  [Acceptance](tests/agent-eval/results/2026-09-24-retained-proofs/result.json) covers module checks, invalidation and fresh reviewed delivery.
+  External Lean packages and source implementation correspondence remain outside this proof contract.
 - [ ] Measure cold, warm and single-edit latency, memory, context bytes and recomputation.
   Choose cache granularity from those measurements.
 

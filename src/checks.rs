@@ -243,13 +243,26 @@ fn terminate_remaining_group(child: &Child) -> Option<String> {
 
 fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Result<Value> {
     let cwd = confined(root, &check.cwd, true)?;
+    let mut command = Command::new(&check.argv[0]);
+    command.args(&check.argv[1..]).current_dir(cwd);
+    let mut result = bounded_process(command, check.timeout_seconds, limit, quiet_success)?;
+    result["name"] = json!(check.name);
+    result["argv"] = json!(check.argv);
+    result["cwd"] = json!(check.cwd);
+    result["covers"] = json!(check.covers);
+    Ok(result)
+}
+
+pub(crate) fn bounded_process(
+    mut command: Command,
+    timeout_seconds: u64,
+    limit: usize,
+    quiet_success: bool,
+) -> Result<Value> {
     let mut stdout = tempfile::tempfile()?;
     let mut stderr = tempfile::tempfile()?;
     let started = Instant::now();
-    let mut command = Command::new(&check.argv[0]);
     command
-        .args(&check.argv[1..])
-        .current_dir(cwd)
         .stdin(Stdio::null())
         .stdout(Stdio::from(stdout.try_clone()?))
         .stderr(Stdio::from(stderr.try_clone()?));
@@ -280,7 +293,7 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
                         break Err(error);
                     }
                 }
-                timed_out = started.elapsed() >= Duration::from_secs(check.timeout_seconds);
+                timed_out = started.elapsed() >= Duration::from_secs(timeout_seconds);
                 output_limit = stdout.metadata()?.len() > MAX_CAPTURE
                     || stderr.metadata()?.len() > MAX_CAPTURE;
                 if timed_out || output_limit {
@@ -305,7 +318,6 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
         && termination_error.is_none();
     let retained = if passed && quiet_success { 0 } else { limit };
     let mut result = json!({
-        "name": check.name, "argv": check.argv, "cwd": check.cwd, "covers": check.covers,
         "passed": passed,
         "exit_code": status.and_then(|s| s.code()), "error": error,
         "timed_out": timed_out, "output_limit_exceeded": output_limit,

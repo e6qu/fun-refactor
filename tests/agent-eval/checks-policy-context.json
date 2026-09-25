@@ -2,11 +2,11 @@
   "schema": "fr-checks-policy-context-1",
   "passed": true,
   "evidence_manifest_sha256": "8966a31b2e449516ee2738916d5f91140a11a29052f3a731648b26cf55838f61",
-  "binary_sha256": "ad3cf2a6e3fc31b33079f289eab9630131f0a8f5cb37b847b41ca99d16b40375",
+  "binary_sha256": "116c33122c825e7f3f304d28e494d195c4b79c78b5d8e66eea8fa1f2e2b72c16",
   "measurement_files": {
     "tools/checks-policy-context.py": "b37ef3e212ee76c90cbfaf608a79e536ab8c6941f6fa0ca350c56b35170129d7",
-    "tools/agent-eval.py": "9bb820c643ec5c6e234bee81661cecb4973bbb3d5efe406f5eddb5519a9ab180",
-    "src/checks.rs": "0fe2b0f3a40a36ab4ab81084c9154dae715634125ef5af37807fa25dc8fdcc52"
+    "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
+    "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db"
   },
   "tokenizer": {
     "package": "tiktoken",
@@ -641,14 +641,14 @@
       "configuration": ".fr/checks.json",
       "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
       "executed": false,
-      "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+      "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
       "not_run": [
         "pass",
         "fail"
       ],
       "passed": null,
       "results": [],
-      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-jewnk6dz",
       "schema": "fr-checks-1",
       "source_snapshot_checked": false
     },
@@ -683,9 +683,10 @@
         }
       ],
       "configuration": ".fr/checks.json",
+      "configuration_stable": true,
       "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
       "executed": true,
-      "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+      "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
       "not_run": [],
       "passed": false,
       "results": [
@@ -705,6 +706,7 @@
           "name": "pass",
           "output_limit_exceeded": false,
           "passed": true,
+          "source_snapshot_stable": true,
           "stderr": {
             "encoding": "UTF-8 with replacement; byte counts precede decoding",
             "omitted_bytes": 0,
@@ -729,12 +731,13 @@
             "fixture stream and exit behavior"
           ],
           "cwd": ".",
-          "elapsed_ms": 24,
+          "elapsed_ms": 23,
           "error": null,
           "exit_code": 7,
           "name": "fail",
           "output_limit_exceeded": false,
           "passed": false,
+          "source_snapshot_stable": true,
           "stderr": {
             "encoding": "UTF-8 with replacement; byte counts precede decoding",
             "omitted_bytes": 1,
@@ -750,9 +753,11 @@
           "timed_out": false
         }
       ],
-      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-jewnk6dz",
       "schema": "fr-checks-1",
-      "source_snapshot_checked": false
+      "source_revision": "60110076498ce2b3c29965c9412740a5536bcbd18e4101c603da022c783e3f7a",
+      "source_snapshot_checked": true,
+      "source_snapshot_stable": true
     },
     "actual_policies": {
       "quiet_success": {
@@ -786,9 +791,10 @@
           }
         ],
         "configuration": ".fr/checks.json",
+        "configuration_stable": true,
         "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
         "executed": true,
-        "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+        "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
         "not_run": [],
         "passed": false,
         "results": [
@@ -802,12 +808,13 @@
               "fixture stream and exit behavior"
             ],
             "cwd": ".",
-            "elapsed_ms": 25,
+            "elapsed_ms": 21,
             "error": null,
             "exit_code": 0,
             "name": "pass",
             "output_limit_exceeded": false,
             "passed": true,
+            "source_snapshot_stable": true,
             "stderr": {
               "encoding": "UTF-8 with replacement; byte counts precede decoding",
               "omitted_bytes": 2,
@@ -838,6 +845,7 @@
             "name": "fail",
             "output_limit_exceeded": false,
             "passed": false,
+            "source_snapshot_stable": true,
             "stderr": {
               "encoding": "UTF-8 with replacement; byte counts precede decoding",
               "omitted_bytes": 1,
@@ -853,27 +861,31 @@
             "timed_out": false
           }
         ],
-        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-jewnk6dz",
         "schema": "fr-checks-1",
-        "source_snapshot_checked": false
+        "source_revision": "60110076498ce2b3c29965c9412740a5536bcbd18e4101c603da022c783e3f7a",
+        "source_snapshot_checked": true,
+        "source_snapshot_stable": true
       },
       "quiet_success_no_declarations": {
         "basis": "20d866ca86153a085f4141c0d68c9eed2c292188e4c64de2e42bca12f72d100b",
         "configuration": ".fr/checks.json",
+        "configuration_stable": true,
         "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
         "declarations_omitted": true,
         "executed": true,
-        "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+        "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
         "not_run": [],
         "passed": false,
         "results": [
           {
-            "elapsed_ms": 25,
+            "elapsed_ms": 20,
             "error": null,
             "exit_code": 0,
             "name": "pass",
             "output_limit_exceeded": false,
             "passed": true,
+            "source_snapshot_stable": true,
             "stderr": {
               "encoding": "UTF-8 with replacement; byte counts precede decoding",
               "omitted_bytes": 2,
@@ -889,12 +901,13 @@
             "timed_out": false
           },
           {
-            "elapsed_ms": 25,
+            "elapsed_ms": 28,
             "error": null,
             "exit_code": 7,
             "name": "fail",
             "output_limit_exceeded": false,
             "passed": false,
+            "source_snapshot_stable": true,
             "stderr": {
               "encoding": "UTF-8 with replacement; byte counts precede decoding",
               "omitted_bytes": 1,
@@ -910,9 +923,11 @@
             "timed_out": false
           }
         ],
-        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-jewnk6dz",
         "schema": "fr-checks-1",
-        "source_snapshot_checked": false
+        "source_revision": "60110076498ce2b3c29965c9412740a5536bcbd18e4101c603da022c783e3f7a",
+        "source_snapshot_checked": true,
+        "source_snapshot_stable": true
       }
     },
     "comparison": "Exact report equality except elapsed_ms; failed streams retain their byte budgets and replacement decoding."

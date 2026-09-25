@@ -57,6 +57,7 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
 
     run cargo fmt --all --check
     run cargo clippy --all-targets -- -D warnings
+    run bash tools/check-kernels.sh
     ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets \
         -- --test-threads "$FR_LEAN_JOBS"
 
@@ -73,9 +74,6 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
     test -x target/debug/fr
     target/debug/fr capabilities --json > "$matrix"
     python3 tools/capability-report.py "$matrix" "$log"
-
-    printf '\n\033[1m==> Lean kernels\033[0m\n'
-    bash tools/check-kernels.sh
 fi
 
 if [ "$slice" = deep ]; then

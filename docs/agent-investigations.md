@@ -360,3 +360,56 @@ fails under a strict build configuration. [Acceptance](../tests/agent-eval/resul
 retains real rustc and Cargo output, an independent six-case runtime oracle and stale-input refusals.
 Coverage remains specific to the declared invocation. Compiler diagnostics do not prove runtime safety,
 complete dependency discovery or implementation correspondence.
+
+## Retained model proofs
+
+Use `fr spec retain specs` to review a generated Lean package. Execute that selection with
+`fr spec retain specs --run --basis DIGEST`. Store reviews and reports outside the scanned workspace.
+The report binds all recognized workspace source files, local package files, checker executable bytes,
+the running `fr` binary and the checker environment. Every run builds a fresh temporary package.
+It then checks every Lean module directly, including modules absent from the default library imports.
+The original package's build artifacts cannot supply retained evidence.
+
+The initial contract accepts the exact `lakefile.toml` from `fr spec init`, its pinned Lean toolchain,
+and an absent or empty dependency manifest. It refuses external packages, executable Lake configuration,
+symlinks, more than 128 package files and more than 4 MiB of package content.
+The report ceiling is 1 MiB. A build has 120 seconds; each module check has 30 seconds.
+Execution retains bounded diagnostics and uses the check runner's process-group cleanup.
+Tool discovery accepts direct Lean installations and elan-managed toolchains. It verifies the selected Lean version.
+Executable identities use streaming hashes with a 2 GiB ceiling per file.
+A changed input during execution prevents a passing report.
+
+```python
+from fr_ir.investigation import ProofRequirement, TaskPlan, TaskStep
+from fr_ir.investigation_proofs import ProofReport, run_proofs
+
+plan = TaskPlan("Establish the model property", ("model identity",), (
+    TaskStep.proved("model", "Does Lean accept identity?",
+        proofs=(ProofRequirement("specs", "FrSpecs/Model.lean", "identity"),),
+        satisfies=("model identity",)),
+))
+reviewed = ProofReport.review(client, "specs")
+result = run_proofs(plan, client, "model", reviewed, store)
+assert result.passed
+reopened = result.resumed.plan.resume(client)
+```
+
+The theorem name is the name in `/evidence/properties`; the module path is relative to the package.
+A proof step retains explicit `required_proofs` and a `proof-inputs` dependency for each package.
+The helper starts the step, executes its reviewed package, stores the report in verified Merkle objects,
+and attaches the required theorems. Failed runs retain their reports and leave the step incomplete.
+For multiple packages, execute each review and use `attach_proofs`; satisfy after the final attachment.
+Each step accepts at most 64 distinct theorem requirements.
+
+Resumption compares current input identities without running Lean. Source, package, toolchain or checker drift
+invalidates the step and its dependents. Independent observations retain their own dependencies.
+An unavailable package also invalidates a previously captured dependency. To retry, reset the step explicitly
+and capture a fresh review. Keep the old proof report for comparison; it cannot authorize a mutation.
+Fresh source edits still pass through ordinary immutable mutation review, checks, history and patch delivery.
+
+A caller-supplied digest binds trusted retained output. It does not attest that a process ran.
+Attachment rechecks module coverage, theorem declarations, assumptions, anchors, signature maps and debt.
+The report states its trusted components and remaining obligations. Installed Lean libraries and host execution
+remain trusted. Declared assumption discovery reports syntax; it does not compute transitive axiom dependencies.
+A model theorem supplies no proof that source execution agrees with the model.
+The finite Boolean fixture tests that correspondence only on its two admitted inputs.

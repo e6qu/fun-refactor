@@ -34,6 +34,7 @@ class DependencyKind(str, Enum):
     CHECK_SOURCES = "check-sources"
     CHECK_TOOLCHAIN = "check-toolchain"
     DECLARATION_ANALYZER = "declaration-analyzer"
+    PROOF_INPUTS = "proof-inputs"
 
 
 class EvidenceKind(str, Enum):
@@ -60,6 +61,21 @@ class Evidence:
 
 
 @dataclass(frozen=True)
+class ProofRequirement:
+    package: str
+    spec: str
+    theorem: str
+
+    def __post_init__(self) -> None:
+        for path in (self.package, self.spec):
+            if (not isinstance(path, str) or not path or path.startswith("/")
+                    or any(part in {"", ".", ".."} for part in path.split("/"))):
+                raise FrRuntimeError("proof paths must be normalized and relative")
+        if not self.spec.endswith(".lean") or not isinstance(self.theorem, str) or not self.theorem.strip() or len(self.theorem.encode()) > 256:
+            raise FrRuntimeError("proof requirement needs a Lean module and bounded theorem name")
+
+
+@dataclass(frozen=True)
 class TaskStep:
     id: str
     question: str
@@ -71,6 +87,7 @@ class TaskStep:
     satisfies: tuple[str, ...] = ()
     action: tuple[str, ...] = ()
     action_input: Mapping[str, Any] | None = None
+    required_proofs: tuple[ProofRequirement, ...] = ()
 
     @classmethod
     def checked(cls, id: str, question: str, *, checks: tuple[str, ...],
@@ -81,6 +98,14 @@ class TaskStep:
             DependencyKind.WORKSPACE, DependencyKind.CHECK_CONFIGURATION,
             DependencyKind.CHECK_SOURCES, DependencyKind.CHECK_TOOLCHAIN,
         )), depends_on=depends_on, required_checks=checks, satisfies=satisfies)
+
+    @classmethod
+    def proved(cls, id: str, question: str, *, proofs: tuple[ProofRequirement, ...],
+               satisfies: tuple[str, ...] = (), depends_on: tuple[str, ...] = ()) -> TaskStep:
+        if not proofs or len(proofs) > 64 or len(set(proofs)) != len(proofs):
+            raise FrRuntimeError("proof step needs 1..64 distinct theorem requirements")
+        inputs = tuple(Dependency(DependencyKind.PROOF_INPUTS, package) for package in sorted({p.package for p in proofs}))
+        return cls(id, question, inputs, depends_on=depends_on, satisfies=satisfies, required_proofs=proofs)
 
     @classmethod
     def from_guide(cls, id: str, question: str, action: GuideAction, *,
@@ -115,7 +140,7 @@ class TaskPlan:
             steps = []
             for step in value["steps"]:
                 _fields(step, {"id", "question", "inputs", "depends_on", "state", "evidence",
-                               "required_checks", "satisfies", "action", "action_input"})
+                               "required_checks", "satisfies", "action", "action_input", "required_proofs"})
                 if step.get("action_input") is not None and not isinstance(step["action_input"], Mapping):
                     raise FrRuntimeError("task action input must be an object")
                 inputs = []
@@ -129,10 +154,14 @@ class TaskPlan:
                         raise FrRuntimeError("evidence passed must be boolean")
                     evidence.append(Evidence(_text(item["id"]), EvidenceKind(item["kind"]),
                                              _text(item["input_digest"]), item["passed"], _text(item["reference"])))
+                proofs = []
+                for proof in step.get("required_proofs", []):
+                    _fields(proof, {"package", "spec", "theorem"})
+                    proofs.append(ProofRequirement(_text(proof["package"]), _text(proof["spec"]), _text(proof["theorem"])))
                 steps.append(TaskStep(_text(step["id"]), _text(step["question"]), tuple(inputs),
                                       _texts(step.get("depends_on", [])), StepState(step.get("state", "pending")),
                                       tuple(evidence), _texts(step.get("required_checks", [])),
-                                      _texts(step.get("satisfies", [])), _texts(step.get("action", [])), step.get("action_input")))
+                                      _texts(step.get("satisfies", [])), _texts(step.get("action", [])), step.get("action_input"), tuple(proofs)))
             return cls(_text(value["goal"]), _texts(value["acceptance"]), tuple(steps),
                        _texts(value.get("hypotheses", [])), _texts(value.get("questions", [])))
         except (KeyError, TypeError, ValueError) as error:

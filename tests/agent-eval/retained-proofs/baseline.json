@@ -1,0 +1,17 @@
+{
+  "schema": "fr-retained-proofs-baseline-1",
+  "revision": "da49d7afbe2b38cccfc2087220d7321134786d92",
+  "fr_evidence": {
+    "exit_code": 0,
+    "stdout": "{\n  \"schema\": 1,\n  \"verification\": {\n    \"report\": {\n      \"anchors\": [],\n      \"obligations\": 0,\n      \"debts\": []\n    },\n    \"packages\": [\n      {\n        \"package\": \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-baseline-nxbsw77h/specs\",\n        \"passed\": true,\n        \"output\": \"\u2714 [2/3] Built FrSpecs (1.3s)\\nBuild completed successfully (3 jobs).\\ninfo: fr-specs: no previous manifest, creating one from scratch\\ninfo: toolchain not updated; already up-to-date\\n\"\n      }\n    ]\n  },\n  \"properties\": [\n    {\n      \"spec\": \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-proof-baseline-nxbsw77h/specs/FrSpecs/Orphan.lean\",\n      \"line\": 2,\n      \"name\": \"impossible\",\n      \"kind\": \"theorem\",\n      \"status\": \"checked_by_lean\"\n    }\n  ],\n  \"declared_assumptions\": [],\n  \"axiom_analysis\": \"Declared Lean axiom, opaque and constant syntax only.\",\n  \"trusted_components\": [\n    \"Lean kernel, elaborator and compiler.\",\n    \"Lake package and checked-target selection.\",\n    \"fr parsing, declaration spans, signature checks and SHA-256.\",\n    \"Host filesystem and process execution.\"\n  ],\n  \"correspondence\": {\n    \"source_identity\": \"Declaration bytes match each recorded SHA-256 anchor.\",\n    \"signature_surface\": \"Explicit maps match parsed source and Lean signatures.\",\n    \"tested_implementation_model\": false,\n    \"proved_implementation_model\": false\n  },\n  \"kernel_correspondence\": [],\n  \"remaining_obligations\": [\n    \"No proof currently connects each source implementation to its Lean model.\"\n  ]\n}\n",
+    "stderr": "",
+    "seconds": 1.7206409589853138
+  },
+  "independent_lean": {
+    "exit_code": 1,
+    "stdout": "FrSpecs/Orphan.lean:2:33: error: Tactic `assumption` failed\n\n\u22a2 False\n",
+    "stderr": ""
+  },
+  "finding": "Default Lake build succeeds without importing the selected orphan module; existing evidence labels its impossible theorem checked_by_lean.",
+  "live_agent": false
+}
