@@ -95,10 +95,20 @@ It states properties of accepted and rejected plans and unchanged source prefixe
 
 `tests/lean_kernels.rs` compares the executable models with Rust over ASCII and Unicode corpora.
 It also checks plans from real refactoring commands.
+`FrKernels.EditPlan` proves a character-list refinement of `applyChecked`.
+Generated plan proofs use this refinement to avoid repeated string conversions during kernel reduction.
+The resulting theorem still checks `applyChecked`, with no native decision axiom.
+The refinement uses Lean's `propext`, `Classical.choice` and `Quot.sound` axioms.
 `tools/check-kernels.sh` builds the package with warnings as errors and runs all five executables.
 The full self-audits run in `tools/check.sh deep`.
-The native, deep and exhaustive Lean-kernel gates default to two concurrent Rust cases and two
-worker threads in each Lean process. Set `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` to adjust the limits.
+The native, deep and exhaustive Lean-kernel gates default to one Rust case and one Lean worker.
+Set `FR_LEAN_JOBS` and `LEAN_NUM_THREADS` to adjust those defaults.
+Generated edit proofs always use one worker and run one at a time within the checkout.
+`tools/lean-guard.py` terminates the proof process group above 1 GiB sampled RSS,
+after two minutes, or above 4 MiB of captured output. It refuses to run without memory monitoring.
+RSS sampling can overshoot the threshold between checks; this is not an operating-system memory quota.
+Lean also receives a 1 GiB internal limit. Its internal limit alone did not contain the observed growth.
+Limit failures fail the audit. They do not establish that the edit plan is invalid.
 
 `FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
 Its anchored snapshot predicate has 432 shared Rust/Lean executable cases, including a symlink snapshot.

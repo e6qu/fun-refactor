@@ -1,7 +1,7 @@
 {
   "schema": "fr-host-recovery-acceptance-1",
   "source_bindings": {
-    "tools/host-recovery-acceptance.py": "95c4222add61eda1a2680ae8ba3b2348599f3ab27b0aeaa6334f855e0cfc9b55",
+    "tools/host-recovery-acceptance.py": "6843ed3b01777a7f6c278255eb182d7c74a7c29567f6219a11ddcb410f9a92a8",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tests/host_recovery.rs": "f5ac0232a1bf93dc6dd1639d4c3f07ac0b53039ce620ba5b667a13c21b4310b5",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0",
@@ -11,8 +11,11 @@
     "src/history/failure.rs": "cff93ca07a547c2c1120ef1ba165048210e8a18f024e67aa1221f7d36195f8ba",
     "src/cli.rs": "cba57f12e763d26b9401d624f1d777964842c2f13b28d47be81ef038e88ce3e8",
     "src/transaction_kernel.rs": "594f9c99dbfe3bc75e803e12f96e59d74042cf4bb33a978e759a894342d58e67",
-    "tests/lean_kernels.rs": "0437e27e914f364323fb246f46f985699a1f6739c7718b5624a42d364008c0a1",
+    "tests/lean_kernels.rs": "532ec5d69d4fc729380a6bee65c8304a13f48f3e308279f1d6c3b908b881cb6c",
+    "tools/lean-guard.py": "6d1f352815a9a6282dd05c952707a63839cd48655f522b1a59fc36d168ead403",
+    "tools/lean-resources.sh": "2b8dd9f9c84fae0520926d50318adeaa851b2a3ea7a1e9b6ab93dcc9e5fa8946",
     "kernels/FrKernels/HostRecovery.lean": "79f7f2762e634cfe40c5f9e713791d94303f46adacf71c20a4b2d5cba9d0d783",
+    "kernels/FrKernels/EditPlan.lean": "003514abcf9602abfa6adb053fd0b8697816a097eccee232ead069971fdd94e3",
     "kernels/HistoryMain.lean": "e85d5615078f55636bfb8415602c32de22623dba9d28451d86cc7f55732484f5",
     "tests/agent-eval/host-recovery/task.json": "5b1a81ed5490b2daf561e1c79ac340bb6a7aef322f4b5884cc0d030e6e5628c6",
     "tests/agent-eval/host-recovery/baseline.json": "b8188bd929b7680cc114c6dbd3348102717d5851d8288865485115e2c9e1f290"
@@ -45,8 +48,8 @@
         "--nocapture"
       ],
       "exit_code": 0,
-      "seconds": 158.04036383295897,
-      "output": "   Compiling fun-refactor v0.34.0 (/Users/zardoz/projects/fun-refactor)\n    Finished `test` profile [unoptimized] target(s) in 17.68s\n     Running unittests src/lib.rs (target/debug/deps/fun_refactor-82ece0f7ba0cf58b)\n\nrunning 7 tests\ntest history::host::tests::already_restored_recovery_syncs_parents_before_clearing_pending ... ok\ntest history::host::tests::altered_staged_symlink_refuses_and_rolls_back_prior_writes ... ok\ntest history::host::tests::altered_staged_bytes_modes_and_kinds_never_reach_targets ... ok\nhost-recovery Apply boundaries: 112\nhost-recovery Apply boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Redo boundaries: 112\nhost-recovery Redo boundaries: 112\ntest history::host::tests::handled_failures_cover_every_host_boundary_and_resume_from_disk has been running for over 60 seconds\ntest history::host::tests::process_exits_cover_every_host_boundary_and_resume_from_disk has been running for over 60 seconds\nhost-recovery Recover boundaries: 94\nhost-recovery Recover boundaries: 94\nhost-recovery handled boundaries: 430\ntest history::host::tests::handled_failures_cover_every_host_boundary_and_resume_from_disk ... ok\ntest history::host::tests::recovery_rechecks_paths_already_restored_before_clearing_pending ... ok\ntest history::host::tests::rollback_failure_retains_both_errors_and_can_resume ... ok\nhost-recovery process-exit boundaries: 430\ntest history::host::tests::process_exits_cover_every_host_boundary_and_resume_from_disk ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 443 filtered out; finished in 139.86s\n\n"
+      "seconds": 123.3486469999998,
+      "output": "    Finished `test` profile [unoptimized] target(s) in 0.12s\n     Running unittests src/lib.rs (target/debug/deps/fun_refactor-82ece0f7ba0cf58b)\n\nrunning 7 tests\ntest history::host::tests::already_restored_recovery_syncs_parents_before_clearing_pending ... ok\ntest history::host::tests::altered_staged_symlink_refuses_and_rolls_back_prior_writes ... ok\ntest history::host::tests::altered_staged_bytes_modes_and_kinds_never_reach_targets ... ok\nhost-recovery Apply boundaries: 112\nhost-recovery Apply boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Redo boundaries: 112\nhost-recovery Redo boundaries: 112\ntest history::host::tests::handled_failures_cover_every_host_boundary_and_resume_from_disk has been running for over 60 seconds\ntest history::host::tests::process_exits_cover_every_host_boundary_and_resume_from_disk has been running for over 60 seconds\nhost-recovery Recover boundaries: 94\nhost-recovery Recover boundaries: 94\nhost-recovery handled boundaries: 430\ntest history::host::tests::handled_failures_cover_every_host_boundary_and_resume_from_disk ... ok\ntest history::host::tests::recovery_rechecks_paths_already_restored_before_clearing_pending ... ok\ntest history::host::tests::rollback_failure_retains_both_errors_and_can_resume ... ok\nhost-recovery process-exit boundaries: 430\ntest history::host::tests::process_exits_cover_every_host_boundary_and_resume_from_disk ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 443 filtered out; finished in 123.18s\n\n"
     },
     {
       "arguments": [
@@ -60,8 +63,8 @@
         "2"
       ],
       "exit_code": 0,
-      "seconds": 0.554263792000711,
-      "output": "    Finished `test` profile [unoptimized] target(s) in 0.18s\n     Running tests/lean_kernels.rs (target/debug/deps/lean_kernels-fa8d999da4afa539)\n\nrunning 1 test\ntest host_recovery_decisions_match_lean_for_all_booleans_and_snapshot_cases ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 101 filtered out; finished in 0.34s\n\n"
+      "seconds": 0.25426904200003264,
+      "output": "    Finished `test` profile [unoptimized] target(s) in 0.06s\n     Running tests/lean_kernels.rs (target/debug/deps/lean_kernels-fa8d999da4afa539)\n\nrunning 1 test\ntest host_recovery_decisions_match_lean_for_all_booleans_and_snapshot_cases ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 101 filtered out; finished in 0.16s\n\n"
     }
   ],
   "claims": {

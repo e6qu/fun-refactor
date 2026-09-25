@@ -18,7 +18,8 @@ BINDINGS = [
     "tools/host-recovery-acceptance.py", "tools/evidence_basis.py", "tests/host_recovery.rs", "Cargo.lock",
     "src/history.rs", "src/history/host.rs", "src/history/host/tests.rs",
     "src/history/failure.rs", "src/cli.rs", "src/transaction_kernel.rs",
-    "tests/lean_kernels.rs", "kernels/FrKernels/HostRecovery.lean", "kernels/HistoryMain.lean",
+    "tests/lean_kernels.rs", "tools/lean-guard.py", "tools/lean-resources.sh",
+    "kernels/FrKernels/HostRecovery.lean", "kernels/FrKernels/EditPlan.lean", "kernels/HistoryMain.lean",
     "tests/agent-eval/host-recovery/task.json", "tests/agent-eval/host-recovery/baseline.json",
 ]
 
@@ -29,7 +30,7 @@ def bindings():
 
 def run(arguments):
     env = dict(os.environ, CARGO_INCREMENTAL="0", CARGO_PROFILE_DEV_DEBUG="0", CARGO_PROFILE_TEST_DEBUG="0",
-               LEAN_NUM_THREADS="2", FR_LEAN_JOBS="2")
+               LEAN_NUM_THREADS="1", FR_LEAN_JOBS="1")
     start = time.monotonic()
     result = subprocess.run(arguments, cwd=ROOT, env=env, text=True, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, timeout=1800)
