@@ -6524,7 +6524,7 @@ impl std::fmt::Display for Fault {
 impl std::error::Error for Fault {}
 
 /// The failure as one JSON object on stdout, beside the prose on stderr.
-fn report_json_error(error: &anyhow::Error) {
+pub(crate) fn json_error(error: &anyhow::Error) -> serde_json::Value {
     let fault = error.downcast_ref::<Fault>();
     let kind = match fault {
         Some(fault) => fault.kind.as_str(),
@@ -6536,6 +6536,9 @@ fn report_json_error(error: &anyhow::Error) {
         "kind": kind,
         "message": format!("{error:#}"),
     });
+    if let Some(history) = error.downcast_ref::<crate::history::HistoryFailure>() {
+        object["history"] = serde_json::json!(history);
+    }
     if let Some(commit) = error.downcast_ref::<crate::edit::CommitFailure>() {
         object["commit"] = serde_json::json!({
             "status": if commit.recovery_failures.is_empty() { "rolled-back" } else { "recovery-required" },
@@ -6572,7 +6575,11 @@ fn report_json_error(error: &anyhow::Error) {
             object["references"] = serde_json::json!(references);
         }
     }
-    let payload = serde_json::json!({ "error": object });
+    serde_json::json!({ "error": object })
+}
+
+fn report_json_error(error: &anyhow::Error) {
+    let payload = json_error(error);
     match serde_json::to_string_pretty(&payload) {
         Ok(text) => println!("{text}"),
         Err(error) => {

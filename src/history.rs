@@ -7,10 +7,14 @@ use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::{symlink, PermissionsExt};
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Component, Path, PathBuf};
 
+mod failure;
 pub mod files;
+mod host;
+pub use failure::{FailureOutcome, FailurePhase, HistoryFailure};
+use host::install;
 mod patch;
 pub use patch::{
     check_git_patch, check_patch_basis, export_patch, git_mode, git_mode_change_supported,
@@ -378,15 +382,7 @@ impl History {
     }
 
     fn save(&self) -> Result<()> {
-        let dir = directory(&self.root)?;
-        let mut file = tempfile::Builder::new()
-            .prefix(".state-")
-            .tempfile_in(&dir)?;
-        serde_json::to_writer(&mut file, self)?;
-        file.as_file().sync_all()?;
-        file.persist(dir.join("state.json"))?;
-        File::open(dir)?.sync_all()?;
-        Ok(())
+        host::save(self)
     }
 
     fn check_action(&self, action: Action, id: u64) -> Result<()> {
@@ -539,7 +535,9 @@ fn lock(root: &Path) -> Result<File> {
 fn sync_ancestors(root: &Path, directory: &Path) -> Result<()> {
     for parent in directory.ancestors() {
         match File::open(parent) {
-            Ok(file) => file.sync_all()?,
+            Ok(file) => host::step(host::Operation::SyncAncestor, parent, || {
+                Ok(file.sync_all()?)
+            })?,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
             Err(error) => return Err(error.into()),
         }
@@ -1000,7 +998,7 @@ pub fn act_with_context(
     }
     let changes = oriented(&history, effective, id)?;
     if action == Action::Apply && source_revision(&root)? != history.record(id)?.source_revision {
-        bail!("project source changed after planning; create a fresh plan");
+        bail!("project source changed after planning; create a fresh plan.");
     }
     let paths = changes
         .iter()
@@ -1145,50 +1143,6 @@ pub fn matches_snapshot(
     current == before || (recovery && current == after)
 }
 
-fn install(root: &Path, changes: &[Change]) -> Result<()> {
-    let mut staged = Vec::new();
-    for change in changes {
-        let path = target(root, &change.path)?;
-        let dir = path.parent().context("target has no parent")?;
-        fs::create_dir_all(dir)?;
-        sync_ancestors(root, dir)?;
-        let replacement = if let Some(after) = &change.after {
-            let mut temp = tempfile::Builder::new()
-                .prefix(".fr-history-stage-")
-                .tempfile_in(dir)?;
-            if after.kind == SnapshotKind::Regular {
-                temp.write_all(after.content.as_bytes())?;
-                temp.as_file()
-                    .set_permissions(fs::Permissions::from_mode(after.mode))?;
-                temp.as_file().sync_all()?;
-                Some(temp.into_temp_path())
-            } else {
-                validate_symlink_target(&after.content)?;
-                let temp = temp.into_temp_path();
-                fs::remove_file(&temp)?;
-                symlink(std::ffi::OsStr::from_bytes(after.content.as_bytes()), &temp)?;
-                File::open(dir)?.sync_all()?;
-                Some(temp)
-            }
-        } else {
-            None
-        };
-        staged.push((path, replacement));
-    }
-    check(root, changes, false)?;
-    for (change, (path, replacement)) in changes.iter().zip(staged) {
-        check(root, std::slice::from_ref(change), false)?;
-        match replacement {
-            Some(temp) => fs::rename(&temp, &path)?,
-            None => fs::remove_file(&path)?,
-        }
-        File::open(path.parent().unwrap())?.sync_all()?;
-        #[cfg(test)]
-        fault()?;
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 thread_local! {
     static FAULT: std::cell::Cell<Option<(usize, bool)>> = const { std::cell::Cell::new(None) };
@@ -1208,20 +1162,59 @@ fn fault() -> Result<()> {
 }
 
 fn recover(history: &mut History) -> Result<()> {
+    let id = history
+        .pending
+        .as_ref()
+        .context("no pending transaction")?
+        .id;
+    recover_inner(history).map_err(|cause| {
+        HistoryFailure::new(
+            history,
+            id,
+            Action::Recover,
+            FailurePhase::Recovery,
+            FailureOutcome::RecoveryIncomplete,
+            cause,
+            None,
+        )
+        .into()
+    })
+}
+
+fn recover_inner(history: &mut History) -> Result<()> {
     let pending = history.pending.as_ref().context("no pending transaction")?;
     let changes = oriented(history, pending.action, pending.id)?;
     check(&history.root, &changes, true)?;
     let mut inverse = Vec::new();
-    for change in changes.into_iter().rev() {
-        if snapshot(&target(&history.root, &change.path)?)? == change.after {
-            inverse.push(Change {
-                path: change.path,
-                before: change.after,
-                after: change.before,
-            });
+    for change in changes.iter().rev() {
+        let current = snapshot(&target(&history.root, &change.path)?)?;
+        match crate::transaction_kernel::history_recovery_step(
+            current == change.before,
+            current == change.after,
+        ) {
+            0 => (),
+            1 => inverse.push(Change {
+                path: change.path.clone(),
+                before: change.after.clone(),
+                after: change.before.clone(),
+            }),
+            _ => bail!(
+                "{} conflicts with transaction snapshots; preserving current files",
+                change.path.display()
+            ),
         }
     }
     install(&history.root, &inverse)?;
+    host::step(host::Operation::RecoveryCheck, &history.root, || {
+        check(&history.root, &changes, false)
+    })?;
+    for change in &changes {
+        let path = target(&history.root, &change.path)?;
+        sync_ancestors(
+            &history.root,
+            path.parent().context("target has no parent")?,
+        )?;
+    }
     history.pending = None;
     history.save()
 }
@@ -1232,20 +1225,53 @@ fn transition(history: &mut History, action: Action, id: u64) -> Result<()> {
     if action == Action::Apply
         && source_revision(&history.root)? != history.record(id)?.source_revision
     {
-        bail!("project source changed after planning; create a fresh plan");
+        bail!("project source changed after planning; create a fresh plan.");
     }
     let changes = oriented(history, action, id)?;
     check(&history.root, &changes, false)?;
     history.pending = Some(Pending { id, action });
-    history.save()?;
-    if let Err(error) = install(&history.root, &changes) {
-        return match recover(history) {
-            Ok(()) => Err(error.context(format!("transaction {id} failed; restored its starting state"))),
-            Err(recovery) => Err(error.context(format!("transaction {id} needs recovery: {recovery:#}; run `fr history recover {id} --write`"))),
+    history.save().map_err(|cause| {
+        HistoryFailure::new(
+            history,
+            id,
+            action,
+            FailurePhase::Preparation,
+            FailureOutcome::Unchanged,
+            cause,
+            None,
+        )
+    })?;
+    if let Err(cause) = install(&history.root, &changes) {
+        let recovery = recover(history);
+        let outcome = if recovery.is_ok() {
+            FailureOutcome::RolledBack
+        } else {
+            FailureOutcome::RecoveryIncomplete
         };
+        return Err(HistoryFailure::new(
+            history,
+            id,
+            action,
+            FailurePhase::Installation,
+            outcome,
+            cause,
+            recovery.err().map(|error| format!("{error:#}")),
+        )
+        .into());
     }
     history.finish(action, id);
-    history.save().with_context(|| format!("transaction {id} changed source but could not confirm durable finalization. Inspect `fr history` and recover {id} if pending."))
+    history.save().map_err(|cause| {
+        HistoryFailure::new(
+            history,
+            id,
+            action,
+            FailurePhase::Finalization,
+            FailureOutcome::FinalizationUncertain,
+            cause,
+            None,
+        )
+        .into()
+    })
 }
 
 #[cfg(test)]

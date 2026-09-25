@@ -4612,3 +4612,51 @@ fn general_intent_action_purposes_and_reviews_match_lean_exhaustively() {
         );
     }
 }
+
+#[test]
+fn host_recovery_decisions_match_lean_for_all_booleans_and_snapshot_cases() {
+    use fun_refactor::history::{Snapshot, SnapshotKind};
+    use fun_refactor::transaction_kernel::{history_publication_allowed, history_recovery_step};
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("host-recovery")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let mut expected = Vec::new();
+    for before in [false, true] {
+        for after in [false, true] {
+            expected.push(history_publication_allowed(before, after).to_string());
+            expected.push(history_recovery_step(before, after).to_string());
+        }
+    }
+    let mut samples = vec![None];
+    for (content, mode, kind) in [
+        ("", 384, SnapshotKind::Regular),
+        ("λ\n", 384, SnapshotKind::Regular),
+        ("λ\n", 489, SnapshotKind::Regular),
+        ("名", 420, SnapshotKind::Regular),
+        ("target", 0, SnapshotKind::Symlink),
+    ] {
+        samples.push(Some(Snapshot {
+            content: content.into(),
+            mode,
+            kind,
+        }));
+    }
+    for current in &samples {
+        for before in &samples {
+            for after in &samples {
+                expected
+                    .push(history_recovery_step(current == before, current == after).to_string());
+            }
+        }
+    }
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
