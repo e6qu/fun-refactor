@@ -1,0 +1,41 @@
+{
+  "schema": "fr-flow-cache-task-1",
+  "baseline_revision": "baedab23",
+  "question": "Which storage granularity makes retained scalar analysis useful across representative admitted task shapes?",
+  "corpus": "Pipelines at 8/16 helpers, imported fanout at 8/24 and mutual recursion at 8/12, with twice as many independent source files.",
+  "scenarios": [
+    "cold",
+    "warm",
+    "unrelated",
+    "helper",
+    "coordinates",
+    "configuration",
+    "rules",
+    "missing"
+  ],
+  "oracle": "Independent Python execution and AST byte coordinates; every cached result must agree with clean analysis at the same revision.",
+  "measurements": [
+    "isolated elapsed seconds",
+    "worker and native child peak RSS",
+    "native calls",
+    "context bytes",
+    "store reads and writes",
+    "stored bytes and files",
+    "analysis transfer steps"
+  ],
+  "conditions": "Separate fresh workers, isolated cache directories, identical native binary, disabled native fact cache, rotating strategy order, three repetitions. OS caches are not flushed. Tokens are unavailable.",
+  "budgets": {
+    "steps": 4096,
+    "depth": 32,
+    "report_bytes": 1048576,
+    "repetitions": 3
+  },
+  "edit_boundary": "Direct edits for benchmark tooling, SDK cache encoding, regression tests and docs; the existing body writer does not express this integrated change.",
+  "claims": "A finite structural corpus within the scalar subset; no production workload, population speedup, partial-summary reuse, live-agent or source-proof claim.",
+  "diagnostics": [
+    "Initial storage probe used a rejected 16384-step request; corrected to 4096 before any measurements.",
+    "The 24-helper pipeline exceeded the response budget and is a boundary case. The measured pipeline uses 16 helpers.",
+    "The recursive corpus was expanded after the probe so each recursive pair participates in the entry query.",
+    "With all recursive pairs participating, 24 helpers also exceeded the response budget. The measured recursive cases use 8/12 helpers; 24 remains a boundary case."
+  ]
+}

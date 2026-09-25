@@ -1,0 +1,118 @@
+[
+  {
+    "case": "pipeline-8",
+    "complete": true,
+    "cutoffs": [],
+    "bytes": 262730,
+    "steps": 260,
+    "tree": {
+      "objects": 790,
+      "bytes": 222529,
+      "write_seconds": 0.6433328340062872,
+      "restore_seconds": 0.41888625000137836
+    },
+    "chunks": {
+      "objects": 12,
+      "bytes": 295497,
+      "write_seconds": 0.011614209040999413,
+      "restore_seconds": 0.0033915420062839985
+    }
+  },
+  {
+    "case": "pipeline-24",
+    "complete": false,
+    "cutoffs": [
+      "response-budget"
+    ],
+    "bytes": 798506,
+    "steps": 1624,
+    "tree": {
+      "objects": 1346,
+      "bytes": 426979,
+      "write_seconds": 1.6425628749420866,
+      "restore_seconds": 1.3987419169861823
+    },
+    "chunks": {
+      "objects": 28,
+      "bytes": 892977,
+      "write_seconds": 0.02982133300974965,
+      "restore_seconds": 0.009092041989788413
+    }
+  },
+  {
+    "case": "fanout-8",
+    "complete": true,
+    "cutoffs": [],
+    "bytes": 69568,
+    "steps": 68,
+    "tree": {
+      "objects": 345,
+      "bytes": 85584,
+      "write_seconds": 0.25340641697403044,
+      "restore_seconds": 0.11160979198757559
+    },
+    "chunks": {
+      "objects": 6,
+      "bytes": 78417,
+      "write_seconds": 0.005570292007178068,
+      "restore_seconds": 0.0010806249920278788
+    }
+  },
+  {
+    "case": "fanout-24",
+    "complete": true,
+    "cutoffs": [],
+    "bytes": 290517,
+    "steps": 364,
+    "tree": {
+      "objects": 684,
+      "bytes": 204553,
+      "write_seconds": 0.5768360829679295,
+      "restore_seconds": 0.4197779999813065
+    },
+    "chunks": {
+      "objects": 12,
+      "bytes": 326428,
+      "write_seconds": 0.012478415970690548,
+      "restore_seconds": 0.003670042031444609
+    }
+  },
+  {
+    "case": "recursive-8",
+    "complete": true,
+    "cutoffs": [],
+    "bytes": 55599,
+    "steps": 67,
+    "tree": {
+      "objects": 449,
+      "bytes": 103807,
+      "write_seconds": 0.2903044999111444,
+      "restore_seconds": 0.09827133303042501
+    },
+    "chunks": {
+      "objects": 5,
+      "bytes": 62793,
+      "write_seconds": 0.004778375034220517,
+      "restore_seconds": 0.0009980839677155018
+    }
+  },
+  {
+    "case": "recursive-24",
+    "complete": true,
+    "cutoffs": [],
+    "bytes": 55684,
+    "steps": 67,
+    "tree": {
+      "objects": 450,
+      "bytes": 103876,
+      "write_seconds": 0.2769733329769224,
+      "restore_seconds": 0.09942870796658099
+    },
+    "chunks": {
+      "objects": 5,
+      "bytes": 62878,
+      "write_seconds": 0.004225291078910232,
+      "restore_seconds": 0.0009709580335766077
+    }
+  }
+]
