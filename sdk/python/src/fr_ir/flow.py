@@ -13,6 +13,7 @@ from .context import ObjectStore, restore_stored_value, store_merkle_value
 from .investigation import FlowWitness, flow_witnesses
 from .flow_summaries import FunctionSummaries
 from .flow_dependencies import FlowDependencies
+from .flow_storage import restore_flow_report, store_flow_report
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
 
 
@@ -123,14 +124,15 @@ class FlowCache:
 
     def persist(self) -> str:
         return store_merkle_value(self.store, {
-            "schema": "fr-flow-cache-1", "entries": self._entries,
+            "schema": "fr-flow-cache-2", "entries": self._entries,
         }).digest
 
     @classmethod
     def restore(cls, store: ObjectStore, digest: str) -> FlowCache:
         value = restore_stored_value(store, digest)
         if (not isinstance(value, dict) or set(value) != {"schema", "entries"}
-                or value["schema"] != "fr-flow-cache-1" or not isinstance(value["entries"], dict)):
+                or value["schema"] not in ("fr-flow-cache-1", "fr-flow-cache-2")
+                or not isinstance(value["entries"], dict)):
             raise FrRuntimeError("unsupported flow cache manifest")
         return cls(store, value["entries"])
 
@@ -155,7 +157,7 @@ class FlowCache:
         if retained is None:
             report = client.project(*arguments)
         else:
-            value = restore_stored_value(self.store, retained)
+            value = restore_flow_report(self.store, retained)
             encoded = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
             digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
             with tempfile.TemporaryDirectory(prefix="fr-flow-") as directory:
@@ -173,7 +175,7 @@ class FlowCache:
         if summaries and report.at("/function_summaries"):
             analysis.summaries
         if report.at("/complete") is True:
-            self._entries[key] = store_merkle_value(self.store, report.to_data()).digest
+            self._entries[key] = store_flow_report(self.store, report.to_data())
         while len(self._entries) > 256:
             del self._entries[next(iter(self._entries))]
         return analysis

@@ -33,7 +33,7 @@ BINDINGS = ["tools/imported-flow-acceptance.py", "tools/evidence_basis.py", "src
             "src/project/flow_cache.rs", "src/project/flow_facts.rs", "src/project/flow_fact_origins.rs",
             "src/project/investigation.rs", "src/project/occurrence.rs", "src/project/manifests.rs",
             "src/project/lockfiles.rs", "src/project.rs", "src/span.rs", "src/parse.rs", "src/scan.rs",
-            "src/index.rs", "src/extract.rs", "Cargo.lock", "sdk/python/src/fr_ir/flow.py",
+            "src/index.rs", "src/extract.rs", "Cargo.lock", "sdk/python/src/fr_ir/flow.py", "sdk/python/src/fr_ir/flow_storage.py",
             "sdk/python/src/fr_ir/flow_dependencies.py", "sdk/python/src/fr_ir/flow_summaries.py",
             "sdk/python/src/fr_ir/flow_facts.py", "sdk/python/src/fr_ir/investigation.py",
             "sdk/python/src/fr_ir/context.py", "sdk/python/src/fr_ir/runtime.py",

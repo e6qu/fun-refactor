@@ -18,6 +18,31 @@ acceptance runs must satisfy their scorer at recording time.
 
 ## Current matched results
 
+The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json) contains 288 samples across six generated scalar workloads.
+Pipelines, imported fanout and mutual recursion each have two sizes. Three repetitions rotate the
+previous SDK cache and bounded report chunks through cold, warm and six single-edit scenarios.
+Every retained answer agrees with clean analysis. Independent Python execution, source digests and
+AST coordinates check the scenario; missing helpers and response-budget cutoffs remain incomplete.
+
+| Workload | Previous warm median | Report-chunk warm median |
+|---|---:|---:|
+| Pipeline, 8 helpers | 1.484 s | 0.721 s |
+| Pipeline, 16 helpers | 2.983 s | 0.943 s |
+| Imported fanout, 8 helpers | 0.846 s | 0.647 s |
+| Imported fanout, 24 helpers | 1.422 s | 0.693 s |
+| Mutual recursion, 8 helpers | 1.617 s | 0.707 s |
+| Mutual recursion, 12 helpers | 2.376 s | 0.797 s |
+
+This selects whole-report storage while retaining whole-analysis dependency validation. Warmed
+stores use 1.35–2.91 times the bytes of the previous per-node encoding. Native calls and disclosed
+context stay unchanged. The run records isolated worker and child peak RSS, transfer counts,
+store operations and bytes. Native fact caching is disabled; operating-system caches are uncontrolled.
+The corpus represents these admitted task shapes on one host, without a production or population speed claim.
+It contains no live-agent trial or token measurement. The pinned baseline SDK and diagnostic probes
+are retained beside the [task](../tests/agent-eval/flow-cache/task.json).
+New warm medians still exceed new cold medians on these workloads. The result improves retained
+storage overhead; it does not establish an overall latency benefit from enabling the optional cache.
+
 The accepted 2026-09-17 matched cohort gives both agents seven preview outcomes. The local SDK arm
 uses two agent calls and 46,120 input tokens. The direct-file arm uses seven calls and 89,118 input
 tokens. Both pass without source mutation, failed commands, bypasses or human correction.
