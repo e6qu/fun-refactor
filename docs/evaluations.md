@@ -368,3 +368,16 @@ The evaluator retains old and fresh model reports, seven input changes, independ
 A separate Python oracle checks both Boolean inputs after applying the retained patch in an independent directory.
 The [current result](../tests/agent-eval/results/2026-09-24-retained-proofs/result.json) records its fixture timing and context bytes.
 These deterministic results make no live-agent, general performance or source correspondence proof claim.
+
+## Imported scalar flow
+
+The [import fixture](../tests/agent-eval/imported-flow/task.json) pins transitive return and sink effects across five root-local Python modules.
+Its independent runtime oracle executes ten source/sink cases in two sanitizer contexts. Python ASTs supply separate UTF-8 call coordinates.
+The [evaluator](../tools/imported-flow-acceptance.py) records missing modules and members, package/stub conflicts, configuration changes and rule changes.
+Retained plans invalidate dependent conclusions while preserving independent observations. Paged facts link witnesses back to each helper's syntax.
+
+The [result](../tests/agent-eval/results/2026-09-25-imported-flow/result.json) includes cold, warm, unrelated-edit and helper-edit comparisons against clean analysis.
+Isolated workers record latency, context bytes, transfer work and peak child/worker RSS. Whole-module closure reuse remains deliberately conservative.
+The ordinary arm executes the runtime/AST oracle; it does not model an agent's search effort. Tokens and live-agent outcomes remain unavailable.
+A reviewed helper-body change passes checks, apply, undo, redo and patch delivery. An independent receiver replays the patch and repeats the runtime oracle.
+Run `python3 tools/imported-flow-acceptance.py --audit RESULT` to validate retained source bindings, outcomes and replay.

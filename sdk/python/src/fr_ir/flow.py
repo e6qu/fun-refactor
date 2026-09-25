@@ -12,6 +12,7 @@ from typing import Any, Mapping
 from .context import ObjectStore, restore_stored_value, store_merkle_value
 from .investigation import FlowWitness, flow_witnesses
 from .flow_summaries import FunctionSummaries
+from .flow_dependencies import FlowDependencies
 from .runtime import FrClient, FrReport, FrRuntimeError, Occurrence
 
 
@@ -100,6 +101,10 @@ class FlowAnalysis:
         return self.report.at("/execution/kind") == "retained"
 
     @property
+    def dependencies(self) -> FlowDependencies:
+        return FlowDependencies.from_report(self.report)
+
+    @property
     def summaries(self) -> FunctionSummaries:
         return FunctionSummaries.from_report(self.report)
 
@@ -131,13 +136,17 @@ class FlowCache:
 
     def analyze(self, client: FrClient, target: str, *, rules: Path | None = None,
                 context: str = "generic", steps: int = 256, depth: int = 8,
-                max_bytes: int = 65_536, summaries: bool = False) -> FlowAnalysis:
+                max_bytes: int = 65_536, summaries: bool = False, imports: bool = False) -> FlowAnalysis:
+        if imports and not summaries:
+            raise FrRuntimeError("imported flow requires symbolic summaries")
         arguments = ["dataflow", target, "--steps", str(steps), "--depth", str(depth),
                      "--bytes", str(max_bytes), "--context", context]
         if rules is not None:
             arguments.extend(["--rules", str(rules)])
         if summaries:
             arguments.append("--summaries")
+        if imports:
+            arguments.append("--imports")
         basis = client.project(*arguments, "--inputs-only")
         if basis.schema != "fr-dataflow-inputs-1":
             raise FrRuntimeError("unsupported flow input contract")
@@ -159,6 +168,8 @@ class FlowCache:
         analysis = FlowAnalysis(report)
         analysis.graphs
         analysis.witnesses
+        if imports:
+            analysis.dependencies
         if summaries and report.at("/function_summaries"):
             analysis.summaries
         if report.at("/complete") is True:

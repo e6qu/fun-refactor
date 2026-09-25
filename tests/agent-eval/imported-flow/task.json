@@ -1,0 +1,18 @@
+{
+  "schema": "fr-imported-flow-task-1",
+  "baseline": "6b4fd37e818a3d5c18583e1ddb2c1cb6e30db5f4",
+  "question": "Which workspace-local imported helpers carry source values into sinks, and which dependencies must a resumed investigation revalidate?",
+  "language": "Python synchronous scalar functions; static absolute imports of root-local .py modules; positional calls and aliases",
+  "acceptance": [
+    "Trace transitive imported returns and sink effects with exact file and byte origins.",
+    "Separate identical names in different modules and preserve independent arguments and sanitizer contexts.",
+    "Retain source, import candidates, negative lookups, configuration, rules and analyzer identities.",
+    "Match clean analysis after edits, additions, deletion, import ambiguity and configuration drift.",
+    "Resume plans with independent observations intact and changed flow dependencies stale.",
+    "Keep packages, dynamic loading, cyclic initialization, unknown calls and resource exhaustion incomplete."
+  ],
+  "budgets": {"steps": 4096, "depth": 8, "modules": 16, "source_bytes": 262144, "imports": 128, "functions": 64},
+  "oracle": "oracle.py executes the corpus in two contexts and derives UTF-8 call coordinates from Python ASTs",
+  "edit_boundary": "Direct edits for a new module loader, cross-file analyzer contexts, typed SDK dependencies, tests and documentation. Existing author operations do not express this integrated change.",
+  "claims": "Finite deterministic corpus and conservative whole-module closure reuse. No feasible-path, source equivalence, dynamic import, live-agent or general speed claim."
+}

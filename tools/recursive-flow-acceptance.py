@@ -22,7 +22,7 @@ from fr_ir.runtime import FrClient
 from evidence_basis import file_digest
 
 FIXTURE = ROOT / "tests/agent-eval/recursive-flow"
-BINDINGS = ["tools/recursive-flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs",
+BINDINGS = ["src/project/flow_modules.rs", "sdk/python/src/fr_ir/flow_dependencies.py", "tools/recursive-flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs",
             "src/project/flow_summaries.rs", "src/project/control_flow.rs", "src/project/flow_cache.rs",
             "src/project/occurrence.rs", "src/span.rs", "src/parse.rs", "Cargo.lock",
             "sdk/python/src/fr_ir/flow.py", "sdk/python/src/fr_ir/flow_summaries.py",

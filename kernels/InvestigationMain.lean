@@ -3,6 +3,12 @@ import FrKernels.Flow
 open FrKernels.Investigation
 
 def main (args : List String) : IO Unit := do
+  if args == ["local-module"] then
+    for source in [false, true] do
+      for packageMissing in [false, true] do
+        for stubMissing in [false, true] do
+          IO.println (localModuleAdmitted source packageMissing stubMissing)
+    return
   if args == ["proof-evidence"] then
     for executed in [false, true] do
       for stable in [false, true] do
