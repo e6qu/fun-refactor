@@ -30,16 +30,12 @@ fn assert_evidence_digests(evidence: &Path, manifest: &Value) {
 
 #[test]
 fn python_sdk_tests_pass_with_the_declared_test_extra() {
-    let output = python()
-        .args(["-m", "pytest", "-q"])
+    let status = python()
+        .args(["-m", "pytest", "-v", "--durations=20"])
         .arg(root().join("sdk/python/tests"))
-        .output()
+        .status()
         .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    assert!(status.success(), "Python SDK suite failed: {status}");
 }
 
 #[test]
