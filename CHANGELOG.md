@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.34.0...fun-refactor-v0.34.1) (2026-09-25)
+
+
+### Performance
+
+* reduce flow cache storage overhead with measured report chunks ([#368](https://github.com/e6qu/fun-refactor/issues/368)) ([06ff94a](https://github.com/e6qu/fun-refactor/commit/06ff94aae5870be331cd6f4a4346637b620a714a))
+
 ## [0.34.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.33.0...fun-refactor-v0.34.0) (2026-09-25)
 
 
