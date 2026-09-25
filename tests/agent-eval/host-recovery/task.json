@@ -1,0 +1,28 @@
+{
+  "schema": "fr-host-recovery-task-1",
+  "baseline": "06ff94aae5870be331cd6f4a4346637b620a714a",
+  "question": "Can reviewed multi-file apply, undo, redo and recovery preserve their starting state across host failures, while retaining truthful recovery evidence?",
+  "subset": "Native Unix journaled UTF-8 regular files and symlinks, including absent and empty files, mode changes, creation and deletion. Cooperative workspace locking.",
+  "acceptance": [
+    "Inject handled failures and process exits before and after staging, publication, synchronization and journal operations.",
+    "Read a fresh journal after every failure and resume any pending transaction to its original snapshots.",
+    "Refuse changed staged material and unrelated current edits, preserving the pending journal for repair.",
+    "Recheck and synchronize restored paths before clearing recovery, including already-restored paths.",
+    "Expose transaction, action, failure phase, outcome and observed pending state through CLI JSON.",
+    "Check finite publication/recovery decisions against source-anchored executable Lean models."
+  ],
+  "budgets": {
+    "fixture_paths": 5,
+    "faults_per_run": 1,
+    "actions": [
+      "apply",
+      "undo",
+      "redo",
+      "recover"
+    ],
+    "fault_scope": "Each observed before/after boundary in the deterministic host trace; separate compound-failure and conflict cases."
+  },
+  "oracle": "Fresh filesystem snapshots of bytes, entry kind, permissions and absence, plus independently specified stack/status expectations; fresh process recovery after injected exit 77.",
+  "edit_boundary": "fr guide and evidence intent inspect history.rs::install with a one-file scan. Direct edits add host operations, failure contracts, test injection, Lean models and documentation across files; no existing author operation expresses the integrated change.",
+  "claims": "Finite host-failure corpus, process interruption and tested model agreement. No power-loss simulation, adversarial race elimination, general filesystem proof or live-agent measurement."
+}
