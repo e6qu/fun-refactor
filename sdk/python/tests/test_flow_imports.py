@@ -364,3 +364,24 @@ def test_imported_response_cutoff_does_not_enter_cache(tmp_path):
         result = analyze(client, rules, cache=cache, max_bytes=16384)
         assert not result.reused and not result.report.at("/complete")
         assert "response-budget" in result.report.at("/cutoffs")
+
+
+@pytest.mark.parametrize("kind", ["sources", "sinks", "propagators", "sanitizers"])
+def test_qualified_rules_cannot_override_imported_implementations(tmp_path, kind):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "app.py").write_text("import leaf as local\ndef positive():\n    return sink(local.identity(source()))\n")
+    contracts = json.loads(rules.read_text())
+    if kind == "sanitizers":
+        contracts[kind]["local.identity"] = "html"
+    else:
+        contracts.setdefault(kind, []).append("local.identity")
+    rules.write_text(json.dumps(contracts))
+    with pytest.raises(FrRuntimeError, match="unqualified"):
+        analyze(client, rules)
+
+
+def test_static_module_calls_accept_spacing_between_attribute_tokens(tmp_path):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "app.py").write_text("import leaf as local\ndef positive():\n    return sink(local . identity(source()))\n")
+    result = analyze(client, rules)
+    assert result.report.at("/complete") and result.witnesses

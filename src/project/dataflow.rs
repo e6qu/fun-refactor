@@ -275,7 +275,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
-        let name = self.text(function).to_owned();
+        let name = if function.kind() == "attribute" {
+            format!(
+                "{}.{}",
+                self.text(function.child_by_field_name("object").unwrap()),
+                self.text(function.child_by_field_name("attribute").unwrap())
+            )
+        } else {
+            self.text(function).to_owned()
+        };
         let mut arguments = Vec::new();
         if let Some(args) = node.child_by_field_name("arguments") {
             for arg in args.named_children(&mut args.walk()) {
@@ -757,6 +765,10 @@ impl Project<'_> {
                 .chain(&rules.propagators)
                 .chain(rules.sanitizers.keys())
             {
+                ensure!(
+                    !options.imports || !name.contains('.'),
+                    "imported flow requires unqualified external rule names."
+                );
                 ensure!(
                     names.insert(name)
                         && !functions

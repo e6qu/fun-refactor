@@ -130,6 +130,7 @@ The admitted initialization model allows function declarations, static imports, 
 Packages, relative or dotted imports, wildcard imports, cyclic initialization and module effects retain cutoffs.
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
 The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.
+Rule names must be unqualified in import mode.
 They cannot overlap any local function or import binding in the closure.
 
 Budgets admit at most 16 modules, 256 KiB of module source and 128 import lookups.
