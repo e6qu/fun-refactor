@@ -4,7 +4,7 @@ exclude = ["crates/tree-sitter-language"]
 
 [package]
 name = "fun-refactor"
-version = "0.34.0"
+version = "0.34.1"
 edition = "2021"
 authors = ["e6qu"]
 license = "AGPL-3.0-or-later"
@@ -145,7 +145,7 @@ rustix = { version = "1.1", features = ["process"], optional = true }
 # version, and its rewrite of a `target.*` dependency writes to a `version` key without
 # checking for one first. Absent, the release job fails on the first release.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-fun-refactor-wasm-libc = { version = "0.34.0", path = "crates/wasm-libc", optional = true }
+fun-refactor-wasm-libc = { version = "0.34.1", path = "crates/wasm-libc", optional = true }
 
 [dev-dependencies]
 # Also an optional runtime dependency (the edit engine stages through it); tests need
