@@ -702,3 +702,8 @@ Existing-branch checkout adds an anchored branch-selection guard, checked agains
 Lean proves that accepted branches are unused and have the presence required by the selected mode.
 An abstract attachment law preserves all refs; host tests check the Git lease and lifecycle behavior.
 See [existing-branch assurance](git-worktree-existing-branches.md#formal-coverage) for the remaining correspondence boundaries.
+
+Journaled host recovery adds source-anchored publication and recovery predicates.
+Lean proves publication prerequisites, conflict refusal, abstract restoration and idempotence.
+Rust and Lean agree on eight Boolean results and 216 snapshot decisions.
+[Host recovery](host-recovery.md) records the filesystem fault matrix and remaining correspondence obligations.

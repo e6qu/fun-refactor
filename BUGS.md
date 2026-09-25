@@ -21,6 +21,13 @@ away.
 
 No actionable correctness defect is currently recorded.
 
+## Recently fixed
+
+Staged history replacements now require the reviewed bytes, kind and mode before publication.
+Recovery rechecks restored paths and synchronizes their ancestors before clearing pending state.
+The [fault corpus](src/history/host/tests.rs) covers altered staging files and failed recovery checkpoints.
+See [host recovery](docs/host-recovery.md) for concurrency and filesystem assumptions.
+
 ## Analysis boundaries
 
 Re-triaged against this branch. The boundary below still reproduces. Where a published

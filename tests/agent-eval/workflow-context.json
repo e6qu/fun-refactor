@@ -1,8 +1,8 @@
 {
   "schema": "fr-workflow-context-1",
   "passed": true,
-  "binary_sha256": "116c33122c825e7f3f304d28e494d195c4b79c78b5d8e66eea8fa1f2e2b72c16",
-  "source_commit": "6c48828816536cb3800f17e73adf0c8ca5fb4a28",
+  "binary_sha256": "9d77fec866f3cdd1fae695b0b1a5d7279d414e1e70dbae3aa201f596cf63b75e",
+  "source_commit": "28f769e6e2a4e66b86f8641d25b80d0cac04b11b",
   "repetitions": 3,
   "runtime": {
     "platform": "macOS-15.6.1-arm64-arm-64bit",
@@ -14,7 +14,7 @@
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
     "src/workflow.rs": "8ff37cf03e730750dfd5c8cb6f07d9636fb0fa4375627c06fa8f09d946abd6b6",
-    "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
     "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
   },
@@ -59,14 +59,14 @@
       "calls": 7,
       "median_context_bytes": 6482,
       "median_context_tokens": 2065,
-      "median_seconds": 0.27347970800474286
+      "median_seconds": 0.500394499162212
     },
     "workflow": {
       "samples": 3,
       "calls": 2,
       "median_context_bytes": 5638,
       "median_context_tokens": 1896,
-      "median_seconds": 0.24612320901360363
+      "median_seconds": 0.4307094579562545
     }
   },
   "runs": [
@@ -90,7 +90,7 @@
         "bytes": 6482,
         "tokens": 2065
       },
-      "seconds": 0.2951719171833247,
+      "seconds": 0.500394499162212,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -116,7 +116,7 @@
         "bytes": 5638,
         "tokens": 1896
       },
-      "seconds": 0.2283595830667764,
+      "seconds": 0.40940016601234674,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -142,7 +142,7 @@
         "bytes": 5638,
         "tokens": 1896
       },
-      "seconds": 0.24612320901360363,
+      "seconds": 0.5206576669588685,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -168,7 +168,7 @@
         "bytes": 6482,
         "tokens": 2065
       },
-      "seconds": 0.25463099812623113,
+      "seconds": 0.4714801679365337,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -194,7 +194,7 @@
         "bytes": 6482,
         "tokens": 2065
       },
-      "seconds": 0.27347970800474286,
+      "seconds": 0.5642719590105116,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
@@ -220,7 +220,7 @@
         "bytes": 5638,
         "tokens": 1896
       },
-      "seconds": 0.25122924905736,
+      "seconds": 0.4307094579562545,
       "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
       "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
       "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",

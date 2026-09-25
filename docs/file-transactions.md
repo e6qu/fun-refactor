@@ -111,3 +111,5 @@ remain tested trust boundaries.
 The file-move admission predicate is also anchored. Lean proves that admission requires a present
 supported source, absent destination and distinct paths. Rust and Lean agree on all sixteen finite
 boundary cases. Snapshot transfer, locking and filesystem writes reuse the tested history engine.
+
+The [host recovery contract](host-recovery.md) covers staged snapshot validation and structured transition failures.

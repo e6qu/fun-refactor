@@ -406,3 +406,25 @@ Isolated workers record latency, context bytes, transfer work and peak child/wor
 The ordinary arm executes the runtime/AST oracle; it does not model an agent's search effort. Tokens and live-agent outcomes remain unavailable.
 A reviewed helper-body change passes checks, apply, undo, redo and patch delivery. An independent receiver replays the patch and repeats the runtime oracle.
 Run `python3 tools/imported-flow-acceptance.py --audit RESULT` to validate retained source bindings, outcomes and replay.
+
+## Native host recovery
+
+The [pinned task](../tests/agent-eval/host-recovery/task.json) starts from 22 passing history tests.
+The [result](../tests/agent-eval/results/2026-09-25-host-recovery/result.json) retains 430 handled faults
+and 430 process exits across apply, undo, redo and recovery. Seven focused tests include staged
+content, mode and symlink changes, conflicting recovery and compound failures. Filesystem byte,
+mode, kind and absence checks use direct host reads against independently specified fixtures.
+Each fault case reopens the journal and resumes pending work before checking the expected state.
+
+A separate Rust/Lean comparison checks 224 outputs for publication and recovery decisions.
+The [contract](host-recovery.md) distinguishes model theorems, tested agreement and trusted host operations.
+This is deterministic fault evidence. It does not measure agent tokens, task latency benefits or power-loss recovery.
+The retained baseline guide and disclosure use a one-file scan with 1,935 unresolved references;
+they support local discovery without establishing repository-wide absence claims.
+
+Reproduce the evidence with:
+
+```sh
+python3 tools/host-recovery-acceptance.py --output /tmp/host-recovery.json
+python3 tools/host-recovery-acceptance.py --audit /tmp/host-recovery.json
+```
