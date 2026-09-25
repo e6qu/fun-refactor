@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
 use tree_sitter::Node;
 
+#[path = "flow_modules.rs"]
+mod modules;
 #[path = "flow_summaries.rs"]
 mod summaries;
 
@@ -24,6 +26,12 @@ pub struct Options {
         help = "Solve symbolic function summaries, including same-file recursion."
     )]
     summaries: bool,
+    #[arg(
+        long,
+        requires = "summaries",
+        help = "Follow static root-local Python module imports."
+    )]
+    imports: bool,
     #[arg(long)]
     rules: Option<std::path::PathBuf>,
     #[arg(long, default_value_t = 256)]
@@ -49,10 +57,12 @@ impl Options {
         context: &str,
         steps: usize,
         depth: usize,
+        imports: bool,
     ) -> Self {
         Self {
             target: target.into(),
             summaries: true,
+            imports,
             rules,
             steps,
             depth,
@@ -119,6 +129,8 @@ struct Analyzer<'a, 'p, 't> {
     source: &'a str,
     functions: BTreeMap<String, Node<'t>>,
     ambiguous: BTreeSet<String>,
+    modules: Option<&'a modules::Modules>,
+    contexts: BTreeMap<String, (&'a Path, &'a str)>,
     rules: Rules,
     context: &'a str,
     remaining: usize,
@@ -138,6 +150,10 @@ struct Analyzer<'a, 'p, 't> {
     normal_return: bool,
     may_raise: bool,
     sink_flows: BTreeMap<String, summaries::SinkFlow>,
+}
+
+pub fn local_module_admitted(source: bool, package_missing: bool, stub_missing: bool) -> bool {
+    source && package_missing && stub_missing
 }
 
 fn merge(into: &mut Flow, from: Flow) {
@@ -246,7 +262,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("missing-call-target");
             return Flow::new();
         };
-        if function.kind() != "identifier" {
+        if function.kind() != "identifier"
+            && !(self.modules.is_some()
+                && function.kind() == "attribute"
+                && function
+                    .child_by_field_name("object")
+                    .is_some_and(|n| n.kind() == "identifier")
+                && function
+                    .child_by_field_name("attribute")
+                    .is_some_and(|n| n.kind() == "identifier"))
+        {
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
@@ -264,12 +289,16 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         for argument in &arguments {
             merge(&mut joined, argument.clone());
         }
-        if env.values.contains_key(&name)
-            || self.ambiguous.contains(&name)
+        let base = name.split('.').next().unwrap();
+        let resolved = self
+            .modules
+            .map_or_else(|| name.clone(), |modules| modules.resolve(self.file, &name));
+        if env.values.contains_key(base)
+            || self.ambiguous.contains(&resolved)
             || self
                 .local_bindings
                 .last()
-                .is_some_and(|names| names.contains(&name))
+                .is_some_and(|names| names.contains(base))
         {
             self.cutoff(format!("ambiguous-call:{name}"));
             return joined;
@@ -314,12 +343,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if self.rules.propagators.contains(&name) {
             return self.extend(joined, node, "propagation-rule");
         }
-        let Some(function) = self.functions.get(&name).copied() else {
+        let Some(function) = self.functions.get(&resolved).copied() else {
             self.cutoff(format!("unknown-external-call:{name}"));
             return joined;
         };
         if self.solver.enabled {
-            return self.summary_call(&name, function, arguments, node);
+            return self.summary_call(&resolved, function, arguments, node);
         }
         if self.active.contains(&name) {
             self.cutoff(format!("recursion:{name}"));
@@ -543,6 +572,81 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DependencyQuery {
+    path: String,
+    function: String,
+    rules: Option<String>,
+    context: String,
+    steps: usize,
+    depth: usize,
+    bytes: usize,
+}
+
+impl Project<'_> {
+    pub(super) fn flow_dependency(&self, key: &str) -> Result<String> {
+        let query: DependencyQuery = serde_json::from_str(key)?;
+        let path = Path::new(&query.path);
+        ensure!(
+            path.components().count() == 1
+                && path
+                    .file_name()
+                    .is_some_and(|name| name == path.as_os_str())
+                && path.extension().is_some_and(|extension| extension == "py"),
+            "flow dependency needs a root-local Python file."
+        );
+        let file = self.root.join(path);
+        let symbols: Vec<_> = self
+            .index
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.file == file && symbol.name == query.function)
+            .collect();
+        ensure!(
+            symbols.len() == 1,
+            "flow dependency requires one exact declaration."
+        );
+        let target = self.handle(
+            *self
+                .symbol_nodes
+                .get(&symbols[0].id)
+                .context("flow declaration is absent")?,
+        );
+        let rules = query
+            .rules
+            .map(|path| {
+                let path = Path::new(&path);
+                ensure!(
+                    !path.is_absolute()
+                        && path
+                            .components()
+                            .all(|part| matches!(part, std::path::Component::Normal(_))),
+                    "flow rule dependency must stay inside the workspace."
+                );
+                Ok(self.root.join(path))
+            })
+            .transpose()?;
+        let report = self.dataflow(&Options {
+            target,
+            summaries: true,
+            imports: true,
+            rules,
+            context: query.context,
+            steps: query.steps,
+            depth: query.depth,
+            bytes: query.bytes,
+            inputs_only: true,
+            reuse: None,
+            reuse_digest: None,
+        })?;
+        Ok(report["input_digest"]
+            .as_str()
+            .context("flow input identity is absent")?
+            .into())
+    }
+}
+
 impl Project<'_> {
     pub(super) fn dataflow(&self, options: &Options) -> Result<Value> {
         ensure!(
@@ -565,35 +669,71 @@ impl Project<'_> {
         let source = &self.sources[&symbol.file];
         let parsed = Parsers::new().parse(Language::Python, source)?;
         ensure!(!parsed.root().has_error(), "dataflow refuses syntax errors");
+        let modules = options
+            .imports
+            .then(|| modules::Modules::load(self, &symbol.file))
+            .transpose()?;
         let mut functions = BTreeMap::new();
+        let mut contexts = BTreeMap::new();
         let mut ambiguous = BTreeSet::new();
         let mut module_effects = false;
-        for node in parsed.root().named_children(&mut parsed.root().walk()) {
-            if node.kind() == "function_definition" {
-                if node.child_by_field_name("return_type").is_some()
-                    || node
-                        .child_by_field_name("parameters")
-                        .is_some_and(|parameters| {
-                            parameters
-                                .named_children(&mut parameters.walk())
-                                .any(|p| p.kind() != "identifier")
-                        })
+        let units: Vec<_> = if let Some(modules) = &modules {
+            modules
+                .parsed
+                .iter()
+                .map(|(file, parsed)| (file.as_path(), self.sources[file].as_str(), parsed))
+                .collect()
+        } else {
+            vec![(symbol.file.as_path(), source.as_str(), &parsed)]
+        };
+        for (file, text, parsed) in units {
+            for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                if node.kind() == "function_definition" {
+                    if node.child_by_field_name("return_type").is_some()
+                        || node
+                            .child_by_field_name("parameters")
+                            .is_some_and(|parameters| {
+                                parameters
+                                    .named_children(&mut parameters.walk())
+                                    .any(|p| p.kind() != "identifier")
+                            })
+                    {
+                        module_effects = true;
+                    }
+                    let Some(name_node) = node.child_by_field_name("name") else {
+                        continue;
+                    };
+                    let short = &text[name_node.byte_range()];
+                    let name = if options.imports {
+                        format!("{}::{short}", file.file_name().unwrap().to_string_lossy())
+                    } else {
+                        short.to_owned()
+                    };
+                    if functions.insert(name.clone(), node).is_some() {
+                        ambiguous.insert(name.clone());
+                    }
+                    contexts.insert(name, (file, text));
+                } else if !(options.imports
+                    && matches!(node.kind(), "import_statement" | "import_from_statement"))
+                    && (!matches!(node.kind(), "comment" | "expression_statement")
+                        || (node.kind() == "expression_statement"
+                            && node.named_child(0).is_some_and(|n| n.kind() != "string")))
                 {
                     module_effects = true;
                 }
-                let name = &source[node.child_by_field_name("name").unwrap().byte_range()];
-                if functions.insert(name.to_owned(), node).is_some() {
-                    ambiguous.insert(name.to_owned());
-                }
-            } else if !matches!(node.kind(), "comment" | "expression_statement")
-                || (node.kind() == "expression_statement"
-                    && node.named_child(0).is_some_and(|n| n.kind() != "string"))
-            {
-                module_effects = true;
             }
         }
+        let entry = if options.imports {
+            format!(
+                "{}::{}",
+                symbol.file.file_name().unwrap().to_string_lossy(),
+                symbol.name
+            )
+        } else {
+            symbol.name.clone()
+        };
         let function = *functions
-            .get(&symbol.name)
+            .get(&entry)
             .context("select a top-level scalar function")?;
         ensure!(
             Span::from(function) == symbol.full_span,
@@ -618,7 +758,14 @@ impl Project<'_> {
                 .chain(rules.sanitizers.keys())
             {
                 ensure!(
-                    names.insert(name) && !functions.contains_key(name),
+                    names.insert(name)
+                        && !functions
+                            .keys()
+                            .any(|key| key.rsplit("::").next() == Some(name.as_str()))
+                        && !modules.as_ref().is_some_and(|m| m
+                            .bindings
+                            .values()
+                            .any(|bindings| bindings.contains_key(name))),
                     "rule overlaps another rule or local definition."
                 );
             }
@@ -647,7 +794,7 @@ impl Project<'_> {
                 )
             }))
             .collect();
-        let inputs = json!({
+        let mut inputs = json!({
             "analyzer":super::flow_cache::analyzer_identity()?,
             "source":{"path":symbol.file.strip_prefix(&self.root)?,"digest":hash(source)?},
             "configuration":hash(configuration)?,
@@ -655,7 +802,15 @@ impl Project<'_> {
             "rules":rules_digest,"context":options.context,
             "budget":{"steps":options.steps,"depth":options.depth,"bytes":options.bytes},
             "summary_mode":options.summaries,
-            "dependency_scope":"entire defining file, negative same-file lookups, all indexed manifests/lockfiles, rules and analyzer; no imported execution"});
+            "dependency_scope":"entire defining file, negative same-file lookups, all indexed manifests/lockfiles, rules and analyzer; no imported execution."});
+        if let Some(modules) = &modules {
+            inputs["modules"] = modules.inputs.clone();
+            inputs["dependency_scope"] = json!("static module closure, import candidates including missing paths, configuration, rules and analyzer.");
+            inputs["rule_file"] = json!(options
+                .rules
+                .as_ref()
+                .map(|path| path.strip_prefix(&self.root).unwrap_or(path)));
+        }
         let input_digest = hash(&inputs)?;
         if options.inputs_only {
             let report = json!({"schema":"fr-dataflow-inputs-1","revision":self.revision,
@@ -688,6 +843,8 @@ impl Project<'_> {
             source,
             functions,
             ambiguous,
+            modules: modules.as_ref(),
+            contexts,
             rules,
             context: &options.context,
             remaining: options.steps,
@@ -708,6 +865,20 @@ impl Project<'_> {
             may_raise: false,
             sink_flows: BTreeMap::new(),
         };
+        if let Some(modules) = &modules {
+            analyzer.cutoffs.extend(modules.cutoffs.clone());
+            for (file, bindings) in &modules.bindings {
+                for (alias, binding) in bindings {
+                    if binding.member.is_some()
+                        && !analyzer
+                            .functions
+                            .contains_key(&modules.resolve(file, alias))
+                    {
+                        analyzer.cutoff(format!("missing-imported-member:{alias}"));
+                    }
+                }
+            }
+        }
         if module_effects {
             analyzer.cutoff("module-effects-unchecked");
         }
@@ -724,7 +895,7 @@ impl Project<'_> {
         {
             analyzer.cutoff("configuration-snapshot-incomplete");
         }
-        if analyzer.ambiguous.contains(&symbol.name) {
+        if analyzer.ambiguous.contains(&entry) {
             analyzer.cutoff("ambiguous-entry");
         }
         let parameters = function
@@ -746,13 +917,13 @@ impl Project<'_> {
             })
             .collect();
         let returns = if options.summaries {
-            analyzer.solve_summaries(&symbol.name, arguments)
+            analyzer.solve_summaries(&entry, arguments)
         } else {
-            analyzer.invoke(&symbol.name, function, arguments)
+            analyzer.invoke(&entry, function, arguments)
         };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
             "semantics": if options.summaries {"python-scalar-summaries-1"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
-            "scope": "selected function and direct helpers in the same file.",
+            "scope": if options.imports {"selected function and static root-local module closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],

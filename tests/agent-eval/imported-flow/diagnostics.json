@@ -1,0 +1,8 @@
+{
+  "schema": "fr-imported-flow-diagnostics-1",
+  "attempts": [
+    {"stage": "receiver replay", "outcome": "fixture mismatch", "detail": "The first receiver lacked a comment added to the helper before the fresh review. Patch context correctly refused. The final trial changes another dependency before review and replays the owned helper patch against its exact original source."},
+    {"stage": "acceptance audit", "outcome": "evaluator field error", "detail": "The evaluator first looked for delivery stages at the report root. The SDK nests stages under workflow. The final audit uses the native workflow contract."}
+  ],
+  "claim": "Evaluator development diagnostics; no failed attempt counts as acceptance."
+}

@@ -358,6 +358,29 @@ Use `FlowCache.analyze(..., summaries=True, steps=4096)` for symbolic function s
 Check both `complete` and `converged` before interpreting missing flows. A converged model does not prove runtime termination.
 Cache reuse covers the whole defining file and renews nested summary occurrences after unrelated edits.
 
+Use `imports=True` with `summaries=True` for static root-local Python modules:
+
+```python
+from fr_ir.flow import FlowCache
+from fr_ir.investigation import TaskPlan, TaskStep
+
+analysis = FlowCache(store).analyze(client, target, rules=rules_path,
+                                   summaries=True, imports=True, steps=4096,
+                                   max_bytes=1_048_576)
+plan = TaskPlan("Explain imported flow", ("explained",), (
+    TaskStep("flow", "Which helpers carry the value?",
+             (analysis.dependencies.dependency,), satisfies=("explained",)),
+))
+resumed = plan.resume(client)
+```
+
+`analysis.dependencies` validates file digests, import candidates, member resolutions and closure coverage.
+The captured dependency rechecks source, missing imports, configuration, rules and analyzer identity on resume.
+Use a workspace-local rules path for plan dependencies. External rule files remain valid for analysis alone.
+Summary names include the module, such as `relay.py::forward`. `FlowFacts.inspect(..., imports=True)`
+retains cross-file occurrences and semantic follow actions. Read the [import contract](../../docs/agent-investigations.md#static-local-imports)
+for initialization assumptions, package boundaries and resource limits.
+
 ## Paged flow explanations
 
 `fr_ir.flow_facts.FlowFacts` provides typed fact headers and bounded explanations.

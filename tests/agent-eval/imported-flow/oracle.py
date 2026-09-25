@@ -42,4 +42,9 @@ def observe(root, context):
 
 if __name__ == "__main__":
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).parent
-    print(json.dumps({context: observe(root, context) for context in ("html", "sql")}, sort_keys=True))
+    result = {context: observe(root, context) for context in ("html", "sql")}
+    if "--check" in sys.argv:
+        for context, value in result.items():
+            assert value["outcomes"] == {"positive": True, "negative": False, "effects": True,
+                                          "contextual": context == "sql", "separate": False}
+    print(json.dumps(result, sort_keys=True))

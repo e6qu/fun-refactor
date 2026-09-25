@@ -48,7 +48,7 @@ impl Solver {
             "function_limit":FUNCTION_LIMIT,
             "context":"symbolic positional parameters; substitute independently at each call.",
             "recursion":"monotone least fixed point over finite origin and effect sets.",
-            "effects":"explicit scalar returns, sink contracts and explicit raises; no heap or imported execution.",
+            "effects":"explicit scalar returns, sink contracts and explicit raises; no heap effects.",
             "claim":"may-value derivations in the declared model; neither feasible paths nor runtime termination.",
             "mutation_authority":false})
     }
@@ -176,6 +176,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     break;
                 }
                 let function = self.functions[name];
+                (self.file, self.source) = self.contexts[name];
                 let parameters: Vec<_> = function
                     .child_by_field_name("parameters")
                     .unwrap()
@@ -240,7 +241,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         );
         for effect in summary.sinks.values() {
             for trace in substitute(&effect.flow, &summary.parameters, &arguments).values() {
-                let key = format!("{:020}:{}", effect.site.location.span.start, trace.origin);
+                let key = format!(
+                    "{}:{:020}:{}",
+                    effect.site.path, effect.site.location.span.start, trace.origin
+                );
                 self.witnesses.insert(
                     key,
                     json!({"sink":effect.sink,"context":self.context,

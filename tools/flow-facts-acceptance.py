@@ -22,7 +22,7 @@ from fr_ir.origins import SemanticOrigins
 from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
 
 FIXTURE = ROOT / "tests/agent-eval/flow-facts"
-BINDINGS = ["tools/flow-facts-acceptance.py", "tools/evidence_basis.py", "Cargo.lock",
+BINDINGS = ["src/project/flow_modules.rs", "sdk/python/src/fr_ir/flow_dependencies.py", "tools/flow-facts-acceptance.py", "tools/evidence_basis.py", "Cargo.lock",
     *[f"src/project/{name}.rs" for name in ["flow_facts", "flow_fact_origins", "dataflow",
         "flow_summaries", "control_flow", "flow_cache", "occurrence", "semantic_origins", "semantic", "explore"]],
     "src/project.rs", "src/span.rs", "src/transpile/read.rs", "src/transpile/normalize.rs",

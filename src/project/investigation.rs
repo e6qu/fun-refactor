@@ -98,6 +98,7 @@ pub enum DependencyKind {
     CheckToolchain,
     DeclarationAnalyzer,
     ProofInputs,
+    FlowInputs,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,6 +148,13 @@ impl Project<'_> {
                 include_str!("investigation.rs"),
             ))?,
             DependencyKind::DeclarationAnalyzer => super::correspondence::analyzer_digest()?,
+            DependencyKind::FlowInputs => match self.flow_dependency(&dependency.key) {
+                Ok(digest) => digest,
+                Err(error) if dependency.digest.is_some() => {
+                    hash(("unavailable-flow-inputs", error.to_string()))?
+                }
+                Err(error) => return Err(error),
+            },
             DependencyKind::ProofInputs => {
                 match crate::spec::retained::input_digest(&self.root, &dependency.key) {
                     Ok(digest) => digest,

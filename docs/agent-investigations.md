@@ -102,20 +102,60 @@ The solver admits at most 64 functions and 512 control nodes per function. `--st
 An exhausted budget always makes the result incomplete. Unknown externals, aliases, annotations and
 dynamic calls retain their cutoffs. Calls inside short-circuit expressions and exception causes also remain incomplete.
 All existing rule context and module-effect boundaries still apply. Sources and sinks are external contracts;
-the solver does not inspect imported implementations or track heap effects.
+the default solver stays within one file and does not track heap effects.
 
 The [retained corpus](../tests/agent-eval/results/2026-09-24-recursive-flow/result.json) compares recursive
 flow against independent Python execution and AST positions. Five Lean theorems establish parameter
 selection and monotonicity in the finite-origin model. Native substitution matches all 1,024 executable
 model cases. These theorems do not prove the parser, solver or Python implementation correspondence.
 
+### Static local imports
+
+Add `--imports --summaries` to follow root-local Python modules. Both the selected file and admitted
+modules live directly under the workspace root. Supported forms include `import helper`,
+`import helper as alias`, `from helper import forward` and `from helper import forward as relay`.
+Import module, member and alias names use ASCII identifiers.
+Function identities include their file, such as `helper.py::forward`. Argument substitution and
+explicit return, sink and raise effects retain exact occurrences across module boundaries.
+`project flow-facts HANDLE --imports` exposes the same analysis through bounded explanations and semantic links.
+
+The loader records each import declaration and its `.py`, `.pyi` and `__init__.py` candidates.
+A source module requires absent package and stub candidates. Named member lookups report functions,
+missing declarations, ambiguity or unavailable modules. Missing paths enter the input identity;
+adding a declaration or package changes the next dependency snapshot. Duplicate bindings, shadowing,
+ignored files, symlinks and syntax errors keep the report incomplete. Import aliases refer only to
+static module bindings; arbitrary object aliases remain unsupported.
+
+The admitted initialization model allows function declarations, static imports, comments and string expressions.
+Packages, relative or dotted imports, wildcard imports, cyclic initialization and module effects retain cutoffs.
+Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
+The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.
+They cannot overlap any local function or import binding in the closure.
+
+Budgets admit at most 16 modules, 256 KiB of module source and 128 import lookups.
+The existing function, depth, transfer and response limits still apply. Incomplete results never enter the reuse cache.
+Reuse validates every module and import candidate, configuration, rules and analyzer source identity.
+It renews occurrences only inside that validated closure. Unrelated files can change without rerunning flow transfer.
+The cache deliberately recomputes the whole closure after a relevant edit; it does not cache individual summaries.
+
+`analysis.dependencies` exposes typed files, import candidates, resolutions and coverage.
+`analysis.dependencies.dependency` supplies a captured `flow-inputs` dependency for a task step.
+Its query reselects the named declaration in its exact root-local file on each resume.
+It rechecks the current module closure, configuration and rule file before preserving satisfied evidence.
+Missing or ambiguous entries invalidate captured dependencies. Independent steps retain their own evidence.
+Rule files must live inside the workspace to create this plan dependency; analysis alone also permits explicit external rule files.
+
+The [imported-flow acceptance](../tests/agent-eval/results/2026-09-25-imported-flow/result.json) records runtime and coordinate oracles,
+negative lookups, dependency drift, restored plans and checked patch delivery. Three Lean theorems model import admission;
+native tests compare all eight Boolean cases. These results do not prove Python source correspondence or parser correctness.
+
 ## Verified result reuse
 
 `--inputs-only` reports the input identity without running flow transfer. It binds the defining file,
 selection, rules, context, summary mode, budgets, analyzer implementation and indexed manifests/lockfiles.
 The whole defining file covers helper bodies, local shadowing and negative same-file lookups.
-Imported execution is outside the subset. Incomplete analyses and skipped configuration snapshots
-cannot be reused. A changed input falls back to clean analysis.
+`--imports` expands this scope to its static module closure and import candidates.
+Incomplete analyses and skipped configuration snapshots cannot be reused. A changed input falls back to clean analysis.
 
 The SDK uses the existing verified Merkle store:
 

@@ -14,6 +14,8 @@ pub fn fact_catalogue_complete(analysis: bool, from_start: bool, no_remaining: b
 pub struct Options {
     target: String,
     #[arg(long)]
+    imports: bool,
+    #[arg(long)]
     rules: Option<PathBuf>,
     #[arg(long, default_value = "generic")]
     context: String,
@@ -187,6 +189,9 @@ impl Options {
             "--bytes".into(),
             self.bytes.to_string(),
         ];
+        if self.imports {
+            args.push("--imports".into());
+        }
         if let Some(rules) = &self.rules {
             args.extend(["--rules".into(), rules.to_string_lossy().into_owned()]);
         }
@@ -229,6 +234,7 @@ impl Project<'_> {
             &options.context,
             options.steps,
             options.depth,
+            options.imports,
         ))?;
         let analyzer = hash((
             RULE,

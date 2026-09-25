@@ -106,10 +106,12 @@ class FlowFacts:
     @classmethod
     def inspect(cls, client: FrClient, target: str, *, rules: Path | None = None,
                 context: str = "generic", steps: int = 1024, depth: int = 8, limit: int = 16,
-                evidence_limit: int = 8, max_bytes: int = 65_536) -> FlowFacts:
+                evidence_limit: int = 8, max_bytes: int = 65_536, imports: bool = False) -> FlowFacts:
         arguments = ["flow-facts", target, "--context", context, "--steps", str(steps),
                      "--depth", str(depth), "--limit", str(limit), "--evidence-limit", str(evidence_limit),
                      "--bytes", str(max_bytes)]
+        if imports:
+            arguments.append("--imports")
         if rules is not None:
             arguments.extend(["--rules", str(rules)])
         return cls.from_report(client.project(*arguments))

@@ -100,8 +100,11 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
   Report matched, ambiguous and missing correspondence before rebinding targets.
   [Durable target sessions](sdk/python/src/fr_ir/investigation_session.py) require explicit fresh selections and dependencies.
   [Retained acceptance](tests/agent-eval/results/2026-09-24-resumable-correspondence/result.json) covers ambiguity, moves, renames and stale review refusal.
-- [ ] Record dependencies on source, imports, configuration, analyzer versions and external summaries.
+- [x] Record dependencies on source, imports, configuration, analyzer versions and external summaries.
   Track negative lookups whose results can change when new declarations appear.
+  [Static Python module closures](src/project/flow_modules.rs) bind source, import candidates, missing members and rule contracts.
+  [Retained acceptance](tests/agent-eval/results/2026-09-25-imported-flow/result.json) covers clean agreement and dependency-bound plan resumption.
+  This contract admits root-local modules; packages and runtime import machinery remain outside its scope.
 - [x] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
   Fall back to a complete rebuild when dependency coverage is insufficient.
   [FlowCache](sdk/python/src/fr_ir/flow.py) uses verified Merkle records with local graph references.
@@ -157,13 +160,14 @@ These are substantial implementation advances across A–D; the complete milesto
 
 - A: normalization origins, additional languages and compiler adapters, broader dependency discovery,
   fact explanations beyond scalar analysis and live unknown-target trials.
-- B: source correspondence beyond exact syntax-origin links, imported summaries, implicit exception/handler semantics
+- B: source correspondence beyond exact syntax-origin links, package imports, implicit exception/handler semantics
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.
-- C: dependency coverage across imported execution, finer summary reuse, comprehensive incremental/clean
+- C: dependency coverage across package and dynamic imports, finer summary reuse, comprehensive incremental/clean
   rebuild comparison and representative measurements. Durable syntax targets now support explicit refresh after moves or renames.
   Opt-in whole-file flow reuse now validates
   source, rules, configuration and analyzer inputs, then renews occurrences after unrelated edits.
+  Static root-local imports now extend that validated source closure and track missing import candidates.
 - D: new translation domains and old/new source correspondence proofs, plus host fault injection.
   Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
 
@@ -183,7 +187,8 @@ Checked plans cover workspace, source, configuration and executable identities. 
 The [recursive flow task](tests/agent-eval/recursive-flow/task.json) pins positive and negative recursive helpers.
 Its [evaluator](tools/recursive-flow-acceptance.py) retains runtime and coordinate oracles plus cold, warm and helper-edit comparisons.
 The opt-in solver covers symbolic positional parameters and explicit scalar effects. Whole-file reuse remains conservative;
-short-circuit call control, heap effects and imported execution remain outside the admitted subset.
+short-circuit call control and heap effects remain outside the admitted subset.
+Static local imports now have a separate opt-in contract; package loading remains outside it.
 
 The [flow fact task](tests/agent-eval/flow-facts/task.json) pins bounded explanations and exact semantic/authoring links.
 Its [evaluator](tools/flow-facts-acceptance.py) retains paged evidence, independent Unicode coordinates,
@@ -198,6 +203,10 @@ The [correspondence task](tests/agent-eval/resumable-correspondence/task.json) p
 Its [evaluator](tools/correspondence-acceptance.py) retains independent coordinates, ambiguity, invalidation and fresh checked patch delivery.
 Target refresh clears old actions and evidence. Content equality never authorizes a stale mutation review.
 Measured fixture latency and memory do not settle the representative cache-granularity gate in C.
+
+The [imported-flow task](tests/agent-eval/imported-flow/task.json) pins transitive helpers, independent runtime outcomes and exact cross-file coordinates.
+Its [evaluator](tools/imported-flow-acceptance.py) records missing lookups, dependency drift, plan resumption and fresh reviewed patch delivery.
+Cold, warm and edited measurements retain clean-analysis agreement. They do not settle the representative cache-granularity gate.
 
 ## Rules for every milestone
 

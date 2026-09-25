@@ -104,3 +104,22 @@ theorem proof_requires_no_debt (executed stable checked : Bool) :
   simp [proofAcceptable]
 
 end FrKernels.Investigation
+
+namespace FrKernels.Investigation
+
+def localModuleAdmitted (source packageMissing stubMissing : Bool) : Bool :=
+  source && packageMissing && stubMissing
+
+theorem local_module_requires_source (packageMissing stubMissing : Bool) :
+    localModuleAdmitted false packageMissing stubMissing = false := by
+  simp [localModuleAdmitted]
+
+theorem local_module_refuses_package (source stubMissing : Bool) :
+    localModuleAdmitted source false stubMissing = false := by
+  simp [localModuleAdmitted]
+
+theorem local_module_refuses_stub (source packageMissing : Bool) :
+    localModuleAdmitted source packageMissing false = false := by
+  simp [localModuleAdmitted]
+
+end FrKernels.Investigation
