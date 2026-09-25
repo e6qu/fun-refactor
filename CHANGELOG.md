@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.33.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.32.0...fun-refactor-v0.33.0) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* resume investigations with durable declaration targets ([#364](https://github.com/e6qu/fun-refactor/issues/364))
+
+### Features
+
+* add bounded flow explanations with semantic provenance ([#362](https://github.com/e6qu/fun-refactor/issues/362)) ([eacac5f](https://github.com/e6qu/fun-refactor/commit/eacac5ff0774f735ddb06e2f2223ee7417f19365))
+* add exact evidence, scalar dataflow and resumable investigations ([#358](https://github.com/e6qu/fun-refactor/issues/358)) ([d6ef1e2](https://github.com/e6qu/fun-refactor/commit/d6ef1e29bc633eec5707853fce70ae6255f01cc0))
+* add fixed-point Python flow graphs and verified analysis reuse ([#359](https://github.com/e6qu/fun-refactor/issues/359)) ([d0377ed](https://github.com/e6qu/fun-refactor/commit/d0377ed736baa9a5ead5ae888f87231491681de2))
+* connect semantic origins and checked investigation evidence ([#360](https://github.com/e6qu/fun-refactor/issues/360)) ([354d9fb](https://github.com/e6qu/fun-refactor/commit/354d9fb85201a6a0678bf14e9ae7802a0c3ae02a))
+* integrate compiler evidence with build and toolchain identities ([#363](https://github.com/e6qu/fun-refactor/issues/363)) ([36297fb](https://github.com/e6qu/fun-refactor/commit/36297fb18cc463cbab3f176c93f9de63537ccc20))
+* resume investigations with durable declaration targets ([#364](https://github.com/e6qu/fun-refactor/issues/364)) ([da49d7a](https://github.com/e6qu/fun-refactor/commit/da49d7afbe2b38cccfc2087220d7321134786d92))
+* retain checked model proofs across investigations ([#365](https://github.com/e6qu/fun-refactor/issues/365)) ([6b4fd37](https://github.com/e6qu/fun-refactor/commit/6b4fd37e818a3d5c18583e1ddb2c1cb6e30db5f4))
+* solve recursive scalar flow with symbolic summaries ([#361](https://github.com/e6qu/fun-refactor/issues/361)) ([2393317](https://github.com/e6qu/fun-refactor/commit/2393317c8e30f4c645049c1ccf28edcb4f332b02))
+
+
+### Fixes
+
+* refuse ambiguous project targets ([#355](https://github.com/e6qu/fun-refactor/issues/355)) ([c22ba82](https://github.com/e6qu/fun-refactor/commit/c22ba827bc419744c136f9268f32cc8b315a2890))
+
+
+### Documentation
+
+* focus roadmap on agent analysis and planning ([#357](https://github.com/e6qu/fun-refactor/issues/357)) ([008589b](https://github.com/e6qu/fun-refactor/commit/008589bbcc79f7e0cc10cc7dff0761a3c6675c13))
+
 ## [0.32.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.31.3...fun-refactor-v0.32.0) (2026-09-23)
 
 
