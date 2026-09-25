@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.33.0...fun-refactor-v0.34.0) (2026-09-25)
+
+
+### Features
+
+* trace imported Python flow with resumable dependencies ([#366](https://github.com/e6qu/fun-refactor/issues/366)) ([875140e](https://github.com/e6qu/fun-refactor/commit/875140ede3dbdae714ae7684f3f47a6c78f13b44))
+
 ## [0.33.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.32.0...fun-refactor-v0.33.0) (2026-09-25)
 
 
