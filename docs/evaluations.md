@@ -26,12 +26,12 @@ AST coordinates check the scenario; missing helpers and response-budget cutoffs 
 
 | Workload | Previous warm median | Report-chunk warm median |
 |---|---:|---:|
-| Pipeline, 8 helpers | 1.484 s | 0.721 s |
-| Pipeline, 16 helpers | 2.983 s | 0.943 s |
-| Imported fanout, 8 helpers | 0.846 s | 0.647 s |
-| Imported fanout, 24 helpers | 1.422 s | 0.693 s |
-| Mutual recursion, 8 helpers | 1.617 s | 0.707 s |
-| Mutual recursion, 12 helpers | 2.376 s | 0.797 s |
+| Pipeline, 8 helpers | 1.400 s | 0.653 s |
+| Pipeline, 16 helpers | 2.954 s | 0.900 s |
+| Imported fanout, 8 helpers | 0.815 s | 0.584 s |
+| Imported fanout, 24 helpers | 1.399 s | 0.674 s |
+| Mutual recursion, 8 helpers | 1.658 s | 0.700 s |
+| Mutual recursion, 12 helpers | 2.345 s | 0.802 s |
 
 This selects whole-report storage while retaining whole-analysis dependency validation. Warmed
 stores use 1.35–2.91 times the bytes of the previous per-node encoding. Native calls and disclosed
@@ -40,8 +40,12 @@ store operations and bytes. Native fact caching is disabled; operating-system ca
 The corpus represents these admitted task shapes on one host, without a production or population speed claim.
 It contains no live-agent trial or token measurement. The pinned baseline SDK and diagnostic probes
 are retained beside the [task](../tests/agent-eval/flow-cache/task.json).
-New warm medians still exceed new cold medians on these workloads. The result improves retained
+New warm medians still exceed new cold medians on four of these six workloads. The result improves retained
 storage overhead; it does not establish an overall latency benefit from enabling the optional cache.
+
+Evidence identities ignore coordinated workspace release versions in the Cargo manifest and lockfile.
+Dependency versions, features, paths and source changes remain bound.
+The evaluator and normalization helper are also bound.
 
 The accepted 2026-09-17 matched cohort gives both agents seven preview outcomes. The local SDK arm
 uses two agent calls and 46,120 input tokens. The direct-file arm uses seven calls and 89,118 input
