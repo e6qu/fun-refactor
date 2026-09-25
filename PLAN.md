@@ -116,8 +116,12 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
   [Retained model proofs](src/spec/retained.rs) bind generated local Lean packages, source snapshots and checker identities.
   [Acceptance](tests/agent-eval/results/2026-09-24-retained-proofs/result.json) covers module checks, invalidation and fresh reviewed delivery.
   External Lean packages and source implementation correspondence remain outside this proof contract.
-- [ ] Measure cold, warm and single-edit latency, memory, context bytes and recomputation.
+- [x] Measure cold, warm and single-edit latency, memory, context bytes and recomputation.
   Choose cache granularity from those measurements.
+  [Six scalar workloads](tests/agent-eval/flow-cache/task.json) cover pipelines, imported fanout and recursion at two sizes.
+  [288 retained samples](tests/agent-eval/results/2026-09-25-flow-cache/result.json) compare cold, warm and six edits with clean analysis.
+  [Bounded report chunks](sdk/python/src/fr_ir/flow_storage.py) reduce storage work while retaining whole-analysis invalidation.
+  The decision covers this finite scalar corpus; broader repository and production measurements remain open.
 
 Gate: reopen an interrupted task, preserve independent evidence and invalidate a changed dependency.
 Exercise renames, moves, deletions, added overloads, configuration drift and analyzer changes.
@@ -163,8 +167,8 @@ These are substantial implementation advances across A–D; the complete milesto
 - B: source correspondence beyond exact syntax-origin links, package imports, implicit exception/handler semantics
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.
-- C: dependency coverage across package and dynamic imports, finer summary reuse, comprehensive incremental/clean
-  rebuild comparison and representative measurements. Durable syntax targets now support explicit refresh after moves or renames.
+- C: dependency coverage across package and dynamic imports, finer summary reuse, broader incremental/clean
+  rebuild comparison and repository measurements. Durable syntax targets now support explicit refresh after moves or renames.
   Opt-in whole-file flow reuse now validates
   source, rules, configuration and analyzer inputs, then renews occurrences after unrelated edits.
   Static root-local imports now extend that validated source closure and track missing import candidates.
@@ -207,6 +211,12 @@ Measured fixture latency and memory do not settle the representative cache-granu
 The [imported-flow task](tests/agent-eval/imported-flow/task.json) pins transitive helpers, independent runtime outcomes and exact cross-file coordinates.
 Its [evaluator](tools/imported-flow-acceptance.py) records missing lookups, dependency drift, plan resumption and fresh reviewed patch delivery.
 Cold, warm and edited measurements retain clean-analysis agreement. They do not settle the representative cache-granularity gate.
+
+The [cache comparison](tests/agent-eval/results/2026-09-25-flow-cache/result.json) closes the measurement item for the admitted scalar subset.
+It records three repetitions across six workloads, with independent runtime outcomes and AST coordinates.
+Warm median latency fell 24–68% against the pinned per-node cache on this host; context bytes and transfer results are unchanged.
+Report chunks reduce object operations but use more disk space in warmed stores. Whole-analysis dependency validation remains the reuse boundary.
+These measurements support that storage choice without establishing production latency or a benefit from partial-summary reuse.
 
 ## Rules for every milestone
 

@@ -189,6 +189,11 @@ root as prior analysis. Tampering refuses; mismatched inputs and incomplete reco
 
 Reuse remains opt-in and coarse. It avoids flow transfer while retaining parsing, indexing, dependency
 checks and occurrence renewal. Small inputs may cost more to restore than to analyze.
+The [cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json) measures six scalar workloads and six edit types.
+Report chunks reduced warm median latency 24–68% on that host. Warmed stores used 1.35–2.91 times
+the bytes of per-node records because repeated subtrees no longer deduplicate at every field.
+The native call count and disclosed context are unchanged. This tradeoff does not justify partial-summary reuse or a general speed claim.
+Warm medians still exceed cold medians in that corpus, so caching remains an explicit choice.
 The [measurement tool](../tools/flow-acceptance.py) records cold, warm, unrelated-edit and relevant-edit
 latency, child/worker peak RSS, report bytes and transfer steps in isolated workers. Tokens are unavailable.
 
