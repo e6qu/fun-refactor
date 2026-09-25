@@ -172,6 +172,12 @@ restored = FlowCache.restore(store, root)
 ```
 
 Keep the store outside the analyzed workspace. A cache holds at most 256 result roots.
+New `fr-flow-cache-2` manifests retain each complete report as canonical JSON in verified chunks.
+Each chunk contains at most 32,768 characters; the joined report is limited to 1 MiB.
+This reduces object-store operations when the consumer needs the whole report.
+The reader accepts earlier `fr-flow-cache-1` manifests and tree records. A successfully refreshed
+entry uses the new encoding; other legacy entries remain readable in a mixed manifest.
+Chunks are storage units. Dependency validation and reuse still apply to the entire analysis.
 `analysis.graphs` and `analysis.witnesses` provide typed access; `analysis.reused` reports reuse.
 After unrelated edits, native validation renews occurrence identities, enclosing handles and revision
 metadata. Retained results must equal clean analysis after that renewal. It never renews mutation reviews.

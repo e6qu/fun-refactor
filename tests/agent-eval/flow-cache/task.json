@@ -1,6 +1,6 @@
 {
   "schema": "fr-flow-cache-task-1",
-  "baseline_revision": "baedab23",
+  "baseline_revision": "baedab23d50582aa9b15991991f7f106973b22e0",
   "question": "Which storage granularity makes retained scalar analysis useful across representative admitted task shapes?",
   "corpus": "Pipelines at 8/16 helpers, imported fanout at 8/24 and mutual recursion at 8/12, with twice as many independent source files.",
   "scenarios": [
@@ -36,6 +36,7 @@
     "Initial storage probe used a rejected 16384-step request; corrected to 4096 before any measurements.",
     "The 24-helper pipeline exceeded the response budget and is a boundary case. The measured pipeline uses 16 helpers.",
     "The recursive corpus was expanded after the probe so each recursive pair participates in the entry query.",
-    "With all recursive pairs participating, 24 helpers also exceeded the response budget. The measured recursive cases use 8/12 helpers; 24 remains a boundary case."
+    "With all recursive pairs participating, 24 helpers also exceeded the response budget. The measured recursive cases use 8/12 helpers; 24 remains a boundary case.",
+    "First repeated run stopped after passing pipeline comparisons to strengthen the auditor with scenario source-digest checks. No partial timing run is accepted."
   ]
 }
