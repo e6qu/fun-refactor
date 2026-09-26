@@ -29,7 +29,7 @@ pub struct Options {
     #[arg(
         long,
         requires = "summaries",
-        help = "Follow static root-local Python module imports."
+        help = "Follow static workspace-local Python modules and regular packages."
     )]
     imports: bool,
     #[arg(long)]
@@ -593,12 +593,14 @@ impl Project<'_> {
         let query: DependencyQuery = serde_json::from_str(key)?;
         let path = Path::new(&query.path);
         ensure!(
-            path.components().count() == 1
-                && path
-                    .file_name()
-                    .is_some_and(|name| name == path.as_os_str())
+            !path.is_absolute()
+                && !query.path.contains('\\')
+                && query
+                    .path
+                    .split('/')
+                    .all(|part| !matches!(part, "" | "." | ".."))
                 && path.extension().is_some_and(|extension| extension == "py"),
-            "flow dependency needs a root-local Python file."
+            "flow dependency needs a normalized workspace-relative Python file."
         );
         let file = self.root.join(path);
         let symbols: Vec<_> = self
@@ -933,7 +935,7 @@ impl Project<'_> {
         };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
             "semantics": if options.summaries {"python-scalar-summaries-1"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
-            "scope": if options.imports {"selected function and static root-local module closure."} else {"selected function and direct helpers in the same file."},
+            "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],

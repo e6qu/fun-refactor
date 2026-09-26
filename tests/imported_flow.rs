@@ -93,6 +93,11 @@ fn flow_dependency_rejects_nonlocal_queries_before_reading_rules() {
     fs::write(root.path().join("app.py"), "def entry():\n    return 0\n").unwrap();
     for (path, rules) in [
         ("../outside.py", None),
+        ("/tmp/app.py", None),
+        ("portal/../app.py", None),
+        ("./app.py", None),
+        ("portal//app.py", None),
+        ("portal\\app.py", None),
         ("app.py", Some("../rules.json")),
         ("app.py", Some("/tmp/rules.json")),
     ] {

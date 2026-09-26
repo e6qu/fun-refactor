@@ -113,14 +113,17 @@ def test_package_dependency_tampering_refuses_even_with_a_new_digest(tmp_path, c
         FlowDependencies.from_report(rehash(value))
 
 
-def test_package_parent_invalidates_dependents_after_plan_reopen(tmp_path):
+@pytest.mark.parametrize("entry", ["app.py", "portal/entry.py"])
+def test_package_parent_invalidates_dependents_after_plan_reopen(tmp_path, entry):
     client, rules = workspace(tmp_path)
+    if entry != "app.py":
+        (tmp_path / "app.py").rename(tmp_path / entry)
     (tmp_path / "note.py").write_text("# independent\n")
     result = analyze(client, rules)
     plan = TaskPlan("explain package flow", ("explained",), (
         TaskStep("flow", "Does input reach the sink?", (result.dependencies.dependency,), satisfies=("explained",)),
         TaskStep("note", "Read independent note", (Dependency(DependencyKind.SOURCE, "note.py"),)),
-        TaskStep("conclusion", "Explain the result", (Dependency(DependencyKind.SOURCE, "app.py"),), depends_on=("flow",)),
+        TaskStep("conclusion", "Explain the result", (Dependency(DependencyKind.SOURCE, entry),), depends_on=("flow",)),
     ))
     for name in ("flow", "note", "conclusion"):
         started = plan.resume(client, transition=f"{name}:start")
