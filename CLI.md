@@ -2187,3 +2187,7 @@ uses exits 1, and the reason names the use.
 
 `project dataflow`, `project investigate` and `project identities` support
 [bounded investigations](docs/agent-investigations.md).
+
+Use `project dataflow HANDLE --imports --summaries` for workspace-local Python modules and regular packages.
+Absolute dotted imports and explicit relative function imports retain full file identities and parent dependencies.
+Effectful initializers, namespace packages, re-exports and runtime import machinery remain outside this bounded contract.

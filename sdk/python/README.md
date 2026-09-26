@@ -360,7 +360,7 @@ Use `FlowCache.analyze(..., summaries=True, steps=4096)` for symbolic function s
 Check both `complete` and `converged` before interpreting missing flows. A converged model does not prove runtime termination.
 Cache reuse covers the whole defining file and renews nested summary occurrences after unrelated edits.
 
-Use `imports=True` with `summaries=True` for static root-local Python modules:
+Use `imports=True` with `summaries=True` for static workspace-local Python modules and regular packages:
 
 ```python
 from fr_ir.flow import FlowCache
@@ -377,9 +377,12 @@ resumed = plan.resume(client)
 ```
 
 `analysis.dependencies` validates file digests, import candidates, member resolutions and closure coverage.
-The captured dependency rechecks source, missing imports, configuration, rules and analyzer identity on resume.
+`FlowDependencies.entry` exposes the selected `ImportResolution`; lookups include target paths, parent packages and call prefixes.
+The SDK independently derives admission from all candidate statuses and checks closure coverage.
+It reads legacy `fr-flow-modules-1` records and current `fr-flow-modules-2` records.
+The captured dependency rechecks source, package parents, missing imports, configuration, rules and analyzer identity on resume.
 Use a workspace-local rules path for plan dependencies. External rule files remain valid for analysis alone.
-Summary names include the module, such as `relay.py::forward`. `FlowFacts.inspect(..., imports=True)`
+Summary names include the module, such as `pkg/relay.py::forward`. `FlowFacts.inspect(..., imports=True)`
 retains cross-file occurrences and semantic follow actions. Read the [import contract](../../docs/agent-investigations.md#static-local-imports)
 for initialization assumptions, package boundaries and resource limits.
 

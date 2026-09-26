@@ -22,7 +22,7 @@ tools/check.sh wasm
 tools/check.sh deep
 ```
 
-Rust test fan-out in the default, deep and Lean-kernel gates defaults to two. Lean processes use the
+Rust test fan-out in the default, deep and Lean-kernel gates defaults to one. Lean processes use the
 same worker bound. Override either value with a positive integer when the machine has suitable
 capacity.
 

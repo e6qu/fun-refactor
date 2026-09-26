@@ -16,6 +16,22 @@ Every retained run has a manifest under `tests/agent-eval/results/`. Manifests b
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;
 acceptance runs must satisfy their scorer at recording time.
 
+## Package investigation and delivery
+
+The [package task](../tests/agent-eval/package-flow/task.json) pins a raw-input bug and a sink-free preview requirement without edit paths.
+Its [baseline](../tests/agent-eval/package-flow/baseline.json) records incomplete dotted-import analysis before this extension.
+The [acceptance](../tests/agent-eval/results/2026-09-26-package-flow/result.json) discovers the faulty helper through summaries,
+keeps same-named package helpers separate and delivers both changes through reviewed checks, undo/redo and patches.
+An independent receiver replays both patches and executes the public API. Python AST positions check cross-file call origins.
+Restored plans invalidate dependent evidence after parent, helper and negative-candidate edits while preserving an independent step.
+
+The ordinary arm discovers targets with AST inspection and edits source directly. The fr arm uses summaries and import records.
+On this tiny fixture, ordinary discovery and editing read 417 source bytes; fr discovery disclosed roughly 106 KiB of structured reports.
+The ordinary arm was faster in the retained run. These arms perform different operations and make no general performance claim.
+Both are deterministic scripts, with no live-agent or token-saving claim. Declared delivery checks admit valid before/after states for reversal;
+strict runtime checks enforce the repaired and feature postconditions after delivery and in the separate receiver.
+Package loading remains bounded to regular local packages with inert initializers. Dynamic imports, namespace packages and re-exports remain open.
+
 ## Current matched results
 
 The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json) contains 288 samples across six generated scalar workloads.

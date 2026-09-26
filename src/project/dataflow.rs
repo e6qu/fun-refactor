@@ -262,28 +262,24 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("missing-call-target");
             return Flow::new();
         };
+        let name: String = self
+            .text(function)
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect();
         if function.kind() != "identifier"
             && !(self.modules.is_some()
                 && function.kind() == "attribute"
-                && function
-                    .child_by_field_name("object")
-                    .is_some_and(|n| n.kind() == "identifier")
-                && function
-                    .child_by_field_name("attribute")
-                    .is_some_and(|n| n.kind() == "identifier"))
+                && name.split('.').all(|part| {
+                    !part.is_empty()
+                        && part.chars().enumerate().all(|(i, c)| {
+                            c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit()
+                        })
+                }))
         {
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
-        let name = if function.kind() == "attribute" {
-            format!(
-                "{}.{}",
-                self.text(function.child_by_field_name("object").unwrap()),
-                self.text(function.child_by_field_name("attribute").unwrap())
-            )
-        } else {
-            self.text(function).to_owned()
-        };
         let mut arguments = Vec::new();
         if let Some(args) = node.child_by_field_name("arguments") {
             for arg in args.named_children(&mut args.walk()) {
@@ -712,8 +708,8 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
-                    let name = if options.imports {
-                        format!("{}::{short}", file.file_name().unwrap().to_string_lossy())
+                    let name = if let Some(modules) = &modules {
+                        modules.function_name(file, short)
                     } else {
                         short.to_owned()
                     };
@@ -723,20 +719,22 @@ impl Project<'_> {
                     contexts.insert(name, (file, text));
                 } else if !(options.imports
                     && matches!(node.kind(), "import_statement" | "import_from_statement"))
-                    && (!matches!(node.kind(), "comment" | "expression_statement")
-                        || (node.kind() == "expression_statement"
-                            && node.named_child(0).is_some_and(|n| n.kind() != "string")))
+                    && (!matches!(
+                        node.kind(),
+                        "comment" | "expression_statement" | "pass_statement"
+                    ) || (node.kind() == "expression_statement"
+                        && node.named_child(0).is_some_and(|n| {
+                            n.kind() != "string"
+                                || n.named_children(&mut n.walk())
+                                    .any(|child| child.kind() == "interpolation")
+                        })))
                 {
                     module_effects = true;
                 }
             }
         }
-        let entry = if options.imports {
-            format!(
-                "{}::{}",
-                symbol.file.file_name().unwrap().to_string_lossy(),
-                symbol.name
-            )
+        let entry = if let Some(modules) = &modules {
+            modules.function_name(&symbol.file, &symbol.name)
         } else {
             symbol.name.clone()
         };
