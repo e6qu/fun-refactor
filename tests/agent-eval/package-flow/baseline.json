@@ -1,0 +1,69 @@
+{
+  "repository_revision": "9f51894a1061987efedd4f357229bb3e1799c1c9",
+  "binary_sha256": "5d456c8afb012bfd9c9cd72444415f9cf8306dacc939f1a8e3e6f5c2198e014c",
+  "ordinary_runtime_ast": {
+    "call_spans": {
+      "app.py": [
+        [
+          101,
+          119
+        ],
+        [
+          110,
+          118
+        ],
+        [
+          145,
+          178
+        ],
+        [
+          150,
+          177
+        ],
+        [
+          168,
+          176
+        ]
+      ],
+      "archive/__init__.py": [],
+      "archive/transform.py": [],
+      "portal/__init__.py": [],
+      "portal/api.py": [
+        [
+          65,
+          89
+        ],
+        [
+          70,
+          88
+        ]
+      ],
+      "portal/transform.py": []
+    },
+    "results": {
+      "preview": null,
+      "render": {
+        "emitted": [
+          17
+        ],
+        "returned": 17
+      },
+      "safe": {
+        "emitted": [
+          0
+        ],
+        "returned": 0
+      }
+    }
+  },
+  "ordinary_seconds": 0.050368582997180056,
+  "fr_seconds": 0.07965233299910324,
+  "fr_complete": false,
+  "fr_cutoffs": [
+    "unknown-external-call:dispatch",
+    "unsupported-import-form"
+  ],
+  "fr_context_bytes": 11602,
+  "tokens": null,
+  "live_agent": false
+}

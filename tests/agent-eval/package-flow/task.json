@@ -1,0 +1,18 @@
+{
+  "schema": "fr-package-flow-task-1",
+  "baseline": "9f51894a1061987efedd4f357229bb3e1799c1c9",
+  "bug": "The public render operation emits raw input. Find and repair the transformation so emitted values are zero, preserving the safe operation.",
+  "feature": "Expose preview, which returns the same sanitized value as render without invoking a sink. No edit path or private helper name is supplied by either requirement.",
+  "subset": "Synchronous Python scalar functions in workspace-local regular packages; absolute dotted imports and explicit relative function imports. Package initializers admit only inert strings, comments, pass and scalar function definitions. No namespace packages, re-exports, initialization imports, runtime search paths, native modules or import hooks.",
+  "budgets": {"modules": 16, "source_bytes": 262144, "imports": 128, "module_components": 16, "steps": 4096, "depth": 8, "report_bytes": 1048576},
+  "acceptance": [
+    "Distinguish same-named helpers in separate packages and retain exact cross-file UTF-8 occurrences.",
+    "Bind all package parents, competing modules, stubs, missing candidates and initializer source.",
+    "Reject symlink ancestors, missing parents, ambiguous paths, initialization effects, cycles and exhausted budgets.",
+    "Match clean analysis after dependency edits; preserve independent evidence during interrupted plan resumption.",
+    "Discover the repair from flow evidence, deliver bug and feature changes with fresh review, reverse them and replay their patches independently."
+  ],
+  "oracle": "A separate Python process executes the public API and records sink values; Python ASTs supply independent UTF-8 call coordinates. Handwritten expected positive, negative and refusal cases check analysis claims.",
+  "edit_boundary": "The fr guide inspects the module loader. Direct edits extend import resolution, qualified function identities, typed dependencies, fixtures, tests and docs; an existing author operation does not express this integrated change.",
+  "claims": "Deterministic task discovery and delivery on a pinned finite corpus. No live-agent, token-saving, feasible-path, source-equivalence or general performance claim."
+}
