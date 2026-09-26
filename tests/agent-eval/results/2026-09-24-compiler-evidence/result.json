@@ -1,13 +1,13 @@
 {
   "schema": "fr-compiler-evidence-acceptance-1",
-  "repository_revision": "e4517b9271af8a7aca410c061869977d01cc7138",
+  "repository_revision": "28f769e6e2a4e66b86f8641d25b80d0cac04b11b",
   "source_bindings": {
     "tools/compiler-evidence-acceptance.py": "bf6b6ab3330e50f20483e9855b0219c8fb9fca09550ca27ab5c69792013a913f",
     "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
     "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0",
     "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
     "src/checks/evidence.rs": "956f995a0a5f22a6441090fb39db7eb5d8f5863a6185f71036ec80c34e9705c4",
-    "src/history.rs": "b83280c00e9b3a235a48be487ab734a99930e0c6c5415157cf1991e9fc999347",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
     "src/project.rs": "7733250f017e7c76c0fe59d9fe6f7fa0a8210d42cbf8d82ea0b8548edc2db1f7",
     "src/project/compiler_evidence.rs": "9be19cb405aae7d789b5af71991e09a4ffe67340e5b3aeebb7b263255295a34d",
     "src/project/compiler_diagnostics.rs": "ab42190bcd826b719b0826acbd545b5cd9a53f2f357f21313fc5ad3aa65fe690",
@@ -27,8 +27,8 @@
     "tests/agent-eval/compiler-evidence/task.json": "540a0ce1a68226d45023b9c98298ab826ebb6f98892b1b03133dbcce3426bcc4",
     "tests/agent-eval/compiler-evidence/baseline.json": "2acc872bee4def6d691cb8baec77a8a7426c265f334306bd389cae2b359d595a"
   },
-  "binary_sha256": "3ba3a9635daf37a3987340df81ab671959c66769efa1b8084309d3673b5ebb49",
-  "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+  "binary_sha256": "9d77fec866f3cdd1fae695b0b1a5d7279d414e1e70dbae3aa201f596cf63b75e",
+  "platform": "macOS-15.6.1-arm64-arm-64bit",
   "compiler_version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
   "oracle": {
     "code": "E0308",
@@ -40,7 +40,7 @@
     "runtime_cases": 6,
     "strict_rejected": true
   },
-  "ordinary_oracle_seconds": 0.5424067080020905,
+  "ordinary_oracle_seconds": 0.7411929999943823,
   "baseline": {
     "schema": "fr-compiler-evidence-baseline-1",
     "revision": "eacac5ff0774f735ddb06e2f2223ee7417f19365",
@@ -59,7 +59,7 @@
   "cases": {
     "default": {
       "checks": {
-        "basis": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+        "basis": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
         "checks": [
           {
             "argv": [
@@ -82,7 +82,7 @@
               "RUSTC_BOOTSTRAP"
             ],
             "identity_files": [
-              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
               "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
             ],
             "name": "default",
@@ -111,7 +111,7 @@
               "RUSTC_BOOTSTRAP"
             ],
             "identity_files": [
-              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
               "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
             ],
             "name": "strict",
@@ -145,7 +145,7 @@
               "default"
             ],
             "cwd": ".",
-            "elapsed_ms": 43,
+            "elapsed_ms": 42,
             "error": null,
             "exit_code": 0,
             "name": "default",
@@ -167,9 +167,9 @@
             "timed_out": false
           }
         ],
-        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project",
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project",
         "schema": "fr-checks-1",
-        "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
+        "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
         "source_snapshot_checked": true,
         "source_snapshot_stable": true,
         "toolchain": {
@@ -177,12 +177,12 @@
             "files": {
               "Cargo.lock": {
                 "bytes": 169,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                 "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
               },
               "Cargo.toml": {
                 "bytes": 135,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                 "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
               }
             },
@@ -202,8 +202,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -227,8 +227,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -250,7 +250,7 @@
       "pages": [
         {
           "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
-          "basis": "frcpe1:0a02919c2a7a7b8c3543bdece161997061bb46155b91b32eae15eabffe9b986d",
+          "basis": "frcpe1:e33d688a4dbff20a2527a48d9eb8b675b3274cda3dbd371abff025141af4de21",
           "budget": {
             "limit": 1,
             "response_bytes": 32768
@@ -266,7 +266,7 @@
           },
           "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
           "complete": true,
-          "context_basis": "frcb1:6848c500d0c8ff43c35fdbd26624d26d29f6ef58f35598a6b1c64445ad9476fc",
+          "context_basis": "frcb1:b602023d7d04a63a45a22b5526e952410174a9228cbe5cd4cf483cd0ce14f011",
           "continuation": null,
           "coverage": {
             "architecture": "not inferred",
@@ -294,16 +294,16 @@
           },
           "disagreements": [],
           "disclosure_complete": true,
-          "handle_prefix": "frp1:1eb9f362a4d35da51548dda537341fda:",
+          "handle_prefix": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:",
           "inputs": {
             "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
             "check": "default",
-            "configuration": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+            "configuration": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
             "format": "rustc-json",
-            "report": "d0ff58bd72fda8c490af180a9b646c66a4d6cf946b7e4f1d75a55c648868bd81",
-            "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
-            "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
-            "toolchain": "acf1179acb1682c75f5c4d65afd964f1be21858e1d22997da2208b0c436627cf"
+            "report": "117d00a9666db43038f4d9621a632c870458d1e5558f86e74d569933b29043ef",
+            "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
+            "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
+            "toolchain": "a99d8fbe5f7e0abe46130e3f0fbbb8cc82253a578be0c233e53e06f636357a49"
           },
           "items": [],
           "mutation_authority": false,
@@ -320,7 +320,7 @@
             "returned": 0,
             "total": 0
           },
-          "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+          "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
           "schema": "fr-compiler-evidence-1",
           "scope": {
             "argv": [
@@ -348,12 +348,12 @@
                 "files": {
                   "Cargo.lock": {
                     "bytes": 169,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                     "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
                   },
                   "Cargo.toml": {
                     "bytes": 135,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                     "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
                   }
                 },
@@ -373,8 +373,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -398,8 +398,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -420,8 +420,8 @@
           "trust": "trusted caller digest binds retained check output; no independent execution attestation."
         }
       ],
-      "check_seconds": 2.540415000054054,
-      "first_page_seconds": 0.6459847079822794,
+      "check_seconds": 3.3482151250354946,
+      "first_page_seconds": 0.6462309999624267,
       "raw_report_bytes": 5216,
       "first_page_bytes": 5235,
       "all_page_bytes": 5235,
@@ -432,7 +432,7 @@
     },
     "strict": {
       "checks": {
-        "basis": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+        "basis": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
         "checks": [
           {
             "argv": [
@@ -455,7 +455,7 @@
               "RUSTC_BOOTSTRAP"
             ],
             "identity_files": [
-              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
               "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
             ],
             "name": "default",
@@ -484,7 +484,7 @@
               "RUSTC_BOOTSTRAP"
             ],
             "identity_files": [
-              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
               "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
             ],
             "name": "strict",
@@ -520,7 +520,7 @@
               "strict"
             ],
             "cwd": ".",
-            "elapsed_ms": 41,
+            "elapsed_ms": 43,
             "error": null,
             "exit_code": 1,
             "name": "strict",
@@ -542,9 +542,9 @@
             "timed_out": false
           }
         ],
-        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project",
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project",
         "schema": "fr-checks-1",
-        "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
+        "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
         "source_snapshot_checked": true,
         "source_snapshot_stable": true,
         "toolchain": {
@@ -552,12 +552,12 @@
             "files": {
               "Cargo.lock": {
                 "bytes": 169,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                 "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
               },
               "Cargo.toml": {
                 "bytes": 135,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                 "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
               }
             },
@@ -577,8 +577,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -602,8 +602,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -625,7 +625,7 @@
       "pages": [
         {
           "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
-          "basis": "frcpe1:2eaff5d6e37b6e4ba500f1628502f750b6a976fa5c5b09e1b0929e34009233cc",
+          "basis": "frcpe1:4662bb24ac5e899abd49537b696004e5e0084b5cdbae0fb42f9fcb6646240853",
           "budget": {
             "limit": 1,
             "response_bytes": 32768
@@ -641,15 +641,15 @@
           },
           "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
           "complete": false,
-          "context_basis": "frcb1:6848c500d0c8ff43c35fdbd26624d26d29f6ef58f35598a6b1c64445ad9476fc",
+          "context_basis": "frcb1:b602023d7d04a63a45a22b5526e952410174a9228cbe5cd4cf483cd0ce14f011",
           "continuation": {
             "arguments": [
               "project",
               "compiler-evidence",
               "--from",
-              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-evidence-u__455rq/checks.json",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-evidence-fc9letef/checks.json",
               "--digest",
-              "96b2cca331c37a3f60a3944fa765d32cc41320d617d20fd5fcb6f0d3ace0495b",
+              "b75cc6b41dca07a0202719484fb9f9395b7ded4c8187214038b7fefc88a10985",
               "--check",
               "strict",
               "--format",
@@ -659,7 +659,7 @@
               "--bytes",
               "32768",
               "--cursor",
-              "frce-page:c7c9cb8dc00177185e5db78ff2ee1cbeb058bb55a60f1f3d2d24c7762a56718a:1"
+              "frce-page:c7eba7356eb3d9fe8d50154308daf9f80808fca5fc81e20fee2481c03773033f:1"
             ]
           },
           "coverage": {
@@ -689,25 +689,25 @@
           "disagreements": [
             {
               "claim": "parser acceptance and compiler rejection concern different verification levels.",
-              "diagnostic": "frcd1:e5a8c92d1fd632a4a9437d42aa6e5d237540b6c8ec67cd81a4b3472b6f4f3367",
+              "diagnostic": "frcd1:a3cf34a85cc2e453ca2b70022d0886c465ca4f77590822f915912f7d2ac01b5a",
               "kind": "syntax-accepted-compiler-error"
             }
           ],
           "disclosure_complete": false,
-          "handle_prefix": "frp1:1eb9f362a4d35da51548dda537341fda:",
+          "handle_prefix": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:",
           "inputs": {
             "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
             "check": "strict",
-            "configuration": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+            "configuration": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
             "format": "rustc-json",
-            "report": "96b2cca331c37a3f60a3944fa765d32cc41320d617d20fd5fcb6f0d3ace0495b",
-            "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
-            "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
-            "toolchain": "acf1179acb1682c75f5c4d65afd964f1be21858e1d22997da2208b0c436627cf"
+            "report": "b75cc6b41dca07a0202719484fb9f9395b7ded4c8187214038b7fefc88a10985",
+            "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
+            "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
+            "toolchain": "a99d8fbe5f7e0abe46130e3f0fbbb8cc82253a578be0c233e53e06f636357a49"
           },
           "items": [
             {
-              "basis": "frcpe1:2eaff5d6e37b6e4ba500f1628502f750b6a976fa5c5b09e1b0929e34009233cc",
+              "basis": "frcpe1:4662bb24ac5e899abd49537b696004e5e0084b5cdbae0fb42f9fcb6646240853",
               "core": {
                 "code": "E0308",
                 "confidence": "reported-by-declared-check",
@@ -719,8 +719,8 @@
                 "spans": [
                   {
                     "occurrence": {
-                      "enclosing": "frp1:1eb9f362a4d35da51548dda537341fda:2",
-                      "id": "fro1:8d0bfb3d2fc2abffd7cef9037f082730f82e13139cf0c985e898a5141e516faf",
+                      "enclosing": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:2",
+                      "id": "fro1:90209f2aea25a07b46ea8609851f406539b6d53d927a504bd27c744e82a6d0fb",
                       "location": {
                         "range": {
                           "end": {
@@ -738,7 +738,7 @@
                         }
                       },
                       "path": "subject.rs",
-                      "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+                      "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
                       "role": "compiler-primary"
                     },
                     "primary": true,
@@ -747,7 +747,7 @@
                       "arguments": [
                         "project",
                         "show",
-                        "frp1:1eb9f362a4d35da51548dda537341fda:1",
+                        "frp1:2527313a2d9ba8cc7370c9e21668f2f6:1",
                         "--source",
                         "--bytes",
                         "256",
@@ -760,8 +760,8 @@
                   },
                   {
                     "occurrence": {
-                      "enclosing": "frp1:1eb9f362a4d35da51548dda537341fda:2",
-                      "id": "fro1:c35cbbd3463f6b71943738fd33278909618d8a540c871a1c3d7340b0a02da2e3",
+                      "enclosing": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:2",
+                      "id": "fro1:90a0aeaf991dfe31795ba74fc3216fd2262afd4501ed53c6c501752616e978e0",
                       "location": {
                         "range": {
                           "end": {
@@ -779,7 +779,7 @@
                         }
                       },
                       "path": "subject.rs",
-                      "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+                      "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
                       "role": "compiler-secondary"
                     },
                     "primary": false,
@@ -788,7 +788,7 @@
                       "arguments": [
                         "project",
                         "show",
-                        "frp1:1eb9f362a4d35da51548dda537341fda:1",
+                        "frp1:2527313a2d9ba8cc7370c9e21668f2f6:1",
                         "--source",
                         "--bytes",
                         "256",
@@ -801,7 +801,7 @@
                   }
                 ]
               },
-              "id": "frcd1:e5a8c92d1fd632a4a9437d42aa6e5d237540b6c8ec67cd81a4b3472b6f4f3367"
+              "id": "frcd1:a3cf34a85cc2e453ca2b70022d0886c465ca4f77590822f915912f7d2ac01b5a"
             }
           ],
           "mutation_authority": false,
@@ -813,12 +813,12 @@
           },
           "page": {
             "before": 0,
-            "next": "frce-page:c7c9cb8dc00177185e5db78ff2ee1cbeb058bb55a60f1f3d2d24c7762a56718a:1",
+            "next": "frce-page:c7eba7356eb3d9fe8d50154308daf9f80808fca5fc81e20fee2481c03773033f:1",
             "remaining": 2,
             "returned": 1,
             "total": 3
           },
-          "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+          "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
           "schema": "fr-compiler-evidence-1",
           "scope": {
             "argv": [
@@ -848,12 +848,12 @@
                 "files": {
                   "Cargo.lock": {
                     "bytes": 169,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                     "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
                   },
                   "Cargo.toml": {
                     "bytes": 135,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                     "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
                   }
                 },
@@ -873,8 +873,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -898,8 +898,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -921,7 +921,7 @@
         },
         {
           "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
-          "basis": "frcpe1:2eaff5d6e37b6e4ba500f1628502f750b6a976fa5c5b09e1b0929e34009233cc",
+          "basis": "frcpe1:4662bb24ac5e899abd49537b696004e5e0084b5cdbae0fb42f9fcb6646240853",
           "budget": {
             "limit": 1,
             "response_bytes": 32768
@@ -937,15 +937,15 @@
           },
           "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
           "complete": false,
-          "context_basis": "frcb1:6848c500d0c8ff43c35fdbd26624d26d29f6ef58f35598a6b1c64445ad9476fc",
+          "context_basis": "frcb1:b602023d7d04a63a45a22b5526e952410174a9228cbe5cd4cf483cd0ce14f011",
           "continuation": {
             "arguments": [
               "project",
               "compiler-evidence",
               "--from",
-              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-evidence-8wwrdi8o/checks.json",
+              "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-evidence-f7vskbwc/checks.json",
               "--digest",
-              "96b2cca331c37a3f60a3944fa765d32cc41320d617d20fd5fcb6f0d3ace0495b",
+              "b75cc6b41dca07a0202719484fb9f9395b7ded4c8187214038b7fefc88a10985",
               "--check",
               "strict",
               "--format",
@@ -955,7 +955,7 @@
               "--bytes",
               "32768",
               "--cursor",
-              "frce-page:c7c9cb8dc00177185e5db78ff2ee1cbeb058bb55a60f1f3d2d24c7762a56718a:2"
+              "frce-page:c7eba7356eb3d9fe8d50154308daf9f80808fca5fc81e20fee2481c03773033f:2"
             ]
           },
           "coverage": {
@@ -984,20 +984,20 @@
           },
           "disagreements": [],
           "disclosure_complete": false,
-          "handle_prefix": "frp1:1eb9f362a4d35da51548dda537341fda:",
+          "handle_prefix": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:",
           "inputs": {
             "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
             "check": "strict",
-            "configuration": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+            "configuration": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
             "format": "rustc-json",
-            "report": "96b2cca331c37a3f60a3944fa765d32cc41320d617d20fd5fcb6f0d3ace0495b",
-            "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
-            "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
-            "toolchain": "acf1179acb1682c75f5c4d65afd964f1be21858e1d22997da2208b0c436627cf"
+            "report": "b75cc6b41dca07a0202719484fb9f9395b7ded4c8187214038b7fefc88a10985",
+            "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
+            "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
+            "toolchain": "a99d8fbe5f7e0abe46130e3f0fbbb8cc82253a578be0c233e53e06f636357a49"
           },
           "items": [
             {
-              "basis": "frcpe1:2eaff5d6e37b6e4ba500f1628502f750b6a976fa5c5b09e1b0929e34009233cc",
+              "basis": "frcpe1:4662bb24ac5e899abd49537b696004e5e0084b5cdbae0fb42f9fcb6646240853",
               "core": {
                 "code": null,
                 "confidence": "reported-by-declared-check",
@@ -1008,7 +1008,7 @@
                 "rule": "rust-compiler-evidence-1:diagnostic",
                 "spans": []
               },
-              "id": "frcd1:c3b1fb9bf2cb20f28e8936017580f9f3ea8349f3d723ccf3fd8bcb493920adeb"
+              "id": "frcd1:0469cdf2a929dbfe95922b9c9980294584b0b8ee5fe700ff6d6a227c0b4174ac"
             }
           ],
           "mutation_authority": false,
@@ -1020,12 +1020,12 @@
           },
           "page": {
             "before": 1,
-            "next": "frce-page:c7c9cb8dc00177185e5db78ff2ee1cbeb058bb55a60f1f3d2d24c7762a56718a:2",
+            "next": "frce-page:c7eba7356eb3d9fe8d50154308daf9f80808fca5fc81e20fee2481c03773033f:2",
             "remaining": 1,
             "returned": 1,
             "total": 3
           },
-          "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+          "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
           "schema": "fr-compiler-evidence-1",
           "scope": {
             "argv": [
@@ -1055,12 +1055,12 @@
                 "files": {
                   "Cargo.lock": {
                     "bytes": 169,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                     "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
                   },
                   "Cargo.toml": {
                     "bytes": 135,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                     "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
                   }
                 },
@@ -1080,8 +1080,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -1105,8 +1105,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -1128,7 +1128,7 @@
         },
         {
           "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
-          "basis": "frcpe1:2eaff5d6e37b6e4ba500f1628502f750b6a976fa5c5b09e1b0929e34009233cc",
+          "basis": "frcpe1:4662bb24ac5e899abd49537b696004e5e0084b5cdbae0fb42f9fcb6646240853",
           "budget": {
             "limit": 1,
             "response_bytes": 32768
@@ -1144,7 +1144,7 @@
           },
           "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
           "complete": false,
-          "context_basis": "frcb1:6848c500d0c8ff43c35fdbd26624d26d29f6ef58f35598a6b1c64445ad9476fc",
+          "context_basis": "frcb1:b602023d7d04a63a45a22b5526e952410174a9228cbe5cd4cf483cd0ce14f011",
           "continuation": null,
           "coverage": {
             "architecture": "not inferred",
@@ -1172,20 +1172,20 @@
           },
           "disagreements": [],
           "disclosure_complete": false,
-          "handle_prefix": "frp1:1eb9f362a4d35da51548dda537341fda:",
+          "handle_prefix": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:",
           "inputs": {
             "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
             "check": "strict",
-            "configuration": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+            "configuration": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
             "format": "rustc-json",
-            "report": "96b2cca331c37a3f60a3944fa765d32cc41320d617d20fd5fcb6f0d3ace0495b",
-            "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
-            "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
-            "toolchain": "acf1179acb1682c75f5c4d65afd964f1be21858e1d22997da2208b0c436627cf"
+            "report": "b75cc6b41dca07a0202719484fb9f9395b7ded4c8187214038b7fefc88a10985",
+            "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
+            "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
+            "toolchain": "a99d8fbe5f7e0abe46130e3f0fbbb8cc82253a578be0c233e53e06f636357a49"
           },
           "items": [
             {
-              "basis": "frcpe1:2eaff5d6e37b6e4ba500f1628502f750b6a976fa5c5b09e1b0929e34009233cc",
+              "basis": "frcpe1:4662bb24ac5e899abd49537b696004e5e0084b5cdbae0fb42f9fcb6646240853",
               "core": {
                 "code": null,
                 "confidence": "reported-by-declared-check",
@@ -1196,7 +1196,7 @@
                 "rule": "rust-compiler-evidence-1:diagnostic",
                 "spans": []
               },
-              "id": "frcd1:1f0f54ad949ffc7749fcebbdf6216bfec04fadaf7b2fbe1841fe792b3184a024"
+              "id": "frcd1:9241b7d7c94a163144ff45709e3af9fdbc6dba5af170473ad978f8fb5189a285"
             }
           ],
           "mutation_authority": false,
@@ -1213,7 +1213,7 @@
             "returned": 1,
             "total": 3
           },
-          "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+          "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
           "schema": "fr-compiler-evidence-1",
           "scope": {
             "argv": [
@@ -1243,12 +1243,12 @@
                 "files": {
                   "Cargo.lock": {
                     "bytes": 169,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                     "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
                   },
                   "Cargo.toml": {
                     "bytes": 135,
-                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                     "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
                   }
                 },
@@ -1268,8 +1268,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -1293,8 +1293,8 @@
                   "identity_files": [
                     {
                       "bytes": 29,
-                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                      "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                      "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                       "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                     },
                     {
@@ -1315,8 +1315,8 @@
           "trust": "trusted caller digest binds retained check output; no independent execution attestation."
         }
       ],
-      "check_seconds": 2.5386390829226,
-      "first_page_seconds": 0.6370342079317197,
+      "check_seconds": 2.568855707999319,
+      "first_page_seconds": 0.6356726660160348,
       "raw_report_bytes": 7748,
       "first_page_bytes": 7536,
       "all_page_bytes": 19284,
@@ -1328,7 +1328,7 @@
   },
   "clipped": {
     "checks": {
-      "basis": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+      "basis": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
       "checks": [
         {
           "argv": [
@@ -1351,7 +1351,7 @@
             "RUSTC_BOOTSTRAP"
           ],
           "identity_files": [
-            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
             "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
           ],
           "name": "default",
@@ -1380,7 +1380,7 @@
             "RUSTC_BOOTSTRAP"
           ],
           "identity_files": [
-            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
             "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
           ],
           "name": "strict",
@@ -1416,7 +1416,7 @@
             "strict"
           ],
           "cwd": ".",
-          "elapsed_ms": 46,
+          "elapsed_ms": 43,
           "error": null,
           "exit_code": 1,
           "name": "strict",
@@ -1438,9 +1438,9 @@
           "timed_out": false
         }
       ],
-      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project",
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project",
       "schema": "fr-checks-1",
-      "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
+      "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
       "source_snapshot_checked": true,
       "source_snapshot_stable": true,
       "toolchain": {
@@ -1448,12 +1448,12 @@
           "files": {
             "Cargo.lock": {
               "bytes": 169,
-              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
               "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
             },
             "Cargo.toml": {
               "bytes": 135,
-              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
               "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
             }
           },
@@ -1473,8 +1473,8 @@
             "identity_files": [
               {
                 "bytes": 29,
-                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                 "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
               },
               {
@@ -1498,8 +1498,8 @@
             "identity_files": [
               {
                 "bytes": 29,
-                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                 "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
               },
               {
@@ -1520,7 +1520,7 @@
     },
     "report": {
       "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
-      "basis": "frcpe1:40917e2b61695f7eee54148c47cad1827cc0bb12895ec4291da112ed1248a7ec",
+      "basis": "frcpe1:425b0e0ad997ad8082c80688f84acc34e81028d48f4d303d31c9dc46b42a9fe1",
       "budget": {
         "limit": 8,
         "response_bytes": 32768
@@ -1539,7 +1539,7 @@
       },
       "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
       "complete": false,
-      "context_basis": "frcb1:6848c500d0c8ff43c35fdbd26624d26d29f6ef58f35598a6b1c64445ad9476fc",
+      "context_basis": "frcb1:b602023d7d04a63a45a22b5526e952410174a9228cbe5cd4cf483cd0ce14f011",
       "continuation": null,
       "coverage": {
         "architecture": "not inferred",
@@ -1567,16 +1567,16 @@
       },
       "disagreements": [],
       "disclosure_complete": true,
-      "handle_prefix": "frp1:1eb9f362a4d35da51548dda537341fda:",
+      "handle_prefix": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:",
       "inputs": {
         "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
         "check": "strict",
-        "configuration": "8782bc95f3c5e49707cac99e85799579fe21f761412acaf52845dfbc0caacb34",
+        "configuration": "28272a8e001bdce0bd4745ed947f365fe34234ba00a1ba1cd987904ac862bb50",
         "format": "rustc-json",
-        "report": "a639f3fbccaf16c2360aa0e2ddf4b30742fc7878ae648e6541101ab977565a21",
-        "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
-        "source_revision": "66e3f6a9224f13a478abf1b507ac73b462c48ab841f92d487e47d18f7e4f54ca",
-        "toolchain": "acf1179acb1682c75f5c4d65afd964f1be21858e1d22997da2208b0c436627cf"
+        "report": "80fe4523163b170a27ed8e99b62dbcb46c61acc72f377e500fef0207a71ec31e",
+        "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
+        "source_revision": "c759c9572f23171dcc398fc8b4c090b7f2cba277611942a54ce0712ae35ff9a8",
+        "toolchain": "a99d8fbe5f7e0abe46130e3f0fbbb8cc82253a578be0c233e53e06f636357a49"
       },
       "items": [],
       "mutation_authority": false,
@@ -1593,7 +1593,7 @@
         "returned": 0,
         "total": 0
       },
-      "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+      "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
       "schema": "fr-compiler-evidence-1",
       "scope": {
         "argv": [
@@ -1623,12 +1623,12 @@
             "files": {
               "Cargo.lock": {
                 "bytes": 169,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                 "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
               },
               "Cargo.toml": {
                 "bytes": 135,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                 "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
               }
             },
@@ -1648,8 +1648,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -1673,8 +1673,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -1697,7 +1697,7 @@
   },
   "cargo": {
     "checks": {
-      "basis": "d8d880cc79e3d27bd50733ebb55dd2848ae5dd62b12e0e88da58a98776b6065a",
+      "basis": "743ac2f54ba7f90bbd78579b83b92f3c7e25fe93317ff11fbb83567ef6bcf93f",
       "checks": [
         {
           "argv": [
@@ -1720,7 +1720,7 @@
             "RUSTC_BOOTSTRAP"
           ],
           "identity_files": [
-            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
             "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
           ],
           "name": "default",
@@ -1749,7 +1749,7 @@
             "RUSTC_BOOTSTRAP"
           ],
           "identity_files": [
-            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+            "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
             "/Users/zardoz/.rustup/toolchains/stable-aarch64-apple-darwin/lib/librustc_driver-2446825d52b9075b.dylib"
           ],
           "name": "strict",
@@ -1801,7 +1801,7 @@
             "Cargo strict configuration"
           ],
           "cwd": ".",
-          "elapsed_ms": 129,
+          "elapsed_ms": 152,
           "error": null,
           "exit_code": 101,
           "name": "cargo",
@@ -1812,20 +1812,20 @@
             "encoding": "UTF-8 with replacement; byte counts precede decoding",
             "omitted_bytes": 0,
             "retained_bytes": 222,
-            "text": "    Checking compiler_evidence_fixture v0.1.0 (/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project)\nerror: could not compile `compiler_evidence_fixture` (lib) due to 1 previous error\n"
+            "text": "    Checking compiler_evidence_fixture v0.1.0 (/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project)\nerror: could not compile `compiler_evidence_fixture` (lib) due to 1 previous error\n"
           },
           "stdout": {
             "encoding": "UTF-8 with replacement; byte counts precede decoding",
             "omitted_bytes": 0,
             "retained_bytes": 3289,
-            "text": "{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"error[E0308]: mismatched types\\n --> subject.rs:3:7\\n  |\\n1 | pub fn width(value: &str) -> usize {\\n  |                              ----- expected `usize` because of return type\\n2 |     #[cfg(fr_strict)]\\n3 |     { value }\\n  |       ^^^^^ expected `usize`, found `&str`\\n\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"error\",\"message\":\"mismatched types\",\"spans\":[{\"byte_end\":70,\"byte_start\":65,\"column_end\":12,\"column_start\":7,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":true,\"label\":\"expected `usize`, found `&str`\",\"line_end\":3,\"line_start\":3,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":12,\"highlight_start\":7,\"text\":\"    { value }\"}]},{\"byte_end\":34,\"byte_start\":29,\"column_end\":35,\"column_start\":30,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":false,\"label\":\"expected `usize` because of return type\",\"line_end\":1,\"line_start\":1,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":35,\"highlight_start\":30,\"text\":\"pub fn width(value: &str) -> usize {\"}]}],\"code\":{\"code\":\"E0308\",\"explanation\":\"Expected type did not match the received type.\\n\\nErroneous code examples:\\n\\n```compile_fail,E0308\\nfn plus_one(x: i32) -> i32 {\\n    x + 1\\n}\\n\\nplus_one(\\\"Not a number\\\");\\n//       ^^^^^^^^^^^^^^ expected `i32`, found `&str`\\n\\nif \\\"Not a bool\\\" {\\n// ^^^^^^^^^^^^ expected `bool`, found `&str`\\n}\\n\\nlet x: f32 = \\\"Not a float\\\";\\n//     ---   ^^^^^^^^^^^^^ expected `f32`, found `&str`\\n//     |\\n//     expected due to this\\n```\\n\\nThis error occurs when an expression was used in a place where the compiler\\nexpected an expression of a different type. It can occur in several cases, the\\nmost common being when calling a function and passing an argument which has a\\ndifferent type than the matching type in the function declaration.\\n\"}}}\n{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"For more information about this error, try `rustc --explain E0308`.\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"failure-note\",\"message\":\"For more information about this error, try `rustc --explain E0308`.\",\"spans\":[],\"code\":null}}\n{\"reason\":\"build-finished\",\"success\":false}\n"
+            "text": "{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"error[E0308]: mismatched types\\n --> subject.rs:3:7\\n  |\\n1 | pub fn width(value: &str) -> usize {\\n  |                              ----- expected `usize` because of return type\\n2 |     #[cfg(fr_strict)]\\n3 |     { value }\\n  |       ^^^^^ expected `usize`, found `&str`\\n\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"error\",\"message\":\"mismatched types\",\"spans\":[{\"byte_end\":70,\"byte_start\":65,\"column_end\":12,\"column_start\":7,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":true,\"label\":\"expected `usize`, found `&str`\",\"line_end\":3,\"line_start\":3,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":12,\"highlight_start\":7,\"text\":\"    { value }\"}]},{\"byte_end\":34,\"byte_start\":29,\"column_end\":35,\"column_start\":30,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":false,\"label\":\"expected `usize` because of return type\",\"line_end\":1,\"line_start\":1,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":35,\"highlight_start\":30,\"text\":\"pub fn width(value: &str) -> usize {\"}]}],\"code\":{\"code\":\"E0308\",\"explanation\":\"Expected type did not match the received type.\\n\\nErroneous code examples:\\n\\n```compile_fail,E0308\\nfn plus_one(x: i32) -> i32 {\\n    x + 1\\n}\\n\\nplus_one(\\\"Not a number\\\");\\n//       ^^^^^^^^^^^^^^ expected `i32`, found `&str`\\n\\nif \\\"Not a bool\\\" {\\n// ^^^^^^^^^^^^ expected `bool`, found `&str`\\n}\\n\\nlet x: f32 = \\\"Not a float\\\";\\n//     ---   ^^^^^^^^^^^^^ expected `f32`, found `&str`\\n//     |\\n//     expected due to this\\n```\\n\\nThis error occurs when an expression was used in a place where the compiler\\nexpected an expression of a different type. It can occur in several cases, the\\nmost common being when calling a function and passing an argument which has a\\ndifferent type than the matching type in the function declaration.\\n\"}}}\n{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"For more information about this error, try `rustc --explain E0308`.\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"failure-note\",\"message\":\"For more information about this error, try `rustc --explain E0308`.\",\"spans\":[],\"code\":null}}\n{\"reason\":\"build-finished\",\"success\":false}\n"
           },
           "timed_out": false
         }
       ],
-      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project",
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project",
       "schema": "fr-checks-1",
-      "source_revision": "4cf2bcee88ce57be06aa0699d81009702a7168cc1422ea6eb042a337c6a613a5",
+      "source_revision": "4aae675555e6ade3d2df6ed07eb9aa2207fcdf6a44d062ec5a5afabdf857e962",
       "source_snapshot_checked": true,
       "source_snapshot_stable": true,
       "toolchain": {
@@ -1833,17 +1833,17 @@
           "files": {
             ".cargo/config.toml": {
               "bytes": 40,
-              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/.cargo/config.toml",
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/.cargo/config.toml",
               "sha256": "4d2fdab2ed064c24f4db0c4ab1d7d31f5d7b571077647ea6aeb74b226f408183"
             },
             "Cargo.lock": {
               "bytes": 169,
-              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
               "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
             },
             "Cargo.toml": {
               "bytes": 135,
-              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+              "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
               "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
             }
           },
@@ -1863,8 +1863,8 @@
             "identity_files": [
               {
                 "bytes": 29,
-                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                 "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
               },
               {
@@ -1888,8 +1888,8 @@
             "identity_files": [
               {
                 "bytes": 29,
-                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                 "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
               },
               {
@@ -1943,7 +1943,7 @@
     },
     "report": {
       "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
-      "basis": "frcpe1:dfc98c6225c5a3bb61ab53695b233f1761d1a5f605d1b0834bdebe1feebbf309",
+      "basis": "frcpe1:50f67d3f34d6c5a05c318c0e120889ad471a8bf5d66b01e9aabae70c53a4897d",
       "budget": {
         "limit": 64,
         "response_bytes": 32768
@@ -1959,7 +1959,7 @@
       },
       "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
       "complete": true,
-      "context_basis": "frcb1:6848c500d0c8ff43c35fdbd26624d26d29f6ef58f35598a6b1c64445ad9476fc",
+      "context_basis": "frcb1:b602023d7d04a63a45a22b5526e952410174a9228cbe5cd4cf483cd0ce14f011",
       "continuation": null,
       "coverage": {
         "architecture": "not inferred",
@@ -1988,25 +1988,25 @@
       "disagreements": [
         {
           "claim": "parser acceptance and compiler rejection concern different verification levels.",
-          "diagnostic": "frcd1:4d71c74e9f2d3d842b6d7395eade678c1fba0f10456bd5492c33ffe8400080a0",
+          "diagnostic": "frcd1:50f6c36f683005ca0678e8fe3134bc6dc6be2f11043108498ceaca14a3ca17d6",
           "kind": "syntax-accepted-compiler-error"
         }
       ],
       "disclosure_complete": true,
-      "handle_prefix": "frp1:1eb9f362a4d35da51548dda537341fda:",
+      "handle_prefix": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:",
       "inputs": {
         "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
         "check": "cargo",
-        "configuration": "d8d880cc79e3d27bd50733ebb55dd2848ae5dd62b12e0e88da58a98776b6065a",
+        "configuration": "743ac2f54ba7f90bbd78579b83b92f3c7e25fe93317ff11fbb83567ef6bcf93f",
         "format": "cargo-json",
-        "report": "32fb5490e01ad37d17e605ccf43eb092aee702db057ba29f55364cb86f796cc6",
-        "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
-        "source_revision": "4cf2bcee88ce57be06aa0699d81009702a7168cc1422ea6eb042a337c6a613a5",
-        "toolchain": "c850671fe8cbde83a647bdea7664e31a747a193dc4f21afd6f286f4aa511a4ab"
+        "report": "eb9447cdf9df96cee1bb741cbca4748ec0ae01b9005f4efee2e083e03f681f0d",
+        "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
+        "source_revision": "4aae675555e6ade3d2df6ed07eb9aa2207fcdf6a44d062ec5a5afabdf857e962",
+        "toolchain": "0b2491441e9ac0adc09dc725e6c44ed1af0d68fa5a2867d70003b925c2e175a2"
       },
       "items": [
         {
-          "basis": "frcpe1:dfc98c6225c5a3bb61ab53695b233f1761d1a5f605d1b0834bdebe1feebbf309",
+          "basis": "frcpe1:50f67d3f34d6c5a05c318c0e120889ad471a8bf5d66b01e9aabae70c53a4897d",
           "core": {
             "code": "E0308",
             "confidence": "reported-by-declared-check",
@@ -2018,8 +2018,8 @@
             "spans": [
               {
                 "occurrence": {
-                  "enclosing": "frp1:1eb9f362a4d35da51548dda537341fda:2",
-                  "id": "fro1:8d0bfb3d2fc2abffd7cef9037f082730f82e13139cf0c985e898a5141e516faf",
+                  "enclosing": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:2",
+                  "id": "fro1:90209f2aea25a07b46ea8609851f406539b6d53d927a504bd27c744e82a6d0fb",
                   "location": {
                     "range": {
                       "end": {
@@ -2037,7 +2037,7 @@
                     }
                   },
                   "path": "subject.rs",
-                  "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+                  "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
                   "role": "compiler-primary"
                 },
                 "primary": true,
@@ -2046,7 +2046,7 @@
                   "arguments": [
                     "project",
                     "show",
-                    "frp1:1eb9f362a4d35da51548dda537341fda:1",
+                    "frp1:2527313a2d9ba8cc7370c9e21668f2f6:1",
                     "--source",
                     "--bytes",
                     "256",
@@ -2059,8 +2059,8 @@
               },
               {
                 "occurrence": {
-                  "enclosing": "frp1:1eb9f362a4d35da51548dda537341fda:2",
-                  "id": "fro1:c35cbbd3463f6b71943738fd33278909618d8a540c871a1c3d7340b0a02da2e3",
+                  "enclosing": "frp1:2527313a2d9ba8cc7370c9e21668f2f6:2",
+                  "id": "fro1:90a0aeaf991dfe31795ba74fc3216fd2262afd4501ed53c6c501752616e978e0",
                   "location": {
                     "range": {
                       "end": {
@@ -2078,7 +2078,7 @@
                     }
                   },
                   "path": "subject.rs",
-                  "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+                  "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
                   "role": "compiler-secondary"
                 },
                 "primary": false,
@@ -2087,7 +2087,7 @@
                   "arguments": [
                     "project",
                     "show",
-                    "frp1:1eb9f362a4d35da51548dda537341fda:1",
+                    "frp1:2527313a2d9ba8cc7370c9e21668f2f6:1",
                     "--source",
                     "--bytes",
                     "256",
@@ -2100,10 +2100,10 @@
               }
             ]
           },
-          "id": "frcd1:4d71c74e9f2d3d842b6d7395eade678c1fba0f10456bd5492c33ffe8400080a0"
+          "id": "frcd1:50f6c36f683005ca0678e8fe3134bc6dc6be2f11043108498ceaca14a3ca17d6"
         },
         {
-          "basis": "frcpe1:dfc98c6225c5a3bb61ab53695b233f1761d1a5f605d1b0834bdebe1feebbf309",
+          "basis": "frcpe1:50f67d3f34d6c5a05c318c0e120889ad471a8bf5d66b01e9aabae70c53a4897d",
           "core": {
             "code": null,
             "confidence": "reported-by-declared-check",
@@ -2114,7 +2114,7 @@
             "rule": "rust-compiler-evidence-1:diagnostic",
             "spans": []
           },
-          "id": "frcd1:4e9f454807e9053ea19f4b67586421bf39362af364b53b45042acbd00da6d404"
+          "id": "frcd1:4fe61096b788dbd583959f2ed4f6b68029183c7e4e62a213af7179d132d57f77"
         }
       ],
       "mutation_authority": false,
@@ -2131,7 +2131,7 @@
         "returned": 2,
         "total": 2
       },
-      "revision": "1eb9f362a4d35da51548dda537341fda4b2c1302006da1a18d2b7d5ff1018b27",
+      "revision": "2527313a2d9ba8cc7370c9e21668f2f6ae3bc87a43de2387ba7e824c3b287c25",
       "schema": "fr-compiler-evidence-1",
       "scope": {
         "argv": [
@@ -2153,17 +2153,17 @@
             "files": {
               ".cargo/config.toml": {
                 "bytes": 40,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/.cargo/config.toml",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/.cargo/config.toml",
                 "sha256": "4d2fdab2ed064c24f4db0c4ab1d7d31f5d7b571077647ea6aeb74b226f408183"
               },
               "Cargo.lock": {
                 "bytes": 169,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.lock",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.lock",
                 "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
               },
               "Cargo.toml": {
                 "bytes": 135,
-                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/project/Cargo.toml",
+                "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/project/Cargo.toml",
                 "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
               }
             },
@@ -2183,8 +2183,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -2208,8 +2208,8 @@
               "identity_files": [
                 {
                   "bytes": 29,
-                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
-                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-593bgl17/policy.txt",
+                  "declared": "/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
+                  "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-compiler-eval-082zp2kb/policy.txt",
                   "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
                 },
                 {
@@ -2282,7 +2282,7 @@
     "new_build_configuration": true,
     "source": true
   },
-  "evidence_digest": "f80d754674597cfcf45fcd24f6ecfc9197bdd786aa484509ab63fdbf31392de7",
+  "evidence_digest": "d66efa21fb5d1e4982acd83cb1dfa917d19326501b5bdf10c1575d33a4cbc097",
   "false_claims": 0,
   "useful_discoveries": [
     "E0308 at exact value span",

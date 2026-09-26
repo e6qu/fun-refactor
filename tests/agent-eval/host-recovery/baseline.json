@@ -1,0 +1,9 @@
+{
+  "revision": "06ff94aae5870be331cd6f4a4346637b620a714a",
+  "command": "cargo test --lib history:: -- --test-threads 2",
+  "passed": 22,
+  "failed": 0,
+  "seconds": 6.26,
+  "coverage": "Existing post-publication faults only; staging, journal writes and synchronization do not have injection boundaries.",
+  "gap": "Staged files are renamed without checking their content and kind against the reviewed snapshot. Recovery clears pending state without rechecking and syncing paths it found already restored."
+}

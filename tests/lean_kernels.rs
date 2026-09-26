@@ -608,27 +608,19 @@ fn position_sources() -> Vec<String> {
     sources
 }
 
-fn lean_string(value: &str) -> String {
-    let mut out = String::from("\"");
-    for character in value.chars() {
-        match character {
-            '\\' => out.push_str("\\\\"),
-            '\"' => out.push_str("\\\""),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if c.is_control() => write!(out, "\\u{{{:x}}}", c as u32).unwrap(),
-            c => out.push(c),
-        }
-    }
-    out.push('\"');
-    out
+fn lean_char_string(value: &str) -> String {
+    let characters = value
+        .chars()
+        .map(|character| format!("Char.ofNat {}", character as u32))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("(String.ofList [{characters}])")
 }
 
 fn kernel_accepts_all(plans: &[(&str, &[Edit], &str)]) {
     build_kernel();
     let mut program = String::from(
-        "-- fn kernel program\nimport FrKernels.Edit\n\nset_option maxRecDepth 5000\nset_option maxHeartbeats 1000000\n\nopen FrKernels\n",
+        "-- fn kernel program\nimport FrKernels.EditPlan\n\nset_option maxRecDepth 5000\nset_option maxHeartbeats 1000000\nset_option linter.unusedSimpArgs false\n\nopen FrKernels FrKernels.EditPlan\n",
     );
     for (number, (source, edits, expected)) in plans.iter().enumerate() {
         let edits = edits
@@ -638,16 +630,16 @@ fn kernel_accepts_all(plans: &[(&str, &[Edit], &str)]) {
                     "-- fn generated edit\n{{ start := {}, stop := {}, replacement := {} }}",
                     edit.span.start,
                     edit.span.end,
-                    lean_string(&edit.replacement),
+                    lean_char_string(&edit.replacement),
                 )
             })
             .collect::<Vec<_>>()
             .join(", ");
         write!(
             program,
-            "\n-- fn generated plan\ndef source_{number} : String := {}\ndef edits_{number} : List Edit := [{edits}]\n\nexample : applyChecked source_{number} edits_{number} = some {} := by decide\n",
-            lean_string(source),
-            lean_string(expected),
+            "\n-- fn generated plan\ndef source_{number} : String := {}\ndef edits_{number} : List Edit := [{edits}]\n\nexample : applyChecked source_{number} edits_{number} = some {} := by\n  unfold source_{number} edits_{number}\n  apply checked_from_chars\n  simp only [checkedChars, spliceChars, FrKernels.order, FrKernels.insert, List.all_cons, List.all_nil, List.nil_append, List.cons_append, List.reverse_cons, List.reverse_nil, List.foldl_cons, List.foldl_nil, String.toList_ofList]\n  decide\n",
+            lean_char_string(source),
+            lean_char_string(expected),
         )
         .unwrap();
     }
@@ -657,8 +649,17 @@ fn kernel_accepts_all(plans: &[(&str, &[Edit], &str)]) {
         .expect("temporary Lean plan in the kernel package");
     let file = dir.path().join("plan.lean");
     std::fs::write(&file, program).expect("write Lean plan");
-    let output = Command::new("lake")
-        .args(["env", "lean", file.to_str().expect("UTF-8 temporary path")])
+    let output = Command::new("python3")
+        .arg(root().join("tools/lean-guard.py"))
+        .args([
+            "--",
+            "lake",
+            "env",
+            "lean",
+            "--memory=1024",
+            "--threads=1",
+            file.to_str().expect("UTF-8 temporary path"),
+        ])
         .current_dir(root().join("kernels"))
         .output()
         .expect("Lean is installed for the kernel gate");
@@ -4611,4 +4612,52 @@ fn general_intent_action_purposes_and_reviews_match_lean_exhaustively() {
             "{case}"
         );
     }
+}
+
+#[test]
+fn host_recovery_decisions_match_lean_for_all_booleans_and_snapshot_cases() {
+    use fun_refactor::history::{Snapshot, SnapshotKind};
+    use fun_refactor::transaction_kernel::{history_publication_allowed, history_recovery_step};
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("host-recovery")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let mut expected = Vec::new();
+    for before in [false, true] {
+        for after in [false, true] {
+            expected.push(history_publication_allowed(before, after).to_string());
+            expected.push(history_recovery_step(before, after).to_string());
+        }
+    }
+    let mut samples = vec![None];
+    for (content, mode, kind) in [
+        ("", 384, SnapshotKind::Regular),
+        ("λ\n", 384, SnapshotKind::Regular),
+        ("λ\n", 489, SnapshotKind::Regular),
+        ("名", 420, SnapshotKind::Regular),
+        ("target", 0, SnapshotKind::Symlink),
+    ] {
+        samples.push(Some(Snapshot {
+            content: content.into(),
+            mode,
+            kind,
+        }));
+    }
+    for current in &samples {
+        for before in &samples {
+            for after in &samples {
+                expected
+                    .push(history_recovery_step(current == before, current == after).to_string());
+            }
+        }
+    }
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
 }

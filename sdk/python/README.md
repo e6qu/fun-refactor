@@ -477,3 +477,11 @@ Use `TaskStep.proved(...)` to declare the requirements and package dependencies.
 Persist reports with `ProofReport.persist`; restore them through verified Merkle records with `ProofReport.restore`.
 Resume a plan before relying on its proof state. Changed inputs invalidate dependent evidence.
 See [retained model proofs](../../docs/agent-investigations.md#retained-model-proofs) for execution bounds and trust assumptions.
+
+## Journaled transition failures
+
+A native apply, undo, redo or recovery failure may include `error.history` in `FrRuntimeError.report`.
+It identifies the transaction, action, phase, outcome and observed `journal_pending` state.
+`recovery_error` retains a failed automatic rollback separately from the original error.
+Read `fr history` after uncertain finalization and recover only a transaction the journal reports pending.
+See the [host recovery contract](../../docs/host-recovery.md) for field meanings and limits.

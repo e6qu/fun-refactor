@@ -1,4 +1,5 @@
 import FrKernels.History
+import FrKernels.HostRecovery
 import FrKernels.MemoryHistory
 import FrKernels.Patch
 import FrKernels.Workflow
@@ -189,6 +190,15 @@ def main (args : List String) : IO Unit :=
                     for correspondence in [false, true] do
                       for diff in [false, true] do
                         IO.println (FrKernels.IntentActions.complete targets evidence checks writable required checked requested correspondence diff)
+  | ["host-recovery"] => do
+      for before in [false, true] do
+        for after in [false, true] do
+          IO.println (FrKernels.HostRecovery.publicationAllowed before after)
+          IO.println (FrKernels.HostRecovery.recoveryStep before after)
+      for current in samples do
+        for before in samples do
+          for after in samples do
+            IO.println (FrKernels.HostRecovery.recoveryStep (current == before) (current == after))
   | ["memory-transitions"] =>
       for status in List.range 4 do
         for action in List.range 3 do

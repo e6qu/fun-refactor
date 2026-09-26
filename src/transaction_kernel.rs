@@ -20,3 +20,17 @@ pub fn memory_restore_allowed(
 pub fn memory_compaction_allowed(keep: usize) -> bool {
     keep <= 256
 }
+
+pub fn history_publication_allowed(target_matches: bool, staged_matches: bool) -> bool {
+    target_matches && staged_matches
+}
+
+pub fn history_recovery_step(matches_before: bool, matches_after: bool) -> usize {
+    if matches_before {
+        0
+    } else if matches_after {
+        1
+    } else {
+        2
+    }
+}

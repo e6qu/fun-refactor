@@ -102,6 +102,8 @@ The native library's `edit::commit` retains handled-failure recovery without a p
 The browser workspace has no durable filesystem transaction.
 A successful JSON write report follows the commit and includes its `transaction` identity.
 A failed commit emits one error object. Run `fr history` to inspect pending recovery.
+Journaled transition errors include `error.history` with phase, outcome and observed pending state.
+See [host recovery](docs/host-recovery.md) for the error contract, fault matrix and limits.
 Syntax validation rejects new parser errors; compilation and behavior require their own checks.
 
 ## Naming what to act on

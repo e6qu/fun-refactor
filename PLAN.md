@@ -141,8 +141,9 @@ Outcome: an agent can implement the requested task and state precisely what its 
   For new code, author the specification and implementation together.
 - [ ] Retain old/new models for refactoring and translation, with preservation or refinement claims.
   Reject dependent proof evidence after relevant changes.
-- [ ] Check small executable kernels for edit admission, dependency invalidation and task transitions.
+- [x] Check small executable kernels for edit admission, dependency invalidation and task transitions.
   State trusted components and remaining obligations; use fault injection for host operations.
+  [Kernel contracts](docs/lean-specs.md) cover the admitted predicates; [host recovery evidence](tests/agent-eval/results/2026-09-25-host-recovery/result.json) covers native journal boundaries.
 
 Gate: admitted constructs have compatibility cases, explicit refusals and independent behavior checks.
 Pinned tasks cover structural changes, translation, existing-code proofs and new-code specification/proof work.
@@ -172,7 +173,7 @@ These are substantial implementation advances across A–D; the complete milesto
   Opt-in whole-file flow reuse now validates
   source, rules, configuration and analyzer inputs, then renews occurrences after unrelated edits.
   Static root-local imports now extend that validated source closure and track missing import candidates.
-- D: new translation domains and old/new source correspondence proofs, plus host fault injection.
+- D: new translation domains and old/new source correspondence proofs, plus broader host-failure coverage.
   Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
 
 No milestone is complete. The remaining checklists retain their full outcome requirements; a partial
@@ -217,6 +218,12 @@ It records three repetitions across six workloads, with independent runtime outc
 Warm median latency fell 24–68% against the pinned per-node cache on this host; context bytes and transfer results are unchanged.
 Report chunks reduce object operations but use more disk space in warmed stores. Whole-analysis dependency validation remains the reuse boundary.
 These measurements support that storage choice without establishing production latency or a benefit from partial-summary reuse.
+
+The [host recovery task](tests/agent-eval/host-recovery/task.json) extends D's native transaction gate.
+It covers staging, publication, journal checkpoints and interrupted recovery across five filesystem entry cases.
+Two source-anchored decision kernels connect the host adapter to executable Lean models.
+The [recovery contract](docs/host-recovery.md) records structured failures, trusted components and remaining obligations.
+Host tests cover process interruption; power-loss behavior and full source correspondence remain outside their claims.
 
 ## Rules for every milestone
 
