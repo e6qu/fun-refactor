@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.34.1...fun-refactor-v0.35.0) (2026-09-26)
+
+
+### Features
+
+* harden journaled recovery with host fault checks ([#370](https://github.com/e6qu/fun-refactor/issues/370)) ([9f51894](https://github.com/e6qu/fun-refactor/commit/9f51894a1061987efedd4f357229bb3e1799c1c9))
+
 ## [0.34.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.34.0...fun-refactor-v0.34.1) (2026-09-25)
 
 
