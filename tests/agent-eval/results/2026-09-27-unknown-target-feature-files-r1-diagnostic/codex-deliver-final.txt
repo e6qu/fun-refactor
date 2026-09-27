@@ -1,0 +1,6 @@
+Implemented and delivered:
+
+- Added documented `escape_len(&str) -> usize` to `regex-syntax` and `regex`.
+- Updated escaping to preallocate exact capacity.
+- Preserved output and append behavior.
+- Empty input performs no allocation; nonempty escaping uses at most one allocation.

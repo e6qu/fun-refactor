@@ -1,0 +1,39 @@
+{
+  "schema": "fr-unknown-target-task-1",
+  "baseline": "a288066c06c3e826a1bc245a08d6a1b427a9b963",
+  "tasks": {
+    "unicode-dice": {
+      "kind": "bug",
+      "requirement": "The library's whitespace-insensitive bigram similarity gives inconsistent scores for non-ASCII text. For example, the strings éa and éab share one of three total scalar-value bigrams and should score 2/3. Diagnose and repair the Unicode behavior. Count Unicode scalar-value bigrams, preserve duplicate multiplicity, whitespace removal, equal-input behavior and existing ASCII behavior. Unequal inputs with fewer than two scalars after whitespace removal score zero. Preserve existing APIs.",
+      "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
+      "archive_sha256": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
+      "oracle": "Independent sorted Unicode-bigram multiset intersection over 67,081 input pairs, plus unchanged upstream tests. The original source must fail the behavioral oracle."
+    },
+    "regex-escape-len": {
+      "kind": "feature",
+      "requirement": "Callers need to reserve space for escaped regular-expression text without allocating a temporary string. Add documented public escape_len(pattern: &str) -> usize APIs to both public crates. Return the escaped UTF-8 byte length without allocating. Make escaping a nonempty pattern use at most one allocation and empty input none. Preserve escaping results, append behavior, existing APIs and builds without default features. Discover the implementation and integration points from the workspace.",
+      "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+      "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+      "oracle": "Independent escaped-byte and allocator-count oracle in both crates, append preservation, upstream library tests and no-default-features compilation. The original source must fail only for the absent API."
+    }
+  },
+  "comparison": "One fresh fr agent and one ordinary search/source-editing agent per task; identical requirements, upstream revisions, checks and independent oracles. Neither prompt supplies edit paths or private helper names. Each session has discovery and delivery phases in separate fresh agent processes.",
+  "resumption": "Agents retain a diagnosis, cited discovery events, selected source dependencies and pending work. Between phases the evaluator appends an inert comment to a selected dependency. Native plans must invalidate dependent evidence while preserving an independent README observation. Fresh agents receive the retained handoff and must rediscover current evidence before editing. The ordinary arm receives the same change and retained notes.",
+  "budgets": {
+    "trials": 4,
+    "phases_per_trial": 2,
+    "seconds_per_phase": 1200,
+    "calls_per_trial": 80,
+    "visible_bytes_per_trial": 1048576,
+    "parallel_workers": 1
+  },
+  "acceptance": [
+    "Establish failing baseline and passing independent final and receiver behavior without prescribing an implementation.",
+    "Retain exploratory calls, tool refusals, failed trials, agent settings, available usage and complete evidence bindings.",
+    "Reject stale mutation reviews and dependent investigation evidence after the intervening edit.",
+    "Deliver fresh reviewed changes, run checks, exercise exact reversal and independently replay the exported patch.",
+    "Compare task completion, disclosed bytes, source reveals, latency and available usage without extrapolating population gains."
+  ],
+  "boundaries": "Cooperative instrumented tool isolation, not protection against a malicious agent. Rust syntax and compiler/runtime evidence; no new Rust dataflow, security proof or source implementation equivalence claim. A finite two-repository cohort cannot close all four roadmap milestones.",
+  "edit_boundary": "The bounded fr guide inspected the existing evaluator. Direct edits implement the evaluation protocol, tests, retained evidence and documentation; these integrated changes are outside a single admitted author operation."
+}

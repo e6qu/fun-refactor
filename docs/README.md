@@ -28,6 +28,7 @@ Begin with the quickstart, then choose the runtime or protocol detail needed by 
 - [Completion audit](completion-audit.md): inspect live support and trust boundaries.
 - [Evaluation evidence](evaluations.md): reproduce and interpret deterministic and live-agent runs.
 - [Codex runner](agent-codex-runner.md): run optional paid live-agent evaluations.
+- [Unknown-target trials](unknown-target-investigations.md): compare discovery and resumed delivery on pinned upstream tasks.
 
 For a change, the normal path is
 `audit → goal → guide → bounded evidence → preview → reviewed execution → checks → patch`.

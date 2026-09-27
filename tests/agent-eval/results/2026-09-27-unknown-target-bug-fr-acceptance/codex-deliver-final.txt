@@ -1,0 +1,6 @@
+Repaired `sorensen_dice` Unicode handling in `src/lib.rs`.
+
+- Uses Unicode scalar counts via `chars().count()`.
+- Preserves whitespace removal, duplicate bigram multiplicity, equal-input behavior, APIs, and ASCII behavior.
+- All lifecycle checks passed, including restore/reapply and patch delivery.
+- Patch: `artifacts/change.patch`

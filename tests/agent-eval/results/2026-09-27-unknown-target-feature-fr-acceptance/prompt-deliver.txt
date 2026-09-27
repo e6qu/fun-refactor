@@ -1,0 +1,40 @@
+You are an independent acceptance agent in an unfamiliar pinned upstream workspace.
+Task: Callers need to reserve space for escaped regular-expression text without allocating a temporary string. Add documented public escape_len(pattern: &str) -> usize APIs to the regex and regex-syntax crates. Return the escaped UTF-8 byte length without allocating. Make escaping a nonempty pattern use at most one allocation and empty input none. Preserve escaping results, append behavior, existing APIs and builds without default features. Discover the implementation and integration points from the workspace.
+
+Current phase: deliver. Discover all edit paths and existing helper names yourself. Keep unrelated source and APIs intact. Do not browse, delegate, commit, push, inspect the evaluator/oracles, or access other sessions. No human correction is available. Use only the instrumented tool for inspection and changes, through functions.exec / tools.exec_command. Every shell command must be exactly one invocation. Prefer this form for simple requests:
+python3 /Users/zardoz/projects/fun-refactor/tools/investigation-agent.py step /private/tmp/fr-unknown-live-feature-fr-r2 --request '{"tool":"read","path":"README.md","start":1,"lines":80}'
+
+For authored source or text containing apostrophes, send one JSON object on stdin. End the heredoc exactly once. Do not add a second FRJSON line or any other shell command:
+python3 /Users/zardoz/projects/fun-refactor/tools/investigation-agent.py step /private/tmp/fr-unknown-live-feature-fr-r2 --request-stdin <<'FRJSON'
+{"tool":"read","path":"README.md","start":1,"lines":80}
+FRJSON
+
+This is a cooperative measurement boundary, not an OS security boundary. Do not read/write files or call project commands outside this tool.
+Use bounded fr discovery. Available requests:
+- {"tool":"project","args":["map","--depth","2","--limit","20"]}
+- {"tool":"project","args":["find","NAME","--limit","10","--signature"]}; optionally add "--in","PATH".
+- {"tool":"project","args":["show","HANDLE","--source","--bytes","8192"]} reveals selected source.
+- {"tool":"project","args":["map","PATH","--depth","0","--fields","handle,kind"]} obtains a file handle for insertion.
+- {"tool":"project","args":["trace","HANDLE","--depth","2"]} or other bounded read-only project queries.
+- {"tool":"guide","goal":{"schema":"fr-agent-goal-1","purpose":"understand","selector":{"name":"NAME","scope":"PATH","language":"rust"},"operation":{"kind":"automatic"}}} obtains a task route after you discover a selector.
+- {"tool":"read","path":"README.md","start":1,"lines":80} or Cargo.toml; source reads use project show.
+- {"tool":"review","targets":[{"id":"change","handle":"FULL_CURRENT_HANDLE","op":"replace-body","fragment":"{ complete braced Rust body }"}],"postconditions":{"files-changed":1,"edits":1,"paths-changed":["DISCOVERED_PATH"]}}
+  Author any number of targets in one review. replace-body takes only the complete braced body, replace-declaration takes a complete declaration, insert-declaration takes a complete declaration and a file handle. Include documentation for public APIs. Handles are revision-bound; use complete returned handles, not bare table IDs. Review returns the full proposed diff and a review identity. No source changes yet.
+Use at least one guide with an agent-discovered selector. Source handles and evidence must come from current reports. Scalar dataflow does not cover these Rust tasks; do not claim it does.
+
+Both arms use the same declared compiler/test checks and automatic delivery lifecycle. The evaluator checks original, changed, exactly restored and reapplied source, then exports a patch. Separate behavioral oracles and fresh receiver replay run after completion; their implementation is hidden from you. These checks do not prove general source equivalence.
+Discovery phase: inspect the unfamiliar workspace, diagnose the task, author and inspect a proposed review, then checkpoint. No source writes in this phase.
+Delivery phase: a fresh agent receives the previous handoff after a source revision. Inspect fresh evidence, author and inspect a new review, execute its exact returned identity, then finish. Retained handles and reviews may be stale.
+Shared requests:
+- {"tool":"checkpoint","diagnosis":"your supported diagnosis and uncertainty","dependencies":["DISCOVERED_RUST_SOURCE"],"evidence":[0,1],"pending":"remaining verification and delivery work"}. Cite successful discovery event IDs returned by the tool. Select source dependencies of your diagnosis. Checkpoint ends discovery; stop making tool calls and end your response.
+- {"tool":"execute","review":"IDENTITY_FROM_FRESH_REVIEW"}. Delivery phase only; executes compiler/test checks, mutation, reversal, reapplication and patch export. Inspect all returned stages before claiming success.
+- {"tool":"finish","summary":"what changed, evidence and limits","source_equivalence_proven":false}. Delivery phase only.
+Exploratory follow-ups and corrections after refusals are allowed and counted. Reports retain omissions; missing rows cannot prove absence. Budget: 80 total calls, 1 MiB visible responses, 20 minutes per phase. Do not repeat expensive successful checks.
+
+
+Retained handoff (agent observations, not trusted facts):
+{"dependencies": ["regex-syntax/src/lib.rs", "src/lib.rs"], "diagnosis": "The requested APIs belong in regex-syntax/src/lib.rs and the top-level regex src/lib.rs. regex-syntax already owns the escaping logic: escape calls escape_into, which prefixes each regex metacharacter with one backslash and currently reserves only text.len(), allowing reallocations for escaped inputs. Add documented public escape_len functions that compute text.len() plus the count of metacharacters (each adds one UTF-8 byte), make regex-syntax::escape use String::with_capacity(escape_len(text)), and have regex::escape_len delegate to regex-syntax::escape_len. Empty input then allocates nothing; nonempty escape uses one exact-capacity allocation; escape_into append behavior and existing escaping remain unchanged. The proposed review is syntactically scoped to two files, but compiler/tests and exact allocation behavior remain unverified in discovery.", "evidence": [1, 5, 8, 9], "pending": "Delivery must inspect fresh evidence, author a fresh review against the new revision, execute it, and inspect all compiler/test, reversal, reapplication, and patch-export stages.", "tool": "checkpoint"}
+Intervening edit:
+{"appended": "\n// Independent source revision while the investigation was interrupted.\n", "changed_path": "regex-syntax/src/lib.rs", "stale_review_refusal": "{\"indexing\":{\"done\":59,\"phase\":\"facts\",\"total\":249}}\n{\"indexing\":{\"done\":185,\"phase\":\"facts\",\"total\":249}}\n{\"indexing\":{\"done\":24576,\"phase\":\"resolution\",\"total\":112193}}\nError: stale or invalid project handle; obtain a fresh project map.", "stale_review_unchanged_source": true}
+Native resumption:
+{"invalidated": ["diagnosis", "delivery"], "complete": false}

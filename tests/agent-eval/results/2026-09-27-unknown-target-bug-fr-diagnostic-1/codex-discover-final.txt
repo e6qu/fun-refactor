@@ -1,0 +1,1 @@
+Discovery checkpointed successfully. The Unicode bug is caused by using UTF-8 byte lengths instead of scalar-value counts in `sorensen_dice`; the proposed fix uses `chars().count()` while preserving existing behavior and APIs.

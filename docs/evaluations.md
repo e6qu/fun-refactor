@@ -16,6 +16,47 @@ Every retained run has a manifest under `tests/agent-eval/results/`. Manifests b
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;
 acceptance runs must satisfy their scorer at recording time.
 
+## Unknown-target investigations
+
+The [cohort](../tests/agent-eval/unknown-target/cohort.json) compares live discovery and authoring on
+unmodified pinned strsim and regex sources. Prompts supply a Unicode bug symptom or cross-crate API
+requirements, without edit paths. Each arm uses two fresh Codex processes, separated by an inert
+source edit that invalidates the first review. Both arms automate compiler checks, exact reversal,
+reapplication and independent receiver replay. The native plan retains an independent observation
+while invalidating its diagnosis; final delivery has a separate grader.
+
+| Task | Arm | Behavioral outcome | Calls | Visible bytes | Input tokens | Agent seconds |
+|---|---|---|---:|---:|---:|---:|
+| Unicode Dice | ordinary files | Pass | 17 | 27,604 | 326,494 | 126.8 |
+| Unicode Dice | fr | Pass | 23 | 75,165 | 618,428 | 185.6 |
+| Escape length/allocation | ordinary files | Fail: two escaping allocations | 22 | 59,707 | 644,478 | 223.9 |
+| Escape length/allocation | fr | Pass | 33 | 70,857 | 763,904 | 307.0 |
+
+These runs use Codex CLI 0.157.1, `gpt-5.6-luna`, low effort and the default service tier.
+Input counts include cached tokens. Agent time sums both phases, including their tool work;
+controller preparation and independent scoring are outside that time. Sampled process-group peaks
+were 227–232 MiB. Sampling may miss peaks and descendants in other groups; it is not whole-tree RSS.
+The auditor prints cached/output/reasoning usage, requests, source reveals and refusals as well.
+
+Both bug patches pass 67,081 independent string pairs. The feature oracle checks 1,060 byte and
+allocation cases across both crates. The ordinary feature trial completed the delivery protocol
+and compiled, but its patch omitted the escaping allocation fix. Project and receiver agree on that
+failure. It remains a comparison outcome and was not retried until success. The same trial attempted
+one unsupported source-equivalence claim; the finish boundary refused it before accepting a corrected
+statement. No trial establishes source equivalence.
+
+Three additional attempts remain diagnostic: an extra heredoc terminator, an asynchronous tool-log
+race, and a discovery process stopped before delivery while that shared race was fixed. The race
+fix serializes requests within each session. Both feature arms then used the corrected protocol.
+Seven live attempts are retained in total; deterministic rehearsals are separate.
+
+The native arm used more calls, context and time on both tasks. It succeeded on the allocation
+requirement where this ordinary-file attempt failed. One pair per task cannot establish a general
+success or efficiency effect. See the [contract](unknown-target-investigations.md) for disclosure
+budgets, cooperative command isolation and the distinction between plan evidence and behavioral checks.
+`python3 tools/investigation-cohort.py --replay` checks all four patches, including reproduction of
+the recorded behavioral failure. It makes no new model calls.
+
 ## Package investigation and delivery
 
 The [package task](../tests/agent-eval/package-flow/task.json) pins a raw-input bug and a sink-free preview requirement without edit paths.

@@ -1,5 +1,27 @@
 # Agent acceptance source and evidence
 
+The [unknown-target cohort](unknown-target/cohort.json) reuses the unmodified strsim and regex archives
+described below. Its bug prompt supplies a Unicode symptom; its feature prompt supplies two public
+API requirements. Neither supplies edit paths or existing private helper names. Both discovery arms
+receive the same requirements, compiler checks and independent oracles. Delivery is automated in
+both arms, including exact reversal and separate patch replay.
+
+Each trial uses two fresh agent processes. Between them, an inert comment changes a discovered
+source dependency. The old review must refuse; native plans invalidate dependent observations while
+retaining independent evidence. The initial diagnostic repaired the bug and passed the behavioral
+oracles but failed strict command accounting because both phases included an extra heredoc terminator.
+It remains outside acceptance. Later prompts support a literal JSON argument for simple calls, and
+checkpoint errors identify the offending field. Every retained directory includes its exact evaluator
+and SDK source snapshots. See the [trial contract](../../docs/unknown-target-investigations.md) for limits.
+
+The cohort retains four completed comparison trials and three diagnostics. The ordinary feature
+comparison fails the independent allocation oracle despite passing compiler and delivery checks;
+its non-acceptance manifest remains unchanged. Comparison membership does not imply success.
+Two further diagnostics preserve a source-event ordering race and a native discovery interrupted
+before delivery while that shared protocol was repaired. Both feature comparison arms use the
+corrected serialized protocol. The cohort audit requires matching inputs within each task pair,
+eight distinct phase thread identities and reproduction of both successful and failed outcomes.
+
 The accepted 2026-09-18 matched source-writing repeat retains all seven bound source files in
 `binding-sources/`. The manifest checks their original digests, allowing the historical result to
 remain auditable after the guide source changes. Current route behavior is covered by separate

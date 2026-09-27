@@ -1,0 +1,3 @@
+Discovery checkpointed successfully.
+
+Diagnosis: `sorensen_dice` used UTF-8 byte lengths instead of Unicode scalar counts for its short-input guard and denominator. A review-only repair was authored to use `chars().count()` while preserving all existing behavior and APIs.
