@@ -168,3 +168,21 @@ def test_plan_requirements_must_match_before_mutation(tmp_path):
     with pytest.raises(FrRuntimeError,match="exactly the acceptance checks"):
         run_delivery(plan,client,"deliver",review(client),MemoryObjectStore())
     assert (root/"subject.py").read_bytes() == before
+
+
+def test_passing_delivery_cannot_renew_a_changed_prerequisite(tmp_path):
+    root,client,plan = fixture(tmp_path)
+    diagnosis = TaskStep("diagnosis","Retain the pre-change explanation",
+        (Dependency(DependencyKind.SOURCE,"subject.py"),))
+    plan = replace(plan,steps=(*plan.steps,diagnosis))
+    started = plan.resume(client,transition="diagnosis:start")
+    evidence = Evidence("observation",EvidenceKind.OBSERVATION,started.input_digests["diagnosis"],True,"pre-change source")
+    plan = replace(started.plan,steps=(*started.plan.steps[:2],replace(started.plan.steps[2],evidence=(evidence,))))
+    plan = plan.resume(client,transition="diagnosis:satisfy").plan
+    plan = replace(plan,steps=(replace(plan.steps[0],depends_on=("diagnosis",)),*plan.steps[1:]))
+    result = run_delivery(plan,client,"deliver",review(client),MemoryObjectStore())
+    assert result.receipt.passed and (root/"artifacts/change.patch").exists()
+    assert not result.passed and not result.resumed.complete
+    assert result.attachment_error is not None
+    assert result.resumed.plan.steps[2].state == StepState.STALE
+    assert result.resumed.plan.steps[1].state == StepState.SATISFIED

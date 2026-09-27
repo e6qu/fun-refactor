@@ -981,7 +981,21 @@ subprocess.run(['artifacts/oracle'], check=True)
             {"name":"behavior","argv":["python3","-B",".fr/oracle.py"],"cwd":".","timeout_seconds":30,
              "covers":["independent Unicode uppercasing cases"],"identity_files":[".fr/oracle.py",".fr/oracle.rs"]}
         ]})).unwrap()).unwrap();
-        let baseline = report(fr(root, &["checks", "--run", "behavior", "--toolchain"]), 1);
+        let listing = report(fr(root, &["checks", "--toolchain"]), 0);
+        let baseline = report(
+            fr(
+                root,
+                &[
+                    "checks",
+                    "--run",
+                    "behavior",
+                    "--toolchain",
+                    "--basis",
+                    listing["basis"].as_str().unwrap(),
+                ],
+            ),
+            1,
+        );
         assert_eq!(baseline["passed"], false);
         let manifest_path = root.join(".fr/task-change.json");
         let mut manifest: Value =

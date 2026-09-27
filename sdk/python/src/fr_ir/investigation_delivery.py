@@ -92,6 +92,7 @@ class DeliveryReceipt:
         return cls(review.manifest.decode(), result)
 
     def persist(self, store: ObjectStore) -> str:
+        self.__post_init__()
         return store_merkle_value(store, {"schema":"fr-delivery-receipt-1", "manifest":self.manifest_json,
             "result":self.result.to_data(), "basis":self.result.task_change_basis}).digest
 
@@ -114,6 +115,7 @@ def _checked_step(plan: TaskPlan, step_id: str, names: list[str]) -> None:
 
 def attach_delivery(plan: TaskPlan, client: FrClient, step: str, receipt: DeliveryReceipt) -> ResumedPlan:
     """Attach to an explicitly refreshed running step; stale observations remain stale."""
+    receipt.__post_init__()
     _checked_step(plan, step, list(receipt.manifest["acceptance_checks"]))
     if not receipt.passed or receipt.checks is None:
         raise FrRuntimeError("failed delivery cannot satisfy a task")

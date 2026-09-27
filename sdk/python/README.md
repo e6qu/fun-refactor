@@ -320,6 +320,12 @@ change.write("task-change.json")
 revalidates the complete manifest, handles, source, fragments and check declarations under the
 reviewed task-change basis.
 
+Use `TaskChange(..., acceptance_checks=["behavior"])` for checks that must pass only after the change.
+They run after apply and redo; failure stops patch delivery and retains the applied state for diagnosis.
+`fr_ir.investigation_delivery.run_delivery` retains the receipt and attaches its final checks to an
+explicit outcome step. See [checked outcomes](../../docs/checked-outcomes.md) for fresh-process
+completion, invalidation, failure handling and the distinction between lifecycle and acceptance checks.
+
 Disclosure trees can be stored by content address:
 
 ```python

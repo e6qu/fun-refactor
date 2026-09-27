@@ -186,6 +186,10 @@ These are substantial implementation advances across A–D; the complete milesto
   Broader incremental analysis and task-level performance remain open.
 - D: new translation domains and old/new source correspondence proofs, plus broader host-failure coverage.
   Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
+  [Checked outcomes](docs/checked-outcomes.md) now separate lifecycle checks from post-change acceptance.
+  Failed behavior withholds patch delivery; retained successful receipts can complete an explicit outcome step.
+  The pinned two-file Rust case covers fresh-process attachment, dependency invalidation and independent receiver replay.
+  Broader consumer discovery and the full D gate remain open.
 
 No milestone is complete. The remaining checklists retain their full outcome requirements; a partial
 implementation does not close a multi-part item. Extend the pinned corpus and close these gates in
