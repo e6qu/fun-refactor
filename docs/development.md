@@ -115,7 +115,9 @@ cargo test --test packaging
 Resolution asks whether a second entity remains after the first definition group.
 It skips that question when lexical lookup already permits a decision. Full entity counts
 still follow input order; definition groups can be asymmetric after public symbol mutation.
-Neither operation retains derived symbol groups across calls.
+Neither operation retains derived symbol groups across calls. During resolution, the complete name map
+also rejects absent receiver types without a full-symbol scan. Type queries outside that immutable
+pass retain their fallback for public symbol mutations.
 
 The [resolution workload](../tests/agent-eval/index-resolution/task.json) pins complete symbol and
 reference outputs before the algorithm change. Build its probe with one worker:

@@ -2,7 +2,7 @@
   "schema": "fr-index-resolution-result-1",
   "repository_revision": "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf",
   "host": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
-  "binary_sha256": "fcd4b6e78d3f8de900fae024213e8dbde03ba92583059ec458881abd143d8908",
+  "binary_sha256": "0e542ac57c3043246425036a382b105b98191bcbe055967a87c7c61a297240ee",
   "profile": "unoptimized test, debug information and incremental compilation disabled",
   "bindings": {
     "src/analysis/call_graph.rs": "ded29ca9cc26f3a45061d4805a9ff3389b52fc890efea5d57be5a97902ea9a10",
@@ -77,7 +77,7 @@
     "src/history/patch.rs": "985a9ad10e1823e37052c13e479b593784c9e7adcadd7c009d126cd1bd038ac1",
     "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
     "src/index/references.rs": "c1fbb6754a0744eb8b57673b36f03a1c71fadd384bb1e45c739242fad044c038",
-    "src/index.rs": "e89e6868c6badfebab76c18d33dc20574a5e130c6d690ca41ad837410b7f4d69",
+    "src/index.rs": "f7c8bcbdfd4b421f8ee75f6b0e55b4012b9284f42c3e4edd6939db3cca8d3575",
     "src/lang.rs": "20b277b85274d049a50b0a58484d4581b9a4ebaebd5fff2b5266ba9ef7d532a2",
     "src/lib.rs": "fdece301b16d8e9f5a05f76fe91d8c4cd1902befe6a85e4f88d0363834baee96",
     "src/main.rs": "46f8cde4200e6e8c9a86f45dc953d27e8cc717631d16dbf405194ca03624b0af",
@@ -198,82 +198,82 @@
     {
       "answer_bytes": 272875,
       "answer_sha256": "e62b4fd0103976c432785d281a56cc18a725b61e07dbd5ac88ebf1dee15d2333",
-      "build_seconds": 0.109843667,
+      "build_seconds": 0.107697375,
       "references": 768,
       "symbols": 512,
       "workload": "members-128",
-      "process_seconds": 0.12218479099101387,
-      "peak_rss_bytes": 10764288
+      "process_seconds": 0.1198722500121221,
+      "peak_rss_bytes": 10944512
     },
     {
       "answer_bytes": 272875,
       "answer_sha256": "e62b4fd0103976c432785d281a56cc18a725b61e07dbd5ac88ebf1dee15d2333",
-      "build_seconds": 0.109566583,
+      "build_seconds": 0.106129709,
       "references": 768,
       "symbols": 512,
       "workload": "members-128",
-      "process_seconds": 0.12148795902612619,
-      "peak_rss_bytes": 11681792
+      "process_seconds": 0.11709250000421889,
+      "peak_rss_bytes": 11026432
     },
     {
       "answer_bytes": 550743,
       "answer_sha256": "f8a82580281889ff56c2d8ffc653ccf421f23f89ad1bfe64b38402a8c6ac1bea",
-      "build_seconds": 0.223399875,
+      "build_seconds": 0.213809,
       "references": 1536,
       "symbols": 1024,
       "workload": "members-256",
-      "process_seconds": 0.2412959579960443,
-      "peak_rss_bytes": 13697024
+      "process_seconds": 0.23068924999097362,
+      "peak_rss_bytes": 13369344
     },
     {
       "answer_bytes": 550743,
       "answer_sha256": "f8a82580281889ff56c2d8ffc653ccf421f23f89ad1bfe64b38402a8c6ac1bea",
-      "build_seconds": 0.22080875,
+      "build_seconds": 0.2142815,
       "references": 1536,
       "symbols": 1024,
       "workload": "members-256",
-      "process_seconds": 0.2391643339942675,
-      "peak_rss_bytes": 13320192
+      "process_seconds": 0.23095549998106435,
+      "peak_rss_bytes": 11796480
     },
     {
       "answer_bytes": 54509,
       "answer_sha256": "6505db5c858970228ed9b087fec79657ff0df1a05141826f306d22a9ce353325",
-      "build_seconds": 0.118336375,
+      "build_seconds": 0.116384791,
       "references": 129,
       "symbols": 130,
       "workload": "assignments-128",
-      "process_seconds": 0.12512579100439325,
-      "peak_rss_bytes": 9830400
+      "process_seconds": 0.12267874999088235,
+      "peak_rss_bytes": 9486336
     },
     {
       "answer_bytes": 54509,
       "answer_sha256": "6505db5c858970228ed9b087fec79657ff0df1a05141826f306d22a9ce353325",
-      "build_seconds": 0.117273541,
+      "build_seconds": 0.114897291,
       "references": 129,
       "symbols": 130,
       "workload": "assignments-128",
-      "process_seconds": 0.12412116600899026,
-      "peak_rss_bytes": 9699328
+      "process_seconds": 0.12134562499704771,
+      "peak_rss_bytes": 9420800
     },
     {
       "answer_bytes": 160776946,
       "answer_sha256": "604f9f1838424cb30784f87bc81469f6e11235040e4d92920e83ccb1d55b5607",
-      "build_seconds": 160.249402333,
+      "build_seconds": 96.207044334,
       "references": 594288,
       "symbols": 98355,
       "workload": "repository",
-      "process_seconds": 164.00681354201515,
-      "peak_rss_bytes": 988217344
+      "process_seconds": 99.75680412500515,
+      "peak_rss_bytes": 990281728
     },
     {
       "answer_bytes": 160776946,
       "answer_sha256": "604f9f1838424cb30784f87bc81469f6e11235040e4d92920e83ccb1d55b5607",
-      "build_seconds": 159.929911167,
+      "build_seconds": 96.278698708,
       "references": 594288,
       "symbols": 98355,
       "workload": "repository",
-      "process_seconds": 163.58728691600845,
-      "peak_rss_bytes": 909377536
+      "process_seconds": 99.81500295799924,
+      "peak_rss_bytes": 1029652480
     }
   ],
   "baseline_sha256": "611612af913d7782f6005e818879fb19db7384d419763085bf46d6aa449d357d",
