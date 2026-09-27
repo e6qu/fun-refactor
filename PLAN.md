@@ -175,6 +175,9 @@ These are substantial implementation advances across A–D; the complete milesto
   Opt-in whole-file flow reuse now validates
   source, rules, configuration and analyzer inputs, then renews occurrences after unrelated edits.
   Static regular-package imports now extend that validated source closure and track parents and missing import candidates.
+  [Consumer lookup measurements](tests/agent-eval/index-consumers/task.json) add a pinned repository snapshot and generated definition groups.
+  Lazy reverse lookups support repeated discovery and invalidate before any mutable reference access.
+  This measures reference queries; broader incremental analysis and task-level performance remain open.
 - D: new translation domains and old/new source correspondence proofs, plus broader host-failure coverage.
   Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
 

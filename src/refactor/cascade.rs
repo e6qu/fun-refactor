@@ -148,7 +148,7 @@ pub fn remove_flag_in_for(
         index
             .symbols
             .iter()
-            .filter(|s| !index.references_to(s.id).is_empty())
+            .filter(|s| index.has_references(s.id))
             .map(|s| (s.name.clone(), s.file.clone()))
             .collect()
     };
@@ -385,7 +385,7 @@ fn substitute_flag(
 
     // Nothing reads the name, so there is no flag to remove: no use to substitute, no
     // conditional to collapse, nothing to prune.
-    if index.references_to(definition.id).is_empty() {
+    if !index.has_references(definition.id) {
         // "Nothing reads it" is a claim about the whole workspace, and the weakly resolved
         // occurrences are the evidence against it.
         let weak = weak_occurrences(index, sources, definition);
@@ -2012,7 +2012,7 @@ fn remove_orphans(
             continue;
         }
         // Entry points and anything still referenced stay.
-        if !index.references_to(symbol.id).is_empty() {
+        if index.has_references(symbol.id) {
             continue;
         }
         if symbol.name == "main" || symbol.name.starts_with("test") {

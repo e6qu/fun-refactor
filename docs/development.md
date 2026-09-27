@@ -50,6 +50,28 @@ cargo test --test agent_skill
 python3 tools/check-agent-skill.py --fr target/debug/fr
 ```
 
+## Repeated consumer queries
+
+`Index::references_to` retains extraction order and expands the current definition group.
+`reference_count` and `has_references` answer counts and presence without collecting occurrence records.
+The first target lookup builds an in-memory reverse index; later queries reuse it.
+Name matching builds a separate lookup only when needed. These caches add memory proportional to the reference count.
+They do not persist to disk or change resolution confidence, missing consumers or analysis coverage.
+
+`Index::references` now uses `index::References`, which dereferences to the reference vector.
+Every mutable borrow discards both derived lookups before exposing data. Rust borrowing prevents
+mutation while query results remain borrowed. Cloning or deserializing starts without derived lookups.
+Element access, vector methods and borrowed iteration retain their syntax. Replace a whole vector
+with `index.references = values.into()` and extract ownership with `index.references.into_vec()`.
+Serialization retains the vector representation. Structural vector edits still require callers to
+maintain file reference offsets, just as before; this wrapper maintains only consumer lookups.
+
+The [consumer workload](../tests/agent-eval/index-consumers/task.json) measures a pinned repository
+snapshot and generated Python definition groups. Compile `cargo test --test index_consumers --no-run`,
+then pass the printed test executable to `tools/index-consumers-acceptance.py --binary EXECUTABLE --output RESULT`.
+Use the same unoptimized profile for baseline comparisons. The evaluator runs one child at a time,
+limits each workload to 240 seconds and records process RSS through `/usr/bin/time`.
+
 ## Source provenance
 
 Dependency upgrades use the newest stable release that has been public for at least 24 hours.
