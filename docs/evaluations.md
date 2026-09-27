@@ -427,6 +427,35 @@ The ordinary arm executes the runtime/AST oracle; it does not model an agent's s
 A reviewed helper-body change passes checks, apply, undo, redo and patch delivery. An independent receiver replays the patch and repeats the runtime oracle.
 Run `python3 tools/imported-flow-acceptance.py --audit RESULT` to validate retained source bindings, outcomes and replay.
 
+## Repeated consumer discovery
+
+The [pinned workload](../tests/agent-eval/index-consumers/task.json) covers generated Python functions
+with repeated assignments and a fixed repository snapshot: 98,147 symbols and 592,962 references.
+The [baseline](../tests/agent-eval/index-consumers/baseline.json) precedes the lookup implementation.
+The [result](../tests/agent-eval/results/2026-09-27-index-consumers/result.json) retains implementation identities,
+latency, process RSS and output size. A separate linear membership oracle checks every returned occurrence and its order.
+
+| Workload | Queries per batch | Baseline median | New first batch | New warm median |
+|---|---:|---:|---:|---:|
+| 128 functions | 428 | 1.065 s | 0.119 s | 0.118 s |
+| 512 functions | 466 | 18.042 s | 0.554 s | 0.553 s |
+| Repository snapshot | 512 | 2.725 s | 0.065 s | 0.00188 s |
+
+Each workload runs in an isolated process with one worker and three consecutive query batches.
+The first new batch includes lookup construction; the warm median uses the remaining two batches.
+All builds use the unoptimized test profile. OS caches remain active. Generated cases exercise
+large definition groups; their group construction still costs time after the reference scan disappears.
+
+Initial repository indexing took 173.5 seconds before and 175.1 seconds after. Whole-process peak
+RSS changed from 105 to 123 MiB, 336 to 346 MiB, and 732 to 677 MiB across the three workloads.
+Those peaks include extraction, resolution and oracle storage; they do not isolate lookup allocations or establish a memory improvement.
+The result establishes repeated-query speed on this corpus, with unchanged occurrence output size.
+It does not establish lower full-task latency, faster initial indexing or complete dynamic consumer discovery.
+
+Mutation regressions cover target/name edits, insertion, removal, reordering, replacement, serialization,
+concurrent reads and symbol-group changes. Native and browser callers share the same lookup implementation.
+Run `python3 tools/index-consumers-acceptance.py --verify RESULT` to check retained bindings and workload agreement.
+
 ## Native host recovery
 
 The [pinned task](../tests/agent-eval/host-recovery/task.json) starts from 22 passing history tests.
