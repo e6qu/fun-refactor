@@ -4,7 +4,7 @@
   "tasks": {
     "unicode-dice": {
       "kind": "bug",
-      "requirement": "The library's whitespace-insensitive bigram similarity gives inconsistent scores for non-ASCII text. For example, the strings éa and éb have no common scalar-value bigram and should score zero. Diagnose and repair the Unicode behavior. Count Unicode scalar-value bigrams, preserve duplicate multiplicity, whitespace removal, equal-input behavior and existing ASCII behavior. Unequal inputs with fewer than two scalars after whitespace removal score zero. Preserve existing APIs.",
+      "requirement": "The library's whitespace-insensitive bigram similarity gives inconsistent scores for non-ASCII text. For example, the strings éa and éab share one of three total scalar-value bigrams and should score 2/3. Diagnose and repair the Unicode behavior. Count Unicode scalar-value bigrams, preserve duplicate multiplicity, whitespace removal, equal-input behavior and existing ASCII behavior. Unequal inputs with fewer than two scalars after whitespace removal score zero. Preserve existing APIs.",
       "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
       "archive_sha256": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
       "oracle": "Independent sorted Unicode-bigram multiset intersection over 67,081 input pairs, plus unchanged upstream tests. The original source must fail the behavioral oracle."
@@ -19,7 +19,14 @@
   },
   "comparison": "One fresh fr agent and one ordinary search/source-editing agent per task; identical requirements, upstream revisions, checks and independent oracles. Neither prompt supplies edit paths or private helper names. Each session has discovery and delivery phases in separate fresh agent processes.",
   "resumption": "Agents retain a diagnosis, cited discovery events, selected source dependencies and pending work. Between phases the evaluator appends an inert comment to a selected dependency. Native plans must invalidate dependent evidence while preserving an independent README observation. Fresh agents receive the retained handoff and must rediscover current evidence before editing. The ordinary arm receives the same change and retained notes.",
-  "budgets": {"trials": 4, "phases_per_trial": 2, "seconds_per_phase": 1200, "calls_per_trial": 80, "visible_bytes_per_trial": 1048576, "parallel_workers": 1},
+  "budgets": {
+    "trials": 4,
+    "phases_per_trial": 2,
+    "seconds_per_phase": 1200,
+    "calls_per_trial": 80,
+    "visible_bytes_per_trial": 1048576,
+    "parallel_workers": 1
+  },
   "acceptance": [
     "Establish failing baseline and passing independent final and receiver behavior without prescribing an implementation.",
     "Retain exploratory calls, tool refusals, failed trials, agent settings, available usage and complete evidence bindings.",
