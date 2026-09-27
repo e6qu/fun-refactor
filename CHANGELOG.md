@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.35.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.34.1...fun-refactor-v0.35.0) (2026-09-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* reuse consumer lookups and invalidate them on mutation ([#373](https://github.com/e6qu/fun-refactor/issues/373))
+
+### Features
+
+* harden journaled recovery with host fault checks ([#370](https://github.com/e6qu/fun-refactor/issues/370)) ([9f51894](https://github.com/e6qu/fun-refactor/commit/9f51894a1061987efedd4f357229bb3e1799c1c9))
+* investigate Python package flows with resumable evidence ([#372](https://github.com/e6qu/fun-refactor/issues/372)) ([e423fd2](https://github.com/e6qu/fun-refactor/commit/e423fd2d03e5d74f2efea40b6ccd20812ac1178a))
+* measure unknown-target investigations across fresh agent sessions ([#375](https://github.com/e6qu/fun-refactor/issues/375)) ([1ca1aa4](https://github.com/e6qu/fun-refactor/commit/1ca1aa43af46304133a7c69512fc73087a8edf8e))
+
+
+### Performance
+
+* avoid redundant entity and receiver scans during resolution ([#374](https://github.com/e6qu/fun-refactor/issues/374)) ([a288066](https://github.com/e6qu/fun-refactor/commit/a288066c06c3e826a1bc245a08d6a1b427a9b963))
+* reuse consumer lookups and invalidate them on mutation ([#373](https://github.com/e6qu/fun-refactor/issues/373)) ([3fdba43](https://github.com/e6qu/fun-refactor/commit/3fdba43036f4fac2a6e73a659c5dbf7e907c48cf))
+
 ## [0.34.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.34.0...fun-refactor-v0.34.1) (2026-09-25)
 
 
