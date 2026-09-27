@@ -177,7 +177,7 @@ impl Fixture {
             if symbol.file != self.file {
                 continue;
             }
-            let uses = self.index.references_to(symbol.id).len();
+            let uses = self.index.reference_count(symbol.id);
             if best.is_none_or(|(seen, _)| uses > seen) {
                 best = Some((uses, symbol.id));
             }

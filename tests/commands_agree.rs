@@ -286,7 +286,7 @@ fn a_report_that_stops_early_says_how_many_it_left_out() {
     let busiest = index
         .symbols
         .iter()
-        .max_by_key(|s| index.references_to(s.id).len())
+        .max_by_key(|s| index.reference_count(s.id))
         .expect("a symbol");
     let Ok(report) = impact::analyse(index, busiest.id, 2) else {
         return;
@@ -313,7 +313,7 @@ fn usages_reports_the_name_where_it_appears_in_prose() {
     let symbol = index
         .symbols
         .iter()
-        .find(|s| !index.references_to(s.id).is_empty())
+        .find(|s| index.has_references(s.id))
         .expect("a symbol something uses");
     let name = symbol.name.clone();
 

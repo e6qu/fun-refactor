@@ -23,6 +23,7 @@ pub(super) fn analyzer_identity() -> Result<String> {
         include_str!("lockfiles.rs"),
         include_str!("../scan.rs"),
         include_str!("../index.rs"),
+        include_str!("../index/references.rs"),
         include_str!("../extract.rs"),
         include_str!("../../Cargo.lock"),
     ])

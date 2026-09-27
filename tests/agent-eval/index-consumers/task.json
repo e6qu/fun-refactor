@@ -1,0 +1,16 @@
+{
+  "schema": "fr-index-consumers-task-1",
+  "baseline": "e423fd2d03e5d74f2efea40b6ccd20812ac1178a",
+  "problem": "Repeated consumer discovery scans every workspace reference for every symbol, making repository audits expensive even when each symbol has few consumers.",
+  "subset": "Resolved index references and existing definition groups. Preserve exact occurrence order, duplicate occurrences, unresolved matches and confidence. No new resolution or feasible-path claim.",
+  "budgets": {"workers": 1, "repository_queries": 512, "synthetic_functions": [128, 512], "repetitions": 3, "measurement_timeout_seconds": 240},
+  "acceptance": [
+    "Compare cold and repeated consumer queries with an independent linear membership oracle.",
+    "Invalidate derived lookups after target changes, name changes, replacement, reordering, insertion, removal and mutable iteration.",
+    "Preserve overload groups, cross-language references, ambiguity, Unicode coordinates and source order.",
+    "Measure repository and generated workloads before and after, retaining source identities, output sizes, latency and process RSS.",
+    "Verify cached resolution, fresh reconstruction, native consumers and the browser feature set."
+  ],
+  "edit_boundary": "Use the fr guide for index discovery. Direct edits implement a mutation-aware reference collection, consumer query APIs, affected native consumers and independent acceptance; no admitted author operation expresses this API and storage change.",
+  "claims": "Finite query workload speed and memory measurements. No claim that static references include dynamic consumers, that full indexing becomes faster, or that PLAN milestones are complete."
+}

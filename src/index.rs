@@ -10,6 +10,9 @@ use anyhow::{Context, Result};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+mod references;
+pub use references::References;
+
 /// Per-file data retained after merging into the global index.
 #[derive(Debug, Clone)]
 pub struct FileInfo {
@@ -38,7 +41,6 @@ impl FileInfo {
         crate::model::scope_at(&self.scopes, offset)
     }
 
-    /// Walk from `scope` outwards to the file root.
     pub fn scope_chain(&self, scope: crate::model::ScopeId) -> Vec<crate::model::ScopeId> {
         crate::model::scope_chain(&self.scopes, scope)
     }
@@ -53,13 +55,12 @@ enum ModuleSurface {
     Output,
 }
 
-/// A resolved workspace.
 #[derive(Debug, Default)]
 pub struct Index {
     /// All symbols, keyed by their global [`SymbolId`] (== position in this vec).
     pub symbols: Vec<Symbol>,
     /// All references; `target` holds a global [`SymbolId`].
-    pub references: Vec<Reference>,
+    pub references: References,
     files: BTreeMap<PathBuf, FileInfo>,
     /// Files skipped during scanning, reported and not silently dropped.
     pub skipped: Vec<(PathBuf, String)>,
@@ -172,7 +173,6 @@ pub fn extract_facts(
 }
 
 impl Index {
-    /// Build an index for a workspace root.
     #[cfg(feature = "cli")]
     pub fn build(root: &Path, options: &ScanOptions) -> Result<Self> {
         let scan_result = scan(root, options)?;
@@ -356,7 +356,6 @@ impl Index {
         Ok(index)
     }
 
-    /// Placeholder facts marking a file that failed to read.
     #[cfg(feature = "cli")]
     fn unreadable_placeholder(path: &Path, error: String) -> FileFacts {
         FileFacts {
@@ -384,7 +383,6 @@ impl Index {
         Ok(index)
     }
 
-    /// Build an index from facts extraction has already produced.
     pub fn build_from_facts(files: &[(PathBuf, Language, FileFacts)]) -> Self {
         let mut index = Index::default();
         for (_, language, facts) in files {
@@ -489,7 +487,6 @@ impl Index {
         self.sources.get(path).map(String::as_str)
     }
 
-    /// Record the text hash a caller built this index from.
     pub fn note_content_hash(&mut self, path: PathBuf, hash: u64) {
         self.content_hashes.insert(path.clone(), hash);
         #[cfg(feature = "cli")]
@@ -528,7 +525,6 @@ impl Index {
         self.files.len()
     }
 
-    /// Fill the by-name buckets [`Index::definition_group`] reads.
     fn rebuild_name_buckets(&mut self) {
         static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
         self.generation = GENERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -586,7 +582,6 @@ impl Index {
         }
     }
 
-    /// The symbols sharing this name, from the buckets where they exist.
     fn named_like<'a>(&'a self, name: &str) -> Box<dyn Iterator<Item = &'a Symbol> + 'a> {
         match self.name_buckets.get(name) {
             Some(ids) => Box::new(ids.iter().filter_map(|id| self.symbol(*id))),
@@ -640,7 +635,6 @@ impl Index {
         }
     }
 
-    /// Which Terraform namespace addresses this declaration.
     fn terraform_namespace(&self, symbol: &Symbol) -> &'static str {
         match symbol.container.and_then(|c| self.symbol(c)) {
             Some(block) if block.name == "locals" => "local",
@@ -1709,11 +1703,17 @@ impl Index {
 
     /// All references to the entity `symbol` names.
     pub fn references_to(&self, symbol: SymbolId) -> Vec<&Reference> {
-        let group = self.definition_group(symbol);
-        self.references
-            .iter()
-            .filter(|r| r.target.is_some_and(|t| group.contains(&t)))
-            .collect()
+        self.references.to_group(&self.definition_group(symbol))
+    }
+
+    /// Count occurrences without collecting their reference records.
+    pub fn reference_count(&self, symbol: SymbolId) -> usize {
+        self.references.count_group(self.definition_group(symbol))
+    }
+
+    /// Whether any reference resolves to this entity's definition group.
+    pub fn has_references(&self, symbol: SymbolId) -> bool {
+        self.references.has_group(&self.definition_group(symbol))
     }
 
     /// References that share a name with `symbol` but resolved elsewhere or not at all.
@@ -1721,10 +1721,7 @@ impl Index {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
-        self.references
-            .iter()
-            .filter(|r| r.name == sym.name && r.target != Some(symbol))
-            .collect()
+        self.references.matching(&sym.name, symbol)
     }
 
     /// Every definition site of the entity `symbol` belongs to.
@@ -1835,7 +1832,6 @@ impl Index {
         count
     }
 
-    /// Whether these symbols all denote the same entity.
     pub fn is_one_entity(&self, symbols: &[&Symbol]) -> bool {
         let Some(first) = symbols.first() else {
             return false;
@@ -1863,7 +1859,6 @@ impl Index {
         self.find_symbols(written, in_file)
     }
 
-    /// Find a symbol by name, optionally narrowed to a file.
     pub fn find_symbols(&self, name: &str, in_file: Option<&Path>) -> Vec<&Symbol> {
         self.named_like(name)
             .filter(|s| s.name == name)
@@ -1899,7 +1894,6 @@ impl Index {
             .flat_map(|info| info.references.iter().map(|i| &self.references[*i]))
     }
 
-    /// The reference at a byte offset, if any.
     pub fn reference_at(&self, path: &Path, offset: usize) -> Option<&Reference> {
         let info = self.files.get(path)?;
         info.references
@@ -1908,7 +1902,6 @@ impl Index {
             .find(|r| r.span.contains_offset(offset))
     }
 
-    /// Summary counts for reporting.
     pub fn stats(&self) -> IndexStats {
         let mut by_confidence: BTreeMap<&'static str, usize> = BTreeMap::new();
         for r in &self.references {
