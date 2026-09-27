@@ -12,6 +12,9 @@ import signal
 import subprocess
 import tempfile
 import time
+import tomllib
+
+from evidence_basis import file_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK = ROOT / "tests/agent-eval/index-resolution/task.json"
@@ -22,11 +25,25 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def manifest_basis(data):
+    manifest = tomllib.loads(data.decode())
+    version = manifest["package"]["version"]
+    manifest["package"]["version"] = "<workspace>"
+    for container in [manifest, manifest.get("workspace", {}), *manifest.get("target", {}).values()]:
+        for kind in ("dependencies", "dev-dependencies", "build-dependencies"):
+            for dependency in container.get(kind, {}).values():
+                if (isinstance(dependency, dict) and "path" in dependency
+                        and dependency.get("version") == version):
+                    dependency["version"] = "<workspace>"
+    return json.dumps(manifest, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
+
+
 def bindings():
     paths = sorted(ROOT.joinpath("src").rglob("*.rs"))
     paths += [ROOT / p for p in ["Cargo.toml", "Cargo.lock", "tests/index_resolution.rs",
-              "tools/index-resolution-acceptance.py", str(TASK.relative_to(ROOT))]]
-    return {str(p.relative_to(ROOT)): digest(p) for p in paths}
+              "tools/index-resolution-acceptance.py", "tools/evidence_basis.py", str(TASK.relative_to(ROOT))]]
+    return {str(p.relative_to(ROOT)): hashlib.sha256(manifest_basis(p.read_bytes())).hexdigest()
+            if p.name == "Cargo.toml" else file_digest(p) for p in paths}
 
 
 def validate_samples(report):
