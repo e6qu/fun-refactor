@@ -22,6 +22,9 @@ The `fr` arm also persists a native task plan through the verified object store.
 invalidate the diagnosis while retaining an independent documentation observation. Observation
 evidence records an agent hypothesis; it is not an independent correctness certificate. The pending
 delivery step cannot become satisfied from the stale diagnosis.
+The native plan's acceptance criterion covers diagnosis. Final delivery acceptance comes from the
+separate lifecycle and behavioral scorer; this trial does not establish automatic completion of an
+entire task plan from an agent's observations.
 
 A second fresh agent process receives the requirement, handoff and intervening edit. It must inspect
 current evidence and author a new review before executing. Both arms receive the same kind of source
@@ -67,12 +70,32 @@ checks, and verifies exact reversal and reapplication.
 The instrumented boundary is cooperative. The scorer checks the Codex command stream against the
 tool log; merely including the allowed command in a shell script is insufficient. Raw source commands,
 unaccounted tool calls and malformed transcripts cannot establish accepted comparison evidence.
+Each session serializes requests across processes. A read or finish request waits for an ongoing
+mutation, and event identities follow that execution order. Shell completion messages can arrive in
+another order; the audit requires one matching command per event and a continuous source-state chain.
 The runner freezes its binary and binds the evaluator and SDK sources. Retained source snapshots keep
 historical results auditable after later implementation changes.
+
+The cohort manifest binds every comparison and diagnostic directory. Run
+`python3 tools/investigation-cohort.py` to audit both task pairs and print their metrics, or add
+`--replay` to rerun the comparison patches, including expected behavioral failures. Pair admission
+requires identical upstream inputs, requirements, evaluator/SDK identities, binaries and model settings.
+All eight comparison phase
+processes must have distinct thread identities.
+
+An early ordinary-file feature attempt passed its behavioral checks but exposed an event-ordering
+race while delivery ran asynchronously. It remains diagnostic. A feature discovery process already
+started under that protocol was retained without launching delivery. Both feature arms then restarted
+under the same corrected protocol. The eight-attempt ceiling includes these diagnostics.
+Once a trial completes the protocol, a failed behavioral oracle remains a comparison outcome.
+The cohort does not replace such a trial with another attempt until the behavior passes.
 
 Report complete and failed trials, disclosed bytes, source reveals, tool calls, elapsed time and
 available Codex usage. Usage is not billed quota. Sampled group RSS can miss peaks and measures the
 agent process and its same-group children, not every possible descendant.
+Narrative diagnoses remain available for review; the scorer does not grade every natural-language claim.
+The cohort separately counts attempts to assert source equivalence without proof. The finish boundary
+rejects that assertion; a corrected final response does not erase the earlier attempt.
 
 These Rust tasks use syntax discovery, compiler checks and executable behavioral oracles. They do
 not extend the Python scalar dataflow subset or prove source implementation equivalence. Two tasks

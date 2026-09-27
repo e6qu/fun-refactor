@@ -1,0 +1,7 @@
+Implemented and delivered:
+
+- Added documented `escape_len` APIs to both `regex` and `regex-syntax`.
+- Computes escaped UTF-8 byte length without allocation.
+- Preserved existing escaping behavior and APIs.
+- All original/changed/restored/reapplied checks passed.
+- Patch exported to `artifacts/change.patch`.

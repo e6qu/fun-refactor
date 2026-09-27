@@ -1,0 +1,1 @@
+Discovery checkpointed. Diagnosis: `sorensen_dice` counted UTF-8 bytes for length calculations while generating scalar-value bigrams, causing incorrect non-ASCII scores. Proposed repair uses `chars().count()` consistently and adds focused Unicode tests.

@@ -59,8 +59,11 @@ Outcome: an agent can find relevant code and explain a proposed change from exac
   dependencies, unresolved questions and required checks. Reuse guide actions and reviewed delivery.
   [Typed plans](sdk/python/src/fr_ir/investigation.py) retain guide inputs and bind required checks to declared dependencies.
   [Check attachment](sdk/python/src/fr_ir/investigation_checks.py) preserves reviewed execution and rejects stale evidence.
-- [ ] Pin one bug reproducer and one feature requirement with initially unknown edit targets.
+- [x] Pin one bug reproducer and one feature requirement with initially unknown edit targets.
   Measure the current workflow before extending it.
+  The [live cohort](tests/agent-eval/unknown-target/cohort.json) compares both discovery arms on unmodified strsim and regex sources.
+  Fresh processes resume after dependency changes. Three outcomes pass; the ordinary feature arm fails the allocation oracle.
+  [Measurements and retained diagnostics](docs/evaluations.md#unknown-target-investigations) report the costs and limits.
 
 Gate: agents discover the relevant occurrences and support their decisions with retained evidence.
 Independent oracles check the diagnosis and final behavior. Tests distinguish same-line calls,
@@ -166,7 +169,7 @@ binds the evaluator, pinned source revision, fixture and passing results.
 These are substantial implementation advances across A–D; the complete milestone gates remain open:
 
 - A: normalization origins, additional languages and compiler adapters, broader dependency discovery,
-  fact explanations beyond scalar analysis and live unknown-target trials.
+  fact explanations beyond scalar analysis and broader, repeated live unknown-target trials.
 - B: source correspondence beyond exact syntax-origin links, broader package semantics, implicit exception/handler semantics
   and a broader independently measured positive/negative corpus. While loops now reach a bounded
   fixed point; incomplete work never establishes absence.

@@ -1,0 +1,8 @@
+Implemented and delivered:
+
+- Added documented `escape_len` APIs to both `regex-syntax` and `regex`.
+- `regex-syntax::escape` now preallocates exact escaped length.
+- Preserved escaping output and append behavior.
+- Fresh source revision confirmed after delivery.
+
+The instrumented execution completed, though its detailed check report timed out before output.

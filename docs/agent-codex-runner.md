@@ -45,6 +45,13 @@ matched-source runners freeze their own binaries, verify exact outputs and retai
 commands. See [evaluation evidence](evaluations.md) for accepted results, diagnostic history,
 interpretation limits and current economical settings.
 
+The [unknown-target runner](unknown-target-investigations.md) compares symptom/requirement-only
+tasks with ordinary source editing. Each trial has two fresh processes separated by a dependency
+change, retained handoff and stale-review check. Its deterministic rehearsal must pass before a live
+trial, and interrupted attempts remain diagnostic evidence. It uses the local CLI's ephemeral JSON
+execution mode; see [non-interactive execution](https://learn.chatgpt.com/docs/non-interactive-mode)
+for the underlying Codex interface.
+
 The pinned upstream read/trace task runs one guided agent against the retained regex workspace.
 It accepts only instrumented guide, follow, bounded find/show and finish requests. The score
 checks exact source evidence, the cross-crate edge, unchanged source bytes and the Codex tool log.

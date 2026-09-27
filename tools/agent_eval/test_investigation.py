@@ -29,6 +29,21 @@ if "--fr" in sys.argv:
 
 
 class InvestigationProtocol(unittest.TestCase):
+    def test_completed_behavioral_failure_is_retained_without_laundering_its_score(self):
+        retained = trial.ROOT/"tests/agent-eval/results/2026-09-27-unknown-target-feature-files-failure"
+        cohort.audit_comparison(retained, False)
+        original_load = trial.load
+        for field,value,message in (("passed",True,"outcome differs"),
+                                    ("visible_bytes",0,"metrics differ"),
+                                    ("resumption_passed",False,"complete its protocol")):
+            def changed(path):
+                result = original_load(path)
+                if path == retained/"result.json":
+                    result[field] = value
+                return result
+            with patch.object(trial,"load",side_effect=changed), self.assertRaisesRegex(ValueError,message):
+                cohort.audit_comparison(retained, False)
+
     def test_concurrent_requests_cannot_observe_an_inflight_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
             session=Path(directory)

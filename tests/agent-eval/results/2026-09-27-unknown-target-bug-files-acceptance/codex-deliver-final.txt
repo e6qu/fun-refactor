@@ -1,0 +1,3 @@
+Fixed `sorensen_dice` Unicode scoring by using Unicode scalar counts (`chars().count()`) for length checks and the denominator.
+
+All original, changed, restored, and reapplied checks passed.

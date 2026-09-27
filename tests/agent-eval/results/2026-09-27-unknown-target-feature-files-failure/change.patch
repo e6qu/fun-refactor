@@ -1,0 +1,32 @@
+--- a/regex-syntax/src/lib.rs
++++ b/regex-syntax/src/lib.rs
+@@ -206,6 +206,13 @@
+     quoted
+ }
+ 
++/// Returns the UTF-8 byte length of the escaped representation of `text`.
++///
++/// This does not allocate.
++pub fn escape_len(text: &str) -> usize {
++    text.len() + text.chars().filter(|&c| is_meta_character(c)).count()
++}
++
+ /// Escapes all meta characters in `text` and writes the result into `buf`.
+ ///
+ /// This will append escape characters into the given buffer. The characters
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,13 @@
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Returns the UTF-8 byte length of the escaped representation of `pattern`.
++///
++/// This does not allocate.
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {

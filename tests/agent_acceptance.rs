@@ -29,6 +29,17 @@ fn unknown_target_trials_reject_stale_reviews_and_unaccounted_commands() {
 }
 
 #[test]
+fn unknown_target_cohort_has_matched_inputs_and_retained_diagnostics() {
+    python(&["tools/investigation-cohort.py"]);
+}
+
+#[test]
+#[ignore = "replays pinned upstream compilers and independent behavioral oracles"]
+fn unknown_target_agent_patches_replay_after_interrupted_investigations() {
+    python(&["tools/investigation-cohort.py", "--replay"]);
+}
+
+#[test]
 fn recorded_agent_patches_pass_upstream_tests_and_independent_oracles() {
     for directory in [
         "tests/agent-eval/results/2026-09-07",

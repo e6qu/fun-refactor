@@ -19,3 +19,7 @@ fi
 CARGO_NET_OFFLINE=true cargo test --test agent_acceptance \
     recorded_workspace_patches_pass_checks_oracles_and_exact_reversal \
     -- --ignored
+
+CARGO_NET_OFFLINE=true cargo test --test agent_acceptance \
+    unknown_target_agent_patches_replay_after_interrupted_investigations \
+    -- --ignored --exact
