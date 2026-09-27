@@ -9,7 +9,9 @@ receiver execution and exact reversal for both the wrong compiler-only patch and
 The failed acceptance run exports no patch and remains part of the evidence.
 
 Fresh 2026-09-28 package-flow, retained-proof, host-recovery, resolution, flow-cache, workflow-context
-and task-change-context evaluations bind this implementation. Regression tests select those results;
+and task-change-context evaluations bind this implementation. Completion-workflow, agent-guide and
+intent-action evaluations also bind the updated CLI and SDK. The runtime-context comparison binds
+the changed SDK IR module. Regression tests select those results;
 earlier artifacts remain intact. The two context comparisons retain their previous token counts.
 
 The [unknown-target cohort](unknown-target/cohort.json) reuses the unmodified strsim and regex archives

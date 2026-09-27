@@ -40,8 +40,9 @@ delivery cannot refresh a changed prerequisite to force plan completion. The sta
 acceptance checks only after application; shared Rust/Lean cases cover that finite policy.
 These checks establish the declared outcomes, not general behavioral correctness or source equivalence.
 
-Seven source-bound evaluations also rerun for this change: package flow, retained proofs, host recovery,
-resolution, flow cache, workflow context and task-change context. Regression tests select the 2026-09-28 results.
+Eleven source-bound evaluations also rerun for this change: package flow, retained proofs, host recovery,
+resolution, flow cache, workflow context, task-change context, completion workflows, agent guides
+intent actions and SDK runtime context. Regression tests select the 2026-09-28 results.
 Earlier dated measurements remain unchanged as historical evidence. Host recovery now measures with
 one test worker, matching the serial compiler and Lean limits used for this validation.
 
