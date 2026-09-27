@@ -111,29 +111,34 @@ model cases. These theorems do not prove the parser, solver or Python implementa
 
 ### Static local imports
 
-Add `--imports --summaries` to follow root-local Python modules. Both the selected file and admitted
-modules live directly under the workspace root. Supported forms include `import helper`,
-`import helper as alias`, `from helper import forward` and `from helper import forward as relay`.
+Add `--imports --summaries` to follow workspace-local Python modules and regular packages.
+Supported forms include `import helper`, `import pkg.helper as alias`, `import pkg.helper`,
+`from pkg.helper import forward as relay` and `from .helper import forward`.
+Explicit relative function imports can ascend within the selected workspace package tree.
 Import module, member and alias names use ASCII identifiers.
-Function identities include their file, such as `helper.py::forward`. Argument substitution and
-explicit return, sink and raise effects retain exact occurrences across module boundaries.
+Function identities include the full relative path, such as `pkg/helper.py::forward`.
+Same-named helpers in separate packages keep separate summaries and exact cross-file occurrences.
 `project flow-facts HANDLE --imports` exposes the same analysis through bounded explanations and semantic links.
 
-The loader records each import declaration and its `.py`, `.pyi` and `__init__.py` candidates.
-A source module requires absent package and stub candidates. Named member lookups report functions,
-missing declarations, ambiguity or unavailable modules. Missing paths enter the input identity;
-adding a declaration or package changes the next dependency snapshot. Duplicate bindings, shadowing,
-ignored files, symlinks and syntax errors keep the report incomplete. Import aliases refer only to
-static module bindings; arbitrary object aliases remain unsupported.
+The `fr-flow-modules-2` dependency record includes the entry resolution and each import lookup.
+Every module component retains four candidates: `.py`, `/__init__.py`, `.pyi` and `/__init__.pyi`.
+Parent components require regular packages; the final component admits a module or package initializer.
+Each admitted source requires absent competing source and stub candidates.
+Missing parents, competing modules, new stubs and changed initializers change the next input identity.
+Named member lookups report functions, missing declarations, ambiguity or unavailable modules.
+Duplicate bindings, shadowing, ignored files, symlink leaves or ancestors and syntax errors keep the report incomplete.
+Import aliases refer only to static module bindings; arbitrary object aliases remain unsupported.
 
-The admitted initialization model allows function declarations, static imports, comments and string expressions.
-Packages, relative or dotted imports, wildcard imports, cyclic initialization and module effects retain cutoffs.
+Ordinary modules admit function declarations, static imports, comments, inert string expressions and `pass`.
+Package initializers admit the same subset without imports. Interpolated strings retain effect cutoffs.
+Namespace packages, re-exports, `from . import helper`, wildcard imports, cyclic initialization and module effects retain cutoffs.
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
 The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.
 Rule names must be unqualified in import mode.
 They cannot overlap any local function or import binding in the closure.
 
-Budgets admit at most 16 modules, 256 KiB of module source and 128 import lookups.
+Budgets admit at most 16 modules, 256 KiB of module source, 128 import lookups and 16 components per module name.
+Parent initializers count toward the module and source budgets.
 The existing function, depth, transfer and response limits still apply. Incomplete results never enter the reuse cache.
 Reuse validates every module and import candidate, configuration, rules and analyzer source identity.
 It renews occurrences only inside that validated closure. Unrelated files can change without rerunning flow transfer.
@@ -141,14 +146,20 @@ The cache deliberately recomputes the whole closure after a relevant edit; it do
 
 `analysis.dependencies` exposes typed files, import candidates, resolutions and coverage.
 `analysis.dependencies.dependency` supplies a captured `flow-inputs` dependency for a task step.
-Its query reselects the named declaration in its exact root-local file on each resume.
+Its query reselects the named declaration in its exact workspace-relative file on each resume.
 It rechecks the current module closure, configuration and rule file before preserving satisfied evidence.
 Missing or ambiguous entries invalidate captured dependencies. Independent steps retain their own evidence.
 Rule files must live inside the workspace to create this plan dependency; analysis alone also permits explicit external rule files.
 
 The [imported-flow acceptance](../tests/agent-eval/results/2026-09-25-imported-flow/result.json) records runtime and coordinate oracles,
 negative lookups, dependency drift, restored plans and checked patch delivery. Three Lean theorems model import admission;
-native tests compare all eight Boolean cases. These results do not prove Python source correspondence or parser correctness.
+native tests compare all eight Boolean cases. The package resolver applies that predicate to each component.
+These results do not prove the full resolver, Python source correspondence or parser correctness.
+The [package task](../tests/agent-eval/package-flow/task.json) adds unknown-target repair and feature requirements.
+Its [retained delivery](../tests/agent-eval/results/2026-09-26-package-flow/result.json) records deterministic discovery,
+parent invalidation, independent plan evidence, stale review refusal and two independently replayed patches.
+The ordinary arm uses AST inspection and direct source edits; the fr arm discovers targets through summaries and import records.
+Their timings cover different operations and establish no general speed or live-agent claim.
 
 ## Verified result reuse
 

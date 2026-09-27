@@ -29,7 +29,7 @@ pub struct Options {
     #[arg(
         long,
         requires = "summaries",
-        help = "Follow static root-local Python module imports."
+        help = "Follow static workspace-local Python modules and regular packages."
     )]
     imports: bool,
     #[arg(long)]
@@ -262,28 +262,24 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("missing-call-target");
             return Flow::new();
         };
+        let name: String = self
+            .text(function)
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect();
         if function.kind() != "identifier"
             && !(self.modules.is_some()
                 && function.kind() == "attribute"
-                && function
-                    .child_by_field_name("object")
-                    .is_some_and(|n| n.kind() == "identifier")
-                && function
-                    .child_by_field_name("attribute")
-                    .is_some_and(|n| n.kind() == "identifier"))
+                && name.split('.').all(|part| {
+                    !part.is_empty()
+                        && part.chars().enumerate().all(|(i, c)| {
+                            c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit()
+                        })
+                }))
         {
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
-        let name = if function.kind() == "attribute" {
-            format!(
-                "{}.{}",
-                self.text(function.child_by_field_name("object").unwrap()),
-                self.text(function.child_by_field_name("attribute").unwrap())
-            )
-        } else {
-            self.text(function).to_owned()
-        };
         let mut arguments = Vec::new();
         if let Some(args) = node.child_by_field_name("arguments") {
             for arg in args.named_children(&mut args.walk()) {
@@ -597,12 +593,14 @@ impl Project<'_> {
         let query: DependencyQuery = serde_json::from_str(key)?;
         let path = Path::new(&query.path);
         ensure!(
-            path.components().count() == 1
-                && path
-                    .file_name()
-                    .is_some_and(|name| name == path.as_os_str())
+            !path.is_absolute()
+                && !query.path.contains('\\')
+                && query
+                    .path
+                    .split('/')
+                    .all(|part| !matches!(part, "" | "." | ".."))
                 && path.extension().is_some_and(|extension| extension == "py"),
-            "flow dependency needs a root-local Python file."
+            "flow dependency needs a normalized workspace-relative Python file."
         );
         let file = self.root.join(path);
         let symbols: Vec<_> = self
@@ -712,8 +710,8 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
-                    let name = if options.imports {
-                        format!("{}::{short}", file.file_name().unwrap().to_string_lossy())
+                    let name = if let Some(modules) = &modules {
+                        modules.function_name(file, short)
                     } else {
                         short.to_owned()
                     };
@@ -723,20 +721,22 @@ impl Project<'_> {
                     contexts.insert(name, (file, text));
                 } else if !(options.imports
                     && matches!(node.kind(), "import_statement" | "import_from_statement"))
-                    && (!matches!(node.kind(), "comment" | "expression_statement")
-                        || (node.kind() == "expression_statement"
-                            && node.named_child(0).is_some_and(|n| n.kind() != "string")))
+                    && (!matches!(
+                        node.kind(),
+                        "comment" | "expression_statement" | "pass_statement"
+                    ) || (node.kind() == "expression_statement"
+                        && node.named_child(0).is_some_and(|n| {
+                            n.kind() != "string"
+                                || n.named_children(&mut n.walk())
+                                    .any(|child| child.kind() == "interpolation")
+                        })))
                 {
                     module_effects = true;
                 }
             }
         }
-        let entry = if options.imports {
-            format!(
-                "{}::{}",
-                symbol.file.file_name().unwrap().to_string_lossy(),
-                symbol.name
-            )
+        let entry = if let Some(modules) = &modules {
+            modules.function_name(&symbol.file, &symbol.name)
         } else {
             symbol.name.clone()
         };
@@ -935,7 +935,7 @@ impl Project<'_> {
         };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
             "semantics": if options.summaries {"python-scalar-summaries-1"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
-            "scope": if options.imports {"selected function and static root-local module closure."} else {"selected function and direct helpers in the same file."},
+            "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
                 "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],

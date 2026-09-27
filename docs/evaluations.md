@@ -16,6 +16,22 @@ Every retained run has a manifest under `tests/agent-eval/results/`. Manifests b
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;
 acceptance runs must satisfy their scorer at recording time.
 
+## Package investigation and delivery
+
+The [package task](../tests/agent-eval/package-flow/task.json) pins a raw-input bug and a sink-free preview requirement without edit paths.
+Its [baseline](../tests/agent-eval/package-flow/baseline.json) records incomplete dotted-import analysis before this extension.
+The [acceptance](../tests/agent-eval/results/2026-09-26-package-flow/result.json) discovers the faulty helper through summaries,
+keeps same-named package helpers separate and delivers both changes through reviewed checks, undo/redo and patches.
+An independent receiver replays both patches and executes the public API. Python AST positions check cross-file call origins.
+Restored plans invalidate dependent evidence after parent, helper and negative-candidate edits while preserving an independent step.
+
+The ordinary arm discovers targets with AST inspection and edits source directly. The fr arm uses summaries and import records.
+On this tiny fixture, ordinary discovery and editing read 417 source bytes; fr discovery disclosed roughly 103 KiB of structured reports.
+The ordinary arm was faster in the retained run. These arms perform different operations and make no general performance claim.
+Both are deterministic scripts, with no live-agent or token-saving claim. Declared delivery checks admit valid before/after states for reversal;
+strict runtime checks enforce the repaired and feature postconditions after delivery and in the separate receiver.
+Package loading remains bounded to regular local packages with inert initializers. Dynamic imports, namespace packages and re-exports remain open.
+
 ## Current matched results
 
 The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json) contains 288 samples across six generated scalar workloads.
@@ -26,21 +42,21 @@ AST coordinates check the scenario; missing helpers and response-budget cutoffs 
 
 | Workload | Previous warm median | Report-chunk warm median |
 |---|---:|---:|
-| Pipeline, 8 helpers | 1.400 s | 0.653 s |
-| Pipeline, 16 helpers | 2.954 s | 0.900 s |
-| Imported fanout, 8 helpers | 0.815 s | 0.584 s |
-| Imported fanout, 24 helpers | 1.399 s | 0.674 s |
-| Mutual recursion, 8 helpers | 1.658 s | 0.700 s |
-| Mutual recursion, 12 helpers | 2.345 s | 0.802 s |
+| Pipeline, 8 helpers | 1.560 s | 0.668 s |
+| Pipeline, 16 helpers | 3.448 s | 0.920 s |
+| Imported fanout, 8 helpers | 0.912 s | 0.665 s |
+| Imported fanout, 24 helpers | 1.603 s | 0.734 s |
+| Mutual recursion, 8 helpers | 1.826 s | 0.730 s |
+| Mutual recursion, 12 helpers | 2.677 s | 0.825 s |
 
 This selects whole-report storage while retaining whole-analysis dependency validation. Warmed
-stores use 1.35–2.91 times the bytes of the previous per-node encoding. Native calls and disclosed
+stores use 1.34–2.90 times the bytes of the previous per-node encoding. Native calls and disclosed
 context stay unchanged. The run records isolated worker and child peak RSS, transfer counts,
 store operations and bytes. Native fact caching is disabled; operating-system caches are uncontrolled.
 The corpus represents these admitted task shapes on one host, without a production or population speed claim.
 It contains no live-agent trial or token measurement. The pinned baseline SDK and diagnostic probes
 are retained beside the [task](../tests/agent-eval/flow-cache/task.json).
-New warm medians still exceed new cold medians on four of these six workloads. The result improves retained
+New warm medians still exceed new cold medians on five of these six workloads. The result improves retained
 storage overhead; it does not establish an overall latency benefit from enabling the optional cache.
 
 Evidence identities ignore coordinated workspace release versions in the Cargo manifest and lockfile.
