@@ -1065,7 +1065,7 @@ impl Index {
             .is_some_and(|r| matches!(r, "this" | "self"));
         // Two members that are one definition group are one candidate: a property's getter and
         // setter, an overload set.
-        let member_candidates = {
+        let scope_can_settle_it = !member_access || receiver_is_self || {
             let members: Vec<SymbolId> = candidates
                 .iter()
                 .copied()
@@ -1074,9 +1074,8 @@ impl Index {
                         .is_some_and(|s| matches!(s.kind, SymbolKind::Field | SymbolKind::Method))
                 })
                 .collect();
-            self.count_entities(&members)
+            !self.has_multiple_entities(&members)
         };
-        let scope_can_settle_it = !member_access || receiver_is_self || member_candidates <= 1;
         let scoped = in_file
             .iter()
             .filter(|_| scope_can_settle_it)
@@ -1117,13 +1116,12 @@ impl Index {
             }
         }
 
-        // 2.
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
         if in_file.len() > 1 {
             let ids: Vec<SymbolId> = in_file.iter().map(|s| s.id).collect();
-            if self.count_entities(&ids) == 1 {
+            if !self.has_multiple_entities(&ids) {
                 return (Some(ids[0]), Confidence::Exact);
             }
         }
@@ -1819,17 +1817,43 @@ impl Index {
             .collect()
     }
 
-    /// How many distinct entities these symbols denote, with each
-    /// definition group counted once.
+    /// Count entities in input order, removing each first remaining definition group.
     pub fn count_entities(&self, ids: &[SymbolId]) -> usize {
-        let mut remaining: Vec<SymbolId> = ids.to_vec();
-        let mut count = 0usize;
-        while let Some(first) = remaining.first().copied() {
-            let group = self.definition_group(first);
-            remaining.retain(|id| !group.contains(id) && *id != first);
-            count += 1;
+        if ids.len() < 2 {
+            return ids.len();
+        }
+        let mut remaining: HashSet<SymbolId> = ids.iter().copied().collect();
+        let mut count = 0;
+        // Keep the input's greedy order: groups need not form an equivalence relation.
+        for id in ids {
+            if remaining.remove(id) {
+                for member in self.definition_group(*id) {
+                    remaining.remove(&member);
+                }
+                count += 1;
+                if remaining.is_empty() {
+                    break;
+                }
+            }
         }
         count
+    }
+
+    fn has_multiple_entities(&self, ids: &[SymbolId]) -> bool {
+        let Some((first, rest)) = ids.split_first() else {
+            return false;
+        };
+        if rest.is_empty() {
+            return false;
+        }
+        let group = self.definition_group(*first);
+        // Only the first removal matters when asking whether a second entity remains.
+        if group.len() <= 8 {
+            rest.iter().any(|id| id != first && !group.contains(id))
+        } else {
+            let group: HashSet<SymbolId> = group.into_iter().collect();
+            rest.iter().any(|id| id != first && !group.contains(id))
+        }
     }
 
     pub fn is_one_entity(&self, symbols: &[&Symbol]) -> bool {
@@ -2006,6 +2030,50 @@ mod tests {
 
     /// Build an index from in-memory sources written to a temp workspace.
     use crate::testing::indexed as index_of;
+
+    #[test]
+    fn ambiguity_matches_ordered_counts_for_large_and_asymmetric_groups() {
+        let python = format!(
+            "def run():\n{}    return value\n",
+            "    value = 1\n".repeat(32)
+        );
+        let mut index = Index::build_from_sources(&[
+            ("a.py".into(), Language::Python, python),
+            ("a.ts".into(), Language::TypeScript,
+             "function pick(x: string): string;\nfunction pick(x: number): number;\nfunction pick(x: any): any { return x; }\n".into()),
+        ]).unwrap();
+        let picks = index
+            .find_symbols("pick", None)
+            .iter()
+            .map(|s| s.id)
+            .collect::<Vec<_>>();
+        index.symbols[picks[0].0 as usize].language = Language::Rust;
+        assert_eq!(index.count_entities(&[picks[0], picks[1]]), 2);
+        assert_eq!(index.count_entities(&[picks[1], picks[0]]), 1);
+        let mut ids = index.symbols.iter().map(|s| s.id).collect::<Vec<_>>();
+        ids.extend([SymbolId(u32::MAX), SymbolId(u32::MAX - 1)]);
+        assert!(!index.has_multiple_entities(&[]));
+        for first in &ids {
+            assert!(!index.has_multiple_entities(&[*first, *first]));
+            for second in &ids {
+                let sample = [*first, *second, *first];
+                assert_eq!(
+                    index.has_multiple_entities(&sample),
+                    index.count_entities(&sample) > 1
+                );
+            }
+        }
+        let variables = index
+            .find_symbols("value", None)
+            .iter()
+            .map(|s| s.id)
+            .collect::<Vec<_>>();
+        assert!(variables.len() > 8);
+        assert!(!index.has_multiple_entities(&variables));
+        let mut mixed = variables;
+        mixed.push(SymbolId(u32::MAX));
+        assert!(index.has_multiple_entities(&mixed));
+    }
 
     #[cfg(all(feature = "cli", unix))]
     #[test]

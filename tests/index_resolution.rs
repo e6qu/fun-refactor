@@ -26,7 +26,7 @@ fn entity_counts_preserve_order_duplicates_missing_ids_and_mutations() {
     let mut ids = index.symbols.iter().map(|s| s.id).collect::<Vec<_>>();
     ids.extend([SymbolId(u32::MAX), SymbolId(u32::MAX - 1)]);
     let mut seed = 713u64;
-    for mutation in 0..4 {
+    for mutation in 0..5 {
         for size in 0..80 {
             let sample = (0..size)
                 .map(|_| {
