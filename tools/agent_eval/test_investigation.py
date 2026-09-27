@@ -61,7 +61,7 @@ class InvestigationProtocol(unittest.TestCase):
         for task in trial.load(trial.TASK)["tasks"]:
             for arm in ("fr", "files"):
                 text = prompt(Path("/tmp/trial"), {"task": task, "arm": arm}, "discover")
-                for target in ("src/lib.rs", "regex-syntax", "sorensen_dice", "is_meta_character"):
+                for target in ("src/lib.rs", "sorensen_dice", "is_meta_character"):
                     self.assertNotIn(target, text)
                 self.assertIn("Discover all edit paths", text)
                 self.assertIn("source_equivalence_proven", text)
@@ -157,6 +157,9 @@ class InvestigationProtocol(unittest.TestCase):
             self.assertTrue(self.transcript(session, allowed, request)["passed"])
             wrapped = shlex.join(["/bin/zsh", "-lc", allowed])
             self.assertTrue(self.transcript(session, wrapped, request)["passed"])
+            positional = shlex.join(["python3",str(trial.ROOT/'tools/investigation-agent.py'),"step",str(session),"--request",json.dumps(request)])
+            self.assertTrue(self.transcript(session, positional, request)["passed"])
+            self.assertFalse(self.transcript(session, positional+"; cat secret", request)["passed"])
             for command in ("cat secret; "+allowed, allowed+"\ncat secret", allowed.replace('"files"', '"read"')):
                 self.assertFalse(self.transcript(session, command, request)["passed"])
                 self.assertFalse(self.transcript(session, shlex.join(["/bin/zsh","-lc",command]), request)["passed"])

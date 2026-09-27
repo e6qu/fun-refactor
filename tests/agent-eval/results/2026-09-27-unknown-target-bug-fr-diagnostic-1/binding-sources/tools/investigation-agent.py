@@ -22,9 +22,7 @@ def main():
         prepare.add_argument("--arm", choices=("fr", "files"), required=True)
     step = commands.add_parser("step")
     step.add_argument("session", type=Path)
-    transport = step.add_mutually_exclusive_group(required=True)
-    transport.add_argument("--request-stdin", action="store_true")
-    transport.add_argument("--request")
+    step.add_argument("--request-stdin", action="store_true", required=True)
     for name in ("resume", "score"):
         commands.add_parser(name).add_argument("session", type=Path)
     run = commands.add_parser("run")
@@ -48,7 +46,7 @@ def main():
     elif args.command == "rehearse":
         value = rehearsal.run(args.session.resolve(), args.fr.resolve(), args.task, args.arm)
     elif args.command == "step":
-        data = args.request.encode() if args.request is not None else sys.stdin.buffer.read(65537)
+        data = sys.stdin.buffer.read(65537)
         trial.require(len(data) <= 65536, "request exceeds 64 KiB")
         value = trial.step(args.session.resolve(), json.loads(data))
     elif args.command == "resume":

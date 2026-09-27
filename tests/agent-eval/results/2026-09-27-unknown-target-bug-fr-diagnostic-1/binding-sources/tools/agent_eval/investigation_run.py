@@ -98,8 +98,7 @@ def transcript(session, phase, tool_events, *, command_session=None, command_run
         elif item.get("type") not in {"agent_message", "reasoning", "todo_list"}:
             violations.append(item.get("type"))
     requests = []
-    invocation = ["python3", str(command_runner or trial.ROOT / 'tools/investigation-agent.py'), "step", str(command_session or session)]
-    prefix = " ".join(invocation) + " --request-stdin <<'FRJSON'\n"
+    prefix = f"python3 {command_runner or trial.ROOT / 'tools/investigation-agent.py'} step {command_session or session} --request-stdin <<'FRJSON'\n"
     for item in commands:
         command = item.get("command", "").strip()
         # Codex records the shell argv, including its one command-string argument.
@@ -112,15 +111,11 @@ def transcript(session, phase, tool_events, *, command_session=None, command_run
                 violations.append(command)
                 continue
             command = argv[2].strip()
+        if not command.startswith(prefix) or not command.endswith("\nFRJSON"):
+            violations.append(command)
+            continue
         try:
-            if command.startswith(prefix) and command.endswith("\nFRJSON"):
-                request = json.loads(command[len(prefix):-len("\nFRJSON")])
-            else:
-                argv = shlex.split(command)
-                if len(argv) != 6 or argv[:5] != [*invocation, "--request"]:
-                    raise ValueError("unexpected command")
-                request = json.loads(argv[5])
-            requests.append(request)
+            requests.append(json.loads(command[len(prefix):-len("\nFRJSON")]))
         except ValueError:
             violations.append(command)
     expected = [e["request"] for e in tool_events if e["phase"] == phase]

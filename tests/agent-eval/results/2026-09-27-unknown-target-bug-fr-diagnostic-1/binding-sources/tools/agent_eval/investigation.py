@@ -246,15 +246,12 @@ def checkpoint(session, selected, request):
     require(isinstance(dependencies, list) and 1 <= len(dependencies) <= 8
             and len(set(dependencies)) == len(dependencies), "select 1..8 distinct source dependencies")
     for path in dependencies:
-        require(checked_path(session / "project", path).is_file() and path.endswith(".rs"),
-                f"dependencies: {path!r} must be a relative Rust source path, not a declaration handle")
+        require(checked_path(session / "project", path).is_file() and path.endswith(".rs"), "dependency must be Rust source")
     require(set(load(session / "review.json")["paths"]) <= set(dependencies), "diagnosis dependencies must cover every proposed changed path")
     cited = request["evidence"]
-    require(isinstance(cited, list) and cited, "evidence: cite at least one successful discovery event ID")
-    eligible = [i for i,e in enumerate(prior) if e["request"]["tool"] in SOURCE_TOOLS and "error" not in e["visible"]]
-    for index, event in enumerate(cited):
-        require(type(event) is int and event in eligible,
-                f"evidence[{index}]: {event!r} is not successful discovery; cite IDs from {eligible}. Reviews are not discovery events.")
+    require(isinstance(cited, list) and cited and all(type(i) is int and 0 <= i < len(prior)
+            and prior[i]["request"]["tool"] in SOURCE_TOOLS and "error" not in prior[i]["visible"] for i in cited),
+            "cite successful discovery event IDs")
     require(all(isinstance(request[k], str) and 1 <= len(request[k]) <= 4096 for k in ("diagnosis", "pending")),
             "retain bounded diagnosis and pending work")
     save(session / "handoff.json", request)

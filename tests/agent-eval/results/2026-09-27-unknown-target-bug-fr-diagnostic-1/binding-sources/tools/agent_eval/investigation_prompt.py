@@ -40,10 +40,7 @@ Exploratory follow-ups and corrections after refusals are allowed and counted. R
     return f'''You are an independent acceptance agent in an unfamiliar pinned upstream workspace.
 Task: {load(TASK)["tasks"][selected["task"]]["requirement"]}
 
-Current phase: {phase}. Discover all edit paths and existing helper names yourself. Keep unrelated source and APIs intact. Do not browse, delegate, commit, push, inspect the evaluator/oracles, or access other sessions. No human correction is available. Use only the instrumented tool for inspection and changes, through functions.exec / tools.exec_command. Every shell command must be exactly one invocation. Prefer this form for simple requests:
-python3 {ROOT / 'tools/investigation-agent.py'} step {session} --request '{{"tool":"read","path":"README.md","start":1,"lines":80}}'
-
-For authored source or text containing apostrophes, send one JSON object on stdin. End the heredoc exactly once. Do not add a second FRJSON line or any other shell command:
+Current phase: {phase}. Discover all edit paths and existing helper names yourself. Keep unrelated source and APIs intact. Do not browse, delegate, commit, push, inspect the evaluator/oracles, or access other sessions. No human correction is available. Use only the instrumented tool for inspection and changes, through functions.exec / tools.exec_command. Every shell command must be exactly one invocation in this form, with one JSON object on stdin:
 python3 {ROOT / 'tools/investigation-agent.py'} step {session} --request-stdin <<'FRJSON'
 {{"tool":"read","path":"README.md","start":1,"lines":80}}
 FRJSON

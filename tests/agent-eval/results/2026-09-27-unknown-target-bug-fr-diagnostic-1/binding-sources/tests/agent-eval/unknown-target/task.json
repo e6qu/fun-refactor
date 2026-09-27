@@ -11,7 +11,7 @@
     },
     "regex-escape-len": {
       "kind": "feature",
-      "requirement": "Callers need to reserve space for escaped regular-expression text without allocating a temporary string. Add documented public escape_len(pattern: &str) -> usize APIs to the regex and regex-syntax crates. Return the escaped UTF-8 byte length without allocating. Make escaping a nonempty pattern use at most one allocation and empty input none. Preserve escaping results, append behavior, existing APIs and builds without default features. Discover the implementation and integration points from the workspace.",
+      "requirement": "Callers need to reserve space for escaped regular-expression text without allocating a temporary string. Add documented public escape_len(pattern: &str) -> usize APIs to both public crates. Return the escaped UTF-8 byte length without allocating. Make escaping a nonempty pattern use at most one allocation and empty input none. Preserve escaping results, append behavior, existing APIs and builds without default features. Discover the implementation and integration points from the workspace.",
       "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
       "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
       "oracle": "Independent escaped-byte and allocator-count oracle in both crates, append preservation, upstream library tests and no-default-features compilation. The original source must fail only for the absent API."
@@ -20,13 +20,12 @@
   "comparison": "One fresh fr agent and one ordinary search/source-editing agent per task; identical requirements, upstream revisions, checks and independent oracles. Neither prompt supplies edit paths or private helper names. Each session has discovery and delivery phases in separate fresh agent processes.",
   "resumption": "Agents retain a diagnosis, cited discovery events, selected source dependencies and pending work. Between phases the evaluator appends an inert comment to a selected dependency. Native plans must invalidate dependent evidence while preserving an independent README observation. Fresh agents receive the retained handoff and must rediscover current evidence before editing. The ordinary arm receives the same change and retained notes.",
   "budgets": {
+    "trials": 4,
     "phases_per_trial": 2,
     "seconds_per_phase": 1200,
     "calls_per_trial": 80,
     "visible_bytes_per_trial": 1048576,
-    "parallel_workers": 1,
-    "cohort_trials": 4,
-    "max_live_attempts": 6
+    "parallel_workers": 1
   },
   "acceptance": [
     "Establish failing baseline and passing independent final and receiver behavior without prescribing an implementation.",

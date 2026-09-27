@@ -1,0 +1,7 @@
+Implemented the Unicode fix in `src/lib.rs`.
+
+- Counts Unicode scalar values via `chars().count()`.
+- Preserves whitespace removal, duplicate multiplicity, equal-input behavior, ASCII behavior, and public APIs.
+- Correctly yields `2/3` for `éa` vs `éab`.
+- All original/applied/restored/reapplied checks passed.
+- Patch exported to `artifacts/change.patch`.
