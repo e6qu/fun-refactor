@@ -16,6 +16,35 @@ Every retained run has a manifest under `tests/agent-eval/results/`. Manifests b
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;
 acceptance runs must satisfy their scorer at recording time.
 
+## Checked delivery outcomes
+
+The [retained outcome evaluation](../tests/agent-eval/results/2026-09-28-checked-outcomes/manifest.json)
+pins a two-file Rust subtotal repair and fee requirement. An independent Python oracle compiles the
+public Rust API and checks 49 bounded inputs. The evaluator supplies each change, so these are
+deterministic protocol cases without a live-agent or token-saving claim.
+
+| Case | Lifecycle checks | Requested behavior | Patch | Plan completion |
+|---|---|---|---|---|
+| Wrong change, compiler-only delivery | Pass | Fail | Delivered | Not established |
+| Same wrong change, acceptance checks | Pass through apply | Fail | Withheld | Incomplete |
+| Correct change, acceptance checks | Pass, including reversal | Pass after apply and redo | Delivered | Complete |
+
+The accepted receipt survives storage and attachment in a fresh process. A later source edit
+invalidates the outcome step while preserving an independent documentation observation. Separate
+receivers replay both exported patches, reproduce their respective behavioral outcomes, reverse
+exactly and reapply. Failed receipts remain retained beside the successful result.
+
+[SDK and native tests](checked-outcomes.md#evidence) add configuration, checker and environment drift,
+source-writing checks, redo failures, malformed receipts and stale prerequisites. A successful
+delivery cannot refresh a changed prerequisite to force plan completion. The stage model admits
+acceptance checks only after application; shared Rust/Lean cases cover that finite policy.
+These checks establish the declared outcomes, not general behavioral correctness or source equivalence.
+
+Seven source-bound evaluations also rerun for this change: package flow, retained proofs, host recovery,
+resolution, flow cache, workflow context and task-change context. Regression tests select the 2026-09-28 results.
+Earlier dated measurements remain unchanged as historical evidence. Host recovery now measures with
+one test worker, matching the serial compiler and Lean limits used for this validation.
+
 ## Unknown-target investigations
 
 The [cohort](../tests/agent-eval/unknown-target/cohort.json) compares live discovery and authoring on

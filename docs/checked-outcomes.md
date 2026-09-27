@@ -83,6 +83,9 @@ and fee requirement. The deterministic evaluator supplies the implementations; t
 agent comparison. Its independent Python oracle compiles the public Rust API and checks 49 outputs.
 It retains compiler-only acceptance of a wrong change, rejection under post-change checks, successful
 delivery, fresh-process completion, invalidation and independent patch replay with exact reversal.
+The [retained manifest](../tests/agent-eval/results/2026-09-28-checked-outcomes/manifest.json) binds its
+artifacts and source snapshots. Run `python3 tools/outcome-acceptance.py --audit DIRECTORY` to verify
+them and replay the compiled receiver checks without calling a model service.
 
 The [SDK tests](../sdk/python/tests/test_investigation_delivery.py) cover stale checkers, changed
 configuration and environment, source-writing checks, failure after redo, malformed receipts and

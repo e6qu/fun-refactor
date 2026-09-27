@@ -1,0 +1,1736 @@
+{
+  "schema": "fr-checked-outcomes-result-1",
+  "cases": {
+    "compiler-only": {
+      "complete": false,
+      "review": {
+        "author": {
+          "atomic_snapshot": false,
+          "behavior_checked": false,
+          "changed": true,
+          "context_inherited": [
+            "coverage",
+            "revision",
+            "handle_prefix"
+          ],
+          "diff": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1,5 +1,3 @@\n mod pricing;\n \n-pub fn quote(a: i64, b: i64) -> i64 {\n-    pricing::subtotal(a, b)\n-}\n+pub fn quote(a: i64, b: i64) -> i64 { pricing::subtotal(a, b) + 3 }\n--- a/src/pricing.rs\n+++ b/src/pricing.rs\n@@ -1,3 +1,1 @@\n-pub fn subtotal(a: i64, b: i64) -> i64 {\n-    a - b\n-}\n+pub fn subtotal(a: i64, b: i64) -> i64 { a * b }\n",
+          "files_changed": 2,
+          "postconditions": [
+            {
+              "actual": 2,
+              "expected": 2,
+              "held": true,
+              "postcondition": "files-changed"
+            },
+            {
+              "actual": [
+                "src/lib.rs",
+                "src/pricing.rs"
+              ],
+              "expected": [
+                "src/lib.rs",
+                "src/pricing.rs"
+              ],
+              "held": true,
+              "postcondition": "paths-changed"
+            }
+          ],
+          "postconditions_held": true,
+          "query": "batch",
+          "schema": "fr-author-batch-1",
+          "span_basis": "original-source",
+          "steps": [
+            {
+              "after_bytes": 9,
+              "after_sha256": "893beec3d6f42ce1a707bd24d3208c902e9684fed862e120442c68e1bbb95735",
+              "before_bytes": 13,
+              "before_sha256": "90a8db6860702b7133bb93bff2fae38d80b7308c844b328ff23c5491814afb7a",
+              "before_span": {
+                "end": 52,
+                "start": 39
+              },
+              "changed": true,
+              "handle": "frp1:84ee60f93b6103ce7c35ce7311daa260:9",
+              "operation": "replace-body",
+              "path": "src/pricing.rs",
+              "preservation": "bytes outside the selected body",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "pub fn subtotal(a: i64, b: i64) -> i64"
+              }
+            },
+            {
+              "after_bytes": 31,
+              "after_sha256": "5440440b93b54fd03dcac9d25a2cd9254cd915e78cdfe5ac1d19f569903b643b",
+              "before_bytes": 31,
+              "before_sha256": "7a48d6def0e0ecd737113a3fb72329b5282c88c465c371a5e06d11d845d26110",
+              "before_span": {
+                "end": 81,
+                "start": 50
+              },
+              "changed": true,
+              "handle": "frp1:84ee60f93b6103ce7c35ce7311daa260:5",
+              "operation": "replace-body",
+              "path": "src/lib.rs",
+              "preservation": "bytes outside the selected body",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "pub fn quote(a: i64, b: i64) -> i64"
+              }
+            }
+          ],
+          "validation": "reparse-strict"
+        },
+        "checks": {
+          "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+          "command": [
+            "fr",
+            "checks",
+            "--run",
+            "compile",
+            "--basis",
+            "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+            "--quiet-success",
+            "--no-declarations"
+          ],
+          "coverage": [
+            {
+              "covers": [
+                "original, changed and restored Rust compilation"
+              ],
+              "name": "compile"
+            }
+          ],
+          "names": [
+            "compile"
+          ],
+          "selected": true
+        },
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 3,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 1,
+          "unsupported_files": 0
+        },
+        "delivery": {
+          "check_original": true,
+          "check_output_bytes": 2048,
+          "compact_success": true,
+          "exercise_reversal": true,
+          "patch": "artifacts/change.patch"
+        },
+        "executed": false,
+        "manifest_sha256": "418523559fb59cd2ca24118203ac7d884902e8618aabb177043712c651ce0a89",
+        "passed": null,
+        "ready": true,
+        "requests": [],
+        "revision": "84ee60f93b6103ce7c35ce7311daa260c1d6decac12aa7727cd7906664ad9dc8",
+        "schema": "fr-task-change-1",
+        "stages": [
+          {
+            "stage": "check-original",
+            "status": "pending"
+          },
+          {
+            "stage": "apply",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "undo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-restored",
+            "status": "pending"
+          },
+          {
+            "stage": "redo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "deliver-patch",
+            "status": "pending"
+          }
+        ],
+        "targets": [
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:84ee60f93b6103ce7c35ce7311daa260:9",
+            "id": "subtotal",
+            "kind": "function",
+            "language": "rust",
+            "operation": "replace-body",
+            "path": "src/pricing.rs",
+            "scalar": null,
+            "syntax_preflighted": false
+          },
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:84ee60f93b6103ce7c35ce7311daa260:5",
+            "id": "quote",
+            "kind": "function",
+            "language": "rust",
+            "operation": "replace-body",
+            "path": "src/lib.rs",
+            "scalar": null,
+            "syntax_preflighted": false
+          }
+        ],
+        "task_basis": "frpt1:3f15953adcb1c35b0e64074b0dd4efabd4e4151ef8e9521e05c2d407e083c139",
+        "task_change_basis": "frtc1:276f88e6ff06f9f8dd5a5b1af8967eb79166ad4f2fd315231deb91a0854bd94d",
+        "task_resolution_basis": "frpt2:f7a79630933333517f1dd40bd7cca5473d1324ce026943394f2b97b74bac16a9"
+      },
+      "delivery": {
+        "executed": true,
+        "manifest_sha256": "418523559fb59cd2ca24118203ac7d884902e8618aabb177043712c651ce0a89",
+        "passed": true,
+        "reused_transaction": false,
+        "reviewed_context_omitted": [
+          "revision",
+          "task_basis",
+          "task_resolution_basis",
+          "coverage",
+          "requests",
+          "targets",
+          "checks",
+          "delivery",
+          "author",
+          "stages",
+          "ready"
+        ],
+        "saved": true,
+        "schema": "fr-task-change-1",
+        "task_change_basis": "frtc1:276f88e6ff06f9f8dd5a5b1af8967eb79166ad4f2fd315231deb91a0854bd94d",
+        "transaction": 1,
+        "workflow": {
+          "executed": true,
+          "manifest_sha256": "6ca4157d1753ab0fbf3950f060636e275a30081013cb38ffd6abe68dc3056f86",
+          "passed": true,
+          "reviewed_context_omitted": [
+            "manifest_sha256",
+            "record_basis",
+            "transaction_context_basis",
+            "checks",
+            "exercise_reversal",
+            "check_original",
+            "compact_success",
+            "patch",
+            "ready"
+          ],
+          "schema": "fr-workflow-1",
+          "stages": [
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "74adfdbe425b447ce12bd337981aa5cd607637fde6fdc3c1f40a7e008f699347",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-original",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "apply",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 206,
+                    "path": "src/lib.rs"
+                  },
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 164,
+                    "path": "src/pricing.rs"
+                  }
+                ],
+                "context_basis": "frtb2:8959cdaa0e24e83b4fa004cbe7d91233fc6a5ccb60418ef61896ee632c1ca3ca",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 1
+              },
+              "stage": "apply",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": true,
+                  "receipt": "frce1:f6689ffc7af9d9017edbf5ec3508091e82d3ecc3da39573f849bbaed33c7b097",
+                  "transaction": 1
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "27c32683801061105fda0d2d8438950013d5267ddc4c03d7523c5d50a48cf0f9",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "undo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "path": "src/lib.rs"
+                  },
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "path": "src/pricing.rs"
+                  }
+                ],
+                "diffs_omitted": true,
+                "transaction": 1
+              },
+              "stage": "undo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "74adfdbe425b447ce12bd337981aa5cd607637fde6fdc3c1f40a7e008f699347",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-restored",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "redo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 206,
+                    "path": "src/lib.rs"
+                  },
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 164,
+                    "path": "src/pricing.rs"
+                  }
+                ],
+                "context_basis": "frtb2:8959cdaa0e24e83b4fa004cbe7d91233fc6a5ccb60418ef61896ee632c1ca3ca",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 1
+              },
+              "stage": "redo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": false,
+                  "receipt": "frce1:f6689ffc7af9d9017edbf5ec3508091e82d3ecc3da39573f849bbaed33c7b097",
+                  "transaction": 1
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "27c32683801061105fda0d2d8438950013d5267ddc4c03d7523c5d50a48cf0f9",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "bytes": 466,
+                "output": "artifacts/change.patch",
+                "sha256": "a799bf6a187594106127bc1b3123a29b85a1a87eb1f8320d077768616075f90f"
+              },
+              "stage": "deliver-patch",
+              "status": "passed"
+            }
+          ],
+          "transaction": 1,
+          "transaction_status": "applied",
+          "workflow_basis": "frwb1:f40f1e864460e6727f7209601e19f72536201d25ac35d8a402c9ce6fa1947c9b"
+        }
+      },
+      "oracle": {
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/compiler-only/.fr/oracle.py\", line 17, in <module>\n    assert actual == expected, \"quote must sum both inputs and add the required fee\"\n           ^^^^^^^^^^^^^^^^^^\nAssertionError: quote must sum both inputs and add the required fee\n"
+      },
+      "baseline": {
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/compiler-only/.fr/oracle.py\", line 17, in <module>\n    assert actual == expected, \"quote must sum both inputs and add the required fee\"\n           ^^^^^^^^^^^^^^^^^^\nAssertionError: quote must sum both inputs and add the required fee\n"
+      },
+      "seconds": 1.2392373329785187,
+      "patch_delivered": true
+    },
+    "rejected": {
+      "receipt_root": "f14d92774faf099ab293c4ffa20de61f8486e8d16f1c37fd9b66e19b44acf9c3",
+      "plan_root": "259f2d2d3455a1f91b912e2a11367897c91c9641ca93a39eb0cb13d05e2e3957",
+      "started_plan_root": "940228473dbca3a764ab107e2fe7131403e45d791c42098270aecc2889bc8a4a",
+      "complete": false,
+      "attachment_error": "delivery failed; retained outcomes cannot satisfy acceptance",
+      "review": {
+        "acceptance_checks": {
+          "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+          "names": [
+            "behavior"
+          ],
+          "toolchain-digest": "7ea95f7ebd300497eefdf512c3148d01a447c75ceb901bfb2a1f317c7aa6612c"
+        },
+        "author": {
+          "atomic_snapshot": false,
+          "behavior_checked": false,
+          "changed": true,
+          "context_inherited": [
+            "coverage",
+            "revision",
+            "handle_prefix"
+          ],
+          "diff": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1,5 +1,3 @@\n mod pricing;\n \n-pub fn quote(a: i64, b: i64) -> i64 {\n-    pricing::subtotal(a, b)\n-}\n+pub fn quote(a: i64, b: i64) -> i64 { pricing::subtotal(a, b) + 3 }\n--- a/src/pricing.rs\n+++ b/src/pricing.rs\n@@ -1,3 +1,1 @@\n-pub fn subtotal(a: i64, b: i64) -> i64 {\n-    a - b\n-}\n+pub fn subtotal(a: i64, b: i64) -> i64 { a * b }\n",
+          "files_changed": 2,
+          "postconditions": [
+            {
+              "actual": 2,
+              "expected": 2,
+              "held": true,
+              "postcondition": "files-changed"
+            },
+            {
+              "actual": [
+                "src/lib.rs",
+                "src/pricing.rs"
+              ],
+              "expected": [
+                "src/lib.rs",
+                "src/pricing.rs"
+              ],
+              "held": true,
+              "postcondition": "paths-changed"
+            }
+          ],
+          "postconditions_held": true,
+          "query": "batch",
+          "schema": "fr-author-batch-1",
+          "span_basis": "original-source",
+          "steps": [
+            {
+              "after_bytes": 9,
+              "after_sha256": "893beec3d6f42ce1a707bd24d3208c902e9684fed862e120442c68e1bbb95735",
+              "before_bytes": 13,
+              "before_sha256": "90a8db6860702b7133bb93bff2fae38d80b7308c844b328ff23c5491814afb7a",
+              "before_span": {
+                "end": 52,
+                "start": 39
+              },
+              "changed": true,
+              "handle": "frp1:4c729f52ee467dd44a108486b36fdbaa:9",
+              "operation": "replace-body",
+              "path": "src/pricing.rs",
+              "preservation": "bytes outside the selected body",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "pub fn subtotal(a: i64, b: i64) -> i64"
+              }
+            },
+            {
+              "after_bytes": 31,
+              "after_sha256": "5440440b93b54fd03dcac9d25a2cd9254cd915e78cdfe5ac1d19f569903b643b",
+              "before_bytes": 31,
+              "before_sha256": "7a48d6def0e0ecd737113a3fb72329b5282c88c465c371a5e06d11d845d26110",
+              "before_span": {
+                "end": 81,
+                "start": 50
+              },
+              "changed": true,
+              "handle": "frp1:4c729f52ee467dd44a108486b36fdbaa:5",
+              "operation": "replace-body",
+              "path": "src/lib.rs",
+              "preservation": "bytes outside the selected body",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "pub fn quote(a: i64, b: i64) -> i64"
+              }
+            }
+          ],
+          "validation": "reparse-strict"
+        },
+        "checks": {
+          "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+          "command": [
+            "fr",
+            "checks",
+            "--run",
+            "compile",
+            "--basis",
+            "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+            "--quiet-success",
+            "--no-declarations"
+          ],
+          "coverage": [
+            {
+              "covers": [
+                "original, changed and restored Rust compilation"
+              ],
+              "name": "compile"
+            }
+          ],
+          "names": [
+            "compile"
+          ],
+          "selected": true
+        },
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 3,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 1,
+          "unsupported_files": 0
+        },
+        "delivery": {
+          "check_original": true,
+          "check_output_bytes": 2048,
+          "compact_success": true,
+          "exercise_reversal": true,
+          "patch": "artifacts/change.patch"
+        },
+        "executed": false,
+        "manifest_sha256": "923e0be36c8ec23cf9b9c63354f4b86a487877ffe04c1bee4ae3241d1f888191",
+        "passed": null,
+        "ready": true,
+        "requests": [],
+        "revision": "4c729f52ee467dd44a108486b36fdbaa071abc142acad00fc1c4f90605b13155",
+        "schema": "fr-task-change-1",
+        "stages": [
+          {
+            "stage": "check-original",
+            "status": "pending"
+          },
+          {
+            "stage": "apply",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "check-acceptance",
+            "status": "pending"
+          },
+          {
+            "stage": "undo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-restored",
+            "status": "pending"
+          },
+          {
+            "stage": "redo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "check-acceptance",
+            "status": "pending"
+          },
+          {
+            "stage": "deliver-patch",
+            "status": "pending"
+          }
+        ],
+        "targets": [
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:4c729f52ee467dd44a108486b36fdbaa:9",
+            "id": "subtotal",
+            "kind": "function",
+            "language": "rust",
+            "operation": "replace-body",
+            "path": "src/pricing.rs",
+            "scalar": null,
+            "syntax_preflighted": false
+          },
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:4c729f52ee467dd44a108486b36fdbaa:5",
+            "id": "quote",
+            "kind": "function",
+            "language": "rust",
+            "operation": "replace-body",
+            "path": "src/lib.rs",
+            "scalar": null,
+            "syntax_preflighted": false
+          }
+        ],
+        "task_basis": "frpt1:4be65a9d3db36ca18b99bc59101c753a275df6fe0c843a91ce3ef8e8c79a94d4",
+        "task_change_basis": "frtc1:f2271ed7b35933e792bdea1ae1bf7ff9ee711b7d137ffb69fd11ac27d3426c2b",
+        "task_resolution_basis": "frpt2:1155bc4cbc3ec4614b70968c2a3098731c270b630424db4b65351c2532b12941"
+      },
+      "delivery": {
+        "executed": true,
+        "manifest_sha256": "923e0be36c8ec23cf9b9c63354f4b86a487877ffe04c1bee4ae3241d1f888191",
+        "passed": false,
+        "reused_transaction": false,
+        "reviewed_context_omitted": [
+          "revision",
+          "task_basis",
+          "task_resolution_basis",
+          "coverage",
+          "requests",
+          "targets",
+          "checks",
+          "delivery",
+          "author",
+          "stages",
+          "ready"
+        ],
+        "saved": true,
+        "schema": "fr-task-change-1",
+        "task_change_basis": "frtc1:f2271ed7b35933e792bdea1ae1bf7ff9ee711b7d137ffb69fd11ac27d3426c2b",
+        "transaction": 1,
+        "workflow": {
+          "acceptance_checks": {
+            "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+            "names": [
+              "behavior"
+            ],
+            "toolchain-digest": "7ea95f7ebd300497eefdf512c3148d01a447c75ceb901bfb2a1f317c7aa6612c"
+          },
+          "executed": true,
+          "passed": false,
+          "reviewed_context_omitted": [
+            "manifest_sha256",
+            "record_basis",
+            "transaction_context_basis",
+            "checks",
+            "exercise_reversal",
+            "check_original",
+            "compact_success",
+            "patch",
+            "ready"
+          ],
+          "schema": "fr-workflow-1",
+          "stages": [
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "74adfdbe425b447ce12bd337981aa5cd607637fde6fdc3c1f40a7e008f699347",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-original",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "apply",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 206,
+                    "path": "src/lib.rs"
+                  },
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 164,
+                    "path": "src/pricing.rs"
+                  }
+                ],
+                "context_basis": "frtb2:8959cdaa0e24e83b4fa004cbe7d91233fc6a5ccb60418ef61896ee632c1ca3ca",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 1
+              },
+              "stage": "apply",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": true,
+                  "receipt": "frce1:f6689ffc7af9d9017edbf5ec3508091e82d3ecc3da39573f849bbaed33c7b097",
+                  "transaction": 1
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "27c32683801061105fda0d2d8438950013d5267ddc4c03d7523c5d50a48cf0f9",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "error": "post-change acceptance checks failed",
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "checks": [
+                  {
+                    "argv": [
+                      "rustc",
+                      "--crate-type",
+                      "lib",
+                      "src/lib.rs",
+                      "--emit",
+                      "metadata",
+                      "-o",
+                      "artifacts/check.rmeta"
+                    ],
+                    "covers": [
+                      "original, changed and restored Rust compilation"
+                    ],
+                    "cwd": ".",
+                    "name": "compile",
+                    "timeout_seconds": 30
+                  },
+                  {
+                    "argv": [
+                      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+                      "-B",
+                      ".fr/oracle.py"
+                    ],
+                    "covers": [
+                      "49 bounded public API outputs"
+                    ],
+                    "cwd": ".",
+                    "identity_files": [
+                      ".fr/oracle.py"
+                    ],
+                    "name": "behavior",
+                    "timeout_seconds": 30
+                  }
+                ],
+                "configuration": ".fr/checks.json",
+                "configuration_stable": true,
+                "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+                "executed": true,
+                "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+                "not_run": [
+                  "compile"
+                ],
+                "passed": false,
+                "results": [
+                  {
+                    "argv": [
+                      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+                      "-B",
+                      ".fr/oracle.py"
+                    ],
+                    "covers": [
+                      "49 bounded public API outputs"
+                    ],
+                    "cwd": ".",
+                    "elapsed_ms": 641,
+                    "error": null,
+                    "exit_code": 1,
+                    "name": "behavior",
+                    "output_limit_exceeded": false,
+                    "passed": false,
+                    "source_snapshot_stable": true,
+                    "stderr": {
+                      "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                      "omitted_bytes": 0,
+                      "retained_bytes": 360,
+                      "text": "Traceback (most recent call last):\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/rejected/.fr/oracle.py\", line 17, in <module>\n    assert actual == expected, \"quote must sum both inputs and add the required fee\"\n           ^^^^^^^^^^^^^^^^^^\nAssertionError: quote must sum both inputs and add the required fee\n"
+                    },
+                    "stdout": {
+                      "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                      "omitted_bytes": 0,
+                      "retained_bytes": 0,
+                      "text": ""
+                    },
+                    "timed_out": false
+                  }
+                ],
+                "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/rejected",
+                "schema": "fr-checks-1",
+                "source_revision": "27c32683801061105fda0d2d8438950013d5267ddc4c03d7523c5d50a48cf0f9",
+                "source_snapshot_checked": true,
+                "source_snapshot_stable": true,
+                "toolchain": {
+                  "build_configuration": {
+                    "files": {},
+                    "schema": "fr-rust-build-inputs-1",
+                    "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+                  },
+                  "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+                  "programs": [
+                    {
+                      "check": "compile",
+                      "environment": [],
+                      "identity_files": [],
+                      "path": "/Users/zardoz/.cargo/bin/rustup",
+                      "sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+                    },
+                    {
+                      "check": "behavior",
+                      "environment": [],
+                      "identity_files": [
+                        {
+                          "bytes": 1001,
+                          "declared": ".fr/oracle.py",
+                          "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/rejected/.fr/oracle.py",
+                          "sha256": "62fa50d3d1f8413f8876c62a8d6fc8086abcb1b34adb36ad9f31ee0a6703034e"
+                        }
+                      ],
+                      "path": "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/bin/python3.14",
+                      "sha256": "01328ad249b1c29f731960419d4145c427b4e3456378d0a53645c4586ae081f9"
+                    }
+                  ],
+                  "schema": "fr-check-toolchain-2",
+                  "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+                },
+                "toolchain_stable": true
+              },
+              "stage": "check-acceptance",
+              "status": "failed"
+            },
+            {
+              "stage": "undo",
+              "status": "pending"
+            },
+            {
+              "stage": "check-restored",
+              "status": "pending"
+            },
+            {
+              "stage": "redo",
+              "status": "pending"
+            },
+            {
+              "stage": "check-applied",
+              "status": "pending"
+            },
+            {
+              "stage": "check-acceptance",
+              "status": "pending"
+            },
+            {
+              "stage": "deliver-patch",
+              "status": "pending"
+            }
+          ],
+          "transaction": 1,
+          "transaction_status": "applied",
+          "workflow_basis": "frwb1:fe724f5e50d6bf2300a20132f2eca9ffb29b1eac57376a43459204b2c5c544da"
+        }
+      },
+      "oracle": {
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/rejected/.fr/oracle.py\", line 17, in <module>\n    assert actual == expected, \"quote must sum both inputs and add the required fee\"\n           ^^^^^^^^^^^^^^^^^^\nAssertionError: quote must sum both inputs and add the required fee\n"
+      },
+      "baseline": {
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/rejected/.fr/oracle.py\", line 17, in <module>\n    assert actual == expected, \"quote must sum both inputs and add the required fee\"\n           ^^^^^^^^^^^^^^^^^^\nAssertionError: quote must sum both inputs and add the required fee\n"
+      },
+      "seconds": 3.190833874978125,
+      "patch_delivered": false
+    },
+    "accepted": {
+      "receipt_root": "24431137144e963e791490764661e33645ab08c9f813be89eef5a9f31eb2407c",
+      "plan_root": "8f7b75befa9aaf6509647e5218097fdc793cc298551c2d9139df4dbd66e71bd1",
+      "started_plan_root": "35ae5ab029d7afa301b217a2203e914a19df2899193b5c38dcfb13e5c4c5fbe6",
+      "complete": true,
+      "attachment_error": null,
+      "fresh_process": {
+        "complete": true,
+        "independent": "satisfied"
+      },
+      "invalidated": [
+        "outcome"
+      ],
+      "review": {
+        "acceptance_checks": {
+          "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+          "names": [
+            "behavior"
+          ],
+          "toolchain-digest": "3062b20f125441d49c2ea58e42afe2c184459c8ca738c13654aa73ffad440f5e"
+        },
+        "author": {
+          "atomic_snapshot": false,
+          "behavior_checked": false,
+          "changed": true,
+          "context_inherited": [
+            "coverage",
+            "revision",
+            "handle_prefix"
+          ],
+          "diff": "--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1,5 +1,3 @@\n mod pricing;\n \n-pub fn quote(a: i64, b: i64) -> i64 {\n-    pricing::subtotal(a, b)\n-}\n+pub fn quote(a: i64, b: i64) -> i64 { pricing::subtotal(a, b) + 3 }\n--- a/src/pricing.rs\n+++ b/src/pricing.rs\n@@ -1,3 +1,1 @@\n-pub fn subtotal(a: i64, b: i64) -> i64 {\n-    a - b\n-}\n+pub fn subtotal(a: i64, b: i64) -> i64 { a + b }\n",
+          "files_changed": 2,
+          "postconditions": [
+            {
+              "actual": 2,
+              "expected": 2,
+              "held": true,
+              "postcondition": "files-changed"
+            },
+            {
+              "actual": [
+                "src/lib.rs",
+                "src/pricing.rs"
+              ],
+              "expected": [
+                "src/lib.rs",
+                "src/pricing.rs"
+              ],
+              "held": true,
+              "postcondition": "paths-changed"
+            }
+          ],
+          "postconditions_held": true,
+          "query": "batch",
+          "schema": "fr-author-batch-1",
+          "span_basis": "original-source",
+          "steps": [
+            {
+              "after_bytes": 9,
+              "after_sha256": "dc9de599e6d41233d0da9419b4d9eed7b3a25d535913c0976962eb0a3a66c5cb",
+              "before_bytes": 13,
+              "before_sha256": "90a8db6860702b7133bb93bff2fae38d80b7308c844b328ff23c5491814afb7a",
+              "before_span": {
+                "end": 52,
+                "start": 39
+              },
+              "changed": true,
+              "handle": "frp1:cb9afa27274f532208db843c91a66738:9",
+              "operation": "replace-body",
+              "path": "src/pricing.rs",
+              "preservation": "bytes outside the selected body",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "pub fn subtotal(a: i64, b: i64) -> i64"
+              }
+            },
+            {
+              "after_bytes": 31,
+              "after_sha256": "5440440b93b54fd03dcac9d25a2cd9254cd915e78cdfe5ac1d19f569903b643b",
+              "before_bytes": 31,
+              "before_sha256": "7a48d6def0e0ecd737113a3fb72329b5282c88c465c371a5e06d11d845d26110",
+              "before_span": {
+                "end": 81,
+                "start": 50
+              },
+              "changed": true,
+              "handle": "frp1:cb9afa27274f532208db843c91a66738:5",
+              "operation": "replace-body",
+              "path": "src/lib.rs",
+              "preservation": "bytes outside the selected body",
+              "signature": {
+                "basis": "syntax-header",
+                "text": "pub fn quote(a: i64, b: i64) -> i64"
+              }
+            }
+          ],
+          "validation": "reparse-strict"
+        },
+        "checks": {
+          "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+          "command": [
+            "fr",
+            "checks",
+            "--run",
+            "compile",
+            "--basis",
+            "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+            "--quiet-success",
+            "--no-declarations"
+          ],
+          "coverage": [
+            {
+              "covers": [
+                "original, changed and restored Rust compilation"
+              ],
+              "name": "compile"
+            }
+          ],
+          "names": [
+            "compile"
+          ],
+          "selected": true
+        },
+        "coverage": {
+          "architecture": "not inferred",
+          "files_by_gap": {},
+          "hierarchy": "directories and lexical spans",
+          "indexed_files": 3,
+          "manifests": {
+            "discovered": 0,
+            "ecosystems": 4,
+            "gaps": 0,
+            "parsed": 0,
+            "scope": "selected scan root"
+          },
+          "max_file_bytes": 4194304,
+          "respect_ignore": true,
+          "skipped_files": 0,
+          "skipped_symlinks": 0,
+          "unresolved_references": 1,
+          "unsupported_files": 0
+        },
+        "delivery": {
+          "check_original": true,
+          "check_output_bytes": 2048,
+          "compact_success": true,
+          "exercise_reversal": true,
+          "patch": "artifacts/change.patch"
+        },
+        "executed": false,
+        "manifest_sha256": "0f8123f67a356045536c758c5c3624956a84a02f02dc5816b62a8d39af12f931",
+        "passed": null,
+        "ready": true,
+        "requests": [],
+        "revision": "cb9afa27274f532208db843c91a6673891b9391b06560022d43af6a80b201596",
+        "schema": "fr-task-change-1",
+        "stages": [
+          {
+            "stage": "check-original",
+            "status": "pending"
+          },
+          {
+            "stage": "apply",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "check-acceptance",
+            "status": "pending"
+          },
+          {
+            "stage": "undo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-restored",
+            "status": "pending"
+          },
+          {
+            "stage": "redo",
+            "status": "pending"
+          },
+          {
+            "stage": "check-applied",
+            "status": "pending"
+          },
+          {
+            "stage": "check-acceptance",
+            "status": "pending"
+          },
+          {
+            "stage": "deliver-patch",
+            "status": "pending"
+          }
+        ],
+        "targets": [
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:cb9afa27274f532208db843c91a66738:9",
+            "id": "subtotal",
+            "kind": "function",
+            "language": "rust",
+            "operation": "replace-body",
+            "path": "src/pricing.rs",
+            "scalar": null,
+            "syntax_preflighted": false
+          },
+          {
+            "eligibility": "target-supported",
+            "handle": "frp1:cb9afa27274f532208db843c91a66738:5",
+            "id": "quote",
+            "kind": "function",
+            "language": "rust",
+            "operation": "replace-body",
+            "path": "src/lib.rs",
+            "scalar": null,
+            "syntax_preflighted": false
+          }
+        ],
+        "task_basis": "frpt1:7931d16c9e078d62b0f98368af876633aa50df3eff4bd8e07031d59005d910e8",
+        "task_change_basis": "frtc1:5d93110d5a725cbf055bedb99cce50551ae6a0e81324cf61993aa63c6228e9b3",
+        "task_resolution_basis": "frpt2:07815e4e8b3c28cbd0fe3cd3186c614b220b7df7dccaa553026d6a2f6518e529"
+      },
+      "delivery": {
+        "executed": true,
+        "manifest_sha256": "0f8123f67a356045536c758c5c3624956a84a02f02dc5816b62a8d39af12f931",
+        "passed": true,
+        "reused_transaction": false,
+        "reviewed_context_omitted": [
+          "revision",
+          "task_basis",
+          "task_resolution_basis",
+          "coverage",
+          "requests",
+          "targets",
+          "checks",
+          "delivery",
+          "author",
+          "stages",
+          "ready"
+        ],
+        "saved": true,
+        "schema": "fr-task-change-1",
+        "task_change_basis": "frtc1:5d93110d5a725cbf055bedb99cce50551ae6a0e81324cf61993aa63c6228e9b3",
+        "transaction": 1,
+        "workflow": {
+          "acceptance_checks": {
+            "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+            "names": [
+              "behavior"
+            ],
+            "toolchain-digest": "3062b20f125441d49c2ea58e42afe2c184459c8ca738c13654aa73ffad440f5e"
+          },
+          "executed": true,
+          "manifest_sha256": "4a6da2ee54de1cfb0e1c77c4c1d2de609bbd9c41c19c59f3269f6f63ac42d781",
+          "passed": true,
+          "reviewed_context_omitted": [
+            "manifest_sha256",
+            "record_basis",
+            "transaction_context_basis",
+            "checks",
+            "exercise_reversal",
+            "check_original",
+            "compact_success",
+            "patch",
+            "ready"
+          ],
+          "schema": "fr-workflow-1",
+          "stages": [
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "74adfdbe425b447ce12bd337981aa5cd607637fde6fdc3c1f40a7e008f699347",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-original",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "apply",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 206,
+                    "path": "src/lib.rs"
+                  },
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 164,
+                    "path": "src/pricing.rs"
+                  }
+                ],
+                "context_basis": "frtb2:28a513c0303334857bfa0ab7a99dc8e56f5bea39267ff2a338b8f004f0280b2b",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 1
+              },
+              "stage": "apply",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": true,
+                  "receipt": "frce1:b88ffe1fbb0f518078a4c6b6be99fdc7181fb8f54e700ed5f6d3e709123033b9",
+                  "transaction": 1
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "a6c652c372087ffed9cb897fb6d780edf944ce8075b1e497623ab3ffc8295dcd",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "checks": [
+                  {
+                    "argv": [
+                      "rustc",
+                      "--crate-type",
+                      "lib",
+                      "src/lib.rs",
+                      "--emit",
+                      "metadata",
+                      "-o",
+                      "artifacts/check.rmeta"
+                    ],
+                    "covers": [
+                      "original, changed and restored Rust compilation"
+                    ],
+                    "cwd": ".",
+                    "name": "compile",
+                    "timeout_seconds": 30
+                  },
+                  {
+                    "argv": [
+                      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+                      "-B",
+                      ".fr/oracle.py"
+                    ],
+                    "covers": [
+                      "49 bounded public API outputs"
+                    ],
+                    "cwd": ".",
+                    "identity_files": [
+                      ".fr/oracle.py"
+                    ],
+                    "name": "behavior",
+                    "timeout_seconds": 30
+                  }
+                ],
+                "configuration": ".fr/checks.json",
+                "configuration_stable": true,
+                "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+                "executed": true,
+                "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+                "not_run": [
+                  "compile"
+                ],
+                "passed": true,
+                "results": [
+                  {
+                    "argv": [
+                      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+                      "-B",
+                      ".fr/oracle.py"
+                    ],
+                    "covers": [
+                      "49 bounded public API outputs"
+                    ],
+                    "cwd": ".",
+                    "elapsed_ms": 509,
+                    "error": null,
+                    "exit_code": 0,
+                    "name": "behavior",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "stderr": {
+                      "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                      "omitted_bytes": 0,
+                      "retained_bytes": 0,
+                      "text": ""
+                    },
+                    "stdout": {
+                      "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                      "omitted_bytes": 196,
+                      "retained_bytes": 0,
+                      "text": ""
+                    },
+                    "timed_out": false
+                  }
+                ],
+                "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/accepted",
+                "schema": "fr-checks-1",
+                "source_revision": "a6c652c372087ffed9cb897fb6d780edf944ce8075b1e497623ab3ffc8295dcd",
+                "source_snapshot_checked": true,
+                "source_snapshot_stable": true,
+                "toolchain": {
+                  "build_configuration": {
+                    "files": {},
+                    "schema": "fr-rust-build-inputs-1",
+                    "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+                  },
+                  "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+                  "programs": [
+                    {
+                      "check": "compile",
+                      "environment": [],
+                      "identity_files": [],
+                      "path": "/Users/zardoz/.cargo/bin/rustup",
+                      "sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+                    },
+                    {
+                      "check": "behavior",
+                      "environment": [],
+                      "identity_files": [
+                        {
+                          "bytes": 1001,
+                          "declared": ".fr/oracle.py",
+                          "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/accepted/.fr/oracle.py",
+                          "sha256": "62fa50d3d1f8413f8876c62a8d6fc8086abcb1b34adb36ad9f31ee0a6703034e"
+                        }
+                      ],
+                      "path": "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/bin/python3.14",
+                      "sha256": "01328ad249b1c29f731960419d4145c427b4e3456378d0a53645c4586ae081f9"
+                    }
+                  ],
+                  "schema": "fr-check-toolchain-2",
+                  "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+                },
+                "toolchain_stable": true
+              },
+              "stage": "check-acceptance",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "undo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "path": "src/lib.rs"
+                  },
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "path": "src/pricing.rs"
+                  }
+                ],
+                "diffs_omitted": true,
+                "transaction": 1
+              },
+              "stage": "undo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": null,
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "74adfdbe425b447ce12bd337981aa5cd607637fde6fdc3c1f40a7e008f699347",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-restored",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "action": "redo",
+                "applied": true,
+                "changes": [
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 206,
+                    "path": "src/lib.rs"
+                  },
+                  {
+                    "after_exists": true,
+                    "after_kind": "regular",
+                    "after_mode": 420,
+                    "before_exists": true,
+                    "before_kind": "regular",
+                    "before_mode": 420,
+                    "diff_bytes": 164,
+                    "path": "src/pricing.rs"
+                  }
+                ],
+                "context_basis": "frtb2:28a513c0303334857bfa0ab7a99dc8e56f5bea39267ff2a338b8f004f0280b2b",
+                "context_omitted": [
+                  "changes[].diff"
+                ],
+                "transaction": 1
+              },
+              "stage": "redo",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "passed": true,
+                "recorded_evidence": {
+                  "created": false,
+                  "receipt": "frce1:b88ffe1fbb0f518078a4c6b6be99fdc7181fb8f54e700ed5f6d3e709123033b9",
+                  "transaction": 1
+                },
+                "results": [
+                  {
+                    "exit_code": 0,
+                    "name": "compile",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "timed_out": false
+                  }
+                ],
+                "source_revision": "a6c652c372087ffed9cb897fb6d780edf944ce8075b1e497623ab3ffc8295dcd",
+                "source_snapshot_stable": true,
+                "success_detail": "summary"
+              },
+              "stage": "check-applied",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "basis": "0541bba8e473e9bb5006f0c50a407f78a2c59217b223802118163028affa6c6a",
+                "checks": [
+                  {
+                    "argv": [
+                      "rustc",
+                      "--crate-type",
+                      "lib",
+                      "src/lib.rs",
+                      "--emit",
+                      "metadata",
+                      "-o",
+                      "artifacts/check.rmeta"
+                    ],
+                    "covers": [
+                      "original, changed and restored Rust compilation"
+                    ],
+                    "cwd": ".",
+                    "name": "compile",
+                    "timeout_seconds": 30
+                  },
+                  {
+                    "argv": [
+                      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+                      "-B",
+                      ".fr/oracle.py"
+                    ],
+                    "covers": [
+                      "49 bounded public API outputs"
+                    ],
+                    "cwd": ".",
+                    "identity_files": [
+                      ".fr/oracle.py"
+                    ],
+                    "name": "behavior",
+                    "timeout_seconds": 30
+                  }
+                ],
+                "configuration": ".fr/checks.json",
+                "configuration_stable": true,
+                "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+                "executed": true,
+                "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+                "not_run": [
+                  "compile"
+                ],
+                "passed": true,
+                "results": [
+                  {
+                    "argv": [
+                      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+                      "-B",
+                      ".fr/oracle.py"
+                    ],
+                    "covers": [
+                      "49 bounded public API outputs"
+                    ],
+                    "cwd": ".",
+                    "elapsed_ms": 397,
+                    "error": null,
+                    "exit_code": 0,
+                    "name": "behavior",
+                    "output_limit_exceeded": false,
+                    "passed": true,
+                    "source_snapshot_stable": true,
+                    "stderr": {
+                      "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                      "omitted_bytes": 0,
+                      "retained_bytes": 0,
+                      "text": ""
+                    },
+                    "stdout": {
+                      "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                      "omitted_bytes": 196,
+                      "retained_bytes": 0,
+                      "text": ""
+                    },
+                    "timed_out": false
+                  }
+                ],
+                "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/accepted",
+                "schema": "fr-checks-1",
+                "source_revision": "a6c652c372087ffed9cb897fb6d780edf944ce8075b1e497623ab3ffc8295dcd",
+                "source_snapshot_checked": true,
+                "source_snapshot_stable": true,
+                "toolchain": {
+                  "build_configuration": {
+                    "files": {},
+                    "schema": "fr-rust-build-inputs-1",
+                    "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+                  },
+                  "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+                  "programs": [
+                    {
+                      "check": "compile",
+                      "environment": [],
+                      "identity_files": [],
+                      "path": "/Users/zardoz/.cargo/bin/rustup",
+                      "sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+                    },
+                    {
+                      "check": "behavior",
+                      "environment": [],
+                      "identity_files": [
+                        {
+                          "bytes": 1001,
+                          "declared": ".fr/oracle.py",
+                          "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/accepted/.fr/oracle.py",
+                          "sha256": "62fa50d3d1f8413f8876c62a8d6fc8086abcb1b34adb36ad9f31ee0a6703034e"
+                        }
+                      ],
+                      "path": "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/bin/python3.14",
+                      "sha256": "01328ad249b1c29f731960419d4145c427b4e3456378d0a53645c4586ae081f9"
+                    }
+                  ],
+                  "schema": "fr-check-toolchain-2",
+                  "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+                },
+                "toolchain_stable": true
+              },
+              "stage": "check-acceptance",
+              "status": "passed"
+            },
+            {
+              "result": {
+                "bytes": 466,
+                "output": "artifacts/change.patch",
+                "sha256": "5326a1e1c60cf161e2e7107a5665a56500d56fdf2cde2e0b03dd98e840b2c479"
+              },
+              "stage": "deliver-patch",
+              "status": "passed"
+            }
+          ],
+          "transaction": 1,
+          "transaction_status": "applied",
+          "workflow_basis": "frwb1:27a6be84649e9f31a922b5c111d085969a9d1908e4ca3623085f5758b2a95443"
+        }
+      },
+      "oracle": {
+        "passed": true,
+        "exit_code": 0,
+        "stdout": "{\"passed\": true, \"cases\": 49, \"outputs\": [-3, -2, -1, 0, 1, 2, 3, -2, -1, 0, 1, 2, 3, 4, -1, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7, 8, 3, 4, 5, 6, 7, 8, 9]}\n",
+        "stderr": ""
+      },
+      "baseline": {
+        "passed": false,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-outcome-acceptance-v__65aad/accepted/.fr/oracle.py\", line 17, in <module>\n    assert actual == expected, \"quote must sum both inputs and add the required fee\"\n           ^^^^^^^^^^^^^^^^^^\nAssertionError: quote must sum both inputs and add the required fee\n"
+      },
+      "seconds": 3.8730298329901416,
+      "patch_delivered": true
+    }
+  },
+  "live_agent": false,
+  "source_equivalence_proven": false,
+  "scope": "Deterministic prescribed changes on a two-file Rust fixture; bounded runtime oracle, local trusted evidence, no population or implementation-proof claim."
+}

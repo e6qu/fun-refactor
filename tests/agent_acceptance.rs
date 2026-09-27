@@ -214,7 +214,7 @@ fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",
         "--audit",
-        "tests/agent-eval/workflow-context.json",
+        "tests/agent-eval/results/2026-09-28-workflow-context/result.json",
     ]);
 }
 

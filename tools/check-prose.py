@@ -169,6 +169,8 @@ def comment_lines(path: Path) -> int:
 def gather() -> dict:
     totals = {name: 0 for name, _, _ in RULES}
     for path in sorted(ROOT.glob("src/**/*.rs")) + sorted(ROOT.glob("tests/**/*.rs")):
+        if path.is_relative_to(ROOT / "tests/agent-eval/results"):
+            continue
         totals["comment-line"] += comment_lines(path)
         for text in (comments_of(path), messages_of(path)):
             for name, n in count(text).items():

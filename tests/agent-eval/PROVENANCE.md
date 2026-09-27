@@ -1,5 +1,17 @@
 # Agent acceptance source and evidence
 
+The [checked-outcome fixture](checked-outcomes/task.json) is repository-owned Rust source with a
+subtotal bug and a fee requirement. Its evaluator supplies the mutations; it is deterministic, not
+a live-agent trial. The [retained run](results/2026-09-28-checked-outcomes/manifest.json) preserves
+exact evaluator and SDK snapshots, native contract sources, check reports, plan objects and patches.
+Its independent Python oracle compiles the public Rust API and compares 49 results. Audit repeats
+receiver execution and exact reversal for both the wrong compiler-only patch and the accepted patch.
+The failed acceptance run exports no patch and remains part of the evidence.
+
+Fresh 2026-09-28 package-flow, retained-proof, host-recovery, resolution, flow-cache, workflow-context
+and task-change-context evaluations bind this implementation. Regression tests select those results;
+earlier artifacts remain intact. The two context comparisons retain their previous token counts.
+
 The [unknown-target cohort](unknown-target/cohort.json) reuses the unmodified strsim and regex archives
 described below. Its bug prompt supplies a Unicode symptom; its feature prompt supplies two public
 API requirements. Neither supplies edit paths or existing private helper names. Both discovery arms
