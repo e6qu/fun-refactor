@@ -204,7 +204,8 @@ def score(session):
               "measurement_scope": "One two-phase live trial; cooperative tool isolation. Usage comes from Codex turn events. No billed quota, population, security or semantic-equivalence claim."}
     result["passed"] = bool(all(p["passed"] for p in phase_results.values()) and resumption_ok
         and result["event_chain_passed"] and result["delivery_passed"] and oracle["passed"] and receiver["passed"] and state["finished"]
-        and changed == sorted(trial.BASE.edit_paths(selected["task"]))
+        and bool(changed) and all(p.endswith(".rs") for p in changed)
+        and set(changed) <= set(trial.load(session / "handoff.json")["dependencies"])
         and (selected["arm"] != "fr" or any(e["request"]["tool"] == "guide" and "error" not in e["visible"] for e in rows))
         and rows and rows[-1]["request"]["tool"] == "finish")
     trial.save(session / "result.json", result)

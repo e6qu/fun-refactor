@@ -350,7 +350,17 @@ def act(session, selected, request):
                 "review fresh evidence before execution")
         value = execute_review(session, selected, request["review"])
         save(session / "delivery.json", value)
-        return value
+        if value["kind"] == "fr":
+            report = value["report"]
+            stages = [{"stage":s["stage"], "status":s["status"]} for s in report["workflow"]["stages"]]
+            passed = report["passed"]
+        else:
+            stages = [{"stage":s["name"], "status":"passed" if s["passed"] else "failed"} for s in value["stages"]]
+            passed = value["passed"]
+        patch = (project / "artifacts/change.patch").read_bytes()
+        return {"kind":value["kind"], "passed":passed, "stages":stages,
+                "patch":{"path":"artifacts/change.patch", "bytes":len(patch), "sha256":sha(patch)},
+                "retained_detail":"Full checks, source identities and stages are retained in delivery.json."}
     if kind == "finish":
         require(state["phase"] == "deliver" and (session / "delivery.json").exists(), "deliver before finishing")
         require(request.get("source_equivalence_proven") is False, "tests do not prove source equivalence")

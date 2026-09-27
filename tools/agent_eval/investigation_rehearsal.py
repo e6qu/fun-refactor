@@ -63,7 +63,8 @@ def run(session, binary, task, arm):
         "dependencies":list(trial.BASE.edit_paths(task)), "evidence":citations, "pending":"Refresh current targets and deliver the prescribed implementation."})
     resumed = trial.resume(session)
     identity, _ = proposal(session, task, arm)
-    delivered = call(session, {"tool":"execute", "review":identity})["result"]
+    call(session, {"tool":"execute", "review":identity})
+    delivered = trial.load(session/"delivery.json")
     trial.require(live.delivery_passed(delivered), "prescribed lifecycle failed")
     call(session, {"tool":"finish", "summary":"Prescribed rehearsal completed", "source_equivalence_proven":False})
     final = trial.snapshot(session/"project")
