@@ -1,0 +1,64 @@
+{
+  "schema": "fr-index-consumers-result-1",
+  "repository_revision": "e423fd2d03e5d74f2efea40b6ccd20812ac1178a",
+  "host": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+  "binary_sha256": "dd1c005bdd011e6371f3e5176f1fffcb95b2d707b1b2710c4c79ab6c2ffe7577",
+  "profile": "unoptimized test, debug information and incremental compilation disabled",
+  "bindings": {
+    "tests/index_consumers.rs": "25480ee8e4d86c4959f283e21c2dc2863374c9d16dd9f1d0fde193dc317f823c",
+    "tests/agent-eval/index-consumers/task.json": "03c0afa5839b2b14a4070d96697bf55db6e4fc69ed98c26522eaf8e0e8fd3a1e",
+    "tools/index-consumers-acceptance.py": "2ad55f03a6f6acca0fc42a491d247375b51fd1fe2ac3e1436948c5f34a56af20",
+    "src/index.rs": "31cf329073a23e3a73ef1b916ac027e775c5932052c5e926fb21278f36a93ec2"
+  },
+  "samples": [
+    {
+      "answer_bytes": 19927203,
+      "build_seconds": 0.40888375,
+      "oracle_agrees": true,
+      "queries": 428,
+      "query_seconds": [
+        1.064605291,
+        1.064716375,
+        1.066674125
+      ],
+      "references": 2177,
+      "symbols": 1282,
+      "workload": "128",
+      "process_seconds": 5.094383874995401,
+      "peak_rss_bytes": 110477312
+    },
+    {
+      "answer_bytes": 88879857,
+      "build_seconds": 3.318777167,
+      "oracle_agrees": true,
+      "queries": 466,
+      "query_seconds": [
+        18.033526916,
+        18.041899084,
+        18.071721875
+      ],
+      "references": 8705,
+      "symbols": 5122,
+      "workload": "512",
+      "process_seconds": 77.32804008299718,
+      "peak_rss_bytes": 352337920
+    },
+    {
+      "answer_bytes": 261089,
+      "build_seconds": 173.49969425,
+      "oracle_agrees": true,
+      "queries": 512,
+      "query_seconds": [
+        2.727784208,
+        2.7250224579999998,
+        2.7106985
+      ],
+      "references": 592962,
+      "symbols": 98147,
+      "workload": "repository",
+      "process_seconds": 184.56134733300132,
+      "peak_rss_bytes": 767737856
+    }
+  ],
+  "claim": "Membership and occurrence order agree with a linear oracle on this finite workload. Process RSS includes indexing and oracle storage."
+}
