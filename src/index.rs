@@ -599,8 +599,8 @@ impl Index {
         progress: Option<&(dyn Fn(IndexingPhase, usize, usize) + Sync)>,
     ) {
         self.rebuild_name_buckets();
-        // Resolve against an immutable view first, then write the answers back:
-        // resolution reads the whole index, so it cannot hold a mutable borrow.
+        // Symbols stay fixed while resolving; missing name-map entries rule out type names.
+        // Collect answers before mutating references.
         let resolutions: Vec<(usize, Option<SymbolId>, Confidence)> = {
             let mut by_name: HashMap<&str, Vec<SymbolId>> = HashMap::new();
             for symbol in &self.symbols {
@@ -708,7 +708,7 @@ impl Index {
         let known = matches!(receiver, "this" | "self")
             || reference.receiver_is_path
             || self.import_binding(info, receiver).is_some()
-            || self.names_a_type(receiver, reference.language)
+            || (by_name.contains_key(receiver) && self.names_a_type(receiver, reference.language))
             // `module.<label>` is a module path in the sense above: that module binds the label
             // block's `source`, which names a directory.
             || (reference.language == Language::Hcl
@@ -879,7 +879,9 @@ impl Index {
         }
 
         if let Some(prefix) = reference.receiver.as_deref().filter(|receiver| {
-            reference.receiver_is_path || self.names_a_type(receiver, reference.language)
+            reference.receiver_is_path
+                || (by_name.contains_key(receiver)
+                    && self.names_a_type(receiver, reference.language))
         }) {
             let by_qualifier: Vec<&Symbol> = candidates
                 .iter()
@@ -2030,6 +2032,40 @@ mod tests {
 
     /// Build an index from in-memory sources written to a temp workspace.
     use crate::testing::indexed as index_of;
+
+    #[test]
+    fn missing_type_names_stay_uncertain_and_public_symbol_mutations_remain_visible() {
+        let mut index = Index::build_from_sources(&[(
+            "a.py".into(), Language::Python,
+            "class Known:\n    def pick(self): return 1\ndef run():\n    Known.pick()\n    Missing.pick()\n".into(),
+        )]).unwrap();
+        let calls = index
+            .references
+            .iter()
+            .filter(|r| r.name == "pick")
+            .collect::<Vec<_>>();
+        let known = calls
+            .iter()
+            .find(|r| r.receiver.as_deref() == Some("Known"))
+            .unwrap();
+        let missing = calls
+            .iter()
+            .find(|r| r.receiver.as_deref() == Some("Missing"))
+            .unwrap();
+        assert_eq!(known.confidence, Confidence::Exact);
+        assert_eq!(missing.confidence, Confidence::FieldBased);
+        assert_eq!(known.target, missing.target);
+        assert!(known.target.is_some());
+        assert!(!index.names_a_type("Missing", Language::Python));
+        let class = index
+            .symbols
+            .iter_mut()
+            .find(|s| s.name == "Known")
+            .unwrap();
+        class.name = "Missing".into();
+        assert!(index.names_a_type("Missing", Language::Python));
+        assert!(!index.names_a_type("Known", Language::Python));
+    }
 
     #[test]
     fn ambiguity_matches_ordered_counts_for_large_and_asymmetric_groups() {
