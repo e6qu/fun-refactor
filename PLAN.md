@@ -220,7 +220,7 @@ Cold, warm and edited measurements retain clean-analysis agreement. They do not 
 
 The [cache comparison](tests/agent-eval/results/2026-09-25-flow-cache/result.json) closes the measurement item for the admitted scalar subset.
 It records three repetitions across six workloads, with independent runtime outcomes and AST coordinates.
-Warm median latency fell 27–73% against the pinned per-node cache on this host; context bytes and transfer results are unchanged.
+Warm median latency fell 33–73% against the pinned per-node cache on this host; context bytes and transfer results are unchanged.
 Report chunks reduce object operations but use more disk space in warmed stores. Whole-analysis dependency validation remains the reuse boundary.
 These measurements support that storage choice without establishing production latency or a benefit from partial-summary reuse.
 

@@ -42,12 +42,12 @@ AST coordinates check the scenario; missing helpers and response-budget cutoffs 
 
 | Workload | Previous warm median | Report-chunk warm median |
 |---|---:|---:|
-| Pipeline, 8 helpers | 1.560 s | 0.668 s |
-| Pipeline, 16 helpers | 3.448 s | 0.920 s |
-| Imported fanout, 8 helpers | 0.912 s | 0.665 s |
-| Imported fanout, 24 helpers | 1.603 s | 0.734 s |
-| Mutual recursion, 8 helpers | 1.826 s | 0.730 s |
-| Mutual recursion, 12 helpers | 2.677 s | 0.825 s |
+| Pipeline, 8 helpers | 1.261 s | 0.490 s |
+| Pipeline, 16 helpers | 2.695 s | 0.715 s |
+| Imported fanout, 8 helpers | 0.634 s | 0.426 s |
+| Imported fanout, 24 helpers | 1.213 s | 0.515 s |
+| Mutual recursion, 8 helpers | 1.394 s | 0.519 s |
+| Mutual recursion, 12 helpers | 2.129 s | 0.605 s |
 
 This selects whole-report storage while retaining whole-analysis dependency validation. Warmed
 stores use 1.34–2.90 times the bytes of the previous per-node encoding. Native calls and disclosed
@@ -56,7 +56,7 @@ store operations and bytes. Native fact caching is disabled; operating-system ca
 The corpus represents these admitted task shapes on one host, without a production or population speed claim.
 It contains no live-agent trial or token measurement. The pinned baseline SDK and diagnostic probes
 are retained beside the [task](../tests/agent-eval/flow-cache/task.json).
-New warm medians still exceed new cold medians on five of these six workloads. The result improves retained
+New warm medians still exceed new cold medians on all six workloads. The result improves retained
 storage overhead; it does not establish an overall latency benefit from enabling the optional cache.
 
 Evidence identities ignore coordinated workspace release versions in the Cargo manifest and lockfile.
