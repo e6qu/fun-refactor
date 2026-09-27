@@ -42,12 +42,12 @@ AST coordinates check the scenario; missing helpers and response-budget cutoffs 
 
 | Workload | Previous warm median | Report-chunk warm median |
 |---|---:|---:|
-| Pipeline, 8 helpers | 1.261 s | 0.490 s |
-| Pipeline, 16 helpers | 2.695 s | 0.715 s |
-| Imported fanout, 8 helpers | 0.634 s | 0.426 s |
-| Imported fanout, 24 helpers | 1.213 s | 0.515 s |
-| Mutual recursion, 8 helpers | 1.394 s | 0.519 s |
-| Mutual recursion, 12 helpers | 2.129 s | 0.605 s |
+| Pipeline, 8 helpers | 1.416 s | 0.500 s |
+| Pipeline, 16 helpers | 3.251 s | 0.734 s |
+| Imported fanout, 8 helpers | 0.676 s | 0.429 s |
+| Imported fanout, 24 helpers | 1.394 s | 0.529 s |
+| Mutual recursion, 8 helpers | 1.577 s | 0.517 s |
+| Mutual recursion, 12 helpers | 2.452 s | 0.616 s |
 
 This selects whole-report storage while retaining whole-analysis dependency validation. Warmed
 stores use 1.34–2.90 times the bytes of the previous per-node encoding. Native calls and disclosed
@@ -437,24 +437,50 @@ latency, process RSS and output size. A separate linear membership oracle checks
 
 | Workload | Queries per batch | Baseline median | New first batch | New warm median |
 |---|---:|---:|---:|---:|
-| 128 functions | 428 | 1.065 s | 0.119 s | 0.118 s |
-| 512 functions | 466 | 18.042 s | 0.554 s | 0.553 s |
-| Repository snapshot | 512 | 2.725 s | 0.065 s | 0.00188 s |
+| 128 functions | 428 | 1.065 s | 0.124 s | 0.12360 s |
+| 512 functions | 466 | 18.042 s | 0.601 s | 0.57444 s |
+| Repository snapshot | 512 | 2.725 s | 0.063 s | 0.00194 s |
 
 Each workload runs in an isolated process with one worker and three consecutive query batches.
 The first new batch includes lookup construction; the warm median uses the remaining two batches.
 All builds use the unoptimized test profile. OS caches remain active. Generated cases exercise
 large definition groups; their group construction still costs time after the reference scan disappears.
 
-Initial repository indexing took 173.5 seconds before and 175.1 seconds after. Whole-process peak
-RSS changed from 105 to 123 MiB, 336 to 346 MiB, and 732 to 677 MiB across the three workloads.
+Initial repository indexing took 173.5 seconds before and 157.5 seconds with the current implementation. Whole-process peak
+RSS changed from 105 to 92 MiB, 336 to 325 MiB, 732 to 776 MiB across the three workloads.
 Those peaks include extraction, resolution and oracle storage; they do not isolate lookup allocations or establish a memory improvement.
 The result establishes repeated-query speed on this corpus, with unchanged occurrence output size.
-It does not establish lower full-task latency, faster initial indexing or complete dynamic consumer discovery.
+The current run includes the resolution change below; it does not isolate that change from the consumer lookup.
+It does not establish lower full-task latency or complete dynamic consumer discovery.
 
 Mutation regressions cover target/name edits, insertion, removal, reordering, replacement, serialization,
 concurrent reads and symbol-group changes. Native and browser callers share the same lookup implementation.
 Run `python3 tools/index-consumers-acceptance.py --verify RESULT` to check retained bindings and workload agreement.
+
+## Fresh resolution
+
+The [pinned resolution task](../tests/agent-eval/index-resolution/task.json) compares complete symbol and reference outputs
+against the [pre-change baseline](../tests/agent-eval/index-resolution/baseline.json).
+The [current result](../tests/agent-eval/results/2026-09-27-index-resolution/result.json) records two fresh processes per workload.
+The repository snapshot contains 98,355 symbols and 594,288 references.
+Every output digest agrees, including reference targets, confidence and UTF-8 spans. Paths are relative to the pinned snapshot.
+
+| Workload | Baseline build median | Current build median | Baseline peak RSS range | Current peak RSS range |
+|---|---:|---:|---:|---:|
+| 128 method owners | 0.169 s | 0.110 s | 10.1–10.5 MiB | 10.3–11.1 MiB |
+| 256 method owners | 0.681 s | 0.222 s | 12.2–12.9 MiB | 12.7–13.1 MiB |
+| 128 assignments | 0.128 s | 0.118 s | 9.5–9.8 MiB | 9.2–9.4 MiB |
+| Repository snapshot | 177.778 s | 160.090 s | 847–946 MiB | 867–942 MiB |
+
+Both arms use the unoptimized test profile, one worker and fresh extraction without the facts cache.
+OS caches remain active. Build timings include scanning, extraction and resolution; process RSS also includes output serialization.
+Two repetitions on one host establish a finite comparison, not a production latency distribution or a memory improvement.
+
+Ambiguity checks inspect the first definition group and stop when another entity remains.
+Full counts use hash membership while preserving the original greedy input order, including asymmetric groups.
+Independent linear-count tests cover duplicate and missing IDs, overloads, repeated assignments, CSS and configuration groups, and symbol mutations.
+No persistent group cache or public API change accompanies this optimization. Resolution coverage and milestone gates remain unchanged.
+Run `python3 tools/index-resolution-acceptance.py --verify RESULT` to audit bindings and complete output agreement.
 
 ## Native host recovery
 
