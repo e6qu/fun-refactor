@@ -1,6 +1,7 @@
 """Adversarial protocol checks; never contacts an agent service."""
 import copy
 import json
+import shlex
 from pathlib import Path
 import sys
 import tempfile
@@ -154,8 +155,11 @@ class InvestigationProtocol(unittest.TestCase):
             request = {"tool":"files"}
             allowed = f"python3 {trial.ROOT/'tools/investigation-agent.py'} step {session} --request-stdin <<'FRJSON'\n"+json.dumps(request)+"\nFRJSON"
             self.assertTrue(self.transcript(session, allowed, request)["passed"])
+            wrapped = shlex.join(["/bin/zsh", "-lc", allowed])
+            self.assertTrue(self.transcript(session, wrapped, request)["passed"])
             for command in ("cat secret; "+allowed, allowed+"\ncat secret", allowed.replace('"files"', '"read"')):
                 self.assertFalse(self.transcript(session, command, request)["passed"])
+                self.assertFalse(self.transcript(session, shlex.join(["/bin/zsh","-lc",command]), request)["passed"])
 
     def test_plan_checkpoint_rejects_uncited_or_failed_discovery(self):
         with tempfile.TemporaryDirectory() as directory:

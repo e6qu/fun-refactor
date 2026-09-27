@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import signal
 import subprocess
 import tempfile
@@ -100,6 +101,16 @@ def transcript(session, phase, tool_events, *, command_session=None, command_run
     prefix = f"python3 {command_runner or trial.ROOT / 'tools/investigation-agent.py'} step {command_session or session} --request-stdin <<'FRJSON'\n"
     for item in commands:
         command = item.get("command", "").strip()
+        # Codex records the shell argv, including its one command-string argument.
+        if command.startswith(("/bin/zsh ", "/bin/bash ", "/bin/sh ")):
+            try:
+                argv = shlex.split(command)
+            except ValueError:
+                argv = []
+            if len(argv) != 3 or argv[1] not in {"-c", "-lc"}:
+                violations.append(command)
+                continue
+            command = argv[2].strip()
         if not command.startswith(prefix) or not command.endswith("\nFRJSON"):
             violations.append(command)
             continue
