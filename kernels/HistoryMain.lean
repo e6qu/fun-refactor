@@ -63,7 +63,7 @@ def main (args : List String) : IO Unit :=
   | ["snapshot-modes"] => snapshotModeCases
   | ["workflow-stages"] =>
       for applied in [false, true] do
-        for stage in List.range 7 do
+        for stage in List.range 8 do
           IO.println (FrKernels.Workflow.stageState applied stage)
   | ["task-change-modes"] =>
       for completeReview in [false, true] do

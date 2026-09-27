@@ -2962,7 +2962,8 @@ fn run_tagged_intent(
         .map(|delivery| crate::workflow::planned_stage_names(
             delivery.check_original,
             delivery.exercise_reversal,
-            delivery.patch.is_some()
+            delivery.patch.is_some(),
+            false
         ))
         .unwrap_or_default()
         .into_iter()
@@ -3036,6 +3037,7 @@ fn run_tagged_intent(
             basis: checks.configuration_basis,
             names: checks.checks,
         },
+        acceptance_checks: None,
         check_original: delivery.check_original,
         compact_success: delivery.compact_success,
         exercise_reversal: delivery.exercise_reversal,
@@ -3353,6 +3355,7 @@ fn run_task_change(
         prepared.delivery.check_original,
         prepared.delivery.exercise_reversal,
         prepared.delivery.patch.is_some(),
+        prepared.acceptance_checks.is_some(),
     )
     .into_iter()
     .map(|stage| serde_json::json!({"stage": stage, "status": "pending"}))
@@ -3426,6 +3429,7 @@ fn run_task_change(
             basis: prepared.checks.configuration_basis,
             names: prepared.checks.checks,
         },
+        acceptance_checks: prepared.acceptance_checks,
         check_original: prepared.delivery.check_original,
         compact_success: prepared.delivery.compact_success,
         exercise_reversal: prepared.delivery.exercise_reversal,

@@ -1991,6 +1991,7 @@ class TaskChange:
     postconditions: Mapping[str, Any]
     checks: Sequence[str]
     delivery: TaskDelivery = TaskDelivery()
+    acceptance_checks: Sequence[str] = ()
 
     def __post_init__(self) -> None:
         if not 0 <= len(self.requests) <= 16:
@@ -2028,6 +2029,10 @@ class TaskChange:
         if (not self.checks or len(self.checks) != len(set(self.checks))
                 or any(not isinstance(name, str) or not name for name in self.checks)):
             raise IrError("task change needs named checks")
+        if (len(self.acceptance_checks) > 32
+                or any(not isinstance(name, str) or not name for name in self.acceptance_checks)
+                or len(set(self.acceptance_checks)) != len(self.acceptance_checks)):
+            raise IrError("acceptance checks need at most 32 distinct names")
         encoded = json.dumps(self.to_data(), ensure_ascii=False, separators=(",", ":")).encode()
         if len(encoded) > 65536:
             raise IrError("task change manifest exceeds 64 KiB")
@@ -2040,6 +2045,7 @@ class TaskChange:
             "postconditions": dict(self.postconditions),
             "checks": list(self.checks),
             "delivery": self.delivery.to_data(),
+            **({"acceptance_checks": list(self.acceptance_checks)} if self.acceptance_checks else {}),
         }
 
     def to_json(self, *, indent: int | None = None) -> str:

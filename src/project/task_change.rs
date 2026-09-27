@@ -48,6 +48,8 @@ struct Manifest {
     targets: Vec<Target>,
     postconditions: Option<author::BatchPostconditions>,
     checks: Vec<String>,
+    #[serde(default)]
+    acceptance_checks: Vec<String>,
     delivery: Delivery,
 }
 
@@ -132,6 +134,7 @@ pub(crate) struct Prepared {
     pub report: Value,
     pub manifest_sha256: String,
     pub checks: crate::checks::Selection,
+    pub acceptance_checks: Option<crate::workflow::AcceptanceRequest>,
     pub delivery: Delivery,
 }
 
@@ -282,6 +285,19 @@ impl Project<'_> {
         )?;
         let checks = crate::checks::select(&self.root, &manifest.checks)?
             .context("task change requires at least one declared check.")?;
+        ensure!(
+            manifest.acceptance_checks.len() <= 32,
+            "task change accepts at most 32 acceptance checks."
+        );
+        let acceptance_checks = crate::checks::select(&self.root, &manifest.acceptance_checks)?
+            .map(|selection| -> Result<_> {
+                Ok(crate::workflow::AcceptanceRequest {
+                    basis: selection.configuration_basis,
+                    names: selection.checks,
+                    toolchain_digest: crate::checks::evidence::toolchain_digest(&self.root)?,
+                })
+            })
+            .transpose()?;
         let manifest_sha256 = hex::encode(Sha256::digest(bytes));
         for field in [
             "author_manifest_template",
@@ -290,7 +306,7 @@ impl Project<'_> {
         ] {
             task_report.as_object_mut().unwrap().remove(field);
         }
-        let report = json!({
+        let mut report = json!({
             "schema": SCHEMA,
             "manifest_sha256": manifest_sha256,
             "revision": task_report["revision"],
@@ -310,11 +326,15 @@ impl Project<'_> {
             "executed": false,
             "passed": Value::Null,
         });
+        if let Some(request) = &acceptance_checks {
+            report["acceptance_checks"] = json!(request);
+        }
         Ok(Prepared {
             plan,
             report,
             manifest_sha256,
             checks,
+            acceptance_checks,
             delivery: manifest.delivery,
         })
     }

@@ -41,6 +41,8 @@ pub(crate) struct Manifest {
     pub transaction: u64,
     pub transaction_context_basis: String,
     pub checks: CheckRequest,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acceptance_checks: Option<AcceptanceRequest>,
     #[serde(default)]
     pub exercise_reversal: bool,
     #[serde(default)]
@@ -59,6 +61,14 @@ pub(crate) struct CheckRequest {
     pub names: Vec<String>,
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub(crate) struct AcceptanceRequest {
+    pub basis: String,
+    pub names: Vec<String>,
+    pub toolchain_digest: String,
+}
+
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PatchRequest {
@@ -74,6 +84,7 @@ enum Stage {
     Redo = 4,
     DeliverPatch = 5,
     CheckOriginal = 6,
+    CheckAcceptance = 7,
 }
 
 impl Stage {
@@ -86,6 +97,7 @@ impl Stage {
             Self::Redo => "redo",
             Self::DeliverPatch => "deliver-patch",
             Self::CheckOriginal => "check-original",
+            Self::CheckAcceptance => "check-acceptance",
         }
     }
 }
@@ -94,7 +106,7 @@ pub fn workflow_stage_state(applied: bool, stage: usize) -> usize {
     match (applied, stage) {
         (false, 0 | 3 | 6) => usize::from(stage == 0),
         (false, 4) => 1,
-        (true, 1 | 5) => 1,
+        (true, 1 | 5 | 7) => 1,
         (true, 2) => 0,
         _ => 2,
     }
@@ -104,12 +116,20 @@ fn default_output_bytes() -> usize {
     4_096
 }
 
-fn stages(check_original: bool, exercise_reversal: bool, patch: bool) -> Vec<Stage> {
+fn stages(
+    check_original: bool,
+    exercise_reversal: bool,
+    patch: bool,
+    acceptance: bool,
+) -> Vec<Stage> {
     let mut stages = Vec::new();
     if check_original {
         stages.push(Stage::CheckOriginal);
     }
     stages.extend([Stage::Apply, Stage::CheckApplied]);
+    if acceptance {
+        stages.push(Stage::CheckAcceptance);
+    }
     if exercise_reversal {
         stages.extend([
             Stage::Undo,
@@ -117,6 +137,9 @@ fn stages(check_original: bool, exercise_reversal: bool, patch: bool) -> Vec<Sta
             Stage::Redo,
             Stage::CheckApplied,
         ]);
+        if acceptance {
+            stages.push(Stage::CheckAcceptance);
+        }
     }
     if patch {
         stages.push(Stage::DeliverPatch);
@@ -128,8 +151,9 @@ pub(crate) fn planned_stage_names(
     check_original: bool,
     exercise_reversal: bool,
     patch: bool,
+    acceptance: bool,
 ) -> Vec<&'static str> {
-    stages(check_original, exercise_reversal, patch)
+    stages(check_original, exercise_reversal, patch, acceptance)
         .into_iter()
         .map(Stage::name)
         .collect()
@@ -300,6 +324,22 @@ fn preflight_manifest(
             "workflow checks do not satisfy the transaction's required selection."
         );
     }
+    if let Some(request) = &manifest.acceptance_checks {
+        ensure!(
+            request.names.len() <= 32,
+            "workflow accepts at most 32 acceptance checks."
+        );
+        let selected =
+            checks::select(&root, &request.names)?.context("acceptance requires named checks.")?;
+        ensure!(
+            request.basis == selected.configuration_basis,
+            "acceptance check configuration changed."
+        );
+        ensure!(
+            request.toolchain_digest == checks::evidence::toolchain_digest(&root)?,
+            "acceptance check toolchain changed."
+        );
+    }
 
     let export = history::export_patch(&root, manifest.transaction, false)?;
     let patch_digest = hex::encode(Sha256::digest(export.patch.as_bytes()));
@@ -334,8 +374,9 @@ fn preflight_manifest(
         manifest.check_original,
         manifest.exercise_reversal,
         manifest.patch.is_some(),
+        manifest.acceptance_checks.is_some(),
     );
-    let report = json!({
+    let mut report = json!({
         "schema": "fr-workflow-1",
         "manifest_sha256": manifest_digest,
         "workflow_basis": workflow_basis,
@@ -365,6 +406,9 @@ fn preflight_manifest(
         "executed": false,
         "passed": Value::Null,
     });
+    if let Some(request) = &manifest.acceptance_checks {
+        report["acceptance_checks"] = json!(request);
+    }
 
     Ok(Preflight {
         root,
@@ -506,6 +550,7 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
         manifest.check_original,
         manifest.exercise_reversal,
         manifest.patch.is_some(),
+        manifest.acceptance_checks.is_some(),
     );
     let mut applied = false;
 
@@ -557,6 +602,33 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
                         compact_check(check)
                     };
                     ensure!(passed, "declared checks failed");
+                    Ok(())
+                })
+            }
+            Stage::CheckAcceptance => {
+                let request = manifest.acceptance_checks.as_ref().unwrap();
+                let run = || -> Result<Value> {
+                    ensure!(
+                        request.toolchain_digest == checks::evidence::toolchain_digest(&root)?,
+                        "acceptance check toolchain changed before execution."
+                    );
+                    checks::report(
+                        &root,
+                        &checks::Options {
+                            toolchain: true,
+                            run: request.names.clone(),
+                            basis: Some(request.basis.clone()),
+                            output_bytes: manifest.check_output_bytes,
+                            quiet_success: true,
+                            no_declarations: false,
+                            record_for: None,
+                        },
+                    )
+                };
+                run().and_then(|check| {
+                    let passed = check["passed"] == true;
+                    report["stages"][index]["result"] = check;
+                    ensure!(passed, "post-change acceptance checks failed");
                     Ok(())
                 })
             }
@@ -618,7 +690,7 @@ mod tests {
 
     #[test]
     fn stage_policy_accepts_only_state_appropriate_steps() {
-        let expected = [[1, 2, 2, 0, 1, 2, 0], [2, 1, 0, 2, 2, 1, 2]];
+        let expected = [[1, 2, 2, 0, 1, 2, 0, 2], [2, 1, 0, 2, 2, 1, 2, 1]];
         for (applied, row) in expected.into_iter().enumerate() {
             for (stage, next) in row.into_iter().enumerate() {
                 assert_eq!(workflow_stage_state(applied == 1, stage), next);
@@ -632,7 +704,7 @@ mod tests {
             for exercise in [false, true] {
                 for patch in [false, true] {
                     let mut applied = false;
-                    for stage in stages(original, exercise, patch) {
+                    for stage in stages(original, exercise, patch, true) {
                         let next = workflow_stage_state(applied, stage as usize);
                         assert_ne!(next, 2);
                         applied = next == 1;
