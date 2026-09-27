@@ -1,7 +1,6 @@
 """Bounded live execution, behavioral scoring and offline evidence retention."""
 from __future__ import annotations
 
-from collections import Counter
 import json
 import os
 from pathlib import Path
@@ -125,15 +124,11 @@ def transcript(session, phase, tool_events, *, command_session=None, command_run
         except ValueError:
             violations.append(command)
     expected = [e["request"] for e in tool_events if e["phase"] == phase]
-    # Shell sessions can be polled in a different order from their completion.
-    # Every invocation must still match exactly one retained request; the locked
-    # source-event chain separately establishes the actual execution order.
-    matches = Counter(map(trial.encode, requests)) == Counter(map(trial.encode, expected))
-    passed = (not violations and matches and bool(requests) and bool(usage)
+    passed = (not violations and requests == expected and bool(requests) and bool(usage)
               and run_record["exit_code"] == 0 and run_record["stopped_reason"] is None
               and all(c.get("exit_code") == 0 for c in commands))
     return {"passed": passed, "violations": violations, "commands": len(commands), "usage": usage,
-            "requests_match": matches, "seconds": run_record["seconds"],
+            "requests_match": requests == expected, "seconds": run_record["seconds"],
             "sampled_group_peak_rss_bytes": run_record["sampled_group_peak_rss_bytes"]}
 
 

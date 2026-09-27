@@ -1,10 +1,13 @@
 """Adversarial protocol checks; never contacts an agent service."""
 import copy
+import importlib.util
 import json
 import shlex
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +15,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import investigation as trial
 from agent_eval import investigation_run as live
 from agent_eval.investigation_prompt import prompt
+
+COHORT_SPEC = importlib.util.spec_from_file_location("investigation_cohort", trial.ROOT/"tools/investigation-cohort.py")
+assert COHORT_SPEC is not None and COHORT_SPEC.loader is not None
+cohort = importlib.util.module_from_spec(COHORT_SPEC)
+COHORT_SPEC.loader.exec_module(cohort)
 
 FR = None
 if "--fr" in sys.argv:
@@ -21,6 +29,65 @@ if "--fr" in sys.argv:
 
 
 class InvestigationProtocol(unittest.TestCase):
+    def test_concurrent_requests_cannot_observe_an_inflight_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session=Path(directory)
+            (session/"project").mkdir()
+            (session/"project/lib.rs").write_text("before\n")
+            trial.BASE.initialize(session/"project")
+            trial.save(session/"state.json", {"phase":"deliver"})
+            program = '''import sys,time,json
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from agent_eval import investigation as t
+session=Path(sys.argv[2]); kind=sys.argv[3]
+t.config=lambda session: {}
+def act(session, selected, request):
+    source=session/'project/lib.rs'
+    if request['tool']=='execute':
+        source.write_text('inflight\\n')
+        (session/'started').write_text('yes')
+        time.sleep(0.4)
+        source.write_text('after\\n')
+    return {'source':source.read_text()}
+t.act=act
+print(json.dumps(t.step(session,{'tool':kind})))
+'''
+            argv=[sys.executable,"-c",program,str(trial.ROOT/"tools"),str(session)]
+            writer=subprocess.Popen([*argv,"execute"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            try:
+                deadline=time.monotonic()+5
+                while not (session/"started").exists() and time.monotonic()<deadline:
+                    time.sleep(0.01)
+                self.assertTrue((session/"started").exists())
+                reader=subprocess.run([*argv,"read"],capture_output=True,text=True,timeout=5,check=True)
+                output,error=writer.communicate(timeout=5)
+                self.assertEqual(writer.returncode,0,error)
+                self.assertEqual(json.loads(output)["event"],0)
+                self.assertEqual(json.loads(reader.stdout),{"event":1,"result":{"source":"after\n"}})
+                rows=trial.events(session)
+                self.assertEqual([e["id"] for e in rows],[0,1])
+                self.assertEqual(rows[0]["after"],rows[1]["before"])
+            finally:
+                if writer.poll() is None:
+                    writer.kill(); writer.wait()
+
+    def test_cohort_requires_matched_inputs_and_distinct_agent_processes(self):
+        entries = [{"task":task,"arm":arm,"thread_ids":[f"{task}-{arm}-1",f"{task}-{arm}-2"],
+            "profile":{"archive":"pinned"},"binary_sha256":"same", "bindings":{"runner":"same"},
+            "requirement":"same", "settings":{"model":"same"}, "perturbation":{"path":"same"}}
+            for task in ("unicode-dice","regex-escape-len") for arm in ("fr","files")]
+        self.assertEqual(len(cohort.validate_pairs(entries)),2)
+        with self.assertRaisesRegex(ValueError,"both arms"):
+            cohort.validate_pairs(entries[:-1])
+        for field in ("profile","binary_sha256","bindings","requirement","settings","perturbation"):
+            bad=copy.deepcopy(entries); bad[1][field]="different"
+            with self.assertRaisesRegex(ValueError,f"unmatched {field}"):
+                cohort.validate_pairs(bad)
+        bad=copy.deepcopy(entries); bad[1]["thread_ids"][0]=bad[0]["thread_ids"][0]
+        with self.assertRaisesRegex(ValueError,"reused"):
+            cohort.validate_pairs(bad)
+
     @unittest.skipUnless(FR, "native binary supplied by Cargo integration test")
     def test_native_review_retains_exact_manifest_and_refuses_stale_source(self):
         with tempfile.TemporaryDirectory() as directory:

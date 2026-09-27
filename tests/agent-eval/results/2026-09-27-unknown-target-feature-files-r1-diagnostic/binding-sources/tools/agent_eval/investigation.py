@@ -17,7 +17,6 @@ import subprocess
 import sys
 import time
 from typing import Any
-from .investigation_lock import session_lock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
@@ -55,7 +54,6 @@ def save(path, value):
 def bindings():
     paths = [ROOT / p for p in ("tools/investigation-agent.py", "tools/agent_eval/investigation.py",
         "tools/agent_eval/investigation_run.py", "tools/agent_eval/investigation_prompt.py", "tools/agent_eval/investigation_rehearsal.py",
-        "tools/agent_eval/investigation_lock.py",
         "tools/agent-eval.py", "tools/agent_eval/oracle.py", "tools/agent_eval/regex_workspace.py",
         "tools/agent_eval/regex_escape_len.py", "tests/agent-eval/unknown-target/task.json")]
     paths += sorted((ROOT / "sdk/python/src/fr_ir").glob("*.py"))
@@ -282,11 +280,6 @@ def checkpoint(session, selected, request):
 
 
 def resume(session):
-    with session_lock(session):
-        return _resume(session)
-
-
-def _resume(session):
     from .investigation_prompt import prompt
     selected = config(session)
     state = load(session / "state.json")
@@ -382,11 +375,6 @@ def act(session, selected, request):
 
 
 def step(session, request):
-    with session_lock(session):
-        return _step(session, request)
-
-
-def _step(session, request):
     selected = config(session)
     prior = events(session)
     require(len(prior) < MAX_CALLS and sum(len(encode(e["visible"])) for e in prior) < MAX_BYTES, "trial budget exhausted")
