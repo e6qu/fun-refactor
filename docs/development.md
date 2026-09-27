@@ -109,3 +109,26 @@ Before release, run the default, WASM and deep lanes and inspect the generated a
 cargo test --test release
 cargo test --test packaging
 ```
+
+## Resolution ambiguity checks
+
+Resolution asks whether a second entity remains after the first definition group.
+It skips that question when lexical lookup already permits a decision. Full entity counts
+still follow input order; definition groups can be asymmetric after public symbol mutation.
+Neither operation retains derived symbol groups across calls. During resolution, the complete name map
+also rejects absent receiver types without a full-symbol scan. Type queries outside that immutable
+pass retain their fallback for public symbol mutations.
+
+The [resolution workload](../tests/agent-eval/index-resolution/task.json) pins complete symbol and
+reference outputs before the algorithm change. Build its probe with one worker:
+
+```sh
+CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_DEV_DEBUG=0 \
+  cargo test --test index_resolution --no-run
+python3 tools/index-resolution-acceptance.py --binary EXECUTABLE --output RESULT
+python3 tools/index-resolution-acceptance.py --verify RESULT
+```
+
+The evaluator runs two fresh processes per workload, disables the facts cache and records peak RSS.
+Output digests use repository-relative paths. OS caches remain active. The baseline probe and
+pre-change implementation live in commit `0150b4cb`; its recorded baseline remains immutable.

@@ -177,7 +177,10 @@ These are substantial implementation advances across A–D; the complete milesto
   Static regular-package imports now extend that validated source closure and track parents and missing import candidates.
   [Consumer lookup measurements](tests/agent-eval/index-consumers/task.json) add a pinned repository snapshot and generated definition groups.
   Lazy reverse lookups support repeated discovery and invalidate before any mutable reference access.
-  This measures reference queries; broader incremental analysis and task-level performance remain open.
+  [Resolution measurements](tests/agent-eval/index-resolution/task.json) also compare fresh indexing with complete symbol/reference output digests.
+  Ambiguity checks stop after the first distinct alternative and retain ordered group semantics.
+  A complete name map rejects absent receiver types during immutable resolution.
+  Broader incremental analysis and task-level performance remain open.
 - D: new translation domains and old/new source correspondence proofs, plus broader host-failure coverage.
   Existing translation/proof acceptance remains regression evidence, not proof of these new outcomes.
 
@@ -220,7 +223,7 @@ Cold, warm and edited measurements retain clean-analysis agreement. They do not 
 
 The [cache comparison](tests/agent-eval/results/2026-09-25-flow-cache/result.json) closes the measurement item for the admitted scalar subset.
 It records three repetitions across six workloads, with independent runtime outcomes and AST coordinates.
-Warm median latency fell 33–73% against the pinned per-node cache on this host; context bytes and transfer results are unchanged.
+Warm median latency fell 37–78% against the pinned per-node cache on this host; context bytes and transfer results are unchanged.
 Report chunks reduce object operations but use more disk space in warmed stores. Whole-analysis dependency validation remains the reuse boundary.
 These measurements support that storage choice without establishing production latency or a benefit from partial-summary reuse.
 
