@@ -1,0 +1,15 @@
+{
+  "schema": "fr-index-resolution-task-1",
+  "baseline": "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf",
+  "problem": "Resolution repeatedly counts all definition groups when it only needs an ambiguity decision.",
+  "subset": "Existing symbol, reference, target and confidence semantics, including ordered greedy definition groups. No new language resolution.",
+  "budgets": {"workers": 1, "workloads": ["members-128", "members-256", "assignments-128", "repository"], "repetitions": 2, "measurement_timeout_seconds": 600},
+  "acceptance": [
+    "Pin complete normalized symbol/reference digests before implementation; every fresh run must match.",
+    "Compare entity counts with the original ordered linear algorithm on duplicates, missing IDs, mixed groups and public symbol mutations.",
+    "Preserve ambiguity, overloads, repeated assignments, configuration and CSS scope behavior.",
+    "Retain one-worker unoptimized indexing latency and isolated process RSS; verify native, browser and exhaustive repository audits."
+  ],
+  "edit_boundary": "Use fr guide to inspect count_entities. Direct edits change resolver internals and implement independent differential tests and measurements; no admitted author operation expresses this algorithm change.",
+  "claims": "Finite workload equivalence and latency measurements, not compiler completeness, lower production task latency or completed PLAN milestones."
+}
