@@ -32,6 +32,10 @@ fn identifier(value: &str) -> bool {
             .all(|(i, c)| c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit())
 }
 
+fn special_attribute(value: &str) -> bool {
+    value.starts_with("__") && value.ends_with("__")
+}
+
 fn module_name(value: &str) -> bool {
     let parts: Vec<_> = value.split('.').collect();
     parts.len() <= MODULE_LIMIT && parts.iter().all(|part| identifier(part))
@@ -436,6 +440,9 @@ impl Modules {
                         binding.ambiguous = true;
                         result.cutoffs.insert("ambiguous-module-binding".into());
                     }
+                    if binding.member.as_deref().is_some_and(special_attribute) {
+                        result.cutoffs.insert("special-module-attributes".into());
+                    }
                     let resolution = resolve_module(project, &binding.module)?;
                     let mut lookup = serde_json::to_value(&resolution)?;
                     lookup["importer"] = json!(file.strip_prefix(&project.root)?);
@@ -451,6 +458,7 @@ impl Modules {
                                 "{}/__init__.py",
                                 binding.module.replace('.', "/")
                             ))
+                            && !special_attribute(member)
                             && !declares_member(project, target, member, skip)?
                         {
                             let child = format!("{}.{}", binding.module, member);
@@ -499,6 +507,9 @@ impl Modules {
                     lookups.push(lookup);
                     bindings.insert(alias, binding);
                 }
+            }
+            if names.iter().map(String::as_str).any(special_attribute) {
+                result.cutoffs.insert("special-module-attributes".into());
             }
             files.insert(file.strip_prefix(&project.root)?.to_owned(), hash(source)?);
             result.bindings.insert(file.clone(), bindings);

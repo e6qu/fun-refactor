@@ -142,7 +142,9 @@ a declared member, a from-import retains a separate child resolution and all com
 Qualified calls follow explicit module bindings to a defining function, within the same 16-component
 and 16-binding budgets. An initializer may import a local module; its closure must still be inert
 and acyclic. A child binding that selects that same module is admitted. Conflicting child bindings
-refuse. Implicit child attributes, dynamic attributes and runtime import hooks remain outside this subset.
+refuse. Global bindings and imported members with leading and trailing double underscores also refuse.
+This excludes module metadata and attribute hooks such as `__getattr__`, including imported hooks.
+Implicit child attributes, dynamic attributes and runtime import hooks remain outside this subset.
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
 The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.
 Rule names must be unqualified in import mode.

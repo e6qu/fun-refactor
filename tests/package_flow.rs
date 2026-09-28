@@ -290,7 +290,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-aliases-package-flow/result.json",
+            "tests/agent-eval/results/2026-09-29-aliases-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -352,7 +352,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-aliases-package-reexports/result.json",
+            "tests/agent-eval/results/2026-09-29-aliases-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -409,9 +409,27 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-aliases-module-aliases/result.json",
+            "tests/agent-eval/results/2026-09-29-aliases-module-aliases/result.json",
         ])
         .output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");
+}
+
+#[test]
+fn special_module_bindings_refuse_even_when_the_function_body_is_inert() {
+    for source in [
+        "def __getattr__(name):\n    return 0\n",
+        "from archive.transform import clean_value as __getattr__\n",
+        "def __path__(value):\n    return value\n",
+    ] {
+        let root = fixture();
+        write(root.path(), "portal/__init__.py", source);
+        let report = analyze(root.path(), "render");
+        assert_eq!(report["complete"], false, "{report}");
+        assert!(report["cutoffs"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("special-module-attributes")));
+    }
 }

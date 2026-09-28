@@ -169,7 +169,7 @@ def test_negative_child_lookup_is_invalidated_when_module_appears(tmp_path):
 
 
 @pytest.mark.parametrize('mutation', ['omit-chain', 'skip-hop', 'terminal', 'nonmodule-terminal', 'fallback',
-    'omit-candidate', 'candidate-digest', 'child-name', 'child-target', 'child-chain', 'escape', 'omit-terminal'])
+    'omit-candidate', 'candidate-digest', 'child-name', 'child-target', 'child-chain', 'escape', 'omit-terminal', 'special-child'])
 def test_typed_module_dependencies_reject_forgery(tmp_path, mutation):
     client, rules = install(tmp_path)
     value = analyze(client, rules).report.to_data()
@@ -198,6 +198,18 @@ def test_typed_module_dependencies_reject_forgery(tmp_path, mutation):
         fallback['binding_chain'] = [{'path': 'pkg/__init__.py', 'name': 'leaf'}]
     elif mutation == 'escape':
         outer['terminal_module'] = '../escape.py'
+    elif mutation == 'special-child':
+        fallback['member'] = '__name__'
+        child = fallback['submodule']
+        child['module'] = 'pkg.__name__'
+        child['target'] = 'pkg/__name__.py'
+        child['candidates'] = {path.replace('pkg/leaf', 'pkg/__name__'): item
+                               for path, item in child['candidates'].items()}
+        files = value['inputs']['modules']['files']
+        files['pkg/__name__.py'] = files['pkg/leaf.py']
+        for item in lookups:
+            if item['terminal_module'] == 'pkg/leaf.py':
+                item['terminal_module'] = 'pkg/__name__.py'
     else:
         del outer['terminal_module']
     value['input_digest'] = hashlib.sha256(json.dumps(value['inputs'], sort_keys=True,
@@ -257,3 +269,52 @@ def test_plain_init_module_does_not_acquire_package_fallback(tmp_path, module, p
     assert not result.report.at('/complete')
     lookup = next(item for item in result.dependencies.lookups if item.importer == 'app.py')
     assert lookup.resolution == 'missing' and lookup.submodule is None
+
+
+@pytest.mark.parametrize('hook', [
+    'def __getattr__(name):\n    return 0\n',
+    'from erase import forward as __getattr__\n',
+])
+def test_module_attribute_hooks_cannot_establish_static_child_resolution(tmp_path, hook):
+    client, rules = install(tmp_path)
+    (tmp_path / 'pkg/__init__.py').write_text(hook + 'from . import leaf as public\n')
+    observed = subprocess.run(['python3', '-B', '-c',
+        'import app; app.source=lambda:17; app.sink=lambda x:x; app.positive()'],
+        cwd=tmp_path, capture_output=True, text=True)
+    assert observed.returncode != 0 and 'AttributeError' in observed.stderr
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    assert 'special-module-attributes' in result.report.at('/cutoffs')
+    result.dependencies
+
+
+@pytest.mark.parametrize('attribute', ['__name__', '__dict__', '__class__', '__path__', '__doc__'])
+def test_implicit_package_attributes_cannot_fall_back_to_same_named_children(tmp_path, attribute):
+    client, rules = install(tmp_path)
+    (tmp_path / 'pkg/__init__.py').write_text('pass\n')
+    (tmp_path / f'pkg/{attribute}.py').write_text('def identity(value):\n    return value\n')
+    (tmp_path / 'app.py').write_text(f'from pkg import {attribute} as forward\ndef positive():\n    return sink(forward.identity(source()))\n')
+    observed = subprocess.run(['python3', '-B', '-c',
+        'import app; app.source=lambda:17; app.sink=lambda x:x; app.positive()'],
+        cwd=tmp_path, capture_output=True, text=True)
+    assert observed.returncode != 0 and 'AttributeError' in observed.stderr
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    assert 'special-module-attributes' in result.report.at('/cutoffs')
+    lookup = next(item for item in result.dependencies.lookups if item.importer == 'app.py')
+    assert lookup.submodule is None and lookup.resolution == 'missing'
+    assert f'pkg/{attribute}.py' not in dict(result.dependencies.files)
+
+
+def test_adding_module_attribute_hook_invalidates_cached_complete_analysis(tmp_path):
+    client, rules = install(tmp_path)
+    cache = FlowCache(MemoryObjectStore())
+    first = analyze(client, rules, cache=cache)
+    assert first.report.at('/complete') and analyze(client, rules, cache=cache).reused
+    path = tmp_path / 'pkg/__init__.py'
+    path.write_text('def __getattr__(name):\n    return 0\n' + path.read_text())
+    changed = analyze(client, rules, cache=cache)
+    assert not changed.reused and not changed.report.at('/complete')
+    assert evidence(changed) == evidence(analyze(client, rules))
+    assert first.report.at('/input_digest') != changed.report.at('/input_digest')
+    changed.dependencies

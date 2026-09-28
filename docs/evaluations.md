@@ -158,7 +158,7 @@ The [module-alias task](../tests/agent-eval/module-aliases/task.json) adds child
 Its baseline records CPython output and refusal by the existing local 0.35.0 binary. That binary
 was not built from the pinned task revision. The evaluator repeats discovered repair, feature
 delivery, dependency resumption and independent patch replay for the new import form.
-The [retained run](../tests/agent-eval/results/2026-09-28-aliases-module-aliases/result.json) passes both outcomes and independent receiver replay.
+The [retained run](../tests/agent-eval/results/2026-09-29-aliases-module-aliases/result.json) passes both outcomes and independent receiver replay.
 The ordinary arm reads 413 source bytes across six files. Native discovery returns 110,505 bytes
 across eight calls with no source-body reveals. These finite script measurements make no token-saving
 or general efficiency claim.
