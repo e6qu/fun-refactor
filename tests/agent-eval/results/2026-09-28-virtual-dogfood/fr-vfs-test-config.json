@@ -1,0 +1,1 @@
+[{"name": "bounded_reads_match_backings_and_count_bytes", "file": "virtual_model_workspaces.rs", "changes": [["    assert_eq!(vfs::read_bounded(&path, 0).unwrap(), []);", "    assert!(vfs::read_bounded(&path, 0).unwrap().is_empty());"]]}]

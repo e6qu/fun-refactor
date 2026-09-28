@@ -35,7 +35,7 @@ fn bounded_reads_match_backings_and_count_bytes() {
     check();
     vfs::with_handle(&memory, check);
     std::fs::write(&path, []).unwrap();
-    assert_eq!(vfs::read_bounded(&path, 0).unwrap(), []);
+    assert!(vfs::read_bounded(&path, 0).unwrap().is_empty());
     vfs::with_handle(&vfs::new_handle([(path.clone(), String::new())]), || {
         assert_eq!(vfs::read_to_string_bounded(&path, 0).unwrap(), "");
     });
