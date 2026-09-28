@@ -23,44 +23,51 @@ def main():
         raise SystemExit('Run this workload on GitHub Actions; local regeneration is disabled.')
     if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', PREFIX):
         raise SystemExit('Supply a plain dated FR_EVIDENCE_PREFIX for new retained reports.')
+    group = os.environ.get('FR_EVIDENCE_GROUP', 'all')
+    scripts = {
+        'model-comparisons': 'refinement-acceptance',
+        'retained-proofs': 'proof-evidence-acceptance',
+        'agent-guide-context': 'agent-guide-context',
+        'completion-workflows': 'completion-workflows',
+        'intent-action-context': 'intent-action-context',
+        'index-resolution': 'index-resolution-acceptance',
+        'host-recovery': 'host-recovery-acceptance',
+    }
+    if group != 'all' and group not in scripts:
+        raise SystemExit(f'Unknown evidence group: {group}')
+    names = list(scripts) if group == 'all' else [group]
     LOGS.mkdir(parents=True, exist_ok=True)
-    subprocess.run(['cargo', 'build', '--locked'], cwd=ROOT, check=True)
-    with (LOGS / 'binaries.jsonl').open('w') as log:
-        subprocess.run(['cargo', 'test', '--test', 'index_resolution', '--no-run',
-                        '--message-format=json'], cwd=ROOT, stdout=log, check=True)
-    records = [json.loads(line) for line in (LOGS / 'binaries.jsonl').read_text().splitlines()]
-    binary = next(row['executable'] for row in records if row.get('reason') == 'compiler-artifact'
-                  and row['target']['name'] == 'index_resolution' and row.get('executable'))
     fr = str(ROOT / 'target/debug/fr')
-    commands = [('model-comparisons', ['tools/refinement-acceptance.py', '--fr', fr, '--output',
-                                      str(OUTPUT / f'{PREFIX}-model-comparisons')])]
-    for name, script in [('retained-proofs', 'proof-evidence-acceptance'),
-                         ('agent-guide-context', 'agent-guide-context'),
-                         ('completion-workflows', 'completion-workflows'),
-                         ('intent-action-context', 'intent-action-context'),
-                         ('index-resolution', 'index-resolution-acceptance'),
-                         ('host-recovery', 'host-recovery-acceptance')]:
-        path = OUTPUT / f'{PREFIX}-{name}' / 'result.json'
+    if any(name not in ('host-recovery', 'index-resolution') for name in names):
+        subprocess.run(['cargo', 'build', '--locked'], cwd=ROOT, check=True)
+    binary = None
+    if 'index-resolution' in names:
+        with (LOGS / 'binaries.jsonl').open('w') as log:
+            subprocess.run(['cargo', 'test', '--test', 'index_resolution', '--no-run',
+                            '--message-format=json'], cwd=ROOT, stdout=log, check=True)
+        records = [json.loads(line) for line in (LOGS / 'binaries.jsonl').read_text().splitlines()]
+        binary = next(row['executable'] for row in records if row.get('reason') == 'compiler-artifact'
+                      and row['target']['name'] == 'index_resolution' and row.get('executable'))
+    for name in names:
+        directory = OUTPUT / f'{PREFIX}-{name}'
+        path = directory if name == 'model-comparisons' else directory / 'result.json'
         path.parent.mkdir(parents=True, exist_ok=True)
-        command = [f'tools/{script}.py']
+        command = [sys.executable, f'tools/{scripts[name]}.py']
         if name == 'index-resolution':
             command += ['--binary', binary]
         elif name != 'host-recovery':
             command += ['--fr', fr]
         if name != 'intent-action-context':
             command += ['--output', str(path)]
-        commands.append((name, command))
-    for name, command in commands:
         print(f'Refreshing {name}', flush=True)
         with (LOGS / f'{name}.log').open('w') as log:
             if name == 'intent-action-context':
-                path = OUTPUT / f'{PREFIX}-{name}' / 'result.json'
                 with path.open('w') as output:
-                    subprocess.run([sys.executable, *command], cwd=ROOT, stdout=output,
-                                   stderr=log, check=True, timeout=1800)
+                    subprocess.run(command, cwd=ROOT, stdout=output, stderr=log,
+                                   check=True, timeout=1800)
             else:
-                subprocess.run([sys.executable, *command], cwd=ROOT, stdout=log,
-                               stderr=subprocess.STDOUT, check=True, timeout=1800)
+                subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
+                               check=True, timeout=1800)
         print(f'Passed {name}', flush=True)
 
 

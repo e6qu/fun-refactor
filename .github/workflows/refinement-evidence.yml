@@ -6,6 +6,19 @@ on:
         description: Dated name for new evidence directories
         required: true
         type: string
+      group:
+        description: Evidence group to regenerate
+        type: choice
+        default: all
+        options:
+          - all
+          - model-comparisons
+          - retained-proofs
+          - agent-guide-context
+          - completion-workflows
+          - intent-action-context
+          - index-resolution
+          - host-recovery
 permissions:
   contents: read
 concurrency:
@@ -26,6 +39,7 @@ jobs:
       RUST_TEST_THREADS: '1'
       RUSTFLAGS: '-D warnings'
       FR_EVIDENCE_PREFIX: ${{ inputs.prefix }}
+      FR_EVIDENCE_GROUP: ${{ inputs.group }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -64,6 +78,7 @@ jobs:
         with:
           key: default
       - name: Check virtual workspace boundaries
+        if: inputs.group == 'all'
         run: |
           cargo clippy --locked --tests -- -D warnings
           cargo test --locked --test vfs_choke_point --test virtual_model_workspaces
