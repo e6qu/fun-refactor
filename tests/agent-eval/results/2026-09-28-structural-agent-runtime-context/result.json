@@ -1,0 +1,95 @@
+{
+  "schema": "fr-agent-runtime-context-1",
+  "passed": true,
+  "inputs": {
+    "tool_sha256": "a4eec5053653c33733275a785b4ef4c8a19ca74d0e374b4ba5de67d114f0a7d0",
+    "runtime_sha256": "c96f8ac90fcf4a7c08790be4819c83347fb547d938c956c1c3c9f4beff9d4aa3",
+    "sdk_sha256": "d4fdba9107078c521416247e6a957b19e170a9c29b6b09135318e59b93ff9cc4"
+  },
+  "arms": {
+    "direct_json": {
+      "agent_visible_calls": 5,
+      "internal_fr_calls": 5,
+      "agent_visible_bytes": 18136,
+      "request_response_bytes": [
+        67,
+        1258,
+        147,
+        4058,
+        230,
+        3694,
+        567,
+        3287,
+        660,
+        4168
+      ],
+      "outcome": {
+        "source_sha256": "74ab811de7d68357cef55ead7c9295f1a8e34435c6c1379c14ea4b26236934ba",
+        "patch_sha256": "9b9d32314ba01e51470460c549af83c781c5f9b3a5ce5c6b841d0de442c15c8a",
+        "transaction_status": "applied",
+        "stage_names": [
+          "check-original",
+          "apply",
+          "check-applied",
+          "undo",
+          "check-restored",
+          "redo",
+          "check-applied",
+          "deliver-patch"
+        ],
+        "stage_statuses": [
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed"
+        ],
+        "passed": true
+      }
+    },
+    "python_runtime": {
+      "agent_visible_calls": 1,
+      "internal_fr_calls": 5,
+      "agent_visible_bytes": 1902,
+      "request_response_bytes": [
+        1480,
+        422
+      ],
+      "outcome": {
+        "passed": true,
+        "patch_sha256": "9b9d32314ba01e51470460c549af83c781c5f9b3a5ce5c6b841d0de442c15c8a",
+        "source_sha256": "74ab811de7d68357cef55ead7c9295f1a8e34435c6c1379c14ea4b26236934ba",
+        "stage_names": [
+          "check-original",
+          "apply",
+          "check-applied",
+          "undo",
+          "check-restored",
+          "redo",
+          "check-applied",
+          "deliver-patch"
+        ],
+        "stage_statuses": [
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed",
+          "passed"
+        ],
+        "transaction_status": "applied"
+      }
+    }
+  },
+  "reduction": {
+    "agent_visible_calls": 4,
+    "agent_visible_bytes": 16234,
+    "agent_visible_percent": 89.5
+  },
+  "scope": "One deterministic generic Rust task. Both arms execute the same five fr operations and produce equal source, patch and lifecycle outcomes. Direct JSON counts every request and response at the agent boundary. The runtime arm counts its complete Python program and compact result; intermediate reports stay inside the local process. This does not measure a model, hidden reasoning, tokens, billed quota or population behavior."
+}

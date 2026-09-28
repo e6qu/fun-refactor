@@ -1,6 +1,6 @@
 {
   "schema": "fr-structural-dogfood-1",
-  "source_commit": "3448191f25369639c7ee6866e179dff2d38520b2",
+  "source_commit": "9cc28cfd02fbc136efcb9a66d57e241999ec8985",
   "batches": [
     {
       "prefix": "fr-structural-native",
@@ -185,6 +185,19 @@
         "fr-structural-delivered-patch-body",
         "fr-structural-delivered-patch-discovery.json"
       ]
+    },
+    {
+      "prefix": "fr-structural-runtime-ref",
+      "root": "tests",
+      "transaction": 8,
+      "files": [
+        "fr-structural-runtime-ref-author.json",
+        "fr-structural-runtime-ref-saved.json",
+        "fr-structural-runtime-ref-discovery-0.json",
+        "fr-structural-runtime-ref-applied.json",
+        "fr-structural-runtime-ref-preview.json",
+        "fr-structural-runtime-ref-body-0"
+      ]
     }
   ],
   "boundary": "Actual repository edits across intermediate revisions and several CLI builds. Complete native previews were inspected before saved history application. The stale retained-report plan refused before mutation and was explicitly rediscovered. This record is not a clean-checkout replay or live-agent comparison. New scaffolding, module/enum/import wiring, Lean, prose/config and formatting used direct edits.",
@@ -294,6 +307,12 @@
     "fr-structural-retained-preview.json": "cbee2c7e8a0d8e698d663791e1600cec29325ff0fccaca6115dea308716c6f1f",
     "fr-structural-retained-refusal.json": "bd099a04371e113be97153a4b62ee348aa1cced2b85df2b3efb12880a79fb3e1",
     "fr-structural-retained-saved.json": "5ca29d8469c17625e4fd6484d087b68fd9c68d79491d3ab6d663a5dfc49b4ca0",
+    "fr-structural-runtime-ref-applied.json": "7212fe9f241a66fc216ddd195d5336edb656c83334c56e2ece0389f40a7d9134",
+    "fr-structural-runtime-ref-author.json": "6f36f65c4d525658904fe2fa78079478e454018724e5599f1811442cad62832f",
+    "fr-structural-runtime-ref-body-0": "95cb4ca5aae39229ef29201949bce4d16616cb45a733830e6dc63e7affe85d79",
+    "fr-structural-runtime-ref-discovery-0.json": "efe9f4b476644c932b98ded4c8caa088404bd9851d79035122b778ea56c183e3",
+    "fr-structural-runtime-ref-preview.json": "f93c0c02c97cf4488405e6e3cd2a489d0450b42e1e1dbe30bd5df1f45694ecde",
+    "fr-structural-runtime-ref-saved.json": "dcdff2baf47aebb93d71c9a8d79ab12619d66b7dba709fd94e1056b1bc7e64e3",
     "fr-structural-self-rename-applied.json": "8046ceb8117ad1f3b2af69111a05f48f7a2c84a4f133344faf79d257a493b5aa",
     "fr-structural-self-rename-author.json": "f7912dcaced7f1afa48153e7625fe78ca7dbda346694079c7f55dbd17a4cc8ad",
     "fr-structural-self-rename-discovery.json": "025d71aaeea7f017e81d509b0b07eca5c4bad2d68797bb2767f4465da74e45ea",

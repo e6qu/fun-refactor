@@ -1019,7 +1019,7 @@ fn checked_agent_runtime_context_comparison_is_reproducible() {
     let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
     let expected: Value = serde_json::from_slice(
         &fs::read(root().join(
-            "tests/agent-eval/results/2026-09-28-change-scope-agent-runtime-context/result.json",
+            "tests/agent-eval/results/2026-09-28-structural-agent-runtime-context/result.json",
         ))
         .unwrap(),
     )
