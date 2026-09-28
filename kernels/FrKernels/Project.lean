@@ -912,8 +912,8 @@ theorem handle_selection_returns_declaration (isLocal includeLocals : Bool)
   rcases allowed with localFalse | includeTrue <;>
     simp [handleSelectionStatus, *]
 
-end FrKernels.Project
-
 theorem structural_refactor_target_iff (language target : Nat) :
     taskAuthorTargetCandidate 10 language target = true ↔ language = 0 ∧ target = 1 := by
   simp [taskAuthorTargetCandidate]
+
+end FrKernels.Project

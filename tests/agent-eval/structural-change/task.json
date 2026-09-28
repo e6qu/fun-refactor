@@ -1,6 +1,6 @@
 {
   "schema": "fr-structural-change-task-1",
-  "baseline": "906318c9",
+  "baseline": "906318c981b68dc592886d3a93687c883db088b5",
   "goal": "Deliver consumer-bound Rust free-function rename and scalar signature migration through one reviewed check/history/patch workflow.",
   "subset": "Rust free functions; strong indexed references; no rename warnings. Signature removal/reordering requires primitive scalar parameters and literal call arguments; no runtime/external consumer or source correspondence proof.",
   "cases": [
