@@ -99,6 +99,7 @@ pub enum DependencyKind {
     DeclarationAnalyzer,
     ProofInputs,
     FlowInputs,
+    ChangeScope,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -142,6 +143,13 @@ pub fn check_scope_covered(
 impl Project<'_> {
     fn dependency_digest(&self, dependency: &Dependency) -> Result<String> {
         Ok(match dependency.kind {
+            DependencyKind::ChangeScope => match self.change_scope_dependency(&dependency.key) {
+                Ok(digest) => digest,
+                Err(error) if dependency.digest.is_some() => {
+                    hash(("unavailable-change-scope", error.to_string()))?
+                }
+                Err(error) => return Err(error),
+            },
             DependencyKind::Analyzer => hash((
                 ANALYZER,
                 env!("CARGO_PKG_VERSION"),

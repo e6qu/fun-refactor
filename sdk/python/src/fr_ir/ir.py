@@ -1992,6 +1992,7 @@ class TaskChange:
     checks: Sequence[str]
     delivery: TaskDelivery = TaskDelivery()
     acceptance_checks: Sequence[str] = ()
+    change_scope: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
         if not 0 <= len(self.requests) <= 16:
@@ -2033,6 +2034,13 @@ class TaskChange:
                 or any(not isinstance(name, str) or not name for name in self.acceptance_checks)
                 or len(set(self.acceptance_checks)) != len(self.acceptance_checks)):
             raise IrError("acceptance checks need at most 32 distinct names")
+        if self.change_scope is not None:
+            if (not isinstance(self.change_scope, Mapping) or set(self.change_scope) != {"key", "digest"}
+                    or any(not isinstance(v, str) for v in self.change_scope.values())
+                    or not 1 <= len(self.change_scope["key"].encode()) <= 16384
+                    or len(self.change_scope["digest"]) != 64
+                    or any(c not in "0123456789abcdef" for c in self.change_scope["digest"])):
+                raise IrError("change scope needs a bounded dependency key and SHA-256 digest")
         encoded = json.dumps(self.to_data(), ensure_ascii=False, separators=(",", ":")).encode()
         if len(encoded) > 65536:
             raise IrError("task change manifest exceeds 64 KiB")
@@ -2046,6 +2054,7 @@ class TaskChange:
             "checks": list(self.checks),
             "delivery": self.delivery.to_data(),
             **({"acceptance_checks": list(self.acceptance_checks)} if self.acceptance_checks else {}),
+            **({"change_scope": dict(self.change_scope)} if self.change_scope is not None else {}),
         }
 
     def to_json(self, *, indent: int | None = None) -> str:

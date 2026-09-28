@@ -57,6 +57,7 @@ mod features;
 mod find;
 pub use crate::framework_kernel;
 pub use crate::surface_kernel;
+pub mod change_scope;
 mod control_flow;
 pub mod correspondence;
 pub mod dataflow;
@@ -92,6 +93,8 @@ pub use task::task_author_target_candidate;
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Discover bounded consumers and declared check candidates for a change.")]
+    ChangeScope(change_scope::Options),
     #[command(about = "Separate immutable declaration content from revision-bound handles.")]
     Identities(correspondence::Options),
     #[command(about = "Trace bounded scalar value propagation through Python helpers.")]
@@ -1479,6 +1482,7 @@ impl<'a> Project<'a> {
             Command::FlowFacts(options) => self.flow_facts(options),
             Command::CompilerEvidence(options) => self.compiler_evidence(options),
             Command::Investigate(options) => self.investigation(options),
+            Command::ChangeScope(options) => self.change_scope(options),
             Command::Batch(options) => self.batch(options),
             Command::Task(options) => self.task(options),
             Command::Explore(options) => self.explore(options),

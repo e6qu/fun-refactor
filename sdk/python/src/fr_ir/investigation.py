@@ -36,6 +36,7 @@ class DependencyKind(str, Enum):
     DECLARATION_ANALYZER = "declaration-analyzer"
     PROOF_INPUTS = "proof-inputs"
     FLOW_INPUTS = "flow-inputs"
+    CHANGE_SCOPE = "change-scope"
 
 
 class EvidenceKind(str, Enum):

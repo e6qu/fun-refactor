@@ -3,6 +3,13 @@ import FrKernels.Flow
 open FrKernels.Investigation
 
 def main (args : List String) : IO Unit := do
+  if args == ["change-scope"] then
+    for complete in [false, true] do
+      for certain in [false, true] do
+        for mapped in [false, true] do
+          for checks in [false, true] do
+            IO.println (changeScopeReady complete certain mapped checks)
+    return
   if args == ["local-module"] then
     for source in [false, true] do
       for packageMissing in [false, true] do

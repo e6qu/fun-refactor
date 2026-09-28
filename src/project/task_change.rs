@@ -50,6 +50,8 @@ struct Manifest {
     checks: Vec<String>,
     #[serde(default)]
     acceptance_checks: Vec<String>,
+    #[serde(default)]
+    change_scope: Option<super::change_scope::Binding>,
     delivery: Delivery,
 }
 
@@ -247,6 +249,28 @@ impl Project<'_> {
             resolved.len() == manifest.targets.len(),
             "task-change target resolution count changed."
         );
+        let scope = manifest
+            .change_scope
+            .as_ref()
+            .map(|binding| {
+                let handles = resolved
+                    .iter()
+                    .map(|row| {
+                        row["handle"]
+                            .as_str()
+                            .context("scope target has no handle")
+                            .map(str::to_owned)
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let checks = manifest
+                    .checks
+                    .iter()
+                    .chain(&manifest.acceptance_checks)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                super::change_scope::validate_bound(self, binding, &handles, &checks)
+            })
+            .transpose()?;
         let inline_root =
             tempfile::tempdir().context("creating inline task-change fragment directory")?;
         let operations = manifest
@@ -326,6 +350,9 @@ impl Project<'_> {
             "executed": false,
             "passed": Value::Null,
         });
+        if let Some(scope) = scope {
+            report["change_scope"] = scope;
+        }
         if let Some(request) = &acceptance_checks {
             report["acceptance_checks"] = json!(request);
         }
