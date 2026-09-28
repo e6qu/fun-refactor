@@ -179,3 +179,44 @@ fn native_snapshot_paths_still_refuse_symlink_traversal() {
         .unwrap();
     assert!(error.to_string().contains("symlinks"));
 }
+
+#[cfg(unix)]
+#[test]
+fn virtual_package_plans_ignore_host_metadata_and_refuse_virtual_conflicts() {
+    let disk = tempfile::tempdir().unwrap();
+    let root = disk.path().canonicalize().unwrap();
+    std::fs::write(root.join("specs"), "host file").unwrap();
+    std::os::unix::fs::symlink("missing.rs", root.join("subject.rs")).unwrap();
+    assert!(spec::init(&root, Path::new("specs")).is_err());
+    let workspace = vfs::new_handle([(root.join("subject.rs"), RUST.into())]);
+    vfs::with_handle(&workspace, || {
+        spec::refinement::capture(&root, "subject.rs::allow").unwrap();
+        let plan = spec::init(&root, Path::new("specs")).unwrap();
+        assert_eq!(plan.files.len(), 3);
+        assert!(plan.files.iter().all(|file| !file.existing));
+        vfs::write(root.join("specs"), "virtual file").unwrap();
+        assert!(spec::init(&root, Path::new("specs"))
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("not a directory"));
+        vfs::remove(root.join("specs")).unwrap();
+        vfs::write(root.join("specs/lean-toolchain/child"), "virtual directory").unwrap();
+        assert!(spec::init(&root, Path::new("specs"))
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("not a regular file"));
+        vfs::remove(root.join("specs/lean-toolchain/child")).unwrap();
+        vfs::write(root.join("specs/lakefile.toml"), "conflicting package").unwrap();
+        assert!(spec::init(&root, Path::new("specs"))
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("refusing to replace"));
+    });
+    assert_eq!(
+        std::fs::read_to_string(root.join("specs")).unwrap(),
+        "host file"
+    );
+}
