@@ -176,6 +176,7 @@ impl Project<'_> {
         self.scope_seeds(query)?;
         hash((
             &self.revision,
+            crate::cache::fact_semantics_fingerprint(),
             query,
             map,
             checks,
@@ -350,7 +351,6 @@ impl Project<'_> {
         let coverage = self.coverage();
         let scan_complete = coverage["skipped_files"] == 0
             && coverage["skipped_symlinks"] == 0
-            && coverage["unsupported_files"] == 0
             && coverage["files_by_gap"]
                 .as_object()
                 .is_some_and(|g| g.is_empty());

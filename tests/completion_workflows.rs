@@ -8,7 +8,9 @@ fn retained_completion_workflows_cover_every_family_without_post_guide_discovery
         .arg("--fr")
         .arg(env!("CARGO_BIN_EXE_fr"))
         .arg("--audit")
-        .arg(root.join("tests/agent-eval/results/2026-09-28-completion-workflows/result.json"))
+        .arg(root.join(
+            "tests/agent-eval/results/2026-09-28-change-scope-completion-workflows/result.json",
+        ))
         .output()
         .expect("completion workflow auditor should run");
     assert!(

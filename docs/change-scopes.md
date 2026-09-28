@@ -20,6 +20,8 @@ Depth bounds expansion into new consumers. References from frontier declarations
 unvisited consumer reports a depth cutoff. Node, reference and response budgets also produce explicit
 cutoffs. Output truncation removes whole records and never preserves a complete or ready claim.
 The scan coverage describes the selected root, including skipped files and syntax gaps.
+Unsupported files remain reported outside the indexed relation; an exported patch does not make
+indexed discovery incomplete. Skipped supported files, symlinks and parser gaps still prevent readiness.
 
 ## Declared check associations
 
@@ -76,3 +78,9 @@ a prerequisite when a post-change plan requires it. Successful delivery cannot r
 
 The Rust/Lean readiness comparison covers all 16 Boolean admission cases. Its theorems concern that
 small predicate; they do not prove the index, consumer closure, test catalog or source behavior.
+
+The [pinned evaluation](../tests/agent-eval/results/2026-09-28-change-scope/manifest.json)
+compares independent Python AST inspection with native discovery, then checks two-file delivery,
+fresh-process resumption, added-consumer invalidation and independent patch replay.
+The [SDK tests](../sdk/python/tests/test_change_scope.py) exercise budgets, ambiguity, coordinates,
+mapping drift and refusal boundaries. This is deterministic acceptance, not a live-agent trial.

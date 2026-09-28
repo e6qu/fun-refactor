@@ -132,7 +132,7 @@ fn batched_project_queries_match_separate_compact_reports() {
     python(&[
         "tools/project-batch-context.py",
         "--audit",
-        "tests/agent-eval/project-batch-context.json",
+        "tests/agent-eval/results/2026-09-28-change-scope-project-batch-context/result.json",
     ]);
 }
 
@@ -231,5 +231,13 @@ fn task_bundle_matches_separate_discovery_and_contract_calls() {
         "tools/task-bundle-context.py",
         "--audit",
         "tests/agent-eval/task-bundle-context.json",
+    ]);
+}
+#[test]
+fn consumer_scopes_retain_exact_discovery_and_replay_checked_delivery() {
+    python(&[
+        "tools/change-scope-acceptance.py",
+        "--audit",
+        "tests/agent-eval/results/2026-09-28-change-scope",
     ]);
 }

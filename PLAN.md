@@ -138,6 +138,11 @@ Outcome: an agent can implement the requested task and state precisely what its 
 
 - [ ] Discover affected consumers, contracts, configuration and tests for feature, bug and structural changes.
   Deliver the complete change through existing review, history and patch mechanisms.
+  [Consumer scopes](docs/change-scopes.md) now follow bounded indexed callers and expose test candidates.
+  Explicit file-to-check associations bind multi-file delivery and persisted discovery dependencies.
+  [Independent acceptance](tests/agent-eval/results/2026-09-28-change-scope/manifest.json) covers exact
+  call sites, a two-file repair, fresh-process resumption, added consumers and receiver patch replay.
+  Runtime dispatch, inferred contracts/configuration and broader structural tasks remain open.
 - [ ] Expand semantic and application IR only for pinned task requirements.
   Define transport, effects, success and failure behavior for each new construct.
 - [ ] Define translation domains for arithmetic, exceptions, evaluation order, mutation and effects.
@@ -189,7 +194,8 @@ These are substantial implementation advances across A–D; the complete milesto
   [Checked outcomes](docs/checked-outcomes.md) now separate lifecycle checks from post-change acceptance.
   Failed behavior withholds patch delivery; retained successful receipts can complete an explicit outcome step.
   The pinned two-file Rust case covers fresh-process attachment, dependency invalidation and independent receiver replay.
-  Broader consumer discovery and the full D gate remain open.
+  Bounded indexed consumer discovery now precedes optional scope-bound delivery. Broader semantic
+  discovery and the full D gate remain open.
 
 No milestone is complete. The remaining checklists retain their full outcome requirements; a partial
 implementation does not close a multi-part item. Extend the pinned corpus and close these gates in

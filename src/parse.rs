@@ -16,7 +16,6 @@ impl Parsers {
 
     /// The tree-sitter grammar used for a language.
     fn grammar(lang: Language) -> Option<tree_sitter::Language> {
-        // Each arm sits behind its own feature.
         match lang {
             #[cfg(feature = "lang-rust")]
             Language::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
@@ -109,12 +108,18 @@ impl Parsers {
             None => Vec::new(),
         };
 
+        let layout_errors = if lang == Language::Python {
+            python_layout_errors(tree.root_node(), source)
+        } else {
+            Vec::new()
+        };
         let mut parsed = Parsed {
             language: lang,
             tree,
             inline_trees,
             masked_spans,
             gaps: Vec::new(),
+            layout_errors,
         };
         if parsed.has_errors() {
             parsed.gaps.push(FactGap::SyntaxErrors);
@@ -222,6 +227,8 @@ pub struct Parsed {
     pub masked_spans: Vec<Span>,
     /// Why facts drawn from this tree fall short of the file, empty when they do not.
     pub gaps: Vec<FactGap>,
+    /// Python statement layout errors omitted by the tolerant grammar.
+    pub layout_errors: Vec<Span>,
 }
 
 impl Parsed {
@@ -239,14 +246,14 @@ impl Parsed {
         std::iter::once(self.root()).chain(self.inline_roots())
     }
 
-    /// Does any tree contain an ERROR or MISSING node?
+    /// Does any tree contain an ERROR, MISSING node or invalid Python statement layout?
     pub fn has_errors(&self) -> bool {
-        self.roots().any(|root| root.has_error())
+        !self.layout_errors.is_empty() || self.roots().any(|root| root.has_error())
     }
 
-    /// Byte spans of every ERROR and MISSING node, in source order.
+    /// Byte spans of syntax and Python layout errors, in source order.
     pub fn error_spans(&self) -> Vec<Span> {
-        let mut errors = Vec::new();
+        let mut errors = self.layout_errors.clone();
         for root in self.roots() {
             collect_error_spans(root, &mut errors);
         }
@@ -555,6 +562,88 @@ pub fn is_an_inferred_type(written: &str) -> bool {
     matches!(written.trim(), "var" | "auto" | "let" | "const")
 }
 
+/// Check statement indentation that the error-tolerant Python grammar can overlook.
+fn python_layout_errors(root: Node<'_>, source: &str) -> Vec<Span> {
+    let indentation = |node: Node<'_>| -> Option<(usize, usize)> {
+        let start = source[..node.start_byte()]
+            .rfind('\n')
+            .map_or(0, |at| at + 1);
+        // Explicit continuation lines do not start a new logical line.
+        if start > 0 && source[..start - 1].trim_end_matches('\r').ends_with('\\') {
+            return None;
+        }
+        let mut columns = (0, 0);
+        for byte in source[start..node.start_byte()].bytes() {
+            match byte {
+                b' ' => {
+                    columns.0 += 1;
+                    columns.1 += 1;
+                }
+                b'\t' => {
+                    columns.0 = (columns.0 / 8 + 1) * 8;
+                    columns.1 += 1;
+                }
+                b'\x0c' => columns = (0, 0),
+                // A semicolon or an inline suite starts within a logical line.
+                _ => return None,
+            }
+        }
+        Some(columns)
+    };
+    let mut errors = Vec::new();
+    let mut cursor = root.walk();
+    loop {
+        let node = cursor.node();
+        if matches!(node.kind(), "module" | "block") {
+            let mut children = node.walk();
+            let mut expected = (node.kind() == "module").then_some((0, 0));
+            let mut first = true;
+            for child in node
+                .named_children(&mut children)
+                .filter(|child| !child.is_extra())
+            {
+                let actual = indentation(child);
+                if first && node.kind() == "block" {
+                    expected = actual;
+                    if let (Some(actual), Some(parent)) =
+                        (actual, node.parent().and_then(indentation))
+                    {
+                        if actual.0 <= parent.0 || actual.1 <= parent.1 {
+                            errors.push(Span::from(child));
+                        }
+                    }
+                }
+                if actual.is_some() && actual != expected {
+                    errors.push(Span::from(child));
+                }
+                first = false;
+            }
+        } else if matches!(
+            node.kind(),
+            "elif_clause" | "else_clause" | "except_clause" | "finally_clause"
+        ) {
+            if let (Some(actual), Some(parent)) =
+                (indentation(node), node.parent().and_then(indentation))
+            {
+                if actual != parent {
+                    errors.push(Span::from(node));
+                }
+            }
+        }
+        if cursor.goto_first_child() {
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return errors;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -565,8 +654,6 @@ mod tests {
 
     #[test]
     fn every_language_grammar_loads_and_parses() {
-        // One representative snippet per language: the grammar set must be mutually
-        // compatible and every language must produce a usable tree.
         let cases: &[(Language, &str)] = &[
             (Language::Rust, "fn main() { println!(\"hi\"); }\n"),
             (Language::Go, "package main\n\nfunc main() {}\n"),
@@ -621,7 +708,6 @@ mod tests {
     fn tsx_grammar_handles_jsx_that_ts_grammar_rejects() {
         let jsx = "const A = () => <div>{x}</div>;\n";
         assert!(!parse(Language::Tsx, jsx).has_errors());
-        // The distinction is real: the plain TypeScript grammar cannot parse this.
         assert!(parse(Language::TypeScript, jsx).has_errors());
     }
 

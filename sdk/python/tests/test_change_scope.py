@@ -60,8 +60,10 @@ def proposal(client):
 
 def test_discovers_transitive_consumers_test_candidates_and_exact_references(tmp_path):
     root, client = fixture(tmp_path)
+    (root/"artifacts/change.patch").write_text("retained delivery patch\n")
     result = scope(client)
     assert result.ready, result.report.to_data()
+    assert result.report.at("/coverage/unsupported_files") == 1
     assert result.checks == ("behavior",)
     assert {row["declaration"]["name"] for row in result.report.at("/consumers")} == {"subtotal", "quote", "total", "test_total"}
     assert [row["test"]["name"] for row in result.report.at("/test_candidates")] == ["test_total"]

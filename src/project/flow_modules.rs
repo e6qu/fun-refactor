@@ -282,7 +282,7 @@ impl Modules {
                 break;
             }
             let parsed = Parsers::new().parse(Language::Python, source)?;
-            if parsed.root().has_error() {
+            if parsed.has_errors() {
                 result.cutoffs.insert("import-syntax-errors".into());
             }
             let mut bindings = BTreeMap::new();

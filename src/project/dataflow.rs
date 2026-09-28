@@ -674,7 +674,7 @@ impl Project<'_> {
         );
         let source = &self.sources[&symbol.file];
         let parsed = Parsers::new().parse(Language::Python, source)?;
-        ensure!(!parsed.root().has_error(), "dataflow refuses syntax errors");
+        ensure!(!parsed.has_errors(), "dataflow refuses syntax errors");
         let modules = options
             .imports
             .then(|| modules::Modules::load(self, &symbol.file))
