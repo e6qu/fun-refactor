@@ -212,7 +212,7 @@ fn retained_semantic_evidence_is_source_bound_and_internally_verified() {
         .args([
             "tools/semantic-evidence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-change-scope-semantic-evidence/result.json",
+            "tests/agent-eval/results/2026-09-28-structural-semantic-evidence/result.json",
         ])
         .output()
         .unwrap();

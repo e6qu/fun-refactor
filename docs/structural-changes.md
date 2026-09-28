@@ -63,7 +63,8 @@ The pinned [task](../tests/agent-eval/structural-change/task.json) migrates a Ru
 call sites in two files. The deterministic evaluator compares a prescribed ordinary edit with a
 fresh-process native delivery. An independent Python oracle compiles the program and checks all
 public outputs before and after. Receiver replay checks exact apply, reversal and reapplication.
-No model service runs and no token-saving or live-agent claim is made.
+The [retained manifest](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) binds
+these artifacts. No model service runs and no token-saving or live-agent claim is made.
 
 The Rust/Lean target admission comparison includes the new operation and an unknown-operation
 refusal. Its theorem concerns the language/target predicate. Parser correctness, reference resolution,

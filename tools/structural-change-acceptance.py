@@ -143,7 +143,8 @@ def measure(binary, output):
                 metrics["fresh_process_delivery"] = True
             measured = oracle(root)
             assert measured == baseline
-            patch = run(["git", "diff", "--binary", "--", *FILES], root).stdout
+            patch = ((root/"artifacts/change.patch").read_text() if arm == "native"
+             else run(["git", "diff", "--binary", "--", *FILES], root).stdout)
             (output/f"{arm}.patch").write_text(patch)
             result[arm] = {"baseline": baseline, "after": measured, "metrics": metrics,
                            "seconds": time.monotonic()-started}
