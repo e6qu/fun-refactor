@@ -182,7 +182,7 @@ fn retained_correspondence_acceptance_matches_its_inputs() {
         .args([
             "tools/correspondence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-24-resumable-correspondence/result.json",
+            "tests/agent-eval/results/2026-09-28-change-scope-resumable-correspondence/result.json",
         ])
         .output()
         .unwrap();

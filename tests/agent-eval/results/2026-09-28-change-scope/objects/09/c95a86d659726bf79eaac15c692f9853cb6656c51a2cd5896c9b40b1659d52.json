@@ -1,0 +1,1 @@
+{"kind":"scalar","schema":"fr-merkle-object-1","value":"import ast,pathlib; [ast.parse(p.read_text()) for p in pathlib.Path('.').glob('*.py')]"}

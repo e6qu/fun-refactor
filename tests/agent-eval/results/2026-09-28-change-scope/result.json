@@ -1,0 +1,5351 @@
+{
+  "schema": "fr-change-scope-acceptance-1",
+  "ordinary": {
+    "discovery": {
+      "edges": [
+        {
+          "consumer": "quote",
+          "target": "subtotal",
+          "path": "api.py",
+          "start": 59,
+          "end": 67
+        },
+        {
+          "consumer": "total",
+          "target": "quote",
+          "path": "batch.py",
+          "start": 52,
+          "end": 57
+        },
+        {
+          "consumer": "test_total",
+          "target": "total",
+          "path": "test_api.py",
+          "start": 55,
+          "end": 60
+        }
+      ],
+      "source_bytes": 247,
+      "source_files": 4,
+      "seconds": 0.0003293750050943345,
+      "scope": "Independent AST inspection of this pinned direct-call fixture; not a general resolver."
+    },
+    "baseline": {
+      "passed": false,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-scope-acceptance-44q4r39w/ordinary/.fr/oracle.py\", line 10, in <module>\n    test_total()\n  File \"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-scope-acceptance-44q4r39w/ordinary/test_api.py\", line 5, in test_total\n    assert total(3, 2) == 8\n           ^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    "oracle": {
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "{\"passed\": true, \"inputs\": 49, \"public_results\": 147}\n",
+      "stderr": ""
+    },
+    "undo_exact": true,
+    "redo_exact": true
+  },
+  "native": {
+    "scope": {
+      "affected_paths": [
+        "api.py",
+        "batch.py",
+        "pricing.py",
+        "test_api.py"
+      ],
+      "catalog_gaps": 0,
+      "check_candidates": [
+        {
+          "declared_paths": [
+            "pricing.py",
+            "api.py",
+            "batch.py",
+            "test_api.py"
+          ],
+          "matched_paths": [
+            "pricing.py",
+            "api.py",
+            "batch.py",
+            "test_api.py"
+          ],
+          "name": "behavior",
+          "status": "declared-candidate"
+        }
+      ],
+      "check_configuration_basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+      "consumers": [
+        {
+          "declaration": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 26,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 73,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:3",
+              "id": "fro1:380cc0160d9e8b4b6953011f30f4e0892a9cd2ff36cdd1131e7e3856ea9da326",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          },
+          "distance": 1
+        },
+        {
+          "declaration": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:7",
+              "id": "fro1:752204743e7489015fb72b0b8ae485a45a6cae4f8c9d76d0bcf80898843ba7b3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          },
+          "distance": 2
+        },
+        {
+          "declaration": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+              "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          },
+          "distance": 0
+        },
+        {
+          "declaration": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:f",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:f",
+              "id": "fro1:30ada748a9bde44a4405a2a9f8a93da9e069d03758a7f63e51de874e2eb98e8b",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          },
+          "distance": 3
+        }
+      ],
+      "context_basis": "frcb1:c1f690cfad0151b00538a85ddf54cc54da591922370f89a80e5b7d395d31e290",
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 5,
+        "manifests": {
+          "discovered": 0,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 0,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 3,
+        "unsupported_files": 0
+      },
+      "cutoffs": [],
+      "dependency": {
+        "digest": "9c6207fa6c34d1982a9fc8bb0c01e2b6d347e2cc1004d369acae0568b378dc78",
+        "key": "{\"targets\":[{\"path\":\"pricing.py\",\"name\":\"subtotal\",\"kind\":\"function\"}],\"depth\":4,\"nodes\":128,\"references\":512,\"bytes\":65536}",
+        "kind": "change-scope"
+      },
+      "handle_prefix": "frp1:0f782326971b672d6325d21a192a4e80:",
+      "indexed_complete": true,
+      "input_digest": "9c6207fa6c34d1982a9fc8bb0c01e2b6d347e2cc1004d369acae0568b378dc78",
+      "limitations": "Dynamic dispatch, reflection, external consumers and unindexed files remain outside this relation. Exact-file check associations are user declarations. Resumption revalidates the whole selected workspace; no mutation is authorized.",
+      "limits": {
+        "bytes": 65536,
+        "depth": 4,
+        "nodes": 128,
+        "references": 512
+      },
+      "map_digest": "ad4b8d142e54f9efb23559d62c50f8ca46688093352a5ac34618fe2c035f51e7",
+      "missing_mapped_paths": [],
+      "references": [
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 1,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:8592559a8d87a2c4ec81488b1001ab53371ca4ba3b8a2e9cba11383c54a9cedf",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 29,
+                  "line": 1
+                },
+                "start": {
+                  "col": 21,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 28,
+                "start": 20
+              }
+            },
+            "path": "api.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+              "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 26,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 73,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:3",
+              "id": "fro1:380cc0160d9e8b4b6953011f30f4e0892a9cd2ff36cdd1131e7e3856ea9da326",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          },
+          "distance": 1,
+          "occurrence": {
+            "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "id": "fro1:8397b2708543ec0aa686a00e6afe1963ca6c745a23d750cc1f0dcc032008c179",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 20,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 67,
+                "start": 59
+              }
+            },
+            "path": "api.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+              "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 2,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:4d6910fd35d482ffd74a664392e165f3d07925dbcb69a775c6d7db693a96e145",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 22,
+                  "line": 1
+                },
+                "start": {
+                  "col": 17,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 21,
+                "start": 16
+              }
+            },
+            "path": "batch.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 26,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 73,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:3",
+              "id": "fro1:380cc0160d9e8b4b6953011f30f4e0892a9cd2ff36cdd1131e7e3856ea9da326",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:7",
+              "id": "fro1:752204743e7489015fb72b0b8ae485a45a6cae4f8c9d76d0bcf80898843ba7b3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          },
+          "distance": 2,
+          "occurrence": {
+            "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:7",
+            "id": "fro1:085f2d041cb6cade9e79985d1d60378f5d7df56dbd75d54d4c24e7a59859488e",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 57,
+                "start": 52
+              }
+            },
+            "path": "batch.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 26,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 73,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:3",
+              "id": "fro1:380cc0160d9e8b4b6953011f30f4e0892a9cd2ff36cdd1131e7e3856ea9da326",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 3,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:7f2d3f09dc5fbb7f01327e91560a269f49eadec102bff59886b9ad4074622260",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 24,
+                  "line": 1
+                },
+                "start": {
+                  "col": 19,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 23,
+                "start": 18
+              }
+            },
+            "path": "test_api.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:7",
+              "id": "fro1:752204743e7489015fb72b0b8ae485a45a6cae4f8c9d76d0bcf80898843ba7b3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:f",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:f",
+              "id": "fro1:30ada748a9bde44a4405a2a9f8a93da9e069d03758a7f63e51de874e2eb98e8b",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          },
+          "distance": 3,
+          "occurrence": {
+            "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:f",
+            "id": "fro1:9cd5c6592b430b1cf44103eb686b8d4f8032a2f69d59cce460b8dc63b6fd4e0c",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 60,
+                "start": 55
+              }
+            },
+            "path": "test_api.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:7",
+              "id": "fro1:752204743e7489015fb72b0b8ae485a45a6cae4f8c9d76d0bcf80898843ba7b3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          }
+        }
+      ],
+      "review_ready": true,
+      "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+      "runtime_coverage": false,
+      "schema": "fr-change-scope-1",
+      "scope": "Indexed references and lexical containing declarations; textual mentions excluded. Test and check candidates do not establish execution or behavioral coverage.",
+      "targets": [
+        {
+          "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+          "kind": "function",
+          "line": 1,
+          "location": {
+            "definition": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 2
+                },
+                "start": {
+                  "col": 1,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 36,
+                "start": 0
+              }
+            },
+            "name": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            }
+          },
+          "name": "subtotal",
+          "occurrence": {
+            "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            },
+            "path": "pricing.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "declaration"
+          },
+          "path": "pricing.py",
+          "qualifier": null
+        }
+      ],
+      "test_candidates": [
+        {
+          "distance": 3,
+          "rule": "python-pytest",
+          "status": "catalog-candidate",
+          "test": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:f",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:f",
+              "id": "fro1:30ada748a9bde44a4405a2a9f8a93da9e069d03758a7f63e51de874e2eb98e8b",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          }
+        }
+      ],
+      "unmapped_paths": [],
+      "unresolved": []
+    },
+    "scope_root": "754cbbcae26b663a82cb6cfc1653c218df1e58840606c6ba24e29475e48d14c9",
+    "discovery_seconds": 0.16321145900292322,
+    "discovery_calls": 2,
+    "discovery_source_bytes": 0,
+    "response_bytes": 16009,
+    "limited": {
+      "affected_paths": [
+        "api.py",
+        "pricing.py"
+      ],
+      "catalog_gaps": 0,
+      "check_candidates": [
+        {
+          "declared_paths": [
+            "pricing.py",
+            "api.py",
+            "batch.py",
+            "test_api.py"
+          ],
+          "matched_paths": [
+            "pricing.py",
+            "api.py"
+          ],
+          "name": "behavior",
+          "status": "declared-candidate"
+        }
+      ],
+      "check_configuration_basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+      "consumers": [
+        {
+          "declaration": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+              "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          },
+          "distance": 0
+        }
+      ],
+      "context_basis": "frcb1:c1f690cfad0151b00538a85ddf54cc54da591922370f89a80e5b7d395d31e290",
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 5,
+        "manifests": {
+          "discovered": 0,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 0,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 3,
+        "unsupported_files": 0
+      },
+      "cutoffs": [
+        "depth-budget"
+      ],
+      "dependency": {
+        "digest": "e8103c302cff05f3512ad15cc74a2cbf88b9a3a1028ee800d40673a90a2f1404",
+        "key": "{\"targets\":[{\"path\":\"pricing.py\",\"name\":\"subtotal\",\"kind\":\"function\"}],\"depth\":0,\"nodes\":128,\"references\":512,\"bytes\":65536}",
+        "kind": "change-scope"
+      },
+      "handle_prefix": "frp1:0f782326971b672d6325d21a192a4e80:",
+      "indexed_complete": false,
+      "input_digest": "e8103c302cff05f3512ad15cc74a2cbf88b9a3a1028ee800d40673a90a2f1404",
+      "limitations": "Dynamic dispatch, reflection, external consumers and unindexed files remain outside this relation. Exact-file check associations are user declarations. Resumption revalidates the whole selected workspace; no mutation is authorized.",
+      "limits": {
+        "bytes": 65536,
+        "depth": 0,
+        "nodes": 128,
+        "references": 512
+      },
+      "map_digest": "ad4b8d142e54f9efb23559d62c50f8ca46688093352a5ac34618fe2c035f51e7",
+      "missing_mapped_paths": [],
+      "references": [
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 1,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:8592559a8d87a2c4ec81488b1001ab53371ca4ba3b8a2e9cba11383c54a9cedf",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 29,
+                  "line": 1
+                },
+                "start": {
+                  "col": 21,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 28,
+                "start": 20
+              }
+            },
+            "path": "api.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+              "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 26,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 73,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:3",
+              "id": "fro1:380cc0160d9e8b4b6953011f30f4e0892a9cd2ff36cdd1131e7e3856ea9da326",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          },
+          "distance": 1,
+          "occurrence": {
+            "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "id": "fro1:8397b2708543ec0aa686a00e6afe1963ca6c745a23d750cc1f0dcc032008c179",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 20,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 67,
+                "start": 59
+              }
+            },
+            "path": "api.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+              "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        }
+      ],
+      "review_ready": false,
+      "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+      "runtime_coverage": false,
+      "schema": "fr-change-scope-1",
+      "scope": "Indexed references and lexical containing declarations; textual mentions excluded. Test and check candidates do not establish execution or behavioral coverage.",
+      "targets": [
+        {
+          "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+          "kind": "function",
+          "line": 1,
+          "location": {
+            "definition": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 2
+                },
+                "start": {
+                  "col": 1,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 36,
+                "start": 0
+              }
+            },
+            "name": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            }
+          },
+          "name": "subtotal",
+          "occurrence": {
+            "enclosing": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "id": "fro1:7eaf720a369012b3f45ea4b5bd70be5fc347eeef3884e4469f2e93c699e73ff3",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            },
+            "path": "pricing.py",
+            "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+            "role": "declaration"
+          },
+          "path": "pricing.py",
+          "qualifier": null
+        }
+      ],
+      "test_candidates": [],
+      "unmapped_paths": [],
+      "unresolved": []
+    },
+    "review": {
+      "acceptance_checks": {
+        "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+        "names": [
+          "behavior"
+        ],
+        "toolchain-digest": "24f21751b9172a2d4e3d6f9ed2bce5a2506e2407dc69ae3c3e3da7f5cb3fe91a"
+      },
+      "author": {
+        "atomic_snapshot": false,
+        "behavior_checked": false,
+        "changed": true,
+        "context_inherited": [
+          "coverage",
+          "revision",
+          "handle_prefix"
+        ],
+        "diff": "--- a/api.py\n+++ b/api.py\n@@ -2,4 +2,4 @@\n \n \n def quote(a, b):\n-    return subtotal(a, b)\n+    return subtotal(a, b) + 3\n--- a/pricing.py\n+++ b/pricing.py\n@@ -1,2 +1,2 @@\n def subtotal(a, b):\n-    return a - b\n+    return a + b\n",
+        "files_changed": 2,
+        "postconditions": [
+          {
+            "actual": 2,
+            "expected": 2,
+            "held": true,
+            "postcondition": "files-changed"
+          },
+          {
+            "actual": [
+              "api.py",
+              "pricing.py"
+            ],
+            "expected": [
+              "api.py",
+              "pricing.py"
+            ],
+            "held": true,
+            "postcondition": "paths-changed"
+          }
+        ],
+        "postconditions_held": true,
+        "query": "batch",
+        "schema": "fr-author-batch-1",
+        "span_basis": "original-source",
+        "steps": [
+          {
+            "after_bytes": 12,
+            "after_sha256": "e148c439e5e3717869a9931caccd290594743bff8ff5b314ffb3b89a6b43b005",
+            "before_bytes": 12,
+            "before_sha256": "9d043aa392846369562234478d25ef58ac11d464da7413d28455b4aa9985cd46",
+            "before_span": {
+              "end": 36,
+              "start": 24
+            },
+            "changed": true,
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+            "operation": "replace-body",
+            "path": "pricing.py",
+            "preservation": "bytes outside the selected body",
+            "signature": {
+              "basis": "syntax-header",
+              "text": "def subtotal(a, b):"
+            }
+          },
+          {
+            "after_bytes": 25,
+            "after_sha256": "9b28d7188a1e4e351741219d244433fea45e8965ad32b1ef330f26724fa9f1ea",
+            "before_bytes": 21,
+            "before_sha256": "ec299917536274fc83d1b88151f4034136636094d77b0d705d796b5c80af5d9d",
+            "before_span": {
+              "end": 73,
+              "start": 52
+            },
+            "changed": true,
+            "handle": "frp1:0f782326971b672d6325d21a192a4e80:3",
+            "operation": "replace-body",
+            "path": "api.py",
+            "preservation": "bytes outside the selected body",
+            "signature": {
+              "basis": "syntax-header",
+              "text": "def quote(a, b):"
+            }
+          }
+        ],
+        "validation": "reparse-strict"
+      },
+      "change_scope": {
+        "checks": [
+          {
+            "declared_paths": [
+              "pricing.py",
+              "api.py",
+              "batch.py",
+              "test_api.py"
+            ],
+            "matched_paths": [
+              "pricing.py",
+              "api.py",
+              "batch.py",
+              "test_api.py"
+            ],
+            "name": "behavior",
+            "status": "declared-candidate"
+          }
+        ],
+        "input_digest": "9c6207fa6c34d1982a9fc8bb0c01e2b6d347e2cc1004d369acae0568b378dc78",
+        "review_ready": true,
+        "runtime_coverage": false,
+        "targets": [
+          "frp1:0f782326971b672d6325d21a192a4e80:b",
+          "frp1:0f782326971b672d6325d21a192a4e80:3"
+        ]
+      },
+      "checks": {
+        "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+        "command": [
+          "fr",
+          "checks",
+          "--run",
+          "syntax",
+          "--basis",
+          "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+          "--quiet-success",
+          "--no-declarations"
+        ],
+        "coverage": [
+          {
+            "covers": [
+              "Python syntax"
+            ],
+            "name": "syntax"
+          }
+        ],
+        "names": [
+          "syntax"
+        ],
+        "selected": true
+      },
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 5,
+        "manifests": {
+          "discovered": 0,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 0,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 3,
+        "unsupported_files": 0
+      },
+      "delivery": {
+        "check_original": true,
+        "check_output_bytes": 2048,
+        "compact_success": true,
+        "exercise_reversal": true,
+        "patch": "artifacts/change.patch"
+      },
+      "executed": false,
+      "manifest_sha256": "3b6fc2106a065110d74fd3548710e56aef65ddcbfea2d3b94366131089131e43",
+      "passed": null,
+      "ready": true,
+      "requests": [],
+      "revision": "0f782326971b672d6325d21a192a4e80a632ec5e58e65aaf43dba906e4ca4096",
+      "schema": "fr-task-change-1",
+      "stages": [
+        {
+          "stage": "check-original",
+          "status": "pending"
+        },
+        {
+          "stage": "apply",
+          "status": "pending"
+        },
+        {
+          "stage": "check-applied",
+          "status": "pending"
+        },
+        {
+          "stage": "check-acceptance",
+          "status": "pending"
+        },
+        {
+          "stage": "undo",
+          "status": "pending"
+        },
+        {
+          "stage": "check-restored",
+          "status": "pending"
+        },
+        {
+          "stage": "redo",
+          "status": "pending"
+        },
+        {
+          "stage": "check-applied",
+          "status": "pending"
+        },
+        {
+          "stage": "check-acceptance",
+          "status": "pending"
+        },
+        {
+          "stage": "deliver-patch",
+          "status": "pending"
+        }
+      ],
+      "targets": [
+        {
+          "eligibility": "target-supported",
+          "handle": "frp1:0f782326971b672d6325d21a192a4e80:b",
+          "id": "subtotal",
+          "kind": "function",
+          "language": "python",
+          "operation": "replace-body",
+          "path": "pricing.py",
+          "scalar": null,
+          "syntax_preflighted": false
+        },
+        {
+          "eligibility": "target-supported",
+          "handle": "frp1:0f782326971b672d6325d21a192a4e80:3",
+          "id": "quote",
+          "kind": "function",
+          "language": "python",
+          "operation": "replace-body",
+          "path": "api.py",
+          "scalar": null,
+          "syntax_preflighted": false
+        }
+      ],
+      "task_basis": "frpt1:5a01a0b809551ec988c030affa1f3d6c6545deb092b2767355e1bafa31a6330a",
+      "task_change_basis": "frtc1:4d1271b01ef4bbc13660697f5542e112ff8359a61d94b25579338dd4536f12d6",
+      "task_resolution_basis": "frpt2:d8576527d66434c110e33c782b5d3c46eab1d61c39606ab8878912f13c7a0d08"
+    },
+    "delivery": {
+      "executed": true,
+      "manifest_sha256": "3b6fc2106a065110d74fd3548710e56aef65ddcbfea2d3b94366131089131e43",
+      "passed": true,
+      "reused_transaction": false,
+      "reviewed_context_omitted": [
+        "revision",
+        "task_basis",
+        "task_resolution_basis",
+        "coverage",
+        "requests",
+        "targets",
+        "checks",
+        "delivery",
+        "author",
+        "stages",
+        "ready"
+      ],
+      "saved": true,
+      "schema": "fr-task-change-1",
+      "task_change_basis": "frtc1:4d1271b01ef4bbc13660697f5542e112ff8359a61d94b25579338dd4536f12d6",
+      "transaction": 1,
+      "workflow": {
+        "acceptance_checks": {
+          "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+          "names": [
+            "behavior"
+          ],
+          "toolchain-digest": "24f21751b9172a2d4e3d6f9ed2bce5a2506e2407dc69ae3c3e3da7f5cb3fe91a"
+        },
+        "executed": true,
+        "manifest_sha256": "9165caca6e5e1c8d87cec1cdaee3e56a4dd9d187bafe51c707ee2b44a16a2c1a",
+        "passed": true,
+        "reviewed_context_omitted": [
+          "manifest_sha256",
+          "record_basis",
+          "transaction_context_basis",
+          "checks",
+          "exercise_reversal",
+          "check_original",
+          "compact_success",
+          "patch",
+          "ready"
+        ],
+        "schema": "fr-workflow-1",
+        "stages": [
+          {
+            "result": {
+              "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+              "passed": true,
+              "recorded_evidence": null,
+              "results": [
+                {
+                  "exit_code": 0,
+                  "name": "syntax",
+                  "output_limit_exceeded": false,
+                  "passed": true,
+                  "source_snapshot_stable": true,
+                  "timed_out": false
+                }
+              ],
+              "source_revision": "9745a4f9ab4ddbbf5e918396d25baf486ccbcc446e4f528928fc45147a595719",
+              "source_snapshot_stable": true,
+              "success_detail": "summary"
+            },
+            "stage": "check-original",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "action": "apply",
+              "applied": true,
+              "changes": [
+                {
+                  "after_exists": true,
+                  "after_kind": "regular",
+                  "after_mode": 420,
+                  "before_exists": true,
+                  "before_kind": "regular",
+                  "before_mode": 420,
+                  "diff_bytes": 122,
+                  "path": "api.py"
+                },
+                {
+                  "after_exists": true,
+                  "after_kind": "regular",
+                  "after_mode": 420,
+                  "before_exists": true,
+                  "before_kind": "regular",
+                  "before_mode": 420,
+                  "diff_bytes": 107,
+                  "path": "pricing.py"
+                }
+              ],
+              "context_basis": "frtb2:746e49f03e8b47dbc110212ef94408988ac4a53ce01357bbecedb74b1818b797",
+              "context_omitted": [
+                "changes[].diff"
+              ],
+              "transaction": 1
+            },
+            "stage": "apply",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+              "passed": true,
+              "recorded_evidence": {
+                "created": true,
+                "receipt": "frce1:9ccde7e521470668cf101f4b5b72c3e102544f460716a87f83640462b3e88e3e",
+                "transaction": 1
+              },
+              "results": [
+                {
+                  "exit_code": 0,
+                  "name": "syntax",
+                  "output_limit_exceeded": false,
+                  "passed": true,
+                  "source_snapshot_stable": true,
+                  "timed_out": false
+                }
+              ],
+              "source_revision": "196ef749359105c223318a995f64e5d82f8fa5268f2cd465da9685c47fbc12de",
+              "source_snapshot_stable": true,
+              "success_detail": "summary"
+            },
+            "stage": "check-applied",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+              "checks": [
+                {
+                  "argv": [
+                    "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python",
+                    "-B",
+                    "-c",
+                    "import ast,pathlib; [ast.parse(p.read_text()) for p in pathlib.Path('.').glob('*.py')]"
+                  ],
+                  "covers": [
+                    "Python syntax"
+                  ],
+                  "cwd": ".",
+                  "name": "syntax",
+                  "timeout_seconds": 10
+                },
+                {
+                  "argv": [
+                    "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python",
+                    "-B",
+                    ".fr/oracle.py"
+                  ],
+                  "covers": [
+                    "147 bounded public results and the discovered test"
+                  ],
+                  "cwd": ".",
+                  "identity_files": [
+                    ".fr/oracle.py"
+                  ],
+                  "name": "behavior",
+                  "timeout_seconds": 10
+                }
+              ],
+              "configuration": ".fr/checks.json",
+              "configuration_stable": true,
+              "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+              "executed": true,
+              "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+              "not_run": [
+                "syntax"
+              ],
+              "passed": true,
+              "results": [
+                {
+                  "argv": [
+                    "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python",
+                    "-B",
+                    ".fr/oracle.py"
+                  ],
+                  "covers": [
+                    "147 bounded public results and the discovered test"
+                  ],
+                  "cwd": ".",
+                  "elapsed_ms": 29,
+                  "error": null,
+                  "exit_code": 0,
+                  "name": "behavior",
+                  "output_limit_exceeded": false,
+                  "passed": true,
+                  "source_snapshot_stable": true,
+                  "stderr": {
+                    "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                    "omitted_bytes": 0,
+                    "retained_bytes": 0,
+                    "text": ""
+                  },
+                  "stdout": {
+                    "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                    "omitted_bytes": 54,
+                    "retained_bytes": 0,
+                    "text": ""
+                  },
+                  "timed_out": false
+                }
+              ],
+              "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-scope-acceptance-44q4r39w/native",
+              "schema": "fr-checks-1",
+              "source_revision": "196ef749359105c223318a995f64e5d82f8fa5268f2cd465da9685c47fbc12de",
+              "source_snapshot_checked": true,
+              "source_snapshot_stable": true,
+              "toolchain": {
+                "build_configuration": {
+                  "files": {},
+                  "schema": "fr-rust-build-inputs-1",
+                  "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+                },
+                "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+                "programs": [
+                  {
+                    "check": "syntax",
+                    "environment": [],
+                    "identity_files": [],
+                    "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+                    "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+                  },
+                  {
+                    "check": "behavior",
+                    "environment": [],
+                    "identity_files": [
+                      {
+                        "bytes": 427,
+                        "declared": ".fr/oracle.py",
+                        "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-scope-acceptance-44q4r39w/native/.fr/oracle.py",
+                        "sha256": "bf9c5c7a253537ca7be1f86acb3991faffc921dd27d536df4f89d60e85803072"
+                      }
+                    ],
+                    "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+                    "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+                  }
+                ],
+                "schema": "fr-check-toolchain-2",
+                "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+              },
+              "toolchain_stable": true
+            },
+            "stage": "check-acceptance",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "action": "undo",
+              "applied": true,
+              "changes": [
+                {
+                  "after_exists": true,
+                  "after_kind": "regular",
+                  "after_mode": 420,
+                  "before_exists": true,
+                  "before_kind": "regular",
+                  "before_mode": 420,
+                  "path": "api.py"
+                },
+                {
+                  "after_exists": true,
+                  "after_kind": "regular",
+                  "after_mode": 420,
+                  "before_exists": true,
+                  "before_kind": "regular",
+                  "before_mode": 420,
+                  "path": "pricing.py"
+                }
+              ],
+              "diffs_omitted": true,
+              "transaction": 1
+            },
+            "stage": "undo",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+              "passed": true,
+              "recorded_evidence": null,
+              "results": [
+                {
+                  "exit_code": 0,
+                  "name": "syntax",
+                  "output_limit_exceeded": false,
+                  "passed": true,
+                  "source_snapshot_stable": true,
+                  "timed_out": false
+                }
+              ],
+              "source_revision": "9745a4f9ab4ddbbf5e918396d25baf486ccbcc446e4f528928fc45147a595719",
+              "source_snapshot_stable": true,
+              "success_detail": "summary"
+            },
+            "stage": "check-restored",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "action": "redo",
+              "applied": true,
+              "changes": [
+                {
+                  "after_exists": true,
+                  "after_kind": "regular",
+                  "after_mode": 420,
+                  "before_exists": true,
+                  "before_kind": "regular",
+                  "before_mode": 420,
+                  "diff_bytes": 122,
+                  "path": "api.py"
+                },
+                {
+                  "after_exists": true,
+                  "after_kind": "regular",
+                  "after_mode": 420,
+                  "before_exists": true,
+                  "before_kind": "regular",
+                  "before_mode": 420,
+                  "diff_bytes": 107,
+                  "path": "pricing.py"
+                }
+              ],
+              "context_basis": "frtb2:746e49f03e8b47dbc110212ef94408988ac4a53ce01357bbecedb74b1818b797",
+              "context_omitted": [
+                "changes[].diff"
+              ],
+              "transaction": 1
+            },
+            "stage": "redo",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+              "passed": true,
+              "recorded_evidence": {
+                "created": false,
+                "receipt": "frce1:9ccde7e521470668cf101f4b5b72c3e102544f460716a87f83640462b3e88e3e",
+                "transaction": 1
+              },
+              "results": [
+                {
+                  "exit_code": 0,
+                  "name": "syntax",
+                  "output_limit_exceeded": false,
+                  "passed": true,
+                  "source_snapshot_stable": true,
+                  "timed_out": false
+                }
+              ],
+              "source_revision": "196ef749359105c223318a995f64e5d82f8fa5268f2cd465da9685c47fbc12de",
+              "source_snapshot_stable": true,
+              "success_detail": "summary"
+            },
+            "stage": "check-applied",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+              "checks": [
+                {
+                  "argv": [
+                    "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python",
+                    "-B",
+                    "-c",
+                    "import ast,pathlib; [ast.parse(p.read_text()) for p in pathlib.Path('.').glob('*.py')]"
+                  ],
+                  "covers": [
+                    "Python syntax"
+                  ],
+                  "cwd": ".",
+                  "name": "syntax",
+                  "timeout_seconds": 10
+                },
+                {
+                  "argv": [
+                    "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python",
+                    "-B",
+                    ".fr/oracle.py"
+                  ],
+                  "covers": [
+                    "147 bounded public results and the discovered test"
+                  ],
+                  "cwd": ".",
+                  "identity_files": [
+                    ".fr/oracle.py"
+                  ],
+                  "name": "behavior",
+                  "timeout_seconds": 10
+                }
+              ],
+              "configuration": ".fr/checks.json",
+              "configuration_stable": true,
+              "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+              "executed": true,
+              "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+              "not_run": [
+                "syntax"
+              ],
+              "passed": true,
+              "results": [
+                {
+                  "argv": [
+                    "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python",
+                    "-B",
+                    ".fr/oracle.py"
+                  ],
+                  "covers": [
+                    "147 bounded public results and the discovered test"
+                  ],
+                  "cwd": ".",
+                  "elapsed_ms": 27,
+                  "error": null,
+                  "exit_code": 0,
+                  "name": "behavior",
+                  "output_limit_exceeded": false,
+                  "passed": true,
+                  "source_snapshot_stable": true,
+                  "stderr": {
+                    "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                    "omitted_bytes": 0,
+                    "retained_bytes": 0,
+                    "text": ""
+                  },
+                  "stdout": {
+                    "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                    "omitted_bytes": 54,
+                    "retained_bytes": 0,
+                    "text": ""
+                  },
+                  "timed_out": false
+                }
+              ],
+              "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-scope-acceptance-44q4r39w/native",
+              "schema": "fr-checks-1",
+              "source_revision": "196ef749359105c223318a995f64e5d82f8fa5268f2cd465da9685c47fbc12de",
+              "source_snapshot_checked": true,
+              "source_snapshot_stable": true,
+              "toolchain": {
+                "build_configuration": {
+                  "files": {},
+                  "schema": "fr-rust-build-inputs-1",
+                  "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+                },
+                "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+                "programs": [
+                  {
+                    "check": "syntax",
+                    "environment": [],
+                    "identity_files": [],
+                    "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+                    "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+                  },
+                  {
+                    "check": "behavior",
+                    "environment": [],
+                    "identity_files": [
+                      {
+                        "bytes": 427,
+                        "declared": ".fr/oracle.py",
+                        "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-scope-acceptance-44q4r39w/native/.fr/oracle.py",
+                        "sha256": "bf9c5c7a253537ca7be1f86acb3991faffc921dd27d536df4f89d60e85803072"
+                      }
+                    ],
+                    "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+                    "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+                  }
+                ],
+                "schema": "fr-check-toolchain-2",
+                "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+              },
+              "toolchain_stable": true
+            },
+            "stage": "check-acceptance",
+            "status": "passed"
+          },
+          {
+            "result": {
+              "bytes": 311,
+              "output": "artifacts/change.patch",
+              "sha256": "be2876528073598e3b2b603eef713f8ea0917ea6c61e4acf80c5180533b40268"
+            },
+            "stage": "deliver-patch",
+            "status": "passed"
+          }
+        ],
+        "transaction": 1,
+        "transaction_status": "applied",
+        "workflow_basis": "frwb1:cf59e0c6653754264a7b511642d3cbd41bb68f400335a0c36e6ac9dc9ff054c4"
+      }
+    },
+    "receipt_root": "24c49b159598bea3a13f053f008442a197ac87c2a9889636eae9e5ff3e298867",
+    "initial_attachment_error": "Error: step transition refused: outcome",
+    "post_change_scope": {
+      "affected_paths": [
+        "api.py",
+        "batch.py",
+        "pricing.py",
+        "test_api.py"
+      ],
+      "catalog_gaps": 0,
+      "check_candidates": [
+        {
+          "declared_paths": [
+            "pricing.py",
+            "api.py",
+            "batch.py",
+            "test_api.py"
+          ],
+          "matched_paths": [
+            "pricing.py",
+            "api.py",
+            "batch.py",
+            "test_api.py"
+          ],
+          "name": "behavior",
+          "status": "declared-candidate"
+        }
+      ],
+      "check_configuration_basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+      "consumers": [
+        {
+          "declaration": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:3",
+              "id": "fro1:709369ecb4701030ce58a692c4744d13fa844048936ae7e07d93469d5f765660",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          },
+          "distance": 1
+        },
+        {
+          "declaration": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:7",
+              "id": "fro1:b5b922e625a45776b68ef2f4daa80ff989e6876d74adb77b6025310dc54a6fd1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          },
+          "distance": 2
+        },
+        {
+          "declaration": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:b",
+              "id": "fro1:43f9139efe24d668aea5e0d8569a3527a9250cfc23a968cac4d3c691c1a715dd",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          },
+          "distance": 0
+        },
+        {
+          "declaration": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:f",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:f",
+              "id": "fro1:c1ebd209b12a496400a245b4c7769ec9474e58c7b5dfdf2e7ae84171313659df",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          },
+          "distance": 3
+        }
+      ],
+      "context_basis": "frcb1:1fbd96a86e8a29243c57e52d00ff3c02281eeadc2acd351eb8def328dd12c1c8",
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 5,
+        "manifests": {
+          "discovered": 0,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 0,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 3,
+        "unsupported_files": 1
+      },
+      "cutoffs": [],
+      "dependency": {
+        "digest": "825680eda15c33b72b337838ebd2d5040f1e67c803da41b844856e00c6bd31c4",
+        "key": "{\"targets\":[{\"path\":\"pricing.py\",\"name\":\"subtotal\",\"kind\":\"function\"}],\"depth\":4,\"nodes\":128,\"references\":512,\"bytes\":65536}",
+        "kind": "change-scope"
+      },
+      "handle_prefix": "frp1:c177f5bc74427224305013085941970f:",
+      "indexed_complete": true,
+      "input_digest": "825680eda15c33b72b337838ebd2d5040f1e67c803da41b844856e00c6bd31c4",
+      "limitations": "Dynamic dispatch, reflection, external consumers and unindexed files remain outside this relation. Exact-file check associations are user declarations. Resumption revalidates the whole selected workspace; no mutation is authorized.",
+      "limits": {
+        "bytes": 65536,
+        "depth": 4,
+        "nodes": 128,
+        "references": 512
+      },
+      "map_digest": "ad4b8d142e54f9efb23559d62c50f8ca46688093352a5ac34618fe2c035f51e7",
+      "missing_mapped_paths": [],
+      "references": [
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 1,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:f5f907d2935c6b78a851a8d7d1320631ee6c57e98c134a23d12f2634b5f3d082",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 29,
+                  "line": 1
+                },
+                "start": {
+                  "col": 21,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 28,
+                "start": 20
+              }
+            },
+            "path": "api.py",
+            "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:b",
+              "id": "fro1:43f9139efe24d668aea5e0d8569a3527a9250cfc23a968cac4d3c691c1a715dd",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:3",
+              "id": "fro1:709369ecb4701030ce58a692c4744d13fa844048936ae7e07d93469d5f765660",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          },
+          "distance": 1,
+          "occurrence": {
+            "enclosing": "frp1:c177f5bc74427224305013085941970f:3",
+            "id": "fro1:5322835934610c9c32f70f417dfe77fef5c38d7528ba86589374c73dedd6c236",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 20,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 67,
+                "start": 59
+              }
+            },
+            "path": "api.py",
+            "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:b",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:b",
+              "id": "fro1:43f9139efe24d668aea5e0d8569a3527a9250cfc23a968cac4d3c691c1a715dd",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 2,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:16dc5221b3bb9a650c44921d4a800cbbb809275d591ba8c71c2bc2e5509c7131",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 22,
+                  "line": 1
+                },
+                "start": {
+                  "col": 17,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 21,
+                "start": 16
+              }
+            },
+            "path": "batch.py",
+            "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:3",
+              "id": "fro1:709369ecb4701030ce58a692c4744d13fa844048936ae7e07d93469d5f765660",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:7",
+              "id": "fro1:b5b922e625a45776b68ef2f4daa80ff989e6876d74adb77b6025310dc54a6fd1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          },
+          "distance": 2,
+          "occurrence": {
+            "enclosing": "frp1:c177f5bc74427224305013085941970f:7",
+            "id": "fro1:4479dac8670567b8b0c1bd6edd680cd716df43c1bd09ba1b7ad78c12d25eff89",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 57,
+                "start": 52
+              }
+            },
+            "path": "batch.py",
+            "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:3",
+              "id": "fro1:709369ecb4701030ce58a692c4744d13fa844048936ae7e07d93469d5f765660",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 3,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:9be393cbeace4e885ec854c7f076478595ab98769e1b97a1b7d2015f0b784004",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 24,
+                  "line": 1
+                },
+                "start": {
+                  "col": 19,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 23,
+                "start": 18
+              }
+            },
+            "path": "test_api.py",
+            "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:7",
+              "id": "fro1:b5b922e625a45776b68ef2f4daa80ff989e6876d74adb77b6025310dc54a6fd1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:f",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:f",
+              "id": "fro1:c1ebd209b12a496400a245b4c7769ec9474e58c7b5dfdf2e7ae84171313659df",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          },
+          "distance": 3,
+          "occurrence": {
+            "enclosing": "frp1:c177f5bc74427224305013085941970f:f",
+            "id": "fro1:03bd5e9773fcfe869ae4a4f978c6c1f192046b7bf28d4ea33f3284dd0de8e4c0",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 60,
+                "start": 55
+              }
+            },
+            "path": "test_api.py",
+            "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:7",
+              "id": "fro1:b5b922e625a45776b68ef2f4daa80ff989e6876d74adb77b6025310dc54a6fd1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          }
+        }
+      ],
+      "review_ready": true,
+      "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+      "runtime_coverage": false,
+      "schema": "fr-change-scope-1",
+      "scope": "Indexed references and lexical containing declarations; textual mentions excluded. Test and check candidates do not establish execution or behavioral coverage.",
+      "targets": [
+        {
+          "handle": "frp1:c177f5bc74427224305013085941970f:b",
+          "kind": "function",
+          "line": 1,
+          "location": {
+            "definition": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 2
+                },
+                "start": {
+                  "col": 1,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 36,
+                "start": 0
+              }
+            },
+            "name": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            }
+          },
+          "name": "subtotal",
+          "occurrence": {
+            "enclosing": "frp1:c177f5bc74427224305013085941970f:b",
+            "id": "fro1:43f9139efe24d668aea5e0d8569a3527a9250cfc23a968cac4d3c691c1a715dd",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            },
+            "path": "pricing.py",
+            "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+            "role": "declaration"
+          },
+          "path": "pricing.py",
+          "qualifier": null
+        }
+      ],
+      "test_candidates": [
+        {
+          "distance": 3,
+          "rule": "python-pytest",
+          "status": "catalog-candidate",
+          "test": {
+            "handle": "frp1:c177f5bc74427224305013085941970f:f",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:c177f5bc74427224305013085941970f:f",
+              "id": "fro1:c1ebd209b12a496400a245b4c7769ec9474e58c7b5dfdf2e7ae84171313659df",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "c177f5bc74427224305013085941970f5c35bb88ea3b620111d9633a86dd1c9a",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          }
+        }
+      ],
+      "unmapped_paths": [],
+      "unresolved": []
+    },
+    "completed_plan": "b6ea156682ecf24e266a908147e88c6c2d5a4512cf2f6fee0d0eb64d5aa2451a",
+    "fresh_process": {
+      "complete": true
+    },
+    "invalidated": [
+      "scope",
+      "outcome"
+    ],
+    "independent_state": "satisfied",
+    "added_consumer_scope": {
+      "affected_paths": [
+        "api.py",
+        "batch.py",
+        "new.py",
+        "pricing.py",
+        "test_api.py"
+      ],
+      "catalog_gaps": 0,
+      "check_candidates": [
+        {
+          "declared_paths": [
+            "pricing.py",
+            "api.py",
+            "batch.py",
+            "test_api.py"
+          ],
+          "matched_paths": [
+            "pricing.py",
+            "api.py",
+            "batch.py",
+            "test_api.py"
+          ],
+          "name": "behavior",
+          "status": "declared-candidate"
+        }
+      ],
+      "check_configuration_basis": "7238eceec5bcbbc122bc1f8fb393aa1dc262f84c4213c9007a449e1776af5ab1",
+      "consumers": [
+        {
+          "declaration": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+              "id": "fro1:f59e555f1c9368d4038453a9659c28660d976a7f03f8d0a3afd4a612574490f1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          },
+          "distance": 1
+        },
+        {
+          "declaration": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+              "id": "fro1:020c26e6f49bb08f993090e0a20c6cabd03ca54223423b18eae17c1bf3ce4f61",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          },
+          "distance": 2
+        },
+        {
+          "declaration": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:b",
+            "kind": "function",
+            "line": 2,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 3
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 58,
+                  "start": 22
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 11,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 32,
+                  "start": 26
+                }
+              }
+            },
+            "name": "client",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:b",
+              "id": "fro1:d6f66acf8c97b152d978ebdd60c1067f8163fdc2ae77eab547ebcd488758b4b1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 11,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 32,
+                  "start": 26
+                }
+              },
+              "path": "new.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "new.py",
+            "qualifier": null
+          },
+          "distance": 2
+        },
+        {
+          "declaration": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+              "id": "fro1:df5b9bbe9bdd1eda629ac9dc074a9f70483c715f38e5da023b64225b86eb9e43",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          },
+          "distance": 0
+        },
+        {
+          "declaration": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:11",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:11",
+              "id": "fro1:a511e7fbef343fec53bac7fd4bc37b42221a9230414f1c0fd2bb52a71fa6cebc",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          },
+          "distance": 3
+        }
+      ],
+      "context_basis": "frcb1:bd1aa8c308c0ea6df8034287cbd25cebbfccf151ad7907af78f3eae0e6d13077",
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 6,
+        "manifests": {
+          "discovered": 0,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 0,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 4,
+        "unsupported_files": 1
+      },
+      "cutoffs": [],
+      "dependency": {
+        "digest": "c171b389a243459d34a07b07e2899a4d9cc354aedab197645f7e73e8e7da0563",
+        "key": "{\"targets\":[{\"path\":\"pricing.py\",\"name\":\"subtotal\",\"kind\":\"function\"}],\"depth\":4,\"nodes\":128,\"references\":512,\"bytes\":65536}",
+        "kind": "change-scope"
+      },
+      "handle_prefix": "frp1:ec6f95f59e406f572a1f4803a4741857:",
+      "indexed_complete": true,
+      "input_digest": "c171b389a243459d34a07b07e2899a4d9cc354aedab197645f7e73e8e7da0563",
+      "limitations": "Dynamic dispatch, reflection, external consumers and unindexed files remain outside this relation. Exact-file check associations are user declarations. Resumption revalidates the whole selected workspace; no mutation is authorized.",
+      "limits": {
+        "bytes": 65536,
+        "depth": 4,
+        "nodes": 128,
+        "references": 512
+      },
+      "map_digest": "ad4b8d142e54f9efb23559d62c50f8ca46688093352a5ac34618fe2c035f51e7",
+      "missing_mapped_paths": [],
+      "references": [
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 1,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:d700eeb2f179ad17a413714a2991746dfdad267fb194e37457f320b7e5bed83e",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 29,
+                  "line": 1
+                },
+                "start": {
+                  "col": 21,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 28,
+                "start": 20
+              }
+            },
+            "path": "api.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+              "id": "fro1:df5b9bbe9bdd1eda629ac9dc074a9f70483c715f38e5da023b64225b86eb9e43",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+              "id": "fro1:f59e555f1c9368d4038453a9659c28660d976a7f03f8d0a3afd4a612574490f1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          },
+          "distance": 1,
+          "occurrence": {
+            "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+            "id": "fro1:5a1e5f66ec12b5eca663ff7b0f86363e2bf5de207f8ab8dc9c32eea0b25ae298",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 20,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 67,
+                "start": 59
+              }
+            },
+            "path": "api.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+            "kind": "function",
+            "line": 1,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 17,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 36,
+                  "start": 0
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              }
+            },
+            "name": "subtotal",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+              "id": "fro1:df5b9bbe9bdd1eda629ac9dc074a9f70483c715f38e5da023b64225b86eb9e43",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 1
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 1
+                  }
+                },
+                "span": {
+                  "end": 12,
+                  "start": 4
+                }
+              },
+              "path": "pricing.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "pricing.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 2,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:f71272685baf3b29c05704f11fd7102dfa031259441956c30875c0cffb6ec713",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 22,
+                  "line": 1
+                },
+                "start": {
+                  "col": 17,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 21,
+                "start": 16
+              }
+            },
+            "path": "batch.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+              "id": "fro1:f59e555f1c9368d4038453a9659c28660d976a7f03f8d0a3afd4a612574490f1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+              "id": "fro1:020c26e6f49bb08f993090e0a20c6cabd03ca54223423b18eae17c1bf3ce4f61",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          },
+          "distance": 2,
+          "occurrence": {
+            "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+            "id": "fro1:b487425fe1c23d63468d58baf04152da9207b9ff95aa246faf3fd5b53e30a88d",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 57,
+                "start": 52
+              }
+            },
+            "path": "batch.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+              "id": "fro1:f59e555f1c9368d4038453a9659c28660d976a7f03f8d0a3afd4a612574490f1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 2,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:33bf32192997012d576a7f3fc1b64bf93453f581b5701fb2d505938bf13d99bc",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 22,
+                  "line": 1
+                },
+                "start": {
+                  "col": 17,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 21,
+                "start": 16
+              }
+            },
+            "path": "new.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+              "id": "fro1:f59e555f1c9368d4038453a9659c28660d976a7f03f8d0a3afd4a612574490f1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:b",
+            "kind": "function",
+            "line": 2,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 3
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 58,
+                  "start": 22
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 11,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 32,
+                  "start": 26
+                }
+              }
+            },
+            "name": "client",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:b",
+              "id": "fro1:d6f66acf8c97b152d978ebdd60c1067f8163fdc2ae77eab547ebcd488758b4b1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 11,
+                    "line": 2
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 2
+                  }
+                },
+                "span": {
+                  "end": 32,
+                  "start": 26
+                }
+              },
+              "path": "new.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "new.py",
+            "qualifier": null
+          },
+          "distance": 2,
+          "occurrence": {
+            "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:b",
+            "id": "fro1:5902c4a6548b001af1dd41f06ade2baca7cb54dbbc4e7d1cf72931855ec907a5",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 3
+                },
+                "start": {
+                  "col": 12,
+                  "line": 3
+                }
+              },
+              "span": {
+                "end": 52,
+                "start": 47
+              }
+            },
+            "path": "new.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 30,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 77,
+                  "start": 31
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              }
+            },
+            "name": "quote",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:3",
+              "id": "fro1:f59e555f1c9368d4038453a9659c28660d976a7f03f8d0a3afd4a612574490f1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 35
+                }
+              },
+              "path": "api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "api.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": null,
+          "distance": 3,
+          "occurrence": {
+            "enclosing": null,
+            "id": "fro1:117a72b9cc60ca842bb4ef95183062cebb80dfb31c2a2093eeb918ec0d95b454",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 24,
+                  "line": 1
+                },
+                "start": {
+                  "col": 19,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 23,
+                "start": 18
+              }
+            },
+            "path": "test_api.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "identifier",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+              "id": "fro1:020c26e6f49bb08f993090e0a20c6cabd03ca54223423b18eae17c1bf3ce4f61",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          }
+        },
+        {
+          "confidence": "import-qualified",
+          "consumer": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:11",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:11",
+              "id": "fro1:a511e7fbef343fec53bac7fd4bc37b42221a9230414f1c0fd2bb52a71fa6cebc",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          },
+          "distance": 3,
+          "occurrence": {
+            "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:11",
+            "id": "fro1:2f1813b23c74d78708d1da7e0eb5828453c833779b58777581bba381d67acd47",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 5
+                },
+                "start": {
+                  "col": 12,
+                  "line": 5
+                }
+              },
+              "span": {
+                "end": 60,
+                "start": 55
+              }
+            },
+            "path": "test_api.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "consumer-reference"
+          },
+          "reference_kind": "call",
+          "status": "indexed-candidate",
+          "target": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 23,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 63,
+                  "start": 24
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              }
+            },
+            "name": "total",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:7",
+              "id": "fro1:020c26e6f49bb08f993090e0a20c6cabd03ca54223423b18eae17c1bf3ce4f61",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 10,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 33,
+                  "start": 28
+                }
+              },
+              "path": "batch.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "batch.py",
+            "qualifier": null
+          }
+        }
+      ],
+      "review_ready": false,
+      "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+      "runtime_coverage": false,
+      "schema": "fr-change-scope-1",
+      "scope": "Indexed references and lexical containing declarations; textual mentions excluded. Test and check candidates do not establish execution or behavioral coverage.",
+      "targets": [
+        {
+          "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+          "kind": "function",
+          "line": 1,
+          "location": {
+            "definition": {
+              "range": {
+                "end": {
+                  "col": 17,
+                  "line": 2
+                },
+                "start": {
+                  "col": 1,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 36,
+                "start": 0
+              }
+            },
+            "name": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            }
+          },
+          "name": "subtotal",
+          "occurrence": {
+            "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:d",
+            "id": "fro1:df5b9bbe9bdd1eda629ac9dc074a9f70483c715f38e5da023b64225b86eb9e43",
+            "location": {
+              "range": {
+                "end": {
+                  "col": 13,
+                  "line": 1
+                },
+                "start": {
+                  "col": 5,
+                  "line": 1
+                }
+              },
+              "span": {
+                "end": 12,
+                "start": 4
+              }
+            },
+            "path": "pricing.py",
+            "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+            "role": "declaration"
+          },
+          "path": "pricing.py",
+          "qualifier": null
+        }
+      ],
+      "test_candidates": [
+        {
+          "distance": 3,
+          "rule": "python-pytest",
+          "status": "catalog-candidate",
+          "test": {
+            "handle": "frp1:ec6f95f59e406f572a1f4803a4741857:11",
+            "kind": "function",
+            "line": 4,
+            "location": {
+              "definition": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 5
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 71,
+                  "start": 26
+                }
+              },
+              "name": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              }
+            },
+            "name": "test_total",
+            "occurrence": {
+              "enclosing": "frp1:ec6f95f59e406f572a1f4803a4741857:11",
+              "id": "fro1:a511e7fbef343fec53bac7fd4bc37b42221a9230414f1c0fd2bb52a71fa6cebc",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 4
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 4
+                  }
+                },
+                "span": {
+                  "end": 40,
+                  "start": 30
+                }
+              },
+              "path": "test_api.py",
+              "revision": "ec6f95f59e406f572a1f4803a4741857d529c551c213f6c6e45c2096cdaf943f",
+              "role": "declaration"
+            },
+            "path": "test_api.py",
+            "qualifier": null
+          }
+        }
+      ],
+      "unmapped_paths": [
+        "new.py"
+      ],
+      "unresolved": []
+    },
+    "oracle": {
+      "passed": true,
+      "exit_code": 0,
+      "stdout": "{\"passed\": true, \"inputs\": 49, \"public_results\": 147}\n",
+      "stderr": ""
+    }
+  },
+  "passed": true,
+  "scope": "Prescribed deterministic changes on a direct-call Python fixture. No live agent, token saving, runtime dispatch proof or population claim."
+}

@@ -16,6 +16,26 @@ Every retained run has a manifest under `tests/agent-eval/results/`. Manifests b
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;
 acceptance runs must satisfy their scorer at recording time.
 
+## Consumer scope and delivery
+
+The [consumer-scope evaluation](../tests/agent-eval/results/2026-09-28-change-scope/manifest.json)
+pins a four-file Python caller chain. Independent AST inspection and native discovery agree on all
+three direct call sites. Both prescribed editing arms repair subtotal and add the API fee, then
+pass 147 public results plus the discovered test. Separate receivers apply, reverse and reapply
+each patch with exact source checks.
+
+An incomplete scope refuses binding. A successful delivery cannot renew its stale discovery
+prerequisite: the evaluator explicitly rediscovers before completing the outcome step. A fresh
+process restores the completed plan; an added consumer then invalidates discovery and outcome while
+preserving an independent observation. New consumers without check associations prevent readiness.
+These deterministic cases do not measure a live agent, token savings or runtime coverage.
+
+The [repository dogfood record](../tests/agent-eval/results/2026-09-28-change-scope-dogfood/manifest.json)
+retains 21 applied author batches on actual implementation, SDK, evaluator and test files.
+It also retains bounded discovery against `src/`, the invalid Python indentation preview found
+during editing, and its refusal after the parser fix. Reports identify intermediate source revisions;
+the manifest distinguishes admitted edits from direct-edit boundaries.
+
 ## Checked delivery outcomes
 
 The [retained outcome evaluation](../tests/agent-eval/results/2026-09-28-checked-outcomes/manifest.json)

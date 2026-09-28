@@ -1,0 +1,196 @@
+{
+        let manifest: Manifest = serde_json::from_slice(bytes)
+            .context("task-change input must be a task-change manifest.")?;
+        ensure!(
+            manifest.schema == SCHEMA,
+            "task-change manifest schema must be {SCHEMA}."
+        );
+        ensure!(
+            manifest.delivery.check_output_bytes <= 65_536,
+            "task-change check output budget must be between 0 and 65536 bytes."
+        );
+        ensure!(
+            !manifest.checks.is_empty(),
+            "task change requires at least one declared check."
+        );
+        for target in &manifest.targets {
+            let fragment_inputs =
+                usize::from(target.from.is_some()) + usize::from(target.fragment.is_some());
+            ensure!(
+                fragment_inputs == usize::from(target.op.needs_fragment()),
+                "task-change target '{}' must provide exactly one of 'from' or inline 'fragment' when its operation needs source, and neither otherwise.",
+                target.id
+            );
+            if let Some(fragment) = &target.fragment {
+                ensure!(
+                    fragment.len() <= 65_536,
+                    "task-change target '{}' inline fragment exceeds 64 KiB.",
+                    target.id
+                );
+                ensure!(
+                    !fragment.contains('\0'),
+                    "task-change target '{}' inline fragment contains a NUL byte.",
+                    target.id
+                );
+            }
+            ensure!(
+                matches!(target.op, task::AuthorOperation::EditBodyScalar)
+                    == target.scalar.is_some(),
+                "task-change target '{}' has an invalid scalar choice.",
+                target.id
+            );
+            ensure!(
+                matches!(target.op, task::AuthorOperation::EditBodyDisclosed)
+                    == target.disclosed.is_some(),
+                "task-change target '{}' has an invalid disclosed choice.",
+                target.id
+            );
+            ensure!(
+                matches!(target.op, task::AuthorOperation::EditBodyDisclosedIr)
+                    == target.disclosed_ir.is_some(),
+                "task-change target '{}' has an invalid disclosed_ir choice.",
+                target.id
+            );
+            if let Some(disclosed) = &target.disclosed {
+                ensure!(
+                    super::disclose::edit_id_well_formed(&disclosed.edit),
+                    "task-change target '{}' requires an exact returned edit ID.",
+                    target.id
+                );
+            }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                ensure!(
+                    super::disclose::ir_edit_id_well_formed(&disclosed_ir.edit),
+                    "task-change target '{}' requires an exact returned IR edit ID.",
+                    target.id
+                );
+            }
+        }
+
+        let task_manifest = task::Manifest {
+            schema: task::SCHEMA.to_owned(),
+            requests: manifest.requests.clone(),
+            targets: manifest
+                .targets
+                .iter()
+                .map(|target| task::Target {
+                    id: target.id.clone(),
+                    handle: target.handle.clone(),
+                    op: target.op,
+                    scalar: target.scalar.clone(),
+                    disclosed: target.disclosed.clone(),
+                    disclosed_ir: target.disclosed_ir.clone(),
+                })
+                .collect(),
+            checks: manifest.checks.clone(),
+            delivery: Some(task::Delivery {
+                exercise_reversal: manifest.delivery.exercise_reversal,
+                patch: manifest.delivery.patch.clone(),
+            }),
+        };
+        let mut task_report = self.task_manifest(task_manifest, report_bytes)?;
+        let resolved = task_report["targets"]
+            .as_array()
+            .context("task-change targets must be an array")?;
+        ensure!(
+            resolved.len() == manifest.targets.len(),
+            "task-change target resolution count changed."
+        );
+        let scope = manifest.change_scope.as_ref().map(|binding| {
+            let handles = resolved.iter().map(|row| row["handle"].as_str()
+                .context("scope target has no handle").map(str::to_owned)).collect::<Result<Vec<_>>>()?;
+            let checks = manifest.checks.iter().chain(&manifest.acceptance_checks).cloned().collect::<Vec<_>>();
+            super::change_scope::validate_bound(self, binding, &handles, &checks)
+        }).transpose()?;
+        let inline_root =
+            tempfile::tempdir().context("creating inline task-change fragment directory")?;
+        let operations = manifest
+            .targets
+            .iter()
+            .zip(resolved)
+            .enumerate()
+            .map(|(index, (target, row))| {
+                let from = if let Some(fragment) = &target.fragment {
+                    let path = inline_root.path().join(format!("fragment-{index}"));
+                    fs::write(&path, fragment).context("writing inline task-change fragment")?;
+                    Some(path)
+                } else {
+                    target.from.clone()
+                };
+                Ok(author::BatchStep {
+                    op: batch_operation(target.op),
+                    handle: row["handle"]
+                        .as_str()
+                        .context("task-change target has no resolved handle")?
+                        .to_owned(),
+                    from,
+                    scalar: target.scalar.clone(),
+                    disclosed: target.disclosed.clone(),
+                    disclosed_ir: target.disclosed_ir.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let plan = self.author_batch_manifest(
+            author::BatchManifest {
+                revision: task_report["revision"].as_str().map(str::to_owned),
+                operations,
+                postconditions: manifest.postconditions,
+            },
+            diff_bytes,
+        )?;
+        let checks = crate::checks::select(&self.root, &manifest.checks)?
+            .context("task change requires at least one declared check.")?;
+        ensure!(
+            manifest.acceptance_checks.len() <= 32,
+            "task change accepts at most 32 acceptance checks."
+        );
+        let acceptance_checks = crate::checks::select(&self.root, &manifest.acceptance_checks)?
+            .map(|selection| -> Result<_> {
+                Ok(crate::workflow::AcceptanceRequest {
+                    basis: selection.configuration_basis,
+                    names: selection.checks,
+                    toolchain_digest: crate::checks::evidence::toolchain_digest(&self.root)?,
+                })
+            })
+            .transpose()?;
+        let manifest_sha256 = hex::encode(Sha256::digest(bytes));
+        for field in [
+            "author_manifest_template",
+            "workflow_manifest_template",
+            "next",
+        ] {
+            task_report.as_object_mut().unwrap().remove(field);
+        }
+        let mut report = json!({
+            "schema": SCHEMA,
+            "manifest_sha256": manifest_sha256,
+            "revision": task_report["revision"],
+            "task_basis": task_report["task_basis"],
+            "task_resolution_basis": task_report["task_resolution_basis"],
+            "coverage": task_report["coverage"],
+            "requests": task_report["requests"],
+            "targets": task_report["targets"],
+            "checks": task_report["checks"],
+            "delivery": {
+                "check_original": manifest.delivery.check_original,
+                "compact_success": manifest.delivery.compact_success,
+                "exercise_reversal": manifest.delivery.exercise_reversal,
+                "patch": manifest.delivery.patch,
+                "check_output_bytes": manifest.delivery.check_output_bytes,
+            },
+            "executed": false,
+            "passed": Value::Null,
+        });
+        if let Some(scope) = scope { report["change_scope"] = scope; }
+        if let Some(request) = &acceptance_checks {
+            report["acceptance_checks"] = json!(request);
+        }
+        Ok(Prepared {
+            plan,
+            report,
+            manifest_sha256,
+            checks,
+            acceptance_checks,
+            delivery: manifest.delivery,
+        })
+    }

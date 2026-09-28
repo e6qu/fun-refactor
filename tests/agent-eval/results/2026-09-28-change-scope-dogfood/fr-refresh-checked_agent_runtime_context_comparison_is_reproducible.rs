@@ -1,0 +1,26 @@
+{
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/agent-runtime-context.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let expected: Value = serde_json::from_slice(
+        &fs::read(
+            root().join("tests/agent-eval/results/2026-09-28-change-scope-agent-runtime-context/result.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
+}

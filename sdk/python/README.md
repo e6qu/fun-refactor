@@ -320,6 +320,12 @@ change.write("task-change.json")
 revalidates the complete manifest, handles, source, fragments and check declarations under the
 reviewed task-change basis.
 
+Use `ChangeScope.inspect(client, [handle])` from `fr_ir.change_scope` for bounded indexed consumers
+and test candidates. Declare exact file-to-check associations in `.fr/check-scopes.json`, then use
+`client.review(scope.bind(change))` to require fresh scope inputs, admitted targets and candidate checks.
+Persist the scope and attach its dependency to a task plan; incomplete discovery cannot satisfy a step.
+See [consumer scopes](../../docs/change-scopes.md) for boundaries and explicit refresh after a change.
+
 Use `TaskChange(..., acceptance_checks=["behavior"])` for checks that must pass only after the change.
 They run after apply and redo; failure stops patch delivery and retains the applied state for diagnosis.
 `fr_ir.investigation_delivery.run_delivery` retains the receipt and attaches its final checks to an

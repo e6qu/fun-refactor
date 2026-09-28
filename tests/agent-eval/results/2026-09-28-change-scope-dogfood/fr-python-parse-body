@@ -1,0 +1,54 @@
+{
+        let mut parser = Parser::new();
+        let grammar = Self::grammar(lang).ok_or_else(|| {
+            anyhow::anyhow!(
+                "this build has no {lang} grammar. The terminal build includes every \
+                 language; a browser build takes only the ones it was compiled with."
+            )
+        })?;
+        parser
+            .set_language(&grammar)
+            .with_context(|| format!("loading {lang} grammar"))?;
+
+        // Helm templates are not valid YAML, so a mask covers the actions before the parse.
+        let (parse_input, masked_spans) = match lang {
+            Language::Helm => {
+                let actions = find_template_actions(source);
+                (mask_spans(source, &actions), actions)
+            }
+            _ => (source.to_string(), Vec::new()),
+        };
+
+        let tree = parser
+            .parse(&parse_input, None)
+            .with_context(|| format!("parsing {lang} source"))?;
+
+        let inline_trees = match Self::inline_grammar(lang) {
+            Some(grammar) => parse_inline_content(&grammar, &tree, &parse_input)
+                .with_context(|| format!("parsing {lang} inline content"))?,
+            None => Vec::new(),
+        };
+
+        let layout_errors = if lang == Language::Python {
+            python_layout_errors(tree.root_node(), source)
+        } else { Vec::new() };
+        let mut parsed = Parsed {
+            language: lang,
+            tree,
+            inline_trees,
+            masked_spans,
+            gaps: Vec::new(),
+            layout_errors,
+        };
+        if parsed.has_errors() {
+            parsed.gaps.push(FactGap::SyntaxErrors);
+        }
+        if parsed
+            .masked_spans
+            .iter()
+            .any(|span| in_key_position(source, *span))
+        {
+            parsed.gaps.push(FactGap::TemplatedKeys);
+        }
+        Ok(parsed)
+    }

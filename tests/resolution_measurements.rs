@@ -4,7 +4,7 @@ fn resolution_measurements_match_complete_baseline_outputs() {
         .args([
             "tools/index-resolution-acceptance.py",
             "--verify",
-            "tests/agent-eval/results/2026-09-28-index-resolution/result.json",
+            "tests/agent-eval/results/2026-09-28-change-scope-index-resolution/result.json",
         ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()

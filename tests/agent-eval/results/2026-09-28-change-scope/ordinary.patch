@@ -1,0 +1,18 @@
+diff --git a/api.py b/api.py
+index 2e02526..563599a 100644
+--- a/api.py
++++ b/api.py
+@@ -2,4 +2,4 @@ from pricing import subtotal
+ 
+ 
+ def quote(a, b):
+-    return subtotal(a, b)
++    return subtotal(a, b) + 3
+diff --git a/pricing.py b/pricing.py
+index 2e7a44d..37ba5fb 100644
+--- a/pricing.py
++++ b/pricing.py
+@@ -1,2 +1,2 @@
+ def subtotal(a, b):
+-    return a - b
++    return a + b

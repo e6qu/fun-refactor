@@ -1,5 +1,24 @@
 namespace FrKernels.Investigation
 
+def changeScopeReady (complete certain mapped checks : Bool) : Bool :=
+  complete && certain && mapped && checks
+
+theorem incomplete_scope_cannot_be_ready (certain mapped checks : Bool) :
+    changeScopeReady false certain mapped checks = false := by
+  simp [changeScopeReady]
+
+theorem uncertain_scope_cannot_be_ready (complete mapped checks : Bool) :
+    changeScopeReady complete false mapped checks = false := by
+  simp [changeScopeReady]
+
+theorem uncovered_scope_cannot_be_ready (complete certain checks : Bool) :
+    changeScopeReady complete certain false checks = false := by
+  simp [changeScopeReady]
+
+theorem scope_requires_declared_checks (complete certain mapped : Bool) :
+    changeScopeReady complete certain mapped false = false := by
+  simp [changeScopeReady]
+
 inductive State where
   | pending | ready | running | satisfied | blocked | stale
   deriving DecidableEq, Repr

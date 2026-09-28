@@ -1,0 +1,161 @@
+{
+        let name = entry_name(entry.strip_prefix(&project.root)?)
+            .context("imported flow requires a root-local module or regular package entry.")?;
+        let entry_resolution = resolve_module(project, &name)?;
+        ensure!(
+            entry_resolution.admitted
+                && entry_resolution
+                    .target
+                    .as_ref()
+                    .is_some_and(|path| project.root.join(path) == entry),
+            "imported flow requires a root-local module or unambiguous regular package entry."
+        );
+        let mut result = Self {
+            root: project.root.clone(),
+            parsed: BTreeMap::new(),
+            bindings: BTreeMap::new(),
+            cutoffs: BTreeSet::new(),
+            inputs: Value::Null,
+        };
+        let mut pending = VecDeque::from([entry.to_owned()]);
+        let mut queued = BTreeSet::from([entry.to_owned()]);
+        let mut files = BTreeMap::new();
+        let mut lookups = Vec::new();
+        let mut edges: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
+        for path in &entry_resolution.packages {
+            let path = project.root.join(path);
+            if queued.insert(path.clone()) {
+                pending.push_back(path.clone());
+            }
+            edges.entry(entry.to_owned()).or_default().insert(path);
+        }
+        let mut bytes = 0;
+        let mut import_count = 0;
+        while let Some(file) = pending.pop_front() {
+            if result.parsed.len() == MODULE_LIMIT {
+                result.cutoffs.insert("import-module-budget".into());
+                break;
+            }
+            let source = &project.sources[&file];
+            bytes += source.len();
+            if bytes > BYTE_LIMIT {
+                result.cutoffs.insert("import-source-byte-budget".into());
+                break;
+            }
+            let parsed = Parsers::new().parse(Language::Python, source)?;
+            if parsed.has_errors() {
+                result.cutoffs.insert("import-syntax-errors".into());
+            }
+            let mut bindings = BTreeMap::new();
+            let mut names = BTreeSet::new();
+            for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                if node.kind() == "function_definition" {
+                    if let Some(name) = node.child_by_field_name("name") {
+                        if !names.insert(source[name.byte_range()].to_owned()) {
+                            result.cutoffs.insert("ambiguous-module-binding".into());
+                        }
+                    }
+                    continue;
+                }
+                if !matches!(node.kind(), "import_statement" | "import_from_statement") {
+                    continue;
+                }
+                if file.file_name().is_some_and(|name| name == "__init__.py") {
+                    result
+                        .cutoffs
+                        .insert("package-initialization-imports".into());
+                }
+                let Some(imports) = imports(node, source, file.strip_prefix(&project.root)?) else {
+                    result.cutoffs.insert("unsupported-import-form".into());
+                    continue;
+                };
+                for (alias, mut binding) in imports {
+                    import_count += 1;
+                    if import_count > IMPORT_LIMIT {
+                        result.cutoffs.insert("import-lookup-budget".into());
+                        break;
+                    }
+                    if !names.insert(alias.clone()) {
+                        result.cutoffs.insert("ambiguous-module-binding".into());
+                    }
+                    let resolution = resolve_module(project, &binding.module)?;
+                    let mut lookup = serde_json::to_value(&resolution)?;
+                    lookup["importer"] = json!(file.strip_prefix(&project.root)?);
+                    lookup["alias"] = json!(alias);
+                    lookup["member"] = json!(binding.member);
+                    lookup["prefix"] = json!(binding.prefix);
+                    lookups.push(lookup);
+                    if resolution.admitted {
+                        for path in resolution.packages.iter().chain(&resolution.target) {
+                            let absolute = project.root.join(path);
+                            if absolute != file || resolution.target.as_ref() == Some(path) {
+                                edges
+                                    .entry(file.clone())
+                                    .or_default()
+                                    .insert(absolute.clone());
+                            }
+                            if queued.insert(absolute.clone()) {
+                                pending.push_back(absolute);
+                            }
+                        }
+                        binding.target = resolution.target;
+                    } else {
+                        result
+                            .cutoffs
+                            .insert(format!("unresolved-local-import:{}", binding.module));
+                    }
+                    bindings.insert(alias, binding);
+                }
+            }
+            files.insert(file.strip_prefix(&project.root)?.to_owned(), hash(source)?);
+            result.bindings.insert(file.clone(), bindings);
+            result.parsed.insert(file, parsed);
+        }
+        if cyclic(entry, &edges, &mut BTreeSet::new(), &mut BTreeSet::new()) {
+            result.cutoffs.insert("cyclic-module-initialization".into());
+        }
+        for lookup in &mut lookups {
+            let file = lookup["target"]
+                .as_str()
+                .map(|path| project.root.join(path));
+            let status = if let Some((file, parsed)) = file
+                .as_ref()
+                .and_then(|file| result.parsed.get(file).map(|parsed| (file, parsed)))
+            {
+                if let Some(member) = lookup["member"].as_str() {
+                    let source = &project.sources[file];
+                    let count = parsed
+                        .root()
+                        .named_children(&mut parsed.root().walk())
+                        .filter(|node| {
+                            node.kind() == "function_definition"
+                                && node
+                                    .child_by_field_name("name")
+                                    .is_some_and(|name| &source[name.byte_range()] == member)
+                        })
+                        .count();
+                    match count {
+                        0 => "missing",
+                        1 => "function",
+                        _ => "ambiguous",
+                    }
+                } else {
+                    "module"
+                }
+            } else {
+                "unavailable"
+            };
+            lookup["resolution"] = json!(status);
+            if matches!(status, "missing" | "ambiguous") {
+                result.cutoffs.insert(format!(
+                    "missing-or-ambiguous-import-member:{}",
+                    lookup["alias"].as_str().unwrap()
+                ));
+            }
+        }
+        result.inputs = json!({"schema":"fr-flow-modules-2", "entry":entry_resolution,"files":files,"lookups":lookups,
+            "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
+            "policy":"static workspace-local regular packages and .py modules; inert initializers; no namespace packages, native modules, search paths or import hooks",
+            "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT}});
+        Ok(result)
+    }

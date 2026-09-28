@@ -1,0 +1,313 @@
+{
+  "schema": "fr-change-scope-dogfood-1",
+  "source_commit": "77f12fa7de031a2f044a92b1ef5c3585874544ef",
+  "binary_sha256": "bb3fa97f3c00cc85e53a1fb0f7e574e685dfa75609201eef438541989865e63e",
+  "operations": [
+    {
+      "prefix": "fr-python-errors",
+      "artifacts": [
+        "fr-python-errors-author.json",
+        "fr-python-errors-preview.json",
+        "fr-python-errors-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-python-layout",
+      "artifacts": [
+        "fr-python-layout-author.json",
+        "fr-python-layout-preview.json",
+        "fr-python-layout-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-python-parse",
+      "artifacts": [
+        "fr-python-parse-author.json",
+        "fr-python-parse-preview.json",
+        "fr-python-parse-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-python-spans",
+      "artifacts": [
+        "fr-python-spans-author.json",
+        "fr-python-spans-preview.json",
+        "fr-python-spans-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-ast-position",
+      "artifacts": [
+        "fr-scope-ast-position-author.json",
+        "fr-scope-ast-position-preview.json",
+        "fr-scope-ast-position-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-bind",
+      "artifacts": [
+        "fr-scope-bind-author.json",
+        "fr-scope-bind-preview.json",
+        "fr-scope-bind-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-bounded",
+      "artifacts": [
+        "fr-scope-bounded-author.json",
+        "fr-scope-bounded-preview.json",
+        "fr-scope-bounded-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-coordinate",
+      "artifacts": [
+        "fr-scope-coordinate-author.json",
+        "fr-scope-coordinate-preview.json",
+        "fr-scope-coordinate-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-fix",
+      "artifacts": [
+        "fr-scope-fix-author.json",
+        "fr-scope-fix-preview.json",
+        "fr-scope-fix-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-flow-parse",
+      "artifacts": [
+        "fr-scope-flow-parse-author.json",
+        "fr-scope-flow-parse-preview.json",
+        "fr-scope-flow-parse-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-module-parse",
+      "artifacts": [
+        "fr-scope-module-parse-author.json",
+        "fr-scope-module-parse-preview.json",
+        "fr-scope-module-parse-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-observe",
+      "artifacts": [
+        "fr-scope-observe-author.json",
+        "fr-scope-observe-preview.json",
+        "fr-scope-observe-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-parser",
+      "artifacts": [
+        "fr-scope-parser-author.json",
+        "fr-scope-parser-preview.json",
+        "fr-scope-parser-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-patch-test",
+      "artifacts": [
+        "fr-scope-patch-test-author.json",
+        "fr-scope-patch-test-preview.json",
+        "fr-scope-patch-test-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-refresh-tests",
+      "artifacts": [
+        "fr-scope-refresh-tests-author.json",
+        "fr-scope-refresh-tests-preview.json",
+        "fr-scope-refresh-tests-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-scan",
+      "artifacts": [
+        "fr-scope-scan-author.json",
+        "fr-scope-scan-preview.json",
+        "fr-scope-scan-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-sdk",
+      "artifacts": [
+        "fr-scope-sdk-author.json",
+        "fr-scope-sdk-preview.json",
+        "fr-scope-sdk-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-self",
+      "artifacts": [
+        "fr-scope-self-author.json",
+        "fr-scope-self-preview.json",
+        "fr-scope-self-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-scope-test",
+      "artifacts": [
+        "fr-scope-test-author.json",
+        "fr-scope-test-preview.json",
+        "fr-scope-test-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-python-continuation",
+      "artifacts": [
+        "fr-python-continuation-author.json",
+        "fr-python-continuation-preview.json",
+        "fr-python-continuation-applied.json"
+      ],
+      "applied": true
+    },
+    {
+      "prefix": "fr-python-continuation-test",
+      "artifacts": [
+        "fr-python-continuation-test-author.json",
+        "fr-python-continuation-test-preview.json",
+        "fr-python-continuation-test-applied.json"
+      ],
+      "applied": true
+    }
+  ],
+  "scope": "Actual repository author batches applied during this task. Reports bind intermediate workspace revisions; they are retained local execution records, not a clean-checkout replay or a live-agent comparison. Unsupported field, attribute and CLI wiring, declaration reordering, new scaffolding, Lean definitions and prose were edited directly.",
+  "files": {
+    "comment-continuation-after.json": "030874d1506ab53c10686ab67535a5d4da76de6dd461269021b930c3482b1e73",
+    "comment-continuation-before.json": "88ec2784ff8ecdcc20b0debf853a655ebac7acbe608c38283e046dc15be3309f",
+    "fr-python-continuation-applied.json": "f33dd92c85fbaac2fcb95929301a7a8647766e2ff566e1e80b840b1ee82cce94",
+    "fr-python-continuation-author.json": "f0a75cab81271c5f269e0e9399fe12c2528b3e8ee537f95852d36c1202f3798f",
+    "fr-python-continuation-body": "2ca627699ec6eb76097dca46d21570d84c95fb8f43613531718f0ef4d787fe10",
+    "fr-python-continuation-preview.json": "b4d79b0ac30c12081cec9a364e338283fac1952032ba3fffa6a46d544af18045",
+    "fr-python-continuation-test-applied.json": "1ba6a0d745a5deeb33836d4d9283c202c0dcf056a972f77f8ae0aa9cd707f5d3",
+    "fr-python-continuation-test-author.json": "92200346240749c76b6e937529be24a450e6e14ae6d124676190d931c662982f",
+    "fr-python-continuation-test-body": "92381fdcab061f3a5426a2a14d255d7801a62edaf99fceb2cff3df4c847d6da9",
+    "fr-python-continuation-test-preview.json": "ffd58f8b69ba8fa9e847d7d172457cfe644f55cabf6c409abf57c7e8d0281dfc",
+    "fr-python-errors-applied.json": "ba323dbeb65073466c418184d054467e63a097c13b22119e01eb876f31eb298b",
+    "fr-python-errors-author.json": "a6194af86b972802c5647f10bfcce0330249ca843814d5641941bdf420d7c592",
+    "fr-python-errors-body": "21cb068f753f240e9ef641a773ad4778b8ec90f6b3f2eaec5047c77722b41df4",
+    "fr-python-errors-preview.json": "c41a433983d0e316291c31a0867f930d6f7ddd48d6c872179b47f8d83f1155e4",
+    "fr-python-layout-applied.json": "638be26ae01931810fb6cf990b6eb3b85565fb2dafc4bd3ca245eef31ffd5159",
+    "fr-python-layout-author.json": "1cc1d5166839df6352b311de1df542d101d9dfc52ab4a35d4232fe55d86bc863",
+    "fr-python-layout-function.rs": "bdfd072317231d0007c6002c1326f4ddf6b36563ad387b9dd3b2966b6acf2520",
+    "fr-python-layout-preview.json": "76b33c50e45c1a86491644ad07e8c698c5080f2261ec9b8c0a4f5b4c6b809c6d",
+    "fr-python-parse-applied.json": "1396fb0528202035f98dd1f2d071b105852837cce7f7f29a03ace5eb0fbc991e",
+    "fr-python-parse-author.json": "501e95e9c1c29183de4c0bd79eb5c6e576577f8d8dd4372f1e44dc47c2fae285",
+    "fr-python-parse-body": "8064339c5a78f7029a90a2303f9d689b8fc641229bdce606a732b55b5e2a19b5",
+    "fr-python-parse-preview.json": "63922d99e54f4aa2c539984ac1583d92cefa093dcd80e30d6fbc2b86cff13d9d",
+    "fr-python-spans-applied.json": "5914feba76276c88877cca437970ecf0d3f87d9e3631f0a92bc3e1b5323cc4d7",
+    "fr-python-spans-author.json": "df0d1b2965b865def57e8b0f760d5bd9880e076a69e142a49b59f364241bdd6e",
+    "fr-python-spans-body": "e3d587a4c675118941fdd56ba48bfbd74e9339cf19659e178a05de6c17dde14b",
+    "fr-python-spans-preview.json": "2d4de5e522aae2a6787f6d2f8ddd160e473f3661c9a4ebb5ed038ac11da44eea",
+    "fr-refresh-batched_project_queries_match_separate_compact_reports.rs": "4fc2627673fb927060b07aee7db86f20e0d54f31214bb0d905f3c4129666c03c",
+    "fr-refresh-checked_agent_guide_context_comparison_is_reproducible.rs": "cb5719841ae7c9d59aaed7f14ef4bc8bd7338fc1ad27e193e31bce8048d0f902",
+    "fr-refresh-checked_agent_runtime_context_comparison_is_reproducible.rs": "a946eba7b425c28a2ad0977740bf1d3e4c8b8fc12397b04a92c05f206a69c902",
+    "fr-refresh-consumer_measurements_match_their_source_and_baseline.rs": "6f2807b4b33377b39496bd204a3b3c593eef27800a6948db6479a15cc2332444",
+    "fr-refresh-imported_flow_acceptance_matches_its_inputs_and_replays_delivery.rs": "4612de17e7032c8dee3ef9f4134c7d0c4754748327fb6e51a953219fbd6b508e",
+    "fr-refresh-intent_action_context_evidence_is_source_bound_and_arithmetically_valid.rs": "7c5dc3838716ecd219043b80c491fa87c41f2c2945cf1e5d1d37dcc00f1f8b67",
+    "fr-refresh-package_flow_acceptance_matches_inputs_and_replays_both_deliveries.rs": "20992e087734f091ac0645ff0b7b2bfd9459d35475c58237ab5abf0bb46266ef",
+    "fr-refresh-resolution_measurements_match_complete_baseline_outputs.rs": "bf8247d9ef3cc8e00ce68eed971d646f6ee68fe4b9ae00bcd922dd5b53c49159",
+    "fr-refresh-retained_cache_comparison_matches_sources_oracles_and_measurements.rs": "8b8de1161c4883b73d2429009362dcd01ba79efc618a72956636269bb9910b82",
+    "fr-refresh-retained_compiler_acceptance_matches_its_inputs_and_oracles.rs": "c5c5106aa7affc61286f2228827143e7bebfba595d933db798e259e57d2e4013",
+    "fr-refresh-retained_completion_workflows_cover_every_family_without_post_guide_discovery.rs": "5eb93defc9a348c13853a04d2746e1ce3245637e45f1985c4341e37c98afde13",
+    "fr-refresh-retained_correspondence_acceptance_matches_its_inputs.rs": "5109c5e63095e78676c91339bfcd10eb6afa3f56c654dafe59e7f2ff3be9384e",
+    "fr-refresh-retained_fact_acceptance_matches_inputs_and_oracles.rs": "2bae003464f4caa64e630652c3b1e3ea25ea95fd101f1391bc026ce5c603c594",
+    "fr-refresh-retained_flow_acceptance_is_source_bound_and_consistent.rs": "8152925f7bb130c70d569ad5125f82ce5eef85c956a8a7b923d44d749ade258b",
+    "fr-refresh-retained_proof_acceptance_matches_its_inputs_and_replays_delivery.rs": "2213de2de32211339f545fcc0a8b28fe846db200f57b1102d6b9d9c518ffb692",
+    "fr-refresh-retained_recursive_acceptance_matches_its_implementation_and_oracles.rs": "17bb1c7d89b329bbcb217f2ca63729fe9b97f7ab826594c6fc5526183c7ab64e",
+    "fr-refresh-retained_semantic_evidence_is_source_bound_and_internally_verified.rs": "4fa9e507cff43459ba6f5bc7f27cb150b200a200f641d9a8c217a442361a5417",
+    "fr-scope-ast-position-applied.json": "2dd854d2e7cf2062f39bbf9d5156d0487944ad327ade2070e826298faf3ed0f2",
+    "fr-scope-ast-position-author.json": "3c05a482cf3eee83289659d1bff94fa956edce4237b121fc7e58e0d32fdfbe34",
+    "fr-scope-ast-position-body": "e56157917e1867207eab7709d31409e613b851fef5d47338cc31851a28d43dce",
+    "fr-scope-ast-position-preview.json": "c46b41963a6b9ea4097e178489bb80b4a6d31d2ce65a8bb55f0e09befc855513",
+    "fr-scope-bind-applied.json": "e6d4102189b8260e3f402e1e45c779c6477ab0e1f00dbff84d79109564ab4aaa",
+    "fr-scope-bind-author.json": "7e2e57ce71c80ee420c5dbbfffa24eed4d32acc9490f8d78b23f9eb3c7f7ee1d",
+    "fr-scope-bind-preview.json": "6b988d538ea4b04bc9d79bc5c5cbaee35728c8008f2d9d56c86750d331f1722c",
+    "fr-scope-binding-function.rs": "e4af3dd267b4822196e212f3b975eddd150d41668048feb8b4e9f9527f27be7b",
+    "fr-scope-bounded-applied.json": "0db066b2209a963560bb3ab7984f9f73790c6aa6fe9e6b5ead4ef5c6b00e0eae",
+    "fr-scope-bounded-author.json": "1f05c9fd13aa9ec3fa8b76c5d3a2122ea2b18b09f16fceca7b2c44f4d81aa317",
+    "fr-scope-bounded-body.rs": "b8e8d1bc21f0732fb6fac0f98534dbae12a5ee502cb44ee63640108ed3f19fa2",
+    "fr-scope-bounded-preview.json": "38caa6470d0bdf7c0f428c941f6ddb4cde4601581dfd8bded35fde0c7f729c60",
+    "fr-scope-coordinate-applied.json": "3e2404a6915c55954e84ff26e7d5fc6fc3fbe976fc5e537d0a41297b5ab6330e",
+    "fr-scope-coordinate-author.json": "4e903d97b0ca4fa7b353ef2eff168d39ccd44aecdb8f3c1479d057607f798c57",
+    "fr-scope-coordinate-body": "648970adfb53e7bf18ad0739eb7a709d68138de146ab68711e3a1075236ad170",
+    "fr-scope-coordinate-preview.json": "eba2716daea02c42b20433a06ac814e868c69ffac57742e30a82059e4688dab8",
+    "fr-scope-digest-body.rs": "ede4b9eb36be78a83b1d9a80cf0697d56400816e2c61c4aae637c398d4c0e745",
+    "fr-scope-fix-applied.json": "757f9cfba9d0292b6b51581e727bcfd058e276e8f7f7748160642bd9297b7831",
+    "fr-scope-fix-author.json": "25ca2c3c24e65faf07129f25149c8fd5713a34558eda44124697dd1b8cf3f053",
+    "fr-scope-fix-change_scope.rs": "11e4bf393b6d3a01cefc04742112cc282c5e89943b2118ef331ec469eba68854",
+    "fr-scope-fix-mapping.rs": "e6c6b2bb7fd19b769f0cc5ea2b42fba773d764808c88f6bf785d84eb0cea3160",
+    "fr-scope-fix-preview.json": "dc6e509fe1d9a8321c51d8299b8122f0fc4870304ea311a82bf2c1e037d47947",
+    "fr-scope-fix-scope_seeds.rs": "88d459c9e395a9c512422e9cab11c1e81786ab38646a2ef4731c9aecce591aee",
+    "fr-scope-fix-validate.rs": "aca8bbbd2a8c8f91294ea65e8c0a408fb6d31ed1ecaccbeb29bdc779ff6aa483",
+    "fr-scope-fix-validate_bound.rs": "275d2c2d803a9a968c36ecae9984f654add01af09733e8ff004e0a275f35d9af",
+    "fr-scope-flow-parse-applied.json": "c35dc8ad4d8055742ab568a3441d74dbe732dda2f0980a79c564a005fae19e5c",
+    "fr-scope-flow-parse-author.json": "e5185f566e460e14d912171e28de82f77358dfc3a3087b5c071ea77574096809",
+    "fr-scope-flow-parse-body": "a353160c1edda1b90a20f3bab6d3738f626878cabf9bbebdea02673d190b1a83",
+    "fr-scope-flow-parse-preview.json": "815be2ecddd7972e43710e636d451927161d0050b55489f19ec3f6cd6532e3ee",
+    "fr-scope-module-parse-applied.json": "e8c96222161558399498bfeff6fb7aa8ef47755895db8fb8221d7329d8923f8d",
+    "fr-scope-module-parse-author.json": "022a833cc53cb040acca45a4600eeb58eeb6bb6a3182cf652c50b4f55cfb4459",
+    "fr-scope-module-parse-body": "252e28de76fe0270447d1ce48ddd35cf934a2f10162912bcda9b9549a49cfbd1",
+    "fr-scope-module-parse-preview.json": "f470154bb643467aa4ee93f79e3a752b855c11459fceb0d9397c063c8634c65f",
+    "fr-scope-observe-applied.json": "87766f7c0db850ac56637420ff90c8ac7b57a54aff0256678eb55c31ae43640b",
+    "fr-scope-observe-author.json": "d2e415e190fc038af31e3d448a3d11505efae39a1667e7bffeead3e050b1e060",
+    "fr-scope-observe-body.py": "b01ba71956121f9c1435e805f9ce134a843b12546ad926e1005fc1b9a8f039e6",
+    "fr-scope-observe-preview.json": "8ad71b03843633a2511f0a77f824cd075815a141984d9ad140bc414fc7eadc35",
+    "fr-scope-parser-applied.json": "3b17acd95976bac0229db2ef212d361c471c623cbc900a46a4cf61f9aea763a9",
+    "fr-scope-parser-author.json": "b026675d74ddb2aa48d0bb728d3d22c23598e31f0e3acbee260db50f1e58a691",
+    "fr-scope-parser-body": "80dd8241964095a8294250c9aca3e43261b9c8a8a9e462e71329528b5fb87edf",
+    "fr-scope-parser-preview.json": "098e0ee16bc10f9024c872611604150b8184ba4f2a9fb4a467eb767eb8422846",
+    "fr-scope-patch-test-applied.json": "93d8b353e91f3594639096d29491376a620c069bde4d70df03e4e3bc3ec1e44b",
+    "fr-scope-patch-test-author.json": "a3d997166a4fefbdb8f65c2ede6bf9e31bc72bb3738860e7b5b9aff47e0ebd7e",
+    "fr-scope-patch-test-body": "7a4c268e2604a86237bef2d5192b9bce65df87353b533be19c00b7e0cc9ed6a2",
+    "fr-scope-patch-test-preview.json": "0e303e30244a1308401b30c87fcbabad49353907d872bb321055ee31f0169b07",
+    "fr-scope-python-indent-accepted-preview.json": "2099b812387a3e126621d3f68ae5d1d831458a043a27466699e6d0f5b6cbbb54",
+    "fr-scope-python-indent-invalid-body.py": "1dd6abfec3d1c83f43c59f70181429d4500e7569b1dca44f259b9aa3c462f5bf",
+    "fr-scope-real-report.json": "8d39d2ed20b705c73414f6c9db8056be02c0ec5b65472a51c43eea313a0e87f6",
+    "fr-scope-refresh-tests-applied.json": "ead638e8c2a9c4d247fec5527bc79a0d06c021225e892108b7b30fcc29d2babe",
+    "fr-scope-refresh-tests-author.json": "b7a383979ae0d4d3c54b0db774bdf7d8cfdf7acc8656c13fccb0306e2841b9d2",
+    "fr-scope-refresh-tests-preview.json": "67f0c59f03ba646c64f769ccf4c6fd60f2a28a184928f895c64e271719fef806",
+    "fr-scope-scan-applied.json": "479ba6cfdf53baac471578a2f576f33acffeb0681bad5405a11d1e2e5cd24ab1",
+    "fr-scope-scan-author.json": "c67dbba34c353f84582fa16b4023aad8ceaddf912a123468c7a2c880a623f3ef",
+    "fr-scope-scan-body": "55198d7774ea12e1622823e7521464c248932107ccb1dde2a9ba7d0c07e31eb0",
+    "fr-scope-scan-preview.json": "0d99db1aebd3bc21c9b1507e9c695f370f275aebf2333046780a65b64fcb5fbc",
+    "fr-scope-sdk-__post_init__.py": "8c365637a9d19de06926ababfc4443e1c7703501836a52a394b5ad9276906e01",
+    "fr-scope-sdk-applied.json": "a8048dd6cb1008a28c6d15d57cb18926ee1cfd2afe25f262b852ebc4d424af9d",
+    "fr-scope-sdk-author.json": "9ca7923389493047979490445ce19073c1a44d34b50116c878d79152b7f76e5f",
+    "fr-scope-sdk-preview.json": "9a920723aa5e49adabee1c80eccb36936eebd1c7060b177d7f02e500ee4fa26b",
+    "fr-scope-sdk-to_data.py": "da279d9454cec5147394ba00b7c8a3c085c2785b34e824d6cfdecc22693e594b",
+    "fr-scope-self-applied.json": "2df04c18e5949b84e0323c2d4d2a02d97ab0a942bcc9bf85c9cef6f937c41db9",
+    "fr-scope-self-author.json": "94e92899cd0d2f442051c6bfa15ad21f8ab3e1c42dfbc37e9ce43b7d11182310",
+    "fr-scope-self-preview.json": "0ac1218199076643d2b6f7a0813aa6af9d49782f6955e7e52875066ddb29bb98",
+    "fr-scope-task-body.rs": "755766b8a8e0ccf815e0dd596d3d324a1a75de5c5ba6a3ab75a13679405f78ad",
+    "fr-scope-test-applied.json": "1fdd4be87134132b81097d8d16fce4d1a32125ad01bd86b8bdbf165b155cef92",
+    "fr-scope-test-author.json": "27b0219772c01a0935793752105cd80421d5b49470fdb3655d4d24a017a5a68a",
+    "fr-scope-test-function.rs": "0ecc641fda139e9e5e00296cc0af3efc59f94375ac117f40a195fa2a1245f91d",
+    "fr-scope-test-preview.json": "325bbf9fa58d0749a854ec7e935cb6338c4770aec7656b3a638d8ca40dcb203b",
+    "indentation-refusal.json": "b34c39ca0d3eb0504f3875c7f4d886023cce0b4bbea488ee1d961acb5c555de8"
+  },
+  "continuation_regression_binary_sha256": "26634f09f810af510209508b65ad5959d9512b055b14f482396cc288a0982964",
+  "binary_scope": "Binary identities belong to the retained regression checks. Author operations span intermediate source revisions and multiple local builds."
+}

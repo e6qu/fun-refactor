@@ -1,0 +1,3 @@
+{
+        !self.layout_errors.is_empty() || self.roots().any(|root| root.has_error())
+    }

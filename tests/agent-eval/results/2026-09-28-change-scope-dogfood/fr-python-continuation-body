@@ -1,0 +1,82 @@
+{
+    let indentation = |node: Node<'_>| -> Option<(usize, usize)> {
+        let start = source[..node.start_byte()]
+            .rfind('\n')
+            .map_or(0, |at| at + 1);
+        // Explicit continuation lines do not start a new logical line.
+        if start > 1
+            && root.descendant_for_byte_range(start - 2, start - 1)
+                .is_some_and(|token| token.kind() == "line_continuation") {
+            return None;
+        }
+        let mut columns = (0, 0);
+        for byte in source[start..node.start_byte()].bytes() {
+            match byte {
+                b' ' => {
+                    columns.0 += 1;
+                    columns.1 += 1;
+                }
+                b'\t' => {
+                    columns.0 = (columns.0 / 8 + 1) * 8;
+                    columns.1 += 1;
+                }
+                b'\x0c' => columns = (0, 0),
+                // A semicolon or an inline suite starts within a logical line.
+                _ => return None,
+            }
+        }
+        Some(columns)
+    };
+    let mut errors = Vec::new();
+    let mut cursor = root.walk();
+    loop {
+        let node = cursor.node();
+        if matches!(node.kind(), "module" | "block") {
+            let mut children = node.walk();
+            let mut expected = (node.kind() == "module").then_some((0, 0));
+            let mut first = true;
+            for child in node
+                .named_children(&mut children)
+                .filter(|child| !child.is_extra())
+            {
+                let actual = indentation(child);
+                if first && node.kind() == "block" {
+                    expected = actual;
+                    if let (Some(actual), Some(parent)) =
+                        (actual, node.parent().and_then(indentation))
+                    {
+                        if actual.0 <= parent.0 || actual.1 <= parent.1 {
+                            errors.push(Span::from(child));
+                        }
+                    }
+                }
+                if actual.is_some() && actual != expected {
+                    errors.push(Span::from(child));
+                }
+                first = false;
+            }
+        } else if matches!(
+            node.kind(),
+            "elif_clause" | "else_clause" | "except_clause" | "finally_clause"
+        ) {
+            if let (Some(actual), Some(parent)) =
+                (indentation(node), node.parent().and_then(indentation))
+            {
+                if actual != parent {
+                    errors.push(Span::from(node));
+                }
+            }
+        }
+        if cursor.goto_first_child() {
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                return errors;
+            }
+        }
+    }
+}

@@ -1,0 +1,22 @@
+root, client = fixture(tmp_path)
+for name in ("pricing.py", "api.py"):
+    path = root/name
+    path.write_text(path.read_text().replace("subtotal", "café"))
+path = root/"pricing.py"
+path.write_text("def café(a, b):\n    return cycle(a, b)\n"
+                "def cycle(a, b):\n    return café(a, b)\n"
+                "def twice(a, b):\n    return café(a, b) + café(a, b)\n")
+handle = client.project("find", "café").definition_target().handle
+result = ChangeScope.inspect(client, [handle], depth=8)
+assert result.ready
+sites = [row["occurrence"] for row in result.report.at("/references")
+         if row["consumer"] and row["consumer"]["name"] == "twice"]
+assert len(sites) == 2 and sites[0]["id"] != sites[1]["id"]
+raw = path.read_bytes()
+for item in sites:
+    start = item["location"]["span"]["start"]
+    end = item["location"]["span"]["end"]
+    assert raw[start:end].decode() == "café"
+    position = item["location"]["range"]["start"]
+    assert position["col"] == len(raw[:start].decode().split("\n")[-1])+1
+assert len(result.report.at("/consumers")) == 6

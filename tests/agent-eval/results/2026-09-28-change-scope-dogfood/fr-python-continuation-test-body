@@ -1,0 +1,61 @@
+{
+    let cases = [
+        (false, "# \\\n    x = 1\n"),
+        (true, "def f():\n    # \\\n    x = 1\n    return x\n"),
+        (false, "def f():\n    x = 1\n        return x\n"),
+        (
+            false,
+            "def f():\n    if True:\n        x = 1\n      return x\n",
+        ),
+        (false, "  x = 1\n"),
+        (false, "def f():\n\tx = 1\n        return x\n"),
+        (false, "if True:\n    pass\n  else:\n    pass\n"),
+        (
+            true,
+            "def f():\n    if True:\n        x = 1\n    return x\n",
+        ),
+        (true, "def f(): return 1; return 2\nx = 1; y = 2\n"),
+        (true, "def f(\n    a,\n):\n    return (\n  a + 1\n    )\n"),
+        (
+            true,
+            "def f():\n    # comment\n    x = '''text\nno indent\n'''\n    return x\n",
+        ),
+        (true, "@decorator\ndef f():\n\treturn 1\n"),
+        (
+            true,
+            "def f():\n    x = 1; \\\n        y = 2\n    return x + y\n",
+        ),
+        (true, "if True:\n    pass\nelse:\n    pass\n"),
+        (
+            true,
+            "try:\n    pass\nexcept ValueError:\n    pass\nfinally:\n    pass\n",
+        ),
+        (
+            true,
+            "match 1:\n    case 1:\n        pass\n    case _:\n        pass\n",
+        ),
+    ];
+    for (valid, source) in cases {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("case.py");
+        fs::write(&path, source).unwrap();
+        let compiled = Command::new("python3")
+            .args([
+                "-B",
+                "-c",
+                "import ast,sys; ast.parse(open(sys.argv[1]).read())",
+            ])
+            .arg(&path)
+            .output()
+            .unwrap();
+        assert_eq!(compiled.status.success(), valid, "{source}\n{compiled:?}");
+        let parsed = Parsers::new().parse(Language::Python, source).unwrap();
+        assert_eq!(
+            !parsed.has_errors(),
+            valid,
+            "{source}\n{}",
+            parsed.root().to_sexp()
+        );
+        assert_eq!(parsed.error_spans().is_empty(), valid, "{source}");
+    }
+}
