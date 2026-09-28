@@ -950,6 +950,128 @@ fn failed_checks_leave_structured_state_and_withhold_the_patch() {
 }
 
 #[test]
+fn acceptance_checks_compile_and_execute_only_the_changed_states() {
+    for correct in [true, false] {
+        let root = fixture("true");
+        let root = root.path();
+        fs::write(
+            root.join(".fr/oracle.rs"),
+            r#"
+#[path = "../src/lib.rs"] mod subject;
+fn main() {
+    for (input, expected) in [("", ""), ("rust", "RUST"), ("café", "CAFÉ"), ("Straße", "STRASSE")] {
+        assert_eq!(subject::render(input), expected);
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join(".fr/oracle.py"),
+            r#"
+import subprocess
+subprocess.run(['rustc', '.fr/oracle.rs', '-o', 'artifacts/oracle'], check=True)
+subprocess.run(['artifacts/oracle'], check=True)
+"#,
+        )
+        .unwrap();
+        fs::write(root.join(".fr/checks.json"), serde_json::to_vec(&json!({"schema":1,"checks":[
+            {"name":"syntax","argv":["rustc","--crate-type","lib","src/lib.rs","--emit","metadata","-o","artifacts/source.rmeta"],
+             "cwd":".","timeout_seconds":30,"covers":["Rust compilation"]},
+            {"name":"behavior","argv":["python3","-B",".fr/oracle.py"],"cwd":".","timeout_seconds":30,
+             "covers":["independent Unicode uppercasing cases"],"identity_files":[".fr/oracle.py",".fr/oracle.rs"]}
+        ]})).unwrap()).unwrap();
+        let listing = report(fr(root, &["checks", "--toolchain"]), 0);
+        let baseline = report(
+            fr(
+                root,
+                &[
+                    "checks",
+                    "--run",
+                    "behavior",
+                    "--toolchain",
+                    "--basis",
+                    listing["basis"].as_str().unwrap(),
+                ],
+            ),
+            1,
+        );
+        assert_eq!(baseline["passed"], false);
+        let manifest_path = root.join(".fr/task-change.json");
+        let mut manifest: Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        manifest["acceptance_checks"] = json!(["behavior"]);
+        manifest["delivery"]["check-original"] = json!(true);
+        fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        if !correct {
+            fs::write(
+                root.join(".fr/replacement.fragment"),
+                "{ value.to_lowercase() }\n",
+            )
+            .unwrap();
+        }
+        let reviewed = preview(root);
+        assert_eq!(reviewed["acceptance_checks"]["names"], json!(["behavior"]));
+        let result = report(
+            fr(
+                root,
+                &[
+                    "task-change",
+                    "--from",
+                    ".fr/task-change.json",
+                    "--write",
+                    "--basis",
+                    reviewed["task_change_basis"].as_str().unwrap(),
+                ],
+            ),
+            if correct { 0 } else { 1 },
+        );
+        assert_eq!(result["passed"], correct);
+        let stages = result["workflow"]["stages"].as_array().unwrap();
+        let acceptance = stages
+            .iter()
+            .filter(|s| s["stage"] == "check-acceptance")
+            .collect::<Vec<_>>();
+        assert_eq!(acceptance.len(), 2);
+        assert_eq!(stages[0]["status"], "passed");
+        assert_eq!(root.join("artifacts/change.patch").exists(), correct);
+        if correct {
+            assert!(stages.iter().all(|s| s["status"] == "passed"));
+            assert_eq!(acceptance[1]["result"]["toolchain_stable"], true);
+            assert_eq!(
+                acceptance[1]["result"]["results"][0]["argv"],
+                json!(["python3", "-B", ".fr/oracle.py"])
+            );
+        } else {
+            assert_eq!(acceptance[0]["status"], "failed");
+            assert_eq!(acceptance[1]["status"], "pending");
+            assert_eq!(result["workflow"]["transaction_status"], "applied");
+        }
+    }
+}
+
+#[test]
+fn unknown_acceptance_checks_refuse_before_recording_or_writing() {
+    let root = fixture("true");
+    let path = root.path().join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    manifest["acceptance_checks"] = json!(["not-declared"]);
+    fs::write(&path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    let failed = report(
+        fr(
+            root.path(),
+            &["task-change", "--from", ".fr/task-change.json"],
+        ),
+        1,
+    );
+    assert!(failed["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("existing check names"));
+    assert!(!root.path().join(".fr-history").exists());
+}
+
+#[test]
 fn reviewed_source_manifest_checks_and_destination_drift_refuse_before_history() {
     for fault in ["source", "manifest", "checks", "destination"] {
         let root = fixture("true");

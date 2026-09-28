@@ -262,6 +262,10 @@ Use the existing guide review and task-change delivery APIs for mutations.
 
 ## Executed check evidence
 
+[Checked delivery outcomes](checked-outcomes.md) connect post-change behavior checks to persisted
+plan completion. Their reviewed lifecycle can check original/restored compilation while requiring
+the repaired behavior only after apply and redo. Failed outcomes retain diagnostics and withhold patches.
+
 `checks --toolchain` adds resolved executable paths, SHA-256 identities and the check-runner identity.
 With `--run`, it compares those identities before and after execution alongside source and configuration stability.
 It covers every configured command executable. Declare separate identity checks for interpreter imports,

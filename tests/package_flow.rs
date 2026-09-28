@@ -290,7 +290,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-26-package-flow/result.json",
+            "tests/agent-eval/results/2026-09-28-package-flow/result.json",
         ])
         .output()
         .unwrap();

@@ -4,7 +4,7 @@ fn retained_host_recovery_evidence_matches_sources_and_oracles() {
         .args([
             "tools/host-recovery-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-25-host-recovery/result.json",
+            "tests/agent-eval/results/2026-09-28-host-recovery/result.json",
         ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()

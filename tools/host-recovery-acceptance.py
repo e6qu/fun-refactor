@@ -59,8 +59,8 @@ def audit(value):
 
 def measure():
     before = bindings()
-    fault = run(["cargo", "test", "--lib", "history::host::tests::", "--", "--test-threads", "2", "--nocapture"])
-    model = run(["cargo", "test", "--test", "lean_kernels", "host_recovery_decisions", "--", "--test-threads", "2"])
+    fault = run(["cargo", "test", "--lib", "history::host::tests::", "--", "--test-threads", "1", "--nocapture"])
+    model = run(["cargo", "test", "--test", "lean_kernels", "host_recovery_decisions", "--", "--test-threads", "1"])
     assert before == bindings(), "sources changed during measurement"
     return {"schema": "fr-host-recovery-acceptance-1", "source_bindings": before,
             "platform": platform.platform(), "baseline": json.loads((ROOT / BINDINGS[-1]).read_text()),
