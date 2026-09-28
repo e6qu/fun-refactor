@@ -504,3 +504,9 @@ See the [host recovery contract](../../docs/host-recovery.md) for field meanings
 `RefactorRequest` in `fr_ir.structural_change` authors Rust rename and bounded scalar signature
 requests. Bind its targets with `ChangeScope.bind` before reviewed task delivery. See the
 [structural change contract](../../docs/structural-changes.md) for refusals and preservation limits.
+
+`ModelSnapshot` and `ModelComparison` in `fr_ir.refinement` retain old/new pure Boolean models.
+Explicit parameter maps support Rust refactors and Rust/Python comparison. Review the generated
+relation, author its `preserves` proof, then attach it with `comparison.requirement()` and
+`run_proofs`. [Model comparisons](../../docs/model-comparisons.md) describes the domain, freshness
+checks and source-correspondence limits.

@@ -1,0 +1,1 @@
+[{"file": "refinement.rs", "name": "snapshot_digest", "changes": [["crate::project::hash((&snapshot.schema, &snapshot.target, &snapshot.source, &snapshot.model))", "crate::project::hash(serde_json::to_value((&snapshot.schema, &snapshot.target, &snapshot.source, &snapshot.model))?)"]]}]

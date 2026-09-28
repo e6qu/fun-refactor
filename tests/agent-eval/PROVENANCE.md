@@ -1,5 +1,14 @@
 # Agent acceptance source and evidence
 
+The [Boolean comparison fixture](refinement/task.json) is repository-owned Rust and Python source.
+The [retained comparison](results/2026-09-28-model-comparisons/manifest.json) binds source snapshots,
+three generated Lean relations, proof reports, fresh-process plans, both patches and a false claim.
+Its deterministic oracle compiles Rust and checks all eight assignments. Receiver audits apply,
+check, reverse and reapply both patches. No source implementation proof or live-agent claim follows.
+The [dogfood record](results/2026-09-28-refinement-dogfood/manifest.json) retains actual repository edits.
+Six `2026-09-28-refinement-*` reports refresh affected source bindings on a GitHub runner;
+previous dated reports remain unchanged.
+
 The [consumer-scope fixture](change-scope/task.json) is repository-owned Python source. Its
 [retained evaluation](results/2026-09-28-change-scope/manifest.json) binds exact implementation and
 SDK snapshots, independently computed call coordinates, persisted plans, receipts and both patches.
@@ -91,7 +100,7 @@ Git attributes preserve evidence bytes and allow the context-only space lines th
 Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
-The [representative acceptance registry](representative-acceptance.json) binds seven deterministic
+The [representative acceptance registry](representative-acceptance.json) binds eight deterministic
 cases and ten live trials:
 the pinned unfamiliar regex workspace, Rust multi-file and structural delivery, TSX/React body changes,
 CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its

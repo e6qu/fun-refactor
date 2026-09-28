@@ -1,0 +1,69 @@
+name: Refresh refinement evidence
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: refinement-evidence-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      FR_LEAN_JOBS: '1'
+      LEAN_NUM_THREADS: '1'
+      RAYON_NUM_THREADS: '1'
+      RUST_TEST_THREADS: '1'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Cache the Lean toolchain
+        id: lean-cache
+        uses: actions/cache@v6
+        with:
+          path: /opt/lean
+          key: lean-4.28.0-linux-x86_64
+      - name: Install Lean
+        if: steps.lean-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          LEAN=4.28.0
+          LEAN_SHA=ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd
+          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+            --connect-timeout 20 --max-time 600 -o /tmp/lean.tar.zst \
+            "https://github.com/leanprover/lean4/releases/download/v${LEAN}/lean-${LEAN}-linux.tar.zst" \
+            || { echo "could not fetch the Lean toolchain within the time allowed"; exit 1; }
+          echo "${LEAN_SHA}  /tmp/lean.tar.zst" | sha256sum -c -
+          sudo mkdir -p /opt/lean
+          sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
+      - name: Put Lean on the path
+        run: |
+          echo "/opt/lean/bin" >> "$GITHUB_PATH"
+          /opt/lean/bin/lean --version
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Refresh retained evidence
+        run: python3 tools/refresh-refinement-evidence.py
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: refinement-evidence
+          path: |
+            target/refinement-evidence
+            target/refinement-refresh-logs
+          retention-days: 7
