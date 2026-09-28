@@ -364,7 +364,7 @@ mod tests {
             broken.source = "this is not Rust".into();
             broken.digest = snapshot_digest(&broken).unwrap();
             assert!(validate_snapshot(&broken).is_err());
-            assert_eq!(crate::vfs::paths(), [path.clone()]);
+            assert_eq!(crate::vfs::paths(), std::slice::from_ref(&path));
             assert_eq!(crate::vfs::read_to_string(&path).unwrap(), SOURCE);
         });
         assert!(!crate::vfs::is_in_memory());

@@ -34,13 +34,13 @@ of effects, errors, state or termination.
 
 ## Bounded source and virtual workspaces
 
-Capture reads at most 64 KiB of source before parsing. It derives the model from that retained
+Capture accepts at most 64 KiB of source before parsing. It derives the model from that retained
 text in an isolated in-memory workspace, then checks that the caller's source is unchanged.
 Requests are limited to 256 KiB and retained manifests to 512 KiB. Limits count UTF-8 bytes.
 Oversized virtual files are rejected before copying; native reads stop after the limit plus one
 byte. Other formalization routes retain their existing limits.
 
-Library callers can use `vfs::with_handle` for scoped virtual workspaces. Model capture,
+Native library callers can use `vfs::with_handle` for scoped virtual workspaces. Model capture,
 comparison previews, package initialization plans and snapshot validation work without a physical
 workspace directory. Validation replays retained source in memory and restores the caller's
 workspace on success, error or unwinding. Scopes run synchronously on the calling thread; writes

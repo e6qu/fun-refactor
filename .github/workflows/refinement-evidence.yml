@@ -31,7 +31,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Rust
-        run: rustup toolchain install stable --profile minimal
+        run: rustup toolchain install stable --profile minimal --component clippy
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -65,6 +65,7 @@ jobs:
           key: default
       - name: Check virtual workspace boundaries
         run: |
+          cargo clippy --locked --tests -- -D warnings
           cargo test --locked --test vfs_choke_point --test virtual_model_workspaces
           cargo test --locked --lib spec::refinement::tests
       - name: Refresh retained evidence
