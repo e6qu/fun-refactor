@@ -41,6 +41,7 @@ def main():
         'flow-cache': 'flow-cache-acceptance',
         'package-flow': 'package-flow-acceptance',
         'package-reexports': 'package-reexports-acceptance',
+        'index-resolution': 'index-resolution-acceptance',
     }
     refinement_names = list(scripts)
     scripts.update(flow_scripts)

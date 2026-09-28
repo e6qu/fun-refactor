@@ -27,6 +27,18 @@
     "fr-reexports-eval-saved.json": "cf168b8f2ed60c5e87fa8ab134d9133b7a60b148ad7961b471655657fc30a872",
     "fr-reexports-goal.json": "c3845d46c9587b6ab08d565882a2fe108428de14b05d0f36db8368faa0c81950",
     "fr-reexports-guide.json": "32f9aeaf9af07cbbbe09db3688bf3ad450e8b79c70afe2578aad42d3670bb7b0",
+    "fr-reexports-index-applied.json": "2d6635709d14fa64da0e92bec10d9b0f5841d9dec94406ed202fa3d479d55005",
+    "fr-reexports-index-author.json": "5232be1c73cc34e6744cb570e3b3424eb95268ebb4abe5fa7ee2c477fba08e1d",
+    "fr-reexports-index-config.json": "cbcdd1b81c24eb1ce1d8ba20a4b8e5ee9443ef0d1f59199d5c7a4f31e77e72b7",
+    "fr-reexports-index-discovery-0.json": "3785c7e0166f4a0e88d11ee254ef0a241af845954fe29f3f89c3cbe475bfd1b3",
+    "fr-reexports-index-preview.json": "f68165cea81c04ddc36d6bd85fb9344bf8ce874d175c71f9aaf88aaa3c21c448",
+    "fr-reexports-index-refresh-applied.json": "9365decf4b73fd949e78d57103f993b475ce30cda8219a9fdb8f8bc71e641e2b",
+    "fr-reexports-index-refresh-author.json": "240ce912365a949991be4b4d00dcab8586e3d7f25368be6aea196832031740ee",
+    "fr-reexports-index-refresh-changes.json": "99039b23dd07dfa9f12968bda1f2765862b5c5368eb1201bb206b5d0451b92ae",
+    "fr-reexports-index-refresh-discovery.json": "a3466e97b625d31a2d1ac58da1091ebcb258f69c5d9f787564dfa56eb28c9cee",
+    "fr-reexports-index-refresh-preview.json": "af89aadd2e9f358a21bc8a123a0ba556970b7f3d8893eacef7a73676a5db9452",
+    "fr-reexports-index-refresh-saved.json": "ace6823f7b3acbe003d12eb8eb3db81ce292ed1c2729ddab6c6184eea5ddebb6",
+    "fr-reexports-index-saved.json": "71e7b7ce59c89a739fcf9d3a9fea7ecea5632c18057abfd2030dc3fca9cdbec7",
     "fr-reexports-links-applied.json": "e95c906c3570abdffd5bdac992d8c1ef5338e659807da84fa80233080899f6b0",
     "fr-reexports-links-author.json": "ba7dd83133025512750ee8de854577537deacd7fbaf350b4e041f8863e54636b",
     "fr-reexports-links-config.json": "b439aff22880597b5ca61c88716cdbe96a9d4e53ffd938992b1d0efe85910b76",
@@ -63,7 +75,8 @@
     "New SDK dataclass and validator declarations",
     "New fixtures, baseline capture, regression tests and evaluator wrapper",
     "Documentation and workflow configuration",
-    "Formatting"
+    "Formatting",
+    "CI check ordering in tools/check.sh"
   ],
   "claims": "Bounded fr discovery and complete reviewed mutation previews with save/apply receipts. Local work used the resource guard; no local build or complete test gate."
 }
