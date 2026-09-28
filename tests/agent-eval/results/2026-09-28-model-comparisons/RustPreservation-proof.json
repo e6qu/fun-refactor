@@ -1,0 +1,37 @@
+{
+  "schema": "fr-proof-attempt-1",
+  "goal_id": "5ff7a096c6abbef8aee3cd82733e72889d4a569241d5ac4c46615ea4dc72be9d",
+  "proof_digest": "9d43222b6ebc2c5e085b5ad4838e0445573dd0650a9bef102eeb8437da60a41a",
+  "checker": "leanprover/lean4:v4.28.0",
+  "passed": true,
+  "diagnostics": [],
+  "diagnostics_omitted": 0,
+  "receipt": "46a1b7e4f86f6789c67f1848fed27597cee46744a4ed9008d44d0273489f3a52",
+  "actions": {
+    "revise": [
+      "spec",
+      "proof-check",
+      "specs/FrSpecs/RustPreservation.lean::preserves",
+      "--from",
+      "/home/runner/work/fun-refactor/fun-refactor/tests/agent-eval/results/2026-09-28-model-comparisons/tactics.txt"
+    ],
+    "apply": [
+      "spec",
+      "prove",
+      "specs/FrSpecs/RustPreservation.lean::preserves",
+      "--from",
+      "/home/runner/work/fun-refactor/fun-refactor/tests/agent-eval/results/2026-09-28-model-comparisons/tactics.txt",
+      "--write"
+    ],
+    "verify": [
+      "spec",
+      "verify",
+      "/tmp/fr-refinement-eval-yja6i2kz/native/specs/FrSpecs/RustPreservation.lean"
+    ]
+  },
+  "token_budget": {
+    "limit": 4096,
+    "used_upper_bound": 1171,
+    "measurement": "serialized_utf8_bytes"
+  }
+}

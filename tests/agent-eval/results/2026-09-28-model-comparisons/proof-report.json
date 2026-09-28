@@ -1,0 +1,289 @@
+{
+  "claim": "Model theorems under Lean definitions and assumptions. No proof of source implementation correspondence.",
+  "evidence": {
+    "axiom_analysis": "Declared Lean axiom, opaque and constant syntax only.",
+    "correspondence": {
+      "proved_implementation_model": false,
+      "signature_surface": "Explicit maps match parsed source and Lean signatures.",
+      "source_identity": "Declaration bytes match each recorded SHA-256 anchor.",
+      "tested_implementation_model": false
+    },
+    "declared_assumptions": [],
+    "kernel_correspondence": [],
+    "model_comparisons": [
+      {
+        "after_digest": "c43a6e8a3cd535fe9e4234c7b9e8dfb11a102a30ff26f539a3b5e9faa7c35662",
+        "after_target": "translation.py::restricted",
+        "arguments": [
+          0,
+          1,
+          2
+        ],
+        "before_digest": "ffe3137db009916267962e3f5db7ea13f08728f86ad1b102368616fe22733c46",
+        "before_target": "subject.rs::allowed",
+        "domain": "pure Boolean models; at most eight old parameters.",
+        "relation": "refines",
+        "source_implementation_proved": false,
+        "spec": "/tmp/fr-refinement-eval-yja6i2kz/native/specs/FrSpecs/Restriction.lean",
+        "status": "checked_by_lean",
+        "theorem": "preserves"
+      },
+      {
+        "after_digest": "c51e9a6d60de4f49f5744e3ac8e1a2f155b41b0a827a656e70ef0520e1e1504a",
+        "after_target": "subject.rs::permits",
+        "arguments": [
+          0,
+          1
+        ],
+        "before_digest": "ffe3137db009916267962e3f5db7ea13f08728f86ad1b102368616fe22733c46",
+        "before_target": "subject.rs::allowed",
+        "domain": "pure Boolean models; at most eight old parameters.",
+        "relation": "equivalent",
+        "source_implementation_proved": false,
+        "spec": "/tmp/fr-refinement-eval-yja6i2kz/native/specs/FrSpecs/RustPreservation.lean",
+        "status": "checked_by_lean",
+        "theorem": "preserves"
+      },
+      {
+        "after_digest": "9470682fb9a3e464af28cc2d9828191b202fe2a30cdbcf6b8c69e6ea7e0d9ac5",
+        "after_target": "translation.py::permits",
+        "arguments": [
+          1,
+          0
+        ],
+        "before_digest": "ffe3137db009916267962e3f5db7ea13f08728f86ad1b102368616fe22733c46",
+        "before_target": "subject.rs::allowed",
+        "domain": "pure Boolean models; at most eight old parameters.",
+        "relation": "equivalent",
+        "source_implementation_proved": false,
+        "spec": "/tmp/fr-refinement-eval-yja6i2kz/native/specs/FrSpecs/Translation.lean",
+        "status": "checked_by_lean",
+        "theorem": "preserves"
+      }
+    ],
+    "properties": [
+      {
+        "kind": "theorem",
+        "line": 17,
+        "name": "preserves",
+        "spec": "/tmp/fr-refinement-eval-yja6i2kz/native/specs/FrSpecs/Restriction.lean",
+        "status": "checked_by_lean"
+      },
+      {
+        "kind": "theorem",
+        "line": 17,
+        "name": "preserves",
+        "spec": "/tmp/fr-refinement-eval-yja6i2kz/native/specs/FrSpecs/RustPreservation.lean",
+        "status": "checked_by_lean"
+      },
+      {
+        "kind": "theorem",
+        "line": 17,
+        "name": "preserves",
+        "spec": "/tmp/fr-refinement-eval-yja6i2kz/native/specs/FrSpecs/Translation.lean",
+        "status": "checked_by_lean"
+      }
+    ],
+    "remaining_obligations": [
+      "No proof currently connects each source implementation to its Lean model."
+    ],
+    "schema": 1,
+    "trusted_components": [
+      "Lean kernel, elaborator and compiler.",
+      "Lake package and checked-target selection.",
+      "fr parsing, declaration spans, signature checks and SHA-256.",
+      "Host filesystem and process execution."
+    ],
+    "verification": {
+      "packages": [
+        {
+          "output": "See retained per-module execution results.",
+          "package": "/tmp/fr-refinement-eval-yja6i2kz/native/specs",
+          "passed": true
+        }
+      ],
+      "report": {
+        "anchors": [],
+        "debts": [],
+        "obligations": 0
+      }
+    }
+  },
+  "executed": true,
+  "input_digest": "92e36918b5b38ebd5a3d4f12cd90bbd5f805591942d332f6d4b8433741b092e6",
+  "inputs": {
+    "analyzer": "31a4eab07636b57b269e9ff51aa776ab03a71fb125d3ce4ba89b29f18d98e312",
+    "files": {
+      "FrSpecs.lean": "7d1ab24dfdaa8599c20edea4641797bd13fdd02f717902b79af772ca4cfe0ee6",
+      "FrSpecs/Restriction.lean": "a26aada7a052780791a9523b121ef2c39053f466c5aa6b70236f40a2ed3385d4",
+      "FrSpecs/Restriction.refinement.json": "10a6caa2a422547678b78575a7626036a803f17572a295d10e6cdac6e3c2d63d",
+      "FrSpecs/RustPreservation.lean": "af74099d4192447a9a8cc6665164d3112cb2711edd78fb3f37c6938beabeb239",
+      "FrSpecs/RustPreservation.refinement.json": "5a0f6dd44aff56f2a67375cba6a3ae10d580fb3abeda80342d437f82348f402a",
+      "FrSpecs/Translation.lean": "8f1b5d9c4dc2cec193048298a5c293e2f1ea7fdc1a796470f5a4f388ab5eb00c",
+      "FrSpecs/Translation.refinement.json": "2fb5ce191be626c1266f4fb19015a208cad6dfbabc0533178f53efe2f6e4e7ef",
+      "lakefile.toml": "0ef98cfa67bdd435d22268ec0f2122cb4893c7025f0ac3ae981f4f3ea569a672",
+      "lean-toolchain": "db7bb24b756d745bbde83fe92718b51bd3625dae3701ba0f598d0eedcd3f3028"
+    },
+    "policy": "All recognized workspace source files and all local package files except generated .lake and an empty dependency manifest. Clean build and direct checking of every Lean module. External packages fall outside this contract.",
+    "sources": "1cf9fe66a2001d91105b50c2b6bed1f26f87e3261e0698c50ee3f973e4652f92",
+    "toolchain": {
+      "environment": {
+        "DYLD_FALLBACK_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "DYLD_LIBRARY_PATH": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "ELAN_HOME": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "HOME": "7a680b43980a41b761e2ef9ea53274610e3f4b6268cd7f8cb8510e7004f04350",
+        "LD_LIBRARY_PATH": "b786006fe12bff6758bc103b659a97dd9ddc8f71533a576e5f0f20a05f748db3",
+        "LEAN_NUM_THREADS": "5ab8ca08b0c3abadeb62685c82ae3e53b159bb88ad1c7caf71fc821f2bf494a3",
+        "PATH": "2e12c72d5b37432d5492d7c05bf0ea6d6c45468fcc9885a3d40672dda057a7da",
+        "TMPDIR": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "pinned": "leanprover/lean4:v4.28.0",
+      "programs": {
+        "lake": {
+          "path": "/opt/lean/bin/lake",
+          "sha256": "a608ff084d7e2af228b92a29d7c2fd083ba0580e46889175ec74a81678c98359"
+        },
+        "lean": {
+          "path": "/opt/lean/bin/lean",
+          "sha256": "3e0d0d3d801675359f2d4cf9815bfdb417b20b92fdd9d48b3b14c95bbae28bbf"
+        }
+      },
+      "trust": "Installed Lean libraries, elaborator, kernel and host execution remain trusted. Executable hashes do not attest execution."
+    }
+  },
+  "modules": [
+    "FrSpecs/Restriction.lean",
+    "FrSpecs/RustPreservation.lean",
+    "FrSpecs/Translation.lean",
+    "FrSpecs.lean"
+  ],
+  "mutation_authority": false,
+  "package": "specs",
+  "passed": true,
+  "results": [
+    {
+      "command": "lake build --wfail (all selected modules)",
+      "module": null,
+      "result": {
+        "elapsed_ms": 964,
+        "error": null,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "passed": true,
+        "stderr": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 112,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "stdout": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 208,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "command": "lean -DwarningAsError=true",
+      "module": "FrSpecs/Restriction.lean",
+      "result": {
+        "elapsed_ms": 221,
+        "error": null,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "passed": true,
+        "stderr": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "stdout": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "command": "lean -DwarningAsError=true",
+      "module": "FrSpecs/RustPreservation.lean",
+      "result": {
+        "elapsed_ms": 221,
+        "error": null,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "passed": true,
+        "stderr": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "stdout": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "command": "lean -DwarningAsError=true",
+      "module": "FrSpecs/Translation.lean",
+      "result": {
+        "elapsed_ms": 221,
+        "error": null,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "passed": true,
+        "stderr": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "stdout": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "timed_out": false
+      }
+    },
+    {
+      "command": "lean -DwarningAsError=true",
+      "module": "FrSpecs.lean",
+      "result": {
+        "elapsed_ms": 201,
+        "error": null,
+        "exit_code": 0,
+        "output_limit_exceeded": false,
+        "passed": true,
+        "stderr": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "stdout": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "timed_out": false
+      }
+    }
+  ],
+  "root": "/tmp/fr-refinement-eval-yja6i2kz/native",
+  "schema": "fr-proof-evidence-1",
+  "source_implementation_proved": false,
+  "stable": true
+}

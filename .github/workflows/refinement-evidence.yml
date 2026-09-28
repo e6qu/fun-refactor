@@ -1,7 +1,6 @@
 name: Refresh refinement evidence
 on:
-  pull_request:
-    types: [opened, synchronize]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -65,7 +64,6 @@ jobs:
         with:
           name: refinement-evidence
           path: |
-            tests/agent-eval/results/2026-09-28-model-comparisons
-            tests/agent-eval/results/2026-09-28-refinement-*
+            target/refinement-evidence
             target/refinement-refresh-logs
           retention-days: 7

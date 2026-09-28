@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / 'tests/agent-eval/results'
+OUTPUT = ROOT / 'target/refinement-evidence'
 LOGS = ROOT / 'target/refinement-refresh-logs'
 
 
