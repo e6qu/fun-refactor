@@ -109,7 +109,9 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
   [Retained acceptance](tests/agent-eval/results/2026-09-25-imported-flow/result.json) covers clean agreement and dependency-bound plan resumption.
   Regular packages now retain parent initializers, competing modules and stubs at every component.
   [Package acceptance](tests/agent-eval/results/2026-09-26-package-flow/result.json) adds discovered repair and feature delivery with independent replay.
-  Namespace packages, re-exports, initialization imports and runtime import machinery remain outside this contract.
+  Explicit function re-exports now retain bounded binding chains and terminal function identities.
+  [Re-export acceptance](tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json) adds checked repair and feature delivery.
+  Namespace packages, module-valued aliases, initialization effects and runtime import machinery remain outside this contract.
 - [x] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
   Fall back to a complete rebuild when dependency coverage is insufficient.
   [FlowCache](sdk/python/src/fr_ir/flow.py) uses verified Merkle records with local graph references.
@@ -222,7 +224,8 @@ The [recursive flow task](tests/agent-eval/recursive-flow/task.json) pins positi
 Its [evaluator](tools/recursive-flow-acceptance.py) retains runtime and coordinate oracles plus cold, warm and helper-edit comparisons.
 The opt-in solver covers symbolic positional parameters and explicit scalar effects. Whole-file reuse remains conservative;
 short-circuit call control and heap effects remain outside the admitted subset.
-Static local imports and regular packages now have an opt-in contract; dynamic loading and effectful package initialization remain outside it.
+Static local imports, regular packages and explicit function re-exports now have an opt-in contract.
+Dynamic loading and effectful package initialization remain outside it.
 
 The [flow fact task](tests/agent-eval/flow-facts/task.json) pins bounded explanations and exact semantic/authoring links.
 Its [evaluator](tools/flow-facts-acceptance.py) retains paged evidence, independent Unicode coordinates,

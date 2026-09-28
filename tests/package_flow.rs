@@ -76,7 +76,7 @@ fn package_helpers_with_identical_names_keep_distinct_flow_and_origins() {
     assert_eq!(negative["complete"], true, "{negative}");
     assert!(!positive["witnesses"].as_array().unwrap().is_empty());
     assert!(negative["witnesses"].as_array().unwrap().is_empty());
-    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules-2");
+    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules-3");
     let files = positive["inputs"]["modules"]["files"].as_object().unwrap();
     assert_eq!(files.len(), 6);
     for path in [
@@ -153,7 +153,7 @@ fn ambiguous_candidates_stubs_namespace_packages_and_effects_stay_incomplete() {
         ("portal/api/__init__.py", ""),
         ("portal/__init__.py", "state = 1\n"),
         ("portal/__init__.py", "f\"{sink(source())}\"\n"),
-        ("portal/__init__.py", "from .transform import clean_value\n"),
+        ("portal/__init__.py", "import portal.transform\n"),
     ] {
         let root = fixture();
         write(root.path(), path, source);
@@ -290,7 +290,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-structural-package-flow/result.json",
+            "tests/agent-eval/results/2026-09-28-reexports-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -299,4 +299,62 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+#[test]
+fn explicit_reexports_follow_aliases_without_parent_initialization_cycles() {
+    let root = tempfile::tempdir().unwrap();
+    for (path, source) in [
+        (
+            "app.py",
+            "from pkg import public as relay\ndef entry():\n    return sink(relay(source()))\n",
+        ),
+        (
+            "pkg/__init__.py",
+            "from .bridge import exported as public\n",
+        ),
+        ("pkg/bridge.py", "from .leaf import identity as exported\n"),
+        ("pkg/leaf.py", "def identity(value):\n    return value\n"),
+    ] {
+        write(root.path(), path, source);
+    }
+    let report = analyze(root.path(), "entry");
+    assert_eq!(report["complete"], true, "{report}");
+    assert!(!report["witnesses"].as_array().unwrap().is_empty());
+    let lookup = report["inputs"]["modules"]["lookups"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["importer"] == "app.py")
+        .unwrap();
+    assert_eq!(
+        lookup["binding_chain"],
+        json!([
+            {"path":"pkg/__init__.py","name":"public"},
+            {"path":"pkg/bridge.py","name":"exported"},
+            {"path":"pkg/leaf.py","name":"identity"}
+        ])
+    );
+    write(
+        root.path(),
+        "pkg/leaf.py",
+        "def identity(value):\n    return 0\n",
+    );
+    let changed = analyze(root.path(), "entry");
+    assert_eq!(changed["complete"], true, "{changed}");
+    assert!(changed["witnesses"].as_array().unwrap().is_empty());
+    assert_ne!(report["input_digest"], changed["input_digest"]);
+}
+
+#[test]
+fn package_reexports_acceptance_replays_checked_delivery() {
+    let output = Command::new("python3")
+        .args([
+            "tools/package-reexports-acceptance.py",
+            "--audit",
+            "tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
 }

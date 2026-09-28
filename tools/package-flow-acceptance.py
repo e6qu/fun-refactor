@@ -264,7 +264,8 @@ def audit(value):
         assert mutation["resume"]["invalidated"] == ([] if name == "unrelated" else ["flow","conclusion"])
         assert mutation["resume"]["plan"]["steps"][2]["state"] == "satisfied"
         assert mutation["reused"] == (name == "unrelated")
-        assert mutation["analysis"]["complete"] == (name in {"initializer","helper","unrelated"})
+        assert mutation["analysis"]["complete"] == (name in {"helper", "unrelated"} or name == "initializer"
+                and json.loads((FIXTURE / "task.json").read_text()).get("initializer_mutation_complete", True))
         FlowDependencies.from_report(FrReport(mutation["analysis"],()))
         left, right = mutation["analysis"].copy(), mutation["clean"].copy()
         for item in (left,right):

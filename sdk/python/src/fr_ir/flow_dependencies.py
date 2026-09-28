@@ -93,6 +93,12 @@ def _resolution(item: dict[str, Any], files: dict[str, str], complete: bool,
 
 
 @dataclass(frozen=True)
+class ImportBinding:
+    path: str
+    name: str
+
+
+@dataclass(frozen=True)
 class ImportLookup:
     importer: str
     alias: str
@@ -104,6 +110,34 @@ class ImportLookup:
     target: str | None = None
     packages: tuple[str, ...] = ()
     prefix: str | None = None
+    binding_chain: tuple[ImportBinding, ...] = ()
+
+
+def _binding_chains(lookups: list[ImportLookup], files: dict[str, str]) -> None:
+    bindings: dict[tuple[str, str], list[ImportLookup]] = {}
+    for lookup in lookups:
+        bindings.setdefault((lookup.importer, lookup.alias), []).append(lookup)
+        chain = lookup.binding_chain
+        if len(chain) > 16 or len(set(chain)) != len(chain):
+            raise FrRuntimeError("import binding chain exceeds its budget or repeats a binding")
+        if chain and (lookup.member is None or (chain[0].path, chain[0].name) != (lookup.target, lookup.member)):
+            raise FrRuntimeError("import binding chain starts outside its selected member")
+        if lookup.resolution == "function" and (not chain or any(hop.path not in files for hop in chain)):
+            raise FrRuntimeError("resolved function lacks a source-bound binding chain")
+        if lookup.resolution == "module" and chain:
+            raise FrRuntimeError("module lookup carries a function binding chain")
+    for lookup in lookups:
+        if lookup.resolution != "function":
+            continue
+        for index, hop in enumerate(lookup.binding_chain):
+            following = bindings.get((hop.path, hop.name), [])
+            suffix = lookup.binding_chain[index + 1:]
+            if not suffix:
+                if following:
+                    raise FrRuntimeError("function binding chain ends at another import")
+            elif (len(following) != 1 or following[0].resolution != "function"
+                    or following[0].binding_chain != suffix):
+                raise FrRuntimeError("function binding chain disagrees with its re-export lookup")
 
 
 @dataclass(frozen=True)
@@ -132,7 +166,7 @@ class FlowDependencies:
             if _digest(data["input_digest"]) != hashlib.sha256(encoded).hexdigest():
                 raise FrRuntimeError("flow input digest differs from its dependencies")
             if (report.schema != "fr-dataflow-1" or inputs["summary_mode"] is not True
-                    or modules["schema"] not in {"fr-flow-modules-1", "fr-flow-modules-2"}
+                    or modules["schema"] not in {"fr-flow-modules-1", "fr-flow-modules-2", "fr-flow-modules-3"}
                     or type(modules["complete"]) is not bool
                     or not isinstance(modules["cutoffs"], list)
                     or any(not isinstance(cutoff, str) for cutoff in modules["cutoffs"])
@@ -158,14 +192,23 @@ class FlowDependencies:
                         or item["member"] is not None and prefix != item["alias"]):
                     raise FrRuntimeError("import binding prefix disagrees with its alias")
                 resolution = item["resolution"]
-                if (resolution not in {"module", "function", "missing", "ambiguous", "unavailable"}
+                if (resolution not in ({"module", "function", "missing", "ambiguous", "unavailable"}
+                              | ({"cyclic", "budget"} if modules["schema"] == "fr-flow-modules-3" else set()))
                         or modules["complete"] and resolution not in {"module", "function"}
                         or (resolution == "module" and item["member"] is not None)
                         or (resolution in {"function", "missing", "ambiguous"} and item["member"] is None)):
                     raise FrRuntimeError("import resolution disagrees with its declaration")
                 lookups.append(ImportLookup(item["importer"], item["alias"], selected.module, item["member"],
                                             selected.candidates, selected.admitted, resolution,
-                                            selected.target, selected.packages, prefix))
+                                            selected.target, selected.packages, prefix,
+                                                    tuple(ImportBinding(_path(hop["path"]), hop["name"])
+                                                          for hop in item["binding_chain"])
+                                                    if modules["schema"] == "fr-flow-modules-3" else ()))
+            if modules["schema"] == "fr-flow-modules-3":
+                if any(not isinstance(hop.name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", hop.name) is None
+                       for lookup in lookups for hop in lookup.binding_chain):
+                    raise FrRuntimeError("invalid re-export member name")
+                _binding_chains(lookups, paths)
             if len(lookups) > 128:
                 raise FrRuntimeError("import lookup count exceeds its budget")
             source = inputs["source"]

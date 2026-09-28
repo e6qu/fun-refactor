@@ -149,7 +149,12 @@ On this tiny fixture, ordinary discovery and editing read 417 source bytes; fr d
 The ordinary arm was faster in the retained run. These arms perform different operations and make no general performance claim.
 Both are deterministic scripts, with no live-agent or token-saving claim. Declared delivery checks admit valid before/after states for reversal;
 strict runtime checks enforce the repaired and feature postconditions after delivery and in the separate receiver.
-Package loading remains bounded to regular local packages with inert initializers. Dynamic imports, namespace packages and re-exports remain open.
+The [re-export task](../tests/agent-eval/package-reexports/task.json) extends this corpus to explicit function aliases in package initializers.
+Its [acceptance](../tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json) repeats diagnosis, dependency invalidation, repair and feature delivery.
+The [baseline](../tests/agent-eval/package-reexports/baseline.json) records the existing local binary refusal and independent Python behavior.
+That binary predates the pinned source revision; its identity is retained explicitly.
+Package loading remains bounded to regular local packages with explicit function imports and inert declarations.
+Dynamic imports, namespace packages, module-valued aliases and initialization effects remain open.
 
 ## Current matched results
 
