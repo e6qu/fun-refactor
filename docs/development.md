@@ -50,6 +50,22 @@ cargo test --test agent_skill
 python3 tools/check-agent-skill.py --fr target/debug/fr
 ```
 
+## Working on a shared desktop
+
+Use remote runners for full builds, complete gates and evidence regeneration when local capacity
+is constrained. `tools/refresh-refinement-evidence.py` refuses local execution and records the six
+source-bound reports affected by the Boolean comparison feature, plus its new acceptance run.
+Retain downloaded evidence before requesting the final CI run; never substitute rewritten hashes
+for fresh measurements.
+
+One compiler worker does not bound total memory, CPU or accumulated build output. For this project,
+local workloads must run serially at low priority, with monitored CPU throttling and aggregate RSS.
+Stop at 1 GiB sampled workload RSS, 2 GiB under `target`, or less than 64 GiB free disk.
+Use short command deadlines and check descendant processes on interruption. Sampling can miss brief
+peaks or short-lived children; it is a guard for bounded local work, not an operating-system quota.
+Keep broad indexing and compiler-heavy checks on runners. Preserve source and the working executable
+when removing rebuildable caches, and never rebuild automatically after cleanup.
+
 ## Repeated consumer queries
 
 `Index::references_to` retains extraction order and expands the current definition group.

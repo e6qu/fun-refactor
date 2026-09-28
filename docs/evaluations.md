@@ -16,6 +16,27 @@ Every retained run has a manifest under `tests/agent-eval/results/`. Manifests b
 evaluators, binaries and reports by digest. Diagnostic runs remain diagnostics after later fixes;
 acceptance runs must satisfy their scorer at recording time.
 
+## Retained Boolean model comparisons
+
+The [comparison run](../tests/agent-eval/results/2026-09-28-model-comparisons/manifest.json)
+retains prescribed ordinary and native edits to a Rust Boolean function and its Python translation.
+An independent oracle compiles Rust and checks all eight assignments. Both patches must reproduce
+those results, reverse exactly and reapply in separate receivers.
+
+Three Lean obligations cover Rust preservation after rename and unused-parameter removal,
+Rust/Python equivalence with reordered arguments, and a stricter Boolean acceptance rule.
+The run retains an incorrect argument map that fails proof checking. Fresh processes restore the
+snapshot and completed plan; changed source invalidates the model evidence. Receiver audits check
+the retained models and proofs again. These are generated-model theorems, not source implementation
+proofs, general translation correctness or a live-agent comparison.
+
+Six source-bound reports are refreshed on GitHub: retained proofs, agent guidance, completion
+workflows, intent actions, index resolution and host recovery. Their platform and timing fields
+identify the remote runner; they should not be read as new measurements of this Mac.
+The [dogfood record](../tests/agent-eval/results/2026-09-28-refinement-dogfood/manifest.json)
+retains actual author previews, saved plans and applied repository edits, including the fixes for
+unused formal parameters and retained source anchors. Direct-edit boundaries are explicit.
+
 ## Consumer scope and delivery
 
 The [consumer-scope evaluation](../tests/agent-eval/results/2026-09-28-change-scope/manifest.json)

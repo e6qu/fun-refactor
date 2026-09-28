@@ -75,3 +75,8 @@ prescribed text edits with reviewed native delivery, retains false-claim refusal
 patches with exact reversal. Fresh receiver proof checks regenerate the models from retained source.
 The [evaluator](../tools/refinement-acceptance.py) records these finite outcomes without a live-agent or
 token-saving claim.
+
+The [retained artifacts](../tests/agent-eval/results/2026-09-28-model-comparisons/manifest.json)
+and [SDK regressions](../sdk/python/tests/test_refinement.py) cover the complete lifecycle,
+zero and eight parameters, source/model tampering, stale reviews, proof failures, size limits,
+saved-plan reversal and existing formal-model compatibility.

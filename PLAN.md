@@ -156,6 +156,8 @@ Outcome: an agent can implement the requested task and state precisely what its 
   Reject dependent proof evidence after relevant changes.
   [Boolean model comparisons](docs/model-comparisons.md) retain Rust/Python snapshots and explicit parameter maps.
   Native validation regenerates both models; checked relations enter retained proofs and resumable plans.
+  [Finite acceptance](tests/agent-eval/results/2026-09-28-model-comparisons/manifest.json) checks three relations and independent receiver replay.
+  Broader language semantics and source correspondence remain open.
   Broader domains and source correspondence remain open.
 - [x] Check small executable kernels for edit admission, dependency invalidation and task transitions.
   State trusted components and remaining obligations; use fault injection for host operations.

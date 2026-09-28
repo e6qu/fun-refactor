@@ -1,0 +1,1 @@
+[{"file": "retained.rs", "name": "report", "changes": [["confined(&root, &anchor.source)?;", "confined(&root, anchor.source.strip_prefix(&root).context(\"proof source leaves the workspace.\")?)?;"]]}]
