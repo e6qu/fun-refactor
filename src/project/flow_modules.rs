@@ -446,8 +446,8 @@ impl Modules {
                         (&resolution.target, &binding.member)
                     {
                         let skip = (project.root.join(target) == file).then_some(node.start_byte());
-                        if *target
-                            == PathBuf::from(format!(
+                        if target.as_path()
+                            == Path::new(&format!(
                                 "{}/__init__.py",
                                 binding.module.replace('.', "/")
                             ))
