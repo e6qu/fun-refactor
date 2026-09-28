@@ -182,8 +182,8 @@ bound to the new SDK runtime. Its retained source snapshots preserve the exact e
 bytes used in that run, so the historical result stays auditable as the guide gains new routes.
 
 The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
-live matched cohorts to six executable deterministic cases and ten live trials for a pinned
-unfamiliar upstream workspace, Rust multi-file delivery, TSX/React body changes,
+live matched cohorts to seven executable deterministic cases and ten live trials for a pinned
+unfamiliar upstream workspace, Rust multi-file and structural delivery, TSX/React body changes,
 CSS/Tailwind/Mermaid surfaces, backend migration and agent-authored Lean tactics. It records each
 fixture revision, independent oracle and exact postconditions. Audit metadata and real execution
 remain separate: replay runs one worker and reports missing toolchains as infrastructure failures
