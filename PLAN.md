@@ -111,7 +111,9 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
   [Package acceptance](tests/agent-eval/results/2026-09-26-package-flow/result.json) adds discovered repair and feature delivery with independent replay.
   Explicit function re-exports now retain bounded binding chains and terminal function identities.
   [Re-export acceptance](tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json) adds checked repair and feature delivery.
-  Namespace packages, module-valued aliases, initialization effects and runtime import machinery remain outside this contract.
+  Explicit module aliases now bind package child fallback and terminal module identities.
+  The [module task](tests/agent-eval/module-aliases/task.json) pins discovery and checked delivery through these aliases.
+  Namespace packages, initialization effects and runtime import machinery remain outside this contract.
 - [x] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
   Fall back to a complete rebuild when dependency coverage is insufficient.
   [FlowCache](sdk/python/src/fr_ir/flow.py) uses verified Merkle records with local graph references.

@@ -1,0 +1,24 @@
+{
+        let parts: Vec<_> = name.split('.').collect();
+        if parts.is_empty() || parts.len() > MODULE_LIMIT || !parts.iter().all(|part| identifier(part)) {
+            return String::new();
+        }
+        let base = parts[0];
+        let (mut target, mut members) = if let Some(binding) = self.bindings.get(file).and_then(|items| items.get(base)) {
+            if binding.member.is_none() {
+                if binding.ambiguous { return String::new(); }
+                let Some(target) = &binding.target else { return String::new(); };
+                let Some(tail) = name.strip_prefix(&format!("{}.", binding.prefix)) else { return String::new(); };
+                (self.root.join(target), tail.split('.').collect::<Vec<_>>())
+            } else { (file.to_owned(), parts) }
+        } else { (file.to_owned(), parts) };
+        while !members.is_empty() {
+            let (status, chain, module) = self.member_chain(&target, members.remove(0));
+            if status == "function" && members.is_empty() {
+                let (path, name) = chain.last().unwrap();
+                return format!("{}::{name}", path.display());
+            }
+            if let Some(module) = module { target = self.root.join(module); } else { break; }
+        }
+        String::new()
+    }

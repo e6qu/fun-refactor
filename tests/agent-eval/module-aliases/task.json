@@ -1,0 +1,25 @@
+{
+  "schema": "fr-module-aliases-task-1",
+  "baseline": "e4b5b0b58d2a506b5167f7165dd63261de110029",
+  "task": "Discover and repair raw input through a renamed module re-export, preserve safe output and deliver a sink-free preview.",
+  "subset": "Workspace-local scalar Python, regular packages, explicit module aliases and acyclic re-exports. Missing package attributes may select an unambiguous local child module. Effects, dynamic attributes and implicit child traversal are excluded.",
+  "budgets": {
+    "modules": 16,
+    "source_bytes": 262144,
+    "imports": 128,
+    "binding_chain": 16,
+    "steps": 4096,
+    "depth": 8
+  },
+  "oracle": "Independent CPython execution of public functions and AST byte coordinates; reviewed patch replay and exact reversal; cached versus clean analysis after dependency mutations.",
+  "acceptance": [
+    "Resolve explicit module aliases and package child fallback to exact terminal function identities.",
+    "Retain base and child resolution candidates, binding chains and terminal module identities in typed dependencies.",
+    "Reject ambiguity, cycles, effects, namespace packages, missing attributes and exhausted budgets.",
+    "Compare cached and clean results after source, alias, initializer, stub and negative candidate changes.",
+    "Compare ordinary AST discovery with fr discovery, checked repair and feature delivery, reversal and independent receiver replay."
+  ],
+  "claims": "Finite deterministic scalar corpus; no live-agent, token-saving, general import execution, feasible-path or source-equivalence claim.",
+  "authoring": "fr guide and reviewed replace-body operations edit existing Rust and Python functions. New declarations, fixtures, tests, workflow configuration and documentation use direct file edits.",
+  "initializer_mutation_complete": false
+}

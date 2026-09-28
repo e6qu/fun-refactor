@@ -1,0 +1,29 @@
+{
+        self.parsed.keys().any(|file| {
+            let module = if file.file_name().is_some_and(|name| name == "__init__.py") {
+                file.parent().unwrap()
+            } else {
+                file.as_path()
+            };
+            let Some(parent) = module.parent() else {
+                return false;
+            };
+            let package = parent.join("__init__.py");
+            let name = if file == module {
+                module.file_stem()
+            } else {
+                module.file_name()
+            };
+            let Some(name) = name.and_then(|name| name.to_str()) else {
+                return false;
+            };
+            self.definitions
+                .get(&package)
+                .is_some_and(|items| items.contains_key(name))
+                || self
+                    .bindings
+                    .get(&package)
+                    .is_some_and(|items| items.contains_key(name) && self.member_chain(&package, name).2.as_deref()
+                        != file.strip_prefix(&self.root).ok())
+        })
+    }

@@ -391,9 +391,12 @@ resumed = plan.resume(client)
 `analysis.dependencies` validates file digests, import candidates, member resolutions and closure coverage.
 `FlowDependencies.entry` exposes the selected `ImportResolution`; lookups include target paths, parent packages and call prefixes.
 The SDK independently derives admission from all candidate statuses and checks closure coverage.
-It reads legacy `fr-flow-modules-1` and `fr-flow-modules-2` records and current `fr-flow-modules-3` records.
+It reads legacy `fr-flow-modules-1` through `fr-flow-modules-3` records and current `fr-flow-modules-4` records.
 Each current member lookup retains `binding_chain`, a tuple of `ImportBinding(path, name)` values.
 The SDK checks chain bounds, source closure and each hop against the retained re-export lookup.
+Module aliases expose `terminal_module`; package child fallback exposes a separate `submodule` resolution.
+Both candidate sets enter the input digest. The validator checks child selection, terminal identity
+and every module binding hop, including records with a recomputed digest.
 The captured dependency rechecks source, package parents, missing imports, configuration, rules and analyzer identity on resume.
 Use a workspace-local rules path for plan dependencies. External rule files remain valid for analysis alone.
 Summary names include the module, such as `pkg/relay.py::forward`. `FlowFacts.inspect(..., imports=True)`

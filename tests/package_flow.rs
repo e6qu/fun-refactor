@@ -76,7 +76,7 @@ fn package_helpers_with_identical_names_keep_distinct_flow_and_origins() {
     assert_eq!(negative["complete"], true, "{negative}");
     assert!(!positive["witnesses"].as_array().unwrap().is_empty());
     assert!(negative["witnesses"].as_array().unwrap().is_empty());
-    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules-3");
+    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules-4");
     let files = positive["inputs"]["modules"]["files"].as_object().unwrap();
     assert_eq!(files.len(), 6);
     for path in [
@@ -153,7 +153,7 @@ fn ambiguous_candidates_stubs_namespace_packages_and_effects_stay_incomplete() {
         ("portal/api/__init__.py", ""),
         ("portal/__init__.py", "state = 1\n"),
         ("portal/__init__.py", "f\"{sink(source())}\"\n"),
-        ("portal/__init__.py", "import portal.transform\n"),
+        ("portal/__init__.py", "import unavailable_external\n"),
     ] {
         let root = fixture();
         write(root.path(), path, source);
@@ -353,6 +353,63 @@ fn package_reexports_acceptance_replays_checked_delivery() {
             "tools/package-reexports-acceptance.py",
             "--audit",
             "tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+}
+
+#[test]
+fn module_aliases_retain_child_candidates_and_exact_terminal_functions() {
+    let root = tempfile::tempdir().unwrap();
+    for (path, source) in [
+        (
+            "app.py",
+            "from bridge import relay\ndef entry():\n    return sink(relay.identity(source()))\n",
+        ),
+        ("bridge.py", "from pkg import public as relay\n"),
+        ("pkg/__init__.py", "from . import leaf as public\n"),
+        ("pkg/leaf.py", "def identity(value):\n    return value\n"),
+    ] {
+        write(root.path(), path, source);
+    }
+    let value = analyze(root.path(), "entry");
+    assert_eq!(value["complete"], true, "{value}");
+    assert!(!value["witnesses"].as_array().unwrap().is_empty());
+    let lookups = value["inputs"]["modules"]["lookups"].as_array().unwrap();
+    let outer = lookups
+        .iter()
+        .find(|item| item["importer"] == "app.py")
+        .unwrap();
+    assert_eq!(outer["terminal_module"], "pkg/leaf.py");
+    assert_eq!(
+        outer["binding_chain"],
+        json!([
+            {"path":"bridge.py","name":"relay"}, {"path":"pkg/__init__.py","name":"public"}
+        ])
+    );
+    let child = lookups
+        .iter()
+        .find(|item| item["importer"] == "pkg/__init__.py")
+        .unwrap();
+    assert_eq!(child["submodule"]["module"], "pkg.leaf");
+    assert_eq!(
+        child["submodule"]["candidates"]["pkg/leaf.pyi"]["status"],
+        "missing"
+    );
+    write(root.path(), "pkg/leaf.pyi", "");
+    let changed = analyze(root.path(), "entry");
+    assert_eq!(changed["complete"], false);
+    assert_ne!(value["input_digest"], changed["input_digest"]);
+}
+
+#[test]
+fn module_aliases_acceptance_replays_checked_delivery() {
+    let output = Command::new("python3")
+        .args([
+            "tools/module-aliases-acceptance.py",
+            "--audit",
+            "tests/agent-eval/results/2026-09-28-aliases-module-aliases/result.json",
         ])
         .output()
         .unwrap();
