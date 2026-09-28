@@ -175,7 +175,7 @@ bool tree_sitter_python_external_scanner_scan(void *payload, TSLexer *lexer, con
                             } else {
                                 advance(lexer);
                                 lexer->mark_end(lexer);
-                                array_pop(&scanner->delimiters);
+                                (void)array_pop(&scanner->delimiters);
                                 lexer->result_symbol = STRING_END;
                                 scanner->inside_interpolated_string = false;
                             }
@@ -193,7 +193,7 @@ bool tree_sitter_python_external_scanner_scan(void *payload, TSLexer *lexer, con
                     lexer->result_symbol = STRING_CONTENT;
                 } else {
                     advance(lexer);
-                    array_pop(&scanner->delimiters);
+                    (void)array_pop(&scanner->delimiters);
                     lexer->result_symbol = STRING_END;
                     scanner->inside_interpolated_string = false;
                 }
@@ -286,7 +286,7 @@ bool tree_sitter_python_external_scanner_scan(void *payload, TSLexer *lexer, con
                 // comments
                 // whose indentation matches the current block.
                 first_comment_indent_length < (int32_t)current_indent_length) {
-                array_pop(&scanner->indents);
+                (void)array_pop(&scanner->indents);
                 lexer->result_symbol = DEDENT;
                 return true;
             }

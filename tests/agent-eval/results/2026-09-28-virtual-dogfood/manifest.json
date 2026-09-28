@@ -44,7 +44,8 @@
   "direct_edit_boundaries": [
     "New VFS APIs and helper declarations",
     "New regression test scaffolding and pinned task",
-    "Imports, evaluator binding list, workflow configuration and documentation"
+    "Imports, evaluator binding list, workflow configuration and documentation",
+    "C scanner discarded-value warning cleanup: fr project find refused because scanner.c has no indexed project node."
   ],
   "local_resources": "Every fr invocation and check uses the persistent local guard: serial, low priority, CPU throttled toward half a core, 1 GiB sampled aggregate RSS, 2 GiB target ceiling, 64 GiB free-disk floor and 180-second deadline. Builds and complete gates run remotely."
 }
