@@ -569,7 +569,11 @@ fn python_layout_errors(root: Node<'_>, source: &str) -> Vec<Span> {
             .rfind('\n')
             .map_or(0, |at| at + 1);
         // Explicit continuation lines do not start a new logical line.
-        if start > 0 && source[..start - 1].trim_end_matches('\r').ends_with('\\') {
+        if start > 1
+            && root
+                .descendant_for_byte_range(start - 2, start - 1)
+                .is_some_and(|token| token.kind() == "line_continuation")
+        {
             return None;
         }
         let mut columns = (0, 0);

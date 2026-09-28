@@ -4,6 +4,8 @@ use std::{fs, process::Command};
 #[test]
 fn python_layout_matches_independent_compiler() {
     let cases = [
+        (false, "# \\\n    x = 1\n"),
+        (true, "def f():\n    # \\\n    x = 1\n    return x\n"),
         (false, "def f():\n    x = 1\n        return x\n"),
         (
             false,
