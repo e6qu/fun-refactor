@@ -37,6 +37,9 @@ without guessing how a syntax node maps back to source text.
 
 The input file contains exactly one complete block in a brace-delimited target language, including braces.
 For Python it contains one nonempty relative suite without a `def` header: the first statement starts at column zero and nested lines retain their relative indentation.
+Native validation also checks statement indentation that the tolerant parser can overlook, including
+inconsistent tabs and spaces. The [layout regressions](../tests/python_layout.rs) compare with Python's AST parser;
+this remains syntax validation, with behavioral checks required for delivery claims.
 For a TypeScript or TSX arrow target, it can instead contain one complete expression.
 An arrow can move between expression and block bodies. Declarations, methods and function expressions continue to require blocks.
 For Rust:

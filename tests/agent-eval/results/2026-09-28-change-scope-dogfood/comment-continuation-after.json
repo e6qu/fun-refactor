@@ -1,0 +1,94 @@
+{
+  "columns": [
+    "handle",
+    "parent",
+    "kind",
+    "name",
+    "path",
+    "line",
+    "location"
+  ],
+  "context_basis": "frcb1:bb7323def99a74eb05219ca97d99978b1c63f5daba46affffa94757eda3ae148",
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 1,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 0,
+    "unsupported_files": 0
+  },
+  "handle_prefix": "frp1:ab32486e3dc1375e2643fb5978160a1e:",
+  "match": {
+    "mode": "exact",
+    "name": "f"
+  },
+  "omitted": {
+    "matching_locals": 0
+  },
+  "page": {
+    "before": 0,
+    "next": null,
+    "remaining": 0,
+    "returned": 1,
+    "total": 1
+  },
+  "query": "find",
+  "revision": "ab32486e3dc1375e2643fb5978160a1ef05a65fe41c290c9925d038cfe2cd6d3",
+  "root": "frp1:ab32486e3dc1375e2643fb5978160a1e:0",
+  "rows": [
+    [
+      "frp1:ab32486e3dc1375e2643fb5978160a1e:2",
+      "1",
+      "function",
+      "f",
+      "case.py",
+      1,
+      {
+        "definition": {
+          "range": {
+            "end": {
+              "col": 13,
+              "line": 4
+            },
+            "start": {
+              "col": 1,
+              "line": 1
+            }
+          },
+          "span": {
+            "end": 39,
+            "start": 0
+          }
+        },
+        "name": {
+          "range": {
+            "end": {
+              "col": 6,
+              "line": 1
+            },
+            "start": {
+              "col": 5,
+              "line": 1
+            }
+          },
+          "span": {
+            "end": 5,
+            "start": 4
+          }
+        }
+      }
+    ]
+  ],
+  "schema": "fr-project-1"
+}

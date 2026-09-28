@@ -1,0 +1,8 @@
+{
+        let mut errors = self.layout_errors.clone();
+        for root in self.roots() {
+            collect_error_spans(root, &mut errors);
+        }
+        errors.sort();
+        errors
+    }

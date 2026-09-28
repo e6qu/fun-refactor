@@ -1,0 +1,22 @@
+pub(super) fn validate_bound(
+    project: &Project<'_>, binding: &Binding, handles: &[String], checks: &[String],
+) -> Result<Value> {
+    ensure!(project.change_scope_dependency(&binding.key)? == binding.digest,
+        "change scope inputs changed; rediscover consumers and review again");
+    let query: Query = serde_json::from_str(&binding.key)?;
+    let targets = project.scope_seeds(&query)?.iter()
+        .map(|id| project.handle(project.symbol_nodes[id])).collect();
+    let report = project.change_scope(&Options { targets, depth: query.depth, nodes: query.nodes,
+        references: query.references, bytes: query.bytes })?;
+    ensure!(report["review_ready"] == true, "change scope has gaps; resolve them before scoped delivery");
+    let allowed: BTreeSet<_> = report["consumers"].as_array().unwrap().iter()
+        .filter_map(|row| row["declaration"]["handle"].as_str()).collect();
+    ensure!(handles.iter().all(|handle| allowed.contains(handle.as_str())),
+        "task-change target is outside the reviewed consumer scope");
+    ensure!(report["check_candidates"].as_array().unwrap().iter().all(|row|
+        checks.iter().any(|name| row["name"] == *name)),
+        "scoped delivery must select every declared candidate check");
+    Ok(json!({"input_digest": binding.digest, "review_ready": true,
+        "targets": handles, "checks": report["check_candidates"],
+        "runtime_coverage": false}))
+}

@@ -1,5 +1,16 @@
 # Agent acceptance source and evidence
 
+The [consumer-scope fixture](change-scope/task.json) is repository-owned Python source. Its
+[retained evaluation](results/2026-09-28-change-scope/manifest.json) binds exact implementation and
+SDK snapshots, independently computed call coordinates, persisted plans, receipts and both patches.
+Its public oracle checks 147 results and the discovered test; audit repeats both receiver lifecycles.
+The [dogfood manifest](results/2026-09-28-change-scope-dogfood/manifest.json) retains 21 real repository
+author batches and the Python indentation defect found and repaired during this task. These records
+describe local execution on intermediate revisions, not a controlled live-agent comparison.
+
+Fresh `2026-09-28-change-scope-*` results remeasure source-bound flow, compiler, proof, correspondence,
+index and SDK workflows after the parser and consumer-scope changes. Earlier evidence remains intact.
+
 The [checked-outcome fixture](checked-outcomes/task.json) is repository-owned Rust source with a
 subtotal bug and a fee requirement. Its evaluator supplies the mutations; it is deterministic, not
 a live-agent trial. The [retained run](results/2026-09-28-checked-outcomes/manifest.json) preserves
