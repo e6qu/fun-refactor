@@ -10,8 +10,11 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / 'target/refinement-evidence'
-LOGS = ROOT / 'target/refinement-refresh-logs'
+WORK = Path(os.environ.get('RUNNER_TEMP', ROOT / 'target')) / (
+    f"fr-refinement-{os.environ.get('GITHUB_RUN_ID', 'local')}-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
+)
+OUTPUT = WORK / 'refinement-evidence'
+LOGS = WORK / 'refinement-refresh-logs'
 PREFIX = os.environ.get('FR_EVIDENCE_PREFIX', '')
 
 
