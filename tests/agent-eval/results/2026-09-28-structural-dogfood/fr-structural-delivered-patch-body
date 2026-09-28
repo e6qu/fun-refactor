@@ -1,0 +1,63 @@
+output.mkdir(parents=True, exist_ok=False)
+shutil.copytree(FIXTURE, output/"fixture")
+for name in BINDINGS:
+    destination = output/"binding-sources"/name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT/name, destination)
+result: dict[str, Any] = {"schema": "fr-structural-change-acceptance-1"}
+with tempfile.TemporaryDirectory(prefix="fr-structural-acceptance-") as temporary:
+    base = Path(temporary)
+    for arm in ("ordinary", "native"):
+        root = base/arm
+        populate(root, FIXTURE)
+        baseline = oracle(root)
+        started = time.monotonic()
+        if arm == "ordinary":
+            for name in ("pricing.rs", "api.rs"):
+                source = (root/name).read_text().replace("subtotal", "sum_values")
+                source = source.replace(", _legacy: i64", "").replace(", 0)", ")")
+                (root/name).write_text(source)
+            metrics = {"source_files": 2, "source_bytes": sum((FIXTURE/name).stat().st_size for name in ("pricing.rs", "api.rs"))}
+        else:
+            client = FrClient(root, executable=binary)
+            handle = client.project("find", "subtotal").definition_target().handle
+            scope = ChangeScope.inspect(client, [handle], max_bytes=262144)
+            assert scope.ready, scope.report.to_data()
+            references = [r for r in scope.report.at("/references") if r["target"]["name"] == "subtotal"]
+            assert len(references) == 49
+            for reference in references:
+                item = reference["occurrence"]
+                span = item["location"]["span"]
+                assert (root/item["path"]).read_bytes()[span["start"]:span["end"]] == b"subtotal"
+            scope_root = scope.persist(DirectoryObjectStore(output/"objects"))
+            args = [sys.executable, str(Path(__file__).resolve()), "--fr", str(binary),
+                    "--project", str(root), "--reopen", str(output), "--scope", scope_root]
+            metrics = json.loads(run(args, ROOT).stdout)
+            plan = TaskPlan.restore(DirectoryObjectStore(output/"objects"), metrics["plan_root"])
+            assert plan.resume(FrClient(root, executable=binary)).complete
+            old_target = RefactorRequest.rename("another").target("stale", handle)
+            stale = scope.bind(TaskChange([], [old_target], {"files-changed": 2}, ["behavior"]))
+            try:
+                client.review(stale)
+            except FrRuntimeError:
+                metrics["old_scope_refused"] = True
+            else:
+                raise AssertionError("stale structural scope admitted")
+            metrics["exact_reference_sites"] = len(references)
+            metrics["scope_bytes"] = len(json.dumps(scope.report.to_data()).encode())
+            metrics["fresh_process_delivery"] = True
+        measured = oracle(root)
+        assert measured == baseline
+        patch = ((root/"artifacts/change.patch").read_text() if arm == "native"
+         else run(["git", "diff", "--binary", "--", *FILES], root).stdout)
+        (output/f"{arm}.patch").write_text(patch)
+        result[arm] = {"baseline": baseline, "after": measured, "metrics": metrics,
+                       "seconds": time.monotonic()-started}
+result["passed"] = True
+result["limits"] = "Prescribed deterministic fixture; scalar literal arguments, indexed consumers and tested outputs only. No live-agent, token-saving, external consumer or source equivalence proof. Nested rustc execution is observed by the oracle; its identity is recorded separately."
+result["rustc"] = run(["rustc", "-vV"], ROOT).stdout
+save(output/"result.json", result)
+save(output/"manifest.json", {"schema": "fr-structural-change-artifacts-1",
+    "source_commit": run(["git", "rev-parse", "HEAD"], ROOT).stdout.strip(), "binary_sha256": sha(binary),
+    "files": {str(p.relative_to(output)): sha(p) for p in sorted(output.rglob("*")) if p.is_file()}})
+return audit(output)

@@ -1,0 +1,58 @@
+{
+    let source = &project.sources[&symbol.file];
+    let parsed = Parsers::new().parse(Language::Rust, source)?;
+    let function = ancestor(&parsed, symbol.name_span, "function_item")?;
+    let parameters = function
+        .child_by_field_name("parameters")
+        .context("missing parameters.")?;
+    let mut cursor = parameters.walk();
+    for parameter in parameters.named_children(&mut cursor) {
+        let ty = parameter
+            .child_by_field_name("type")
+            .context("signature refactor requires scalar parameters.")?;
+        ensure!(
+            ty.kind() == "primitive_type"
+                && matches!(
+                    &source[ty.byte_range()],
+                    "bool"
+                        | "char"
+                        | "i8"
+                        | "i16"
+                        | "i32"
+                        | "i64"
+                        | "i128"
+                        | "isize"
+                        | "u8"
+                        | "u16"
+                        | "u32"
+                        | "u64"
+                        | "u128"
+                        | "usize"
+                ),
+            "signature refactor requires primitive scalar parameters."
+        );
+    }
+    for reference in project.index.references_to(symbol.id) {
+        if reference.kind != ReferenceKind::Call {
+            continue;
+        }
+        let source = &project.sources[&reference.file];
+        let parsed = Parsers::new().parse(Language::Rust, source)?;
+        let call = ancestor(&parsed, reference.span, "call_expression")?;
+        let function = call
+            .child_by_field_name("function")
+            .context("missing call function.")?;
+        ensure!(
+            function.start_byte() <= reference.span.start
+                && function.end_byte() >= reference.span.end,
+            "signature refactor requires a direct call."
+        );
+        let arguments = call
+            .child_by_field_name("arguments")
+            .context("missing call arguments.")?;
+        let mut cursor = arguments.walk();
+        ensure!(arguments.named_children(&mut cursor).all(literal),
+            "signature refactor requires literal scalar call arguments; effects and evaluation order remain obligations.");
+    }
+    Ok(())
+}

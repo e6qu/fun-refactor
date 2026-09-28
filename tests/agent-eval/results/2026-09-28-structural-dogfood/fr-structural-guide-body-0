@@ -1,0 +1,76 @@
+{
+    json!({
+        "schema": "fr-author-guide-1",
+        "purpose": "Bounded structural authoring through revision-bound project handles.",
+        "limits": {
+            "operations": {"minimum": 1, "maximum": 32},
+            "manifest_bytes": 65536,
+            "fragment_bytes": 65536,
+            "diff_bytes": {"minimum": 0, "maximum": 65536}
+        },
+        "operations": [
+            {"op": "replace-body", "requires": ["handle", "from"],
+                "targets": "supported function or method body"},
+            {"op": "replace-body-semantic", "requires": ["handle", "from"],
+                "input-schema": "fr-semantic-body-1",
+                "targets": "supported function or method body"},
+            {"op": "edit-body-semantic", "requires": ["handle", "from"],
+                "input-schema": "fr-semantic-change-1",
+                "targets": "supported function or method body"},
+            {"op": "edit-body-intent", "requires": ["handle", "from"],
+                "input-schema": "fr-semantic-intent-1",
+                "targets": "supported function or method body"},
+            {"op": "edit-body-scalar", "requires": ["handle", "operation", "from", "to"],
+                "generated-schema": "fr-semantic-intent-1",
+                "targets": "one unique supported scalar in a function or method body"},
+            {"op": "edit-body-disclosed", "requires": ["full-handle", "edit", "to"],
+                "input-schema": "fr-disclosed-edit-1",
+                "generated-schema": "fr-semantic-intent-1",
+                "targets": "one exact scalar capability returned by project disclose"},
+            {"op": "edit-body-disclosed-ir", "requires": ["full-handle", "edit", "optional-from"],
+                "input-schema": "fr-disclosed-ir-edit-1",
+                "generated-schema": "fr-semantic-change-1",
+                "targets": "one exact typed node or statement-list capability returned by project disclose"},
+            {"op": "replace-declaration", "requires": ["handle", "from"],
+                "targets": "Rust function declaration with unchanged name"},
+            {"op": "insert-declaration", "requires": ["handle", "from"],
+                "targets": "Rust file, module, impl or trait"},
+            {"op": "organize-imports", "requires": ["handle"],
+                "targets": "supported source file"},
+            {"op": "refactor", "requires": ["handle", "from"],
+                "targets": "Rust free function; rename or literal-scalar signature migration",
+                "input": "operation: rename with name; remove-parameter with index; move-parameter with from and to",
+                "delivery": "task-change requires a current consumer scope binding"}
+        ],
+        "direct_operations": [
+            {"op": "edit-surface", "requires": ["edit", "to"],
+                "input-schema": "fr-surface-edit-1",
+                "targets": "exact CSS class, host class token, Markdown heading or Mermaid node"}
+        ],
+        "manifest": {
+            "revision": "optional; required when any handle is a short ID",
+            "operations": [{"op": "replace-body", "handle": "<FULL_HANDLE>",
+                "from": "<FRAGMENT_PATH>"}],
+            "postconditions": {"files-changed": "optional exact count", "edits": "optional exact count",
+                "changed-operations": "optional exact count", "paths-changed": "optional exact ordered paths"}
+        },
+        "workflow": [
+            {"step": "inspect", "command": "fr project select <SELECTOR>... --source --bytes <N>"},
+            {"step": "preview", "command": "fr author batch --from <MANIFEST>"},
+            {"step": "save", "command": "fr author batch --from <MANIFEST> --save-plan --plan-basis <PLAN_CONTEXT_BASIS>"},
+            {"step": "checked-delivery", "command": "fr workflow --from <WORKFLOW_MANIFEST> --write"},
+            {"step": "apply", "command": "fr history apply <TX> --write --context-basis <TRANSACTION_CONTEXT_BASIS>"},
+            {"step": "patch", "command": "fr history patch <TX> --output <PATCH>"},
+            {"step": "undo-preview", "command": "fr history undo <TX>"},
+            {"step": "undo", "command": "fr history undo <TX> --write"},
+            {"step": "redo-preview", "command": "fr history redo <TX>"},
+            {"step": "redo", "command": "fr history redo <TX> --write --context-basis <TRANSACTION_CONTEXT_BASIS>"}
+        ],
+        "evidence": [
+            "Review the complete preview before using its plan_context_basis.",
+            "Use workflow delivery when reviewed project checks cover the requested lifecycle.",
+            "Run declared checks on original, changed, undone and redone states.",
+            "Retain refusals, coverage gaps, patch checks and receiver evidence."
+        ]
+    })
+}

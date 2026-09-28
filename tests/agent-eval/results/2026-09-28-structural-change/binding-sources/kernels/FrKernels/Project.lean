@@ -1,0 +1,919 @@
+import Init.Data.List.Sort.Lemmas
+
+namespace FrKernels.Project
+
+-- fr:spec src/project/framework_kernel.rs::application_adapter_reads @ ee124b9d223f44f88e64083f53fbad5e007e27696be178a1eb9cd0247c390e51
+-- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdapterReads (adapter feature : Nat) : Bool :=
+  decide ((feature ≤ 2 ∧ adapter ≤ 3) ∨ (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
+
+-- fr:spec src/project/framework_kernel.rs::application_adapter_writes @ 6bc9b4d6aba506f3043aa7bc7fd79a9a683c308c8724df61b897302c952986d0
+-- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdapterWrites (adapter feature : Nat) : Bool :=
+  decide ((feature ≤ 2 ∧ adapter ≤ 3) ∨ (feature = 3 ∧ (adapter = 0 ∨ adapter = 4)))
+
+-- fr:spec src/project/framework_kernel.rs::application_adapter_supports @ 6e018c120ec9e4ecb8565f52f4c10da2126825f640befccdcb016ae919e4d564
+-- fr:signature adapter: usize => adapter: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdapterSupports (adapter feature : Nat) : Bool :=
+  applicationAdapterReads adapter feature && applicationAdapterWrites adapter feature
+
+theorem every_readable_feature_is_writable (adapter feature : Nat)
+    (readable : applicationAdapterReads adapter feature = true) :
+    applicationAdapterWrites adapter feature = true := by
+  simp only [applicationAdapterReads, decide_eq_true_eq] at readable
+  simp only [applicationAdapterWrites, decide_eq_true_eq]
+  omega
+
+theorem http_adapters_require_http_features (feature : Nat) (adapter : Nat)
+    (http : adapter ≤ 3) (notNext : adapter ≠ 0)
+    (accepted : applicationAdapterSupports adapter feature = true) : feature ≤ 2 := by
+  simp only [applicationAdapterSupports, Bool.and_eq_true, applicationAdapterReads,
+    decide_eq_true_eq] at accepted
+  omega
+
+theorem react_refuses_http_routes (feature : Nat) (http : feature ≤ 2) :
+    applicationAdapterSupports 4 feature = false := by
+  have unreadable : applicationAdapterReads 4 feature = false := by
+    simp only [applicationAdapterReads, decide_eq_false_iff_not]
+    omega
+  simp [applicationAdapterSupports, unreadable]
+
+-- fr:spec src/project/framework_kernel.rs::application_adapters_compatible @ 707aeb2232b4dea31f6eecec7340fb932ae665ca813394f5b34d895152a306c1
+-- fr:signature source: usize => source: Nat; target: usize => target: Nat; feature: usize => feature: Nat; return: bool => return: Bool
+def applicationAdaptersCompatible (source target feature : Nat) : Bool :=
+  decide (source ≠ target) && applicationAdapterReads source feature &&
+    applicationAdapterWrites target feature
+
+theorem compatible_adapters_require_both_contracts (source target feature : Nat) :
+    applicationAdaptersCompatible source target feature = true ↔
+      source ≠ target ∧ applicationAdapterReads source feature = true ∧
+        applicationAdapterWrites target feature = true := by
+  simp [applicationAdaptersCompatible, and_assoc]
+
+theorem adapter_conversion_is_irreflexive (adapter feature : Nat) :
+    applicationAdaptersCompatible adapter adapter feature = false := by
+  simp [applicationAdaptersCompatible]
+
+-- fr:spec src/project/framework_kernel.rs::application_json_status_admitted @ 6ae20783a53d601db4758776aa07a5f1bb755d9288167edbc32ad6d627ac1c3b
+-- fr:signature status: usize => status: Nat; return: bool => return: Bool
+def applicationJsonStatusAdmitted (status : Nat) : Bool :=
+  decide (200 ≤ status ∧ status ≤ 599 ∧ status ≠ 204 ∧ status ≠ 205 ∧ status ≠ 304)
+
+-- fr:spec src/project/framework_kernel.rs::application_request_input_admitted @ 00d97760eaf9a47c484d63066b8c183e7719a5b6ad5bb42c8ba43211388c5b4c
+-- fr:signature method: usize => method: Nat; source: usize => source: Nat; scalar: usize => scalar: Nat; return: bool => return: Bool
+def applicationRequestInputAdmitted (method source scalar : Nat) : Bool :=
+  decide (method ≤ 5 ∧ scalar ≤ 2 ∧ (source = 0 ∨ source = 1 ∧ 1 ≤ method ∧ method ≤ 3))
+
+theorem query_inputs_are_admitted (method scalar : Nat)
+    (methodBound : method ≤ 5) (scalarBound : scalar ≤ 2) :
+    applicationRequestInputAdmitted method 0 scalar = true := by
+  simp [applicationRequestInputAdmitted, methodBound, scalarBound]
+
+theorem body_inputs_require_mutating_methods (method scalar : Nat)
+    (accepted : applicationRequestInputAdmitted method 1 scalar = true) :
+    1 ≤ method ∧ method ≤ 3 := by
+  simp only [applicationRequestInputAdmitted, decide_eq_true_eq] at accepted
+  omega
+
+-- fr:spec src/project/framework_kernel.rs::application_fastapi_input_admitted @ 8d58227f797c75da9ebeabe593d4107a1740b6c8692ba5932ad397e1bef35fd9
+-- fr:signature source: usize => source: Nat; scalar: usize => scalar: Nat; alias_safe: bool => aliasSafe: Bool; embedded: bool => embedded: Bool; extra_metadata: bool => extraMetadata: Bool; return: bool => return: Bool
+def applicationFastapiInputAdmitted
+    (source scalar : Nat) (aliasSafe embedded extraMetadata : Bool) : Bool :=
+  decide (source ≤ 1 ∧ scalar ≤ 2) && aliasSafe && !extraMetadata &&
+    decide ((source = 0 ∧ embedded = false) ∨ (source = 1 ∧ embedded = true))
+
+theorem fastapi_query_inputs_are_unembedded
+    (scalar : Nat) (aliasSafe embedded extraMetadata : Bool)
+    (accepted : applicationFastapiInputAdmitted 0 scalar aliasSafe embedded extraMetadata = true) :
+    scalar ≤ 2 ∧ aliasSafe = true ∧ extraMetadata = false ∧ embedded = false := by
+  simpa [applicationFastapiInputAdmitted, and_assoc] using accepted
+
+theorem fastapi_body_inputs_are_embedded
+    (scalar : Nat) (aliasSafe embedded extraMetadata : Bool)
+    (accepted : applicationFastapiInputAdmitted 1 scalar aliasSafe embedded extraMetadata = true) :
+    scalar ≤ 2 ∧ aliasSafe = true ∧ extraMetadata = false ∧ embedded = true := by
+  simpa [applicationFastapiInputAdmitted, and_assoc] using accepted
+
+-- fr:spec src/project/framework_kernel.rs::application_validated_endpoint_agreement @ 2f2cd03ab5ddc86d5b0a733eef0bf0ccbb01ce291b095a83f920f3847d2c4925
+-- fr:signature method: bool => method: Bool; path: bool => path: Bool; inputs: bool => inputs: Bool; status: bool => status: Bool; response: bool => response: Bool; return: bool => return: Bool
+def applicationValidatedEndpointAgreement
+    (method path inputs status response : Bool) : Bool :=
+  method && path && inputs && status && response
+
+theorem validated_endpoint_agreement_is_complete
+    (method path inputs status response : Bool) :
+    applicationValidatedEndpointAgreement method path inputs status response = true ↔
+      method = true ∧ path = true ∧ inputs = true ∧ status = true ∧ response = true := by
+  simp [applicationValidatedEndpointAgreement, and_assoc]
+
+theorem portable_json_status_has_a_body (status : Nat) :
+    applicationJsonStatusAdmitted status = true ↔
+      200 ≤ status ∧ status ≤ 599 ∧ status ≠ 204 ∧ status ≠ 205 ∧ status ≠ 304 := by
+  simp [applicationJsonStatusAdmitted]
+
+-- fr:spec src/project/framework_kernel.rs::application_dispositions_complete @ 104eda39f60597ea715d07cee34f543df68e8ef558ad587dea53daae1d3b7d56
+-- fr:signature input: usize => input: Nat; assigned: usize => assigned: Nat; unique: bool => unique: Bool; exact_ids: bool => exactIds: Bool; return: bool => return: Bool
+def applicationDispositionsComplete (input assigned : Nat) (unique exactIds : Bool) : Bool :=
+  decide (input = assigned) && unique && exactIds
+
+theorem dispositions_require_exact_unique_coverage (input assigned : Nat) (unique exactIds : Bool) :
+    applicationDispositionsComplete input assigned unique exactIds = true ↔
+      input = assigned ∧ unique = true ∧ exactIds = true := by
+  simp [applicationDispositionsComplete, and_assoc]
+
+-- fr:spec src/project/framework_kernel.rs::application_endpoint_agreement @ 4b5e2f227f3ebec5cd647b07077bb5195393ce5236a8ea82dc27af6834a5d2bd
+-- fr:signature method: bool => method: Bool; path: bool => path: Bool; status: bool => status: Bool; response: bool => response: Bool; return: bool => return: Bool
+def applicationEndpointAgreement (method path status response : Bool) : Bool :=
+  method && path && status && response
+
+theorem endpoint_agreement_requires_every_observation (method path status response : Bool) :
+    applicationEndpointAgreement method path status response = true ↔
+      method = true ∧ path = true ∧ status = true ∧ response = true := by
+  simp [applicationEndpointAgreement, and_assoc]
+
+-- fr:spec src/project/framework_kernel.rs::application_static_resources_admitted @ 1666f5a7a7d27295295248a4fabb82d539b519ea63aea4cf6d8d7b73c4ea1b34
+-- fr:signature nodes: usize => nodes: Nat; depth: usize => depth: Nat; encoded_bytes: usize => encodedBytes: Nat; return: bool => return: Bool
+def applicationStaticResourcesAdmitted (nodes depth encodedBytes : Nat) : Bool :=
+  decide (1 ≤ nodes ∧ nodes ≤ 1024 ∧ depth ≤ 32 ∧ encodedBytes ≤ 1048576)
+
+theorem static_resources_are_bounded (nodes depth encodedBytes : Nat) :
+    applicationStaticResourcesAdmitted nodes depth encodedBytes = true ↔
+      1 ≤ nodes ∧ nodes ≤ 1024 ∧ depth ≤ 32 ∧ encodedBytes ≤ 1048576 := by
+  simp [applicationStaticResourcesAdmitted]
+
+-- fr:spec src/project/framework_kernel.rs::framework_emitted @ 9afa46708862e53eb40bf7e4c5f732cf57c9007874e05a1efe18fe61d5b80ac7
+-- fr:signature total: usize => total: Nat; limit: usize => limit: Nat; return: usize => return: Nat
+def frameworkEmitted (total : Nat) (limit : Nat) : Nat := min total limit
+
+-- fr:spec src/project/framework_kernel.rs::framework_omitted @ 1fcd250b558f64c8203739f82829b3958874173d42694554d312c42e5ecf4f32
+-- fr:signature total: usize => total: Nat; limit: usize => limit: Nat; return: usize => return: Nat
+def frameworkOmitted (total : Nat) (limit : Nat) : Nat := total - limit
+
+theorem framework_partition (total limit : Nat) :
+    frameworkEmitted total limit + frameworkOmitted total limit = total := by
+  by_cases ordered : total ≤ limit
+  · simp [frameworkEmitted, frameworkOmitted, Nat.min_eq_left ordered,
+      Nat.sub_eq_zero_of_le ordered]
+  · have reverse : limit ≤ total := Nat.le_of_not_ge ordered
+    rw [frameworkEmitted, frameworkOmitted, Nat.min_eq_right reverse]
+    omega
+
+theorem framework_emitted_respects_limit (total limit : Nat) :
+    frameworkEmitted total limit ≤ limit := Nat.min_le_right _ _
+
+theorem framework_omitted_is_zero_iff (total limit : Nat) :
+    frameworkOmitted total limit = 0 ↔ total ≤ limit := by
+  unfold frameworkOmitted
+  omega
+
+-- fr:spec src/project/framework_kernel.rs::application_middleware_chain_admitted @ 2dff9fe0a829004ae7989c3fb466fde48c08c9bab4e1b4cc2545e7b6d38092f1
+-- fr:signature total: usize => total: Nat; resolved: usize => resolved: Nat; configured: usize => configured: Nat; return: bool => return: Bool
+def applicationMiddlewareChainAdmitted (total resolved configured : Nat) : Bool :=
+  decide (1 ≤ total ∧ total ≤ 64 ∧ resolved = total ∧ configured = 0)
+
+theorem middleware_chain_requires_complete_unconfigured_resolution
+    (total resolved configured : Nat) :
+    applicationMiddlewareChainAdmitted total resolved configured = true ↔
+      1 ≤ total ∧ total ≤ 64 ∧ resolved = total ∧ configured = 0 := by
+  simp [applicationMiddlewareChainAdmitted]
+
+-- fr:spec src/project/framework_kernel.rs::application_dependency_admitted @ d26d6e192790de854817b57525d65f0b89a36fb53ec158cd4d70d812b240bde2
+-- fr:signature provider_safe: bool => providerSafe: Bool; configured: bool => configured: Bool; return: bool => return: Bool
+def applicationDependencyAdmitted (providerSafe configured : Bool) : Bool :=
+  providerSafe && !configured
+
+theorem dependency_requires_safe_unconfigured_provider (providerSafe configured : Bool) :
+    applicationDependencyAdmitted providerSafe configured = true ↔
+      providerSafe = true ∧ configured = false := by
+  cases providerSafe <;> cases configured <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::middleware_request_order @ 8216192cd608316f86f46581f9d759b435f3aa05e1ccb7a3aae1597b1dbf4027
+-- fr:signature total: usize => total: Nat; declaration_index: usize => declarationIndex: Nat; return: usize => return: Nat
+def middlewareRequestOrder (total : Nat) (declarationIndex : Nat) : Nat := total - declarationIndex
+
+theorem middleware_request_order_in_range (total declarationIndex : Nat)
+    (valid : declarationIndex < total) :
+    1 ≤ middlewareRequestOrder total declarationIndex ∧
+      middlewareRequestOrder total declarationIndex ≤ total := by
+  simp [middlewareRequestOrder]
+  omega
+
+theorem middleware_request_order_reverses (total earlier later : Nat)
+    (ordered : earlier < later) (valid : later < total) :
+    middlewareRequestOrder total later < middlewareRequestOrder total earlier := by
+  simp [middlewareRequestOrder]
+  omega
+
+-- fr:spec src/project/framework_kernel.rs::component_hooks_compatible @ 2683af30799c8796c086e3f5c4a01a644ab0cda68bed70ff4bb13fce8d5eaa7b
+-- fr:signature client: bool => client: Bool; runtime_hooks: usize => runtimeHooks: Nat; return: bool => return: Bool
+def componentHooksCompatible (client : Bool) (runtimeHooks : Nat) : Bool :=
+  client || decide (runtimeHooks = 0)
+
+theorem server_hooks_compatible_iff_empty (runtimeHooks : Nat) :
+    componentHooksCompatible false runtimeHooks = true ↔ runtimeHooks = 0 := by
+  simp [componentHooksCompatible]
+
+theorem client_hooks_are_compatible (runtimeHooks : Nat) :
+    componentHooksCompatible true runtimeHooks = true := by
+  simp [componentHooksCompatible]
+
+-- fr:spec src/project/framework_kernel.rs::standalone_react_admitted @ 88ba51d61f922e679bff56af810528aa45548146b1aa1a5b1eebe51bef3193f3
+-- fr:signature react_dependency: bool => reactDependency: Bool; next_dependency: bool => nextDependency: Bool; jsx_file: bool => jsxFile: Bool; syntax_valid: bool => syntaxValid: Bool; component_found: bool => componentFound: Bool; return: bool => return: Bool
+def standaloneReactAdmitted
+    (reactDependency : Bool)
+    (nextDependency : Bool)
+    (jsxFile : Bool)
+    (syntaxValid : Bool)
+    (componentFound : Bool) : Bool :=
+  reactDependency && !nextDependency && jsxFile && syntaxValid && componentFound
+
+theorem standalone_react_requires_all_positive_evidence
+    (reactDependency nextDependency jsxFile syntaxValid componentFound : Bool) :
+    standaloneReactAdmitted reactDependency nextDependency jsxFile syntaxValid componentFound = true ↔
+      reactDependency = true ∧ nextDependency = false ∧ jsxFile = true ∧
+        syntaxValid = true ∧ componentFound = true := by
+  cases reactDependency <;> cases nextDependency <;> cases jsxFile <;>
+    cases syntaxValid <;> cases componentFound <;> decide
+
+theorem next_packages_are_not_standalone_react
+    (reactDependency jsxFile syntaxValid componentFound : Bool) :
+    standaloneReactAdmitted reactDependency true jsxFile syntaxValid componentFound = false := by
+  cases reactDependency <;> cases jsxFile <;> cases syntaxValid <;>
+    cases componentFound <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::configuration_visibility @ 537d173c9f9187b1a7ce38245dfe63887d1e24f8fc54db9b88b0bec4a59a7195
+-- fr:signature nextjs: bool => nextjs: Bool; public_name: bool => publicName: Bool; return: usize => return: Nat
+def configurationVisibility (nextjs : Bool) (publicName : Bool) : Nat :=
+  if !nextjs then 0 else if publicName then 2 else 1
+
+theorem configuration_visibility_is_known (nextjs publicName : Bool) :
+    configurationVisibility nextjs publicName ≤ 2 := by
+  cases nextjs <;> cases publicName <;> decide
+
+theorem public_configuration_requires_next (nextjs publicName : Bool) :
+    configurationVisibility nextjs publicName = 2 ↔ nextjs = true ∧ publicName = true := by
+  cases nextjs <;> cases publicName <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::service_target_kind @ 2c124fe8abc7f90d35c6be9bbb18102239701d2de79f51d882fbd7a94f5a3e4b
+-- fr:signature absolute_http: bool => absoluteHttp: Bool; root_relative: bool => rootRelative: Bool; return: usize => return: Nat
+def serviceTargetKind (absoluteHttp : Bool) (rootRelative : Bool) : Nat :=
+  if absoluteHttp then 2 else if rootRelative then 1 else 0
+
+theorem service_target_kind_is_known (absoluteHttp rootRelative : Bool) :
+    serviceTargetKind absoluteHttp rootRelative ≤ 2 := by
+  cases absoluteHttp <;> cases rootRelative <;> decide
+
+theorem absolute_service_target_wins (rootRelative : Bool) :
+    serviceTargetKind true rootRelative = 2 := by
+  cases rootRelative <;> rfl
+
+-- fr:spec src/project/framework_kernel.rs::service_route_candidate @ 5a894135affd5798e095e8908b1d88806f3f624e9316fdd00b7dc4f45d42b207
+-- fr:signature local_target: bool => localTarget: Bool; path_equal: bool => pathEqual: Bool; method_known: bool => methodKnown: Bool; method_equal: bool => methodEqual: Bool; return: bool => return: Bool
+def serviceRouteCandidate (localTarget : Bool) (pathEqual : Bool)
+    (methodKnown : Bool) (methodEqual : Bool) : Bool :=
+  localTarget && pathEqual && (!methodKnown || methodEqual)
+
+theorem service_route_candidate_requires_local_equal_path
+    (localTarget pathEqual methodKnown methodEqual : Bool)
+    (accepted : serviceRouteCandidate localTarget pathEqual methodKnown methodEqual = true) :
+    localTarget = true ∧ pathEqual = true := by
+  cases localTarget <;> cases pathEqual <;> simp [serviceRouteCandidate] at accepted ⊢
+
+theorem service_route_unknown_method_accepts_local_path (methodEqual : Bool) :
+    serviceRouteCandidate true true false methodEqual = true := by
+  cases methodEqual <;> decide
+
+theorem service_route_known_method_requires_equality (methodEqual : Bool) :
+    serviceRouteCandidate true true true methodEqual = methodEqual := by
+  cases methodEqual <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::service_redaction_flags @ ab640c3628e3562292ae80a5bb5e809068215aa9a001eb1542ba4a72abaa99cd
+-- fr:signature query_or_fragment: bool => queryOrFragment: Bool; credentials: bool => credentials: Bool; return: usize => return: Nat
+def serviceRedactionFlags (queryOrFragment : Bool) (credentials : Bool) : Nat :=
+  (if queryOrFragment then 1 else 0) + (if credentials then 2 else 0)
+
+theorem service_redaction_flags_are_bounded (queryOrFragment credentials : Bool) :
+    serviceRedactionFlags queryOrFragment credentials ≤ 3 := by
+  cases queryOrFragment <;> cases credentials <;> decide
+
+theorem service_redaction_zero_iff_clear (queryOrFragment credentials : Bool) :
+    serviceRedactionFlags queryOrFragment credentials = 0 ↔
+      queryOrFragment = false ∧ credentials = false := by
+  cases queryOrFragment <;> cases credentials <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::fastapi_prefix_supported @ c6a0e76ee26cc51b3ff32c70f42e44e45eda7ada1ce40bd9fa9db0f9f2e1be78
+-- fr:signature empty: bool => empty: Bool; starts_slash: bool => startsSlash: Bool; ends_slash: bool => endsSlash: Bool; return: bool => return: Bool
+def fastapiPrefixSupported (empty : Bool) (startsSlash : Bool) (endsSlash : Bool) : Bool :=
+  empty || startsSlash && !endsSlash
+
+theorem empty_fastapi_prefix_is_supported (startsSlash endsSlash : Bool) :
+    fastapiPrefixSupported true startsSlash endsSlash = true := by
+  cases startsSlash <;> cases endsSlash <;> decide
+
+theorem nonempty_fastapi_prefix_supported_iff (startsSlash endsSlash : Bool) :
+    fastapiPrefixSupported false startsSlash endsSlash = true ↔
+      startsSlash = true ∧ endsSlash = false := by
+  cases startsSlash <;> cases endsSlash <;> decide
+
+theorem trailing_slash_rejects_nonempty_fastapi_prefix (startsSlash : Bool) :
+    fastapiPrefixSupported false startsSlash true = false := by
+  cases startsSlash <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::framework_migration_supported @ 2b6adb54c00914716834b06d5d8f08020911833f96c16fc10cd7ca9f621d3e8f
+-- fr:signature source_fastapi: bool => sourceFastapi: Bool; target_fastapi: bool => targetFastapi: Bool; return: bool => return: Bool
+def frameworkMigrationSupported (sourceFastapi : Bool) (targetFastapi : Bool) : Bool :=
+  sourceFastapi != targetFastapi
+
+theorem framework_migration_supported_iff_crosses_boundary
+    (sourceFastapi targetFastapi : Bool) :
+    frameworkMigrationSupported sourceFastapi targetFastapi = true ↔
+      sourceFastapi != targetFastapi := by
+  cases sourceFastapi <;> cases targetFastapi <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_disposition @ 12d6711dd5abc9fdfd1c6c94fee86397941097d6444a2edc0f3bde8898ce147c
+-- fr:signature gap: bool => gap: Bool; automatic_kind: bool => automaticKind: Bool; return: usize => return: Nat
+def migrationDisposition (gap : Bool) (automaticKind : Bool) : Nat :=
+  if gap then 2 else if automaticKind then 0 else 1
+
+theorem migration_gap_is_unsupported (automaticKind : Bool) :
+    migrationDisposition true automaticKind = 2 := by
+  cases automaticKind <;> decide
+
+theorem supported_automatic_kind_is_automatic :
+    migrationDisposition false true = 0 := by
+  decide
+
+theorem supported_nonautomatic_kind_needs_a_decision :
+    migrationDisposition false false = 1 := by
+  decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_schema_agreement @ 1b6293851270d68ca599ab29dc38f9687619f8af10f01955a0eb5f1371072a03
+-- fr:signature expected: &[String] => expected: List String; generated: &[String] => generated: List String; return: bool => return: Bool
+def migrationSchemaAgreement (expected : List String) (generated : List String) : Bool :=
+  expected.all (generated.contains ·)
+
+theorem migration_schema_agreement_iff_subset (expected generated : List String) :
+    migrationSchemaAgreement expected generated = true ↔
+      ∀ shape ∈ expected, shape ∈ generated := by
+  simp [migrationSchemaAgreement]
+
+theorem migration_schema_agreement_reflexive (shapes : List String) :
+    migrationSchemaAgreement shapes shapes = true := by
+  simp [migrationSchemaAgreement]
+
+-- fr:spec src/project/framework_kernel.rs::nextjs_registration_automatic @ 1b11251331a535bbe2f7ecebe93bc4d6ea8937469de89d774eff03ef0db87db0
+-- fr:signature declares_next: bool => declaresNext: Bool; app_router_path: bool => appRouterPath: Bool; return: bool => return: Bool
+def nextjsRegistrationAutomatic (declaresNext : Bool) (appRouterPath : Bool) : Bool :=
+  declaresNext && appRouterPath
+
+theorem nextjs_registration_automatic_iff_evidence
+    (declaresNext appRouterPath : Bool) :
+    nextjsRegistrationAutomatic declaresNext appRouterPath = true ↔
+      declaresNext = true ∧ appRouterPath = true := by
+  cases declaresNext <;> cases appRouterPath <;> decide
+
+theorem nextjs_registration_requires_dependency (appRouterPath : Bool) :
+    nextjsRegistrationAutomatic false appRouterPath = false := by
+  cases appRouterPath <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::fastapi_body_parameter_automatic @ 917a5d5e70786d7d2692a97244b5e5d3ba9cf1601a671a80bd78a3e28c81fa87
+-- fr:signature candidate_count: usize => candidateCount: Nat; path_collision: bool => pathCollision: Bool; query_collision: bool => queryCollision: Bool; return: bool => return: Bool
+def fastapiBodyParameterAutomatic
+    (candidateCount : Nat) (pathCollision : Bool) (queryCollision : Bool) : Bool :=
+  decide (candidateCount = 1) && !pathCollision && !queryCollision
+
+theorem fastapi_body_parameter_automatic_iff_unique_without_collision
+    (candidateCount : Nat) (pathCollision queryCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount pathCollision queryCollision = true ↔
+      candidateCount = 1 ∧ pathCollision = false ∧ queryCollision = false := by
+  cases pathCollision <;> cases queryCollision <;> simp [fastapiBodyParameterAutomatic]
+
+theorem fastapi_body_parameter_rejects_path_collision
+    (candidateCount : Nat) (queryCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount true queryCollision = false := by
+  cases queryCollision <;> simp [fastapiBodyParameterAutomatic]
+
+theorem fastapi_body_parameter_rejects_query_collision
+    (candidateCount : Nat) (pathCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount pathCollision true = false := by
+  cases pathCollision <;> simp [fastapiBodyParameterAutomatic]
+
+-- fr:spec src/project/framework_kernel.rs::nextjs_body_validation_automatic @ 22ec1ca1fa70fe1f5ab3eaca2645ba66a6221b87683a4fe8f50b8baea0cb329e
+-- fr:signature candidate_count: usize => candidateCount: Nat; supported_shape: bool => supportedShape: Bool; return: bool => return: Bool
+def nextjsBodyValidationAutomatic (candidateCount : Nat) (supportedShape : Bool) : Bool :=
+  decide (candidateCount = 1) && supportedShape
+
+theorem nextjs_body_validation_automatic_iff_unique_supported
+    (candidateCount : Nat) (supportedShape : Bool) :
+    nextjsBodyValidationAutomatic candidateCount supportedShape = true ↔
+      candidateCount = 1 ∧ supportedShape = true := by
+  cases supportedShape <;> simp [nextjsBodyValidationAutomatic]
+
+theorem nextjs_body_validation_rejects_unsupported (candidateCount : Nat) :
+    nextjsBodyValidationAutomatic candidateCount false = false := by
+  simp [nextjsBodyValidationAutomatic]
+
+theorem nextjs_body_validation_accepts_unique_supported :
+    nextjsBodyValidationAutomatic 1 true = true := by
+  decide
+
+-- fr:spec src/project/framework_kernel.rs::fastapi_registration_automatic @ 5a48b67679e7d69d6375ea7924f45d6df5de6355043b63c35ec02940d20547b4
+-- fr:signature explicit_target: bool => explicitTarget: Bool; application_binding: bool => applicationBinding: Bool; endpoint_conflict: bool => endpointConflict: Bool; return: bool => return: Bool
+def fastapiRegistrationAutomatic
+    (explicitTarget : Bool) (applicationBinding : Bool) (endpointConflict : Bool) : Bool :=
+  explicitTarget && applicationBinding && !endpointConflict
+
+theorem fastapi_registration_automatic_iff_explicit_valid_without_conflict
+    (explicitTarget applicationBinding endpointConflict : Bool) :
+    fastapiRegistrationAutomatic explicitTarget applicationBinding endpointConflict = true ↔
+      explicitTarget = true ∧ applicationBinding = true ∧ endpointConflict = false := by
+  cases explicitTarget <;> cases applicationBinding <;> cases endpointConflict <;> decide
+
+theorem fastapi_registration_rejects_implicit
+    (applicationBinding endpointConflict : Bool) :
+    fastapiRegistrationAutomatic false applicationBinding endpointConflict = false := by
+  cases applicationBinding <;> cases endpointConflict <;> decide
+
+theorem fastapi_registration_rejects_endpoint_conflict
+    (explicitTarget applicationBinding : Bool) :
+    fastapiRegistrationAutomatic explicitTarget applicationBinding true = false := by
+  cases explicitTarget <;> cases applicationBinding <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_cutover_automatic @ 36a04fe8185b8657fcfab2d784028d2a498c5f699fb8b8725874e52781ba3359
+-- fr:signature explicit_cutover: bool => explicitCutover: Bool; registration_automatic: bool => registrationAutomatic: Bool; external_references: bool => externalReferences: Bool; return: bool => return: Bool
+def migrationCutoverAutomatic
+    (explicitCutover : Bool) (registrationAutomatic : Bool) (externalReferences : Bool) : Bool :=
+  explicitCutover && registrationAutomatic && !externalReferences
+
+theorem migration_cutover_automatic_iff_explicit_registered_without_references
+    (explicitCutover registrationAutomatic externalReferences : Bool) :
+    migrationCutoverAutomatic explicitCutover registrationAutomatic externalReferences = true ↔
+      explicitCutover = true ∧ registrationAutomatic = true ∧ externalReferences = false := by
+  cases explicitCutover <;> cases registrationAutomatic <;> cases externalReferences <;> decide
+
+theorem migration_cutover_rejects_unregistered
+    (explicitCutover externalReferences : Bool) :
+    migrationCutoverAutomatic explicitCutover false externalReferences = false := by
+  cases explicitCutover <;> cases externalReferences <;> decide
+
+theorem migration_cutover_rejects_external_references
+    (explicitCutover registrationAutomatic : Bool) :
+    migrationCutoverAutomatic explicitCutover registrationAutomatic true = false := by
+  cases explicitCutover <;> cases registrationAutomatic <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_dependency_edit_automatic @ 38894165ae7ecc67c248dbed95775572f0aab6cd8bbfd23f1d200a0256bd427a
+-- fr:signature pep621_manifest: bool => pep621Manifest: Bool; owns_destination: bool => ownsDestination: Bool; dependencies_array: bool => dependenciesArray: Bool; requirements_cover_missing: bool => requirementsCoverMissing: Bool; return: bool => return: Bool
+def migrationDependencyEditAutomatic
+    (pep621Manifest : Bool) (ownsDestination : Bool) (dependenciesArray : Bool)
+    (requirementsCoverMissing : Bool) : Bool :=
+  pep621Manifest && ownsDestination && dependenciesArray && requirementsCoverMissing
+
+theorem migration_dependency_edit_automatic_iff_all_boundaries_hold
+    (pep621Manifest ownsDestination dependenciesArray requirementsCoverMissing : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest ownsDestination dependenciesArray
+      requirementsCoverMissing = true ↔
+      pep621Manifest = true ∧ ownsDestination = true ∧ dependenciesArray = true ∧
+        requirementsCoverMissing = true := by
+  cases pep621Manifest <;> cases ownsDestination <;> cases dependenciesArray <;>
+    cases requirementsCoverMissing <;> decide
+
+theorem migration_dependency_edit_rejects_unowned_manifest
+    (pep621Manifest dependenciesArray requirementsCoverMissing : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest false dependenciesArray
+      requirementsCoverMissing = false := by
+  cases pep621Manifest <;> cases dependenciesArray <;> cases requirementsCoverMissing <;> decide
+
+theorem migration_dependency_edit_rejects_missing_requirements
+    (pep621Manifest ownsDestination dependenciesArray : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest ownsDestination dependenciesArray false = false := by
+  cases pep621Manifest <;> cases ownsDestination <;> cases dependenciesArray <;> decide
+
+-- fr:spec src/project.rs::path_confidence @ b5a8549e
+-- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
+def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0
+
+theorem path_confidence_empty : pathConfidence [] = 0 := rfl
+
+theorem path_confidence_cannot_strengthen (edges : List Nat) (edge : Nat)
+    (member : edge ∈ edges) : edge ≤ pathConfidence edges := by
+  induction edges with
+  | nil => simp at member
+  | cons head tail ih =>
+    change edge ≤ max head (pathConfidence tail)
+    rcases List.mem_cons.mp member with same | rest
+    · subst edge
+      exact Nat.le_max_left _ _
+    · exact Nat.le_trans (ih rest) (Nat.le_max_right _ _)
+
+theorem path_confidence_stays_in_tiers (edges : List Nat) (ceiling : Nat)
+    (bounded : ∀ edge ∈ edges, edge ≤ ceiling) : pathConfidence edges ≤ ceiling := by
+  induction edges with
+  | nil => exact Nat.zero_le _
+  | cons head tail ih =>
+    change max head (pathConfidence tail) ≤ ceiling
+    exact Nat.max_le.mpr ⟨bounded head (by simp), ih (fun edge member => bounded edge (by simp [member]))⟩
+
+-- fr:spec src/project.rs::page_length @ b4a90c73
+-- fr:signature total: usize => total: Nat; start: usize => start: Nat; limit: usize => limit: Nat; return: usize => return: Nat
+def pageLength (total : Nat) (start : Nat) (limit : Nat) : Nat :=
+  min (total - start) limit
+
+theorem page_respects_limit (total start limit : Nat) : pageLength total start limit ≤ limit := by
+  exact Nat.min_le_right _ _
+
+theorem page_stays_in_result (total start limit : Nat) (valid : start ≤ total) :
+    start + pageLength total start limit ≤ total := by
+  unfold pageLength
+  omega
+
+theorem page_advances (total start limit : Nat) (remaining : start < total) (positive : 0 < limit) :
+    start < start + pageLength total start limit := by
+  unfold pageLength
+  omega
+
+theorem page_and_remaining_partition (total start limit : Nat) (valid : start ≤ total) :
+    pageLength total start limit + (total - (start + pageLength total start limit)) = total - start := by
+  unfold pageLength
+  omega
+
+theorem beyond_end_is_empty (total start limit : Nat) (ended : total ≤ start) :
+    pageLength total start limit = 0 := by
+  unfold pageLength
+  omega
+
+-- fr:spec src/project.rs::workspace_pattern_matches @ 3166b1cc
+-- fr:signature pattern: &[String] => pattern: List String; path: &[String] => path: List String; return: bool => return: Bool
+def workspacePatternMatches (pattern : List String) (path : List String) : Bool :=
+  match pattern, path with
+  | [], [] => true
+  | p :: ps, part :: parts => (p == "*" || p == part) && workspacePatternMatches ps parts
+  | _, _ => false
+
+theorem matches_preserve_depth (pattern path : List String)
+    (h : workspacePatternMatches pattern path = true) : pattern.length = path.length := by
+  induction pattern generalizing path with
+  | nil => cases path <;> simp_all [workspacePatternMatches]
+  | cons p ps ih =>
+    cases path with
+    | nil => simp [workspacePatternMatches] at h
+    | cons part parts =>
+      simp only [workspacePatternMatches, Bool.and_eq_true] at h
+      simpa using congrArg Nat.succ (ih parts h.2)
+
+theorem different_depth_refuses (pattern path : List String)
+    (h : pattern.length ≠ path.length) : workspacePatternMatches pattern path = false := by
+  cases result : workspacePatternMatches pattern path with
+  | false => rfl
+  | true => exact False.elim (h (matches_preserve_depth pattern path result))
+
+theorem literal_path_matches_itself (path : List String) : workspacePatternMatches path path = true := by
+  induction path with
+  | nil => rfl
+  | cons part parts ih => simp [workspacePatternMatches, ih]
+
+theorem matched_head_is_literal_or_star (p part : String) (ps parts : List String)
+    (h : workspacePatternMatches (p :: ps) (part :: parts) = true) : p = "*" ∨ p = part := by
+  simp only [workspacePatternMatches, Bool.and_eq_true] at h
+  simpa using h.1
+
+def canonicalMembers (members : List Nat) : List Nat :=
+  (members.foldr List.insert []).mergeSort (· ≤ ·)
+
+theorem canonical_membership (members : List Nat) (node : Nat) :
+    node ∈ canonicalMembers members ↔ node ∈ members := by
+  simp only [canonicalMembers, List.mem_mergeSort]
+  induction members with
+  | nil => simp
+  | cons head tail ih => simp [ih]
+
+-- fr:spec src/project.rs::workspace_membership_step @ 5436711f
+-- fr:signature members: &[usize] => members: List Nat; edges: &[(usize, usize)] => edges: List (Nat × Nat); return: Vec<usize> => return: List Nat
+def workspaceMembershipStep (members : List Nat) (edges : List (Nat × Nat)) : List Nat :=
+  canonicalMembers (members ++ (edges.filter (fun edge => edge.1 ∈ members)).map Prod.snd)
+
+theorem membership_step_iff (members : List Nat) (edges : List (Nat × Nat)) (node : Nat) :
+    node ∈ workspaceMembershipStep members edges ↔
+      node ∈ members ∨ ∃ source, (source, node) ∈ edges ∧ source ∈ members := by
+  simp [workspaceMembershipStep, canonical_membership, List.mem_map, List.mem_filter,
+    Prod.exists, and_assoc]
+
+theorem membership_step_preserves (members : List Nat) (edges : List (Nat × Nat))
+    (node : Nat) (present : node ∈ members) : node ∈ workspaceMembershipStep members edges :=
+  (membership_step_iff members edges node).mpr (Or.inl present)
+
+theorem membership_step_monotone (smaller larger : List Nat) (edges : List (Nat × Nat))
+    (included : ∀ node ∈ smaller, node ∈ larger) :
+    ∀ node ∈ workspaceMembershipStep smaller edges, node ∈ workspaceMembershipStep larger edges := by
+  intro node present
+  apply (membership_step_iff larger edges node).mpr
+  rcases (membership_step_iff smaller edges node).mp present with old | ⟨source, edge, known⟩
+  · exact Or.inl (included node old)
+  · exact Or.inr ⟨source, edge, included source known⟩
+
+def membershipRounds (seeds : List Nat) (edges : List (Nat × Nat)) : Nat → List Nat
+  | 0 => canonicalMembers seeds
+  | rounds + 1 => workspaceMembershipStep (membershipRounds seeds edges rounds) edges
+
+inductive MemberReachable (seeds : List Nat) (edges : List (Nat × Nat)) : Nat → Prop
+  | seed {node} : node ∈ seeds → MemberReachable seeds edges node
+  | edge {source target} : MemberReachable seeds edges source →
+      (source, target) ∈ edges → MemberReachable seeds edges target
+
+theorem membership_rounds_sound (seeds : List Nat) (edges : List (Nat × Nat)) (rounds : Nat) :
+    ∀ node ∈ membershipRounds seeds edges rounds, MemberReachable seeds edges node := by
+  induction rounds with
+  | zero =>
+    intro node present
+    exact .seed ((canonical_membership seeds node).mp present)
+  | succ rounds ih =>
+    intro node present
+    rcases (membership_step_iff _ edges node).mp present with old | ⟨source, edge, known⟩
+    · exact ih node old
+    · exact .edge (ih source known) edge
+
+theorem membership_rounds_preserve_seeds (seeds : List Nat) (edges : List (Nat × Nat))
+    (rounds node : Nat) (seed : node ∈ seeds) : node ∈ membershipRounds seeds edges rounds := by
+  induction rounds with
+  | zero => exact (canonical_membership seeds node).mpr seed
+  | succ rounds ih => exact membership_step_preserves _ edges node ih
+
+theorem reachable_in_closed_superset (seeds : List Nat) (edges : List (Nat × Nat))
+    (allowed : Nat → Prop) (includes : ∀ node ∈ seeds, allowed node)
+    (closed : ∀ source target, allowed source → (source, target) ∈ edges → allowed target)
+    (node : Nat) (reachable : MemberReachable seeds edges node) : allowed node := by
+  induction reachable with
+  | seed present => exact includes _ present
+  | edge _ edge ih => exact closed _ _ ih edge
+
+theorem membership_rounds_stay_in_closed_superset (seeds : List Nat) (edges : List (Nat × Nat))
+    (allowed : Nat → Prop) (includes : ∀ node ∈ seeds, allowed node)
+    (closed : ∀ source target, allowed source → (source, target) ∈ edges → allowed target)
+    (rounds node : Nat) (present : node ∈ membershipRounds seeds edges rounds) : allowed node :=
+  reachable_in_closed_superset seeds edges allowed includes closed node
+    (membership_rounds_sound seeds edges rounds node present)
+
+theorem stabilized_membership_is_exact (seeds : List Nat) (edges : List (Nat × Nat)) (rounds : Nat)
+    (stable : workspaceMembershipStep (membershipRounds seeds edges rounds) edges =
+      membershipRounds seeds edges rounds) (node : Nat) :
+    node ∈ membershipRounds seeds edges rounds ↔ MemberReachable seeds edges node := by
+  constructor
+  · exact membership_rounds_sound seeds edges rounds node
+  · apply reachable_in_closed_superset seeds edges (fun n => n ∈ membershipRounds seeds edges rounds)
+    · exact fun n h => membership_rounds_preserve_seeds seeds edges rounds n h
+    · intro source target known edge
+      rw [← stable]
+      exact (membership_step_iff _ edges target).mpr (Or.inr ⟨source, edge, known⟩)
+
+-- fr:spec src/project.rs::batch_section_fits @ 07f1ebce4e5674ffbd99d08895d71eb50c5bae707d92e1865d3a3dbf2d541dbc
+-- fr:signature used: usize => used: Nat; next: usize => next: Nat; budget: usize => budget: Nat; return: bool => return: Bool
+def batchSectionFits (used : Nat) (next : Nat) (budget : Nat) : Bool :=
+  decide (used ≤ budget ∧ next ≤ budget - used)
+
+theorem batch_section_fits_iff (used next budget : Nat) :
+    batchSectionFits used next budget = true ↔ used ≤ budget ∧ used + next ≤ budget := by
+  simp [batchSectionFits]
+  omega
+
+theorem batch_section_acceptance_preserves_budget (used next budget : Nat)
+    (accepted : batchSectionFits used next budget = true) : used + next ≤ budget := by
+  exact (batch_section_fits_iff used next budget).mp accepted |>.2
+
+theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
+    (exhausted : budget < used) : batchSectionFits used next budget = false := by
+  simp [batchSectionFits]
+  omega
+
+-- fr:spec src/project/task.rs::task_author_target_candidate @ a78dc61062d79d3d053c6137333ecdcea1afac60000928b77c69950b464a7f8e
+-- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
+def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
+  match operation with
+  | 0 | 4 | 5 | 6 | 7 | 8 | 9 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5 ∨ language = 6) ∧
+      (target = 1 ∨ target = 2 ∨ (language = 4 ∨ language = 5) ∧ target = 3))
+  | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
+  | 2 => decide ((language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5)) ∨ (language = 6 ∧ target = 0))
+  | 3 => decide (target = 0)
+  | 10 => decide (language = 0 ∧ target = 1)
+  | _ => false
+
+theorem replace_declaration_target_iff (language target : Nat) :
+    taskAuthorTargetCandidate 1 language target = true ↔
+      language = 0 ∧ (target = 1 ∨ target = 2) := by
+  simp [taskAuthorTargetCandidate]
+
+theorem insert_declaration_target_iff (language target : Nat) :
+    taskAuthorTargetCandidate 2 language target = true ↔
+      (language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5)) ∨ (language = 6 ∧ target = 0) := by
+  simp [taskAuthorTargetCandidate]
+
+theorem organize_imports_requires_file (language target : Nat)
+    (accepted : taskAuthorTargetCandidate 3 language target = true) : target = 0 := by
+  simpa [taskAuthorTargetCandidate] using accepted
+
+theorem semantic_body_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 4 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+theorem semantic_delta_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 5 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+theorem semantic_intent_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 6 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+theorem semantic_scalar_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 7 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+theorem disclosed_edit_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 8 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+theorem disclosed_ir_edit_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 9 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+-- fr:spec src/project/semantic.rs::semantic_section_fits @ 175885c4aca0b4b28a0b6793cbdbaba945b5216abf4903d348c15cf2e56a4a25
+-- fr:signature required: usize => required: Nat; budget: usize => budget: Nat; return: bool => return: Bool
+def semanticSectionFits (required : Nat) (budget : Nat) : Bool := decide (required ≤ budget)
+
+theorem semantic_section_fits_iff (required budget : Nat) :
+    semanticSectionFits required budget = true ↔ required ≤ budget := by
+  simp [semanticSectionFits]
+
+theorem semantic_section_never_clips (required budget : Nat)
+    (accepted : semanticSectionFits required budget = true) : required ≤ budget := by
+  exact (semantic_section_fits_iff required budget).mp accepted
+
+theorem semantic_section_rejects_short_budget (required budget : Nat)
+    (short : budget < required) : semanticSectionFits required budget = false := by
+  simp [semanticSectionFits]
+  omega
+
+-- fr:spec src/project.rs::body_replacement_budget @ aab2e9e5858491c8ab262936994086babac8d14f8ae79fecd5e36b96897d65b3
+-- fr:signature before: usize => before: Nat; after: usize => after: Nat; return: bool => return: Bool
+def bodyReplacementBudget (before : Nat) (after : Nat) : Bool :=
+  decide (1 ≤ before ∧ before ≤ 65536 ∧ 1 ≤ after ∧ after ≤ 65536)
+
+theorem body_replacement_bounds (before after : Nat)
+    (accepted : bodyReplacementBudget before after = true) :
+    1 ≤ before ∧ before ≤ 65536 ∧ 1 ≤ after ∧ after ≤ 65536 := by
+  simpa [bodyReplacementBudget] using accepted
+
+theorem body_replacement_budget_is_symmetric (before after : Nat) :
+    bodyReplacementBudget before after = bodyReplacementBudget after before := by
+  simp [bodyReplacementBudget, and_comm, and_left_comm, and_assoc]
+
+-- fr:spec src/project.rs::manifest_inventory_allowed @ 0eb2bdb401147b1fdc49db43b3d0182e2f2570bcbd5519a798799ac51f044594
+-- fr:signature manifests: usize => manifests: Nat; declarations: usize => declarations: Nat; return: bool => return: Bool
+def manifestInventoryAllowed (manifests : Nat) (declarations : Nat) : Bool :=
+  decide (manifests ≤ 1024 ∧ declarations ≤ 65536)
+
+theorem manifest_inventory_bounds (manifests declarations : Nat)
+    (allowed : manifestInventoryAllowed manifests declarations = true) :
+    manifests ≤ 1024 ∧ declarations ≤ 65536 := by
+  simpa [manifestInventoryAllowed] using allowed
+
+theorem manifest_inventory_accepts_empty : manifestInventoryAllowed 0 0 = true := by decide
+
+theorem manifest_inventory_refuses_excess_files (declarations : Nat) :
+    manifestInventoryAllowed 1025 declarations = false := by simp [manifestInventoryAllowed]
+
+theorem manifest_inventory_refuses_excess_declarations (manifests : Nat) :
+    manifestInventoryAllowed manifests 65537 = false := by simp [manifestInventoryAllowed]
+
+-- fr:spec src/project.rs::lockfile_inventory_allowed @ d523f3cce3a9c92ab127000a293fdfe57a8639ef31352774164cb137986124c4
+-- fr:signature lockfiles: usize => lockfiles: Nat; evidence: usize => evidence: Nat; return: bool => return: Bool
+def lockfileInventoryAllowed (lockfiles : Nat) (evidence : Nat) : Bool :=
+  decide (lockfiles ≤ 1024 ∧ evidence ≤ 262144)
+
+theorem lockfile_inventory_bounds (lockfiles evidence : Nat)
+    (allowed : lockfileInventoryAllowed lockfiles evidence = true) :
+    lockfiles ≤ 1024 ∧ evidence ≤ 262144 := by
+  simpa [lockfileInventoryAllowed] using allowed
+
+theorem lockfile_inventory_accepts_empty : lockfileInventoryAllowed 0 0 = true := by decide
+
+theorem lockfile_inventory_refuses_excess_files (evidence : Nat) :
+    lockfileInventoryAllowed 1025 evidence = false := by simp [lockfileInventoryAllowed]
+
+theorem lockfile_inventory_refuses_excess_rows (lockfiles : Nat) :
+    lockfileInventoryAllowed lockfiles 262145 = false := by simp [lockfileInventoryAllowed]
+
+-- fr:spec src/project.rs::dependency_resolution_candidate @ 7a3cb3a0d92308994b75bfc2862a4a548c3b5164267b4946e7cda2d03bf9d4dc
+-- fr:signature lockfile_applies: bool => lockfileApplies: Bool; ecosystem_equal: bool => ecosystemEqual: Bool; name_equal: bool => nameEqual: Bool; return: bool => return: Bool
+def dependencyResolutionCandidate
+    (lockfileApplies : Bool) (ecosystemEqual : Bool) (nameEqual : Bool) : Bool :=
+  lockfileApplies && ecosystemEqual && nameEqual
+
+theorem dependency_resolution_requires_every_identity
+    (lockfileApplies ecosystemEqual nameEqual : Bool) :
+    dependencyResolutionCandidate lockfileApplies ecosystemEqual nameEqual = true ↔
+      lockfileApplies = true ∧ ecosystemEqual = true ∧ nameEqual = true := by
+  cases lockfileApplies <;> cases ecosystemEqual <;> cases nameEqual <;> decide
+
+theorem dependency_resolution_refuses_mismatched_name
+    (lockfileApplies ecosystemEqual : Bool) :
+    dependencyResolutionCandidate lockfileApplies ecosystemEqual false = false := by
+  cases lockfileApplies <;> cases ecosystemEqual <;> decide
+
+-- fr:spec src/project.rs::package_feature_inventory_allowed @ 826798c4a54526a47772af204f43c386d83b6656c9f4bd70238d3662d4fc0a3a
+-- fr:signature features: usize => features: Nat; members: usize => members: Nat; return: bool => return: Bool
+def packageFeatureInventoryAllowed (features : Nat) (members : Nat) : Bool :=
+  decide (features ≤ 65536 ∧ members ≤ 65536)
+
+theorem package_feature_inventory_bounds (features members : Nat)
+    (allowed : packageFeatureInventoryAllowed features members = true) :
+    features ≤ 65536 ∧ members ≤ 65536 := by
+  simpa [packageFeatureInventoryAllowed] using allowed
+
+theorem package_feature_inventory_refuses_excess_features (members : Nat) :
+    packageFeatureInventoryAllowed 65537 members = false := by
+  simp [packageFeatureInventoryAllowed]
+
+theorem package_feature_inventory_refuses_excess_members (features : Nat) :
+    packageFeatureInventoryAllowed features 65537 = false := by
+  simp [packageFeatureInventoryAllowed]
+
+-- fr:spec src/project.rs::package_feature_dependency_request @ 8a9c3ff8756df095379654e0e4f6134dd80e5287af77e2784f68b3c35334ef0a
+-- fr:signature source_active: bool => sourceActive: Bool; dependency_known: bool => dependencyKnown: Bool; weak: bool => weak: Bool; dependency_active: bool => dependencyActive: Bool; return: bool => return: Bool
+def packageFeatureDependencyRequest
+    (sourceActive : Bool) (dependencyKnown : Bool) (weak : Bool) (dependencyActive : Bool) : Bool :=
+  sourceActive && dependencyKnown && (!weak || dependencyActive)
+
+theorem package_feature_dependency_request_iff
+    (sourceActive dependencyKnown weak dependencyActive : Bool) :
+    packageFeatureDependencyRequest sourceActive dependencyKnown weak dependencyActive = true ↔
+      sourceActive = true ∧ dependencyKnown = true ∧
+        (weak = false ∨ dependencyActive = true) := by
+  cases sourceActive <;> cases dependencyKnown <;> cases weak <;> cases dependencyActive <;>
+    decide
+
+theorem package_feature_weak_request_requires_active_dependency
+    (sourceActive dependencyKnown : Bool) :
+    packageFeatureDependencyRequest sourceActive dependencyKnown true false = false := by
+  cases sourceActive <;> cases dependencyKnown <;> decide
+
+-- fr:spec src/project.rs::artifact_verification_status @ 9725f2d04474ea7c00489e35bc35b01fe23737eab32f50a99157f9c9e43ae4a5
+-- fr:signature expectation_present: bool => expectationPresent: Bool; algorithm_supported: bool => algorithmSupported: Bool; digest_equal: bool => digestEqual: Bool; return: usize => return: Nat
+def artifactVerificationStatus
+    (expectationPresent : Bool) (algorithmSupported : Bool) (digestEqual : Bool) : Nat :=
+  if !expectationPresent then 0
+  else if !algorithmSupported then 1
+  else if !digestEqual then 2
+  else 3
+
+theorem artifact_verification_status_bounded
+    (expectationPresent algorithmSupported digestEqual : Bool) :
+    artifactVerificationStatus expectationPresent algorithmSupported digestEqual ≤ 3 := by
+  cases expectationPresent <;> cases algorithmSupported <;> cases digestEqual <;> decide
+
+theorem artifact_verification_succeeds_iff
+    (expectationPresent algorithmSupported digestEqual : Bool) :
+    artifactVerificationStatus expectationPresent algorithmSupported digestEqual = 3 ↔
+      expectationPresent = true ∧ algorithmSupported = true ∧ digestEqual = true := by
+  cases expectationPresent <;> cases algorithmSupported <;> cases digestEqual <;> decide
+
+-- fr:spec src/project.rs::handle_selection_status @ 1e07844a9f21ec11e649ef957c9322bb73e1f78956674537081823ad4dd544f4
+-- fr:signature in_scope: bool => inScope: Bool; declaration: bool => declaration: Bool; is_local: bool => isLocal: Bool; include_locals: bool => includeLocals: Bool; return: usize => return: Nat
+def handleSelectionStatus (inScope : Bool) (declaration : Bool) (isLocal : Bool)
+    (includeLocals : Bool) : Nat :=
+  if !inScope then 0
+  else if !declaration then 1
+  else if isLocal && !includeLocals then 2
+  else 3
+
+theorem handle_selection_status_bounded (inScope declaration isLocal includeLocals : Bool) :
+    handleSelectionStatus inScope declaration isLocal includeLocals ≤ 3 := by
+  cases inScope <;> cases declaration <;> cases isLocal <;> cases includeLocals <;>
+    decide
+
+theorem handle_selection_outside_scope (declaration isLocal includeLocals : Bool) :
+    handleSelectionStatus false declaration isLocal includeLocals = 0 := by
+  simp [handleSelectionStatus]
+
+theorem handle_selection_non_declaration (isLocal includeLocals : Bool) :
+    handleSelectionStatus true false isLocal includeLocals = 1 := by
+  simp [handleSelectionStatus]
+
+theorem handle_selection_omits_filtered_local :
+    handleSelectionStatus true true true false = 2 := by
+  simp [handleSelectionStatus]
+
+theorem handle_selection_returns_declaration (isLocal includeLocals : Bool)
+    (allowed : isLocal = false ∨ includeLocals = true) :
+    handleSelectionStatus true true isLocal includeLocals = 3 := by
+  rcases allowed with localFalse | includeTrue <;>
+    simp [handleSelectionStatus, *]
+
+theorem structural_refactor_target_iff (language target : Nat) :
+    taskAuthorTargetCandidate 10 language target = true ↔ language = 0 ∧ target = 1 := by
+  simp [taskAuthorTargetCandidate]
+
+end FrKernels.Project

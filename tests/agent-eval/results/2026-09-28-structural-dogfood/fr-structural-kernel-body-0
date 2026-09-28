@@ -1,0 +1,27 @@
+{
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("task-author-targets")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let mut checked = 0usize;
+    for operation in 0..12 {
+        for language in 0..22 {
+            for target in 0..9 {
+                assert_eq!(
+                    actual.next(),
+                    Some(fun_refactor::project::task_author_target_candidate(
+                        operation, language, target
+                    )),
+                    "operation {operation}, language {language}, target {target}"
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(checked, 2_376);
+}

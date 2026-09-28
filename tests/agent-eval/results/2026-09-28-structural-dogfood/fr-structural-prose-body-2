@@ -1,0 +1,75 @@
+{
+    let request: Request =
+        serde_json::from_str(input).context("invalid structural refactor request.")?;
+    let node = project.target(handle)?;
+    let symbol = project.nodes[node]
+        .symbol
+        .and_then(|id| project.index.symbol(id))
+        .context("structural refactor requires a declaration.")?;
+    ensure!(
+        symbol.language == Language::Rust && symbol.kind == SymbolKind::Function,
+        "structural refactor requires a Rust free function."
+    );
+    let (edits, detail) = match request {
+        Request::Rename { name } => {
+            ensure!(name.len() <= 256, "rename name exceeds 256 bytes.");
+            let plan = crate::refactor::rename::plan(project.index, symbol.id, &name)?;
+            ensure!(plan.warnings.is_empty(), "structural rename has unresolved, dispatch or textual warnings; resolve them first.");
+            (
+                plan.edits,
+                json!({"operation": "rename", "old_name": plan.old_name,
+                "new_name": plan.new_name, "reference_edits": plan.reference_edits}),
+            )
+        }
+        request => {
+            let (change, detail) = match request {
+                Request::RemoveParameter { index } => {
+                    ensure!(index < 64, "parameter index must be below 64.");
+                    (
+                        crate::refactor::signature::Change::Remove(index),
+                        json!({"operation": "remove-parameter", "index": index}),
+                    )
+                }
+                Request::MoveParameter { from, to } => {
+                    ensure!(
+                        from < 64 && to < 64 && from != to,
+                        "parameter positions must be distinct and below 64."
+                    );
+                    (
+                        crate::refactor::signature::Change::Move { from, to },
+                        json!({"operation": "move-parameter", "from": from, "to": to}),
+                    )
+                }
+                Request::Rename { .. } => unreachable!(),
+            };
+            validate_scalar_calls(project, symbol)?;
+            let plan = crate::refactor::signature::change(project.index, symbol.id, change)?;
+            ensure!(
+                plan.notes.is_empty(),
+                "structural signature has unaccounted sites or notes."
+            );
+            (
+                plan.edits,
+                json!({"request": detail, "call_sites": plan.call_sites}),
+            )
+        }
+    };
+    ensure!(!edits.is_empty(), "structural refactor produced no edits.");
+    for path in edits.paths() {
+        let source = project
+            .sources
+            .get(path)
+            .context("structural refactor leaves the captured source scope.")?;
+        ensure!(
+            crate::vfs::read_to_string(path)? == *source,
+            "structural refactor source changed during planning."
+        );
+    }
+    Ok(Plan {
+        edits,
+        report: json!({"operation": "refactor", "handle": handle,
+        "detail": detail, "changed": true, "behavior_checked": false,
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust free functions and indexed references; external consumers and dynamic dispatch excluded."}),
+    })
+}
