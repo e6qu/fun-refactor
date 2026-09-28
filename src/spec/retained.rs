@@ -277,7 +277,13 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         .collect::<Vec<_>>();
     let checked = super::check_strict(&root, &selected, false)?;
     for anchor in &checked.anchors {
-        confined(&root, &anchor.source)?;
+        confined(
+            &root,
+            anchor
+                .source
+                .strip_prefix(&root)
+                .context("proof source leaves the workspace.")?,
+        )?;
     }
     let debt_free = checked.debts.is_empty() && checked.obligations == 0;
     let mut results = Vec::new();

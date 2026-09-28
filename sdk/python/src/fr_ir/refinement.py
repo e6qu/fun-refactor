@@ -85,7 +85,12 @@ class ModelComparison:
         if (report.schema != "fr-comparison-review-1" or report.at("/package") != package
                 or report.at("/before_digest") != self.before.report.at("/digest")
                 or report.at("/relation") != self.relation or report.at("/arguments") != list(self.arguments)
-                or report.at("/source_implementation_proved") is not False):
+                or report.at("/source_implementation_proved") is not False
+                or report.at("/module") != f"{package}/FrSpecs/{self.name}.lean"
+                or report.at("/theorem") != "preserves"
+                or report.at("/applied") is not (basis is not None)
+                or report.at("/saved") is not False
+                or (basis is not None and report.at("/basis") != basis)):
             raise FrRuntimeError("comparison report differs from the requested claim")
         return report
 

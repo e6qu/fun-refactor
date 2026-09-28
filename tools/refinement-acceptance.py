@@ -185,7 +185,12 @@ def audit(binary, output):
     assert result["passed"] and result["changed_source_invalidated"] and result["models"]["fresh_process"]
     store = DirectoryObjectStore(output/"objects")
     assert ProofReport.restore(store, result["models"]["report_root"]).passed
-    ModelSnapshot.restore(store, result["models"]["snapshot_root"])
+    before_snapshot = ModelSnapshot.restore(store, result["models"]["snapshot_root"])
+    assert before_snapshot.report.at("/source") == (output/"fixture/subject.rs").read_text()
+    for path in (output/"specs/FrSpecs").glob("*.refinement.json"):
+        assert json.loads(path.read_text())["request"]["before"] == before_snapshot.report.to_data()
+    failed = json.loads((output/"false-claim.json").read_text())
+    assert failed["refused"] is True and failed["report"]["passed"] is False
     with tempfile.TemporaryDirectory(prefix="fr-refinement-receiver-") as temporary:
         for arm in ("ordinary", "native"):
             root = Path(temporary)/arm

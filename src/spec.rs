@@ -3308,7 +3308,7 @@ fn render_formal_module(plan: &FormalPlan, proofs: &BTreeMap<String, String>) ->
         .collect::<Vec<_>>()
         .join("; ");
     let mut text = format!(
-        "namespace FrSpecs\n\n-- fr:generated-begin formal-kernel\n-- fr:plan {}\n-- fr:spec {}::{} @ {}\n-- fr:signature {}\n{}\n",
+        "namespace FrSpecs\n\n-- fr:generated-begin formal-kernel\n-- fr:plan {}\n-- fr:spec {}::{} @ {}\n-- fr:signature {}\nset_option linter.unusedVariables false in\n{}\n",
         plan.object_digest,
         plan.target.source.display(),
         plan.target.symbol,

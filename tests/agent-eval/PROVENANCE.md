@@ -91,7 +91,7 @@ Git attributes preserve evidence bytes and allow the context-only space lines th
 Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
-The [representative acceptance registry](representative-acceptance.json) binds seven deterministic
+The [representative acceptance registry](representative-acceptance.json) binds eight deterministic
 cases and ten live trials:
 the pinned unfamiliar regex workspace, Rust multi-file and structural delivery, TSX/React body changes,
 CSS/Tailwind/Markdown/Mermaid surfaces, application migration and agent-authored Lean tactics. Its

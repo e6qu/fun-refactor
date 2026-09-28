@@ -36,80 +36,233 @@
     },
     {
       "id": "regex-upstream-replay",
-      "covers": ["unfamiliar-upstream"],
+      "covers": [
+        "unfamiliar-upstream"
+      ],
       "runner": "tools/agent-eval.py",
       "runner_sha256": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
       "fixture_revision": "rust-lang/regex@2b527599eb9eea0dcc288c704584f242f26a5c61",
       "oracle": "upstream checks, independent receiver oracle and exact reversal",
-      "postconditions": ["patch applies", "behavior passes", "tracked bytes restore exactly"],
+      "postconditions": [
+        "patch applies",
+        "behavior passes",
+        "tracked bytes restore exactly"
+      ],
       "external": true,
-      "required_tools": ["cargo", "git", "python3"],
-      "command": ["cargo", "test", "--test", "agent_acceptance", "recorded_workspace_patches_pass_checks_oracles_and_exact_reversal", "--", "--ignored", "--exact", "--test-threads", "1"]
+      "required_tools": [
+        "cargo",
+        "git",
+        "python3"
+      ],
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "agent_acceptance",
+        "recorded_workspace_patches_pass_checks_oracles_and_exact_reversal",
+        "--",
+        "--ignored",
+        "--exact",
+        "--test-threads",
+        "1"
+      ]
     },
     {
       "id": "rust-multi-file-reviewed-batch",
-      "covers": ["rust-multi-file"],
+      "covers": [
+        "rust-multi-file"
+      ],
       "runner": "tools/author-batch-context.py",
       "runner_sha256": "ecf609a63f0610cb6dffbe7760c5ffbc80edbf148103a86cbd0c5d41934b02b4",
       "fixture_revision": "6d24ac4ab9f266af013a68b061e2ff31568f5b08f3dfe00116f6562e63c4e328",
       "oracle": "rustc compilation, exact stdout, source snapshots and receiver patch replay",
-      "postconditions": ["two files changed", "undo and redo exact", "receiver prints 7"],
-      "required_tools": ["git", "python3", "rustc"],
-      "command": ["python3", "tools/author-batch-context.py", "--fr", "<FR>", "--repetitions", "2"]
+      "postconditions": [
+        "two files changed",
+        "undo and redo exact",
+        "receiver prints 7"
+      ],
+      "required_tools": [
+        "git",
+        "python3",
+        "rustc"
+      ],
+      "command": [
+        "python3",
+        "tools/author-batch-context.py",
+        "--fr",
+        "<FR>",
+        "--repetitions",
+        "2"
+      ]
     },
     {
       "id": "tsx-react-body-batch",
-      "covers": ["typescript-react"],
+      "covers": [
+        "typescript-react"
+      ],
       "runner": "tests/author_cli.rs",
       "runner_sha256": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
       "fixture_revision": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
       "test": "batch_combines_languages_and_resolves_fragments_from_workspace_root",
       "oracle": "exact TSX body bytes plus parser admission and transaction reversal",
-      "postconditions": ["React TSX body changes", "three-language batch applies", "undo restores all files"],
-      "required_tools": ["cargo"],
-      "command": ["cargo", "test", "--test", "author_cli", "batch_combines_languages_and_resolves_fragments_from_workspace_root", "--", "--exact", "--test-threads", "1"]
+      "postconditions": [
+        "React TSX body changes",
+        "three-language batch applies",
+        "undo restores all files"
+      ],
+      "required_tools": [
+        "cargo"
+      ],
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "author_cli",
+        "batch_combines_languages_and_resolves_fragments_from_workspace_root",
+        "--",
+        "--exact",
+        "--test-threads",
+        "1"
+      ]
     },
     {
       "id": "style-tailwind-mermaid-surfaces",
-      "covers": ["css-tailwind-mermaid"],
+      "covers": [
+        "css-tailwind-mermaid"
+      ],
       "runner": "tests/author_cli.rs",
       "runner_sha256": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
       "fixture_revision": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
       "test": "surface_capabilities_edit_css_html_markdown_and_mermaid_with_history",
       "oracle": "exact CSS, Tailwind-class, Markdown and Mermaid source postconditions",
-      "postconditions": ["preview is unchanged", "undo and redo exact", "patch basis matches"],
-      "required_tools": ["cargo"],
-      "command": ["cargo", "test", "--test", "author_cli", "surface_capabilities_edit_css_html_markdown_and_mermaid_with_history", "--", "--exact", "--test-threads", "1"]
+      "postconditions": [
+        "preview is unchanged",
+        "undo and redo exact",
+        "patch basis matches"
+      ],
+      "required_tools": [
+        "cargo"
+      ],
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "author_cli",
+        "surface_capabilities_edit_css_html_markdown_and_mermaid_with_history",
+        "--",
+        "--exact",
+        "--test-threads",
+        "1"
+      ]
     },
     {
       "id": "express-to-go-application-migration",
-      "covers": ["backend-migration"],
+      "covers": [
+        "backend-migration"
+      ],
       "runner": "tests/agent_intent_cli.rs",
       "runner_sha256": "a965d68a78dbb89c5bf8fd796b91359307dd7a4d3625938b26501ddb9a40f811",
       "fixture_revision": "19c502fbc19a0823898631541a6b42a49f13cd6a83b3a88b59fe631aefc41187",
       "test": "tagged_application_migration_executes_the_common_ir_planner",
       "oracle": "normalized application IR, generated Go parser and creation patch",
-      "postconditions": ["source remains unchanged", "routes.go is created", "reviewed patch contains creation"],
-      "required_tools": ["cargo"],
-      "command": ["cargo", "test", "--test", "agent_intent_cli", "tagged_application_migration_executes_the_common_ir_planner", "--", "--exact", "--test-threads", "1"]
+      "postconditions": [
+        "source remains unchanged",
+        "routes.go is created",
+        "reviewed patch contains creation"
+      ],
+      "required_tools": [
+        "cargo"
+      ],
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "agent_intent_cli",
+        "tagged_application_migration_executes_the_common_ir_planner",
+        "--",
+        "--exact",
+        "--test-threads",
+        "1"
+      ]
     },
     {
       "id": "agent-authored-lean-proof",
-      "covers": ["agent-authored-lean-proof"],
+      "covers": [
+        "agent-authored-lean-proof"
+      ],
       "runner": "tests/agent_intent_cli.rs",
       "runner_sha256": "a965d68a78dbb89c5bf8fd796b91359307dd7a4d3625938b26501ddb9a40f811",
       "fixture_revision": "19c502fbc19a0823898631541a6b42a49f13cd6a83b3a88b59fe631aefc41187",
       "test": "tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history",
       "oracle": "Lean checker, strict correspondence receipt, stale-input refusals and no proof debt",
-      "postconditions": ["agent tactics accepted", "changed evidence refuses", "patch delivered", "no sorry remains"],
-      "required_tools": ["cargo", "lake", "lean"],
-      "command": ["cargo", "test", "--test", "agent_intent_cli", "tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history", "--", "--exact", "--test-threads", "1"]
+      "postconditions": [
+        "agent tactics accepted",
+        "changed evidence refuses",
+        "patch delivered",
+        "no sorry remains"
+      ],
+      "required_tools": [
+        "cargo",
+        "lake",
+        "lean"
+      ],
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "agent_intent_cli",
+        "tagged_proof_workflow_checks_scaffold_and_agent_tactics_before_history",
+        "--",
+        "--exact",
+        "--test-threads",
+        "1"
+      ]
+    },
+    {
+      "id": "retained-boolean-model-comparisons",
+      "covers": [
+        "rust-structural",
+        "boolean-translation",
+        "old-new-model-proofs"
+      ],
+      "runner": "tests/model_comparisons.rs",
+      "runner_sha256": "e1cd40cec2ca1eec152d2ec00c5e8da412185350104f6bee7bd9697b51ac2ece",
+      "fixture_revision": "9b0ab8efe6679e98373b986162849f4ffab8952ec521f0fd51885177b1ea6392",
+      "test": "retained_model_comparisons_check_truth_tables_proofs_and_receiver_reversal",
+      "oracle": "compiled Rust and Python truth tables, Lean model relations and independent receiver reversal",
+      "postconditions": [
+        "eight assignments agree",
+        "three explicit model relations check",
+        "stale source and false claims refuse",
+        "delivered patches reverse exactly"
+      ],
+      "required_tools": [
+        "cargo",
+        "rustc",
+        "git",
+        "python3",
+        "lake",
+        "lean"
+      ],
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "model_comparisons",
+        "retained_model_comparisons_check_truth_tables_proofs_and_receiver_reversal",
+        "--",
+        "--exact",
+        "--test-threads",
+        "1"
+      ]
     }
   ],
   "live_trials": [
     {
       "id": "regex-guided-understand-trace",
-      "covers": ["unfamiliar-upstream-understand-trace"],
+      "covers": [
+        "unfamiliar-upstream-understand-trace"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-read-acceptance/manifest.json",
       "runner": "tools/upstream-read-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-read-agent-2026-09-20.py",
@@ -119,7 +272,11 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "pinned source delegation and helper bodies, exact cross-crate trace, bounded reveals and unchanged source",
-      "postconditions": ["understand and trace guidance followed", "facade reaches regex-syntax::escape", "runtime proof not claimed"],
+      "postconditions": [
+        "understand and trace guidance followed",
+        "facade reaches regex-syntax::escape",
+        "runtime proof not claimed"
+      ],
       "diagnostics": [
         "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-1/manifest.json",
         "tests/agent-eval/results/2026-09-20-upstream-read-diagnostic-2/manifest.json",
@@ -129,7 +286,9 @@
     },
     {
       "id": "regex-guided-multi-file-rename",
-      "covers": ["rust-multi-file"],
+      "covers": [
+        "rust-multi-file"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-rename-acceptance/manifest.json",
       "runner": "tools/upstream-rename-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-rename-agent-2026-09-20.py",
@@ -139,14 +298,20 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "exact three-file source, declared upstream/CLI/minimal checks, receiver patch replay and 64 independent compiled cases",
-      "postconditions": ["reviewed rename across three files", "eight delivery stages pass", "regex::escape facade preserved"],
+      "postconditions": [
+        "reviewed rename across three files",
+        "eight delivery stages pass",
+        "regex::escape facade preserved"
+      ],
       "diagnostics": [
         "tests/agent-eval/results/2026-09-20-upstream-rename-diagnostic-1/manifest.json"
       ]
     },
     {
       "id": "regex-guided-cross-crate-bodies",
-      "covers": ["rust-multi-file"],
+      "covers": [
+        "rust-multi-file"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-acceptance/manifest.json",
       "runner": "tools/upstream-cross-crate-bodies-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-cross-crate-bodies-agent-2026-09-21.py",
@@ -156,7 +321,11 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "two Rust body boundaries, receiver patch replay, offline builds, 64 independent behavior cases, append semantics and allocation counts",
-      "postconditions": ["two authored bodies changed across crates", "eight delivery stages pass", "nonempty facade calls allocate once"],
+      "postconditions": [
+        "two authored bodies changed across crates",
+        "eight delivery stages pass",
+        "nonempty facade calls allocate once"
+      ],
       "diagnostics": [
         "tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-1/manifest.json",
         "tests/agent-eval/results/2026-09-21-upstream-cross-crate-bodies-diagnostic-2/manifest.json",
@@ -165,7 +334,10 @@
     },
     {
       "id": "react-guided-tailwind-surface",
-      "covers": ["typescript-react", "css-tailwind"],
+      "covers": [
+        "typescript-react",
+        "css-tailwind"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-react-acceptance/manifest.json",
       "runner": "tools/upstream-react-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-react-agent-2026-09-20.py",
@@ -175,12 +347,18 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "exact pinned TSX source, receiver patch replay, TypeScript/Vite build and generated Tailwind CSS",
-      "postconditions": ["one header class changed", "eight delivery stages pass", "text-xl selector emitted"],
+      "postconditions": [
+        "one header class changed",
+        "eight delivery stages pass",
+        "text-xl selector emitted"
+      ],
       "diagnostics": []
     },
     {
       "id": "react-guided-standalone-css",
-      "covers": ["css-tailwind"],
+      "covers": [
+        "css-tailwind"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-css-acceptance/manifest.json",
       "runner": "tools/upstream-css-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-css-agent-2026-09-20.py",
@@ -190,12 +368,18 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "exact CSS source, receiver patch replay, PostCSS check, Vite build and generated selector",
-      "postconditions": ["one standalone CSS selector changed", "eight delivery stages pass", "resource-links selector emitted"],
+      "postconditions": [
+        "one standalone CSS selector changed",
+        "eight delivery stages pass",
+        "resource-links selector emitted"
+      ],
       "diagnostics": []
     },
     {
       "id": "react-guided-tsx-body",
-      "covers": ["typescript-react"],
+      "covers": [
+        "typescript-react"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-21-upstream-tsx-body-acceptance/manifest.json",
       "runner": "tools/upstream-tsx-body-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-tsx-body-agent-2026-09-21.py",
@@ -205,14 +389,20 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "exact TSX body insertion, reviewed patch replay, TypeScript/Vite build and three React server renders",
-      "postconditions": ["one authored Layout body changed", "eight delivery stages pass", "mobile and responsive labels render"],
+      "postconditions": [
+        "one authored Layout body changed",
+        "eight delivery stages pass",
+        "mobile and responsive labels render"
+      ],
       "diagnostics": [
         "tests/agent-eval/results/2026-09-21-upstream-tsx-body-diagnostic-1/manifest.json"
       ]
     },
     {
       "id": "react-guided-multi-body",
-      "covers": ["typescript-react"],
+      "covers": [
+        "typescript-react"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-21-upstream-multibody-acceptance/manifest.json",
       "runner": "tools/upstream-multibody-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-multibody-agent-2026-09-21.py",
@@ -222,14 +412,20 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "two exact TSX body edits, receiver patch replay, TypeScript/Vite build and three paired React server renders",
-      "postconditions": ["two authored bodies changed in one reviewed delivery", "eight delivery stages pass", "mobile and responsive landmarks render"],
+      "postconditions": [
+        "two authored bodies changed in one reviewed delivery",
+        "eight delivery stages pass",
+        "mobile and responsive landmarks render"
+      ],
       "diagnostics": [
         "tests/agent-eval/results/2026-09-21-upstream-multibody-diagnostic-1/manifest.json"
       ]
     },
     {
       "id": "express-guided-go-application-migration",
-      "covers": ["backend-migration"],
+      "covers": [
+        "backend-migration"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-21-application-migration-acceptance/manifest.json",
       "runner": "tools/application-migration-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/application-migration-agent-2026-09-21.py",
@@ -239,12 +435,18 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "reviewed Express-to-Go creation patch, source coexistence and seven real Go HTTP accepted/refused cases",
-      "postconditions": ["validated inputs read from source", "eight delivery stages pass", "generated Go handler preserves the portable contract"],
+      "postconditions": [
+        "validated inputs read from source",
+        "eight delivery stages pass",
+        "generated Go handler preserves the portable contract"
+      ],
       "diagnostics": []
     },
     {
       "id": "guided-lean-proof-authoring",
-      "covers": ["agent-authored-lean-proof"],
+      "covers": [
+        "agent-authored-lean-proof"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-21-proof-authoring-acceptance/manifest.json",
       "runner": "tools/proof-authoring-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/proof-authoring-agent-2026-09-21.py",
@@ -254,12 +456,18 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "agent-authored Lean tactics, reviewed proof-region patch, fresh source anchor, strict verification and zero proof debt",
-      "postconditions": ["source-free proof task followed", "eight delivery stages pass", "fresh receiver verifies the theorem with no sorry"],
+      "postconditions": [
+        "source-free proof task followed",
+        "eight delivery stages pass",
+        "fresh receiver verifies the theorem with no sorry"
+      ],
       "diagnostics": []
     },
     {
       "id": "micromaid-guided-mermaid-node",
-      "covers": ["mermaid"],
+      "covers": [
+        "mermaid"
+      ],
       "manifest": "tests/agent-eval/results/2026-09-20-upstream-mermaid-acceptance/manifest.json",
       "runner": "tools/upstream-mermaid-agent.py",
       "runner_snapshot": "tests/agent-eval/runner-snapshots/upstream-mermaid-agent-2026-09-20.py",
@@ -269,7 +477,11 @@
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.155.1",
       "oracle": "exact Markdown source, reviewed patch replay, five-edge graph and pinned Mermaid parser",
-      "postconditions": ["one diagram node renamed at four sites", "eight delivery stages pass", "both flowcharts parse"],
+      "postconditions": [
+        "one diagram node renamed at four sites",
+        "eight delivery stages pass",
+        "both flowcharts parse"
+      ],
       "diagnostics": [
         "tests/agent-eval/results/2026-09-20-upstream-mermaid-diagnostic-1/manifest.json"
       ]
@@ -283,7 +495,10 @@
       "model": "gpt-5.6-luna",
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.154.0",
-      "inputs": ["33e10043ef356e6e330b1d4e4ca34433c55c2b80db2bc290f24a0fd961dd97b2", "b6d8b0261b0915ec656b9a9dcb53df2d7e8972b3dffe173e0184d21a0a01fbc6"],
+      "inputs": [
+        "33e10043ef356e6e330b1d4e4ca34433c55c2b80db2bc290f24a0fd961dd97b2",
+        "b6d8b0261b0915ec656b9a9dcb53df2d7e8972b3dffe173e0184d21a0a01fbc6"
+      ],
       "oracle": "exact Rust source plus 33 compiled behavior cases"
     },
     {
@@ -293,7 +508,10 @@
       "model": "gpt-5.6-luna",
       "reasoning_effort": "low",
       "tool_version": "codex-cli 0.154.0",
-      "inputs": ["b9e74c1c56c703831efab88791c6de554abbae5570b948dfb64b7c3752f88424", "58071940529d7a69b59eea65541f99f067a2a803cf1edb932b9dc393562ad1f5"],
+      "inputs": [
+        "b9e74c1c56c703831efab88791c6de554abbae5570b948dfb64b7c3752f88424",
+        "58071940529d7a69b59eea65541f99f067a2a803cf1edb932b9dc393562ad1f5"
+      ],
       "oracle": "exact Rust source plus 33 compiled behavior cases"
     }
   ]

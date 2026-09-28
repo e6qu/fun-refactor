@@ -218,3 +218,40 @@ def test_capture_and_request_byte_limits(tmp_path):
     request.write_text(" "*262145)
     with pytest.raises(FrRuntimeError, match="262144 bytes"):
         client.call("spec", "compare", "--from", str(request))
+
+
+def test_existing_formalization_retains_unused_boolean_parameters(tmp_path):
+    root, client, before = fixture(tmp_path)
+    plan = client.call("spec", "plan", "subject.rs::allowed", "--property", "ir-model").to_data()
+    path = root/"formal-plan.json"
+    path.write_text(json.dumps(plan))
+    client.call("spec", "scaffold", "--from", str(path), "--write")
+    target = f"specs/FrSpecs/{plan['kernel']['module']}.lean::{plan['properties'][0]['name']}"
+    tactics = root/"tactics.txt"
+    tactics.write_text("cases a <;> cases b <;> cases unused <;> rfl\n")
+    checked = client.call("spec", "proof-check", target, "--from", str(tactics))
+    assert checked.at("/passed") is True
+    client.call("spec", "prove", target, "--from", str(tactics), "--write")
+    report = ProofReport.review(client).execute(client)
+    assert report.passed and report.report.at("/source_implementation_proved") is False
+    assert len(report.report.at("/evidence/kernel_correspondence")) == 1
+
+
+def test_comparison_saved_plan_reverses_its_generated_files(tmp_path):
+    root, client, before = fixture(tmp_path)
+    request = root/"request.json"
+    comparison = ModelComparison("Saved", before, "subject.rs::allowed", (0, 1, 2))
+    request.write_text(json.dumps(comparison.to_data()))
+    review = comparison.review(client)
+    saved = client.call("spec", "compare", "--from", str(request), "--save-plan", "--basis", review.at("/basis"))
+    assert saved.at("/saved") is True and saved.at("/applied") is False
+    module = root/"specs/FrSpecs/Saved.lean"
+    manifest = root/"specs/FrSpecs/Saved.refinement.json"
+    assert not module.exists() and not manifest.exists()
+    transaction = str(saved.at("/transaction"))
+    client.call("history", "apply", transaction, "--write")
+    assert module.is_file() and manifest.is_file()
+    client.call("history", "undo", transaction, "--write")
+    assert not module.exists() and not manifest.exists()
+    client.call("history", "redo", transaction, "--write")
+    assert module.is_file() and manifest.is_file()
