@@ -120,7 +120,7 @@ Function identities include the full relative path, such as `pkg/helper.py::forw
 Same-named helpers in separate packages keep separate summaries and exact cross-file occurrences.
 `project flow-facts HANDLE --imports` exposes the same analysis through bounded explanations and semantic links.
 
-The `fr-flow-modules-2` dependency record includes the entry resolution and each import lookup.
+The `fr-flow-modules-3` dependency record includes the entry resolution and each import lookup.
 Every module component retains four candidates: `.py`, `/__init__.py`, `.pyi` and `/__init__.pyi`.
 Parent components require regular packages; the final component admits a module or package initializer.
 Each admitted source requires absent competing source and stub candidates.
@@ -130,8 +130,13 @@ Duplicate bindings, shadowing, ignored files, symlink leaves or ancestors and sy
 Import aliases refer only to static module bindings; arbitrary object aliases remain unsupported.
 
 Ordinary modules admit function declarations, static imports, comments, inert string expressions and `pass`.
-Package initializers admit the same subset without imports. Interpolated strings retain effect cutoffs.
-Namespace packages, re-exports, `from . import helper`, wildcard imports, cyclic initialization and module effects retain cutoffs.
+Package initializers also admit explicit function imports. Interpolated strings retain effect cutoffs.
+Function re-exports follow at most 16 named bindings to the defining function. Each member lookup
+retains its ordered `binding_chain` of source paths and names; aliases never invent a new function identity.
+`from . import forward` can select an exported function, but cannot import a submodule.
+Parent initialization dependencies bind source without creating an artificial import cycle.
+Explicit import cycles, duplicate bindings and package names that conflict with loaded child modules remain incomplete.
+Namespace packages, module-valued re-exports, wildcard imports and module effects retain cutoffs.
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
 The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.
 Rule names must be unqualified in import mode.

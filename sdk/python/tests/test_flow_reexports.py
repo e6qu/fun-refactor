@@ -130,3 +130,19 @@ def test_typed_reexport_chain_rejects_forgery_with_recomputed_digest(tmp_path, m
         ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
     with pytest.raises(FrRuntimeError):
         FlowDependencies.from_report(FrReport(value, ()))
+
+
+def test_binding_chain_budget_stops_before_unbounded_alias_chasing(tmp_path):
+    client, rules = install(tmp_path)
+    even, odd = [], []
+    for number in range(20):
+        line = f'from {"right" if number % 2 == 0 else "left"} import n{number + 1} as n{number}\n'
+        (even if number % 2 == 0 else odd).append(line)
+    even.append('def n20(value):\n    return value\n')
+    (tmp_path / 'left.py').write_text(''.join(even))
+    (tmp_path / 'right.py').write_text(''.join(odd))
+    (tmp_path / 'app.py').write_text('from left import n0\ndef positive():\n    return sink(n0(source()))\n')
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    lookup = next(item for item in result.dependencies.lookups if item.importer == 'app.py')
+    assert lookup.resolution == 'budget' and len(lookup.binding_chain) == 16
