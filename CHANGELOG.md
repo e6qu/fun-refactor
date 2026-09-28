@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.37.0...fun-refactor-v0.38.0) (2026-09-28)
+
+
+### Features
+
+* bound model reads and isolate virtual snapshot workspaces ([#382](https://github.com/e6qu/fun-refactor/issues/382)) ([9d29d38](https://github.com/e6qu/fun-refactor/commit/9d29d3858ff7daece26d8095941aa145a095c1b8))
+
 ## [0.37.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.36.0...fun-refactor-v0.37.0) (2026-09-28)
 
 
