@@ -1,0 +1,1 @@
+[{"name": "load", "file": "flow_modules.rs", "changes": [["if selected.target.as_ref() == Some(path) {", "if dependency.target.as_ref() == Some(path)\n                                    && !(submodule.is_some() && absolute == file)\n                                {"]]}]

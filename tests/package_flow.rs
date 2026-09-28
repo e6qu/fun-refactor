@@ -190,7 +190,7 @@ fn unsupported_import_forms_cycles_and_shadowed_module_calls_stay_incomplete() {
     for source in [
         "import app\ndef entry():\n    return sink(source())\n",
         "from .leaf import identity\ndef entry():\n    return sink(source())\n",
-        "from portal import api\ndef entry():\n    return sink(api.send(source()))\n",
+        "from portal import missing\ndef entry():\n    return sink(missing.send(source()))\n",
         "import portal.api\ndef entry(portal):\n    return portal.api.send(source())\n",
         "from portal.api import *\ndef entry():\n    return sink(source())\n",
     ] {
@@ -290,7 +290,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-reexports-package-flow/result.json",
+            "tests/agent-eval/results/2026-09-28-aliases-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -352,7 +352,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json",
+            "tests/agent-eval/results/2026-09-28-aliases-package-reexports/result.json",
         ])
         .output()
         .unwrap();

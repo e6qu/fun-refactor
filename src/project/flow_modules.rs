@@ -446,7 +446,8 @@ impl Modules {
                         (&resolution.target, &binding.member)
                     {
                         let skip = (project.root.join(target) == file).then_some(node.start_byte());
-                        if target.file_name().is_some_and(|name| name == "__init__.py")
+                        if target.components().count() > 1
+                            && target.file_name().is_some_and(|name| name == "__init__.py")
                             && !declares_member(project, target, member, skip)?
                         {
                             let child = format!("{}.{}", binding.module, member);
@@ -468,7 +469,9 @@ impl Modules {
                         if dependency.admitted {
                             for path in dependency.packages.iter().chain(&dependency.target) {
                                 let absolute = project.root.join(path);
-                                if selected.target.as_ref() == Some(path) {
+                                if dependency.target.as_ref() == Some(path)
+                                    && !(submodule.is_some() && absolute == file)
+                                {
                                     edges
                                         .entry(file.clone())
                                         .or_default()

@@ -204,3 +204,53 @@ def test_typed_module_dependencies_reject_forgery(tmp_path, mutation):
         ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
     with pytest.raises(FrRuntimeError):
         FlowDependencies.from_report(FrReport(value, ()))
+
+
+def test_package_child_fallback_keeps_explicit_initializer_cycle(tmp_path):
+    client, rules = install(tmp_path)
+    (tmp_path / 'pkg/__init__.py').write_text('from app import positive\n')
+    (tmp_path / 'app.py').write_text('from pkg import leaf\ndef positive():\n    return sink(leaf.identity(source()))\n')
+    failed = subprocess.run(['python3', '-B', '-c', 'import app'], cwd=tmp_path, capture_output=True, text=True)
+    assert failed.returncode != 0 and 'partially initialized' in failed.stderr
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    assert 'cyclic-module-initialization' in result.report.at('/cutoffs')
+    result.dependencies
+
+
+def test_unaliased_dotted_import_cannot_be_reexported_as_its_leaf(tmp_path):
+    client, rules = install(tmp_path)
+    (tmp_path / 'bridge.py').write_text('import pkg.leaf\n')
+    (tmp_path / 'app.py').write_text('from bridge import pkg as forward\ndef positive():\n    return sink(forward.identity(source()))\n')
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    assert 'missing-or-ambiguous-import-member:forward' in result.report.at('/cutoffs')
+    failed = subprocess.run(['python3', '-B', '-c', 'import app; app.source=lambda:17; app.sink=lambda x:x; app.positive()'],
+                            cwd=tmp_path, capture_output=True, text=True)
+    assert failed.returncode != 0 and 'AttributeError' in failed.stderr
+
+
+def test_module_alias_chain_budget_retains_incomplete_dependency_record(tmp_path):
+    client, rules = install(tmp_path)
+    even, odd = [], []
+    for number in range(20):
+        line = f'from {"right" if number % 2 == 0 else "left"} import n{number + 1} as n{number}\n'
+        (even if number % 2 == 0 else odd).append(line)
+    even.append('import pkg.leaf as n20\n')
+    (tmp_path / 'left.py').write_text(''.join(even))
+    (tmp_path / 'right.py').write_text(''.join(odd))
+    (tmp_path / 'app.py').write_text('from left import n0\ndef positive():\n    return sink(n0.identity(source()))\n')
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    lookup = next(item for item in result.dependencies.lookups if item.importer == 'app.py')
+    assert lookup.resolution == 'budget' and len(lookup.binding_chain) == 16
+
+
+def test_root_init_module_does_not_acquire_package_fallback(tmp_path):
+    client, rules = install(tmp_path)
+    (tmp_path / '__init__.py').write_text('pass\n')
+    (tmp_path / 'app.py').write_text('from __init__ import leaf\ndef positive():\n    return sink(leaf.identity(source()))\n')
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    lookup = next(item for item in result.dependencies.lookups if item.importer == 'app.py')
+    assert lookup.resolution == 'missing' and lookup.submodule is None
