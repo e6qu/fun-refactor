@@ -33,9 +33,20 @@ def main():
         'index-resolution': 'index-resolution-acceptance',
         'host-recovery': 'host-recovery-acceptance',
     }
-    if group != 'all' and group not in scripts:
+    flow_scripts = {
+        'flow-fixed-point': 'flow-acceptance',
+        'recursive-flow': 'recursive-flow-acceptance',
+        'flow-facts': 'flow-facts-acceptance',
+        'imported-flow': 'imported-flow-acceptance',
+        'flow-cache': 'flow-cache-acceptance',
+        'package-flow': 'package-flow-acceptance',
+        'package-reexports': 'package-reexports-acceptance',
+    }
+    refinement_names = list(scripts)
+    scripts.update(flow_scripts)
+    if group not in ('all', 'flow') and group not in scripts:
         raise SystemExit(f'Unknown evidence group: {group}')
-    names = list(scripts) if group == 'all' else [group]
+    names = refinement_names if group == 'all' else list(flow_scripts) if group == 'flow' else [group]
     LOGS.mkdir(parents=True, exist_ok=True)
     fr = str(ROOT / 'target/debug/fr')
     if any(name not in ('host-recovery', 'index-resolution') for name in names):
