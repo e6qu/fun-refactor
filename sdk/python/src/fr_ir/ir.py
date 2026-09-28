@@ -1885,7 +1885,7 @@ class ProjectRequest:
 
 _TASK_FRAGMENT_OPERATIONS = {
     "replace-body", "replace-body-semantic", "edit-body-semantic", "edit-body-intent",
-    "replace-declaration", "insert-declaration",
+    "replace-declaration", "insert-declaration", "refactor",
 }
 _TASK_SCALAR_OPERATIONS = {"edit-body-scalar"}
 _TASK_DISCLOSED_OPERATIONS = {"edit-body-disclosed"}

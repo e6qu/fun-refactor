@@ -466,5 +466,6 @@ pub(super) fn validate_bound(
     );
     Ok(json!({"input_digest": binding.digest, "review_ready": true,
         "targets": handles, "checks": report["check_candidates"],
+        "affected_paths": report["affected_paths"],
         "runtime_coverage": false}))
 }

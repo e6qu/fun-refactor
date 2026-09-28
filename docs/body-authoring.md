@@ -315,3 +315,7 @@ Reported file and module, impl and trait insertions, including their separators,
 The [placement model](lean-specs.md#declaration-insertion-placement-kernels) proves bounds, UTF-8 boundaries and preservation of closing-line indentation.
 Its source-anchored helper matches Lean and a reverse-scan oracle on 28,185 cases on 64-bit hosts; ten CLI previews match too.
 These proofs do not establish general correspondence for AST selection, parsing, type correctness, filesystem operations or the full authoring command.
+
+The `refactor` batch operation accepts a JSON rename or scalar signature request for a Rust free
+function. [Structural task delivery](structural-changes.md) binds its resulting edits to a reviewed
+consumer scope and declared checks.

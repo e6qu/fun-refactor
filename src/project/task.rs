@@ -74,6 +74,7 @@ pub(super) enum AuthorOperation {
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
+    Refactor,
 }
 
 impl AuthorOperation {
@@ -89,6 +90,7 @@ impl AuthorOperation {
             Self::ReplaceDeclaration => "replace-declaration",
             Self::InsertDeclaration => "insert-declaration",
             Self::OrganizeImports => "organize-imports",
+            Self::Refactor => "refactor",
         }
     }
 
@@ -104,6 +106,7 @@ impl AuthorOperation {
             Self::EditBodyScalar => 7,
             Self::EditBodyDisclosed => 8,
             Self::EditBodyDisclosedIr => 9,
+            Self::Refactor => 10,
         }
     }
 
@@ -224,6 +227,7 @@ pub fn task_author_target_candidate(operation: usize, language: usize, target: u
         1 => language == 0 && matches!(target, 1 | 2),
         2 => language == 0 && matches!(target, 0 | 2 | 4 | 5) || language == 6 && target == 0,
         3 => target == 0,
+        10 => language == 0 && target == 1,
         _ => false,
     }
 }
@@ -250,8 +254,8 @@ impl Project<'_> {
             "project task manifest schema must be {SCHEMA}."
         );
         ensure!(
-            (1..=16).contains(&manifest.targets.len()),
-            "project task needs 1 through 16 targets."
+            (1..=32).contains(&manifest.targets.len()),
+            "project task needs 1 through 32 targets."
         );
         let mut target_ids = BTreeSet::new();
         for target in &manifest.targets {

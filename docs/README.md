@@ -23,6 +23,7 @@ Begin with the quickstart, then choose the runtime or protocol detail needed by 
 - [Goal and workflow contract](agent-workflow-guide.md): route structured intent to reviewed work.
 - [Checked task outcomes](checked-outcomes.md): gate delivery and retained plan completion on post-change behavior checks.
 - [Consumer scopes](change-scopes.md): discover bounded callers and test candidates, associate declared checks and bind reviewed changes to fresh scope evidence.
+- [Structural changes](structural-changes.md): scope-bound Rust rename and scalar signature delivery.
 - [Python runtime](agent-runtime-sdk.md): keep intermediate reports outside the model transcript.
 - [Context workspace](agent-context-workspace.md): materialize and cache selected Merkle subtrees.
 - [Context protocol](agent-context-protocol.md): packet, continuation and review identities.

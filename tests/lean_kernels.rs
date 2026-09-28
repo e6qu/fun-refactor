@@ -1884,7 +1884,7 @@ fn project_task_authoring_targets_match_lean_exhaustively() {
     let actual = String::from_utf8(output.stdout).unwrap();
     let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
     let mut checked = 0usize;
-    for operation in 0..10 {
+    for operation in 0..12 {
         for language in 0..22 {
             for target in 0..9 {
                 assert_eq!(
@@ -1899,7 +1899,7 @@ fn project_task_authoring_targets_match_lean_exhaustively() {
         }
     }
     assert!(actual.next().is_none());
-    assert_eq!(checked, 1_980);
+    assert_eq!(checked, 2_376);
 }
 
 #[test]

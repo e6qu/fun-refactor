@@ -500,3 +500,7 @@ It identifies the transaction, action, phase, outcome and observed `journal_pend
 `recovery_error` retains a failed automatic rollback separately from the original error.
 Read `fr history` after uncertain finalization and recover only a transaction the journal reports pending.
 See the [host recovery contract](../../docs/host-recovery.md) for field meanings and limits.
+
+`RefactorRequest` in `fr_ir.structural_change` authors Rust rename and bounded scalar signature
+requests. Bind its targets with `ChangeScope.bind` before reviewed task delivery. See the
+[structural change contract](../../docs/structural-changes.md) for refusals and preservation limits.

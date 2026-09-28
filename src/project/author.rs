@@ -96,7 +96,11 @@ pub fn guide() -> Value {
             {"op": "insert-declaration", "requires": ["handle", "from"],
                 "targets": "Rust file, module, impl or trait"},
             {"op": "organize-imports", "requires": ["handle"],
-                "targets": "supported source file"}
+                "targets": "supported source file"},
+            {"op": "refactor", "requires": ["handle", "from"],
+                "targets": "Rust free function; rename or literal-scalar signature migration",
+                "input": "operation: rename with name; remove-parameter with index; move-parameter with from and to",
+                "delivery": "task-change requires a current consumer scope binding"}
         ],
         "direct_operations": [
             {"op": "edit-surface", "requires": ["edit", "to"],
@@ -195,6 +199,7 @@ pub(super) enum BatchOperation {
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
+    Refactor,
 }
 
 #[derive(Args)]
@@ -854,6 +859,34 @@ impl Project<'_> {
             let revision = (!step.handle.starts_with("frp1:"))
                 .then(|| manifest.revision.clone())
                 .flatten();
+            if matches!(step.op, BatchOperation::Refactor) {
+                ensure!(
+                    step.scalar.is_none()
+                        && step.disclosed.is_none()
+                        && step.disclosed_ir.is_none(),
+                    "refactor accepts only a request fragment"
+                );
+                let handle = self.explicit_handle(&step.handle, revision.as_deref())?;
+                let input = fragment(
+                    &self
+                        .root
+                        .join(step.from.context("refactor requires a request fragment")?),
+                )?;
+                let plan = super::structural_change::plan(self, &handle, &input)?;
+                for (path, replacements) in plan.edits.iter() {
+                    for replacement in replacements {
+                        let span = replacement.span;
+                        ensure!(!regions.iter().any(|(previous, selected)| previous == path &&
+                            super::author_selection_conflict(selected.start, selected.end, span.start, span.end)),
+                            "batch selections overlap or share an insertion boundary; use disjoint selections");
+                        regions.push((path.clone(), span));
+                    }
+                }
+                changed_operations += 1;
+                steps.push(plan.report);
+                edits.extend(plan.edits);
+                continue;
+            }
             let plan = match step.op {
                 BatchOperation::OrganizeImports => {
                     ensure!(
@@ -947,7 +980,9 @@ impl Project<'_> {
                         BatchOperation::InsertDeclaration => {
                             self.insert_declaration(&operation_options)
                         }
-                        BatchOperation::OrganizeImports => unreachable!(),
+                        BatchOperation::OrganizeImports | BatchOperation::Refactor => {
+                            unreachable!()
+                        }
                     }
                 }
             }
@@ -973,6 +1008,7 @@ impl Project<'_> {
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
+                BatchOperation::Refactor => unreachable!(),
             };
             let span: Span = serde_json::from_value(plan.report[key]["before_span"].clone())?;
             for (previous, selected) in &regions {

@@ -127,6 +127,7 @@ fn batch_operation(operation: task::AuthorOperation) -> author::BatchOperation {
         task::AuthorOperation::ReplaceDeclaration => author::BatchOperation::ReplaceDeclaration,
         task::AuthorOperation::InsertDeclaration => author::BatchOperation::InsertDeclaration,
         task::AuthorOperation::OrganizeImports => author::BatchOperation::OrganizeImports,
+        task::AuthorOperation::Refactor => author::BatchOperation::Refactor,
     }
 }
 
@@ -154,6 +155,14 @@ impl Project<'_> {
     ) -> Result<Prepared> {
         let manifest: Manifest = serde_json::from_slice(bytes)
             .context("task-change input must be a task-change manifest.")?;
+        let structural = manifest
+            .targets
+            .iter()
+            .any(|target| target.op == task::AuthorOperation::Refactor);
+        ensure!(
+            !structural || manifest.change_scope.is_some(),
+            "structural task changes require a fresh consumer scope binding"
+        );
         ensure!(
             manifest.schema == SCHEMA,
             "task-change manifest schema must be {SCHEMA}."
@@ -307,6 +316,18 @@ impl Project<'_> {
             },
             diff_bytes,
         )?;
+        if let Some(scope) = &scope {
+            let paths = scope["affected_paths"]
+                .as_array()
+                .context("scope has no affected paths")?;
+            ensure!(
+                plan.edits.paths().all(|path| path
+                    .strip_prefix(&self.root)
+                    .ok()
+                    .is_some_and(|relative| paths.iter().any(|p| p.as_str() == relative.to_str()))),
+                "task-change edits leave the reviewed consumer scope."
+            );
+        }
         let checks = crate::checks::select(&self.root, &manifest.checks)?
             .context("task change requires at least one declared check.")?;
         ensure!(
