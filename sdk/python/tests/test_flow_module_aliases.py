@@ -210,8 +210,10 @@ def test_package_child_fallback_keeps_explicit_initializer_cycle(tmp_path):
     client, rules = install(tmp_path)
     (tmp_path / 'pkg/__init__.py').write_text('from app import positive\n')
     (tmp_path / 'app.py').write_text('from pkg import leaf\ndef positive():\n    return sink(leaf.identity(source()))\n')
-    failed = subprocess.run(['python3', '-B', '-c', 'import app'], cwd=tmp_path, capture_output=True, text=True)
-    assert failed.returncode != 0 and 'partially initialized' in failed.stderr
+    observed = subprocess.check_output(['python3', '-B', '-c',
+        'try:\n import app\nexcept ImportError as error:\n print(type(error).__name__, error.name)\n'
+        'else:\n raise AssertionError("expected an import cycle failure")'], cwd=tmp_path, text=True)
+    assert observed.strip() == 'ImportError app'
     result = analyze(client, rules)
     assert not result.report.at('/complete')
     assert 'cyclic-module-initialization' in result.report.at('/cutoffs')
@@ -246,10 +248,11 @@ def test_module_alias_chain_budget_retains_incomplete_dependency_record(tmp_path
     assert lookup.resolution == 'budget' and len(lookup.binding_chain) == 16
 
 
-def test_root_init_module_does_not_acquire_package_fallback(tmp_path):
+@pytest.mark.parametrize('module,path', [('__init__', '__init__.py'), ('pkg.__init__', 'pkg/__init__.py')])
+def test_plain_init_module_does_not_acquire_package_fallback(tmp_path, module, path):
     client, rules = install(tmp_path)
-    (tmp_path / '__init__.py').write_text('pass\n')
-    (tmp_path / 'app.py').write_text('from __init__ import leaf\ndef positive():\n    return sink(leaf.identity(source()))\n')
+    (tmp_path / path).write_text('pass\n')
+    (tmp_path / 'app.py').write_text(f'from {module} import leaf\ndef positive():\n    return sink(leaf.identity(source()))\n')
     result = analyze(client, rules)
     assert not result.report.at('/complete')
     lookup = next(item for item in result.dependencies.lookups if item.importer == 'app.py')

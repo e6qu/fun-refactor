@@ -132,7 +132,8 @@ def _binding_chains(lookups: list[ImportLookup], files: dict[str, str], module_a
             continue
         child = lookup.submodule
         if child is not None and (lookup.member is None or lookup.target is None
-                or not lookup.target.endswith('/__init__.py') or child.module != f"{lookup.module}.{lookup.member}"
+                or lookup.target != lookup.module.replace('.', '/') + '/__init__.py'
+                or child.module != f"{lookup.module}.{lookup.member}"
                 or chain or lookup.resolution not in {"module", "unavailable"}):
             raise FrRuntimeError("submodule fallback disagrees with its package member")
         if lookup.resolution == "module":

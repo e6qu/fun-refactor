@@ -446,8 +446,11 @@ impl Modules {
                         (&resolution.target, &binding.member)
                     {
                         let skip = (project.root.join(target) == file).then_some(node.start_byte());
-                        if target.components().count() > 1
-                            && target.file_name().is_some_and(|name| name == "__init__.py")
+                        if *target
+                            == PathBuf::from(format!(
+                                "{}/__init__.py",
+                                binding.module.replace('.', "/")
+                            ))
                             && !declares_member(project, target, member, skip)?
                         {
                             let child = format!("{}.{}", binding.module, member);

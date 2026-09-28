@@ -153,7 +153,7 @@ The [re-export task](../tests/agent-eval/package-reexports/task.json) extends th
 Its [acceptance](../tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json) repeats diagnosis, dependency invalidation, repair and feature delivery.
 The [baseline](../tests/agent-eval/package-reexports/baseline.json) records the existing local binary refusal and independent Python behavior.
 That binary predates the pinned source revision; its identity is retained explicitly.
-Package loading remains bounded to regular local packages with explicit function imports and inert declarations.
+Package loading remains bounded to regular local packages with explicit local imports and inert declarations.
 The [module-alias task](../tests/agent-eval/module-aliases/task.json) adds child-module fallback and renamed module re-exports.
 Its baseline records CPython output and refusal by the existing local 0.35.0 binary. That binary
 was not built from the pinned task revision. The evaluator repeats discovered repair, feature
