@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.36.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.35.0...fun-refactor-v0.36.0) (2026-09-28)
+
+
+### Features
+
+* bind consumer discovery to checked changes and resumable plans ([#378](https://github.com/e6qu/fun-refactor/issues/378)) ([906318c](https://github.com/e6qu/fun-refactor/commit/906318c981b68dc592886d3a93687c883db088b5))
+* deliver consumer-bound Rust structural refactors ([#379](https://github.com/e6qu/fun-refactor/issues/379)) ([1aa3620](https://github.com/e6qu/fun-refactor/commit/1aa36204c4463c41e4233c0d43dd8f51d930799f))
+* gate task delivery and plan completion on behavioral checks ([#376](https://github.com/e6qu/fun-refactor/issues/376)) ([fb98e71](https://github.com/e6qu/fun-refactor/commit/fb98e7183a598dcd2e1c2df789491ec8c0808be4))
+
 ## [0.35.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.34.1...fun-refactor-v0.35.0) (2026-09-27)
 
 
