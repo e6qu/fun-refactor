@@ -157,7 +157,7 @@ Outcome: an agent can implement the requested task and state precisely what its 
   [Boolean model comparisons](docs/model-comparisons.md) retain Rust/Python snapshots and explicit parameter maps.
   Isolated validation regenerates both models from bounded snapshots in native and virtual workspaces.
   Checked relations enter retained proofs and resumable plans.
-  [Finite acceptance](tests/agent-eval/results/2026-09-28-model-comparisons/manifest.json) checks three relations and independent receiver replay.
+  [Finite acceptance](tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) checks three relations and independent receiver replay.
   Broader language semantics and source correspondence remain open.
 - [x] Check small executable kernels for edit admission, dependency invalidation and task transitions.
   State trusted components and remaining obligations; use fault injection for host operations.

@@ -59,8 +59,8 @@ fn python_package_keeps_explicit_module_boundaries() {
 
 #[test]
 fn checked_agent_guide_context_comparison_is_reproducible() {
-    let evidence = root()
-        .join("tests/agent-eval/results/2026-09-28-refinement-agent-guide-context/result.json");
+    let evidence =
+        root().join("tests/agent-eval/results/2026-09-28-virtual-agent-guide-context/result.json");
     let output = python()
         .arg(root().join("tools/agent-guide-context.py"))
         .arg("--audit")
@@ -211,14 +211,15 @@ fn native_intent_context_evidence_is_source_bound_and_arithmetically_valid() {
 
 #[test]
 fn intent_action_context_evidence_is_source_bound_and_arithmetically_valid() {
-    let output = python()
-        .arg(root().join("tools/intent-action-context.py"))
-        .arg("--audit")
-        .arg(root().join(
-            "tests/agent-eval/results/2026-09-28-refinement-intent-action-context/result.json",
-        ))
-        .output()
-        .unwrap();
+    let output =
+        python()
+            .arg(root().join("tools/intent-action-context.py"))
+            .arg("--audit")
+            .arg(root().join(
+                "tests/agent-eval/results/2026-09-28-virtual-intent-action-context/result.json",
+            ))
+            .output()
+            .unwrap();
     assert!(
         output.status.success(),
         "{}",

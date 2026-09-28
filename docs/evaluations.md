@@ -18,7 +18,7 @@ acceptance runs must satisfy their scorer at recording time.
 
 ## Retained Boolean model comparisons
 
-The [comparison run](../tests/agent-eval/results/2026-09-28-model-comparisons/manifest.json)
+The [comparison run](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json)
 retains prescribed ordinary and native edits to a Rust Boolean function and its Python translation.
 An independent oracle compiles Rust and checks all eight assignments. Both patches must reproduce
 those results, reverse exactly and reapply in separate receivers.
@@ -29,6 +29,13 @@ The run retains an incorrect argument map that fails proof checking. Fresh proce
 snapshot and completed plan; changed source invalidates the model evidence. Receiver audits check
 the retained models and proofs again. These are generated-model theorems, not source implementation
 proofs, general translation correctness or a live-agent comparison.
+
+The [virtual workspace regressions](../tests/virtual_model_workspaces.rs) check byte limits,
+UTF-8 errors, scoped restoration and native/virtual snapshot equality. Private model regressions
+also reject forged models, stale source and altered generated context. Together with the VFS
+architectural checks, the focused runner executes 13 regressions. The
+[dogfood record](../tests/agent-eval/results/2026-09-28-virtual-dogfood/manifest.json) retains
+this task's fr authoring receipts and 15 syntax-only translation preview outcomes.
 
 Six source-bound reports are refreshed on GitHub: retained proofs, agent guidance, completion
 workflows, intent actions, index resolution and host recovery. Their platform and timing fields
