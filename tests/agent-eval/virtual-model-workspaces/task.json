@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "task": "Bounded model capture and isolated snapshot replay in native and virtual workspaces",
+  "revision": "a3a9ed8b2bacd42b74baa1a4c3d2965dbd2e1517",
+  "budgets": {
+    "source_bytes": 65536,
+    "request_bytes": 262144,
+    "manifest_bytes": 524288,
+    "local_rss_bytes": 1073741824,
+    "local_target_bytes": 2147483648,
+    "local_free_disk_bytes": 68719476736,
+    "local_deadline_seconds": 180
+  },
+  "positive": [
+    "native and virtual Rust/Python snapshots agree",
+    "comparison preview and manifest validation in virtual workspaces",
+    "nested scopes restore backing on success, error and panic",
+    "exact byte boundary and empty files"
+  ],
+  "negative": [
+    "oversized native and virtual input",
+    "invalid UTF-8",
+    "missing source",
+    "forged model with recomputed digest",
+    "absolute and parent paths",
+    "native symlink traversal",
+    "changed after source",
+    "conflicting virtual package files"
+  ],
+  "oracle": "Rust integration and unit tests on GitHub runners, VFS architectural gate, existing Lean model acceptance and receiver replay",
+  "claims": "Bounded source capture and virtual workspace isolation; no source implementation proof or browser proof execution claim"
+}

@@ -3,7 +3,6 @@ use anyhow::{ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
-use std::io::Read;
 use std::path::{Component, Path};
 
 const SNAPSHOT: &str = "fr-model-snapshot-1";
@@ -57,6 +56,9 @@ fn confined(root: &Path, relative: &Path) -> Result<()> {
             anyhow::bail!("comparison paths must be normalized and relative.");
         };
         path.push(part);
+        if crate::vfs::is_in_memory() {
+            continue;
+        }
         match std::fs::symlink_metadata(&path) {
             Ok(metadata) => ensure!(
                 !metadata.file_type().is_symlink(),
@@ -79,10 +81,11 @@ fn snapshot_digest(snapshot: &Snapshot) -> Result<String> {
 }
 
 pub fn capture(root: &Path, target: &str) -> Result<Snapshot> {
+    let root = super::planning_root(root)?;
     let (path, _) = target
         .split_once("::")
         .context("snapshot requires path::function")?;
-    confined(root, Path::new(path))?;
+    confined(&root, Path::new(path))?;
     ensure!(
         matches!(
             crate::lang::detect(Path::new(path)),
@@ -95,7 +98,8 @@ pub fn capture(root: &Path, target: &str) -> Result<Snapshot> {
         source.len() <= 65536,
         "model snapshot source exceeds 64 KiB."
     );
-    let model = super::formal_plan(root, target, &[])?;
+    let workspace = crate::vfs::new_handle([(root.join(path), source.clone())]);
+    let model = crate::vfs::with_handle(&workspace, || super::formal_plan(&root, target, &[]))?;
     ensure!(
         model.kernel.inputs.len() <= 8
             && model
@@ -130,18 +134,13 @@ fn validate_snapshot(snapshot: &Snapshot) -> Result<()> {
         .target
         .split_once("::")
         .context("invalid snapshot target")?;
-    let temporary = tempfile::Builder::new()
-        .prefix("fr-model-snapshot-")
-        .tempdir()?;
-    confined(temporary.path(), Path::new(path))?;
     ensure!(
         snapshot.source.len() <= 65536,
         "model snapshot source exceeds 64 KiB."
     );
-    let file = temporary.path().join(path);
-    std::fs::create_dir_all(file.parent().unwrap())?;
-    std::fs::write(file, &snapshot.source)?;
-    let regenerated = capture(temporary.path(), &snapshot.target)?;
+    let root = Path::new("__fr_retained_model__");
+    let workspace = crate::vfs::new_handle([(root.join(path), snapshot.source.clone())]);
+    let regenerated = crate::vfs::with_handle(&workspace, || capture(root, &snapshot.target))?;
     ensure!(
         serde_json::to_value(regenerated)? == serde_json::to_value(snapshot)?,
         "snapshot model differs from retained source."
@@ -305,20 +304,7 @@ pub(super) fn validate_module(root: &Path, spec: &Path, text: &str) -> Result<()
     Ok(())
 }
 fn bounded_read(path: &Path, limit: usize) -> Result<String> {
-    let bytes = if crate::vfs::is_in_memory() {
-        crate::vfs::read(path)?
-    } else {
-        let mut bytes = Vec::new();
-        std::fs::File::open(path)?
-            .take(limit as u64 + 1)
-            .read_to_end(&mut bytes)?;
-        bytes
-    };
-    ensure!(
-        bytes.len() <= limit,
-        "comparison input exceeds {limit} bytes."
-    );
-    Ok(String::from_utf8(bytes)?)
+    Ok(crate::vfs::read_to_string_bounded(path, limit)?)
 }
 pub(super) fn comparison_evidence(
     root: &Path,
@@ -342,4 +328,106 @@ pub(super) fn comparison_evidence(
         "status":if checked { "checked_by_lean" } else { "unchecked" },
         "source_implementation_proved":false}),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SOURCE: &str = "pub fn allow(a: bool) -> bool { a }\n";
+
+    #[test]
+    fn replay_refuses_forged_models_and_restores_the_callers_workspace() {
+        let root = Path::new("virtual");
+        let path = root.join("subject.rs");
+        let workspace = crate::vfs::new_handle([(path.clone(), SOURCE.into())]);
+        crate::vfs::with_handle(&workspace, || {
+            let original = capture(root, "subject.rs::allow").unwrap();
+            validate_snapshot(&original).unwrap();
+            let mut forged = original.clone();
+            forged.model.kernel.lean_definition.push_str("\n-- forged");
+            forged.digest = snapshot_digest(&forged).unwrap();
+            assert!(validate_snapshot(&forged)
+                .unwrap_err()
+                .to_string()
+                .contains("differs from retained source"));
+            for target in ["../subject.rs::allow", "/subject.rs::allow"] {
+                let mut escaped = original.clone();
+                escaped.target = target.into();
+                escaped.digest = snapshot_digest(&escaped).unwrap();
+                assert!(validate_snapshot(&escaped)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("normalized and relative"));
+            }
+            let mut broken = original;
+            broken.source = "this is not Rust".into();
+            broken.digest = snapshot_digest(&broken).unwrap();
+            assert!(validate_snapshot(&broken).is_err());
+            assert_eq!(crate::vfs::paths(), [path.clone()]);
+            assert_eq!(crate::vfs::read_to_string(&path).unwrap(), SOURCE);
+        });
+        assert!(!crate::vfs::is_in_memory());
+    }
+
+    #[test]
+    fn virtual_manifest_validation_detects_source_and_context_drift() {
+        let root = Path::new("virtual");
+        let path = root.join("subject.rs");
+        let workspace = crate::vfs::new_handle([(path.clone(), SOURCE.into())]);
+        crate::vfs::with_handle(&workspace, || {
+            let snapshot = capture(root, "subject.rs::allow").unwrap();
+            let comparison = Comparison {
+                request: Request {
+                    schema: REQUEST.into(),
+                    name: "Virtual".into(),
+                    before: snapshot.clone(),
+                    after: "subject.rs::allow".into(),
+                    relation: Relation::Equivalent,
+                    arguments: vec![0],
+                },
+                after: snapshot,
+            };
+            let module = root.join("specs/FrSpecs/Virtual.lean");
+            let manifest = module.with_extension("refinement.json");
+            crate::vfs::write(&manifest, serde_json::to_string(&comparison).unwrap()).unwrap();
+            let text = render(&comparison, &BTreeMap::new()).unwrap();
+            validate_module(root, &module, &text).unwrap();
+            assert!(
+                validate_module(root, &module, &format!("{text}\n-- altered"))
+                    .unwrap_err()
+                    .to_string()
+                    .contains("generated context changed")
+            );
+            crate::vfs::write(&path, SOURCE.replace("{ a }", "{ !a }")).unwrap();
+            assert!(validate_module(root, &module, &text)
+                .unwrap_err()
+                .to_string()
+                .contains("source changed"));
+            crate::vfs::write(&path, SOURCE).unwrap();
+            crate::vfs::remove(&manifest).unwrap();
+            assert!(validate_module(root, &module, &text)
+                .unwrap_err()
+                .to_string()
+                .contains("requires its retained snapshot"));
+            assert_eq!(crate::vfs::read_to_string(&path).unwrap(), SOURCE);
+        });
+    }
+
+    #[test]
+    fn requests_and_manifests_refuse_oversize_before_json_parsing() {
+        let root = Path::new("virtual");
+        let request = root.join("request.json");
+        let module = root.join("specs/FrSpecs/Virtual.lean");
+        let workspace = crate::vfs::new_handle([
+            (request.clone(), "x".repeat(262145)),
+            (module.with_extension("refinement.json"), "x".repeat(524289)),
+        ]);
+        crate::vfs::with_handle(&workspace, || {
+            let error = prepare(root, &request, Path::new("specs")).err().unwrap();
+            assert!(error.to_string().contains("exceeds 262144 bytes"));
+            let error = validate_module(root, &module, "-- fr:comparison test\n").unwrap_err();
+            assert!(format!("{error:#}").contains("exceeds 524288 bytes"));
+        });
+    }
 }

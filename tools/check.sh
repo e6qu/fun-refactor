@@ -2,9 +2,7 @@
 #
 # Everything CI's check jobs run, and the one definition of what passing means.
 #
-# CI calls this script instead of listing the commands itself. A local run that
-# checks a subset — tests and clippy but not formatting, say — reports green for
-# a branch CI will reject, and the difference is only discovered after the push.
+# CI calls this script to share one gate definition with developer checks.
 #
 # The browser API is a separate feature set that neither default clippy nor the
 # default test run compiles, so it gets its own pass. CI runs `check.sh default`
@@ -57,6 +55,7 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
 
     run cargo fmt --all --check
     run cargo clippy --all-targets -- -D warnings
+    run cargo test --test vfs_choke_point --test virtual_model_workspaces -- --test-threads 1
     run bash tools/check-kernels.sh
     ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets \
         -- --test-threads "$FR_LEAN_JOBS"

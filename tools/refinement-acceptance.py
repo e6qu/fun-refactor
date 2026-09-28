@@ -26,7 +26,7 @@ from fr_ir.structural_change import RefactorRequest
 
 FIXTURE = ROOT/"tests/agent-eval/refinement"
 FILES = ("subject.rs", "main.rs", "translation.py")
-BINDINGS = ("src/spec.rs", "src/spec/refinement.rs", "src/spec/retained.rs", "src/cli.rs",
+BINDINGS = ("src/vfs.rs", "src/spec.rs", "src/spec/refinement.rs", "src/spec/retained.rs", "src/cli.rs",
     "src/formal_kernel.rs", "src/project/investigation.rs", "src/project/task_change.rs",
     "sdk/python/src/fr_ir/refinement.py", "sdk/python/src/fr_ir/investigation_proofs.py",
     "sdk/python/src/fr_ir/investigation.py", "tools/refinement-acceptance.py")

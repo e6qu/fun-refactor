@@ -609,11 +609,18 @@ pub fn agent_relation_admitted(relation: u8, left_type: u8, right_type: u8) -> b
     }
 }
 
+fn planning_root(root: &Path) -> Result<PathBuf> {
+    if crate::vfs::is_in_memory() {
+        Ok(crate::vfs::normalise(root))
+    } else {
+        root.canonicalize()
+            .with_context(|| format!("reading workspace root {}", root.display()))
+    }
+}
+
 pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
-    let root = root
-        .canonicalize()
-        .with_context(|| format!("reading workspace root {}", root.display()))?;
-    if !root.is_dir() {
+    let root = planning_root(root)?;
+    if !crate::vfs::is_in_memory() && !root.is_dir() {
         bail!("spec initialization requires a workspace directory.");
     }
     let relative = if requested.is_absolute() {
@@ -640,6 +647,15 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
     let mut current = root.clone();
     for component in relative.components() {
         current.push(component);
+        if crate::vfs::is_in_memory() {
+            if crate::vfs::exists(&current) {
+                bail!(
+                    "spec package path is not a directory: {}.",
+                    current.display()
+                );
+            }
+            continue;
+        }
         match std::fs::symlink_metadata(&current) {
             Ok(metadata) if metadata.file_type().is_symlink() => {
                 bail!(
@@ -667,10 +683,18 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
     let mut files = Vec::with_capacity(definitions.len());
     for (name, content) in definitions {
         let path = package.join(name);
-        let existing = match std::fs::symlink_metadata(&path) {
-            Ok(metadata) if metadata.is_file() => {
-                let current = crate::vfs::read_to_string(&path)
-                    .with_context(|| format!("reading {}", path.display()))?;
+        let existing = if crate::vfs::is_in_memory() {
+            if crate::vfs::paths()
+                .iter()
+                .any(|file| file != &path && file.starts_with(&path))
+            {
+                bail!(
+                    "spec package target is not a regular file: {}.",
+                    path.display()
+                );
+            }
+            if crate::vfs::exists(&path) {
+                let current = crate::vfs::read_to_string(&path)?;
                 if current != content && name != "FrSpecs.lean" {
                     bail!(
                         "refusing to replace existing spec package file {}.",
@@ -678,13 +702,29 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
                     );
                 }
                 true
+            } else {
+                false
             }
-            Ok(_) => bail!(
-                "spec package target is not a regular file: {}.",
-                path.display()
-            ),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
-            Err(error) => return Err(error.into()),
+        } else {
+            match std::fs::symlink_metadata(&path) {
+                Ok(metadata) if metadata.is_file() => {
+                    let current = crate::vfs::read_to_string(&path)
+                        .with_context(|| format!("reading {}", path.display()))?;
+                    if current != content && name != "FrSpecs.lean" {
+                        bail!(
+                            "refusing to replace existing spec package file {}.",
+                            path.display()
+                        );
+                    }
+                    true
+                }
+                Ok(_) => bail!(
+                    "spec package target is not a regular file: {}.",
+                    path.display()
+                ),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+                Err(error) => return Err(error.into()),
+            }
         };
         files.push(InitFile {
             path,
@@ -1007,7 +1047,7 @@ pub fn property_task(root: &Path, target: &str, token_limit: usize) -> Result<Pr
     if !(1_024..=16_384).contains(&token_limit) {
         bail!("property task token limit must be between 1024 and 16384.");
     }
-    let root = root.canonicalize()?;
+    let root = planning_root(root)?;
     let formal = formal_function(&root, target)?;
     property_task_for_formal(&formal, token_limit)
 }
@@ -1022,7 +1062,7 @@ pub fn formal_plan_with_agent_properties(
     property_kinds: &[String],
     property_paths: &[PathBuf],
 ) -> Result<FormalPlan> {
-    let root = root.canonicalize()?;
+    let root = planning_root(root)?;
     let mut properties = Vec::new();
     for path in property_paths {
         let path = if path.is_absolute() {
@@ -1053,7 +1093,7 @@ pub(crate) fn formal_plan_from_agent_specs(
     if unique.len() != property_kinds.len() {
         bail!("a formal plan cannot repeat a property kind.");
     }
-    let root = root.canonicalize()?;
+    let root = planning_root(root)?;
     let formal = formal_function(&root, target)?;
     let mut properties = property_kinds
         .iter()

@@ -11,7 +11,6 @@ mod memory {
     use std::path::{Path, PathBuf};
     use std::rc::Rc;
 
-    /// One workspace's files.
     pub type Handle = Rc<RefCell<BTreeMap<PathBuf, String>>>;
 
     thread_local! {
@@ -38,7 +37,28 @@ mod memory {
         HANDED_OVER.with(|h| *h.borrow_mut() = true);
     }
 
-    /// Does this thread hold a workspace?
+    pub fn with_handle<T>(handle: &Handle, action: impl FnOnce() -> T) -> T {
+        struct Restore {
+            handle: Handle,
+            #[cfg(not(target_arch = "wasm32"))]
+            active: bool,
+        }
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                ACTIVE.with(|a| *a.borrow_mut() = Rc::clone(&self.handle));
+                #[cfg(not(target_arch = "wasm32"))]
+                HANDED_OVER.with(|h| *h.borrow_mut() = self.active);
+            }
+        }
+        let _restore = Restore {
+            handle: ACTIVE.with(|a| Rc::clone(&a.borrow())),
+            #[cfg(not(target_arch = "wasm32"))]
+            active: is_active(),
+        };
+        activate(handle);
+        action()
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     pub fn is_active() -> bool {
         HANDED_OVER.with(|h| *h.borrow())
@@ -75,6 +95,21 @@ mod memory {
 
     pub fn read(path: &Path) -> io::Result<Vec<u8>> {
         read_to_string(path).map(String::into_bytes)
+    }
+
+    pub fn read_bounded(path: &Path, limit: usize) -> io::Result<Vec<u8>> {
+        with_active(|files| {
+            let text = files.get(path).ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("{} is not in the loaded workspace", path.display()),
+                )
+            })?;
+            if text.len() > limit {
+                return Err(super::over_limit(limit));
+            }
+            Ok(text.as_bytes().to_vec())
+        })
     }
 
     pub fn write_bytes(path: &Path, contents: &[u8]) -> io::Result<()> {
@@ -134,6 +169,18 @@ mod backing {
 
     pub fn read(path: &Path) -> io::Result<Vec<u8>> {
         std::fs::read(path)
+    }
+
+    pub fn read_bounded(path: &Path, limit: usize) -> io::Result<Vec<u8>> {
+        use std::io::Read;
+        let mut bytes = Vec::new();
+        std::fs::File::open(path)?
+            .take((limit as u64).saturating_add(1))
+            .read_to_end(&mut bytes)?;
+        if bytes.len() > limit {
+            return Err(super::over_limit(limit));
+        }
+        Ok(bytes)
     }
 
     pub fn write_bytes(path: &Path, contents: &[u8]) -> io::Result<()> {
@@ -202,6 +249,26 @@ pub fn read(path: impl AsRef<Path>) -> io::Result<Vec<u8>> {
     backing::read(path)
 }
 
+fn over_limit(limit: usize) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        format!("input exceeds {limit} bytes"),
+    )
+}
+
+/// Refuse oversized input; native reads consume at most `limit + 1` bytes.
+pub fn read_bounded(path: impl AsRef<Path>, limit: usize) -> io::Result<Vec<u8>> {
+    let path = path.as_ref();
+    through_memory!(read_bounded(path, limit));
+    backing::read_bounded(path, limit)
+}
+
+/// Read bounded UTF-8 text. The limit counts bytes, including multibyte characters.
+pub fn read_to_string_bounded(path: impl AsRef<Path>, limit: usize) -> io::Result<String> {
+    String::from_utf8(read_bounded(path, limit)?)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
+}
+
 pub fn write_bytes(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> io::Result<()> {
     let (path, contents) = (path.as_ref(), contents.as_ref());
     through_memory!(write_bytes(path, contents));
@@ -251,6 +318,11 @@ pub fn activate(handle: &Handle) {
     memory::activate(handle)
 }
 
+/// Restore the caller's backing on return or unwind; writes to `handle` persist.
+pub fn with_handle<T>(handle: &Handle, action: impl FnOnce() -> T) -> T {
+    memory::with_handle(handle, action)
+}
+
 /// A directory, as a sentence can name it.
 pub fn describe_dir(path: impl AsRef<Path>) -> String {
     let path = path.as_ref();
@@ -261,8 +333,7 @@ pub fn describe_dir(path: impl AsRef<Path>) -> String {
     }
 }
 
-/// Resolve `.` and `..` without touching the filesystem, so two spellings of one path compare
-/// equal.
+/// Resolve `.` and `..` without touching the filesystem.
 pub fn normalise(path: impl AsRef<Path>) -> std::path::PathBuf {
     use std::path::Component;
     let mut out = std::path::PathBuf::new();

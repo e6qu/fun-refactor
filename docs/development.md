@@ -56,6 +56,8 @@ Use remote runners for full builds, complete gates and evidence regeneration whe
 is constrained. `tools/refresh-refinement-evidence.py` refuses local execution and records the six
 source-bound reports affected by the Boolean comparison feature, plus its new acceptance run.
 The manual `Refresh refinement evidence` workflow uploads results from `target/refinement-evidence`.
+Supply a dated `prefix` such as `2026-09-28-virtual` to retain new report directories.
+The workflow checks virtual workspace boundaries before measuring the seven evidence groups.
 Retain downloaded evidence before requesting the final CI run; never substitute rewritten hashes
 for fresh measurements.
 
