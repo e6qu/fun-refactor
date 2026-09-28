@@ -155,10 +155,10 @@ Outcome: an agent can implement the requested task and state precisely what its 
 - [ ] Retain old/new models for refactoring and translation, with preservation or refinement claims.
   Reject dependent proof evidence after relevant changes.
   [Boolean model comparisons](docs/model-comparisons.md) retain Rust/Python snapshots and explicit parameter maps.
-  Native validation regenerates both models; checked relations enter retained proofs and resumable plans.
-  [Finite acceptance](tests/agent-eval/results/2026-09-28-model-comparisons/manifest.json) checks three relations and independent receiver replay.
+  Isolated validation regenerates both models from bounded snapshots in native and virtual workspaces.
+  Checked relations enter retained proofs and resumable plans.
+  [Finite acceptance](tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) checks three relations and independent receiver replay.
   Broader language semantics and source correspondence remain open.
-  Broader domains and source correspondence remain open.
 - [x] Check small executable kernels for edit admission, dependency invalidation and task transitions.
   State trusted components and remaining obligations; use fault injection for host operations.
   [Kernel contracts](docs/lean-specs.md) cover the admitted predicates; [host recovery evidence](tests/agent-eval/results/2026-09-25-host-recovery/result.json) covers native journal boundaries.

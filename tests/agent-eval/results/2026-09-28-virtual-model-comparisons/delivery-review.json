@@ -1,0 +1,267 @@
+{
+  "acceptance_checks": {
+    "basis": "9432ba245ef1a969c4d31fac4fc26153cadf63e0c3d94e9d96c877b1764c5c7c",
+    "names": [
+      "truth-table"
+    ],
+    "toolchain-digest": "f9698cc4c4c9218e5e994b364e3fa9fd0fdbd869aacadf671ef7198dcf71317d"
+  },
+  "author": {
+    "atomic_snapshot": false,
+    "behavior_checked": false,
+    "changed": true,
+    "context_inherited": [
+      "coverage",
+      "revision",
+      "handle_prefix"
+    ],
+    "diff": "--- a/main.rs\n+++ b/main.rs\n@@ -1,19 +1,19 @@\n mod subject;\n fn main() {\n-    let result = subject::allowed(false, false, false);\n+    let result = subject::permits(false, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(false, false, true);\n+    let result = subject::permits(false, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(false, true, false);\n+    let result = subject::permits(false, true);\n     println!(\"{result}\");\n-    let result = subject::allowed(false, true, true);\n+    let result = subject::permits(false, true);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, false, false);\n+    let result = subject::permits(true, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, false, true);\n+    let result = subject::permits(true, false);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, true, false);\n+    let result = subject::permits(true, true);\n     println!(\"{result}\");\n-    let result = subject::allowed(true, true, true);\n+    let result = subject::permits(true, true);\n     println!(\"{result}\");\n }\n--- a/subject.rs\n+++ b/subject.rs\n@@ -1,1 +1,1 @@\n-pub fn allowed(a: bool, b: bool, unused: bool) -> bool { a && !b }\n+pub fn permits(a: bool, b: bool) -> bool { a && !b }\n--- a/translation.py\n+++ b/translation.py\n@@ -1,5 +1,5 @@\n def permits(b: bool, a: bool) -> bool:\n-    return a and not b\n+    return not b and a\n \n \n def restricted(a: bool, b: bool, extra: bool) -> bool:\n",
+    "files_changed": 3,
+    "postconditions": [
+      {
+        "actual": 3,
+        "expected": 3,
+        "held": true,
+        "postcondition": "files-changed"
+      },
+      {
+        "actual": [
+          "main.rs",
+          "subject.rs",
+          "translation.py"
+        ],
+        "expected": [
+          "main.rs",
+          "subject.rs",
+          "translation.py"
+        ],
+        "held": true,
+        "postcondition": "paths-changed"
+      }
+    ],
+    "postconditions_held": true,
+    "query": "batch",
+    "schema": "fr-author-batch-1",
+    "span_basis": "original-source",
+    "steps": [
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "new_name": "permits",
+          "old_name": "allowed",
+          "operation": "rename",
+          "reference_edits": 8
+        },
+        "handle": "frp1:30978dcdc394ffeff38c789625b1f92f:d",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust free functions and indexed references; external consumers and dynamic dispatch excluded."
+      },
+      {
+        "behavior_checked": false,
+        "changed": true,
+        "detail": {
+          "call_sites": 8,
+          "request": {
+            "index": 2,
+            "operation": "remove-parameter"
+          }
+        },
+        "handle": "frp1:30978dcdc394ffeff38c789625b1f92f:d",
+        "operation": "refactor",
+        "preservation": "bytes outside planned edits; source behavior requires independent checks.",
+        "scope": "Rust free functions and indexed references; external consumers and dynamic dispatch excluded."
+      },
+      {
+        "after_bytes": 18,
+        "after_sha256": "cd4832256b20f836eb324cc6698d529005acf54d4a054dc9f490c21483b0a300",
+        "before_bytes": 18,
+        "before_sha256": "b9875d30bf886fa6e7126efb1e601a196c9217ebdf4a037df172bf74b403628f",
+        "before_span": {
+          "end": 61,
+          "start": 43
+        },
+        "changed": true,
+        "handle": "frp1:30978dcdc394ffeff38c789625b1f92f:12",
+        "operation": "replace-body",
+        "path": "translation.py",
+        "preservation": "bytes outside the selected body",
+        "signature": {
+          "basis": "syntax-header",
+          "text": "def permits(b: bool, a: bool) -> bool:"
+        }
+      }
+    ],
+    "validation": "reparse-strict"
+  },
+  "change_scope": {
+    "affected_paths": [
+      "main.rs",
+      "subject.rs",
+      "translation.py"
+    ],
+    "checks": [
+      {
+        "declared_paths": [
+          "subject.rs",
+          "main.rs",
+          "translation.py"
+        ],
+        "matched_paths": [
+          "subject.rs",
+          "main.rs",
+          "translation.py"
+        ],
+        "name": "truth-table",
+        "status": "declared-candidate"
+      }
+    ],
+    "input_digest": "141839d2448cca31f288f92d79461a602b9ccbdf4e87a9d030a0f9a3cb7998dc",
+    "review_ready": true,
+    "runtime_coverage": false,
+    "targets": [
+      "frp1:30978dcdc394ffeff38c789625b1f92f:d",
+      "frp1:30978dcdc394ffeff38c789625b1f92f:d",
+      "frp1:30978dcdc394ffeff38c789625b1f92f:12"
+    ]
+  },
+  "checks": {
+    "basis": "9432ba245ef1a969c4d31fac4fc26153cadf63e0c3d94e9d96c877b1764c5c7c",
+    "command": [
+      "fr",
+      "checks",
+      "--run",
+      "truth-table",
+      "--basis",
+      "9432ba245ef1a969c4d31fac4fc26153cadf63e0c3d94e9d96c877b1764c5c7c",
+      "--quiet-success",
+      "--no-declarations"
+    ],
+    "coverage": [
+      {
+        "covers": [
+          "All eight Boolean assignments in Rust and Python"
+        ],
+        "name": "truth-table"
+      }
+    ],
+    "names": [
+      "truth-table"
+    ],
+    "selected": true
+  },
+  "coverage": {
+    "architecture": "not inferred",
+    "files_by_gap": {},
+    "hierarchy": "directories and lexical spans",
+    "indexed_files": 3,
+    "manifests": {
+      "discovered": 0,
+      "ecosystems": 4,
+      "gaps": 0,
+      "parsed": 0,
+      "scope": "selected scan root"
+    },
+    "max_file_bytes": 4194304,
+    "respect_ignore": true,
+    "skipped_files": 0,
+    "skipped_symlinks": 0,
+    "unresolved_references": 23,
+    "unsupported_files": 0
+  },
+  "delivery": {
+    "check_original": true,
+    "check_output_bytes": 2048,
+    "compact_success": true,
+    "exercise_reversal": true,
+    "patch": "artifacts/migration.patch"
+  },
+  "executed": false,
+  "manifest_sha256": "7301b9b988d110ec33938def76888d4e69ca21ec56a1da12ccf29dd771fc0ba1",
+  "passed": null,
+  "ready": true,
+  "requests": [],
+  "revision": "30978dcdc394ffeff38c789625b1f92f835ac9cca556eb75c922e8a1d1cb2430",
+  "schema": "fr-task-change-1",
+  "stages": [
+    {
+      "stage": "check-original",
+      "status": "pending"
+    },
+    {
+      "stage": "apply",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "undo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-restored",
+      "status": "pending"
+    },
+    {
+      "stage": "redo",
+      "status": "pending"
+    },
+    {
+      "stage": "check-applied",
+      "status": "pending"
+    },
+    {
+      "stage": "check-acceptance",
+      "status": "pending"
+    },
+    {
+      "stage": "deliver-patch",
+      "status": "pending"
+    }
+  ],
+  "targets": [
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:30978dcdc394ffeff38c789625b1f92f:d",
+      "id": "rename",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "subject.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    },
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:30978dcdc394ffeff38c789625b1f92f:d",
+      "id": "remove",
+      "kind": "function",
+      "language": "rust",
+      "operation": "refactor",
+      "path": "subject.rs",
+      "scalar": null,
+      "syntax_preflighted": false
+    },
+    {
+      "eligibility": "target-supported",
+      "handle": "frp1:30978dcdc394ffeff38c789625b1f92f:12",
+      "id": "translation",
+      "kind": "function",
+      "language": "python",
+      "operation": "replace-body",
+      "path": "translation.py",
+      "scalar": null,
+      "syntax_preflighted": false
+    }
+  ],
+  "task_basis": "frpt1:030f30a3460e41857307c23474a8f0b238cb34f96ed4be7a1e7c1ea9f43ec07c",
+  "task_change_basis": "frtc1:baaf04e14b1cab4151b10ebe6f31e93db29153244fcca2f829167128c8f4567a",
+  "task_resolution_basis": "frpt2:a6e45bfcd23dd049c745cc637a410e8eed010af1816b9377c8e878e54373b958"
+}

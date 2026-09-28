@@ -1,0 +1,1 @@
+[{"name": "replay_refuses_forged_models_and_restores_the_callers_workspace", "file": "refinement.rs", "changes": [["            assert_eq!(crate::vfs::paths(), [path.clone()]);", "            assert_eq!(crate::vfs::paths(), std::slice::from_ref(&path));"]]}]

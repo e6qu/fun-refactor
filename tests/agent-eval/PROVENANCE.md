@@ -1,5 +1,15 @@
 # Agent acceptance source and evidence
 
+The [virtual workspace task](virtual-model-workspaces/task.json) covers bounded source capture,
+isolated retained-model replay, workspace restoration and native/virtual parity. Its
+[refreshed comparison](results/2026-09-28-virtual-model-comparisons/manifest.json) records
+GitHub runner results for the updated VFS and model code. Six `2026-09-28-virtual-*` reports
+refresh the affected source bindings.
+The comparison also retains the Python scanner source after its discarded-value warning cleanup.
+The [dogfood record](results/2026-09-28-virtual-dogfood/manifest.json) holds actual repository
+previews, saved plans, applied changes and 15 bounded syntax-only translation checks.
+Earlier evidence remains unchanged.
+
 The [Boolean comparison fixture](refinement/task.json) is repository-owned Rust and Python source.
 The [retained comparison](results/2026-09-28-model-comparisons/manifest.json) binds source snapshots,
 three generated Lean relations, proof reports, fresh-process plans, both patches and a false claim.

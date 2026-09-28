@@ -3,16 +3,17 @@ use std::process::Command;
 #[test]
 fn retained_completion_workflows_cover_every_family_without_post_guide_discovery() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let output = Command::new("python3")
-        .arg(root.join("tools/completion-workflows.py"))
-        .arg("--fr")
-        .arg(env!("CARGO_BIN_EXE_fr"))
-        .arg("--audit")
-        .arg(root.join(
-            "tests/agent-eval/results/2026-09-28-refinement-completion-workflows/result.json",
-        ))
-        .output()
-        .expect("completion workflow auditor should run");
+    let output =
+        Command::new("python3")
+            .arg(root.join("tools/completion-workflows.py"))
+            .arg("--fr")
+            .arg(env!("CARGO_BIN_EXE_fr"))
+            .arg("--audit")
+            .arg(root.join(
+                "tests/agent-eval/results/2026-09-28-virtual-completion-workflows/result.json",
+            ))
+            .output()
+            .expect("completion workflow auditor should run");
     assert!(
         output.status.success(),
         "{}{}",

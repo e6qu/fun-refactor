@@ -32,6 +32,25 @@ inputs. Quantification covers every Boolean assignment to the old parameters.
 old output. This direction permits stricter acceptance rules. It does not express arbitrary refinement
 of effects, errors, state or termination.
 
+## Bounded source and virtual workspaces
+
+Capture accepts at most 64 KiB of source before parsing. It derives the model from that retained
+text in an isolated in-memory workspace, then checks that the caller's source is unchanged.
+Requests are limited to 256 KiB and retained manifests to 512 KiB. Limits count UTF-8 bytes.
+Oversized virtual files are rejected before copying; native reads stop after the limit plus one
+byte. Other formalization routes retain their existing limits.
+
+Native library callers can use `vfs::with_handle` for scoped virtual workspaces. Model capture,
+comparison previews, package initialization plans and snapshot validation work without a physical
+workspace directory. Validation replays retained source in memory and restores the caller's
+workspace on success, error or unwinding. Scopes run synchronously on the calling thread; writes
+to the supplied handle persist. Native path checks still refuse symlink traversal.
+Lean checking and proof execution continue to require a native toolchain and filesystem package.
+
+The [virtual workspace task](../tests/agent-eval/virtual-model-workspaces/task.json) pins the
+boundaries and regression cases. The shared VFS byte and text readers enforce the same size limits
+on disk and in memory.
+
 ## Proofs and resumption
 
 Each comparison creates a Lean module and an adjacent `.refinement.json` manifest. The manifest
@@ -76,7 +95,7 @@ patches with exact reversal. Fresh receiver proof checks regenerate the models f
 The [evaluator](../tools/refinement-acceptance.py) records these finite outcomes without a live-agent or
 token-saving claim.
 
-The [retained artifacts](../tests/agent-eval/results/2026-09-28-model-comparisons/manifest.json)
+The [retained artifacts](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json)
 and [SDK regressions](../sdk/python/tests/test_refinement.py) cover the complete lifecycle,
 zero and eight parameters, source/model tampering, stale reviews, proof failures, size limits,
 saved-plan reversal and existing formal-model compatibility.

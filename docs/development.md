@@ -42,7 +42,7 @@ sdk/python/.venv/bin/pytest sdk/python/tests
 sdk/python/.venv/bin/ty check sdk/python/src
 ```
 
-Use targeted tests while developing, then run the complete affected lane before pushing. The
+Use targeted tests while developing, then run the complete affected lane before merging. The
 portable agent skill has an executable example checker:
 
 ```sh
@@ -55,7 +55,12 @@ python3 tools/check-agent-skill.py --fr target/debug/fr
 Use remote runners for full builds, complete gates and evidence regeneration when local capacity
 is constrained. `tools/refresh-refinement-evidence.py` refuses local execution and records the six
 source-bound reports affected by the Boolean comparison feature, plus its new acceptance run.
-The manual `Refresh refinement evidence` workflow uploads results from `target/refinement-evidence`.
+The manual `Refresh refinement evidence` workflow uploads results from a directory unique to each
+run and attempt under the runner's temporary directory. Reports stay outside the compiler cache.
+Supply a dated `prefix` such as `2026-09-28-virtual` to retain new report directories.
+The default `all` group checks virtual workspace boundaries before measuring seven evidence groups.
+Choose one group to refresh only its measurements. Update audit-test report paths before refreshing:
+host-recovery evidence includes its audit test's source identity.
 Retain downloaded evidence before requesting the final CI run; never substitute rewritten hashes
 for fresh measurements.
 
