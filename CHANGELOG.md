@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.36.0...fun-refactor-v0.37.0) (2026-09-28)
+
+
+### Features
+
+* retain checked Boolean model comparisons across refactors ([#380](https://github.com/e6qu/fun-refactor/issues/380)) ([a8ac4fb](https://github.com/e6qu/fun-refactor/commit/a8ac4fb2664d0570d3429a4b7f7a884be7693963))
+
 ## [0.36.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.35.0...fun-refactor-v0.36.0) (2026-09-28)
 
 
