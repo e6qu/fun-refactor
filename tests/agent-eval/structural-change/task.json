@@ -1,0 +1,23 @@
+{
+  "schema": "fr-structural-change-task-1",
+  "baseline": "906318c981b68dc592886d3a93687c883db088b5",
+  "goal": "Deliver consumer-bound Rust free-function rename and scalar signature migration through one reviewed check/history/patch workflow.",
+  "subset": "Rust free functions; strong indexed references; no rename warnings. Signature removal/reordering requires primitive scalar parameters and literal call arguments; no runtime/external consumer or source correspondence proof.",
+  "cases": [
+    "multi-file rename and unused-parameter removal",
+    "preserved public results",
+    "exact receiver apply/reverse/reapply",
+    "fresh-process scope invalidation",
+    "collisions and unresolved references",
+    "effectful arguments and function values refuse",
+    "scope escape and batch overlap refuse",
+    "stale reviews and clipped diffs refuse"
+  ],
+  "budgets": {
+    "operations": 32,
+    "fragment_bytes": 65536,
+    "workers": 1
+  },
+  "oracle": "Independent rustc compiler and public output matrix, exact byte reversal and Git patch receiver. Deterministic acceptance, not live-agent measurements.",
+  "direct_edit_boundary": "New files, enum/module wiring, Lean/prose/config and formatting use direct edits. Existing admitted bodies are edited using reviewed fr author batches on this repository."
+}

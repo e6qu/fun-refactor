@@ -1,0 +1,231 @@
+{
+        ensure!(
+            (256..=1_048_576).contains(&report_bytes),
+            "report bytes must be between 256 and 1048576."
+        );
+        ensure!(
+            manifest.schema == SCHEMA,
+            "project task manifest schema must be {SCHEMA}."
+        );
+        ensure!(
+            (1..=32).contains(&manifest.targets.len()),
+            "project task needs 1 through 32 targets."
+        );
+        let mut target_ids = BTreeSet::new();
+        for target in &manifest.targets {
+            ensure!(
+                valid_id(&target.id),
+                "project task target IDs need 1 through 80 ASCII letters, digits, '.', '_' or '-'."
+            );
+            ensure!(
+                target_ids.insert(&target.id),
+                "project task target IDs must be unique."
+            );
+            match &target.handle {
+                batch::Argument::Literal(handle) => ensure!(
+                    !handle.is_empty() && handle.len() <= 512,
+                    "project task literal handles need 1 through 512 bytes."
+                ),
+                batch::Argument::Reference(reference) => ensure!(
+                    valid_id(&reference.request)
+                        && !reference.pointer.is_empty()
+                        && reference.pointer.starts_with('/')
+                        && reference.pointer.len() <= 512,
+                    "project task target references need a valid request ID and a 1 through 512 byte JSON pointer."
+                ),
+            }
+            ensure!(
+                matches!(target.op, AuthorOperation::EditBodyScalar) == target.scalar.is_some(),
+                "project task scalar input must appear exactly for edit-body-scalar."
+            );
+            ensure!(
+                matches!(target.op, AuthorOperation::EditBodyDisclosed)
+                    == target.disclosed.is_some(),
+                "project task disclosed input must appear exactly for edit-body-disclosed."
+            );
+            ensure!(
+                matches!(target.op, AuthorOperation::EditBodyDisclosedIr)
+                    == target.disclosed_ir.is_some(),
+                "project task disclosed_ir input must appear exactly for edit-body-disclosed-ir."
+            );
+            if let Some(disclosed) = &target.disclosed {
+                ensure!(
+                    super::disclose::edit_id_well_formed(&disclosed.edit),
+                    "project task disclosed input requires an exact returned edit ID."
+                );
+            }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                ensure!(
+                    super::disclose::ir_edit_id_well_formed(&disclosed_ir.edit),
+                    "project task disclosed_ir input requires an exact returned edit ID."
+                );
+            }
+        }
+        ensure!(
+            manifest.checks.len() <= 32,
+            "project task accepts at most 32 declared checks."
+        );
+        ensure!(
+            manifest.delivery.is_none() || !manifest.checks.is_empty(),
+            "project task delivery requires at least one declared check."
+        );
+        if let Some(path) = manifest
+            .delivery
+            .as_ref()
+            .and_then(|delivery| delivery.patch.as_deref())
+        {
+            ensure!(
+                safe_patch_path(path),
+                "project task patch path must be a relative path without parent components."
+            );
+        }
+
+        let task_basis = format!("frpt1:{}", hash((SCHEMA, &manifest))?);
+        let batch_manifest = batch::Manifest {
+            schema: batch::SCHEMA.to_owned(),
+            requests: manifest.requests.clone(),
+        };
+        let mut report = self.batch_manifest(batch_manifest, report_bytes, "task")?;
+        let request_rows = report["requests"]
+            .as_array()
+            .context("task query results must be an array")?;
+        let requests = request_rows
+            .iter()
+            .filter_map(|request| request["id"].as_str().map(|id| (id, request)))
+            .collect::<BTreeMap<_, _>>();
+
+        let mut author_operations = Vec::with_capacity(manifest.targets.len());
+        let mut target_rows = Vec::with_capacity(manifest.targets.len());
+        let mut resolved_targets = Vec::with_capacity(manifest.targets.len());
+        for target in &manifest.targets {
+            let handle = reference_value(&target.handle, &requests)?;
+            let node_id = self.resolve_handle(&handle)?;
+            let node = &self.nodes[node_id];
+            let symbol = node.symbol.and_then(|id| self.index.symbol(id));
+            let is_file = node.kind == "file";
+            let language = if let Some(symbol) = symbol {
+                symbol.language
+            } else {
+                ensure!(
+                    is_file,
+                    "task authoring targets must be file or declaration handles."
+                );
+                self.index
+                    .file(&self.root.join(&node.path))
+                    .context("task target file is not indexed.")?
+                    .language
+            };
+            let kind = symbol.map(|symbol| symbol.kind);
+            let candidate = task_author_target_candidate(
+                target.op.code(),
+                language_code(language),
+                target_code(is_file, kind),
+            );
+            ensure!(
+                candidate,
+                "task target '{}' does not support requested operation '{}'.",
+                target.id,
+                target.op.name()
+            );
+            let fragment = target
+                .op
+                .needs_fragment()
+                .then(|| format!("<FRAGMENT:{}>", target.id));
+            let mut operation = json!({
+                "op": target.op.name(),
+                "handle": handle,
+            });
+            if let Some(fragment) = &fragment {
+                operation["from"] = json!(fragment);
+            }
+            if let Some(scalar) = &target.scalar {
+                operation["scalar"] = serde_json::to_value(scalar)?;
+            }
+            if let Some(disclosed) = &target.disclosed {
+                operation["disclosed"] = serde_json::to_value(disclosed)?;
+            }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                operation["disclosed_ir"] = serde_json::to_value(disclosed_ir)?;
+            }
+            author_operations.push(operation);
+            let mut target_row = json!({
+                "id": target.id,
+                "handle": handle,
+                "path": node.path,
+                "language": language,
+                "kind": if is_file { Value::String("file".into()) } else { json!(kind) },
+                "operation": target.op,
+                "scalar": target.scalar,
+                "eligibility": "target-supported",
+                "syntax_preflighted": false
+            });
+            if let Some(disclosed) = &target.disclosed {
+                target_row["disclosed"] = serde_json::to_value(disclosed)?;
+            }
+            if let Some(disclosed_ir) = &target.disclosed_ir {
+                target_row["disclosed_ir"] = serde_json::to_value(disclosed_ir)?;
+            }
+            target_rows.push(target_row);
+            resolved_targets.push((
+                target.id.clone(),
+                handle,
+                target.op,
+                target.scalar.clone(),
+                target.disclosed.clone(),
+                target.disclosed_ir.clone(),
+            ));
+        }
+
+        let selection = crate::checks::select(&self.root, &manifest.checks)?;
+        let checks = selection.as_ref().map_or_else(
+            || json!({"selected": false, "names": []}),
+            |selection| json!({
+                "selected": true,
+                "basis": selection.configuration_basis,
+                "names": selection.checks,
+                "coverage": selection.coverage,
+                "command": ["fr", "checks", "--run", selection.checks.join(","), "--basis", &selection.configuration_basis, "--quiet-success", "--no-declarations"]
+            }),
+        );
+        let delivery = manifest.delivery.as_ref();
+        let workflow_template = delivery.map(|delivery| json!({
+            "schema": 1,
+            "transaction": "<TRANSACTION_ID>",
+            "transaction-context-basis": "<TRANSACTION_CONTEXT_BASIS>",
+            "checks": {
+                "basis": selection.as_ref().map(|value| value.configuration_basis.as_str()).unwrap_or("<CHECK_BASIS>"),
+                "names": selection.as_ref().map(|value| value.checks.as_slice()).unwrap_or(&[])
+            },
+            "exercise-reversal": delivery.exercise_reversal,
+            "patch": delivery.patch.as_ref().map(|path| json!({"output": path}))
+        }));
+        let resolution_basis = format!(
+            "frpt2:{}",
+            hash((
+                SCHEMA,
+                &self.revision,
+                &task_basis,
+                &report["resolution_basis"],
+                &resolved_targets,
+                &manifest.checks
+            ))?
+        );
+        report.as_object_mut().unwrap().remove("manifest_basis");
+        report.as_object_mut().unwrap().remove("resolution_basis");
+        report["task_basis"] = json!(task_basis);
+        report["task_resolution_basis"] = json!(resolution_basis);
+        report["targets"] = json!(target_rows);
+        report["checks"] = checks;
+        report["author_manifest_template"] = json!({
+            "revision": self.revision,
+            "operations": author_operations
+        });
+        report["workflow_manifest_template"] = workflow_template.unwrap_or(Value::Null);
+        report["next"] = json!({
+            "author-preview": "fr author batch --from <AUTHOR_MANIFEST>",
+            "author-save": "fr author batch --from <AUTHOR_MANIFEST> --save-plan --plan-basis <PLAN_CONTEXT_BASIS>",
+            "workflow-preview": "fr workflow --from <WORKFLOW_MANIFEST>",
+            "workflow-write": "fr workflow --from <WORKFLOW_MANIFEST> --write --basis <WORKFLOW_BASIS>"
+        });
+        Ok(report)
+    }

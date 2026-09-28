@@ -1,0 +1,1529 @@
+{
+  "schema": "fr-semantic-evidence-acceptance-1",
+  "repository_revision": "24b1ef890cdc5f12e5bb013c743fbaef2174922a",
+  "source_bindings": {
+    "tools/semantic-evidence-acceptance.py": "90c2b5843454ab9d4086753ca74ed4a84dd5fc8c0d9271e7e883baab769b3d71",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "src/project/semantic_origins.rs": "b01cd4f816246352bf99b773b0d704ff13b1f9f7fef67bd2e56dd57d0afc324b",
+    "src/project/semantic.rs": "6a44d44fa1fa670db510a97bb32859182d71bfc29ecb89ff14ec7d1d0044f5fe",
+    "src/project/occurrence.rs": "82abfedebd940f7a2267cc2f15f37aa0276f175dc44cc1eed5a50cd4798bce43",
+    "src/project/investigation.rs": "a2afbc7ae60f9df5956a016f1b0171c7be0be9e2513fcc4b5bd2b1c9a312eecb",
+    "src/project.rs": "dcd8e0df9f6a9d661e6c5221b6f28b712fbb48c4c191fd2878e542e5c9c0067d",
+    "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
+    "src/checks/evidence.rs": "956f995a0a5f22a6441090fb39db7eb5d8f5863a6185f71036ec80c34e9705c4",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
+    "src/transpile/read.rs": "844a3b8efe1fdd15641d07ae7805e338b7dbc79a28d4b8a3aedc31b28b485344",
+    "src/transpile/normalize.rs": "423919c79c2ae1d28996c797edbb7fcc311326bcbca6fdacf0b07c84328ba948",
+    "src/transpile/mod.rs": "161c93152746fdfe93537dd1e481bc08e7d37b9e71f1d242915788ee7ee71265",
+    "src/span.rs": "b6e16d2f1cec39803a55131836ba6fa5f11627ffbb4a973cae1356911997bc29",
+    "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0",
+    "sdk/python/src/fr_ir/origins.py": "a02639f9c8aeff53bdca23db07ef88585ef4e10991ca54696bc652cf65fedd2e",
+    "sdk/python/src/fr_ir/investigation.py": "7082a89265f8b28e09a9cebfc66f17e739a2b7c4bdd9adf73052494b858724ad",
+    "sdk/python/src/fr_ir/investigation_checks.py": "8a1ed58cf8e1af220bad190d18e3efeb761b58712fe149c6804c4c20964be7fc",
+    "sdk/python/src/fr_ir/runtime.py": "c96f8ac90fcf4a7c08790be4819c83347fb547d938c956c1c3c9f4beff9d4aa3",
+    "sdk/python/src/fr_ir/context.py": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0",
+    "kernels/FrKernels/Investigation.lean": "b5518e47d43b77f22708af6951d82cdf62cb3d6c7313cbadc5e58dafd2cf228b",
+    "kernels/InvestigationMain.lean": "584acf412e5bda7441aa4c32c5812c9305c3117b749422df057d831f55791b78",
+    "tests/agent-eval/semantic-evidence/task.json": "a2f08cc68468c97e23ea2e2274c569506c002c66703c336340974b89b718c9e8",
+    "tests/agent-eval/semantic-evidence/subject.py": "537ffdc11eace8f13977ada4f2e4ce81da50d117133b5f116f73f27eb0af7440",
+    "tests/agent-eval/semantic-evidence/oracle.py": "955ceda07df9c17e189d173537f6554099d34094b217abf3e7022464e0e70158",
+    "tests/agent-eval/semantic-evidence/diagnostics.json": "f7a4dfddb4b5a849515839db40c693d5c3d3bde4ac38dd42df981e139a2c3a14"
+  },
+  "binary_sha256": "c56545d59fc6163374e988cebcfdc1ee4beeb945761246888a5c0b2143803232",
+  "platform": "macOS-15.6.1-arm64-arm-64bit",
+  "python": "3.12.10",
+  "ordinary_ast": {
+    "seconds": 0.0002137910050805658,
+    "context_bytes": 328,
+    "source_reveals": 1,
+    "useful_discoveries": 2,
+    "tokens": null
+  },
+  "prior_source_reveal_route": {
+    "seconds": 0.0299264169880189,
+    "context_bytes": 5756,
+    "source_reveals": 1,
+    "process_calls": 2,
+    "tokens": null
+  },
+  "origin_route": {
+    "seconds": 0.030607916007284075,
+    "context_bytes": 20219,
+    "source_reveals": 0,
+    "process_calls": 1,
+    "tokens": null
+  },
+  "oracle": {
+    "calls": [
+      [
+        147,
+        160
+      ],
+      [
+        163,
+        176
+      ]
+    ],
+    "outcomes": [
+      1,
+      5,
+      -1
+    ]
+  },
+  "coordinates": [
+    [
+      147,
+      160
+    ],
+    [
+      163,
+      176
+    ]
+  ],
+  "false_coordinate_claims": 0,
+  "origin_report": {
+    "addressing": {
+      "format": "SEMANTIC_BASIS#RFC6901_JSON_POINTER",
+      "root": "frsm1:0e3340075a6e7a725991369b01c751029cb74787b926ac9befbe18ad91b2a8db#/model"
+    },
+    "analysis_budget": {
+      "maximum_source_bytes": 262144,
+      "source_bytes": 277
+    },
+    "body_identity": {
+      "basis": "frsb1:d30b09f991c0d06bfd5a01167c5fbdc961eefd3572c5b5feb915f6adfeb897ff",
+      "schema": "fr-semantic-body-1",
+      "semantic_nodes": 24,
+      "source_free": true,
+      "statements": 4,
+      "status": "available"
+    },
+    "context_basis": "frcb1:dbd180aa0aa99d2a403d3bb094b4e008e766e0da67f3c2374cd881d84e5ecccc",
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 2,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 37,
+      "unsupported_files": 0
+    },
+    "handle_prefix": "frp1:2ede980c3f6a2cb08bca38c9f553610e:",
+    "model": {
+      "items": [
+        {
+          "kind": "function",
+          "value": {
+            "body": [
+              {
+                "kind": "let",
+                "value": {
+                  "mutable": true,
+                  "name": "result",
+                  "ty": null,
+                  "value": {
+                    "kind": "binary",
+                    "value": {
+                      "left": {
+                        "kind": "call",
+                        "value": {
+                          "args": [
+                            {
+                              "kind": "name",
+                              "value": "amount"
+                            }
+                          ],
+                          "callee": {
+                            "kind": "name",
+                            "value": "café"
+                          }
+                        }
+                      },
+                      "op": "add",
+                      "right": {
+                        "kind": "call",
+                        "value": {
+                          "args": [
+                            {
+                              "kind": "name",
+                              "value": "amount"
+                            }
+                          ],
+                          "callee": {
+                            "kind": "name",
+                            "value": "café"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "assign",
+                "value": {
+                  "target": {
+                    "kind": "name",
+                    "value": "result"
+                  },
+                  "value": {
+                    "kind": "binary",
+                    "value": {
+                      "left": {
+                        "kind": "name",
+                        "value": "result"
+                      },
+                      "op": "add",
+                      "right": {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "if",
+                "value": {
+                  "condition": {
+                    "kind": "name",
+                    "value": "amount"
+                  },
+                  "otherwise": [
+                    {
+                      "kind": "expr",
+                      "value": {
+                        "kind": "null"
+                      }
+                    }
+                  ],
+                  "then": [
+                    {
+                      "kind": "assign",
+                      "value": {
+                        "target": {
+                          "kind": "name",
+                          "value": "result"
+                        },
+                        "value": {
+                          "kind": "binary",
+                          "value": {
+                            "left": {
+                              "kind": "name",
+                              "value": "result"
+                            },
+                            "op": "add",
+                            "right": {
+                              "kind": "int",
+                              "value": "2"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "return",
+                "value": {
+                  "kind": "name",
+                  "value": "result"
+                }
+              }
+            ],
+            "doc": [
+              "Keep repeated calls distinct despite identical lowered expressions."
+            ],
+            "exported": true,
+            "name": "total",
+            "params": [
+              {
+                "name": "amount"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "node_budget": {
+      "complete_subtrees_only": true,
+      "limit": 256,
+      "required": 25,
+      "unit": "tagged semantic nodes"
+    },
+    "omitted": {
+      "bodies": 0,
+      "source_fields": 0,
+      "top_level_statements": 0
+    },
+    "origins": {
+      "analyzer": "e648e41b5ad75e4bb4216fe3db78da248d070365ef71afe8d003d021e282a92b",
+      "claim": "syntax provenance, not behavioral equivalence or compiler evidence.",
+      "complete": true,
+      "confidence": "structural",
+      "continuation": null,
+      "follow": {
+        "arguments": [
+          "project",
+          "semantic",
+          "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+          "--body",
+          "--origins",
+          "--nodes",
+          "4096"
+        ]
+      },
+      "input_digest": "12eb03ef9e499a1a5516c90eace0a26aab3ee702037478ba4809668d901cf5c2",
+      "inputs": {
+        "analyzer": "e648e41b5ad75e4bb4216fe3db78da248d070365ef71afe8d003d021e282a92b",
+        "semantic_basis": "frsm1:0e3340075a6e7a725991369b01c751029cb74787b926ac9befbe18ad91b2a8db",
+        "source_digest": "dea7a6cfe44e063fd4e8790acc24bdbd9b62561476d8d932db1d2bb54527161c",
+        "source_path": "subject.py"
+      },
+      "items": [
+        {
+          "body_pointer": null,
+          "id": "frso1:dc8c433d08dafc63d15b1b7ce61e9f41532d0b266020fae801dec684e3c1b5e3",
+          "kind": "function",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:749987ceefd28bb91eb9e7d50f7178cf526279989389e0467a7c81b32f55f59c",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 18,
+                    "line": 13
+                  },
+                  "start": {
+                    "col": 1,
+                    "line": 5
+                  }
+                },
+                "span": {
+                  "end": 276,
+                  "start": 37
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0",
+          "id": "frso1:1d43876d487f722a7e80ad18e2f213b401ebac6db30ad0dc6c6c62feb5e89dc0",
+          "kind": "let",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:9d895629d9cb1d38fe20b2e9f48a2d69be2a7d568048df0b2d488bc484abfbbf",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 41,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 176,
+                  "start": 138
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0/value/value",
+          "id": "frso1:a4286fb513c5fdc4bfb880bc43a89aa1402b42d1f9821502b8d95126bb417b83",
+          "kind": "binary",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:dcc545a2c4f952570405fd11d60eb109be0d95d4888c7ca28cefe35eac396e02",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 41,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 14,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 176,
+                  "start": 147
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0/value/value",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0/value/value/value/left",
+          "id": "frso1:78df9348069a5dab566bc1f1bdaf6f70f970e76e74af4f63235c56b5e22fd603",
+          "kind": "call",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:fc3916e2f35db13416dacddb2c34fd173a6d9f198e42943e3a9fee1e29b6418a",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 26,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 14,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 160,
+                  "start": 147
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0/value/value/value/left",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0/value/value/value/left/value/args/0",
+          "id": "frso1:db4f38ed7613f9f8f45a030b732e95bbb58857744ee68bf64a64a9f23ea3b3d4",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:47d7152fa9003fe4beec6520c4625c961ab110987ac71c9a847875b0b67e916f",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 25,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 19,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 159,
+                  "start": 153
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0/value/value/value/left/value/args/0",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0/value/value/value/left/value/callee",
+          "id": "frso1:0cc1063032c2521ada336d134a19e5dba830ec83f6c376be6062385870025b24",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:4aa81beba91d652b52100d54f43cc2f34060aa88ff3f0904864ec53b203cb58b",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 18,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 14,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 152,
+                  "start": 147
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0/value/value/value/left/value/callee",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0/value/value/value/right",
+          "id": "frso1:b292ccc1e768d3f0f7f17958ac463df975f787aacbede2eef15c993268842874",
+          "kind": "call",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:3c1ab02996182d52b3fca45a7d7968d4cc5b3cec9e50a69896e2d9b915714a28",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 41,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 29,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 176,
+                  "start": 163
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0/value/value/value/right",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0/value/value/value/right/value/args/0",
+          "id": "frso1:454e20af498561d2e03efd003ab7a8785c6d3b0d575a4de341d32918b9349068",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:4581965f3819a85447eea4d0a45565e2151f4f4f9a5d56b44e0660f9f53cf8ce",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 40,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 34,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 175,
+                  "start": 169
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0/value/value/value/right/value/args/0",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/0/value/value/value/right/value/callee",
+          "id": "frso1:853761112d894a1afb2218ec8867278129fb955b860b76258d16f15e54404af8",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:12",
+              "id": "fro1:f3efe427d4ed654048816c263d83f084b3f17dbd57b23f9de545362ac3fc3834",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 33,
+                    "line": 7
+                  },
+                  "start": {
+                    "col": 29,
+                    "line": 7
+                  }
+                },
+                "span": {
+                  "end": 168,
+                  "start": 163
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/0/value/value/value/right/value/callee",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/1",
+          "id": "frso1:03b18498711ad3486024a2fa952e83c4b30c7e7088b3f1cef0c88a313c1cb486",
+          "kind": "assign",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:254d4ded6743862bbc60fd2ed10dcb25fddc0dd39493fc9bbf88a214d140c0b1",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 16,
+                    "line": 8
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 8
+                  }
+                },
+                "span": {
+                  "end": 192,
+                  "start": 181
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/1",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/1/value/target",
+          "id": "frso1:1dbf183419d1a0c017417bda41a1690686b2e60c55cce3c2717a97a13779064c",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:bb93f9fd870c2e08538cf07bfa5f069782c2d0dc8641ac2d021b7d72ca971db8",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 11,
+                    "line": 8
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 8
+                  }
+                },
+                "span": {
+                  "end": 187,
+                  "start": 181
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/1/value/target",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/1/value/value",
+          "id": "frso1:c192c039bb5f87038a305ff08b5e78b8da34bf34ae87959b93b1b83e0eecfd84",
+          "kind": "binary",
+          "origins": {
+            "occurrences": [
+              {
+                "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+                "id": "fro1:bb93f9fd870c2e08538cf07bfa5f069782c2d0dc8641ac2d021b7d72ca971db8",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 11,
+                      "line": 8
+                    },
+                    "start": {
+                      "col": 5,
+                      "line": 8
+                    }
+                  },
+                  "span": {
+                    "end": 187,
+                    "start": 181
+                  }
+                },
+                "path": "subject.py",
+                "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+                "role": "semantic-origin"
+              },
+              {
+                "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+                "id": "fro1:38dbe91d71bd647aa1333191fc11b6e015d56ec47f94667656ee9195c689685f",
+                "location": {
+                  "range": {
+                    "end": {
+                      "col": 16,
+                      "line": 8
+                    },
+                    "start": {
+                      "col": 15,
+                      "line": 8
+                    }
+                  },
+                  "span": {
+                    "end": 192,
+                    "start": 191
+                  }
+                },
+                "path": "subject.py",
+                "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+                "role": "semantic-origin"
+              }
+            ],
+            "status": "multiple"
+          },
+          "pointer": "/model/items/0/value/body/1/value/value",
+          "rule": "python-body-origins-1:augmented-assignment-combination"
+        },
+        {
+          "body_pointer": "/body/1/value/value/value/left",
+          "id": "frso1:6e3ad4b6c4b19d037e06f2bb690d4a051d6a0d4682ac295eb0d966c9db9debb6",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:bb93f9fd870c2e08538cf07bfa5f069782c2d0dc8641ac2d021b7d72ca971db8",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 11,
+                    "line": 8
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 8
+                  }
+                },
+                "span": {
+                  "end": 187,
+                  "start": 181
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/1/value/value/value/left",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/1/value/value/value/right",
+          "id": "frso1:84920bfb2515702ce7fd1aace21bfcb224eed16d6f8cafd58fa3cf313408864d",
+          "kind": "int",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:38dbe91d71bd647aa1333191fc11b6e015d56ec47f94667656ee9195c689685f",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 16,
+                    "line": 8
+                  },
+                  "start": {
+                    "col": 15,
+                    "line": 8
+                  }
+                },
+                "span": {
+                  "end": 192,
+                  "start": 191
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/1/value/value/value/right",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2",
+          "id": "frso1:06389cb3cb9d5f56956bc1052fb35e6f4db160bb36b0fc2dbe833c672c5147dd",
+          "kind": "if",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:75124aa7b9a2b543a26a9bfc6441f71fc8c73eb95898b8813a3d75e399430af6",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 12
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 9
+                  }
+                },
+                "span": {
+                  "end": 258,
+                  "start": 197
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2/value/condition",
+          "id": "frso1:1c2147220b500cc5c95f71cc1723b89a5fcc2df7fe9a46b4ae6c7472d92157ec",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:ee269b29f2cfe553bf10d04ae6325221795325fe7f80fb1f58bc9bfcffea378a",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 14,
+                    "line": 9
+                  },
+                  "start": {
+                    "col": 8,
+                    "line": 9
+                  }
+                },
+                "span": {
+                  "end": 206,
+                  "start": 200
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2/value/condition",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2/value/otherwise/0",
+          "id": "frso1:88a38ee2f6aed4c9ec2a3b61ddb0b684426b521ef52d4766dfe13bcbadc8b3c7",
+          "kind": "expr",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:25ebad3b1f129a381d1175288faf88bd66f0ba2f2506e2385ba75f49f953bc36",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 13,
+                    "line": 12
+                  },
+                  "start": {
+                    "col": 9,
+                    "line": 12
+                  }
+                },
+                "span": {
+                  "end": 258,
+                  "start": 254
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2/value/otherwise/0",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2/value/otherwise/0/value",
+          "id": "frso1:45f6a8187fb7174117817f2264641a49b5c2dfb62fd4993b2bf1acc42b574bf3",
+          "kind": "null",
+          "origins": {
+            "reason": "synthesized, transformed or outside the admitted body mapping.",
+            "status": "absent"
+          },
+          "pointer": "/model/items/0/value/body/2/value/otherwise/0/value",
+          "rule": "python-body-origins-1:unmapped-node"
+        },
+        {
+          "body_pointer": "/body/2/value/then/0",
+          "id": "frso1:f0af34348d1dda31faf8cff3346180fea3f453ffe25f9a3ef0254dc3741bd13c",
+          "kind": "assign",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:13",
+              "id": "fro1:36c111a3626dca1f1c407280978309847952ae411ea0c000b7c0358b2e91cef2",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 10
+                  },
+                  "start": {
+                    "col": 9,
+                    "line": 10
+                  }
+                },
+                "span": {
+                  "end": 235,
+                  "start": 216
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2/value/then/0",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2/value/then/0/value/target",
+          "id": "frso1:d15842109915cf668b145047c5dc62173f1ee959b225d311392805a3b2a06dd3",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:13",
+              "id": "fro1:b1a6e90e2c8e328e26d841266d8ebafdb8951acfc18f2fdd21a27050be5dc206",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 15,
+                    "line": 10
+                  },
+                  "start": {
+                    "col": 9,
+                    "line": 10
+                  }
+                },
+                "span": {
+                  "end": 222,
+                  "start": 216
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2/value/then/0/value/target",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2/value/then/0/value/value",
+          "id": "frso1:5aa4e9c5533e77c933b3aad8794696017d346b2d253adbe7f69acdc5e6d509bd",
+          "kind": "binary",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:13",
+              "id": "fro1:190e2d4f70378352c140d0000c8be7de9ba641a3f51388c3aa8ec303f6387223",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 10
+                  },
+                  "start": {
+                    "col": 18,
+                    "line": 10
+                  }
+                },
+                "span": {
+                  "end": 235,
+                  "start": 225
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2/value/then/0/value/value",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2/value/then/0/value/value/value/left",
+          "id": "frso1:bc9841fc9597827d2f553521841a2d828c23381908d2f0ffb2a5b2a4136cee45",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:13",
+              "id": "fro1:83632d96afa8c15ec11e20b52a62374b9a01f4e508c2bf2b8f6d91e7398ad5bb",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 24,
+                    "line": 10
+                  },
+                  "start": {
+                    "col": 18,
+                    "line": 10
+                  }
+                },
+                "span": {
+                  "end": 231,
+                  "start": 225
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2/value/then/0/value/value/value/left",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/2/value/then/0/value/value/value/right",
+          "id": "frso1:3b12d3a6a6443a314a9933a22ef15378953cd792e9dbfe9220eb2adb56d7a4ac",
+          "kind": "int",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:13",
+              "id": "fro1:134feeb5f09ab724575d43523dabde1b9d15a04dfed1f38ae19d8dc1520490ae",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 28,
+                    "line": 10
+                  },
+                  "start": {
+                    "col": 27,
+                    "line": 10
+                  }
+                },
+                "span": {
+                  "end": 235,
+                  "start": 234
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/2/value/then/0/value/value/value/right",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/3",
+          "id": "frso1:7258923a16b7ca1aade50a5096b82fc9f3e91378b9358982bf21ffead8ded34f",
+          "kind": "return",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:58154d03dcddfc146b5414caf0a450c296167cbfb1ab65b0eb9099007177584f",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 18,
+                    "line": 13
+                  },
+                  "start": {
+                    "col": 5,
+                    "line": 13
+                  }
+                },
+                "span": {
+                  "end": 276,
+                  "start": 263
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/3",
+          "rule": "python-body-origins-1:syntax-node"
+        },
+        {
+          "body_pointer": "/body/3/value",
+          "id": "frso1:807867fe78d598c79e963c97911be43da37ba58effb424cf301293630395111a",
+          "kind": "name",
+          "origins": {
+            "occurrence": {
+              "enclosing": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+              "id": "fro1:40fd0fa1c2afdfda2bd69ac70b8b09c8eaa70bf0ef41b363255b64cb0cde529a",
+              "location": {
+                "range": {
+                  "end": {
+                    "col": 18,
+                    "line": 13
+                  },
+                  "start": {
+                    "col": 12,
+                    "line": 13
+                  }
+                },
+                "span": {
+                  "end": 276,
+                  "start": 270
+                }
+              },
+              "path": "subject.py",
+              "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "role": "semantic-origin"
+            },
+            "status": "exact"
+          },
+          "pointer": "/model/items/0/value/body/3/value",
+          "rule": "python-body-origins-1:syntax-node"
+        }
+      ],
+      "mutation_authority": false,
+      "page": {
+        "before": 0,
+        "next": null,
+        "remaining": 0,
+        "returned": 25,
+        "total": 25
+      },
+      "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+      "rule_version": "python-body-origins-1",
+      "schema": "fr-semantic-origins-1",
+      "scope": "selected Python declaration body; other nodes retain absent origins.",
+      "semantic_basis": "frsm1:0e3340075a6e7a725991369b01c751029cb74787b926ac9befbe18ad91b2a8db"
+    },
+    "patterns": [],
+    "query": "semantic",
+    "revision": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+    "schema": "fr-project-1",
+    "scope": "Syntax-derived cross-language IR; types can be inferred from local evidence. Pattern rows do not prove behavior.",
+    "selection": {
+      "body_requested": true,
+      "handle": "frp1:2ede980c3f6a2cb08bca38c9f553610e:10",
+      "kind": "declaration",
+      "language": "python",
+      "path": "subject.py"
+    },
+    "semantic_basis": "frsm1:0e3340075a6e7a725991369b01c751029cb74787b926ac9befbe18ad91b2a8db",
+    "semantic_schema": "fr-semantic-model-1",
+    "source_policy": "source-free",
+    "status": "returned"
+  },
+  "checks": {
+    "basis": "9ad2ea9dd3cf529acc9346d90d447c296639b0e5d0345be3a798beafb2831547",
+    "checks": [
+      {
+        "argv": [
+          "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+          "oracle.py"
+        ],
+        "covers": [
+          "finite Python execution and AST coordinates"
+        ],
+        "cwd": ".",
+        "name": "oracle",
+        "timeout_seconds": 10
+      }
+    ],
+    "configuration": ".fr/checks.json",
+    "configuration_stable": true,
+    "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+    "executed": true,
+    "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+    "not_run": [],
+    "passed": true,
+    "results": [
+      {
+        "argv": [
+          "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+          "oracle.py"
+        ],
+        "covers": [
+          "finite Python execution and AST coordinates"
+        ],
+        "cwd": ".",
+        "elapsed_ms": 21,
+        "error": null,
+        "exit_code": 0,
+        "name": "oracle",
+        "output_limit_exceeded": false,
+        "passed": true,
+        "source_snapshot_stable": true,
+        "stderr": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "stdout": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 60,
+          "text": "{\"calls\": [[147, 160], [163, 176]], \"outcomes\": [1, 5, -1]}\n"
+        },
+        "timed_out": false
+      }
+    ],
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-semantic-evidence-s7c1dldr/project",
+    "schema": "fr-checks-1",
+    "source_revision": "220c657dddf3579e79331b4b92952cd304dcd5b17bd6b64cd16bdf0194f9c17d",
+    "source_snapshot_checked": true,
+    "source_snapshot_stable": true,
+    "toolchain": {
+      "build_configuration": {
+        "files": {},
+        "schema": "fr-rust-build-inputs-1",
+        "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+      },
+      "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+      "programs": [
+        {
+          "check": "oracle",
+          "environment": [],
+          "identity_files": [],
+          "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+          "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+        }
+      ],
+      "schema": "fr-check-toolchain-2",
+      "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+    },
+    "toolchain_stable": true
+  },
+  "check_root": "bdfccafe13144d4c7d519a63db824450ee8f4d4148caafb3d9b2f4d9d03b46e8",
+  "completed_plan": {
+    "goal": "retain exact checked evidence",
+    "acceptance": [
+      "oracle passes"
+    ],
+    "steps": [
+      {
+        "id": "verify",
+        "question": "does the independent oracle pass?",
+        "inputs": [
+          {
+            "kind": "workspace",
+            "key": "selected-project",
+            "digest": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1"
+          },
+          {
+            "kind": "check-configuration",
+            "key": "selected-project",
+            "digest": "9ad2ea9dd3cf529acc9346d90d447c296639b0e5d0345be3a798beafb2831547"
+          },
+          {
+            "kind": "check-sources",
+            "key": "selected-project",
+            "digest": "220c657dddf3579e79331b4b92952cd304dcd5b17bd6b64cd16bdf0194f9c17d"
+          },
+          {
+            "kind": "check-toolchain",
+            "key": "selected-project",
+            "digest": "8fbd5b8650bb73931a0c50572333a11cba8c03785851737ee0c02335f3a6b44e"
+          }
+        ],
+        "depends_on": [],
+        "state": "satisfied",
+        "evidence": [
+          {
+            "id": "oracle",
+            "kind": "check",
+            "input_digest": "0ffb07c563e97efd067b1551aa59945a94dca89fdae6e7bb4cfa3ec924675f42",
+            "passed": true,
+            "reference": "fr-check-report-1:bd3dcbd7c215d353d7763d8a9a7a131ffa8e804b01b550a991a05074e97baa54"
+          }
+        ],
+        "required_checks": [
+          "oracle"
+        ],
+        "satisfies": [
+          "oracle passes"
+        ],
+        "action": [],
+        "action_input": null,
+        "required_proofs": []
+      }
+    ],
+    "hypotheses": [],
+    "questions": [],
+    "schema": "fr-investigation-plan-1"
+  },
+  "plan_root": "7d736bc47727c2ab5d767a5fe531e519ad3dbbf93589ed38e040b1a721db40b8",
+  "stale": {
+    "check_attachment": null,
+    "claim": "validated agent-reported evidence; references do not attest tool execution.",
+    "complete": false,
+    "context_basis": "frcb1:15df2acb5e33676c0660db2cbe89cc2fe459a850f08efc725b15522d75c0ae1d",
+    "coverage": {
+      "architecture": "not inferred",
+      "files_by_gap": {},
+      "hierarchy": "directories and lexical spans",
+      "indexed_files": 2,
+      "manifests": {
+        "discovered": 0,
+        "ecosystems": 4,
+        "gaps": 0,
+        "parsed": 0,
+        "scope": "selected scan root"
+      },
+      "max_file_bytes": 4194304,
+      "respect_ignore": true,
+      "skipped_files": 0,
+      "skipped_symlinks": 0,
+      "unresolved_references": 37,
+      "unsupported_files": 0
+    },
+    "dependency_policy": "explicit inputs; use workspace dependency when coverage is uncertain.",
+    "handle_prefix": "frp1:392f9abdb2235b622472e725ce4709e6:",
+    "input_digests": {
+      "verify": "0ffb07c563e97efd067b1551aa59945a94dca89fdae6e7bb4cfa3ec924675f42"
+    },
+    "invalidated": [
+      "verify"
+    ],
+    "mutation_authority": false,
+    "plan": {
+      "acceptance": [
+        "oracle passes"
+      ],
+      "goal": "retain exact checked evidence",
+      "hypotheses": [],
+      "questions": [],
+      "schema": "fr-investigation-plan-1",
+      "steps": [
+        {
+          "action": [],
+          "depends_on": [],
+          "evidence": [
+            {
+              "id": "oracle",
+              "input_digest": "0ffb07c563e97efd067b1551aa59945a94dca89fdae6e7bb4cfa3ec924675f42",
+              "kind": "check",
+              "passed": true,
+              "reference": "fr-check-report-1:bd3dcbd7c215d353d7763d8a9a7a131ffa8e804b01b550a991a05074e97baa54"
+            }
+          ],
+          "id": "verify",
+          "inputs": [
+            {
+              "digest": "2ede980c3f6a2cb08bca38c9f553610e765a1de84f88671c8c27d247bd45fdd1",
+              "key": "selected-project",
+              "kind": "workspace"
+            },
+            {
+              "digest": "9ad2ea9dd3cf529acc9346d90d447c296639b0e5d0345be3a798beafb2831547",
+              "key": "selected-project",
+              "kind": "check-configuration"
+            },
+            {
+              "digest": "220c657dddf3579e79331b4b92952cd304dcd5b17bd6b64cd16bdf0194f9c17d",
+              "key": "selected-project",
+              "kind": "check-sources"
+            },
+            {
+              "digest": "8fbd5b8650bb73931a0c50572333a11cba8c03785851737ee0c02335f3a6b44e",
+              "key": "selected-project",
+              "kind": "check-toolchain"
+            }
+          ],
+          "question": "does the independent oracle pass?",
+          "required_checks": [
+            "oracle"
+          ],
+          "satisfies": [
+            "oracle passes"
+          ],
+          "state": "stale"
+        }
+      ]
+    },
+    "proof_attachment": null,
+    "revision": "392f9abdb2235b622472e725ce4709e64e0b5386bf3ab55483bee688c84a3be0",
+    "schema": "fr-investigation-resume-1"
+  },
+  "failed_checks": {
+    "basis": "e32fa3701aac27388d72adc6e0b300d8e65cf252c2dfbd16c4720b72a004023b",
+    "checks": [
+      {
+        "argv": [
+          "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+          "-c",
+          "raise RuntimeError('independent failure')"
+        ],
+        "covers": [
+          "finite Python execution and AST coordinates"
+        ],
+        "cwd": ".",
+        "name": "oracle",
+        "timeout_seconds": 10
+      }
+    ],
+    "configuration": ".fr/checks.json",
+    "configuration_stable": true,
+    "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+    "executed": true,
+    "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+    "not_run": [],
+    "passed": false,
+    "results": [
+      {
+        "argv": [
+          "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+          "-c",
+          "raise RuntimeError('independent failure')"
+        ],
+        "covers": [
+          "finite Python execution and AST coordinates"
+        ],
+        "cwd": ".",
+        "elapsed_ms": 22,
+        "error": null,
+        "exit_code": 1,
+        "name": "oracle",
+        "output_limit_exceeded": false,
+        "passed": false,
+        "source_snapshot_stable": true,
+        "stderr": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 108,
+          "text": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nRuntimeError: independent failure\n"
+        },
+        "stdout": {
+          "encoding": "UTF-8 with replacement; byte counts precede decoding",
+          "omitted_bytes": 0,
+          "retained_bytes": 0,
+          "text": ""
+        },
+        "timed_out": false
+      }
+    ],
+    "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-semantic-evidence-s7c1dldr/project",
+    "schema": "fr-checks-1",
+    "source_revision": "be88f4879c428bd260d86fa84c679f928cbb304fc25c2bc0b6bfd723653210ee",
+    "source_snapshot_checked": true,
+    "source_snapshot_stable": true,
+    "toolchain": {
+      "build_configuration": {
+        "files": {},
+        "schema": "fr-rust-build-inputs-1",
+        "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+      },
+      "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+      "programs": [
+        {
+          "check": "oracle",
+          "environment": [],
+          "identity_files": [],
+          "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+          "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+        }
+      ],
+      "schema": "fr-check-toolchain-2",
+      "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+    },
+    "toolchain_stable": true
+  },
+  "failed_root": "6267bf234bc4674c9e6642b5a61bf6224b821a2e80a9166a499bc84d9f41644c",
+  "failed_plan": {
+    "goal": "retain exact checked evidence",
+    "acceptance": [
+      "oracle passes"
+    ],
+    "steps": [
+      {
+        "id": "verify",
+        "question": "does the independent oracle pass?",
+        "inputs": [
+          {
+            "kind": "workspace",
+            "key": "selected-project",
+            "digest": "392f9abdb2235b622472e725ce4709e64e0b5386bf3ab55483bee688c84a3be0"
+          },
+          {
+            "kind": "check-configuration",
+            "key": "selected-project",
+            "digest": "e32fa3701aac27388d72adc6e0b300d8e65cf252c2dfbd16c4720b72a004023b"
+          },
+          {
+            "kind": "check-sources",
+            "key": "selected-project",
+            "digest": "be88f4879c428bd260d86fa84c679f928cbb304fc25c2bc0b6bfd723653210ee"
+          },
+          {
+            "kind": "check-toolchain",
+            "key": "selected-project",
+            "digest": "8fbd5b8650bb73931a0c50572333a11cba8c03785851737ee0c02335f3a6b44e"
+          }
+        ],
+        "depends_on": [],
+        "state": "ready",
+        "evidence": [
+          {
+            "id": "oracle",
+            "kind": "check",
+            "input_digest": "e1adcc0d843946eb270fbd9ca469388032c6726c96115c1144d80f9799236ca0",
+            "passed": false,
+            "reference": "fr-check-report-1:390d9d3405b42d020b5c14e4c255394d0b068fdad07298556734317fd2dc78cd"
+          }
+        ],
+        "required_checks": [
+          "oracle"
+        ],
+        "satisfies": [
+          "oracle passes"
+        ],
+        "action": [],
+        "action_input": null,
+        "required_proofs": []
+      }
+    ],
+    "hypotheses": [],
+    "questions": [],
+    "schema": "fr-investigation-plan-1"
+  },
+  "scope": "One deterministic fixture. Ordinary AST timing excludes process startup. The two fr routes share discovery and use the current binary; the prior route is a workflow baseline, not a historical binary comparison. Context counts include raw reports, not live model token use. No latency, compiler semantics, security or population claim."
+}

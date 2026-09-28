@@ -182,8 +182,8 @@ bound to the new SDK runtime. Its retained source snapshots preserve the exact e
 bytes used in that run, so the historical result stays auditable as the guide gains new routes.
 
 The [representative registry](../tests/agent-eval/representative-acceptance.json) joins those two
-live matched cohorts to six executable deterministic cases and ten live trials for a pinned
-unfamiliar upstream workspace, Rust multi-file delivery, TSX/React body changes,
+live matched cohorts to seven executable deterministic cases and ten live trials for a pinned
+unfamiliar upstream workspace, Rust multi-file and structural delivery, TSX/React body changes,
 CSS/Tailwind/Mermaid surfaces, backend migration and agent-authored Lean tactics. It records each
 fixture revision, independent oracle and exact postconditions. Audit metadata and real execution
 remain separate: replay runs one worker and reports missing toolchains as infrastructure failures
@@ -596,3 +596,22 @@ Reproduce the evidence with:
 python3 tools/host-recovery-acceptance.py --output /tmp/host-recovery.json
 python3 tools/host-recovery-acceptance.py --audit /tmp/host-recovery.json
 ```
+
+## Scoped structural delivery
+
+The [pinned Rust task](../tests/agent-eval/structural-change/task.json) renames a free function and
+removes its unused scalar parameter across 49 call sites. The
+[retained result](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) compares
+prescribed ordinary edits with native scope-bound delivery in a fresh process. Both arms preserve
+49 compiled public outputs. Receiver replay checks the delivered patch, exact reversal and reapplication.
+The native arm retains its scope, ordered delivery receipt, completed plan and stale-scope refusal.
+
+The [dogfood record](../tests/agent-eval/results/2026-09-28-structural-dogfood/manifest.json) contains
+reviewed source edits on this repository, including a helper rename through the new operation.
+These records span intermediate revisions. They do not constitute a clean-checkout replay or a live-agent trial.
+Updated source-bound measurements use the `2026-09-28-structural-*` prefix; earlier results remain intact.
+
+The signature subset admits primitive scalar parameters and literal call arguments. The compiler and
+public-output oracle check their executed cases. General source equivalence, external consumers,
+dynamic dispatch and inferred contracts remain open. The oracle records its rustc version separately;
+its nested compiler process is outside the check runner's executable identity discovery.

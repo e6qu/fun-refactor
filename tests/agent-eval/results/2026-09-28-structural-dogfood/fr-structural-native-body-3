@@ -1,0 +1,15 @@
+{
+    match operation {
+        task::AuthorOperation::ReplaceBody => author::BatchOperation::ReplaceBody,
+        task::AuthorOperation::ReplaceBodySemantic => author::BatchOperation::ReplaceBodySemantic,
+        task::AuthorOperation::EditBodySemantic => author::BatchOperation::EditBodySemantic,
+        task::AuthorOperation::EditBodyIntent => author::BatchOperation::EditBodyIntent,
+        task::AuthorOperation::EditBodyScalar => author::BatchOperation::EditBodyScalar,
+        task::AuthorOperation::EditBodyDisclosed => author::BatchOperation::EditBodyDisclosed,
+        task::AuthorOperation::EditBodyDisclosedIr => author::BatchOperation::EditBodyDisclosedIr,
+        task::AuthorOperation::ReplaceDeclaration => author::BatchOperation::ReplaceDeclaration,
+        task::AuthorOperation::InsertDeclaration => author::BatchOperation::InsertDeclaration,
+        task::AuthorOperation::OrganizeImports => author::BatchOperation::OrganizeImports,
+        task::AuthorOperation::Refactor => author::BatchOperation::Refactor,
+    }
+}

@@ -2,6 +2,39 @@
   "schema": "fr-representative-acceptance-1",
   "cases": [
     {
+      "id": "rust-scoped-structural-migration",
+      "covers": [
+        "rust-structural"
+      ],
+      "runner": "tests/structural_change.rs",
+      "runner_sha256": "19427955037bfb039662b7664989a566d75a3c4d76cd57d6fec85a4f31268e29",
+      "fixture_revision": "9b96ab3e28ce8000c4b4d173116b111a8180572513e4d38e19afa92e29b7d06c",
+      "test": "retained_structural_migration_preserves_compiled_results_and_exact_reversal",
+      "oracle": "independent rustc public-output matrix and exact receiver patch reversal",
+      "postconditions": [
+        "49 call sites migrate",
+        "49 public results preserved",
+        "delivered patch applies, reverses and reapplies exactly"
+      ],
+      "required_tools": [
+        "cargo",
+        "rustc",
+        "git",
+        "python3"
+      ],
+      "command": [
+        "cargo",
+        "test",
+        "--test",
+        "structural_change",
+        "retained_structural_migration_preserves_compiled_results_and_exact_reversal",
+        "--",
+        "--exact",
+        "--test-threads",
+        "1"
+      ]
+    },
+    {
       "id": "regex-upstream-replay",
       "covers": ["unfamiliar-upstream"],
       "runner": "tools/agent-eval.py",
@@ -28,8 +61,8 @@
       "id": "tsx-react-body-batch",
       "covers": ["typescript-react"],
       "runner": "tests/author_cli.rs",
-      "runner_sha256": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
-      "fixture_revision": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
+      "runner_sha256": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
+      "fixture_revision": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
       "test": "batch_combines_languages_and_resolves_fragments_from_workspace_root",
       "oracle": "exact TSX body bytes plus parser admission and transaction reversal",
       "postconditions": ["React TSX body changes", "three-language batch applies", "undo restores all files"],
@@ -40,8 +73,8 @@
       "id": "style-tailwind-mermaid-surfaces",
       "covers": ["css-tailwind-mermaid"],
       "runner": "tests/author_cli.rs",
-      "runner_sha256": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
-      "fixture_revision": "c8e0d1a209fb89f02de4c297abcee7ffff2b599c50d99e2cbc7a3d6449bb3973",
+      "runner_sha256": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
+      "fixture_revision": "384e41e07917ed0bd3a6858f2025d18e4a6797f457c1707d299f92bfe2405099",
       "test": "surface_capabilities_edit_css_html_markdown_and_mermaid_with_history",
       "oracle": "exact CSS, Tailwind-class, Markdown and Mermaid source postconditions",
       "postconditions": ["preview is unchanged", "undo and redo exact", "patch basis matches"],

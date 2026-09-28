@@ -1,0 +1,451 @@
+{
+  "executed": true,
+  "manifest_sha256": "14c8f1d7e8203d45fecf6f1e82c3404b3bacc1aeac2a0453b3978462cdbdcb8b",
+  "passed": true,
+  "reused_transaction": false,
+  "reviewed_context_omitted": [
+    "revision",
+    "task_basis",
+    "task_resolution_basis",
+    "coverage",
+    "requests",
+    "targets",
+    "checks",
+    "delivery",
+    "author",
+    "stages",
+    "ready"
+  ],
+  "saved": true,
+  "schema": "fr-task-change-1",
+  "task_change_basis": "frtc1:4c42adae2dbad58c532f900916a055ab040cad33d7ceb7f3b513fed5f3f618bb",
+  "transaction": 1,
+  "workflow": {
+    "acceptance_checks": {
+      "basis": "5c0b6c9502aa06d55aaa28a5f2d8e79427ee954446159756585500543668eea7",
+      "names": [
+        "behavior"
+      ],
+      "toolchain-digest": "ca94be45f50b62766384fceacffeb6be77fe9c9bba7e7ae71a0433aeb5ffc7d9"
+    },
+    "executed": true,
+    "manifest_sha256": "d13a86419edaf76fab035d40ddc24850cb2eaa41b33aaee1a5f7d4466a1eea6a",
+    "passed": true,
+    "reviewed_context_omitted": [
+      "manifest_sha256",
+      "record_basis",
+      "transaction_context_basis",
+      "checks",
+      "exercise_reversal",
+      "check_original",
+      "compact_success",
+      "patch",
+      "ready"
+    ],
+    "schema": "fr-workflow-1",
+    "stages": [
+      {
+        "result": {
+          "basis": "5c0b6c9502aa06d55aaa28a5f2d8e79427ee954446159756585500543668eea7",
+          "passed": true,
+          "recorded_evidence": null,
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "70213b93c628d38979a23f0dff452133a5d5fe689c0f48b11e340a978c1cbeca",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-original",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "apply",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 4481,
+              "path": "api.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 166,
+              "path": "pricing.rs"
+            }
+          ],
+          "context_basis": "frtb2:03bf1824624190e8417d9867156961e76aa0668794d0df5d658d5d161c49660e",
+          "context_omitted": [
+            "changes[].diff"
+          ],
+          "transaction": 1
+        },
+        "stage": "apply",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "5c0b6c9502aa06d55aaa28a5f2d8e79427ee954446159756585500543668eea7",
+          "passed": true,
+          "recorded_evidence": {
+            "created": true,
+            "receipt": "frce1:05f22ed1e2ce8930e88661f1ec49796b0584529b004314389fd292041769ceef",
+            "transaction": 1
+          },
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "7c2f6b3b467deed296e6a46649a09255f67193188df66366e01f70e7db4439c5",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "5c0b6c9502aa06d55aaa28a5f2d8e79427ee954446159756585500543668eea7",
+          "checks": [
+            {
+              "argv": [
+                "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "identity_files": [
+                ".fr/oracle.py"
+              ],
+              "name": "behavior",
+              "timeout_seconds": 30
+            }
+          ],
+          "configuration": ".fr/checks.json",
+          "configuration_stable": true,
+          "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+          "executed": true,
+          "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+          "not_run": [],
+          "passed": true,
+          "results": [
+            {
+              "argv": [
+                "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "elapsed_ms": 239,
+              "error": null,
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "stderr": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 0,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "stdout": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 211,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "timed_out": false
+            }
+          ],
+          "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-structural-acceptance-pwms4_u9/native",
+          "schema": "fr-checks-1",
+          "source_revision": "7c2f6b3b467deed296e6a46649a09255f67193188df66366e01f70e7db4439c5",
+          "source_snapshot_checked": true,
+          "source_snapshot_stable": true,
+          "toolchain": {
+            "build_configuration": {
+              "files": {},
+              "schema": "fr-rust-build-inputs-1",
+              "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+            },
+            "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+            "programs": [
+              {
+                "check": "behavior",
+                "environment": [],
+                "identity_files": [
+                  {
+                    "bytes": 728,
+                    "declared": ".fr/oracle.py",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-structural-acceptance-pwms4_u9/native/.fr/oracle.py",
+                    "sha256": "baf483c751b886d0e7ff8f9a4527884ac479286b5802a48bbcde6b6d41b818ac"
+                  }
+                ],
+                "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+                "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+              }
+            ],
+            "schema": "fr-check-toolchain-2",
+            "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+          },
+          "toolchain_stable": true
+        },
+        "stage": "check-acceptance",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "undo",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "path": "api.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "path": "pricing.rs"
+            }
+          ],
+          "diffs_omitted": true,
+          "transaction": 1
+        },
+        "stage": "undo",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "5c0b6c9502aa06d55aaa28a5f2d8e79427ee954446159756585500543668eea7",
+          "passed": true,
+          "recorded_evidence": null,
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "70213b93c628d38979a23f0dff452133a5d5fe689c0f48b11e340a978c1cbeca",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-restored",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "action": "redo",
+          "applied": true,
+          "changes": [
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 4481,
+              "path": "api.rs"
+            },
+            {
+              "after_exists": true,
+              "after_kind": "regular",
+              "after_mode": 420,
+              "before_exists": true,
+              "before_kind": "regular",
+              "before_mode": 420,
+              "diff_bytes": 166,
+              "path": "pricing.rs"
+            }
+          ],
+          "context_basis": "frtb2:03bf1824624190e8417d9867156961e76aa0668794d0df5d658d5d161c49660e",
+          "context_omitted": [
+            "changes[].diff"
+          ],
+          "transaction": 1
+        },
+        "stage": "redo",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "5c0b6c9502aa06d55aaa28a5f2d8e79427ee954446159756585500543668eea7",
+          "passed": true,
+          "recorded_evidence": {
+            "created": false,
+            "receipt": "frce1:05f22ed1e2ce8930e88661f1ec49796b0584529b004314389fd292041769ceef",
+            "transaction": 1
+          },
+          "results": [
+            {
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "timed_out": false
+            }
+          ],
+          "source_revision": "7c2f6b3b467deed296e6a46649a09255f67193188df66366e01f70e7db4439c5",
+          "source_snapshot_stable": true,
+          "success_detail": "summary"
+        },
+        "stage": "check-applied",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "basis": "5c0b6c9502aa06d55aaa28a5f2d8e79427ee954446159756585500543668eea7",
+          "checks": [
+            {
+              "argv": [
+                "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "identity_files": [
+                ".fr/oracle.py"
+              ],
+              "name": "behavior",
+              "timeout_seconds": 30
+            }
+          ],
+          "configuration": ".fr/checks.json",
+          "configuration_stable": true,
+          "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+          "executed": true,
+          "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+          "not_run": [],
+          "passed": true,
+          "results": [
+            {
+              "argv": [
+                "/Users/zardoz/projects/fun-refactor/sdk/python/.venv/bin/python3",
+                "-B",
+                ".fr/oracle.py"
+              ],
+              "covers": [
+                "49 compiled public results"
+              ],
+              "cwd": ".",
+              "elapsed_ms": 232,
+              "error": null,
+              "exit_code": 0,
+              "name": "behavior",
+              "output_limit_exceeded": false,
+              "passed": true,
+              "source_snapshot_stable": true,
+              "stderr": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 0,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "stdout": {
+                "encoding": "UTF-8 with replacement; byte counts precede decoding",
+                "omitted_bytes": 211,
+                "retained_bytes": 0,
+                "text": ""
+              },
+              "timed_out": false
+            }
+          ],
+          "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-structural-acceptance-pwms4_u9/native",
+          "schema": "fr-checks-1",
+          "source_revision": "7c2f6b3b467deed296e6a46649a09255f67193188df66366e01f70e7db4439c5",
+          "source_snapshot_checked": true,
+          "source_snapshot_stable": true,
+          "toolchain": {
+            "build_configuration": {
+              "files": {},
+              "schema": "fr-rust-build-inputs-1",
+              "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+            },
+            "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+            "programs": [
+              {
+                "check": "behavior",
+                "environment": [],
+                "identity_files": [
+                  {
+                    "bytes": 728,
+                    "declared": ".fr/oracle.py",
+                    "path": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-structural-acceptance-pwms4_u9/native/.fr/oracle.py",
+                    "sha256": "baf483c751b886d0e7ff8f9a4527884ac479286b5802a48bbcde6b6d41b818ac"
+                  }
+                ],
+                "path": "/Users/zardoz/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/bin/python3.12",
+                "sha256": "62d77ce55bdcef80c23cf388998cff228600b6849d7aa1de7b9fda68f0b8efec"
+              }
+            ],
+            "schema": "fr-check-toolchain-2",
+            "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+          },
+          "toolchain_stable": true
+        },
+        "stage": "check-acceptance",
+        "status": "passed"
+      },
+      {
+        "result": {
+          "bytes": 4725,
+          "output": "artifacts/change.patch",
+          "sha256": "abf4c976a3b0de0cd8a24b929fbaadbd7f6ae00f1032ed6c7dfb0842f2b282c7"
+        },
+        "stage": "deliver-patch",
+        "status": "passed"
+      }
+    ],
+    "transaction": 1,
+    "transaction_status": "applied",
+    "workflow_basis": "frwb1:952c853ff862a3a472a7e35bb429aee8e3a70b14e2062254bcc9a2ceecda5cc7"
+  }
+}

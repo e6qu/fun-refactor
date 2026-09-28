@@ -1,0 +1,313 @@
+{
+        ensure!(
+            diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        ensure!(
+            (1..=32).contains(&manifest.operations.len()),
+            "batch needs 1 through 32 operations."
+        );
+        if let Some(revision) = &manifest.revision {
+            ensure!(
+                revision == &self.revision || revision == &self.revision[..32],
+                "stale revision; obtain a fresh project map."
+            );
+        }
+        let mut edits = EditSet::new();
+        let mut regions: Vec<(PathBuf, Span)> = Vec::new();
+        let mut steps = Vec::new();
+        let mut changed_operations = 0usize;
+        for (index, step) in manifest.operations.into_iter().enumerate() {
+            let revision = (!step.handle.starts_with("frp1:"))
+                .then(|| manifest.revision.clone())
+                .flatten();
+            if matches!(step.op, BatchOperation::Refactor) {
+                ensure!(step.scalar.is_none() && step.disclosed.is_none() && step.disclosed_ir.is_none(),
+                    "refactor accepts only a request fragment");
+                let handle = self.explicit_handle(&step.handle, revision.as_deref())?;
+                let input = fragment(&self.root.join(step.from.context("refactor requires a request fragment")?))?;
+                let plan = super::structural_change::plan(self, &handle, &input)?;
+                for (path, replacements) in plan.edits.iter() {
+                    for replacement in replacements {
+                        let span = replacement.span;
+                        ensure!(!regions.iter().any(|(previous, selected)| previous == path &&
+                            super::author_selection_conflict(selected.start, selected.end, span.start, span.end)),
+                            "batch selections overlap or share an insertion boundary; use disjoint selections");
+                        regions.push((path.clone(), span));
+                    }
+                }
+                changed_operations += 1;
+                steps.push(plan.report);
+                edits.extend(plan.edits);
+                continue;
+            }
+            let plan = match step.op {
+                BatchOperation::OrganizeImports => {
+                    ensure!(
+                        step.from.is_none()
+                            && step.scalar.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
+                        "organize-imports does not accept fragment, scalar or disclosed input."
+                    );
+                    self.organize_imports(&step.handle, revision.as_deref())
+                }
+                BatchOperation::EditBodyScalar => {
+                    ensure!(
+                        step.from.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
+                        "edit-body-scalar accepts only scalar input."
+                    );
+                    let scalar = step
+                        .scalar
+                        .context("edit-body-scalar requires a scalar request.")?;
+                    self.edit_body_scalar(&EditBodyScalarOptions {
+                        handle: step.handle.clone(),
+                        revision: revision.clone(),
+                        declaration: None,
+                        operation: scalar.operation,
+                        from: scalar.from,
+                        to: scalar.to,
+                        diff_bytes,
+                        write: false,
+                    })
+                }
+                BatchOperation::EditBodyDisclosed => {
+                    ensure!(
+                        step.from.is_none() && step.scalar.is_none() && step.disclosed_ir.is_none(),
+                        "edit-body-disclosed accepts only disclosed input."
+                    );
+                    let disclosed = step
+                        .disclosed
+                        .context("edit-body-disclosed requires a disclosed request.")?;
+                    self.edit_body_disclosed(&EditBodyDisclosedOptions {
+                        handle: step.handle.clone(),
+                        edit: disclosed.edit,
+                        to: disclosed.to,
+                        diff_bytes,
+                        write: false,
+                    })
+                }
+                BatchOperation::EditBodyDisclosedIr => {
+                    ensure!(
+                        step.from.is_none() && step.scalar.is_none() && step.disclosed.is_none(),
+                        "edit-body-disclosed-ir accepts only disclosed_ir input."
+                    );
+                    let disclosed_ir = step
+                        .disclosed_ir
+                        .as_ref()
+                        .context("edit-body-disclosed-ir requires a disclosed_ir request.")?;
+                    self.edit_body_disclosed_ir_request(&step.handle, disclosed_ir, diff_bytes)
+                }
+                operation => {
+                    ensure!(
+                        step.scalar.is_none()
+                            && step.disclosed.is_none()
+                            && step.disclosed_ir.is_none(),
+                        "fragment authoring operations do not accept scalar or disclosed input."
+                    );
+                    let operation_options = ReplaceBodyOptions {
+                        revision: revision.clone(),
+                        handle: step.handle.clone(),
+                        from: step
+                            .from
+                            .context("authoring operation requires a fragment path.")?,
+                        diff_bytes,
+                        write: false,
+                    };
+                    match operation {
+                        BatchOperation::ReplaceBody => self.replace_body(&operation_options),
+                        BatchOperation::ReplaceBodySemantic => {
+                            self.replace_body_semantic(&operation_options)
+                        }
+                        BatchOperation::EditBodySemantic => {
+                            self.edit_body_semantic(&operation_options)
+                        }
+                        BatchOperation::EditBodyIntent => self.edit_body_intent(&operation_options),
+                        BatchOperation::EditBodyScalar => unreachable!(),
+                        BatchOperation::EditBodyDisclosed => unreachable!(),
+                        BatchOperation::EditBodyDisclosedIr => unreachable!(),
+                        BatchOperation::ReplaceDeclaration => {
+                            self.replace_declaration(&operation_options)
+                        }
+                        BatchOperation::InsertDeclaration => {
+                            self.insert_declaration(&operation_options)
+                        }
+                        BatchOperation::OrganizeImports | BatchOperation::Refactor => unreachable!(),
+                    }
+                }
+            }
+            .with_context(|| format!("batch operation {} failed", index + 1))?;
+            if matches!(step.op, BatchOperation::OrganizeImports) {
+                ensure!(
+                    !plan.edits.is_empty(),
+                    "organize-imports produced no change; omit this batch step."
+                );
+            }
+            changed_operations += usize::from(plan.report["changed"] == true);
+            let handle = self.explicit_handle(&step.handle, revision.as_deref())?;
+            let id = self.resolve_handle(&handle)?;
+            let path = self.root.join(&self.nodes[id].path);
+            let key = match step.op {
+                BatchOperation::ReplaceBody
+                | BatchOperation::ReplaceBodySemantic
+                | BatchOperation::EditBodySemantic
+                | BatchOperation::EditBodyIntent
+                | BatchOperation::EditBodyScalar
+                | BatchOperation::EditBodyDisclosed
+                | BatchOperation::EditBodyDisclosedIr => "body",
+                BatchOperation::ReplaceDeclaration => "declaration",
+                BatchOperation::InsertDeclaration => "insertion",
+                BatchOperation::OrganizeImports => "imports",
+                BatchOperation::Refactor => unreachable!(),
+            };
+            let span: Span = serde_json::from_value(plan.report[key]["before_span"].clone())?;
+            for (previous, selected) in &regions {
+                let conflict = super::author_selection_conflict(
+                    selected.start,
+                    selected.end,
+                    span.start,
+                    span.end,
+                );
+                ensure!(previous != &path || !conflict,
+                    "batch selections overlap or share an insertion boundary; use disjoint selections.");
+            }
+            let mut summary = if matches!(step.op, BatchOperation::OrganizeImports) {
+                json!({"operation": plan.report["query"], "handle": plan.report["handle"],
+                    "path": plan.report["path"], "before_span": span,
+                    "imports": plan.report["imports"], "changed": plan.report["changed"],
+                    "preservation": plan.report["preservation"]})
+            } else {
+                let before = span.text(&self.sources[&path]);
+                let after = plan
+                    .edits
+                    .edits_for(&path)
+                    .and_then(|items| items.first())
+                    .map_or(before, |edit| edit.replacement.as_str());
+                json!({"operation": plan.report["query"], "handle": plan.report["handle"],
+                    "path": plan.report["path"], "before_span": span, "before_bytes": before.len(),
+                    "after_bytes": after.len(), "before_sha256": digest(before), "after_sha256": digest(after),
+                    "signature": plan.report["signature"], "changed": plan.report["changed"],
+                    "preservation": plan.report["preservation"]})
+            };
+            for key in [
+                "replacement_signature",
+                "name_check",
+                "name_resolution_checked",
+                "semantic_input",
+                "semantic_render",
+                "semantic_change",
+                "semantic_intent",
+                "semantic_edit_plan",
+                "disclosed_edit",
+                "disclosed_ir_edit",
+            ] {
+                if let Some(value) = plan.report.get(key) {
+                    summary[key] = value.clone();
+                }
+            }
+            steps.push(summary);
+            regions.push((path, span));
+            edits.extend(plan.edits);
+        }
+        for (path, replacements) in edits.iter() {
+            let language = self
+                .index
+                .file(path)
+                .context("batch file is not indexed.")?
+                .language;
+            let updated = crate::edit::apply_to_string(&self.sources[path], replacements)?;
+            ensure!(
+                !Parsers::new().parse(language, &updated)?.has_errors(),
+                "combined batch introduces parser errors in its destination context."
+            );
+        }
+        let mut report = self.envelope("batch");
+        report["schema"] = json!("fr-author-batch-1");
+        report["span_basis"] = json!("original-source");
+        report["files_changed"] = json!(edits.file_count());
+        report["changed"] = json!(!edits.is_empty());
+        report["steps"] = json!(steps);
+        let unchanged_operations = steps
+            .iter()
+            .enumerate()
+            .filter(|(_, step)| step["changed"] == false)
+            .map(|(index, step)| {
+                format!(
+                    "{} ({})",
+                    index + 1,
+                    step["operation"].as_str().unwrap_or("unknown")
+                )
+            })
+            .collect::<Vec<_>>();
+        let mismatch_detail = if unchanged_operations.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " Unchanged operations: {}. Remove them or correct their replacement.",
+                unchanged_operations.join(", ")
+            )
+        };
+        let mut postconditions = Vec::new();
+        if let Some(expected) = manifest.postconditions {
+            ensure!(
+                expected.files_changed.is_some()
+                    || expected.edits.is_some()
+                    || expected.changed_operations.is_some()
+                    || expected.paths_changed.is_some(),
+                "postconditions must declare at least one expected outcome."
+            );
+            let mut check = |name: &str, expected: Value, actual: Value| -> Result<()> {
+                let held = expected == actual;
+                postconditions.push(json!({"postcondition": name, "expected": expected,
+                    "actual": actual, "held": held}));
+                ensure!(
+                    held,
+                    "postcondition {name} failed: expected {}, actual {}.{}",
+                    expected,
+                    actual,
+                    mismatch_detail
+                );
+                Ok(())
+            };
+            if let Some(expected) = expected.files_changed {
+                check("files-changed", json!(expected), json!(edits.file_count()))?;
+            }
+            if let Some(expected) = expected.edits {
+                check("edits", json!(expected), json!(edits.edit_count()))?;
+            }
+            if let Some(expected) = expected.changed_operations {
+                check(
+                    "changed-operations",
+                    json!(expected),
+                    json!(changed_operations),
+                )?;
+            }
+            if let Some(mut expected) = expected.paths_changed {
+                ensure!(
+                    expected.iter().all(|path| {
+                        path.is_relative()
+                            && path
+                                .components()
+                                .all(|part| matches!(part, std::path::Component::Normal(_)))
+                    }),
+                    "paths-changed entries must be normalized relative paths."
+                );
+                expected.sort();
+                expected.dedup();
+                let actual = edits
+                    .paths()
+                    .filter(|path| edits.edits_for(path).is_some_and(|items| !items.is_empty()))
+                    .map(|path| path.strip_prefix(&self.root).unwrap_or(path).to_path_buf())
+                    .collect::<Vec<_>>();
+                check("paths-changed", json!(expected), json!(actual))?;
+            }
+        }
+        report["postconditions"] = json!(postconditions);
+        report["postconditions_held"] = json!(true);
+        report["validation"] = json!("reparse-strict");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan { edits, report })
+    }

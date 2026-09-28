@@ -142,6 +142,9 @@ Outcome: an agent can implement the requested task and state precisely what its 
   Explicit file-to-check associations bind multi-file delivery and persisted discovery dependencies.
   [Independent acceptance](tests/agent-eval/results/2026-09-28-change-scope/manifest.json) covers exact
   call sites, a two-file repair, fresh-process resumption, added consumers and receiver patch replay.
+  [Structural delivery](docs/structural-changes.md) adds reviewed Rust renames and scalar signature
+  migration with compiled public-output checks and exact receiver reversal.
+  [Retained acceptance](tests/agent-eval/results/2026-09-28-structural-change/manifest.json) covers 49 call sites and fresh-process delivery.
   Runtime dispatch, inferred contracts/configuration and broader structural tasks remain open.
 - [ ] Expand semantic and application IR only for pinned task requirements.
   Define transport, effects, success and failure behavior for each new construct.

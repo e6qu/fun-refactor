@@ -132,7 +132,7 @@ fn batched_project_queries_match_separate_compact_reports() {
     python(&[
         "tools/project-batch-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-09-28-change-scope-project-batch-context/result.json",
+        "tests/agent-eval/results/2026-09-28-structural-project-batch-context/result.json",
     ]);
 }
 
@@ -230,7 +230,7 @@ fn task_bundle_matches_separate_discovery_and_contract_calls() {
     python(&[
         "tools/task-bundle-context.py",
         "--audit",
-        "tests/agent-eval/task-bundle-context.json",
+        "tests/agent-eval/results/2026-09-28-structural-task-bundle-context/result.json",
     ]);
 }
 #[test]

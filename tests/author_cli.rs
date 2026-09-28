@@ -163,7 +163,7 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["schema"], "fr-author-guide-1");
     assert_eq!(guide["limits"]["operations"]["maximum"], 32);
     assert_eq!(guide["limits"]["manifest_bytes"], 65536);
-    assert_eq!(guide["operations"].as_array().unwrap().len(), 10);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 11);
     assert_eq!(guide["operations"][0]["op"], "replace-body");
     assert_eq!(guide["operations"][1]["op"], "replace-body-semantic");
     assert_eq!(guide["operations"][2]["op"], "edit-body-semantic");
@@ -172,6 +172,7 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["operations"][5]["op"], "edit-body-disclosed");
     assert_eq!(guide["operations"][6]["op"], "edit-body-disclosed-ir");
     assert_eq!(guide["operations"][9]["op"], "organize-imports");
+    assert_eq!(guide["operations"][10]["op"], "refactor");
     let steps = guide["workflow"]
         .as_array()
         .unwrap()

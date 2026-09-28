@@ -1,0 +1,12 @@
+{
+    let mut node = parsed
+        .root()
+        .descendant_for_byte_range(span.start, span.end);
+    while let Some(current) = node {
+        if current.kind() == kind {
+            return Ok(current);
+        }
+        node = current.parent();
+    }
+    anyhow::bail!("structural refactor cannot locate the required {kind} syntax.")
+}

@@ -1,0 +1,567 @@
+{
+  "schema": "fr-project-batch-context-1",
+  "passed": true,
+  "binary_sha256": "c56545d59fc6163374e988cebcfdc1ee4beeb945761246888a5c0b2143803232",
+  "source_commit": "24b1ef890cdc5f12e5bb013c743fbaef2174922a",
+  "repetitions": 3,
+  "runtime": {
+    "platform": "macOS-15.6.1-arm64-arm-64bit",
+    "python": "3.12.10",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "measurement_files": {
+    "tools/project-batch-context.py": "7125a0902e469a77bbc381e68a881af5abce56698fd1d086cc22ba244fdc31b7",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
+    "src/project.rs": "dcd8e0df9f6a9d661e6c5221b6f28b712fbb48c4c191fd2878e542e5c9c0067d",
+    "src/project/batch.rs": "ac2004157090f314b78ec23daba63b7612968b661a5c157ad9a8e369fadad4ff",
+    "Cargo.lock": "eab0475e45de40a172ce9d69ed12fd897d07f28d01392325a2a902fa1f81a9f0"
+  },
+  "fixture": {
+    "Cargo.toml": "[package]\nname = \"context-fixture\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nserde = \"1\"\n",
+    "src/lib.rs": "pub struct Request { pub value: String }\n\npub fn normalize(value: &str) -> String { value.trim().to_lowercase() }\n\npub fn process_request(request: &Request) -> String { normalize(&request.value) }\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n    #[test]\n    fn request_is_normalized() {\n        assert_eq!(process_request(&Request { value: \" A \".into() }), \"a\");\n    }\n}\n",
+    "web/client.ts": "export function present(value: string): string { return value.toUpperCase(); }\n",
+    "scripts/check.py": "def validate(value: str) -> bool:\n    return bool(value.strip())\n"
+  },
+  "manifest": {
+    "schema": "fr-project-batch-1",
+    "requests": [
+      {
+        "id": "structure",
+        "arguments": [
+          "map",
+          ".",
+          "--depth",
+          "2",
+          "--limit",
+          "24",
+          "--fields",
+          "handle,parent,kind,name,path,line,children,language,signature"
+        ]
+      },
+      {
+        "id": "lookup",
+        "arguments": [
+          "find",
+          "process_request",
+          "--signature"
+        ]
+      },
+      {
+        "id": "source",
+        "arguments": [
+          "show",
+          {
+            "request": "lookup",
+            "pointer": "/rows/0/0"
+          },
+          "--source",
+          "--bytes",
+          "512"
+        ]
+      },
+      {
+        "id": "callers",
+        "arguments": [
+          "calls",
+          {
+            "request": "lookup",
+            "pointer": "/rows/0/0"
+          },
+          "--direction",
+          "incoming",
+          "--limit",
+          "8"
+        ]
+      },
+      {
+        "id": "tests",
+        "arguments": [
+          "tests",
+          {
+            "request": "lookup",
+            "pointer": "/rows/0/0"
+          },
+          "--depth",
+          "3",
+          "--limit",
+          "8"
+        ]
+      },
+      {
+        "id": "packages",
+        "arguments": [
+          "packages",
+          "--limit",
+          "8"
+        ]
+      },
+      {
+        "id": "dependencies",
+        "arguments": [
+          "dependencies",
+          "--manifest",
+          "Cargo.toml",
+          "--limit",
+          "12"
+        ]
+      },
+      {
+        "id": "gaps",
+        "arguments": [
+          "gaps",
+          "--limit",
+          "8"
+        ]
+      }
+    ]
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "token_normalization": {
+    "pattern": "isolated lowercase hexadecimal identities of length 32 or 64",
+    "representatives": {
+      "32": "052d048bec721ff70f6c1486d7955054",
+      "64": "7fe308e07f0b40eca724b7bf42921dfd7fdc55a5b6a888440121dd0534bdde4e"
+    },
+    "scope": "token counts only; byte counts and report identities use original output"
+  },
+  "summary": {
+    "cold": {
+      "separate": {
+        "samples": 3,
+        "calls": 8,
+        "median_context_bytes": 14225,
+        "median_context_tokens": 4780,
+        "median_seconds": 3.031537583039608
+      },
+      "batch": {
+        "samples": 3,
+        "calls": 1,
+        "median_context_bytes": 13908,
+        "median_context_tokens": 4538,
+        "median_seconds": 0.3852597500081174
+      }
+    },
+    "warm": {
+      "separate": {
+        "samples": 3,
+        "calls": 8,
+        "median_context_bytes": 14225,
+        "median_context_tokens": 4780,
+        "median_seconds": 0.12899841502076015
+      },
+      "batch": {
+        "samples": 3,
+        "calls": 1,
+        "median_context_bytes": 13908,
+        "median_context_tokens": 4538,
+        "median_seconds": 0.02234925000811927
+      }
+    }
+  },
+  "runs": [
+    {
+      "repetition": 1,
+      "policy": "cold",
+      "arm": "separate",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 8,
+      "stdout": {
+        "bytes": 13471,
+        "tokens": 4533
+      },
+      "requests": {
+        "bytes": 754,
+        "tokens": 247
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 14225,
+        "tokens": 4780
+      },
+      "seconds": 3.031537583039608
+    },
+    {
+      "repetition": 1,
+      "policy": "cold",
+      "arm": "batch",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 1,
+      "stdout": {
+        "bytes": 13025,
+        "tokens": 4291
+      },
+      "requests": {
+        "bytes": 89,
+        "tokens": 29
+      },
+      "artifact": {
+        "bytes": 794,
+        "tokens": 218
+      },
+      "context": {
+        "bytes": 13908,
+        "tokens": 4538
+      },
+      "seconds": 0.3852597500081174
+    },
+    {
+      "repetition": 1,
+      "policy": "warm",
+      "arm": "separate",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 8,
+      "stdout": {
+        "bytes": 13471,
+        "tokens": 4533
+      },
+      "requests": {
+        "bytes": 754,
+        "tokens": 247
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 14225,
+        "tokens": 4780
+      },
+      "seconds": 0.1325466250127647
+    },
+    {
+      "repetition": 1,
+      "policy": "warm",
+      "arm": "batch",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 1,
+      "stdout": {
+        "bytes": 13025,
+        "tokens": 4291
+      },
+      "requests": {
+        "bytes": 89,
+        "tokens": 29
+      },
+      "artifact": {
+        "bytes": 794,
+        "tokens": 218
+      },
+      "context": {
+        "bytes": 13908,
+        "tokens": 4538
+      },
+      "seconds": 0.025017207983182743
+    },
+    {
+      "repetition": 2,
+      "policy": "cold",
+      "arm": "batch",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 1,
+      "stdout": {
+        "bytes": 13025,
+        "tokens": 4291
+      },
+      "requests": {
+        "bytes": 89,
+        "tokens": 29
+      },
+      "artifact": {
+        "bytes": 794,
+        "tokens": 218
+      },
+      "context": {
+        "bytes": 13908,
+        "tokens": 4538
+      },
+      "seconds": 0.3901211660122499
+    },
+    {
+      "repetition": 2,
+      "policy": "cold",
+      "arm": "separate",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 8,
+      "stdout": {
+        "bytes": 13471,
+        "tokens": 4533
+      },
+      "requests": {
+        "bytes": 754,
+        "tokens": 247
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 14225,
+        "tokens": 4780
+      },
+      "seconds": 3.053533250000328
+    },
+    {
+      "repetition": 2,
+      "policy": "warm",
+      "arm": "batch",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 1,
+      "stdout": {
+        "bytes": 13025,
+        "tokens": 4291
+      },
+      "requests": {
+        "bytes": 89,
+        "tokens": 29
+      },
+      "artifact": {
+        "bytes": 794,
+        "tokens": 218
+      },
+      "context": {
+        "bytes": 13908,
+        "tokens": 4538
+      },
+      "seconds": 0.02234925000811927
+    },
+    {
+      "repetition": 2,
+      "policy": "warm",
+      "arm": "separate",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 8,
+      "stdout": {
+        "bytes": 13471,
+        "tokens": 4533
+      },
+      "requests": {
+        "bytes": 754,
+        "tokens": 247
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 14225,
+        "tokens": 4780
+      },
+      "seconds": 0.12899841502076015
+    },
+    {
+      "repetition": 3,
+      "policy": "cold",
+      "arm": "separate",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 8,
+      "stdout": {
+        "bytes": 13471,
+        "tokens": 4533
+      },
+      "requests": {
+        "bytes": 754,
+        "tokens": 247
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 14225,
+        "tokens": 4780
+      },
+      "seconds": 2.964590459043393
+    },
+    {
+      "repetition": 3,
+      "policy": "cold",
+      "arm": "batch",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 1,
+      "stdout": {
+        "bytes": 13025,
+        "tokens": 4291
+      },
+      "requests": {
+        "bytes": 89,
+        "tokens": 29
+      },
+      "artifact": {
+        "bytes": 794,
+        "tokens": 218
+      },
+      "context": {
+        "bytes": 13908,
+        "tokens": 4538
+      },
+      "seconds": 0.3766890419938136
+    },
+    {
+      "repetition": 3,
+      "policy": "warm",
+      "arm": "separate",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 8,
+      "stdout": {
+        "bytes": 13471,
+        "tokens": 4533
+      },
+      "requests": {
+        "bytes": 754,
+        "tokens": 247
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 14225,
+        "tokens": 4780
+      },
+      "seconds": 0.1087661670462694
+    },
+    {
+      "repetition": 3,
+      "policy": "warm",
+      "arm": "batch",
+      "report_sha256": [
+        "7d6bf7fc25bd27c9f02edce3d25f8476c905b3e14ccd97936211627c2452daea",
+        "87be35d35298f4f46853a871f6ca376dcb7fa259e5a516117b3addcb2b55c8a6",
+        "f3a8c23e241e2caaa55cc0f1c612306907c8135aa4598e73419b7afa2fd3f263",
+        "898822c0a9f06c160c8e39552e5b5703db4e3a064d023eba07cc891cc14b96b8",
+        "075be4d07a83b893abcc88596dc811653ef01ecc84947055c53fccd8bbbebc1a",
+        "72316be0e7c271a6ae1a5f10f68483e8c53996b8b8abfc2f1aceea543a8bd29b",
+        "e292313bec777ff257d4fe0043cd3e82277857fbdc26f2a90f5ff468563c905e",
+        "f884b5e36a57c45e9b8eaede7ba2901bf695f6266ccc83ab6dd5f2aee78b24f0"
+      ],
+      "calls": 1,
+      "stdout": {
+        "bytes": 13025,
+        "tokens": 4291
+      },
+      "requests": {
+        "bytes": 89,
+        "tokens": 29
+      },
+      "artifact": {
+        "bytes": 794,
+        "tokens": 218
+      },
+      "context": {
+        "bytes": 13908,
+        "tokens": 4538
+      },
+      "seconds": 0.021846666000783443
+    }
+  ],
+  "source_unchanged": true,
+  "scope": "Prescribed generic Rust, TypeScript and Python fixture. Eight standalone project calls reuse context_basis; one batch uses a backward handle reference. Batch context includes its request manifest. Reports match after removing the standalone compact-context markers. Cold runs disable the fact cache; warm runs prefill separate per-arm caches. Rotating order does not control OS filesystem cache. Timings are local subprocess wall time. No agent, skill read, task success or population claim."
+}

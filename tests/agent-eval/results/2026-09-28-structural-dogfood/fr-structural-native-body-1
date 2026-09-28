@@ -1,0 +1,15 @@
+{
+        match self {
+            Self::ReplaceBody => 0,
+            Self::ReplaceDeclaration => 1,
+            Self::InsertDeclaration => 2,
+            Self::OrganizeImports => 3,
+            Self::ReplaceBodySemantic => 4,
+            Self::EditBodySemantic => 5,
+            Self::EditBodyIntent => 6,
+            Self::EditBodyScalar => 7,
+            Self::EditBodyDisclosed => 8,
+            Self::EditBodyDisclosedIr => 9,
+            Self::Refactor => 10,
+        }
+    }
