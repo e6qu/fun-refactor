@@ -663,6 +663,21 @@ enum RecipeCommand {
 
 #[derive(Subcommand)]
 enum SpecCommand {
+    #[command(about = "Capture a bounded Boolean source/model snapshot for comparison.")]
+    Snapshot { target: String },
+    #[command(
+        about = "Review an old/new Boolean model relation and scaffold its proof obligation."
+    )]
+    Compare {
+        #[arg(long)]
+        from: PathBuf,
+        #[arg(long, default_value = "specs")]
+        package: PathBuf,
+        #[arg(long)]
+        basis: Option<String>,
+        #[arg(long)]
+        write: bool,
+    },
     #[command(
         about = "Evaluate a bounded, source-free pure kernel with explicit arithmetic and partiality."
     )]
@@ -1042,6 +1057,9 @@ fn dispatch(cli: &Cli) -> Result<()> {
                     command: SpecCommand::Ci { .. }
                 }
                 | Command::Spec {
+                    command: SpecCommand::Compare { .. }
+                }
+                | Command::Spec {
                     command: SpecCommand::Sync { .. }
                 }
                 | Command::Spec {
@@ -1280,6 +1298,17 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 max_debt,
                 write,
             } => cmd_spec_ci(cli, package, *max_debt, *write),
+            SpecCommand::Snapshot { target } => {
+                let report = crate::spec::refinement::capture(&workspace_root(cli), target)?;
+                println!("{}", serde_json::to_string_pretty(&report)?);
+                Ok(())
+            }
+            SpecCommand::Compare {
+                from,
+                package,
+                basis,
+                write,
+            } => cmd_spec_compare(cli, from, package, basis.as_deref(), *write),
             SpecCommand::Retain(options) => {
                 let report = crate::spec::retained::report(&workspace_root(cli), options)?;
                 println!("{}", serde_json::to_string_pretty(&report)?);
@@ -7852,6 +7881,43 @@ fn report_skipped(result: &crate::scan::ScanResult) {
             named.join(", ")
         );
     }
+}
+
+fn cmd_spec_compare(
+    cli: &Cli,
+    from: &Path,
+    package: &Path,
+    basis: Option<&str>,
+    write: bool,
+) -> Result<()> {
+    let root = workspace_root(cli);
+    let from = if from.is_absolute() {
+        from.to_path_buf()
+    } else {
+        root.join(from)
+    };
+    let mut plan = crate::spec::refinement::prepare(&root, &from, package)?;
+    if write || cli.save_plan {
+        anyhow::ensure!(
+            basis == plan.report["basis"].as_str(),
+            "comparison execution needs the unchanged complete review basis"
+        );
+    }
+    let changes = plan
+        .files
+        .iter()
+        .map(|file| crate::edit::FileChange {
+            path: &file.path,
+            original: &file.original,
+            updated: &file.updated,
+        })
+        .collect::<Vec<_>>();
+    let transaction = persist_changes(cli, &changes, write, "model-comparison-v1")?;
+    plan.report["transaction"] = serde_json::json!(transaction);
+    plan.report["applied"] = serde_json::json!(write && transaction.is_some());
+    plan.report["saved"] = serde_json::json!(cli.save_plan && transaction.is_some());
+    println!("{}", serde_json::to_string_pretty(&plan.report)?);
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+pub mod refinement;
 pub mod retained;
 
 use crate::edit::{Edit, EditSet};
@@ -86,6 +87,8 @@ pub struct Evidence {
     pub trusted_components: Vec<&'static str>,
     pub correspondence: CorrespondenceEvidence,
     pub kernel_correspondence: Vec<KernelCorrespondenceEvidence>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub model_comparisons: Vec<serde_json::Value>,
     pub remaining_obligations: Vec<String>,
 }
 
@@ -2014,6 +2017,7 @@ fn collect_evidence(
     let mut properties = Vec::new();
     let mut declared_assumptions = Vec::new();
     let mut kernel_correspondence = Vec::new();
+    let mut model_comparisons = Vec::new();
     let parsers = Parsers::new();
     let mut extractor = Extractor::new();
     for spec in files {
@@ -2026,6 +2030,11 @@ fn collect_evidence(
             .iter()
             .find(|report| report.package == package)
             .is_some_and(|report| report.passed);
+        if let Some(comparison) =
+            refinement::comparison_evidence(root, &spec, &source, package_passed)?
+        {
+            model_comparisons.push(comparison);
+        }
         if source.starts_with("import FrSpecs.PureKernel\n") {
             for (_, path, symbol, _) in anchors_in(&source)? {
                 let target = format!("{}::{symbol}", path.display());
@@ -2148,6 +2157,7 @@ fn collect_evidence(
             proved_implementation_model: false,
         },
         kernel_correspondence,
+        model_comparisons,
         remaining_obligations,
     })
 }
@@ -3683,6 +3693,7 @@ fn check_with(
         if text.starts_with("import FrSpecs.PureKernel\n") {
             reviewed_kernel_context(&lean_package(root, &spec)?, &text)?;
         }
+        refinement::validate_module(root, &spec, &text)?;
         debts.extend(debts_in(&spec, &text));
         for (line, source, symbol, expected) in anchors_in(&text)? {
             let source = crate::vfs::normalise(root.join(source));

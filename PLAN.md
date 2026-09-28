@@ -154,6 +154,9 @@ Outcome: an agent can implement the requested task and state precisely what its 
   For new code, author the specification and implementation together.
 - [ ] Retain old/new models for refactoring and translation, with preservation or refinement claims.
   Reject dependent proof evidence after relevant changes.
+  [Boolean model comparisons](docs/model-comparisons.md) retain Rust/Python snapshots and explicit parameter maps.
+  Native validation regenerates both models; checked relations enter retained proofs and resumable plans.
+  Broader domains and source correspondence remain open.
 - [x] Check small executable kernels for edit admission, dependency invalidation and task transitions.
   State trusted components and remaining obligations; use fault injection for host operations.
   [Kernel contracts](docs/lean-specs.md) cover the admitted predicates; [host recovery evidence](tests/agent-eval/results/2026-09-25-host-recovery/result.json) covers native journal boundaries.
