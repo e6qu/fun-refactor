@@ -1,0 +1,79 @@
+try:
+    data = report.to_data()
+    inputs = data["inputs"]
+    modules = inputs["modules"]
+    encoded = json.dumps(inputs, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
+    if _digest(data["input_digest"]) != hashlib.sha256(encoded).hexdigest():
+        raise FrRuntimeError("flow input digest differs from its dependencies")
+    if (report.schema != "fr-dataflow-1" or inputs["summary_mode"] is not True
+            or modules["schema"] not in {"fr-flow-modules-1", "fr-flow-modules-2", "fr-flow-modules-3", "fr-flow-modules-4"}
+            or type(modules["complete"]) is not bool
+            or not isinstance(modules["cutoffs"], list)
+            or any(not isinstance(cutoff, str) for cutoff in modules["cutoffs"])
+            or modules["complete"] != (not modules["cutoffs"])):
+        raise FrRuntimeError("report lacks consistent module dependencies")
+    files = tuple((_path(path), _digest(digest)) for path, digest in modules["files"].items())
+    if not 1 <= len(files) <= 16:
+        raise FrRuntimeError("module dependency count exceeds its budget")
+    paths = dict(files)
+    legacy = modules["schema"] == "fr-flow-modules-1"
+    module_aliases = modules["schema"] == "fr-flow-modules-4"
+    chains = modules["schema"] in {"fr-flow-modules-3", "fr-flow-modules-4"}
+    entry = None if legacy else _resolution(modules["entry"], paths, modules["complete"])
+    if module_aliases and modules["complete"] and entry is not None and any(
+            _special_attribute(part) for part in entry.module.split(".")[1:]):
+        raise FrRuntimeError("complete closure includes a special child module")
+    lookups = []
+    for item in modules["lookups"]:
+        if (item["importer"] not in paths or type(item["admitted"]) is not bool
+                or any(not isinstance(item[field], str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item[field]) is None
+                       for field in ("alias",))
+                or (item["member"] is not None and (not isinstance(item["member"], str)
+                    or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item["member"]) is None))):
+            raise FrRuntimeError("malformed import lookup")
+        selected = _resolution(item, paths, modules["complete"], legacy)
+        if module_aliases and modules["complete"] and (
+                _special_attribute(item["alias"])
+                or item["member"] is not None and _special_attribute(item["member"])
+                or any(_special_attribute(part) for part in selected.module.split(".")[1:])):
+            raise FrRuntimeError("complete closure includes special module attributes")
+        prefix = item["alias"] if legacy else item["prefix"]
+        if (prefix not in (item["alias"], selected.module) or prefix.split(".")[0] != item["alias"]
+                or item["member"] is not None and prefix != item["alias"]):
+            raise FrRuntimeError("import binding prefix disagrees with its alias")
+        resolution = item["resolution"]
+        if (resolution not in ({"module", "function", "missing", "ambiguous", "unavailable"}
+                      | ({"cyclic", "budget"} if chains else set()))
+                or modules["complete"] and resolution not in {"module", "function"}
+                or (resolution == "module" and item["member"] is not None and not module_aliases)
+                or (resolution in {"function", "missing", "ambiguous"} and item["member"] is None)):
+            raise FrRuntimeError("import resolution disagrees with its declaration")
+        lookups.append(ImportLookup(item["importer"], item["alias"], selected.module, item["member"],
+                                    selected.candidates, selected.admitted, resolution,
+                                    selected.target, selected.packages, prefix,
+                                            tuple(ImportBinding(_path(hop["path"]), hop["name"])
+                                                  for hop in item["binding_chain"])
+                                            if chains else (),
+                                        _resolution(item["submodule"], paths, modules["complete"])
+                                        if module_aliases and item["submodule"] is not None else None,
+                                        _path(item["terminal_module"]) if module_aliases and item["terminal_module"] is not None else None))
+    if chains:
+        if any(not isinstance(hop.name, str) or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", hop.name) is None
+               for lookup in lookups for hop in lookup.binding_chain):
+            raise FrRuntimeError("invalid re-export member name")
+        _binding_chains(lookups, paths, module_aliases)
+    if len(lookups) > 128:
+        raise FrRuntimeError("import lookup count exceeds its budget")
+    source = inputs["source"]
+    if source["path"] not in paths or source["digest"] != paths[source["path"]]:
+        raise FrRuntimeError("entry source differs from its dependency closure")
+    if entry is not None and (not entry.admitted or entry.target != source["path"]):
+        raise FrRuntimeError("entry source differs from its module resolution")
+    rules = inputs["rule_file"]
+    query = {"path": _path(source["path"]), "function": inputs["selection"]["name"],
+             "rules": rules, "context": inputs["context"], **inputs["budget"]}
+    dependency = Dependency(DependencyKind.FLOW_INPUTS, json.dumps(query, sort_keys=True, separators=(",", ":")),
+                            _digest(data["input_digest"]))
+    return cls(files, tuple(lookups), modules["complete"], tuple(modules["cutoffs"]), dependency, entry)
+except (KeyError, TypeError, ValueError, AttributeError) as error:
+    raise FrRuntimeError("malformed flow dependencies") from error

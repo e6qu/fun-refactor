@@ -2,7 +2,7 @@
   "schema": "fr-module-aliases-task-1",
   "baseline": "e4b5b0b58d2a506b5167f7165dd63261de110029",
   "task": "Discover and repair raw input through a renamed module re-export, preserve safe output and deliver a sink-free preview.",
-  "subset": "Workspace-local scalar Python, regular packages, explicit module aliases and acyclic re-exports. Missing package attributes may select an unambiguous local child module. Effects, dynamic attributes and implicit child traversal are excluded.",
+  "subset": "Workspace-local scalar Python, regular packages, explicit module aliases and acyclic re-exports. Missing package attributes may select an unambiguous local child module. Effects, dynamic attributes and implicit child traversal are excluded. Double-underscore global bindings, imported attributes and child-module components are excluded.",
   "budgets": {
     "modules": 16,
     "source_bytes": 262144,

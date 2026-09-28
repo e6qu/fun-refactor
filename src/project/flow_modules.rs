@@ -380,6 +380,9 @@ impl Modules {
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
         };
+        if name.split('.').skip(1).any(special_attribute) {
+            result.cutoffs.insert("special-module-attributes".into());
+        }
         let mut pending = VecDeque::from([entry.to_owned()]);
         let mut queued = BTreeSet::from([entry.to_owned()]);
         let mut files = BTreeMap::new();
@@ -440,7 +443,9 @@ impl Modules {
                         binding.ambiguous = true;
                         result.cutoffs.insert("ambiguous-module-binding".into());
                     }
-                    if binding.member.as_deref().is_some_and(special_attribute) {
+                    if binding.module.split('.').skip(1).any(special_attribute)
+                        || binding.member.as_deref().is_some_and(special_attribute)
+                    {
                         result.cutoffs.insert("special-module-attributes".into());
                     }
                     let resolution = resolve_module(project, &binding.module)?;

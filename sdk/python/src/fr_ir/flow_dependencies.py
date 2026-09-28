@@ -20,6 +20,10 @@ def _path(value: Any) -> str:
     return value
 
 
+def _special_attribute(value: str) -> bool:
+    return value.startswith("__") and value.endswith("__")
+
+
 def _digest(value: Any) -> str:
     if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
         raise FrRuntimeError("flow dependency needs a digest")
@@ -205,6 +209,9 @@ class FlowDependencies:
             module_aliases = modules["schema"] == "fr-flow-modules-4"
             chains = modules["schema"] in {"fr-flow-modules-3", "fr-flow-modules-4"}
             entry = None if legacy else _resolution(modules["entry"], paths, modules["complete"])
+            if module_aliases and modules["complete"] and entry is not None and any(
+                    _special_attribute(part) for part in entry.module.split(".")[1:]):
+                raise FrRuntimeError("complete closure includes a special child module")
             lookups = []
             for item in modules["lookups"]:
                 if (item["importer"] not in paths or type(item["admitted"]) is not bool
@@ -214,6 +221,11 @@ class FlowDependencies:
                             or re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", item["member"]) is None))):
                     raise FrRuntimeError("malformed import lookup")
                 selected = _resolution(item, paths, modules["complete"], legacy)
+                if module_aliases and modules["complete"] and (
+                        _special_attribute(item["alias"])
+                        or item["member"] is not None and _special_attribute(item["member"])
+                        or any(_special_attribute(part) for part in selected.module.split(".")[1:])):
+                    raise FrRuntimeError("complete closure includes special module attributes")
                 prefix = item["alias"] if legacy else item["prefix"]
                 if (prefix not in (item["alias"], selected.module) or prefix.split(".")[0] != item["alias"]
                         or item["member"] is not None and prefix != item["alias"]):

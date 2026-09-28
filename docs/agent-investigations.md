@@ -143,7 +143,9 @@ Qualified calls follow explicit module bindings to a defining function, within t
 and 16-binding budgets. An initializer may import a local module; its closure must still be inert
 and acyclic. A child binding that selects that same module is admitted. Conflicting child bindings
 refuse. Global bindings and imported members with leading and trailing double underscores also refuse.
-This excludes module metadata and attribute hooks such as `__getattr__`, including imported hooks.
+Special child-module components also refuse, including direct entry selection.
+This excludes module metadata and hooks such as `__getattr__`, whether declared, imported or installed
+by loading a same-named child module.
 Implicit child attributes, dynamic attributes and runtime import hooks remain outside this subset.
 Custom search paths, import hooks, native modules and monkey patching remain outside the contract.
 The model assumes the workspace root supplies its admitted modules. External rules remain caller-authored assumptions.

@@ -318,3 +318,44 @@ def test_adding_module_attribute_hook_invalidates_cached_complete_analysis(tmp_p
     assert evidence(changed) == evidence(analyze(client, rules))
     assert first.report.at('/input_digest') != changed.report.at('/input_digest')
     changed.dependencies
+
+
+@pytest.mark.parametrize('attribute', ['__getattr__', '__path__'])
+def test_loading_special_child_modules_cannot_install_parent_metadata(tmp_path, attribute):
+    client, rules = install(tmp_path)
+    (tmp_path / 'pkg/__init__.py').write_text('pass\n')
+    (tmp_path / f'pkg/{attribute}.py').write_text('def identity(value):\n    return value\n')
+    (tmp_path / 'app.py').write_text(f'import pkg.{attribute} as metadata\nfrom pkg import leaf\ndef positive():\n    return sink(leaf.identity(source()))\n')
+    observed = subprocess.run(['python3', '-B', '-c', 'import app'], cwd=tmp_path, capture_output=True, text=True)
+    assert observed.returncode != 0 and 'TypeError' in observed.stderr
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    assert 'special-module-attributes' in result.report.at('/cutoffs')
+    result.dependencies
+
+
+def test_special_child_entry_cannot_bypass_module_metadata_boundary(tmp_path):
+    client, rules = install(tmp_path)
+    (tmp_path / 'app.py').write_text('pass\n')
+    (tmp_path / 'pkg/__path__.py').write_text('def positive():\n    return sink(source())\n')
+    result = analyze(client, rules)
+    assert not result.report.at('/complete')
+    assert 'special-module-attributes' in result.report.at('/cutoffs')
+    assert result.dependencies.entry.module == 'pkg.__path__'
+
+
+def test_typed_complete_record_cannot_select_special_child_module(tmp_path):
+    client, rules = install(tmp_path)
+    (tmp_path / 'app.py').write_text('import pkg.leaf as forward\ndef positive():\n    return sink(forward.identity(source()))\n')
+    value = analyze(client, rules).report.to_data()
+    modules = value['inputs']['modules']
+    lookup = next(item for item in modules['lookups'] if item['importer'] == 'app.py')
+    lookup['module'] = 'pkg.__path__'
+    lookup['target'] = lookup['terminal_module'] = 'pkg/__path__.py'
+    lookup['candidates'] = {path.replace('pkg/leaf', 'pkg/__path__'): item
+                            for path, item in lookup['candidates'].items()}
+    modules['files']['pkg/__path__.py'] = modules['files']['pkg/leaf.py']
+    value['input_digest'] = hashlib.sha256(json.dumps(value['inputs'], sort_keys=True,
+        ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+    with pytest.raises(FrRuntimeError):
+        FlowDependencies.from_report(FrReport(value, ()))
