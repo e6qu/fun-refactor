@@ -58,7 +58,7 @@ pub(super) fn contract() -> Value {
         "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-        "boundary":"no defaults, annotations, variadics, unpacking, keyword external-rule contracts or Unicode binding normalization.",
+        "boundary":"no defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
         "implicit_exceptions":false})
 }
 

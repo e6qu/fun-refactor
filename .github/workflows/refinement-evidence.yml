@@ -20,6 +20,7 @@ on:
           - index-resolution
           - host-recovery
           - flow
+          - dependency
           - flow-fixed-point
           - recursive-flow
           - flow-facts
@@ -33,7 +34,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: refinement-evidence-${{ github.ref }}
+  group: refinement-evidence-${{ github.ref }}-${{ inputs.group }}
   cancel-in-progress: true
 jobs:
   refresh:

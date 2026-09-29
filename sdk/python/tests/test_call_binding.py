@@ -304,6 +304,7 @@ def test_each_explicit_keyword_value_transfers_once_before_binding(tmp_path):
 @pytest.mark.parametrize("source", [
     "def K(value):\n    return 0\ndef K(value):\n    return value\ndef entry():\n    return sink(K(source()))\n",
     "def entry():\n    K = 0\n    K = source()\n    return sink(K)\n",
+    "def entry():\n    é = 0\n    e\u0301 = source()\n    return sink(é)\n",
 ])
 @pytest.mark.parametrize("summaries", [False, True])
 def test_normalized_function_and_local_collisions_cannot_establish_absence(tmp_path, source, summaries):
@@ -314,6 +315,21 @@ def test_normalized_function_and_local_collisions_cannot_establish_absence(tmp_p
         summaries=summaries, steps=4096, max_bytes=1_048_576)
     assert not result.report.at("/complete")
     assert ("module-effects-unchecked" in result.report.at("/cutoffs")
-            or "non-ascii-binding-unchecked" in result.report.at("/cutoffs"))
+            or "identifier-normalization-unchecked" in result.report.at("/cutoffs"))
     runtime = observe(tmp_path)
     assert runtime["result"] == 17 and runtime["events"] == [["source", 17], ["sink", 17]]
+
+
+@pytest.mark.parametrize("source", [
+    "def café(value):\n    return value\ndef entry():\n    return sink(café(source()))\n",
+    "def entry():\n    café = source()\n    return sink(café)\n",
+])
+@pytest.mark.parametrize("summaries", [False, True])
+def test_normalized_unicode_function_and_local_names_remain_supported(tmp_path, source, summaries):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "subject.py").write_text(source)
+    handle = client.project("find", "entry").definition_target().handle
+    result = FlowCache(MemoryObjectStore()).analyze(client, handle, rules=rules,
+        summaries=summaries, steps=4096, max_bytes=1_048_576)
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.witnesses and observe(tmp_path)["result"] == 17

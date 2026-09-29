@@ -1,0 +1,183 @@
+{
+        if function.child_by_field_name("return_type").is_some() {
+            self.cutoff("function-annotation-effects");
+        }
+        if function
+            .children(&mut function.walk())
+            .any(|child| child.kind() == "async")
+        {
+            self.cutoff("async-function");
+            return Flow::new();
+        }
+        let Some(parameters) = self.parameter_nodes(function) else {
+            self.cutoff(format!("unsupported-parameter-contract:{name}"));
+            return Flow::new();
+        };
+        if parameters.len() != arguments.len() {
+            self.cutoff(format!("unsupported-parameter-contract:{name}"));
+            return Flow::new();
+        }
+        let Ok(graph) = Graph::lower(function) else {
+            self.cutoff("control-flow-block-budget");
+            return Flow::new();
+        };
+        self.graphs
+            .entry(name.to_owned())
+            .or_insert_with(|| graph.report(self.project, self.file, name));
+        let inputs: Vec<_> = arguments
+            .iter()
+            .map(|flow| flow.keys().cloned().collect::<Vec<_>>())
+            .collect();
+        let values: BTreeMap<_, _> = parameters
+            .into_iter()
+            .zip(arguments)
+            .map(|(p, value)| (self.text(p).to_owned(), self.extend(value, p, "parameter")))
+            .collect();
+        let initial = Environment {
+            defined: values.keys().cloned().collect(),
+            values,
+        };
+        let mut locals = initial.defined.clone();
+        for block in &graph.blocks {
+            if block.operation == Operation::Statement
+                && block.syntax.is_some_and(|n| {
+                    !matches!(
+                        n.kind(),
+                        "expression_statement" | "pass_statement" | "comment"
+                    )
+                })
+            {
+                self.cutoff("unsupported-lexical-binding");
+            }
+        }
+        let mut lexical = function
+            .child_by_field_name("body")
+            .into_iter()
+            .collect::<Vec<_>>();
+        while let Some(node) = lexical.pop() {
+            if node.kind() == "identifier" && !unicode_normalization::is_nfkc(self.text(node)) {
+                self.cutoff("identifier-normalization-unchecked");
+            }
+            if self.solver.enabled
+                && node.kind() == "call"
+                && !calls::valid_call_syntax(node, self.source)
+            {
+                self.cutoff("unsupported-call-syntax");
+            }
+            if matches!(
+                node.kind(),
+                "assignment" | "augmented_assignment" | "named_expression"
+            ) {
+                if let Some(left) = node
+                    .child_by_field_name("left")
+                    .or_else(|| node.child_by_field_name("name"))
+                {
+                    if left.kind() == "identifier" {
+                        locals.insert(self.text(left).to_owned());
+                    } else {
+                        self.cutoff("unsupported-local-binding");
+                    }
+                }
+            }
+            if !matches!(
+                node.kind(),
+                "function_definition" | "class_definition" | "lambda"
+            ) {
+                lexical.extend(node.named_children(&mut node.walk()));
+            }
+        }
+        let mut incoming = vec![None; graph.blocks.len()];
+        incoming[graph.entry] = Some(initial);
+        let mut queue = VecDeque::from([graph.entry]);
+        let mut queued = BTreeSet::from([graph.entry]);
+        let mut visits = 0;
+        let mut result = Flow::new();
+        let parent_block = self.current_block.clone();
+        self.active.push(name.to_owned());
+        self.local_bindings.push(locals);
+        while let Some(id) = queue.pop_front() {
+            queued.remove(&id);
+            if self.remaining == 0 {
+                self.cutoff("step-budget");
+                queue.push_front(id);
+                break;
+            }
+            visits += 1;
+            let mut state = incoming[id]
+                .clone()
+                .expect("queued blocks have input states");
+            let block = &graph.blocks[id];
+            self.normal = true;
+            if self.solver.enabled && block.operation == Operation::Exit {
+                self.normal_return = true;
+            }
+            self.current_block = Some((name.to_owned(), id));
+            if let Some(node) = block.syntax {
+                if !self.tick(node, "control") {
+                    break;
+                }
+                match block.operation {
+                    Operation::Condition => {
+                        self.expression(node, &state);
+                    }
+                    Operation::Statement => self.statement(node, &mut state),
+                    Operation::Return | Operation::Raise => {
+                        if self.solver.enabled
+                            && block.operation == Operation::Raise
+                            && node.named_child_count() != 1
+                        {
+                            self.cutoff("raise-contract-unchecked");
+                        }
+                        let mut value = Flow::new();
+                        for expression in node.named_children(&mut node.walk()) {
+                            merge(&mut value, self.expression(expression, &state));
+                        }
+                        let value = self.extend(
+                            value,
+                            node,
+                            if block.operation == Operation::Return {
+                                "return"
+                            } else {
+                                "raise"
+                            },
+                        );
+                        if self.solver.enabled && !self.normal {
+                            continue;
+                        }
+                        if block.operation == Operation::Return {
+                            self.normal_return = true;
+                            merge(&mut result, value);
+                        } else {
+                            self.may_raise = true;
+                            if !self.solver.enabled && self.active.len() > 1 {
+                                self.cutoff("helper-exception-control-unchecked");
+                            }
+                            merge(&mut self.exceptional_returns, value);
+                        }
+                    }
+                    _ => (),
+                }
+            }
+            if self.solver.enabled && !self.normal {
+                continue;
+            }
+            for (successor, _) in &block.successors {
+                let changed = match &mut incoming[*successor] {
+                    Some(previous) => join_environment(previous, &state),
+                    slot @ None => {
+                        *slot = Some(state.clone());
+                        true
+                    }
+                };
+                if changed && queued.insert(*successor) {
+                    queue.push_back(*successor);
+                }
+            }
+        }
+        self.active.pop();
+        self.local_bindings.pop();
+        self.current_block = parent_block;
+        self.summaries.push(json!({"function":name,"inputs":inputs,"return_origins":result.keys().collect::<Vec<_>>(),
+            "block_visits":visits,"converged":queue.is_empty(),"claim":if self.solver.enabled {"one symbolic summary evaluation; global convergence reported separately"} else {"context-specific evaluation; recursive summaries unsupported"}}));
+        result
+    }

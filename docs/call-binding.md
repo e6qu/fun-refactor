@@ -2,8 +2,9 @@
 
 Opt-in summary analysis binds explicit positional and named arguments to required Python parameters
 with ASCII names. Unicode identifier normalization remains outside this contract.
-Non-ASCII function declarations and identifiers in analyzed bodies also leave analysis incomplete.
-This prevents normalized function or local names from silently shadowing an ASCII binding.
+Function declarations and identifiers in analyzed bodies must already be in NFKC form.
+Names such as `café` remain supported; spellings that normalize to another name leave analysis
+incomplete. This prevents function and local bindings from silently shadowing another spelling.
 It supports positional-only parameters before `/`, positional-or-keyword parameters, and required
 keyword-only parameters after a bare `*`. Calls can reach same-file helpers, recursive summaries,
 static package functions, re-exports and module aliases.
