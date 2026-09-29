@@ -882,6 +882,7 @@ impl Project<'_> {
             for (file, bindings) in &modules.bindings {
                 for (alias, binding) in bindings {
                     if binding.member.is_some()
+                        && !modules.is_module(file, alias)
                         && !analyzer
                             .functions
                             .contains_key(&modules.resolve(file, alias))

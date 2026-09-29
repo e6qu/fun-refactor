@@ -153,8 +153,16 @@ The [re-export task](../tests/agent-eval/package-reexports/task.json) extends th
 Its [acceptance](../tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json) repeats diagnosis, dependency invalidation, repair and feature delivery.
 The [baseline](../tests/agent-eval/package-reexports/baseline.json) records the existing local binary refusal and independent Python behavior.
 That binary predates the pinned source revision; its identity is retained explicitly.
-Package loading remains bounded to regular local packages with explicit function imports and inert declarations.
-Dynamic imports, namespace packages, module-valued aliases and initialization effects remain open.
+Package loading remains bounded to regular local packages with explicit local imports and inert declarations.
+The [module-alias task](../tests/agent-eval/module-aliases/task.json) adds child-module fallback and renamed module re-exports.
+Its baseline records CPython output and refusal by the existing local 0.35.0 binary. That binary
+was not built from the pinned task revision. The evaluator repeats discovered repair, feature
+delivery, dependency resumption and independent patch replay for the new import form.
+The [retained run](../tests/agent-eval/results/2026-09-29-aliases-module-aliases/result.json) passes both outcomes and independent receiver replay.
+The ordinary arm reads 413 source bytes across six files. Native discovery returns 110,505 bytes
+across eight calls with no source-body reveals. These finite script measurements make no token-saving
+or general efficiency claim.
+Dynamic imports, namespace packages and initialization effects remain open.
 
 ## Current matched results
 

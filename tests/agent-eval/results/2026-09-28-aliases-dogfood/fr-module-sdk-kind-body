@@ -1,0 +1,45 @@
+bindings: dict[tuple[str, str], list[ImportLookup]] = {}
+for lookup in lookups:
+    bindings.setdefault((lookup.importer, lookup.alias), []).append(lookup)
+    chain = lookup.binding_chain
+    if len(chain) > 16 or len(set(chain)) != len(chain):
+        raise FrRuntimeError("import binding chain exceeds its budget or repeats a binding")
+    if chain and (lookup.member is None or (chain[0].path, chain[0].name) != (lookup.target, lookup.member)):
+        raise FrRuntimeError("import binding chain starts outside its selected member")
+    if lookup.resolution == "function" and (not chain or any(hop.path not in files for hop in chain)):
+        raise FrRuntimeError("resolved function lacks a source-bound binding chain")
+    if not module_aliases:
+        if lookup.resolution == "module" and chain:
+            raise FrRuntimeError("module lookup carries a function binding chain")
+        continue
+    child = lookup.submodule
+    if child is not None and (lookup.member is None or lookup.target is None
+            or lookup.target != lookup.module.replace('.', '/') + '/__init__.py'  or child.module != f"{lookup.module}.{lookup.member}"
+            or chain or lookup.resolution not in {"module", "unavailable"}):
+        raise FrRuntimeError("submodule fallback disagrees with its package member")
+    if lookup.resolution == "module":
+        if lookup.terminal_module not in files or any(hop.path not in files for hop in chain):
+            raise FrRuntimeError("module alias lacks a source-bound terminal")
+        if chain:
+            if child is not None:
+                raise FrRuntimeError("submodule fallback carries an attribute chain")
+        elif lookup.terminal_module != (child.target if child is not None else lookup.target):
+            raise FrRuntimeError("module alias terminal differs from its selected module")
+        elif lookup.member is not None and child is None:
+            raise FrRuntimeError("module re-export omits its binding chain")
+    elif lookup.terminal_module is not None:
+        raise FrRuntimeError("non-module lookup carries a terminal module")
+for lookup in lookups:
+    if lookup.resolution not in {"function", "module"}:
+        continue
+    for index, hop in enumerate(lookup.binding_chain):
+        following = bindings.get((hop.path, hop.name), [])
+        suffix = lookup.binding_chain[index + 1:]
+        if not suffix and lookup.resolution == "function":
+            if following:
+                raise FrRuntimeError("function binding chain ends at another import")
+        elif (len(following) != 1 or following[0].resolution != lookup.resolution
+                or following[0].binding_chain != suffix
+                or following[0].terminal_module != lookup.terminal_module
+                or lookup.resolution == "module" and following[0].prefix != following[0].alias):
+            raise FrRuntimeError("binding chain disagrees with its re-export lookup")

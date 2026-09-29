@@ -27,6 +27,7 @@ on:
           - flow-cache
           - package-flow
           - package-reexports
+          - module-aliases
 permissions:
   contents: read
 concurrency:
@@ -91,14 +92,14 @@ jobs:
           cargo clippy --locked --tests -- -D warnings
           cargo test --locked --test vfs_choke_point --test virtual_model_workspaces
           cargo test --locked --lib spec::refinement::tests
-      - name: Check package re-export boundaries
+      - name: Check package import boundaries
         if: inputs.group == 'flow'
         run: |
           cargo clippy --locked --tests -- -D warnings
           cargo test --locked --test package_flow -- --skip acceptance
           cargo build --locked
           python3 -m pip install 'pytest==9.1.1'
-          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_flow_reexports.py
+          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py
       - name: Refresh retained evidence
         run: python3 tools/refresh-refinement-evidence.py
       - uses: actions/upload-artifact@v7

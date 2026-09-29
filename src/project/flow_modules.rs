@@ -32,6 +32,10 @@ fn identifier(value: &str) -> bool {
             .all(|(i, c)| c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit())
 }
 
+fn special_attribute(value: &str) -> bool {
+    value.starts_with("__") && value.ends_with("__")
+}
+
 fn module_name(value: &str) -> bool {
     let parts: Vec<_> = value.split('.').collect();
     parts.len() <= MODULE_LIMIT && parts.iter().all(|part| identifier(part))
@@ -241,8 +245,42 @@ fn cyclic(
     result
 }
 
+fn declares_member(
+    project: &Project<'_>,
+    path: &Path,
+    member: &str,
+    skip: Option<usize>,
+) -> Result<bool> {
+    let source = &project.sources[&project.root.join(path)];
+    if source.len() > BYTE_LIMIT {
+        return Ok(true);
+    }
+    let parsed = Parsers::new().parse(Language::Python, source)?;
+    for node in parsed.root().named_children(&mut parsed.root().walk()) {
+        if skip == Some(node.start_byte()) {
+            continue;
+        }
+        if node.kind() == "function_definition"
+            && node
+                .child_by_field_name("name")
+                .is_some_and(|name| &source[name.byte_range()] == member)
+        {
+            return Ok(true);
+        }
+        if matches!(node.kind(), "import_statement" | "import_from_statement")
+            && imports(node, source, path)
+                .is_some_and(|items| items.iter().any(|(alias, _)| alias == member))
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+type MemberValue = (&'static str, Vec<(PathBuf, String)>, Option<PathBuf>);
+
 impl Modules {
-    fn member_chain(&self, file: &Path, name: &str) -> (&'static str, Vec<(PathBuf, String)>) {
+    fn member_chain(&self, file: &Path, name: &str) -> MemberValue {
         let mut file = file.to_owned();
         let mut name = name.to_owned();
         let mut chain = Vec::new();
@@ -252,11 +290,11 @@ impl Modules {
                 name.clone(),
             );
             if chain.contains(&item) {
-                return ("cyclic", chain);
+                return ("cyclic", chain, None);
             }
             chain.push(item);
             if !self.parsed.contains_key(&file) {
-                return ("unavailable", chain);
+                return ("unavailable", chain, None);
             }
             let count = self
                 .definitions
@@ -269,21 +307,27 @@ impl Modules {
                 || count == 1 && binding.is_some()
                 || binding.is_some_and(|binding| binding.ambiguous)
             {
-                return ("ambiguous", chain);
+                return ("ambiguous", chain, None);
             }
             if count == 1 {
-                return ("function", chain);
+                return ("function", chain, None);
             }
             let Some(binding) = binding else {
-                return ("missing", chain);
+                return ("missing", chain, None);
             };
-            let (Some(target), Some(member)) = (&binding.target, &binding.member) else {
-                return ("unavailable", chain);
+            let Some(target) = &binding.target else {
+                return ("unavailable", chain, None);
             };
-            file = self.root.join(target);
-            name = member.clone();
+            if let Some(member) = &binding.member {
+                file = self.root.join(target);
+                name = member.clone();
+            } else if binding.prefix == name && self.parsed.contains_key(&self.root.join(target)) {
+                return ("module", chain, Some(target.clone()));
+            } else {
+                return ("unavailable", chain, None);
+            }
         }
-        ("budget", chain)
+        ("budget", chain, None)
     }
 
     fn package_binding_conflicts(&self) -> bool {
@@ -308,10 +352,11 @@ impl Modules {
             self.definitions
                 .get(&package)
                 .is_some_and(|items| items.contains_key(name))
-                || self
-                    .bindings
-                    .get(&package)
-                    .is_some_and(|items| items.contains_key(name))
+                || self.bindings.get(&package).is_some_and(|items| {
+                    items.contains_key(name)
+                        && self.member_chain(&package, name).2.as_deref()
+                            != file.strip_prefix(&self.root).ok()
+                })
         })
     }
 
@@ -335,6 +380,9 @@ impl Modules {
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
         };
+        if name.split('.').skip(1).any(special_attribute) {
+            result.cutoffs.insert("special-module-attributes".into());
+        }
         let mut pending = VecDeque::from([entry.to_owned()]);
         let mut queued = BTreeSet::from([entry.to_owned()]);
         let mut files = BTreeMap::new();
@@ -381,13 +429,6 @@ impl Modules {
                 if !matches!(node.kind(), "import_statement" | "import_from_statement") {
                     continue;
                 }
-                if file.file_name().is_some_and(|name| name == "__init__.py")
-                    && node.kind() != "import_from_statement"
-                {
-                    result
-                        .cutoffs
-                        .insert("package-initialization-imports".into());
-                }
                 let Some(imports) = imports(node, source, file.strip_prefix(&project.root)?) else {
                     result.cutoffs.insert("unsupported-import-form".into());
                     continue;
@@ -402,34 +443,78 @@ impl Modules {
                         binding.ambiguous = true;
                         result.cutoffs.insert("ambiguous-module-binding".into());
                     }
+                    if binding.module.split('.').skip(1).any(special_attribute)
+                        || binding.member.as_deref().is_some_and(special_attribute)
+                    {
+                        result.cutoffs.insert("special-module-attributes".into());
+                    }
                     let resolution = resolve_module(project, &binding.module)?;
                     let mut lookup = serde_json::to_value(&resolution)?;
                     lookup["importer"] = json!(file.strip_prefix(&project.root)?);
                     lookup["alias"] = json!(alias);
                     lookup["member"] = json!(binding.member);
                     lookup["prefix"] = json!(binding.prefix);
-                    lookups.push(lookup);
-                    if resolution.admitted {
-                        for path in resolution.packages.iter().chain(&resolution.target) {
-                            let absolute = project.root.join(path);
-                            if resolution.target.as_ref() == Some(path) {
-                                edges
-                                    .entry(file.clone())
-                                    .or_default()
-                                    .insert(absolute.clone());
+                    let submodule = if let (Some(target), Some(member)) =
+                        (&resolution.target, &binding.member)
+                    {
+                        let skip = (project.root.join(target) == file).then_some(node.start_byte());
+                        if target.as_path()
+                            == Path::new(&format!(
+                                "{}/__init__.py",
+                                binding.module.replace('.', "/")
+                            ))
+                            && !special_attribute(member)
+                            && !declares_member(project, target, member, skip)?
+                        {
+                            let child = format!("{}.{}", binding.module, member);
+                            if module_name(&child) {
+                                Some(resolve_module(project, &child)?)
+                            } else {
+                                result.cutoffs.insert("import-component-budget".into());
+                                None
                             }
-                            if queued.insert(absolute.clone()) {
-                                pending.push_back(absolute);
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+                    lookup["submodule"] = serde_json::to_value(&submodule)?;
+                    let selected = submodule.as_ref().unwrap_or(&resolution);
+                    for dependency in std::iter::once(&resolution).chain(submodule.iter()) {
+                        if dependency.admitted {
+                            for path in dependency.packages.iter().chain(&dependency.target) {
+                                let absolute = project.root.join(path);
+                                if dependency.target.as_ref() == Some(path)
+                                    && !(submodule.is_some() && absolute == file)
+                                {
+                                    edges
+                                        .entry(file.clone())
+                                        .or_default()
+                                        .insert(absolute.clone());
+                                }
+                                if queued.insert(absolute.clone()) {
+                                    pending.push_back(absolute);
+                                }
                             }
                         }
-                        binding.target = resolution.target;
+                    }
+                    if selected.admitted {
+                        binding.target = selected.target.clone();
+                        if submodule.is_some() {
+                            binding.member = None;
+                        }
                     } else {
                         result
                             .cutoffs
-                            .insert(format!("unresolved-local-import:{}", binding.module));
+                            .insert(format!("unresolved-local-import:{}", selected.module));
                     }
+                    lookups.push(lookup);
                     bindings.insert(alias, binding);
                 }
+            }
+            if names.iter().map(String::as_str).any(special_attribute) {
+                result.cutoffs.insert("special-module-attributes".into());
             }
             files.insert(file.strip_prefix(&project.root)?.to_owned(), hash(source)?);
             result.bindings.insert(file.clone(), bindings);
@@ -453,11 +538,27 @@ impl Modules {
             let target = lookup["target"]
                 .as_str()
                 .map(|path| project.root.join(path));
-            let (status, chain) = match (target, lookup["member"].as_str()) {
-                (Some(file), Some(member)) => result.member_chain(&file, member),
-                (Some(file), None) if result.parsed.contains_key(&file) => ("module", Vec::new()),
-                _ => ("unavailable", Vec::new()),
+            let fallback = lookup["submodule"]["target"].as_str().map(PathBuf::from);
+            let (status, chain, module) = if !lookup["submodule"].is_null() {
+                if let Some(path) =
+                    fallback.filter(|path| result.parsed.contains_key(&project.root.join(path)))
+                {
+                    ("module", Vec::new(), Some(path))
+                } else {
+                    ("unavailable", Vec::new(), None)
+                }
+            } else {
+                match (target, lookup["member"].as_str()) {
+                    (Some(file), Some(member)) => result.member_chain(&file, member),
+                    (Some(file), None) if result.parsed.contains_key(&file) => (
+                        "module",
+                        Vec::new(),
+                        Some(file.strip_prefix(&project.root)?.to_owned()),
+                    ),
+                    _ => ("unavailable", Vec::new(), None),
+                }
             };
+            lookup["terminal_module"] = json!(module);
             lookup["resolution"] = json!(status);
             lookup["binding_chain"] = json!(chain
                 .iter()
@@ -470,41 +571,58 @@ impl Modules {
                 ));
             }
         }
-        result.inputs = json!({"schema":"fr-flow-modules-3", "entry":entry_resolution,"files":files,"lookups":lookups,
+        result.inputs = json!({"schema":"fr-flow-modules-4", "entry":entry_resolution,"files":files,"lookups":lookups,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
-            "policy":"static workspace-local regular packages and .py modules; explicit acyclic function re-exports; no initialization effects, namespace packages, native modules, search paths or import hooks",
+            "policy":"static workspace-local regular packages and .py modules; explicit acyclic function and module re-exports with package child fallback. No initialization effects, namespace packages, native modules, search paths or import hooks",
             "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});
         Ok(result)
     }
 
     pub fn resolve(&self, file: &Path, name: &str) -> String {
-        let base = name.split('.').next().unwrap();
-        let (target, member) =
-            if let Some(binding) = self.bindings.get(file).and_then(|items| items.get(base)) {
-                let Some(target) = &binding.target else {
-                    return String::new();
-                };
-                let member = match (
-                    &binding.member,
-                    name.strip_prefix(&format!("{}.", binding.prefix)),
-                ) {
-                    (Some(member), None) if name == base => member.as_str(),
-                    (None, Some(member)) if identifier(member) => member,
-                    _ => return String::new(),
-                };
-                (self.root.join(target), member)
-            } else if !name.contains('.') {
-                (file.to_owned(), name)
-            } else {
-                return String::new();
-            };
-        let (status, chain) = self.member_chain(&target, member);
-        if status == "function" {
-            let (path, name) = chain.last().unwrap();
-            format!("{}::{name}", path.display())
-        } else {
-            String::new()
+        let parts: Vec<_> = name.split('.').collect();
+        if parts.is_empty()
+            || parts.len() > MODULE_LIMIT
+            || !parts.iter().all(|part| identifier(part))
+        {
+            return String::new();
         }
+        let base = parts[0];
+        let (mut target, mut members) =
+            if let Some(binding) = self.bindings.get(file).and_then(|items| items.get(base)) {
+                if binding.member.is_none() {
+                    if binding.ambiguous {
+                        return String::new();
+                    }
+                    let Some(target) = &binding.target else {
+                        return String::new();
+                    };
+                    let Some(tail) = name.strip_prefix(&format!("{}.", binding.prefix)) else {
+                        return String::new();
+                    };
+                    (self.root.join(target), tail.split('.').collect::<Vec<_>>())
+                } else {
+                    (file.to_owned(), parts)
+                }
+            } else {
+                (file.to_owned(), parts)
+            };
+        while !members.is_empty() {
+            let (status, chain, module) = self.member_chain(&target, members.remove(0));
+            if status == "function" && members.is_empty() {
+                let (path, name) = chain.last().unwrap();
+                return format!("{}::{name}", path.display());
+            }
+            if let Some(module) = module {
+                target = self.root.join(module);
+            } else {
+                break;
+            }
+        }
+        String::new()
+    }
+
+    pub fn is_module(&self, file: &Path, name: &str) -> bool {
+        self.member_chain(file, name).0 == "module"
     }
 
     pub fn function_name(&self, file: &Path, name: &str) -> String {

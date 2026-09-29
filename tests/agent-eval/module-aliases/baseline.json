@@ -1,0 +1,74 @@
+{
+  "repository_revision": "e4b5b0b58d2a506b5167f7165dd63261de110029",
+  "binary_version": "fr 0.35.0",
+  "binary_sha256": "0a61cc48f243cfe0375e395c46157818644611c74713f076f8fb10dcc1cc5552",
+  "ordinary_runtime_ast": {
+    "call_spans": {
+      "app.py": [
+        [
+          97,
+          115
+        ],
+        [
+          106,
+          114
+        ],
+        [
+          141,
+          174
+        ],
+        [
+          146,
+          173
+        ],
+        [
+          164,
+          172
+        ]
+      ],
+      "archive/__init__.py": [],
+      "archive/transform.py": [],
+      "portal/__init__.py": [],
+      "portal/api.py": [
+        [
+          65,
+          89
+        ],
+        [
+          70,
+          88
+        ]
+      ],
+      "portal/transform.py": []
+    },
+    "results": {
+      "preview": null,
+      "render": {
+        "emitted": [
+          17
+        ],
+        "returned": 17
+      },
+      "safe": {
+        "emitted": [
+          0
+        ],
+        "returned": 0
+      }
+    }
+  },
+  "ordinary_seconds": 0.03133591599180363,
+  "fr_seconds": 0.05000783401192166,
+  "fr_complete": false,
+  "fr_cutoffs": [
+    "missing-imported-member:api",
+    "missing-or-ambiguous-import-member:api",
+    "package-initialization-imports",
+    "unknown-external-call:api.send",
+    "unsupported-import-form"
+  ],
+  "fr_context_bytes": 13748,
+  "tokens": null,
+  "live_agent": false,
+  "scope": "Existing local binary baseline; no claim that this binary was built from the pinned main revision."
+}
