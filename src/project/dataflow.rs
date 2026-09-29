@@ -445,6 +445,12 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .into_iter()
             .collect::<Vec<_>>();
         while let Some(node) = lexical.pop() {
+            if self.solver.enabled
+                && node.kind() == "call"
+                && !calls::valid_call_syntax(node, self.source)
+            {
+                self.cutoff("unsupported-call-syntax");
+            }
             if matches!(
                 node.kind(),
                 "assignment" | "augmented_assignment" | "named_expression"

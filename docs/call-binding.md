@@ -25,6 +25,10 @@ have effects before binding fails. Missing, excess, duplicate and unknown argume
 parameter positionally also produces that cutoff. The report is incomplete; it does not model the
 implicit `TypeError` or establish absence of later behavior.
 
+Lexical checks reject repeated keyword names and invalid argument ordering before expression
+transfer, including skipped branches and arguments that never return. Generator argument syntax
+is outside this contract. These checks are bounded subset validation, not a general Python compiler.
+
 Defaults, annotations, variadic parameters and argument unpacking remain outside the admitted
 contract. They require definition-time evaluation or additional execution semantics. External
 source, sink, propagator and sanitizer rules have no declared parameter names, so keyword calls to

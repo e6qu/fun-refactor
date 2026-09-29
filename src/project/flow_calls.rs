@@ -166,3 +166,33 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         result
     }
 }
+
+pub(super) fn valid_call_syntax(node: Node<'_>, source: &str) -> bool {
+    let Some(arguments) = node.child_by_field_name("arguments") else {
+        return false;
+    };
+    if arguments.kind() != "argument_list" {
+        return false;
+    }
+    let mut keywords = BTreeSet::new();
+    let mut dictionary = false;
+    for arg in arguments.named_children(&mut arguments.walk()) {
+        match arg.kind() {
+            "comment" => (),
+            "keyword_argument" => {
+                let Some(name) = arg.child_by_field_name("name") else {
+                    return false;
+                };
+                let name = &source[name.byte_range()];
+                if !name.is_ascii() || !keywords.insert(name) {
+                    return false;
+                }
+            }
+            "dictionary_splat" => dictionary = true,
+            "list_splat" if !dictionary => (),
+            _ if dictionary || !keywords.is_empty() => return false,
+            _ => (),
+        }
+    }
+    true
+}

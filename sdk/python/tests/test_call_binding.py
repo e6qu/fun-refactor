@@ -273,3 +273,22 @@ def test_unicode_normalization_requires_an_explicit_contract(tmp_path, parameter
     assert not result.report.at("/complete")
     assert ("module-effects-unchecked" in result.report.at("/cutoffs")
             or "non-ascii-keyword-binding-unchecked" in result.report.at("/cutoffs"))
+
+
+@pytest.mark.parametrize("expression", [
+    "False and choose(left=0, left=source())",
+    "True or choose(left=0, left=source())",
+    "choose(left=forever(), left=source())",
+    "choose(left=0, source())",
+    "choose(0 for left in 0)",
+])
+def test_invalid_call_syntax_is_checked_before_argument_transfer(tmp_path, expression):
+    client, rules = install(tmp_path, "left", expression,
+                            extra="def forever():\n    return forever()\n\n")
+    try:
+        result = analyze(client, rules, "entry")
+    except FrRuntimeError as error:
+        assert "syntax" in str(error).lower()
+        return
+    assert not result.report.at("/complete")
+    assert "unsupported-call-syntax" in result.report.at("/cutoffs")
