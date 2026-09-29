@@ -166,7 +166,7 @@ fn retained_compiler_acceptance_matches_its_inputs_and_oracles() {
         .args([
             "tools/compiler-evidence-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-28-structural-compiler-evidence/result.json",
+            "tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json",
         ])
         .output()
         .unwrap();

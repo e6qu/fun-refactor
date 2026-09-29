@@ -231,6 +231,11 @@ conditional expressions and comparison chains. Literal selectors prune skipped e
 selectors retain alternatives. Numeric comparison feasibility and overloaded protocols remain open.
 [Expression acceptance](tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json)
 retains discovered repair, feature delivery, cache invalidation and independent receiver replay.
+[Required call binding](docs/call-binding.md) adds explicit keyword calls and positional-only and
+keyword-only parameters. Declaration-order substitution follows source-order argument effects.
+Defaults, variadics, unpacking and implicit binding exceptions remain open.
+[Binding acceptance](tests/agent-eval/results/2026-09-29-calls-call-binding/result.json) retains
+checked repair, feature delivery, dependency invalidation and independent receiver replay.
 Static local imports, regular packages and explicit function re-exports now have an opt-in contract.
 Dynamic loading and effectful package initialization remain outside it.
 

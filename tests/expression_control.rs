@@ -102,7 +102,7 @@ fn selected_expressions_skip_effects_and_keep_normal_alternatives() {
             witness,
             "{expression}"
         );
-        assert_eq!(report["semantics"], "python-scalar-summaries-2");
+        assert_eq!(report["semantics"], "python-scalar-summaries-3");
         assert_eq!(
             report["expression_control"],
             report["inputs"]["expression_control"]
@@ -156,7 +156,7 @@ fn expression_control_acceptance_replays_checked_delivery() {
         .args([
             "tools/expression-control-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json",
+            "tests/agent-eval/results/2026-09-29-calls-expression-control/result.json",
         ])
         .output()
         .unwrap();

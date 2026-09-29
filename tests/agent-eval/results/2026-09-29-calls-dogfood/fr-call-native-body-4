@@ -1,0 +1,89 @@
+{
+        self.solver.table.insert(entry.into(), Summary::default());
+        self.solver.depths.insert(entry.into(), 0);
+        loop {
+            self.solver.rounds += 1;
+            let names: Vec<_> = self.solver.table.keys().cloned().collect();
+            let mut changed = false;
+            for name in &names {
+                if self.remaining == 0 {
+                    self.cutoff("step-budget");
+                    break;
+                }
+                let function = self.functions[name];
+                (self.file, self.source) = self.contexts[name];
+                let parameters: Vec<_> = self.parameter_nodes(function).unwrap_or_default().into_iter()
+                    .enumerate()
+                    .map(|(index, node)| {
+                        let key = format!("argument:{name}:{index}");
+                        let occurrence = self.occurrence(node, "summary-parameter");
+                        (
+                            key.clone(),
+                            BTreeMap::from([(
+                                key.clone(),
+                                Trace {
+                                    origin: key,
+                                    occurrences: vec![occurrence],
+                                },
+                            )]),
+                        )
+                    })
+                    .collect();
+                self.normal_return = false;
+                self.may_raise = false;
+                self.exceptional_returns.clear();
+                self.sink_flows.clear();
+                self.solver.callees.clear();
+                let returns = self.invoke(
+                    name,
+                    function,
+                    parameters.iter().map(|(_, flow)| flow.clone()).collect(),
+                );
+                let summary = self.solver.table.get_mut(name).unwrap();
+                summary.parameters = parameters.into_iter().map(|(key, _)| key).collect();
+                summary.evaluations += 1;
+                summary.callees.extend(self.solver.callees.iter().cloned());
+                changed |= add(&mut summary.returns, returns);
+                changed |= add(
+                    &mut summary.exceptional_returns,
+                    std::mem::take(&mut self.exceptional_returns),
+                );
+                changed |= add_sinks(&mut summary.sinks, std::mem::take(&mut self.sink_flows));
+                changed |= (self.normal_return && !summary.normal_return)
+                    || (self.may_raise && !summary.may_raise);
+                summary.normal_return |= self.normal_return;
+                summary.may_raise |= self.may_raise;
+            }
+            if self.remaining == 0 {
+                self.cutoff("step-budget");
+                break;
+            }
+            if !changed && names.len() == self.solver.table.len() {
+                self.solver.converged = true;
+                break;
+            }
+        }
+        let summary = self.solver.table[entry].clone();
+        self.normal_return = summary.normal_return;
+        self.may_raise = summary.may_raise;
+        self.exceptional_returns = substitute(
+            &summary.exceptional_returns,
+            &summary.parameters,
+            &arguments,
+        );
+        for effect in summary.sinks.values() {
+            for trace in substitute(&effect.flow, &summary.parameters, &arguments).values() {
+                let key = format!(
+                    "{}:{:020}:{}",
+                    effect.site.path, effect.site.location.span.start, trace.origin
+                );
+                self.witnesses.insert(
+                    key,
+                    json!({"sink":effect.sink,"context":self.context,
+                    "rules":self.rules.version,"trace":trace,"site":effect.site,
+                    "claim":"possible-value-propagation; path feasibility unchecked."}),
+                );
+            }
+        }
+        substitute(&summary.returns, &summary.parameters, &arguments)
+    }

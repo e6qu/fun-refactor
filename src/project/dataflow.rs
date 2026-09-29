@@ -13,6 +13,13 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
 use tree_sitter::Node;
 
+#[path = "flow_calls.rs"]
+mod calls;
+
+pub(super) fn call_contract() -> Value {
+    calls::contract()
+}
+
 #[path = "flow_expressions.rs"]
 mod expressions;
 
@@ -287,12 +294,7 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("dynamic-or-attribute-call");
             return Flow::new();
         }
-        let mut arguments = Vec::new();
-        if let Some(args) = node.child_by_field_name("arguments") {
-            for arg in args.named_children(&mut args.walk()) {
-                arguments.push(self.expression(arg, env));
-            }
-        }
+        let (arguments, argument_names) = self.call_arguments(node, env);
         let mut joined = Flow::new();
         if self.solver.enabled && !self.normal {
             return Flow::new();
@@ -312,6 +314,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 .is_some_and(|names| names.contains(base))
         {
             self.cutoff(format!("ambiguous-call:{name}"));
+            return joined;
+        }
+        if argument_names.iter().any(Option::is_some)
+            && (self.rules.sources.contains(&name)
+                || self.rules.sinks.contains(&name)
+                || self.rules.sanitizers.contains_key(&name)
+                || self.rules.propagators.contains(&name))
+        {
+            self.cutoff(format!("keyword-rule-contract-unchecked:{name}"));
             return joined;
         }
         if self.rules.sources.contains(&name) {
@@ -359,6 +370,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             return joined;
         };
         if self.solver.enabled {
+            let Some(arguments) =
+                self.bind_arguments(&resolved, function, arguments, &argument_names)
+            else {
+                return Flow::new();
+            };
             return self.summary_call(&resolved, function, arguments, node);
         }
         if self.active.contains(&name) {
@@ -383,14 +399,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             self.cutoff("async-function");
             return Flow::new();
         }
-        let Some(parameters) = function.child_by_field_name("parameters") else {
-            self.cutoff("missing-parameters");
+        let Some(parameters) = self.parameter_nodes(function) else {
+            self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return Flow::new();
         };
-        let parameters: Vec<_> = parameters.named_children(&mut parameters.walk()).collect();
-        if parameters.len() != arguments.len()
-            || parameters.iter().any(|p| p.kind() != "identifier")
-        {
+        if parameters.len() != arguments.len() {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return Flow::new();
         }
@@ -432,6 +445,15 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .into_iter()
             .collect::<Vec<_>>();
         while let Some(node) = lexical.pop() {
+            if node.kind() == "identifier" && !unicode_normalization::is_nfkc(self.text(node)) {
+                self.cutoff("identifier-normalization-unchecked");
+            }
+            if self.solver.enabled
+                && node.kind() == "call"
+                && !calls::valid_call_syntax(node, self.source)
+            {
+                self.cutoff("unsupported-call-syntax");
+            }
             if matches!(
                 node.kind(),
                 "assignment" | "augmented_assignment" | "named_expression"
@@ -703,13 +725,16 @@ impl Project<'_> {
             for node in parsed.root().named_children(&mut parsed.root().walk()) {
                 if node.kind() == "function_definition" {
                     if node.child_by_field_name("return_type").is_some()
-                        || node
-                            .child_by_field_name("parameters")
-                            .is_some_and(|parameters| {
-                                parameters
-                                    .named_children(&mut parameters.walk())
-                                    .any(|p| p.kind() != "identifier")
-                            })
+                        || if options.summaries {
+                            calls::parameters(node, text).is_none()
+                        } else {
+                            node.child_by_field_name("parameters")
+                                .is_some_and(|parameters| {
+                                    parameters
+                                        .named_children(&mut parameters.walk())
+                                        .any(|p| p.kind() != "identifier")
+                                })
+                        }
                     {
                         module_effects = true;
                     }
@@ -717,6 +742,9 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
+                    if !unicode_normalization::is_nfkc(short) {
+                        module_effects = true;
+                    }
                     let name = if let Some(modules) = &modules {
                         modules.function_name(file, short)
                     } else {
@@ -821,6 +849,7 @@ impl Project<'_> {
             "rules":rules_digest,"context":options.context,
             "budget":{"steps":options.steps,"depth":options.depth,"bytes":options.bytes},
             "summary_mode":options.summaries,
+            "call_binding":if options.summaries {call_contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
             "dependency_scope":"entire defining file, negative same-file lookups, all indexed manifests/lockfiles, rules and analyzer; no imported execution."});
         if let Some(modules) = &modules {
@@ -919,11 +948,9 @@ impl Project<'_> {
         if analyzer.ambiguous.contains(&entry) {
             analyzer.cutoff("ambiguous-entry");
         }
-        let parameters = function
-            .child_by_field_name("parameters")
-            .context("missing parameters")?;
+        let parameters = analyzer.parameter_nodes(function).unwrap_or_default();
         let arguments = parameters
-            .named_children(&mut parameters.walk())
+            .into_iter()
             .map(|p| {
                 let occurrence = analyzer.occurrence(p, "entry-parameter");
                 let origin = format!("parameter:{}", analyzer.text(p));
@@ -943,7 +970,7 @@ impl Project<'_> {
             analyzer.invoke(&entry, function, arguments)
         };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
-            "semantics": if options.summaries {"python-scalar-summaries-2"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
+            "semantics": if options.summaries {"python-scalar-summaries-3"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
@@ -955,6 +982,7 @@ impl Project<'_> {
             "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses.into_values().collect::<Vec<_>>(),
             "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
             "function_summaries":analyzer.solver.report(),
+            "call_binding":if options.summaries {call_contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});

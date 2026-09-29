@@ -1,0 +1,11 @@
+original_audit(value)
+for name in ("positive", "negative", "after"):
+    report = value[name]
+    summaries = package.FunctionSummaries.from_report(package.FrReport(report, ()))
+    assert report["semantics"] == "python-scalar-summaries-3"
+    assert summaries.expression_control is not None
+    assert summaries.expression_control.path_feasibility is False
+    assert report["inputs"]["expression_control"] == report["expression_control"]
+assert value["baseline"]["fr_complete"] is False
+assert "unsupported-expression:conditional_expression" in value["baseline"]["fr_cutoffs"]
+assert "short-circuit-call-control-unchecked" in value["baseline"]["fr_cutoffs"]

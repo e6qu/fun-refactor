@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the model comparison and six affected source-bound reports on a CI runner."""
+"""Regenerate selected source-bound evidence groups on a CI runner."""
 from __future__ import annotations
 
 import json
@@ -43,39 +43,60 @@ def main():
         'package-reexports': 'package-reexports-acceptance',
         'module-aliases': 'module-aliases-acceptance',
         'expression-control': 'expression-control-acceptance',
+        'call-binding': 'call-binding-acceptance',
         'index-resolution': 'index-resolution-acceptance',
     }
+    dependency_scripts = {
+        'compiler-evidence': 'compiler-evidence-acceptance',
+        'resumable-correspondence': 'correspondence-acceptance',
+        'semantic-evidence': 'semantic-evidence-acceptance',
+        'index-consumers': 'index-consumers-acceptance',
+        'retained-proofs': 'proof-evidence-acceptance',
+        'host-recovery': 'host-recovery-acceptance',
+    }
+    context_scripts = {name: name for name in (
+        'project-batch-context', 'task-bundle-context', 'task-change-context', 'workflow-context'
+    )}
     refinement_names = list(scripts)
     scripts.update(flow_scripts)
-    if group not in ('all', 'flow') and group not in scripts:
+    scripts.update(dependency_scripts)
+    scripts.update(context_scripts)
+    if group not in ('all', 'flow', 'dependency', 'contexts') and group not in scripts:
         raise SystemExit(f'Unknown evidence group: {group}')
-    names = refinement_names if group == 'all' else list(flow_scripts) if group == 'flow' else [group]
+    groups = {'all': refinement_names, 'flow': list(flow_scripts), 'dependency': list(dependency_scripts),
+              'contexts': list(context_scripts)}
+    names = groups.get(group, [group])
     LOGS.mkdir(parents=True, exist_ok=True)
     fr = str(ROOT / 'target/debug/fr')
-    if any(name not in ('host-recovery', 'index-resolution') for name in names):
+    if any(name not in ('host-recovery', 'index-resolution', 'index-consumers') for name in names):
         subprocess.run(['cargo', 'build', '--locked'], cwd=ROOT, check=True)
-    binary = None
-    if 'index-resolution' in names:
-        with (LOGS / 'binaries.jsonl').open('w') as log:
-            subprocess.run(['cargo', 'test', '--test', 'index_resolution', '--no-run',
+    binaries = {}
+    for name, target in [('index-resolution', 'index_resolution'), ('index-consumers', 'index_consumers')]:
+        if name not in names:
+            continue
+        manifest = LOGS / f'{name}-binaries.jsonl'
+        with manifest.open('w') as log:
+            subprocess.run(['cargo', 'test', '--locked', '--test', target, '--no-run',
                             '--message-format=json'], cwd=ROOT, stdout=log, check=True)
-        records = [json.loads(line) for line in (LOGS / 'binaries.jsonl').read_text().splitlines()]
-        binary = next(row['executable'] for row in records if row.get('reason') == 'compiler-artifact'
-                      and row['target']['name'] == 'index_resolution' and row.get('executable'))
+        records = [json.loads(line) for line in manifest.read_text().splitlines()]
+        binaries[name] = next(row['executable'] for row in records if row.get('reason') == 'compiler-artifact'
+                              and row['target']['name'] == target and row.get('executable'))
     for name in names:
         directory = OUTPUT / f'{PREFIX}-{name}'
         path = directory if name == 'model-comparisons' else directory / 'result.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         command = [sys.executable, f'tools/{scripts[name]}.py']
-        if name == 'index-resolution':
-            command += ['--binary', binary]
+        if name in binaries:
+            command += ['--binary', binaries[name]]
         elif name != 'host-recovery':
             command += ['--fr', fr]
-        if name != 'intent-action-context':
+        if name in context_scripts:
+            command += ['--tokens', '--repetitions', '3']
+        elif name != 'intent-action-context':
             command += ['--output', str(path)]
         print(f'Refreshing {name}', flush=True)
         with (LOGS / f'{name}.log').open('w') as log:
-            if name == 'intent-action-context':
+            if name == 'intent-action-context' or name in context_scripts:
                 with path.open('w') as output:
                     subprocess.run(command, cwd=ROOT, stdout=output, stderr=log,
                                    check=True, timeout=1800)

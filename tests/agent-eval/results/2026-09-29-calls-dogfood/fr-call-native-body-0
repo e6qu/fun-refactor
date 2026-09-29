@@ -1,0 +1,113 @@
+{
+        let Some(function) = node.child_by_field_name("function") else {
+            self.cutoff("missing-call-target");
+            return Flow::new();
+        };
+        let name: String = self
+            .text(function)
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect();
+        if function.kind() != "identifier"
+            && !(self.modules.is_some()
+                && function.kind() == "attribute"
+                && name.split('.').all(|part| {
+                    !part.is_empty()
+                        && part.chars().enumerate().all(|(i, c)| {
+                            c == '_' || c.is_ascii_alphabetic() || i > 0 && c.is_ascii_digit()
+                        })
+                }))
+        {
+            self.cutoff("dynamic-or-attribute-call");
+            return Flow::new();
+        }
+        let (arguments, argument_names) = self.call_arguments(node, env);
+        let mut joined = Flow::new();
+        if self.solver.enabled && !self.normal {
+            return Flow::new();
+        }
+        for argument in &arguments {
+            merge(&mut joined, argument.clone());
+        }
+        let base = name.split('.').next().unwrap();
+        let resolved = self
+            .modules
+            .map_or_else(|| name.clone(), |modules| modules.resolve(self.file, &name));
+        if env.values.contains_key(base)
+            || self.ambiguous.contains(&resolved)
+            || self
+                .local_bindings
+                .last()
+                .is_some_and(|names| names.contains(base))
+        {
+            self.cutoff(format!("ambiguous-call:{name}"));
+            return joined;
+        }
+        if argument_names.iter().any(Option::is_some)
+            && (self.rules.sources.contains(&name) || self.rules.sinks.contains(&name)
+                || self.rules.sanitizers.contains_key(&name) || self.rules.propagators.contains(&name))
+        {
+            self.cutoff(format!("keyword-rule-contract-unchecked:{name}"));
+            return joined;
+        }
+        if self.rules.sources.contains(&name) {
+            let occurrence = self.occurrence(node, "source");
+            let origin = format!("{}:{name}:{}", self.rules.version, occurrence.id);
+            self.origins.insert(origin.clone(), occurrence.clone());
+            joined.insert(
+                origin.clone(),
+                Trace {
+                    origin,
+                    occurrences: vec![occurrence],
+                },
+            );
+            return joined;
+        }
+        if self.rules.sinks.contains(&name) {
+            let flow = self.extend(joined.clone(), node, "sink");
+            if self.solver.enabled {
+                self.record_sink(&name, self.occurrence(node, "sink"), flow);
+                return joined;
+            }
+            for trace in flow.values() {
+                let key = format!("{:020}:{}", node.start_byte(), trace.origin);
+                let site = self.occurrence(node, "sink");
+                self.witnesses.entry(key).or_insert_with(|| {
+                    json!({"sink": name,
+                "context": self.context, "rules": self.rules.version, "trace": trace, "site":site,
+                "claim": "possible-value-propagation; path feasibility unchecked."})
+                });
+            }
+            return joined;
+        }
+        if let Some(context) = self.rules.sanitizers.get(&name) {
+            return if context == self.context {
+                Flow::new()
+            } else {
+                self.extend(joined, node, "sanitizer-context-mismatch")
+            };
+        }
+        if self.rules.propagators.contains(&name) {
+            return self.extend(joined, node, "propagation-rule");
+        }
+        let Some(function) = self.functions.get(&resolved).copied() else {
+            self.cutoff(format!("unknown-external-call:{name}"));
+            return joined;
+        };
+        if self.solver.enabled {
+            let Some(arguments) = self.bind_arguments(&resolved, function, arguments, &argument_names) else {
+                return Flow::new();
+            };
+            return self.summary_call(&resolved, function, arguments, node);
+        }
+        if self.active.contains(&name) {
+            self.cutoff(format!("recursion:{name}"));
+            return joined;
+        }
+        if self.active.len() >= self.depth {
+            self.cutoff("call-depth-budget");
+            return joined;
+        }
+        let result = self.invoke(&name, function, arguments);
+        self.extend(result, node, "call-result")
+    }

@@ -29,7 +29,7 @@ from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
 FIXTURE = ROOT / "tests/agent-eval/package-flow"
 SOURCES = ("app.py", "portal/__init__.py", "portal/api.py", "portal/transform.py",
            "archive/__init__.py", "archive/transform.py")
-BINDINGS = ["src/project/flow_expressions.rs", "src/index/references.rs", "tools/package-flow-acceptance.py", "tools/evidence_basis.py", "Cargo.lock",
+BINDINGS = ["src/project/flow_calls.rs", "src/project/flow_expressions.rs", "src/index/references.rs", "tools/package-flow-acceptance.py", "tools/evidence_basis.py", "Cargo.lock",
     *[f"src/project/{name}.rs" for name in ("dataflow", "flow_modules", "flow_summaries", "control_flow",
         "flow_cache", "investigation", "occurrence", "manifests", "lockfiles")],
     *[f"src/{name}.rs" for name in ("project", "span", "parse", "scan", "index", "extract")],
