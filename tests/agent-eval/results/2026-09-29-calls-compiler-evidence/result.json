@@ -1,0 +1,2309 @@
+{
+  "schema": "fr-compiler-evidence-acceptance-1",
+  "repository_revision": "8972868698c99eb47c7bfe82ed3e62c62165a74d",
+  "source_bindings": {
+    "tools/compiler-evidence-acceptance.py": "38db03e04225835b77967c56e39aff44ee2fcdb0265c02f93c02d2f9e20e295d",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c",
+    "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
+    "src/checks/evidence.rs": "956f995a0a5f22a6441090fb39db7eb5d8f5863a6185f71036ec80c34e9705c4",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
+    "src/project.rs": "dcd8e0df9f6a9d661e6c5221b6f28b712fbb48c4c191fd2878e542e5c9c0067d",
+    "src/project/compiler_evidence.rs": "9be19cb405aae7d789b5af71991e09a4ffe67340e5b3aeebb7b263255295a34d",
+    "src/project/compiler_diagnostics.rs": "ab42190bcd826b719b0826acbd545b5cd9a53f2f357f21313fc5ad3aa65fe690",
+    "src/project/occurrence.rs": "82abfedebd940f7a2267cc2f15f37aa0276f175dc44cc1eed5a50cd4798bce43",
+    "src/project/investigation.rs": "a2afbc7ae60f9df5956a016f1b0171c7be0be9e2513fcc4b5bd2b1c9a312eecb",
+    "src/parse.rs": "0350455e231b482f63f56569d930f8f7004ed5a5411ae56861df53db68cc9a7b",
+    "src/span.rs": "b6e16d2f1cec39803a55131836ba6fa5f11627ffbb4a973cae1356911997bc29",
+    "sdk/python/src/fr_ir/compiler_evidence.py": "16724c06be3662f0a96d33a41524c3c53a2bfa42c568526a8b75612c84fe12bd",
+    "sdk/python/src/fr_ir/investigation.py": "7082a89265f8b28e09a9cebfc66f17e739a2b7c4bdd9adf73052494b858724ad",
+    "sdk/python/src/fr_ir/investigation_checks.py": "8a1ed58cf8e1af220bad190d18e3efeb761b58712fe149c6804c4c20964be7fc",
+    "sdk/python/src/fr_ir/runtime.py": "c96f8ac90fcf4a7c08790be4819c83347fb547d938c956c1c3c9f4beff9d4aa3",
+    "sdk/python/src/fr_ir/context.py": "282d162e67f2dac97f0bcedc86e1bdb2382f6483d672fae7cb5c895c798b0fd0",
+    "kernels/FrKernels/Investigation.lean": "b5518e47d43b77f22708af6951d82cdf62cb3d6c7313cbadc5e58dafd2cf228b",
+    "kernels/InvestigationMain.lean": "584acf412e5bda7441aa4c32c5812c9305c3117b749422df057d831f55791b78",
+    "tests/agent-eval/compiler-evidence/subject.rs": "ec3c9d38eed1d4bb7d93b7afb14bdf7eb77bdcb76665898924ffa9df0770a16c",
+    "tests/agent-eval/compiler-evidence/oracle.py": "6c9cbad957fb17dffe96df2705648f8a9a05b97051402814db427cdde1b6efbd",
+    "tests/agent-eval/compiler-evidence/task.json": "540a0ce1a68226d45023b9c98298ab826ebb6f98892b1b03133dbcce3426bcc4",
+    "tests/agent-eval/compiler-evidence/baseline.json": "2acc872bee4def6d691cb8baec77a8a7426c265f334306bd389cae2b359d595a"
+  },
+  "binary_sha256": "8f2773a5bcaba684cebc9f4f3fd18680e73895affaf3793ea0393816c3cd59f4",
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "compiler_version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "oracle": {
+    "code": "E0308",
+    "default_accepted": true,
+    "primary_span": [
+      65,
+      70
+    ],
+    "runtime_cases": 6,
+    "strict_rejected": true
+  },
+  "ordinary_oracle_seconds": 1.519996080999988,
+  "baseline": {
+    "schema": "fr-compiler-evidence-baseline-1",
+    "revision": "eacac5ff0774f735ddb06e2f2223ee7417f19365",
+    "compiler_version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "outcomes": {
+      "default": true,
+      "strict": false
+    },
+    "canonical_response_bytes": 5727,
+    "elapsed_seconds": 0.1602898749988526,
+    "process_calls": 2,
+    "source_reveals": 0,
+    "tokens": null,
+    "diagnostics": "Current checks retain raw compiler output but expose no structured diagnostic facts or disagreement records."
+  },
+  "cases": {
+    "default": {
+      "checks": {
+        "basis": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+        "checks": [
+          {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+            ],
+            "name": "default",
+            "timeout_seconds": 30
+          },
+          {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+            ],
+            "name": "strict",
+            "timeout_seconds": 30
+          }
+        ],
+        "configuration": ".fr/checks.json",
+        "configuration_stable": true,
+        "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+        "executed": true,
+        "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+        "not_run": [
+          "strict"
+        ],
+        "passed": true,
+        "results": [
+          {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "elapsed_ms": 20,
+            "error": null,
+            "exit_code": 0,
+            "name": "default",
+            "output_limit_exceeded": false,
+            "passed": true,
+            "source_snapshot_stable": true,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "timed_out": false
+          }
+        ],
+        "root": "/tmp/fr-compiler-eval-lo8twzd1/project",
+        "schema": "fr-checks-1",
+        "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+        "source_snapshot_checked": true,
+        "source_snapshot_stable": true,
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        },
+        "toolchain_stable": true
+      },
+      "pages": [
+        {
+          "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+          "basis": "frcpe1:eb23f1cede083b16495fe5c340fcecb413ca0f0b597d5f511b2cdc9472c0a31c",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 0,
+            "errors": 0,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 0
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": true,
+          "context_basis": "frcb1:9c00a87124f5af3f4bda1ab34bede66009dde6ab40a526f6669c696a478ca0e0",
+          "continuation": null,
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [],
+          "disclosure_complete": true,
+          "handle_prefix": "frp1:976fe65bfd790d26ff1737f68b120437:",
+          "inputs": {
+            "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+            "check": "default",
+            "configuration": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+            "format": "rustc-json",
+            "report": "4128eba2e00639a42d1b3b78f4072912ddef4ae00736c517326755fddefca9ee",
+            "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+            "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+            "toolchain": "7a1a86883c7eb31a1a81dcd7714c0325004607ff21544324f8556659197527ab"
+          },
+          "items": [],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 0,
+            "passed": true
+          },
+          "page": {
+            "before": 0,
+            "next": null,
+            "remaining": 0,
+            "returned": 0,
+            "total": 0
+          },
+          "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "check": "default",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        }
+      ],
+      "check_seconds": 32.452295409000016,
+      "first_page_seconds": 7.630426150000005,
+      "raw_report_bytes": 4797,
+      "first_page_bytes": 4950,
+      "all_page_bytes": 4950,
+      "check_process_calls": 2,
+      "evidence_process_calls": 1,
+      "source_reveals": 0,
+      "tokens": null
+    },
+    "strict": {
+      "checks": {
+        "basis": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+        "checks": [
+          {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "subject.rs"
+            ],
+            "covers": [
+              "default"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+            ],
+            "name": "default",
+            "timeout_seconds": 30
+          },
+          {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "environment": [
+              "RUSTC_BOOTSTRAP"
+            ],
+            "identity_files": [
+              "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+            ],
+            "name": "strict",
+            "timeout_seconds": 30
+          }
+        ],
+        "configuration": ".fr/checks.json",
+        "configuration_stable": true,
+        "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+        "executed": true,
+        "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+        "not_run": [
+          "default"
+        ],
+        "passed": false,
+        "results": [
+          {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "elapsed_ms": 40,
+            "error": null,
+            "exit_code": 1,
+            "name": "strict",
+            "output_limit_exceeded": false,
+            "passed": false,
+            "source_snapshot_stable": true,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 2305,
+              "text": "{\"$message_type\":\"diagnostic\",\"message\":\"mismatched types\",\"code\":{\"code\":\"E0308\",\"explanation\":\"Expected type did not match the received type.\\n\\nErroneous code examples:\\n\\n```compile_fail,E0308\\nfn plus_one(x: i32) -> i32 {\\n    x + 1\\n}\\n\\nplus_one(\\\"Not a number\\\");\\n//       ^^^^^^^^^^^^^^ expected `i32`, found `&str`\\n\\nif \\\"Not a bool\\\" {\\n// ^^^^^^^^^^^^ expected `bool`, found `&str`\\n}\\n\\nlet x: f32 = \\\"Not a float\\\";\\n//     ---   ^^^^^^^^^^^^^ expected `f32`, found `&str`\\n//     |\\n//     expected due to this\\n```\\n\\nThis error occurs when an expression was used in a place where the compiler\\nexpected an expression of a different type. It can occur in several cases, the\\nmost common being when calling a function and passing an argument which has a\\ndifferent type than the matching type in the function declaration.\\n\"},\"level\":\"error\",\"spans\":[{\"file_name\":\"subject.rs\",\"byte_start\":65,\"byte_end\":70,\"line_start\":3,\"line_end\":3,\"column_start\":7,\"column_end\":12,\"is_primary\":true,\"text\":[{\"text\":\"    { value }\",\"highlight_start\":7,\"highlight_end\":12}],\"label\":\"expected `usize`, found `&str`\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null},{\"file_name\":\"subject.rs\",\"byte_start\":29,\"byte_end\":34,\"line_start\":1,\"line_end\":1,\"column_start\":30,\"column_end\":35,\"is_primary\":false,\"text\":[{\"text\":\"pub fn width(value: &str) -> usize {\",\"highlight_start\":30,\"highlight_end\":35}],\"label\":\"expected `usize` because of return type\",\"suggested_replacement\":null,\"suggestion_applicability\":null,\"expansion\":null}],\"children\":[],\"rendered\":\"error[E0308]: mismatched types\\n --> subject.rs:3:7\\n  |\\n1 | pub fn width(value: &str) -> usize {\\n  |                              ----- expected `usize` because of return type\\n2 |     #[cfg(fr_strict)]\\n3 |     { value }\\n  |       ^^^^^ expected `usize`, found `&str`\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"aborting due to 1 previous error\",\"code\":null,\"level\":\"error\",\"spans\":[],\"children\":[],\"rendered\":\"error: aborting due to 1 previous error\\n\\n\"}\n{\"$message_type\":\"diagnostic\",\"message\":\"For more information about this error, try `rustc --explain E0308`.\",\"code\":null,\"level\":\"failure-note\",\"spans\":[],\"children\":[],\"rendered\":\"For more information about this error, try `rustc --explain E0308`.\\n\"}\n"
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 0,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "timed_out": false
+          }
+        ],
+        "root": "/tmp/fr-compiler-eval-lo8twzd1/project",
+        "schema": "fr-checks-1",
+        "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+        "source_snapshot_checked": true,
+        "source_snapshot_stable": true,
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        },
+        "toolchain_stable": true
+      },
+      "pages": [
+        {
+          "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+          "basis": "frcpe1:75a85a23408a0133ca4cbd0a9f771f8409a1c7a9ed443303db702e65b34c8931",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 3,
+            "errors": 2,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 2305
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": false,
+          "context_basis": "frcb1:9c00a87124f5af3f4bda1ab34bede66009dde6ab40a526f6669c696a478ca0e0",
+          "continuation": {
+            "arguments": [
+              "project",
+              "compiler-evidence",
+              "--from",
+              "/tmp/fr-compiler-evidence-d97g8ubp/checks.json",
+              "--digest",
+              "b7bd36e0274276ee4ae38d2c35bd6334968620fb80f80ae25077decff38b8455",
+              "--check",
+              "strict",
+              "--format",
+              "rustc-json",
+              "--limit",
+              "1",
+              "--bytes",
+              "32768",
+              "--cursor",
+              "frce-page:7ecb48a3f6519e8b3ac2370d6098d8a95752867c2c79eb67e26ff8cdd77472e3:1"
+            ]
+          },
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [
+            {
+              "claim": "parser acceptance and compiler rejection concern different verification levels.",
+              "diagnostic": "frcd1:65d7f60c763717ccb807bb58ed7f07dbce2d709231e9a07f8d308c089506b04e",
+              "kind": "syntax-accepted-compiler-error"
+            }
+          ],
+          "disclosure_complete": false,
+          "handle_prefix": "frp1:976fe65bfd790d26ff1737f68b120437:",
+          "inputs": {
+            "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+            "check": "strict",
+            "configuration": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+            "format": "rustc-json",
+            "report": "b7bd36e0274276ee4ae38d2c35bd6334968620fb80f80ae25077decff38b8455",
+            "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+            "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+            "toolchain": "7a1a86883c7eb31a1a81dcd7714c0325004607ff21544324f8556659197527ab"
+          },
+          "items": [
+            {
+              "basis": "frcpe1:75a85a23408a0133ca4cbd0a9f771f8409a1c7a9ed443303db702e65b34c8931",
+              "core": {
+                "code": "E0308",
+                "confidence": "reported-by-declared-check",
+                "index": 0,
+                "level": "error",
+                "message": "mismatched types",
+                "parent": null,
+                "rule": "rust-compiler-evidence-1:diagnostic",
+                "spans": [
+                  {
+                    "occurrence": {
+                      "enclosing": "frp1:976fe65bfd790d26ff1737f68b120437:2",
+                      "id": "fro1:0f0f491800853eaf86f23f1e00501c9665bff88ea7ca7bd6e6875e707fb8c02f",
+                      "location": {
+                        "range": {
+                          "end": {
+                            "col": 12,
+                            "line": 3
+                          },
+                          "start": {
+                            "col": 7,
+                            "line": 3
+                          }
+                        },
+                        "span": {
+                          "end": 70,
+                          "start": 65
+                        }
+                      },
+                      "path": "subject.rs",
+                      "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+                      "role": "compiler-primary"
+                    },
+                    "primary": true,
+                    "reason": "Compiler byte offsets in the validated source snapshot.",
+                    "source": {
+                      "arguments": [
+                        "project",
+                        "show",
+                        "frp1:976fe65bfd790d26ff1737f68b120437:1",
+                        "--source",
+                        "--bytes",
+                        "256",
+                        "--offset",
+                        "65"
+                      ]
+                    },
+                    "status": "exact",
+                    "syntax": "accepted"
+                  },
+                  {
+                    "occurrence": {
+                      "enclosing": "frp1:976fe65bfd790d26ff1737f68b120437:2",
+                      "id": "fro1:b29a9bee48c42c2b7b0d9e627583e8bf6ce293cb0670ecb83cbceba648a46dfd",
+                      "location": {
+                        "range": {
+                          "end": {
+                            "col": 35,
+                            "line": 1
+                          },
+                          "start": {
+                            "col": 30,
+                            "line": 1
+                          }
+                        },
+                        "span": {
+                          "end": 34,
+                          "start": 29
+                        }
+                      },
+                      "path": "subject.rs",
+                      "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+                      "role": "compiler-secondary"
+                    },
+                    "primary": false,
+                    "reason": "Compiler byte offsets in the validated source snapshot.",
+                    "source": {
+                      "arguments": [
+                        "project",
+                        "show",
+                        "frp1:976fe65bfd790d26ff1737f68b120437:1",
+                        "--source",
+                        "--bytes",
+                        "256",
+                        "--offset",
+                        "29"
+                      ]
+                    },
+                    "status": "exact",
+                    "syntax": "accepted"
+                  }
+                ]
+              },
+              "id": "frcd1:65d7f60c763717ccb807bb58ed7f07dbce2d709231e9a07f8d308c089506b04e"
+            }
+          ],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 1,
+            "passed": false
+          },
+          "page": {
+            "before": 0,
+            "next": "frce-page:7ecb48a3f6519e8b3ac2370d6098d8a95752867c2c79eb67e26ff8cdd77472e3:1",
+            "remaining": 2,
+            "returned": 1,
+            "total": 3
+          },
+          "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "check": "strict",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        },
+        {
+          "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+          "basis": "frcpe1:75a85a23408a0133ca4cbd0a9f771f8409a1c7a9ed443303db702e65b34c8931",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 3,
+            "errors": 2,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 2305
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": false,
+          "context_basis": "frcb1:9c00a87124f5af3f4bda1ab34bede66009dde6ab40a526f6669c696a478ca0e0",
+          "continuation": {
+            "arguments": [
+              "project",
+              "compiler-evidence",
+              "--from",
+              "/tmp/fr-compiler-evidence-dw2_545y/checks.json",
+              "--digest",
+              "b7bd36e0274276ee4ae38d2c35bd6334968620fb80f80ae25077decff38b8455",
+              "--check",
+              "strict",
+              "--format",
+              "rustc-json",
+              "--limit",
+              "1",
+              "--bytes",
+              "32768",
+              "--cursor",
+              "frce-page:7ecb48a3f6519e8b3ac2370d6098d8a95752867c2c79eb67e26ff8cdd77472e3:2"
+            ]
+          },
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [],
+          "disclosure_complete": false,
+          "handle_prefix": "frp1:976fe65bfd790d26ff1737f68b120437:",
+          "inputs": {
+            "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+            "check": "strict",
+            "configuration": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+            "format": "rustc-json",
+            "report": "b7bd36e0274276ee4ae38d2c35bd6334968620fb80f80ae25077decff38b8455",
+            "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+            "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+            "toolchain": "7a1a86883c7eb31a1a81dcd7714c0325004607ff21544324f8556659197527ab"
+          },
+          "items": [
+            {
+              "basis": "frcpe1:75a85a23408a0133ca4cbd0a9f771f8409a1c7a9ed443303db702e65b34c8931",
+              "core": {
+                "code": null,
+                "confidence": "reported-by-declared-check",
+                "index": 1,
+                "level": "error",
+                "message": "aborting due to 1 previous error",
+                "parent": null,
+                "rule": "rust-compiler-evidence-1:diagnostic",
+                "spans": []
+              },
+              "id": "frcd1:09d5e635d1289ad67807f290994fa99aa92e09adc9364e23ec53642e92b70914"
+            }
+          ],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 1,
+            "passed": false
+          },
+          "page": {
+            "before": 1,
+            "next": "frce-page:7ecb48a3f6519e8b3ac2370d6098d8a95752867c2c79eb67e26ff8cdd77472e3:2",
+            "remaining": 1,
+            "returned": 1,
+            "total": 3
+          },
+          "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "check": "strict",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        },
+        {
+          "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+          "basis": "frcpe1:75a85a23408a0133ca4cbd0a9f771f8409a1c7a9ed443303db702e65b34c8931",
+          "budget": {
+            "limit": 1,
+            "response_bytes": 32768
+          },
+          "capture": {
+            "complete": true,
+            "cutoffs": [],
+            "diagnostics": 3,
+            "errors": 2,
+            "ignored_protocol_events": 0,
+            "omitted_bytes": 0,
+            "retained_bytes": 2305
+          },
+          "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+          "complete": false,
+          "context_basis": "frcb1:9c00a87124f5af3f4bda1ab34bede66009dde6ab40a526f6669c696a478ca0e0",
+          "continuation": null,
+          "coverage": {
+            "architecture": "not inferred",
+            "files_by_gap": {},
+            "hierarchy": "directories and lexical spans",
+            "indexed_files": 1,
+            "lockfiles": {
+              "discovered": 1,
+              "gaps": 0,
+              "resolutions": 1
+            },
+            "manifests": {
+              "discovered": 1,
+              "ecosystems": 4,
+              "gaps": 0,
+              "parsed": 1,
+              "scope": "selected scan root"
+            },
+            "max_file_bytes": 4194304,
+            "respect_ignore": true,
+            "skipped_files": 0,
+            "skipped_symlinks": 0,
+            "unresolved_references": 6,
+            "unsupported_files": 2
+          },
+          "disagreements": [],
+          "disclosure_complete": false,
+          "handle_prefix": "frp1:976fe65bfd790d26ff1737f68b120437:",
+          "inputs": {
+            "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+            "check": "strict",
+            "configuration": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+            "format": "rustc-json",
+            "report": "b7bd36e0274276ee4ae38d2c35bd6334968620fb80f80ae25077decff38b8455",
+            "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+            "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+            "toolchain": "7a1a86883c7eb31a1a81dcd7714c0325004607ff21544324f8556659197527ab"
+          },
+          "items": [
+            {
+              "basis": "frcpe1:75a85a23408a0133ca4cbd0a9f771f8409a1c7a9ed443303db702e65b34c8931",
+              "core": {
+                "code": null,
+                "confidence": "reported-by-declared-check",
+                "index": 2,
+                "level": "failure-note",
+                "message": "For more information about this error, try `rustc --explain E0308`.",
+                "parent": null,
+                "rule": "rust-compiler-evidence-1:diagnostic",
+                "spans": []
+              },
+              "id": "frcd1:567cfa38033a8e7f5d7229d380994eab8aa554739fa330bb74f224d7bd21aa72"
+            }
+          ],
+          "mutation_authority": false,
+          "outcome": {
+            "cargo_success": null,
+            "execution_complete": true,
+            "exit_code": 1,
+            "passed": false
+          },
+          "page": {
+            "before": 2,
+            "next": null,
+            "remaining": 0,
+            "returned": 1,
+            "total": 3
+          },
+          "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+          "schema": "fr-compiler-evidence-1",
+          "scope": {
+            "argv": [
+              "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "--crate-type",
+              "lib",
+              "--emit",
+              "metadata",
+              "--out-dir",
+              "target",
+              "--error-format",
+              "json",
+              "--cfg",
+              "fr_strict",
+              "subject.rs"
+            ],
+            "check": "strict",
+            "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+            "covers": [
+              "strict"
+            ],
+            "cwd": ".",
+            "format": "rustc-json",
+            "stream": "stderr",
+            "toolchain": {
+              "build_configuration": {
+                "files": {
+                  "Cargo.lock": {
+                    "bytes": 169,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                    "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+                  },
+                  "Cargo.toml": {
+                    "bytes": 135,
+                    "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                    "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+                  }
+                },
+                "schema": "fr-rust-build-inputs-1",
+                "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+              },
+              "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+              "programs": [
+                {
+                  "check": "default",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                },
+                {
+                  "check": "strict",
+                  "environment": [
+                    {
+                      "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                      "name": "RUSTC_BOOTSTRAP"
+                    }
+                  ],
+                  "identity_files": [
+                    {
+                      "bytes": 29,
+                      "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                      "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                    },
+                    {
+                      "bytes": 150815024,
+                      "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                      "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                    }
+                  ],
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                }
+              ],
+              "schema": "fr-check-toolchain-2",
+              "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+            }
+          },
+          "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+        }
+      ],
+      "check_seconds": 30.184974003999997,
+      "first_page_seconds": 7.5663437380000005,
+      "raw_report_bytes": 7329,
+      "first_page_bytes": 7207,
+      "all_page_bytes": 18341,
+      "check_process_calls": 2,
+      "evidence_process_calls": 3,
+      "source_reveals": 0,
+      "tokens": null
+    }
+  },
+  "clipped": {
+    "checks": {
+      "basis": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+      "checks": [
+        {
+          "argv": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "subject.rs"
+          ],
+          "covers": [
+            "default"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+          ],
+          "name": "default",
+          "timeout_seconds": 30
+        },
+        {
+          "argv": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "--cfg",
+            "fr_strict",
+            "subject.rs"
+          ],
+          "covers": [
+            "strict"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+          ],
+          "name": "strict",
+          "timeout_seconds": 30
+        }
+      ],
+      "configuration": ".fr/checks.json",
+      "configuration_stable": true,
+      "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+      "executed": true,
+      "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+      "not_run": [
+        "default"
+      ],
+      "passed": false,
+      "results": [
+        {
+          "argv": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "--cfg",
+            "fr_strict",
+            "subject.rs"
+          ],
+          "covers": [
+            "strict"
+          ],
+          "cwd": ".",
+          "elapsed_ms": 40,
+          "error": null,
+          "exit_code": 1,
+          "name": "strict",
+          "output_limit_exceeded": false,
+          "passed": false,
+          "source_snapshot_stable": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 2241,
+            "retained_bytes": 64,
+            "text": "{\"$message_type\":\"diagnostic\",\"message\":\"mismatched types\",\"code"
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 0,
+            "text": ""
+          },
+          "timed_out": false
+        }
+      ],
+      "root": "/tmp/fr-compiler-eval-lo8twzd1/project",
+      "schema": "fr-checks-1",
+      "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+      "source_snapshot_checked": true,
+      "source_snapshot_stable": true,
+      "toolchain": {
+        "build_configuration": {
+          "files": {
+            "Cargo.lock": {
+              "bytes": 169,
+              "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+              "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+            },
+            "Cargo.toml": {
+              "bytes": 135,
+              "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+              "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+            }
+          },
+          "schema": "fr-rust-build-inputs-1",
+          "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+        },
+        "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+        "programs": [
+          {
+            "check": "default",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 150815024,
+                "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+              }
+            ],
+            "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+          },
+          {
+            "check": "strict",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 150815024,
+                "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+              }
+            ],
+            "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+          }
+        ],
+        "schema": "fr-check-toolchain-2",
+        "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+      },
+      "toolchain_stable": true
+    },
+    "report": {
+      "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+      "basis": "frcpe1:8a08a369b2224b9f83d0b999b7ab9b26ed4758e2d4b340e132c597c888434f4c",
+      "budget": {
+        "limit": 8,
+        "response_bytes": 32768
+      },
+      "capture": {
+        "complete": false,
+        "cutoffs": [
+          "compiler-stream-truncated",
+          "non-json-compiler-output"
+        ],
+        "diagnostics": 0,
+        "errors": 0,
+        "ignored_protocol_events": 0,
+        "omitted_bytes": 2241,
+        "retained_bytes": 64
+      },
+      "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+      "complete": false,
+      "context_basis": "frcb1:9c00a87124f5af3f4bda1ab34bede66009dde6ab40a526f6669c696a478ca0e0",
+      "continuation": null,
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 1,
+        "lockfiles": {
+          "discovered": 1,
+          "gaps": 0,
+          "resolutions": 1
+        },
+        "manifests": {
+          "discovered": 1,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 1,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 6,
+        "unsupported_files": 2
+      },
+      "disagreements": [],
+      "disclosure_complete": true,
+      "handle_prefix": "frp1:976fe65bfd790d26ff1737f68b120437:",
+      "inputs": {
+        "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+        "check": "strict",
+        "configuration": "1b2766bec36743cf162baa5a35e7d0eb336a7b43a05c14a25eb451672b887a7b",
+        "format": "rustc-json",
+        "report": "7a4c7b58b5c18e9bf6f35171ed8a3cd3bcb982ffef9deff0b532dd87d7c20d65",
+        "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+        "source_revision": "cf29b0acc9bf0def2d7beb56f0d27e282fdb144f0fa95ce784945843b37894c7",
+        "toolchain": "7a1a86883c7eb31a1a81dcd7714c0325004607ff21544324f8556659197527ab"
+      },
+      "items": [],
+      "mutation_authority": false,
+      "outcome": {
+        "cargo_success": null,
+        "execution_complete": true,
+        "exit_code": 1,
+        "passed": false
+      },
+      "page": {
+        "before": 0,
+        "next": null,
+        "remaining": 0,
+        "returned": 0,
+        "total": 0
+      },
+      "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+      "schema": "fr-compiler-evidence-1",
+      "scope": {
+        "argv": [
+          "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+          "--crate-type",
+          "lib",
+          "--emit",
+          "metadata",
+          "--out-dir",
+          "target",
+          "--error-format",
+          "json",
+          "--cfg",
+          "fr_strict",
+          "subject.rs"
+        ],
+        "check": "strict",
+        "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+        "covers": [
+          "strict"
+        ],
+        "cwd": ".",
+        "format": "rustc-json",
+        "stream": "stderr",
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        }
+      },
+      "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+    }
+  },
+  "cargo": {
+    "checks": {
+      "basis": "0f7fd81b085ed7ec9b857b6f54962d406976ca82291f69f575f26e4b367cf4d8",
+      "checks": [
+        {
+          "argv": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "subject.rs"
+          ],
+          "covers": [
+            "default"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+          ],
+          "name": "default",
+          "timeout_seconds": 30
+        },
+        {
+          "argv": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "--out-dir",
+            "target",
+            "--error-format",
+            "json",
+            "--cfg",
+            "fr_strict",
+            "subject.rs"
+          ],
+          "covers": [
+            "strict"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTC_BOOTSTRAP"
+          ],
+          "identity_files": [
+            "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+          ],
+          "name": "strict",
+          "timeout_seconds": 30
+        },
+        {
+          "argv": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+            "check",
+            "--offline",
+            "--message-format=json"
+          ],
+          "covers": [
+            "Cargo strict configuration"
+          ],
+          "cwd": ".",
+          "environment": [
+            "RUSTFLAGS",
+            "RUSTC",
+            "CARGO_ENCODED_RUSTFLAGS",
+            "CARGO_BUILD_RUSTFLAGS"
+          ],
+          "identity_files": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so"
+          ],
+          "name": "cargo",
+          "timeout_seconds": 30
+        }
+      ],
+      "configuration": ".fr/checks.json",
+      "configuration_stable": true,
+      "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+      "executed": true,
+      "execution": "inherited environment; direct argv; no command sandbox; process-group completion, timeout and output-limit cleanup; temporary file capture",
+      "not_run": [
+        "default",
+        "strict"
+      ],
+      "passed": false,
+      "results": [
+        {
+          "argv": [
+            "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+            "check",
+            "--offline",
+            "--message-format=json"
+          ],
+          "covers": [
+            "Cargo strict configuration"
+          ],
+          "cwd": ".",
+          "elapsed_ms": 100,
+          "error": null,
+          "exit_code": 101,
+          "name": "cargo",
+          "output_limit_exceeded": false,
+          "passed": false,
+          "source_snapshot_stable": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 170,
+            "text": "    Checking compiler_evidence_fixture v0.1.0 (/tmp/fr-compiler-eval-lo8twzd1/project)\nerror: could not compile `compiler_evidence_fixture` (lib) due to 1 previous error\n"
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 2977,
+            "text": "{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///tmp/fr-compiler-eval-lo8twzd1/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/tmp/fr-compiler-eval-lo8twzd1/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"error[E0308]: mismatched types\\n --> subject.rs:3:7\\n  |\\n1 | pub fn width(value: &str) -> usize {\\n  |                              ----- expected `usize` because of return type\\n2 |     #[cfg(fr_strict)]\\n3 |     { value }\\n  |       ^^^^^ expected `usize`, found `&str`\\n\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"error\",\"message\":\"mismatched types\",\"spans\":[{\"byte_end\":70,\"byte_start\":65,\"column_end\":12,\"column_start\":7,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":true,\"label\":\"expected `usize`, found `&str`\",\"line_end\":3,\"line_start\":3,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":12,\"highlight_start\":7,\"text\":\"    { value }\"}]},{\"byte_end\":34,\"byte_start\":29,\"column_end\":35,\"column_start\":30,\"expansion\":null,\"file_name\":\"subject.rs\",\"is_primary\":false,\"label\":\"expected `usize` because of return type\",\"line_end\":1,\"line_start\":1,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":35,\"highlight_start\":30,\"text\":\"pub fn width(value: &str) -> usize {\"}]}],\"code\":{\"code\":\"E0308\",\"explanation\":\"Expected type did not match the received type.\\n\\nErroneous code examples:\\n\\n```compile_fail,E0308\\nfn plus_one(x: i32) -> i32 {\\n    x + 1\\n}\\n\\nplus_one(\\\"Not a number\\\");\\n//       ^^^^^^^^^^^^^^ expected `i32`, found `&str`\\n\\nif \\\"Not a bool\\\" {\\n// ^^^^^^^^^^^^ expected `bool`, found `&str`\\n}\\n\\nlet x: f32 = \\\"Not a float\\\";\\n//     ---   ^^^^^^^^^^^^^ expected `f32`, found `&str`\\n//     |\\n//     expected due to this\\n```\\n\\nThis error occurs when an expression was used in a place where the compiler\\nexpected an expression of a different type. It can occur in several cases, the\\nmost common being when calling a function and passing an argument which has a\\ndifferent type than the matching type in the function declaration.\\n\"}}}\n{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///tmp/fr-compiler-eval-lo8twzd1/project#compiler_evidence_fixture@0.1.0\",\"manifest_path\":\"/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml\",\"target\":{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"compiler_evidence_fixture\",\"src_path\":\"/tmp/fr-compiler-eval-lo8twzd1/project/subject.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},\"message\":{\"rendered\":\"For more information about this error, try `rustc --explain E0308`.\\n\",\"$message_type\":\"diagnostic\",\"children\":[],\"level\":\"failure-note\",\"message\":\"For more information about this error, try `rustc --explain E0308`.\",\"spans\":[],\"code\":null}}\n{\"reason\":\"build-finished\",\"success\":false}\n"
+          },
+          "timed_out": false
+        }
+      ],
+      "root": "/tmp/fr-compiler-eval-lo8twzd1/project",
+      "schema": "fr-checks-1",
+      "source_revision": "93ebc41908bee616acdbf6c89981ab3acf1521ce7a3f2b97aecead3196941500",
+      "source_snapshot_checked": true,
+      "source_snapshot_stable": true,
+      "toolchain": {
+        "build_configuration": {
+          "files": {
+            ".cargo/config.toml": {
+              "bytes": 40,
+              "path": "/tmp/fr-compiler-eval-lo8twzd1/project/.cargo/config.toml",
+              "sha256": "4d2fdab2ed064c24f4db0c4ab1d7d31f5d7b571077647ea6aeb74b226f408183"
+            },
+            "Cargo.lock": {
+              "bytes": 169,
+              "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+              "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+            },
+            "Cargo.toml": {
+              "bytes": 135,
+              "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+              "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+            }
+          },
+          "schema": "fr-rust-build-inputs-1",
+          "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+        },
+        "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+        "programs": [
+          {
+            "check": "default",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 150815024,
+                "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+              }
+            ],
+            "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+          },
+          {
+            "check": "strict",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC_BOOTSTRAP"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 29,
+                "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+              },
+              {
+                "bytes": 150815024,
+                "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+              }
+            ],
+            "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+            "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+          },
+          {
+            "check": "cargo",
+            "environment": [
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTFLAGS"
+              },
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "RUSTC"
+              },
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "CARGO_ENCODED_RUSTFLAGS"
+              },
+              {
+                "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                "name": "CARGO_BUILD_RUSTFLAGS"
+              }
+            ],
+            "identity_files": [
+              {
+                "bytes": 645952,
+                "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+              },
+              {
+                "bytes": 150815024,
+                "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+              }
+            ],
+            "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+            "sha256": "da77c8b33849312255ccde3179198ada4c8deb370488d050286146b1d1b27e14"
+          }
+        ],
+        "schema": "fr-check-toolchain-2",
+        "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+      },
+      "toolchain_stable": true
+    },
+    "report": {
+      "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+      "basis": "frcpe1:57aebf349f3c2f3f5c6f396df1005dfd2dd5600370d2440555088cee684e9cf8",
+      "budget": {
+        "limit": 64,
+        "response_bytes": 32768
+      },
+      "capture": {
+        "complete": true,
+        "cutoffs": [],
+        "diagnostics": 2,
+        "errors": 1,
+        "ignored_protocol_events": 0,
+        "omitted_bytes": 0,
+        "retained_bytes": 2977
+      },
+      "claim": "compiler observations and exact syntax locations; no runtime safety or source implementation proof.",
+      "complete": true,
+      "context_basis": "frcb1:9c00a87124f5af3f4bda1ab34bede66009dde6ab40a526f6669c696a478ca0e0",
+      "continuation": null,
+      "coverage": {
+        "architecture": "not inferred",
+        "files_by_gap": {},
+        "hierarchy": "directories and lexical spans",
+        "indexed_files": 1,
+        "lockfiles": {
+          "discovered": 1,
+          "gaps": 0,
+          "resolutions": 1
+        },
+        "manifests": {
+          "discovered": 1,
+          "ecosystems": 4,
+          "gaps": 0,
+          "parsed": 1,
+          "scope": "selected scan root"
+        },
+        "max_file_bytes": 4194304,
+        "respect_ignore": true,
+        "skipped_files": 0,
+        "skipped_symlinks": 0,
+        "unresolved_references": 6,
+        "unsupported_files": 2
+      },
+      "disagreements": [
+        {
+          "claim": "parser acceptance and compiler rejection concern different verification levels.",
+          "diagnostic": "frcd1:8f2038a2832fde67ad6e8ebfad49643a6e9b25d58b52d79de7e9fa30c65979f6",
+          "kind": "syntax-accepted-compiler-error"
+        }
+      ],
+      "disclosure_complete": true,
+      "handle_prefix": "frp1:976fe65bfd790d26ff1737f68b120437:",
+      "inputs": {
+        "analyzer": "a03b31b6aeb0f3117d0020206ace4e1499d785207fb17b0596170eb1d076f357",
+        "check": "cargo",
+        "configuration": "0f7fd81b085ed7ec9b857b6f54962d406976ca82291f69f575f26e4b367cf4d8",
+        "format": "cargo-json",
+        "report": "bfef30d8e850cc983b74080bf4478ab83a015863673ee255f84ee64075105b4b",
+        "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+        "source_revision": "93ebc41908bee616acdbf6c89981ab3acf1521ce7a3f2b97aecead3196941500",
+        "toolchain": "6775ac84e1b9635ec0c5fd213d2b37e7ed6b041f7f5453519f68085ab19a1b56"
+      },
+      "items": [
+        {
+          "basis": "frcpe1:57aebf349f3c2f3f5c6f396df1005dfd2dd5600370d2440555088cee684e9cf8",
+          "core": {
+            "code": "E0308",
+            "confidence": "reported-by-declared-check",
+            "index": 0,
+            "level": "error",
+            "message": "mismatched types",
+            "parent": null,
+            "rule": "rust-compiler-evidence-1:diagnostic",
+            "spans": [
+              {
+                "occurrence": {
+                  "enclosing": "frp1:976fe65bfd790d26ff1737f68b120437:2",
+                  "id": "fro1:0f0f491800853eaf86f23f1e00501c9665bff88ea7ca7bd6e6875e707fb8c02f",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 12,
+                        "line": 3
+                      },
+                      "start": {
+                        "col": 7,
+                        "line": 3
+                      }
+                    },
+                    "span": {
+                      "end": 70,
+                      "start": 65
+                    }
+                  },
+                  "path": "subject.rs",
+                  "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+                  "role": "compiler-primary"
+                },
+                "primary": true,
+                "reason": "Compiler byte offsets in the validated source snapshot.",
+                "source": {
+                  "arguments": [
+                    "project",
+                    "show",
+                    "frp1:976fe65bfd790d26ff1737f68b120437:1",
+                    "--source",
+                    "--bytes",
+                    "256",
+                    "--offset",
+                    "65"
+                  ]
+                },
+                "status": "exact",
+                "syntax": "accepted"
+              },
+              {
+                "occurrence": {
+                  "enclosing": "frp1:976fe65bfd790d26ff1737f68b120437:2",
+                  "id": "fro1:b29a9bee48c42c2b7b0d9e627583e8bf6ce293cb0670ecb83cbceba648a46dfd",
+                  "location": {
+                    "range": {
+                      "end": {
+                        "col": 35,
+                        "line": 1
+                      },
+                      "start": {
+                        "col": 30,
+                        "line": 1
+                      }
+                    },
+                    "span": {
+                      "end": 34,
+                      "start": 29
+                    }
+                  },
+                  "path": "subject.rs",
+                  "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+                  "role": "compiler-secondary"
+                },
+                "primary": false,
+                "reason": "Compiler byte offsets in the validated source snapshot.",
+                "source": {
+                  "arguments": [
+                    "project",
+                    "show",
+                    "frp1:976fe65bfd790d26ff1737f68b120437:1",
+                    "--source",
+                    "--bytes",
+                    "256",
+                    "--offset",
+                    "29"
+                  ]
+                },
+                "status": "exact",
+                "syntax": "accepted"
+              }
+            ]
+          },
+          "id": "frcd1:8f2038a2832fde67ad6e8ebfad49643a6e9b25d58b52d79de7e9fa30c65979f6"
+        },
+        {
+          "basis": "frcpe1:57aebf349f3c2f3f5c6f396df1005dfd2dd5600370d2440555088cee684e9cf8",
+          "core": {
+            "code": null,
+            "confidence": "reported-by-declared-check",
+            "index": 1,
+            "level": "failure-note",
+            "message": "For more information about this error, try `rustc --explain E0308`.",
+            "parent": null,
+            "rule": "rust-compiler-evidence-1:diagnostic",
+            "spans": []
+          },
+          "id": "frcd1:a3e15716412665f1689b4c0a8d80ec5be77e64be03ba12cf0bef6623f280a6b7"
+        }
+      ],
+      "mutation_authority": false,
+      "outcome": {
+        "cargo_success": false,
+        "execution_complete": true,
+        "exit_code": 101,
+        "passed": false
+      },
+      "page": {
+        "before": 0,
+        "next": null,
+        "remaining": 0,
+        "returned": 2,
+        "total": 2
+      },
+      "revision": "976fe65bfd790d26ff1737f68b120437ca3aea45151d39b2e1d10b7a93756f9e",
+      "schema": "fr-compiler-evidence-1",
+      "scope": {
+        "argv": [
+          "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+          "check",
+          "--offline",
+          "--message-format=json"
+        ],
+        "check": "cargo",
+        "claim": "declared invocation and retained diagnostic stream; undeclared dependencies remain outside coverage.",
+        "covers": [
+          "Cargo strict configuration"
+        ],
+        "cwd": ".",
+        "format": "cargo-json",
+        "stream": "stdout",
+        "toolchain": {
+          "build_configuration": {
+            "files": {
+              ".cargo/config.toml": {
+                "bytes": 40,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/.cargo/config.toml",
+                "sha256": "4d2fdab2ed064c24f4db0c4ab1d7d31f5d7b571077647ea6aeb74b226f408183"
+              },
+              "Cargo.lock": {
+                "bytes": 169,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.lock",
+                "sha256": "ed7352865a959d8c95eddbe1ca0e93b9e4c9bc313c9b18ead1a2d41545fd1697"
+              },
+              "Cargo.toml": {
+                "bytes": 135,
+                "path": "/tmp/fr-compiler-eval-lo8twzd1/project/Cargo.toml",
+                "sha256": "799d986387465c09f889cfc5389fec8e02e46cfc0c796845e6135c9f2e8d67c3"
+              }
+            },
+            "schema": "fr-rust-build-inputs-1",
+            "scope": "workspace Cargo manifests, lockfiles, toolchain files and .cargo configuration; directory symlinks and dependency directories are excluded."
+          },
+          "executor": "f616c35faf9a8eb2e44d4a7897bedcb9be7ac052bad302e4ff0f395dc9d1d5ea",
+          "programs": [
+            {
+              "check": "default",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            },
+            {
+              "check": "strict",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC_BOOTSTRAP"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 29,
+                  "declared": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "path": "/tmp/fr-compiler-eval-lo8twzd1/policy.txt",
+                  "sha256": "6da55448763971787384a189f9ded40223c55d605cfcccfeb150814926f9fd18"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+              "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+            },
+            {
+              "check": "cargo",
+              "environment": [
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTFLAGS"
+                },
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "RUSTC"
+                },
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "CARGO_ENCODED_RUSTFLAGS"
+                },
+                {
+                  "digest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+                  "name": "CARGO_BUILD_RUSTFLAGS"
+                }
+              ],
+              "identity_files": [
+                {
+                  "bytes": 645952,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+                  "sha256": "859254978c0a0402c32f949f6de0d99aee73be8d15f45aac00ae1448aac51e74"
+                },
+                {
+                  "bytes": 150815024,
+                  "declared": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/librustc_driver-eaf3ed1d23ca5027.so",
+                  "sha256": "96218b68a4a569c06c6fea5ee95b9052ce61c7316ac265a7963e7fea90e985d2"
+                }
+              ],
+              "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+              "sha256": "da77c8b33849312255ccde3179198ada4c8deb370488d050286146b1d1b27e14"
+            }
+          ],
+          "schema": "fr-check-toolchain-2",
+          "scope": "command executable bytes, workspace Rust build inputs, and declared environment keys and identity files. Undeclared libraries, imports and dependencies remain outside coverage."
+        }
+      },
+      "trust": "trusted caller digest binds retained check output; no independent execution attestation."
+    }
+  },
+  "plan": {
+    "complete": false,
+    "evidence": [
+      {
+        "kind": "check",
+        "passed": false
+      },
+      {
+        "kind": "observation",
+        "passed": true
+      }
+    ]
+  },
+  "refusals": {
+    "external_identity": true,
+    "environment": true,
+    "new_build_configuration": true,
+    "cargo_environment": true,
+    "source": true
+  },
+  "evidence_digest": "c65909bafae37677dd7a65143e70c09ac980a88db11172c36bf9b1d3ef4fe0d5",
+  "false_claims": 0,
+  "useful_discoveries": [
+    "E0308 at exact value span",
+    "syntax acceptance differs from strict compiler rejection",
+    "default configuration passes"
+  ],
+  "diagnostics": [
+    "A Cargo manifest edit initially left retained checks current; automatic Rust build-input identities fixed the gap.",
+    "A configuration filename replaced by a directory also changes Cargo behavior; unsupported build-input types now refuse evidence.",
+    "The initial identity-file limit excluded the compiler driver; streaming identities now admit 256 MiB files.",
+    "Generated artifacts initially changed the fixture project snapshot; the fixture now declares target/ ignored."
+  ],
+  "scope": "Six independent runtime cases and exact strict diagnostic coordinates. Real rustc and Cargo invocations. Driver identities are declared when available. Full compiler dependency coverage, execution attestation, runtime safety and source proofs remain outside scope. No live agent or token measurement. Raw retained compiler output can contain rendered source; diagnostic pages omit those fields."
+}

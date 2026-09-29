@@ -53,13 +53,15 @@ python3 tools/check-agent-skill.py --fr target/debug/fr
 ## Working on a shared desktop
 
 Use remote runners for full builds, complete gates and evidence regeneration when local capacity
-is constrained. `tools/refresh-refinement-evidence.py` refuses local execution and records the six
-source-bound reports affected by the Boolean comparison feature, plus its new acceptance run.
+is constrained. `tools/refresh-refinement-evidence.py` refuses local execution and regenerates
+source-bound reports on GitHub runners.
 The manual `Refresh refinement evidence` workflow uploads results from a directory unique to each
 run and attempt under the runner's temporary directory. Reports stay outside the compiler cache.
 Supply a dated `prefix` such as `2026-09-28-virtual` to retain new report directories.
 The default `all` group checks virtual workspace boundaries before measuring seven evidence groups.
 The `flow` group runs scalar, package and SDK boundary tests, then refreshes ten flow reports and index measurements.
+The `dependency` group refreshes compiler, correspondence, semantic, index-consumer, proof and host
+evidence after shared dependency changes. Different groups can run independently on GitHub.
 Index-resolution evidence binds every Rust source file and must be refreshed after any Rust source change.
 Choose one group to refresh only its measurements. Update audit-test report paths before refreshing:
 host-recovery evidence includes its audit test's source identity.

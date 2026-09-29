@@ -65,7 +65,7 @@ conservative; finer summary reuse is a separate remaining gate.
 
 [Retained acceptance](../tests/agent-eval/results/2026-09-29-calls-call-binding/result.json)
 passes the repair, preview and independent receiver outcomes. Ordinary discovery reads 444 source
-bytes across six files; native discovery returns 116,800 bytes across eight calls with no source-body
+bytes across six files; native discovery returns 117,022 bytes across eight calls with no source-body
 reveals. These scripted measurements establish no general efficiency or token-saving benefit.
 The [authoring record](../tests/agent-eval/results/2026-09-29-calls-dogfood/manifest.json)
-retains 56 receipts from actual guarded `fr` edits on this implementation.
+retains 94 receipts from actual guarded `fr` edits on this implementation.
