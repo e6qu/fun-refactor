@@ -42,6 +42,7 @@ def main():
         'package-flow': 'package-flow-acceptance',
         'package-reexports': 'package-reexports-acceptance',
         'module-aliases': 'module-aliases-acceptance',
+        'expression-control': 'expression-control-acceptance',
         'index-resolution': 'index-resolution-acceptance',
     }
     refinement_names = list(scripts)

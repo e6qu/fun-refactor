@@ -13,6 +13,13 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
 use tree_sitter::Node;
 
+#[path = "flow_expressions.rs"]
+mod expressions;
+
+pub(super) fn expression_contract() -> Value {
+    expressions::contract()
+}
+
 #[path = "flow_modules.rs"]
 mod modules;
 #[path = "flow_summaries.rs"]
@@ -201,6 +208,18 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         if self.solver.enabled && !self.normal {
             return Flow::new();
         }
+        if self.solver.enabled
+            && matches!(
+                node.kind(),
+                "boolean_operator"
+                    | "conditional_expression"
+                    | "comparison_operator"
+                    | "not_operator"
+                    | "parenthesized_expression"
+            )
+        {
+            return self.controlled_expression(node, env);
+        }
         if !self.tick(node, "use") {
             return Flow::new();
         }
@@ -233,18 +252,6 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             | "boolean_operator"
             | "comparison_operator"
             | "parenthesized_expression" => {
-                if self.solver.enabled
-                    && matches!(node.kind(), "boolean_operator" | "comparison_operator")
-                {
-                    let mut pending = vec![node];
-                    while let Some(operand) = pending.pop() {
-                        if operand.kind() == "call" {
-                            self.cutoff("short-circuit-call-control-unchecked");
-                            break;
-                        }
-                        pending.extend(operand.named_children(&mut operand.walk()));
-                    }
-                }
                 let mut flow = Flow::new();
                 for child in node.named_children(&mut node.walk()) {
                     merge(&mut flow, self.expression(child, env));
@@ -814,6 +821,7 @@ impl Project<'_> {
             "rules":rules_digest,"context":options.context,
             "budget":{"steps":options.steps,"depth":options.depth,"bytes":options.bytes},
             "summary_mode":options.summaries,
+            "expression_control":if options.summaries {expression_contract()} else {Value::Null},
             "dependency_scope":"entire defining file, negative same-file lookups, all indexed manifests/lockfiles, rules and analyzer; no imported execution."});
         if let Some(modules) = &modules {
             inputs["modules"] = modules.inputs.clone();
@@ -935,7 +943,7 @@ impl Project<'_> {
             analyzer.invoke(&entry, function, arguments)
         };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
-            "semantics": if options.summaries {"python-scalar-summaries-1"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
+            "semantics": if options.summaries {"python-scalar-summaries-2"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
@@ -947,6 +955,7 @@ impl Project<'_> {
             "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses.into_values().collect::<Vec<_>>(),
             "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
             "function_summaries":analyzer.solver.report(),
+            "expression_control":if options.summaries {expression_contract()} else {Value::Null},
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
         let mut omitted = serde_json::Map::new();

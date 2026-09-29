@@ -173,10 +173,9 @@ fn explicit_raise_and_normal_branches_retain_both_effects() {
 }
 
 #[test]
-fn unsupported_short_circuit_and_raise_contracts_never_claim_absence() {
+fn unsupported_raise_and_parameter_contracts_never_claim_absence() {
     let dir = fixture();
     for source in [
-        "def helper():\n    return helper()\ndef entry(flag):\n    return flag or (helper() + 1)\n",
         "def entry():\n    raise\n",
         "def entry(error, cause):\n    raise error from cause\n",
         "def helper(value=1):\n    return value\ndef entry():\n    return helper()\n",
@@ -218,7 +217,7 @@ fn retained_recursive_acceptance_matches_its_implementation_and_oracles() {
         .args([
             "tools/recursive-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-aliases-recursive-flow/result.json",
+            "tests/agent-eval/results/2026-09-29-expressions-recursive-flow/result.json",
         ])
         .output()
         .unwrap();

@@ -28,7 +28,7 @@ from fr_ir.flow import FlowCache
 from fr_ir.flow_dependencies import FlowDependencies
 from fr_ir.runtime import FrClient, FrReport
 
-BINDINGS = ["src/index/references.rs", "tools/flow-cache-acceptance.py", "tools/evidence_basis.py", "sdk/python/src/fr_ir/flow.py",
+BINDINGS = ["src/project/flow_expressions.rs", "src/index/references.rs", "tools/flow-cache-acceptance.py", "tools/evidence_basis.py", "sdk/python/src/fr_ir/flow.py",
             "sdk/python/src/fr_ir/flow_storage.py", "sdk/python/src/fr_ir/context.py",
             "sdk/python/src/fr_ir/flow_dependencies.py",
             "sdk/python/src/fr_ir/ir.py", "sdk/python/src/fr_ir/runtime.py",

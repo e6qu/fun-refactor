@@ -38,12 +38,43 @@ class FunctionSummary:
         return tuple(index for index, parameter in enumerate(self.parameters) if parameter in origins)
 
 
+_EXPRESSION_CONTROL = {
+    "schema": "fr-expression-control-1",
+    "evaluation": "left-to-right; each operand once per expression transfer.",
+    "selectors": "Boolean and None literals, not, parentheses and nested selected expressions.",
+    "unknowns": "retain both alternatives; no variable or call-result truth specialization.",
+    "comparisons": "ordered operands; each comparison result may be true or false.",
+    "effects": "join normal, sink and explicit-raise alternatives.",
+    "boundary": "scalar truth and comparisons; no overloaded protocols or implicit exceptions.",
+    "path_feasibility": False,
+}
+
+
+@dataclass(frozen=True)
+class ExpressionControl:
+    evaluation: str
+    selectors: str
+    unknowns: str
+    comparisons: str
+    effects: str
+    boundary: str
+    path_feasibility: bool
+
+    @classmethod
+    def from_data(cls, value: Any) -> ExpressionControl:
+        if (not isinstance(value, dict) or value != _EXPRESSION_CONTROL
+                or type(value.get("path_feasibility")) is not bool):
+            raise FrRuntimeError("unsupported expression control contract")
+        return cls(**{key: item for key, item in value.items() if key != "schema"})
+
+
 @dataclass(frozen=True)
 class FunctionSummaries:
     functions: tuple[FunctionSummary, ...]
     converged: bool
     complete: bool
     rounds: int
+    expression_control: ExpressionControl | None = None
 
     def for_function(self, name: str) -> FunctionSummary:
         for item in self.functions:
@@ -56,7 +87,7 @@ class FunctionSummaries:
         data = report.to_data()
         try:
             value = data["function_summaries"]
-            if (report.schema != "fr-dataflow-1" or data["semantics"] != "python-scalar-summaries-1"
+            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2"}
                     or value["schema"] != "fr-function-summaries-1" or value["enabled"] is not True
                     or value["mutation_authority"] is not False):
                 raise FrRuntimeError("report does not disclose function summaries")
@@ -65,6 +96,15 @@ class FunctionSummaries:
                     or not isinstance(value["functions"], dict) or len(value["functions"]) > 64
                     or (data["complete"] and not value["converged"])):
                 raise FrRuntimeError("inconsistent summary convergence")
+            control = None
+            if data["semantics"] == "python-scalar-summaries-2":
+                control = ExpressionControl.from_data(data["expression_control"])
+                ExpressionControl.from_data(data["inputs"]["expression_control"])
+                if data["inputs"]["expression_control"] != data["expression_control"]:
+                    raise FrRuntimeError("expression control disagrees with analysis inputs")
+            elif (data.get("expression_control") is not None
+                    or data["inputs"].get("expression_control") is not None):
+                raise FrRuntimeError("legacy summaries cannot declare new expression control")
             revision = data["revision"]
 
             def occurrence(raw: Any) -> Occurrence:
@@ -108,6 +148,6 @@ class FunctionSummaries:
                                                  traces(item["exceptional_returns"]), tuple(sinks),
                                                  item["normal_return"], item["may_raise"],
                                                  tuple(item["callees"]), item["evaluations"]))
-            return cls(tuple(functions), value["converged"], data["complete"], value["rounds"])
+            return cls(tuple(functions), value["converged"], data["complete"], value["rounds"], control)
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed function summaries") from error

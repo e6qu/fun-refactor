@@ -1,0 +1,79 @@
+{
+  "repository_revision": "6cb9db1fc7b4209c0ae2060d162667aaa049fe28",
+  "binary_version": "fr 0.35.0",
+  "binary_sha256": "0a61cc48f243cfe0375e395c46157818644611c74713f076f8fb10dcc1cc5552",
+  "ordinary_runtime_ast": {
+    "call_spans": {
+      "app.py": [
+        [
+          101,
+          119
+        ],
+        [
+          110,
+          118
+        ],
+        [
+          145,
+          178
+        ],
+        [
+          150,
+          177
+        ],
+        [
+          168,
+          176
+        ]
+      ],
+      "archive/__init__.py": [],
+      "archive/transform.py": [],
+      "portal/__init__.py": [],
+      "portal/api.py": [
+        [
+          76,
+          87
+        ],
+        [
+          93,
+          117
+        ],
+        [
+          98,
+          116
+        ],
+        [
+          131,
+          142
+        ]
+      ],
+      "portal/transform.py": []
+    },
+    "results": {
+      "preview": null,
+      "render": {
+        "emitted": [
+          17
+        ],
+        "returned": 17
+      },
+      "safe": {
+        "emitted": [
+          0
+        ],
+        "returned": 0
+      }
+    }
+  },
+  "ordinary_seconds": 0.03287854202790186,
+  "fr_seconds": 0.21993816696340218,
+  "fr_complete": false,
+  "fr_cutoffs": [
+    "short-circuit-call-control-unchecked",
+    "unsupported-expression:conditional_expression"
+  ],
+  "fr_context_bytes": 52041,
+  "tokens": null,
+  "live_agent": false,
+  "scope": "Existing local binary baseline; this binary was not built from the pinned source revision."
+}

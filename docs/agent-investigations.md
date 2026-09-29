@@ -495,3 +495,11 @@ The report states its trusted components and remaining obligations. Installed Le
 remain trusted. Declared assumption discovery reports syntax; it does not compute transitive axiom dependencies.
 A model theorem supplies no proof that source execution agrees with the model.
 The finite Boolean fixture tests that correspondence only on its two admitted inputs.
+
+## Ordered scalar expressions
+
+[Expression control](expression-control.md) extends opt-in summary analysis to short-circuit
+Boolean operators, `not`, conditional expressions and ordered comparison chains. Known Boolean
+and `None` selectors skip operands. Unknown selectors retain both normal and exceptional alternatives.
+The versioned contract is included in analysis inputs and cache validation. Numeric comparisons,
+variable values and helper results are not specialized; the analysis still reports possible flow.

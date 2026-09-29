@@ -1,0 +1,52 @@
+{
+        if self.solver.enabled && !self.normal {
+            return Flow::new();
+        }
+        if self.solver.enabled && matches!(node.kind(), "boolean_operator" | "conditional_expression"
+            | "comparison_operator" | "not_operator" | "parenthesized_expression") {
+            return self.controlled_expression(node, env);
+        }
+        if !self.tick(node, "use") {
+            return Flow::new();
+        }
+        match node.kind() {
+            "integer" | "float" | "true" | "false" | "none" => Flow::new(),
+            "string" => {
+                if node
+                    .named_children(&mut node.walk())
+                    .any(|child| child.kind() == "interpolation")
+                {
+                    self.cutoff("string-interpolation");
+                }
+                Flow::new()
+            }
+            "identifier" => match env.values.get(self.text(node)) {
+                Some(value) => {
+                    if !env.defined.contains(self.text(node)) {
+                        self.cutoff(format!("possibly-unbound:{}", self.text(node)));
+                    }
+                    self.extend(value.clone(), node, "use")
+                }
+                None => {
+                    self.cutoff(format!("unknown-binding:{}", self.text(node)));
+                    Flow::new()
+                }
+            },
+            "call" => self.call(node, env),
+            "binary_operator"
+            | "unary_operator"
+            | "boolean_operator"
+            | "comparison_operator"
+            | "parenthesized_expression" => {
+                let mut flow = Flow::new();
+                for child in node.named_children(&mut node.walk()) {
+                    merge(&mut flow, self.expression(child, env));
+                }
+                self.extend(flow, node, "expression")
+            }
+            _ => {
+                self.cutoff(format!("unsupported-expression:{}", node.kind()));
+                Flow::new()
+            }
+        }
+    }
