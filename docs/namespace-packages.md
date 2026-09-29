@@ -54,6 +54,8 @@ The [pinned task](../tests/agent-eval/namespace-packages/task.json) starts from 
 inside a namespace package. Its independent CPython oracle checks public results and AST coordinates.
 The delivery evaluator requires discovered repair, a sink-free preview feature, fresh-process
 resumption, stale-review refusal, independent patch replay and exact reversal.
+The [retained run](../tests/agent-eval/results/2026-09-29-namespaces-namespace-packages/result.json)
+passes these checks and binds the current implementation and fixture.
 The [runtime tests](../sdk/python/tests/test_namespace_packages.py) cover mixed package trees,
 namespace entries, aliases, filesystem boundaries, budgets and forged dependency metadata.
 These finite tests do not establish general import equivalence or source correspondence.

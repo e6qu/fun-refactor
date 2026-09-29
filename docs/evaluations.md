@@ -745,8 +745,12 @@ directory dependencies. It compares cached and clean results after initializers,
 stubs, helpers and missing paths change. Symlinks, ignored sources, module budgets and forged records
 have explicit negative cases. Multi-root namespace merging and general runtime imports remain open.
 
-The delivery evaluator requires reviewed repair, a sink-free preview feature, fresh-process
-resumption and independent patch replay and reversal. The
+The [retained run](../tests/agent-eval/results/2026-09-29-namespaces-namespace-packages/result.json)
+passes reviewed repair, a sink-free preview feature, fresh-process resumption and independent patch
+replay and reversal. Ordinary AST discovery exposes 347 source bytes across four reveals; `fr`
+discovery exposes 116,687 response bytes across eight process calls, with no source reveals.
+These different disclosure measures do not establish token savings. Thirteen refreshed
+`2026-09-29-namespaces-*` report groups bind the current implementation. The
 [dogfood manifest](../tests/agent-eval/results/2026-09-29-namespaces-dogfood/manifest.json) retains actual
 `fr` previews and applications for this implementation. Full gates and evidence regeneration run
 on GitHub; local work uses the existing resource guard.
