@@ -675,3 +675,28 @@ The [retained expression run](../tests/agent-eval/results/2026-09-29-expressions
 passes both delivered outcomes and independent receiver replay. Ordinary discovery reads 471 source
 bytes across six files. Native discovery returns 128,738 bytes across eight calls with no source-body
 reveals. All observed results remain scoped to this finite scripted fixture.
+
+
+## Required call binding and checked delivery
+
+The [binding task](../tests/agent-eval/call-binding/task.json) pins a leaking helper behind named
+arguments and required positional-only and keyword-only parameters. Independent CPython observations
+check public outputs, ordered effects and byte spans. The baseline records the existing local 0.35.0
+binary and its source-revision gap; that binary refuses the new parameter and keyword forms.
+
+The [retained run](../tests/agent-eval/results/2026-09-29-calls-call-binding/result.json) passes
+ordinary and native repair, a sink-free preview, fresh-process resumption, invalidation and independent
+receiver replay. Ordinary discovery reads 444 source bytes across six files. Native discovery returns
+116,800 response bytes across eight calls with no source-body reveals. This is a finite scripted
+comparison, with no live-agent, token-saving, feasible-path or general source-equivalence claim.
+
+The [runtime corpus](../sdk/python/tests/test_call_binding.py) covers parameter kinds, reordered
+keywords, caller isolation, explicit raises, invalid binding, syntax refusal, Unicode boundaries,
+report contracts and cached/clean agreement. The `2026-09-29-calls-*` reports refresh ten flow groups
+and index resolution against current source. Earlier reports remain historical records.
+
+The [dogfood manifest](../tests/agent-eval/results/2026-09-29-calls-dogfood/manifest.json) binds
+56 receipts from reviewed `fr` previews, saved plans and history applications on this task itself.
+New declarations, tests, fixtures, metadata and documentation use direct edits as recorded there.
+All builds, full test gates and large evidence regeneration run on GitHub; local checks use the
+resource guard and the existing binary.
