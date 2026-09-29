@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.40.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.39.0...fun-refactor-v0.40.0) (2026-09-29)
+
+
+### Features
+
+* analyze Python short-circuit expressions and evaluation order ([#387](https://github.com/e6qu/fun-refactor/issues/387)) ([9efc931](https://github.com/e6qu/fun-refactor/commit/9efc931f2f2a3a4f42dedf965dc55d11cfdf5cdf))
+
 ## [0.39.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.38.0...fun-refactor-v0.39.0) (2026-09-29)
 
 
