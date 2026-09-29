@@ -113,7 +113,9 @@ Outcome: an agent can retain useful work across revisions without reusing stale 
   [Re-export acceptance](tests/agent-eval/results/2026-09-28-reexports-package-reexports/result.json) adds checked repair and feature delivery.
   Explicit module aliases now bind package child fallback and terminal module identities.
   [Module-alias acceptance](tests/agent-eval/results/2026-09-29-aliases-module-aliases/result.json) checks discovery and delivery through these aliases.
-  Namespace packages, initialization effects and runtime import machinery remain outside this contract.
+  [Single-root namespace packages](docs/namespace-packages.md) now retain directories, missing initializers
+  and child fallback separately from source files. Multi-root merging, initialization effects and
+  runtime import machinery remain outside this contract.
 - [x] Define canonical graph records and cycle handling. Reuse existing object stores and caches.
   Fall back to a complete rebuild when dependency coverage is insufficient.
   [FlowCache](sdk/python/src/fr_ir/flow.py) uses verified Merkle records with local graph references.
@@ -237,7 +239,8 @@ keyword-only parameters. Declaration-order substitution follows source-order arg
 Evaluated defaults, variadics, unpacking and implicit binding exceptions remain open.
 [Binding acceptance](tests/agent-eval/results/2026-09-29-calls-call-binding/result.json) retains
 checked repair, feature delivery, dependency invalidation and independent receiver replay.
-Static local imports, regular packages and explicit function re-exports now have an opt-in contract.
+Static local imports, regular and single-root namespace packages, and explicit function re-exports
+now have an opt-in contract.
 Dynamic loading and effectful package initialization remain outside it.
 
 The [flow fact task](tests/agent-eval/flow-facts/task.json) pins bounded explanations and exact semantic/authoring links.

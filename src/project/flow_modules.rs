@@ -307,7 +307,6 @@ impl Modules {
             if self.namespaces.contains(&absolute) {
                 continue;
             }
-            // Reserve one slot for the source currently being loaded.
             if self.parsed.len() + self.namespaces.len() + 1 >= MODULE_LIMIT {
                 self.cutoffs.insert("import-module-budget".into());
                 break;

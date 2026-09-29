@@ -162,7 +162,8 @@ The [retained run](../tests/agent-eval/results/2026-09-29-aliases-module-aliases
 The ordinary arm reads 413 source bytes across six files. Native discovery returns 110,505 bytes
 across eight calls with no source-body reveals. These finite script measurements make no token-saving
 or general efficiency claim.
-Dynamic imports, namespace packages and initialization effects remain open.
+That corpus excludes dynamic imports, namespace packages and initialization effects;
+[single-root namespace coverage](namespace-packages.md) extends the later import contract.
 
 ## Current matched results
 
@@ -730,3 +731,22 @@ corpus and do not establish source equivalence, path feasibility or general effi
 The [dogfood manifest](../tests/agent-eval/results/2026-09-29-defaults-dogfood/manifest.json) records
 actual guarded `fr` edits on this implementation. Compilation, full tests and report regeneration
 run on GitHub under the existing resource policy.
+
+## Single-root namespace packages
+
+The [pinned task](../tests/agent-eval/namespace-packages/task.json) requires discovery and repair of a
+leaking helper behind packages with no initializer. The installed 0.35.0 binary baseline refuses
+those imports; its recorded binary identity differs from the pinned source revision. Independent
+CPython execution confirms the original leak and the expected public behavior after delivery.
+
+The [runtime corpus](../sdk/python/tests/test_namespace_packages.py) covers mixed namespace and regular
+packages, source entries within namespaces, relative imports, aliases, child fallback and empty
+directory dependencies. It compares cached and clean results after initializers, competing modules,
+stubs, helpers and missing paths change. Symlinks, ignored sources, module budgets and forged records
+have explicit negative cases. Multi-root namespace merging and general runtime imports remain open.
+
+The delivery evaluator requires reviewed repair, a sink-free preview feature, fresh-process
+resumption and independent patch replay and reversal. The
+[dogfood manifest](../tests/agent-eval/results/2026-09-29-namespaces-dogfood/manifest.json) retains actual
+`fr` previews and applications for this implementation. Full gates and evidence regeneration run
+on GitHub; local work uses the existing resource guard.
