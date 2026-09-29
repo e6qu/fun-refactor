@@ -42,6 +42,7 @@ stages.
 ## Understand and change code
 
 - [Semantic model](semantic-model.md): source-free bodies, changes and scalar intents.
+- [Expression control](expression-control.md): ordered Python scalar flow, short-circuit calls and analysis boundaries.
 - [Body authoring](body-authoring.md): replace bodies and coordinate declarations.
 - [Disclosed editing](disclosed-editing.md): edit through returned scalar and typed-IR capabilities.
 - [Cross-stack surfaces](cross-stack-surfaces.md): CSS, Tailwind, Markdown and Mermaid facts and edits.

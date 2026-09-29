@@ -122,7 +122,7 @@ fn a_recomputed_digest_cannot_change_the_retained_expression_contract() {
             json!({"schema":"fr-expression-control-1", "path_feasibility":true})
         };
         let bytes = serde_json::to_vec(&report).unwrap();
-        let digest = format!("{:x}", Sha256::digest(&bytes));
+        let digest = hex::encode(Sha256::digest(&bytes));
         let retained = tempfile::NamedTempFile::new().unwrap();
         let path = retained.path();
         fs::write(path, &bytes).unwrap();
