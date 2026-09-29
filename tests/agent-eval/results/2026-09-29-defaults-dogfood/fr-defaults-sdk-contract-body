@@ -1,0 +1,4 @@
+if (not isinstance(value, dict) or value not in (_CALL_BINDING, _LITERAL_CALL_BINDING)
+        or type(value.get("implicit_exceptions")) is not bool):
+    raise FrRuntimeError("unsupported call binding contract")
+return cls(**{key: item for key, item in value.items() if key != "schema"})

@@ -1,0 +1,10 @@
+client, rules = install(tmp_path, "left", "choose(source())")
+data = analyze(client, rules, "entry").report.to_data()
+data["semantics"] = f"python-scalar-summaries-{version}"
+data.pop("call_binding"); data["inputs"].pop("call_binding")
+for item in data["function_summaries"]["functions"].values(): item.pop("signature")
+if version == 1:
+    data.pop("expression_control"); data["inputs"].pop("expression_control")
+result = FunctionSummaries.from_report(FrReport(data, ()))
+assert result.call_binding is None
+assert (result.expression_control is None) == (version == 1)

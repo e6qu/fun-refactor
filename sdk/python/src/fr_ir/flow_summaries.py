@@ -21,6 +21,36 @@ class SinkEffect:
 
 
 @dataclass(frozen=True)
+class SummaryParameter:
+    name: str
+    kind: str
+    site: Occurrence
+    default: Occurrence | None
+
+    @property
+    def required(self) -> bool:
+        return self.default is None
+
+    @classmethod
+    def from_data(cls, value: Any) -> SummaryParameter:
+        if (not isinstance(value, dict) or set(value) != {"name", "kind", "site", "default"}
+                or not isinstance(value["name"], str) or not value["name"].isascii()
+                or not value["name"].isidentifier()
+                or not isinstance(value["kind"], str)
+                or value["kind"] not in {"positional-only", "positional-or-keyword", "keyword-only"}):
+            raise FrRuntimeError("malformed summary parameter")
+        site = Occurrence.from_data(value["site"])
+        default = None if value["default"] is None else Occurrence.from_data(value["default"])
+        if site.role != "summary-parameter" or site.location.span.end - site.location.span.start != len(value["name"]):
+            raise FrRuntimeError("malformed parameter location")
+        if default is not None and (default.role != "parameter-default"
+                or default.path != site.path or default.revision != site.revision
+                or default.location.span.start < site.location.span.end):
+            raise FrRuntimeError("malformed default location")
+        return cls(value["name"], value["kind"], site, default)
+
+
+@dataclass(frozen=True)
 class FunctionSummary:
     function: str
     parameters: tuple[str, ...]
@@ -31,6 +61,7 @@ class FunctionSummary:
     may_raise: bool
     callees: tuple[str, ...]
     evaluations: int
+    signature: tuple[SummaryParameter, ...] | None = None
 
     @property
     def return_parameters(self) -> tuple[int, ...]:
@@ -79,6 +110,15 @@ _CALL_BINDING = {
 }
 
 
+_LITERAL_CALL_BINDING = {
+    **_CALL_BINDING,
+    "schema": "fr-call-binding-2",
+    "parameters": "ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
+    "boundary": "no evaluated or mutable defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+    "defaults": "omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
+}
+
+
 @dataclass(frozen=True)
 class CallBinding:
     parameters: str
@@ -87,10 +127,11 @@ class CallBinding:
     invalid: str
     boundary: str
     implicit_exceptions: bool
+    defaults: str | None = None
 
     @classmethod
     def from_data(cls, value: Any) -> CallBinding:
-        if (not isinstance(value, dict) or value != _CALL_BINDING
+        if (not isinstance(value, dict) or value not in (_CALL_BINDING, _LITERAL_CALL_BINDING)
                 or type(value.get("implicit_exceptions")) is not bool):
             raise FrRuntimeError("unsupported call binding contract")
         return cls(**{key: item for key, item in value.items() if key != "schema"})
@@ -116,7 +157,7 @@ class FunctionSummaries:
         data = report.to_data()
         try:
             value = data["function_summaries"]
-            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2", "python-scalar-summaries-3"}
+            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4"}
                     or value["schema"] != "fr-function-summaries-1" or value["enabled"] is not True
                     or value["mutation_authority"] is not False):
                 raise FrRuntimeError("report does not disclose function summaries")
@@ -126,7 +167,7 @@ class FunctionSummaries:
                     or (data["complete"] and not value["converged"])):
                 raise FrRuntimeError("inconsistent summary convergence")
             control = None
-            if data["semantics"] in {"python-scalar-summaries-2", "python-scalar-summaries-3"}:
+            if data["semantics"] in {"python-scalar-summaries-2", "python-scalar-summaries-3", "python-scalar-summaries-4"}:
                 control = ExpressionControl.from_data(data["expression_control"])
                 ExpressionControl.from_data(data["inputs"]["expression_control"])
                 if data["inputs"]["expression_control"] != data["expression_control"]:
@@ -135,7 +176,10 @@ class FunctionSummaries:
                     or data["inputs"].get("expression_control") is not None):
                 raise FrRuntimeError("legacy summaries cannot declare new expression control")
             binding = None
-            if data["semantics"] == "python-scalar-summaries-3":
+            if data["semantics"] in {"python-scalar-summaries-3", "python-scalar-summaries-4"}:
+                expected_binding = _LITERAL_CALL_BINDING if data["semantics"] == "python-scalar-summaries-4" else _CALL_BINDING
+                if data["call_binding"] != expected_binding:
+                    raise FrRuntimeError("call binding disagrees with summary semantics")
                 binding = CallBinding.from_data(data["call_binding"])
                 CallBinding.from_data(data["inputs"]["call_binding"])
                 if data["inputs"]["call_binding"] != data["call_binding"]:
@@ -182,10 +226,28 @@ class FunctionSummaries:
                     raise FrRuntimeError("malformed summary effects")
                 if data["complete"] and any(callee not in value["functions"] for callee in item["callees"]):
                     raise FrRuntimeError("complete summary has an undisclosed callee")
+                signature = None
+                if data["semantics"] == "python-scalar-summaries-4":
+                    raw_signature = item["signature"]
+                    if not isinstance(raw_signature, list) or len(raw_signature) != len(parameters):
+                        raise FrRuntimeError("signature disagrees with summary parameters")
+                    signature = tuple(SummaryParameter.from_data(raw) for raw in raw_signature)
+                    seen = set()
+                    rank, optional = 0, False
+                    for parameter in signature:
+                        current = {"positional-only": 0, "positional-or-keyword": 1, "keyword-only": 2}[parameter.kind]
+                        if (parameter.name in seen or current < rank or parameter.site.revision != revision
+                                or current < 2 and optional and parameter.required):
+                            raise FrRuntimeError("inconsistent summary signature")
+                        seen.add(parameter.name)
+                        rank = current
+                        optional |= not parameter.required
+                elif "signature" in item:
+                    raise FrRuntimeError("legacy summaries cannot declare signature metadata")
                 functions.append(FunctionSummary(name, tuple(parameters), traces(item["returns"]),
                                                  traces(item["exceptional_returns"]), tuple(sinks),
                                                  item["normal_return"], item["may_raise"],
-                                                 tuple(item["callees"]), item["evaluations"]))
+                                                 tuple(item["callees"]), item["evaluations"], signature))
             return cls(tuple(functions), value["converged"], data["complete"], value["rounds"], control, binding)
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed function summaries") from error

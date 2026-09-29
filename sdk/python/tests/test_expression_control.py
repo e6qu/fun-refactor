@@ -205,6 +205,7 @@ def test_legacy_summaries_stay_readable_and_budgets_stay_incomplete(tmp_path):
     legacy = result.report.to_data(); legacy["semantics"] = "python-scalar-summaries-1"
     legacy.pop("expression_control"); legacy["inputs"].pop("expression_control")
     legacy.pop("call_binding"); legacy["inputs"].pop("call_binding")
+    for item in legacy["function_summaries"]["functions"].values(): item.pop("signature")
     assert FunctionSummaries.from_report(FrReport(legacy, ())).expression_control is None
     cache = FlowCache(MemoryObjectStore())
     for _ in range(2):

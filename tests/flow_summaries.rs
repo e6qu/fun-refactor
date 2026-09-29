@@ -178,7 +178,7 @@ fn unsupported_raise_and_parameter_contracts_never_claim_absence() {
     for source in [
         "def entry():\n    raise\n",
         "def entry(error, cause):\n    raise error from cause\n",
-        "def helper(value=1):\n    return value\ndef entry():\n    return helper()\n",
+        "def helper(value=source()):\n    return value\ndef entry():\n    return helper()\n",
     ] {
         fs::write(dir.path().join("subject.py"), source).unwrap();
         assert_eq!(analyze(dir.path(), "entry", "4096", "8")["complete"], false);
@@ -217,7 +217,7 @@ fn retained_recursive_acceptance_matches_its_implementation_and_oracles() {
         .args([
             "tools/recursive-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-calls-recursive-flow/result.json",
+            "tests/agent-eval/results/2026-09-29-defaults-recursive-flow/result.json",
         ])
         .output()
         .unwrap();

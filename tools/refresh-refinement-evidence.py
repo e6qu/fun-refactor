@@ -44,6 +44,7 @@ def main():
         'module-aliases': 'module-aliases-acceptance',
         'expression-control': 'expression-control-acceptance',
         'call-binding': 'call-binding-acceptance',
+        'literal-defaults': 'literal-defaults-acceptance',
         'index-resolution': 'index-resolution-acceptance',
     }
     dependency_scripts = {

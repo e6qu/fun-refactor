@@ -12,6 +12,7 @@ pub(super) struct SinkFlow {
 #[derive(Clone, Default, Serialize)]
 struct Summary {
     parameters: Vec<String>,
+    signature: Vec<calls::ParameterSignature>,
     returns: Flow,
     exceptional_returns: Flow,
     sinks: BTreeMap<String, SinkFlow>,
@@ -46,7 +47,7 @@ impl Solver {
         json!({"schema":"fr-function-summaries-1", "enabled":self.enabled,
             "converged":self.converged,"rounds":self.rounds,"functions":self.table,
             "function_limit":FUNCTION_LIMIT,
-            "context":"symbolic required parameters; bind each call independently in declaration order.",
+            "context":"symbolic explicit parameters; bind each call independently and fill omitted literal defaults.",
             "recursion":"monotone least fixed point over finite origin and effect sets.",
             "effects":"explicit scalar returns, sink contracts and explicit raises; no heap effects.",
             "claim":"may-value derivations in the declared model; neither feasible paths nor runtime termination.",
@@ -203,7 +204,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     function,
                     parameters.iter().map(|(_, flow)| flow.clone()).collect(),
                 );
+                let signature = self.parameter_signature(function);
                 let summary = self.solver.table.get_mut(name).unwrap();
+                summary.signature = signature;
                 summary.parameters = parameters.into_iter().map(|(key, _)| key).collect();
                 summary.evaluations += 1;
                 summary.callees.extend(self.solver.callees.iter().cloned());

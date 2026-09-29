@@ -136,7 +136,7 @@ impl Project<'_> {
             report["input_digest"] == hash(inputs)?
                 && report["semantics"]
                     == if inputs["summary_mode"] == true {
-                        "python-scalar-summaries-3"
+                        "python-scalar-summaries-4"
                     } else {
                         "python-scalar-fixed-point-2"
                     },

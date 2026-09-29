@@ -36,6 +36,7 @@ on:
           - module-aliases
           - expression-control
           - call-binding
+          - literal-defaults
 permissions:
   contents: read
 concurrency:
@@ -115,10 +116,11 @@ jobs:
         if: inputs.group == 'flow'
         run: |
           cargo clippy --locked --tests -- -D warnings
-          cargo test --locked --test package_flow --test flow_summaries --test expression_control --test call_binding -- --skip acceptance
+          cargo test --locked --test package_flow --test flow_summaries --test expression_control --test call_binding --test literal_defaults -- --skip acceptance
           cargo build --locked
-          python3 -m pip install 'pytest==9.1.1'
-          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_call_binding.py
+          python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
+          ty check sdk/python/src
+          PYTHONPATH="$PWD/sdk/python/src" python3 -m pytest -q sdk/python/tests/test_flow_imports.py sdk/python/tests/test_package_flow.py sdk/python/tests/test_flow_reexports.py sdk/python/tests/test_flow_module_aliases.py sdk/python/tests/test_flow_summaries.py sdk/python/tests/test_expression_control.py sdk/python/tests/test_call_binding.py sdk/python/tests/test_literal_defaults.py
       - name: Refresh retained evidence
         run: python3 tools/refresh-refinement-evidence.py
       - uses: actions/upload-artifact@v7

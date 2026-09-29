@@ -706,3 +706,27 @@ The [dogfood manifest](../tests/agent-eval/results/2026-09-29-calls-dogfood/mani
 New declarations, tests, fixtures, metadata and documentation use direct edits as recorded there.
 All builds, full test gates and large evidence regeneration run on GitHub; local checks use the
 resource guard and the existing binary.
+
+## Literal defaults and exact signatures
+
+The [literal-default task](../tests/agent-eval/literal-defaults/task.json) pins a leaking helper behind
+an omitted keyword-only default. Its baseline records the installed 0.35.0 binary separately from
+the source revision. That binary leaves the defaulted signature incomplete; independent CPython
+execution confirms the public leak.
+
+The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares omitted and explicit
+arguments, positional-only and keyword-only slots, immutable literal forms, recursive calls and
+imported helpers. Python ASTs independently check parameter coordinates. Tests retain default syntax
+spans, compare cached and clean results after edits, renew occurrences after unrelated changes, and
+reject forged signature contracts. Evaluated and mutable defaults remain outside the admitted subset.
+
+The [retained run](../tests/agent-eval/results/2026-09-29-defaults-literal-defaults/result.json) passes
+discovered repair, sink-free preview delivery, fresh-process resumption and independent receiver
+patch replay and reversal. Deterministic AST discovery exposes 442 source bytes across six reveals;
+`fr` discovery exposes 118,341 response bytes across eight process calls, with no source reveals.
+These are different disclosure measures, not a token-savings claim. The twelve refreshed
+`2026-09-29-defaults-*` report groups bind the current implementation. These results cover a finite
+corpus and do not establish source equivalence, path feasibility or general efficiency.
+The [dogfood manifest](../tests/agent-eval/results/2026-09-29-defaults-dogfood/manifest.json) records
+actual guarded `fr` edits on this implementation. Compilation, full tests and report regeneration
+run on GitHub under the existing resource policy.
