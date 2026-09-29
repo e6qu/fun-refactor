@@ -79,6 +79,18 @@ fn imports_require_summaries_and_root_local_entries() {
             .status
             .success()
     );
+    let admitted = report(
+        root.path(),
+        &["project", "dataflow", target, "--imports", "--summaries"],
+    );
+    assert_eq!(admitted["complete"], true);
+    assert_eq!(
+        admitted["inputs"]["modules"]["namespaces"],
+        json!(["nested"])
+    );
+    fs::rename(root.path().join("nested"), root.path().join("not-a-module")).unwrap();
+    let found = report(root.path(), &["project", "find", "entry"]);
+    let target = found["rows"][0][0].as_str().unwrap();
     let outside = run(
         root.path(),
         &["project", "dataflow", target, "--imports", "--summaries"],

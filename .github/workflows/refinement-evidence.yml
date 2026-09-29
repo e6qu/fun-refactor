@@ -117,7 +117,7 @@ jobs:
         if: inputs.group == 'flow'
         run: |
           cargo clippy --locked --tests -- -D warnings
-          cargo test --locked --test package_flow --test flow_summaries --test expression_control --test call_binding --test literal_defaults --test namespace_packages -- --skip acceptance
+          cargo test --locked --test package_flow --test imported_flow --test flow_summaries --test expression_control --test call_binding --test literal_defaults --test namespace_packages -- --skip acceptance
           cargo build --locked
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
           ty check sdk/python/src
