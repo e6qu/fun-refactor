@@ -34,15 +34,16 @@ assesses the baseline at `c22ba827`. The [roadmap](../PLAN.md) defines pending o
 3. Dependency-aware reuse and resumable task plans.
 4. Task-complete changes, translation and explicit proof obligations.
 
-Begin with relationship and flow locations plus a pinned bug investigation fixture.
-Declaration locations and typed Python targets already exist. Evidence rows still expose starting
-positions without a uniform occurrence-range contract. Local value flow explicitly stops at
-function boundaries. Current sources/sinks describe local origins and uses.
+Exact declaration, relationship and flow occurrences now share typed source locations.
+Python scalar summaries cover recursion, ordered expressions, explicit call binding,
+literal defaults, regular packages, re-exports, module aliases and single-root namespaces.
+Dependency-bound plans support interruption, invalidation, fresh target correspondence
+and reviewed checked delivery. The roadmap retains the remaining milestone gates.
 
-Preserve existing progressive disclosure, verified Merkle storage, native intents and immutable
-reviewed delivery. Add dependency evidence before reusing conclusions across revisions.
-A task plan should retain questions, hypotheses, acceptance criteria and stale dependencies.
-The agent continues to author hypotheses, code, properties and tactics.
+Extend pinned task requirements together with independent oracles, refusal cases,
+source-bound evidence and cache/clean comparisons. Preserve progressive disclosure,
+verified Merkle storage and immutable mutation review. Agent hypotheses remain distinct
+from tool facts and tested outcomes.
 
 Application IR expansion follows concrete task requirements. The four HTTP adapters read and write
 their documented validation subsets. Selected FastAPI middleware/providers/service calls and
@@ -51,14 +52,14 @@ broader validation behavior still need models and independent oracles.
 
 ## Recent completion
 
-Merged PRs #347 through #355 bind declaration names and definitions to byte spans and line ranges.
-Guide, disclosure and intent targets retain those locations. Python provides typed targets and
-source fragments, checks source continuity, supports direct queries and refuses ambiguous exact-one
-selection. The next location work concerns analysis occurrences and semantic origins.
+PR #392 added single-root namespace dependencies and partitioned the complete PR test
+gate across native and SDK runners. Every successful shard retains its inventory and
+capability log; the final gate checks complete assignment and combined coverage.
+The next analysis extension covers ordered scalar assignments and exact target origins.
 
 ## Validation
 
-Run focused tests while editing, then:
+The complete gate definitions are below. Run these workloads on GitHub for this workstation:
 
 ```sh
 PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
@@ -66,8 +67,12 @@ tools/check.sh wasm
 tools/check.sh deep
 ```
 
-Rust test fan-out for the default, deep and Lean-kernel gates defaults to two, as do Lean worker
-threads. The [development guide](development.md) documents one-worker overrides and targeted gates.
+Rust test and Lean worker defaults are one. On the shared workstation, run local `fr`
+commands and lightweight checks through `/Users/zardoz/.codex/tools/fr-local-guard.py`.
+Keep full builds, complete gates and evidence regeneration on GitHub. The guard preserves
+64 GiB free disk, limits target data to 2 GiB and sampled workload RSS to 1 GiB, and
+stops work after 180 seconds. Move refused workloads to CI without raising these limits.
+See [CI latency and coverage](ci.md) and the [development guide](development.md).
 
 For repository changes, dogfood `fr`, recipes and reviewed history whenever an admitted operation
 exists. Treat an incorrect preview, refusal or impractical flow as product evidence and fix its root

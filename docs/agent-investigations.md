@@ -508,3 +508,10 @@ Boolean operators, `not`, conditional expressions and ordered comparison chains.
 and `None` selectors skip operands. Unknown selectors retain both normal and exceptional alternatives.
 The versioned contract is included in analysis inputs and cache validation. Numeric comparisons,
 variable values and helper results are not specialized; the analysis still reports possible flow.
+
+### Ordered scalar assignment contracts
+
+Opt-in summary version five adds exact literal tuple/list unpacking and chained local assignments.
+Right-hand expressions run before target writes; repeated targets bind left-to-right.
+[Scalar assignments](scalar-assignments.md) defines shape budgets, exact definition occurrences,
+SDK contracts and the remaining alias, iterable and exception boundaries.
