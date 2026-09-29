@@ -132,13 +132,25 @@ def measure(args):
         (project / ".cargo/config.toml").write_text('[build]\nrustflags=["--cfg","fr_strict"]\n')
         refusals["new_build_configuration"] = refuses(lambda: CompilerEvidence.inspect(client, strict, check="strict"))
         config["checks"].append({"name":"cargo","argv":[str(cargo),"check","--offline","--message-format=json"],"cwd":".","timeout_seconds":30,"covers":["Cargo strict configuration"],
-            "identity_files":[str(compiler),*[str(path) for path in drivers]],"environment":["RUSTFLAGS","RUSTC","CARGO_ENCODED_RUSTFLAGS"]})
+            "identity_files":[str(compiler),*[str(path) for path in drivers]],"environment":["RUSTFLAGS","RUSTC","CARGO_ENCODED_RUSTFLAGS","CARGO_BUILD_RUSTFLAGS"]})
         config_path.write_text(json.dumps(config))
-        cargo_checks = execute(client, "cargo")
-        cargo_report = CompilerEvidence.inspect(client, cargo_checks, check="cargo", format="cargo-json", limit=64).report.to_data()
-        source = project / "subject.rs"
-        source.write_text(source.read_text() + "\n// changed source\n")
-        refusals["source"] = refuses(lambda: CompilerEvidence.inspect(client, cargo_checks, check="cargo", format="cargo-json"))
+        flag_names = ("RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS", "CARGO_BUILD_RUSTFLAGS")
+        inherited_flags = {name: os.environ.pop(name, None) for name in flag_names}
+        try:
+            cargo_checks = execute(client, "cargo")
+            cargo_report = CompilerEvidence.inspect(client, cargo_checks, check="cargo", format="cargo-json", limit=64).report.to_data()
+            os.environ["RUSTFLAGS"] = "--cfg fr_environment_drift"
+            refusals["cargo_environment"] = refuses(lambda: CompilerEvidence.inspect(client, cargo_checks, check="cargo", format="cargo-json"))
+            del os.environ["RUSTFLAGS"]
+            source = project / "subject.rs"
+            source.write_text(source.read_text() + "\n// changed source\n")
+            refusals["source"] = refuses(lambda: CompilerEvidence.inspect(client, cargo_checks, check="cargo", format="cargo-json"))
+        finally:
+            for name, value in inherited_flags.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
     return {"schema":"fr-compiler-evidence-acceptance-1","repository_revision":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),
         "source_bindings":{path:file_digest(ROOT / path) for path in BINDINGS},
         "binary_sha256":hashlib.sha256(args.fr.read_bytes()).hexdigest(),"platform":platform.platform(),
