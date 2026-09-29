@@ -10,6 +10,43 @@ pub(super) enum Kind {
 pub(super) struct Parameter<'t> {
     pub node: Node<'t>,
     pub kind: Kind,
+    pub default: Option<Node<'t>>,
+}
+
+#[derive(Clone, Serialize)]
+pub(super) struct ParameterSignature {
+    name: String,
+    kind: &'static str,
+    site: Occurrence,
+    default: Option<Occurrence>,
+}
+
+fn literal_default(node: Node<'_>, source: &str) -> bool {
+    match node.kind() {
+        "none" | "true" | "false" | "integer" | "float" => true,
+        "string" => {
+            let text = &source[node.byte_range()];
+            let prefix = text.split(['\'', '"']).next().unwrap_or_default();
+            !prefix.to_ascii_lowercase().contains('f')
+                && !node
+                    .named_children(&mut node.walk())
+                    .any(|n| n.kind() == "interpolation")
+        }
+        "parenthesized_expression" => {
+            let children: Vec<_> = node
+                .named_children(&mut node.walk())
+                .filter(|n| n.kind() != "comment")
+                .collect();
+            children.len() == 1 && literal_default(children[0], source)
+        }
+        "unary_operator" => {
+            let operator = node.child_by_field_name("operator");
+            let argument = node.child_by_field_name("argument");
+            operator.is_some_and(|n| matches!(&source[n.byte_range()], "+" | "-"))
+                && argument.is_some_and(|n| matches!(n.kind(), "integer" | "float"))
+        }
+        _ => false,
+    }
 }
 
 pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Parameter<'t>>> {
@@ -18,22 +55,36 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
     let mut names = BTreeSet::new();
     let mut slash = false;
     let mut star = false;
+    let mut optional = false;
     for node in list.named_children(&mut list.walk()) {
         match node.kind() {
             "comment" => (),
-            "identifier" => {
-                if !source[node.byte_range()].is_ascii()
-                    || !names.insert(&source[node.byte_range()])
+            "identifier" | "default_parameter" => {
+                let (name, default) = if node.kind() == "default_parameter" {
+                    let name = node.child_by_field_name("name")?;
+                    let value = node.child_by_field_name("value")?;
+                    if name.kind() != "identifier" || !literal_default(value, source) {
+                        return None;
+                    }
+                    (name, Some(value))
+                } else {
+                    (node, None)
+                };
+                if !source[name.byte_range()].is_ascii()
+                    || !names.insert(&source[name.byte_range()])
+                    || !star && optional && default.is_none()
                 {
                     return None;
                 }
+                optional |= default.is_some();
                 result.push(Parameter {
-                    node,
+                    node: name,
                     kind: if star {
                         Kind::KeywordOnly
                     } else {
                         Kind::Either
                     },
+                    default,
                 });
             }
             "positional_separator" if !slash && !star && !result.is_empty() => {
@@ -53,12 +104,13 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
 }
 
 pub(super) fn contract() -> Value {
-    json!({"schema":"fr-call-binding-1",
-        "parameters":"required ASCII-named positional-only, positional-or-keyword and keyword-only parameters.",
+    json!({"schema":"fr-call-binding-2",
+        "parameters":"ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
         "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
-        "boundary":"no defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+        "boundary":"no evaluated or mutable defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+        "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; analysis refuses definition-time effects.",
         "implicit_exceptions":false})
 }
 
@@ -159,6 +211,11 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 return None;
             }
         }
+        for (slot, parameter) in slots.iter_mut().zip(&parameters) {
+            if slot.is_none() && parameter.default.is_some() {
+                *slot = Some(Flow::new());
+            }
+        }
         let result: Option<Vec<_>> = slots.into_iter().collect();
         if result.is_none() {
             self.cutoff(format!("invalid-call-binding:{name}"));
@@ -195,4 +252,25 @@ pub(super) fn valid_call_syntax(node: Node<'_>, source: &str) -> bool {
         }
     }
     true
+}
+
+impl Analyzer<'_, '_, '_> {
+    pub(super) fn parameter_signature(&self, function: Node<'_>) -> Vec<ParameterSignature> {
+        parameters(function, self.source)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|parameter| ParameterSignature {
+                name: self.text(parameter.node).to_owned(),
+                kind: match parameter.kind {
+                    Kind::PositionalOnly => "positional-only",
+                    Kind::Either => "positional-or-keyword",
+                    Kind::KeywordOnly => "keyword-only",
+                },
+                site: self.occurrence(parameter.node, "summary-parameter"),
+                default: parameter
+                    .default
+                    .map(|node| self.occurrence(node, "parameter-default")),
+            })
+            .collect()
+    }
 }

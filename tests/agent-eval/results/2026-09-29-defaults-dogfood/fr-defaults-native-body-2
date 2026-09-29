@@ -1,0 +1,10 @@
+{
+    json!({"schema":"fr-call-binding-2",
+        "parameters":"ASCII-named positional-only, positional-or-keyword and keyword-only parameters; required or immutable literal defaults.",
+        "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
+        "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
+        "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
+        "boundary":"no evaluated or mutable defaults, annotations, variadics, unpacking, keyword external-rule contracts or non-normalized identifier spellings.",
+        "defaults":"omitted slots use source-free immutable scalar literals; explicit arguments override defaults; definition-time effects are refused.",
+        "implicit_exceptions":false})
+}

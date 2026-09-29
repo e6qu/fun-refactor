@@ -1,0 +1,39 @@
+{
+        let source = self.contexts[name].1;
+        let Some(parameters) = parameters(function, source) else {
+            self.cutoff(format!("unsupported-parameter-contract:{name}"));
+            return None;
+        };
+        let mut slots: Vec<Option<Flow>> = vec![None; parameters.len()];
+        let mut position = 0;
+        for (value, keyword) in values.into_iter().zip(names) {
+            let slot = if let Some(keyword) = keyword {
+                parameters.iter().position(|p| {
+                    p.kind != Kind::PositionalOnly && &source[p.node.byte_range()] == keyword
+                })
+            } else {
+                let next = parameters
+                    .get(position)
+                    .filter(|p| p.kind != Kind::KeywordOnly)
+                    .map(|_| position);
+                position += 1;
+                next
+            };
+            let Some(slot) = slot else {
+                self.cutoff(format!("invalid-call-binding:{name}"));
+                return None;
+            };
+            if slots[slot].replace(value).is_some() {
+                self.cutoff(format!("invalid-call-binding:{name}"));
+                return None;
+            }
+        }
+        for (slot, parameter) in slots.iter_mut().zip(&parameters) {
+            if slot.is_none() && parameter.default.is_some() { *slot = Some(Flow::new()); }
+        }
+        let result: Option<Vec<_>> = slots.into_iter().collect();
+        if result.is_none() {
+            self.cutoff(format!("invalid-call-binding:{name}"));
+        }
+        result
+    }

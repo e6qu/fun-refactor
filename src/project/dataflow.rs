@@ -970,7 +970,7 @@ impl Project<'_> {
             analyzer.invoke(&entry, function, arguments)
         };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
-            "semantics": if options.summaries {"python-scalar-summaries-3"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
+            "semantics": if options.summaries {"python-scalar-summaries-4"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",

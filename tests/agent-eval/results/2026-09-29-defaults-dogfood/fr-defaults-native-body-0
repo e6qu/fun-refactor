@@ -1,0 +1,43 @@
+{
+    let list = function.child_by_field_name("parameters")?;
+    let mut result: Vec<Parameter<'t>> = Vec::new();
+    let mut names = BTreeSet::new();
+    let mut slash = false;
+    let mut star = false;
+    let mut optional = false;
+    for node in list.named_children(&mut list.walk()) {
+        match node.kind() {
+            "comment" => (),
+            "identifier" | "default_parameter" => {
+                let (name, default) = if node.kind() == "default_parameter" {
+                    let name = node.child_by_field_name("name")?;
+                    let value = node.child_by_field_name("value")?;
+                    if name.kind() != "identifier" || !literal_default(value, source) {
+                        return None;
+                    }
+                    (name, Some(value))
+                } else { (node, None) };
+                if !source[name.byte_range()].is_ascii()
+                    || !names.insert(&source[name.byte_range()])
+                    || !star && optional && default.is_none()
+                {
+                    return None;
+                }
+                optional |= default.is_some();
+                result.push(Parameter {
+                    node: name,
+                    kind: if star { Kind::KeywordOnly } else { Kind::Either },
+                    default,
+                });
+            }
+            "positional_separator" if !slash && !star && !result.is_empty() => {
+                slash = true;
+                for parameter in &mut result { parameter.kind = Kind::PositionalOnly; }
+            }
+            "keyword_separator" if !star => star = true,
+            _ => return None,
+        }
+    }
+    if star && result.last().is_none_or(|p| p.kind != Kind::KeywordOnly) { return None; }
+    Some(result)
+}

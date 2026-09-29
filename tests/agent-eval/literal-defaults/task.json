@@ -1,0 +1,21 @@
+{
+  "schema": "fr-literal-defaults-task-1",
+  "baseline": "94baf9847f55242ddcb756e9b56a193782e084dd",
+  "task": "Discover and repair a leaking helper reached through an omitted keyword-only default, then deliver a sink-free preview.",
+  "subset": "Python explicit arguments and immutable scalar literal defaults, with parameter kinds and exact signature origins. No evaluated defaults, mutable containers, annotations, variadics, unpacking or implicit exceptions.",
+  "budgets": {
+    "steps": 4096,
+    "depth": 8,
+    "modules": 16,
+    "summary_functions": 64
+  },
+  "oracle": "Independent CPython observations and AST byte spans; finite runtime cases for evaluation order and raises; cached/clean agreement, checked delivery, independent patch replay and reversal.",
+  "acceptance": [
+    "Compare explicit and omitted defaults with independent CPython binding and runtime observations.",
+    "Retain exact parameter and default locations, signature kinds and declaration-order substitution.",
+    "Refuse evaluated defaults and malformed signatures; preserve argument effects, recursion and imported calls.",
+    "Invalidate default and signature changes, reject forged contracts, and retain reviewed repair, resumption and receiver replay."
+  ],
+  "claims": "Finite deterministic scalar corpus; no live-agent, token-saving, feasible-path, overloaded-protocol or source-equivalence claim.",
+  "authoring": "Existing Rust and Python function bodies use reviewed fr previews and history applications. New declarations, fixtures, tests, metadata and documentation use direct edits."
+}
