@@ -91,7 +91,7 @@ fn literal_defaults_acceptance_replays_checked_delivery() {
         .args([
             "tools/literal-defaults-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-namespaces-literal-defaults/result.json",
+            "tests/agent-eval/results/2026-09-30-assignments-literal-defaults/result.json",
         ])
         .output()
         .unwrap();

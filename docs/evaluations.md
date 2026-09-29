@@ -726,7 +726,7 @@ discovered repair, sink-free preview delivery, fresh-process resumption and inde
 patch replay and reversal. Deterministic AST discovery exposes 442 source bytes across six reveals;
 `fr` discovery exposes 118,341 response bytes across eight process calls, with no source reveals.
 These are different disclosure measures, not a token-savings claim. The twelve refreshed
-`2026-09-29-defaults-*` report groups bind the current implementation. These results cover a finite
+`2026-09-29-defaults-*` report groups bind that implementation revision. These results cover a finite
 corpus and do not establish source equivalence, path feasibility or general efficiency.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-29-defaults-dogfood/manifest.json) records
 actual guarded `fr` edits on this implementation. Compilation, full tests and report regeneration
@@ -750,7 +750,27 @@ passes reviewed repair, a sink-free preview feature, fresh-process resumption an
 replay and reversal. Ordinary AST discovery exposes 347 source bytes across four reveals; `fr`
 discovery exposes 116,687 response bytes across eight process calls, with no source reveals.
 These different disclosure measures do not establish token savings. Thirteen refreshed
-`2026-09-29-namespaces-*` report groups bind the current implementation. The
+`2026-09-29-namespaces-*` report groups bind that implementation revision. The
 [dogfood manifest](../tests/agent-eval/results/2026-09-29-namespaces-dogfood/manifest.json) retains actual
 `fr` previews and applications for this implementation. Full gates and evidence regeneration run
 on GitHub; local work uses the existing resource guard.
+
+## Ordered scalar assignments
+
+The [pinned task](../tests/agent-eval/scalar-assignments/task.json) requires finding and repairing a
+leaking helper through unpacking, a swap and chained local assignments. Its installed-binary
+baseline reports explicit cutoffs. The independent CPython oracle checks the original leak and
+public behavior after repair, preview delivery, fresh-process resumption, receiver replay and reversal.
+
+The [runtime corpus](../sdk/python/tests/test_scalar_assignments.py) compares ordered scalar
+assignments with CPython. It covers repeated targets, nested shapes, RHS effects, explicit raises,
+lexical shadowing, exact definition spans, cache renewal and invalidation, and bounded refusal.
+Branch, loop and recursive summaries retain the existing may-flow semantics. Typed readers reject
+forged assignment contracts and still admit older reports without assignment claims.
+
+The [retained run](../tests/agent-eval/results/2026-09-30-assignments-scalar-assignments/result.json)
+and fourteen refreshed `2026-09-30-assignments-*` groups bind the current implementation.
+The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfood/manifest.json)
+retains actual guarded `fr` previews and applications for existing function edits. Compilation,
+full gates and evidence regeneration run on GitHub. These finite deterministic results do not
+establish source equivalence, path feasibility or general efficiency.

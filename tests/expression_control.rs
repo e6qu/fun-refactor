@@ -156,7 +156,7 @@ fn expression_control_acceptance_replays_checked_delivery() {
         .args([
             "tools/expression-control-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-namespaces-expression-control/result.json",
+            "tests/agent-eval/results/2026-09-30-assignments-expression-control/result.json",
         ])
         .output()
         .unwrap();
