@@ -113,7 +113,7 @@ def test_invalid_binding_is_incomplete_after_argument_effects(tmp_path, paramete
 
 
 @pytest.mark.parametrize("parameters,call", [
-    ("left=0", "choose(left=source())"),
+    ("left=source()", "choose(left=source())"),
     ("left: int", "choose(left=source())"),
     ("*left", "choose(source())"),
     ("**left", "choose(left=source())"),
@@ -212,6 +212,7 @@ def test_old_contracts_remain_readable_without_new_capabilities(tmp_path, versio
     data = analyze(client, rules, "entry").report.to_data()
     data["semantics"] = f"python-scalar-summaries-{version}"
     data.pop("call_binding"); data["inputs"].pop("call_binding")
+    for item in data["function_summaries"]["functions"].values(): item.pop("signature")
     if version == 1:
         data.pop("expression_control"); data["inputs"].pop("expression_control")
     result = FunctionSummaries.from_report(FrReport(data, ()))

@@ -85,7 +85,7 @@ fn required_parameters_bind_by_kind_and_name() {
             report["cutoffs"]
         );
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
-        assert_eq!(report["semantics"], "python-scalar-summaries-3");
+        assert_eq!(report["semantics"], "python-scalar-summaries-4");
         assert_eq!(report["call_binding"], report["inputs"]["call_binding"]);
     }
 }
