@@ -219,21 +219,13 @@ def test_old_contracts_remain_readable_without_new_capabilities(tmp_path, versio
     assert (result.expression_control is None) == (version == 1)
 
 
-def test_keyword_calls_remain_independent_and_transfer_each_value_once(tmp_path):
+def test_keyword_calls_remain_independent(tmp_path):
     client, rules = install(tmp_path, "left, right", "0",
         "return left")
     path = tmp_path / "subject.py"
     path.write_text(path.read_text().replace("return 0", "unused = choose(right=0, left=source())\n    return sink(choose(right=source(), left=0))"))
     result = analyze(client, rules, "entry")
     assert result.report.at("/complete") and not result.witnesses
-    source = path.read_bytes()
-    from collections import Counter
-    calls = Counter(event["occurrence"]["location"]["span"]["start"]
-        for event in result.report.at("/events") if event["kind"] == "use"
-        and source[event["occurrence"]["location"]["span"]["start"]:
-                   event["occurrence"]["location"]["span"]["end"]] == b"source()")
-    assert len(calls) == 2
-    assert set(calls.values()) == {result.summaries.for_function("entry").evaluations}
     assert observe(tmp_path)["events"] == [["source", 17], ["source", 17], ["sink", 0]]
 
 
@@ -292,3 +284,18 @@ def test_invalid_call_syntax_is_checked_before_argument_transfer(tmp_path, expre
         return
     assert not result.report.at("/complete")
     assert "unsupported-call-syntax" in result.report.at("/cutoffs")
+
+
+def test_each_explicit_keyword_value_transfers_once_before_binding(tmp_path):
+    client, rules = install(tmp_path, "left, right", "sink(choose(right=source(), left=source()))")
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete") and len(result.witnesses) == 1
+    source = (tmp_path / "subject.py").read_bytes()
+    from collections import Counter
+    calls = Counter(event["occurrence"]["location"]["span"]["start"]
+        for event in result.report.at("/events") if event["kind"] == "use"
+        and source[event["occurrence"]["location"]["span"]["start"]:
+                   event["occurrence"]["location"]["span"]["end"]] == b"source()")
+    assert len(calls) == 2
+    assert set(calls.values()) == {result.summaries.for_function("entry").evaluations}
+    assert observe(tmp_path)["events"] == [["source", 17], ["source", 17], ["sink", 17]]
