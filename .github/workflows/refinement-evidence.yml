@@ -21,6 +21,7 @@ on:
           - host-recovery
           - flow
           - dependency
+          - contexts
           - compiler-evidence
           - resumable-correspondence
           - semantic-evidence
@@ -65,6 +66,17 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Prepare the pinned context tokenizer
+        if: inputs.group == 'contexts'
+        run: |
+          set -euo pipefail
+          python3 -m pip install -r tools/agent_eval/requirements.txt
+          mkdir -p "$RUNNER_TEMP/fr-tokenizer"
+          curl -fsSL --retry 3 --connect-timeout 20 --max-time 120 \
+            -o "$RUNNER_TEMP/fr-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790" \
+            https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
+          echo "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  $RUNNER_TEMP/fr-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790" | sha256sum -c -
+          echo "TIKTOKEN_CACHE_DIR=$RUNNER_TEMP/fr-tokenizer" >> "$GITHUB_ENV"
       - name: Cache the Lean toolchain
         id: lean-cache
         uses: actions/cache@v6

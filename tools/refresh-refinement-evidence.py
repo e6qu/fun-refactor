@@ -54,12 +54,17 @@ def main():
         'retained-proofs': 'proof-evidence-acceptance',
         'host-recovery': 'host-recovery-acceptance',
     }
+    context_scripts = {name: name for name in (
+        'project-batch-context', 'task-bundle-context', 'task-change-context', 'workflow-context'
+    )}
     refinement_names = list(scripts)
     scripts.update(flow_scripts)
     scripts.update(dependency_scripts)
-    if group not in ('all', 'flow', 'dependency') and group not in scripts:
+    scripts.update(context_scripts)
+    if group not in ('all', 'flow', 'dependency', 'contexts') and group not in scripts:
         raise SystemExit(f'Unknown evidence group: {group}')
-    groups = {'all': refinement_names, 'flow': list(flow_scripts), 'dependency': list(dependency_scripts)}
+    groups = {'all': refinement_names, 'flow': list(flow_scripts), 'dependency': list(dependency_scripts),
+              'contexts': list(context_scripts)}
     names = groups.get(group, [group])
     LOGS.mkdir(parents=True, exist_ok=True)
     fr = str(ROOT / 'target/debug/fr')
@@ -85,11 +90,13 @@ def main():
             command += ['--binary', binaries[name]]
         elif name != 'host-recovery':
             command += ['--fr', fr]
-        if name != 'intent-action-context':
+        if name in context_scripts:
+            command += ['--tokens', '--repetitions', '3']
+        elif name != 'intent-action-context':
             command += ['--output', str(path)]
         print(f'Refreshing {name}', flush=True)
         with (LOGS / f'{name}.log').open('w') as log:
-            if name == 'intent-action-context':
+            if name == 'intent-action-context' or name in context_scripts:
                 with path.open('w') as output:
                     subprocess.run(command, cwd=ROOT, stdout=output, stderr=log,
                                    check=True, timeout=1800)

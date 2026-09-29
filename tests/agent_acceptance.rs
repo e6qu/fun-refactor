@@ -132,7 +132,7 @@ fn batched_project_queries_match_separate_compact_reports() {
     python(&[
         "tools/project-batch-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-09-28-structural-project-batch-context/result.json",
+        "tests/agent-eval/results/2026-09-29-calls-project-batch-context/result.json",
     ]);
 }
 
@@ -214,7 +214,7 @@ fn verified_workflow_matches_the_manual_delivery_lifecycle() {
     python(&[
         "tools/workflow-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-09-28-workflow-context/result.json",
+        "tests/agent-eval/results/2026-09-29-calls-workflow-context/result.json",
     ]);
 }
 
@@ -230,7 +230,7 @@ fn task_bundle_matches_separate_discovery_and_contract_calls() {
     python(&[
         "tools/task-bundle-context.py",
         "--audit",
-        "tests/agent-eval/results/2026-09-28-structural-task-bundle-context/result.json",
+        "tests/agent-eval/results/2026-09-29-calls-task-bundle-context/result.json",
     ]);
 }
 #[test]
