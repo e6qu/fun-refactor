@@ -75,6 +75,7 @@ stages.
 ## Maintain the project
 
 - [Development](development.md): build, test, add languages and release.
+- [CI latency and coverage](ci.md): test shards, complete coverage and runner time limits.
 - [Roadmap](../PLAN.md): unfinished product outcomes and acceptance gates.
 - [Agent analysis review](agent-analysis-review.md): baseline evidence, analysis gaps and planning architecture.
 - [Known defects](../BUGS.md): actionable defects and durable analysis boundaries.

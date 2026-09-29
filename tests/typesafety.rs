@@ -472,6 +472,9 @@ fn the_epilogue_names_the_ty_version_and_official_playground() {
     let page = std::fs::read_to_string(root().join("docs/type-safety.html")).unwrap();
     let script = std::fs::read_to_string(root().join("docs/type-safety.js")).unwrap();
     let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
+    let tools =
+        std::fs::read_to_string(root().join(".github/actions/native-tools/action.yml")).unwrap();
+    assert!(workflow.contains("uses: ./.github/actions/native-tools"));
     let pin = script
         .split("TY_VERSION = \"")
         .nth(1)
@@ -482,7 +485,7 @@ fn the_epilogue_names_the_ty_version_and_official_playground() {
         "the epilogue and browser metadata disagree about the CI ty version: {pin}"
     );
     assert!(
-        workflow.contains(&format!("\"ty=={pin}\"")),
+        tools.contains(&format!("\"ty=={pin}\"")),
         "the browser metadata and CI dependency disagree about the ty version: {pin}"
     );
     assert!(script.contains("https://play.ty.dev/"));
