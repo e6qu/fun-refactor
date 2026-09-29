@@ -86,8 +86,8 @@ The default route cuts off recursive calls. It does not claim runtime terminatio
 
 ### Recursive function summaries
 
-Add `--summaries` to use `python-scalar-summaries-2`. The solver summarizes each reachable function
-with symbolic positional parameters. Each call substitutes its own arguments into return, sink and
+Add `--summaries` to use `python-scalar-summaries-3`. The solver summarizes each reachable function
+with symbolic required parameters. Each call substitutes its own arguments into return, sink and
 exceptional effects. This keeps separate callers from sharing input values. Direct and mutual recursion
 start with empty summaries and grow monotonically until a global fixed point or a cutoff.
 
@@ -102,6 +102,7 @@ The solver admits at most 64 functions and 512 control nodes per function. `--st
 An exhausted budget always makes the result incomplete. Unknown externals, aliases, annotations and
 dynamic calls retain their cutoffs. Exception causes remain incomplete.
 [Ordered scalar expressions](expression-control.md) now admit calls with conditional evaluation.
+[Call binding](call-binding.md) adds explicit keywords and required positional-only and keyword-only parameters.
 All existing rule context and module-effect boundaries still apply. Sources and sinks are external contracts;
 the default solver stays within one file and does not track heap effects.
 

@@ -1,0 +1,10 @@
+{
+        json!({"schema":"fr-function-summaries-1", "enabled":self.enabled,
+            "converged":self.converged,"rounds":self.rounds,"functions":self.table,
+            "function_limit":FUNCTION_LIMIT,
+            "context":"symbolic required parameters; bind each call independently in declaration order.",
+            "recursion":"monotone least fixed point over finite origin and effect sets.",
+            "effects":"explicit scalar returns, sink contracts and explicit raises; no heap effects.",
+            "claim":"may-value derivations in the declared model; neither feasible paths nor runtime termination.",
+            "mutation_authority":false})
+    }

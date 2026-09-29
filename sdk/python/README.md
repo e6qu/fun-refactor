@@ -521,5 +521,14 @@ checks and source-correspondence limits.
 Summary analysis now follows `and`, `or`, `not`, conditional expressions and comparison chains.
 Boolean and `None` literals select operands; unknown selectors retain both alternatives.
 `result.summaries.expression_control` exposes the versioned contract for
-`python-scalar-summaries-2`. Earlier summary records remain readable with this field set to `None`.
+`python-scalar-summaries-2` and later. Earlier summary records remain readable with this field set to `None`.
 See [the expression contract](../../docs/expression-control.md) for effects, cache identities and limits.
+
+
+`FunctionSummaries.call_binding` exposes the required-parameter contract in
+`python-scalar-summaries-3`. Explicit keyword arguments bind independently to positional-or-keyword
+and keyword-only parameters; `/` preserves positional-only parameters. Argument expressions run in
+source order before declaration-order summary substitution. Missing or invalid bindings leave the
+analysis incomplete. Defaults, unpacking, variadics and keyword calls to external rules remain
+unsupported. Earlier report versions read with `call_binding=None` and cannot claim the new contract.
+See [Python call binding](../../docs/call-binding.md) for evaluation and refusal boundaries.

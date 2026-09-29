@@ -70,7 +70,7 @@ class ExpressionControl:
 
 _CALL_BINDING = {
     "schema": "fr-call-binding-1",
-    "parameters": "required positional-only, positional-or-keyword and keyword-only parameters.",
+    "parameters": "required ASCII-named positional-only, positional-or-keyword and keyword-only parameters.",
     "evaluation": "explicit argument values in source order before parameter binding; once per transfer.",
     "binding": "positional slots followed by exact keyword names; substitute in declaration order.",
     "invalid": "incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",

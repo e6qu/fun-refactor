@@ -24,6 +24,8 @@ def install(tmp_path, parameters, call, body="return left", entry_parameters="",
 
 def observe(tmp_path, invocation="entry()"):
     script = '''import json, runpy, sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
 observed = []
 def source():
     observed.append(["source", 17]); return 17
@@ -125,8 +127,9 @@ def test_unsupported_or_invalid_python_never_establishes_absence(tmp_path, param
     client, rules = install(tmp_path, parameters, call)
     try:
         result = analyze(client, rules, "entry")
-    except FrRuntimeError:
-        return  # Syntax refusal also withholds an analysis claim.
+    except FrRuntimeError as error:
+        assert "syntax" in str(error).lower()
+        return
     assert not result.report.at("/complete")
 
 
@@ -214,3 +217,59 @@ def test_old_contracts_remain_readable_without_new_capabilities(tmp_path, versio
     result = FunctionSummaries.from_report(FrReport(data, ()))
     assert result.call_binding is None
     assert (result.expression_control is None) == (version == 1)
+
+
+def test_keyword_calls_remain_independent_and_transfer_each_value_once(tmp_path):
+    client, rules = install(tmp_path, "left, right", "0",
+        "return left")
+    path = tmp_path / "subject.py"
+    path.write_text(path.read_text().replace("return 0", "unused = choose(right=0, left=source())\n    return sink(choose(right=source(), left=0))"))
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete") and not result.witnesses
+    source = path.read_bytes()
+    from collections import Counter
+    calls = Counter(event["occurrence"]["location"]["span"]["start"]
+        for event in result.report.at("/events") if event["kind"] == "use"
+        and source[event["occurrence"]["location"]["span"]["start"]:
+                   event["occurrence"]["location"]["span"]["end"]] == b"source()")
+    assert len(calls) == 2
+    assert set(calls.values()) == {result.summaries.for_function("entry").evaluations}
+    assert observe(tmp_path)["events"] == [["source", 17], ["source", 17], ["sink", 0]]
+
+
+@pytest.mark.parametrize("import_line,call", [
+    ("import portal.api as helpers", "helpers.choose(right=0, left=source())"),
+    ("from portal import choose as dispatch", "dispatch(right=0, left=source())"),
+])
+def test_imported_keyword_bindings_use_the_callee_source_and_dependencies(tmp_path, import_line, call):
+    client, rules = workspace(tmp_path)
+    (tmp_path / "portal").mkdir()
+    (tmp_path / "portal/__init__.py").write_text("from .api import choose\n")
+    (tmp_path / "portal/api.py").write_text("def choose(*, left, right):\n    return left\n")
+    (tmp_path / "subject.py").write_text(f"{import_line}\n\ndef entry():\n    return sink({call})\n")
+    cache = FlowCache(MemoryObjectStore())
+    first = analyze(client, rules, "entry", cache, imports=True)
+    assert first.report.at("/complete"), first.report.at("/cutoffs")
+    assert first.witnesses and observe(tmp_path)["result"] == 17
+    assert analyze(client, rules, "entry", cache, imports=True).reused
+    path = tmp_path / "portal/api.py"
+    path.write_text(path.read_text().replace("left, right", "right, left"))
+    changed = analyze(client, rules, "entry", cache, imports=True)
+    assert not changed.reused and changed.witnesses
+    assert evidence(changed) == evidence(analyze(client, rules, "entry", imports=True))
+    path.write_text(path.read_text().replace("return left", "return right"))
+    changed = analyze(client, rules, "entry", cache, imports=True)
+    assert not changed.reused and not changed.witnesses and observe(tmp_path)["result"] == 0
+
+
+@pytest.mark.parametrize("parameters,call", [
+    ("K, K", "choose(0, source())"),
+    ("left, é", "choose(left=0, é=source())"),
+    ("left, K", "choose(left=source(), K=0)"),
+])
+def test_unicode_normalization_requires_an_explicit_contract(tmp_path, parameters, call):
+    client, rules = install(tmp_path, parameters, call)
+    result = analyze(client, rules, "entry")
+    assert not result.report.at("/complete")
+    assert ("module-effects-unchecked" in result.report.at("/cutoffs")
+            or "non-ascii-keyword-binding-unchecked" in result.report.at("/cutoffs"))

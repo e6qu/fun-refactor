@@ -1,0 +1,40 @@
+{
+        let valid = calls::parameters(function, self.contexts[name].1)
+            .is_some_and(|parameters| parameters.len() == arguments.len());
+        if !valid {
+            self.cutoff(format!("unsupported-parameter-contract:{name}"));
+            return Flow::new();
+        }
+        self.solver.callees.insert(name.into());
+        if !self.solver.table.contains_key(name) {
+            let parent = self.active.last().expect("summary evaluation has a caller");
+            let depth = self.solver.depths[parent] + 1;
+            if depth >= self.depth {
+                self.cutoff("call-depth-budget");
+                return Flow::new();
+            }
+            if self.solver.table.len() == FUNCTION_LIMIT {
+                self.cutoff("summary-function-budget");
+                return Flow::new();
+            }
+            self.solver.depths.insert(name.into(), depth);
+            self.solver.table.insert(name.into(), Summary::default());
+        }
+        let summary = self.solver.table[name].clone();
+        for effect in summary.sinks.values() {
+            let flow = substitute(&effect.flow, &summary.parameters, &arguments);
+            let flow = self.extend(flow, call, "summary-call");
+            self.record_sink(&effect.sink, effect.site.clone(), flow);
+        }
+        let exceptions = substitute(
+            &summary.exceptional_returns,
+            &summary.parameters,
+            &arguments,
+        );
+        let exceptions = self.extend(exceptions, call, "summary-raise");
+        merge(&mut self.exceptional_returns, exceptions);
+        self.may_raise |= summary.may_raise;
+        self.normal = summary.normal_return;
+        let result = substitute(&summary.returns, &summary.parameters, &arguments);
+        self.extend(result, call, "call-result")
+    }

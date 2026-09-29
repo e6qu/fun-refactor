@@ -1,0 +1,41 @@
+{
+        let mut values = Vec::new();
+        let mut names = Vec::new();
+        let mut keywords = false;
+        if let Some(list) = node.child_by_field_name("arguments") {
+            for arg in list.named_children(&mut list.walk()) {
+                if arg.kind() == "comment" {
+                    continue;
+                }
+                if self.solver.enabled && !self.normal {
+                    break;
+                }
+                let (value, name) = if self.solver.enabled && arg.kind() == "keyword_argument" {
+                    let (Some(name), Some(value)) = (
+                        arg.child_by_field_name("name"),
+                        arg.child_by_field_name("value"),
+                    ) else {
+                        self.cutoff("malformed-keyword-argument");
+                        break;
+                    };
+                    if !self.text(name).is_ascii() {
+                        self.cutoff("non-ascii-keyword-binding-unchecked");
+                    }
+                    keywords = true;
+                    (value, Some(self.text(name).to_owned()))
+                } else {
+                    if matches!(arg.kind(), "list_splat" | "dictionary_splat") {
+                        self.cutoff("argument-unpacking-unchecked");
+                        break;
+                    }
+                    if keywords {
+                        self.cutoff("positional-after-keyword");
+                    }
+                    (arg, None)
+                };
+                values.push(self.expression(value, env));
+                names.push(name);
+            }
+        }
+        (values, names)
+    }

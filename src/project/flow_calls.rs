@@ -22,7 +22,9 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
         match node.kind() {
             "comment" => (),
             "identifier" => {
-                if !names.insert(&source[node.byte_range()]) {
+                if !source[node.byte_range()].is_ascii()
+                    || !names.insert(&source[node.byte_range()])
+                {
                     return None;
                 }
                 result.push(Parameter {
@@ -52,7 +54,7 @@ pub(super) fn parameters<'t>(function: Node<'t>, source: &str) -> Option<Vec<Par
 
 pub(super) fn contract() -> Value {
     json!({"schema":"fr-call-binding-1",
-        "parameters":"required positional-only, positional-or-keyword and keyword-only parameters.",
+        "parameters":"required ASCII-named positional-only, positional-or-keyword and keyword-only parameters.",
         "evaluation":"explicit argument values in source order before parameter binding; once per transfer.",
         "binding":"positional slots followed by exact keyword names; substitute in declaration order.",
         "invalid":"incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
@@ -99,6 +101,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                         self.cutoff("malformed-keyword-argument");
                         break;
                     };
+                    if !self.text(name).is_ascii() {
+                        self.cutoff("non-ascii-keyword-binding-unchecked");
+                    }
                     keywords = true;
                     (value, Some(self.text(name).to_owned()))
                 } else {

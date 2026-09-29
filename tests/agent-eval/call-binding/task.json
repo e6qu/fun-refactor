@@ -2,7 +2,7 @@
   "schema": "fr-call-binding-task-1",
   "baseline": "9efc931f2f2a3a4f42dedf965dc55d11cfdf5cdf",
   "task": "Discover and repair a helper reached through keyword calls and required parameter kinds, then deliver a sink-free preview.",
-  "subset": "Python required positional-only, positional-or-keyword and keyword-only binding in scalar summaries. Explicit argument values execute in source order. No defaults, annotations, variadics, unpacking, keyword rule signatures or implicit TypeError semantics.",
+  "subset": "Python required parameters with ASCII names: positional-only, positional-or-keyword and keyword-only binding in scalar summaries. Explicit argument values execute in source order. No defaults, annotations, variadics, unpacking, keyword rule signatures or implicit TypeError semantics.",
   "budgets": {
     "steps": 4096,
     "depth": 8,
