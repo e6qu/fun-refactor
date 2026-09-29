@@ -43,7 +43,9 @@ general path feasibility.
 
 Reports use `python-scalar-summaries-3` and retain `fr-call-binding-1` in both canonical inputs and
 the public report. Native reuse validates both identities, even if a modified report has a freshly
-computed digest. Analyzer identities include the binding implementation. The SDK exposes
+computed digest. Analyzer identities include the binding implementation.
+The response budget includes both contract copies. If even metadata cannot fit, the command refuses;
+omitting analysis sections yields an incomplete report, never a complete absence claim. The SDK exposes
 `FunctionSummaries.call_binding` and validates its complete contract. Version 1 and 2 records stay
 readable with this field set to `None`; a legacy version cannot declare the newer contract.
 

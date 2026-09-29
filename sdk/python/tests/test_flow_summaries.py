@@ -107,10 +107,15 @@ def test_exhausted_solver_and_clipped_reports_cannot_establish_absence(tmp_path)
         result = analyze(client, rules, cache=cache, steps=1)
         assert not result.reused and not result.summaries.complete
         assert not result.summaries.converged
-    result = analyze(client, rules, max_bytes=4096)
+    with pytest.raises(FrRuntimeError, match="metadata exceeds byte budget"):
+        analyze(client, rules, max_bytes=2048)
+    result = analyze(client, rules, max_bytes=8192)
     assert result.report.at("/complete") is False
-    with pytest.raises(FrRuntimeError):
-        result.summaries
+    if result.report.at("/function_summaries"):
+        assert result.summaries.complete is False
+    else:
+        with pytest.raises(FrRuntimeError):
+            result.summaries
 
 
 def test_modes_do_not_share_cache_entries(tmp_path):
