@@ -68,4 +68,4 @@ passes the repair, preview and independent receiver outcomes. Ordinary discovery
 bytes across six files; native discovery returns 117,022 bytes across eight calls with no source-body
 reveals. These scripted measurements establish no general efficiency or token-saving benefit.
 The [authoring record](../tests/agent-eval/results/2026-09-29-calls-dogfood/manifest.json)
-retains 94 receipts from actual guarded `fr` edits on this implementation.
+retains 100 receipts from actual guarded `fr` edits on this implementation.

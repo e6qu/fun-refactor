@@ -698,10 +698,11 @@ keywords, caller isolation, explicit raises, invalid binding, syntax refusal, Un
 report contracts and cached/clean agreement. The `2026-09-29-calls-*` reports refresh ten flow groups
 and index resolution against current source. Six additional reports cover compiler evidence,
 correspondence, semantic evidence, index consumers, retained proofs and host recovery after the
-Unicode dependency update. Earlier reports remain historical records.
+Unicode dependency update. Four context reports refresh project batching, task bundles, task changes
+and workflows with the pinned tokenizer. Earlier reports remain historical records.
 
 The [dogfood manifest](../tests/agent-eval/results/2026-09-29-calls-dogfood/manifest.json) binds
-94 receipts from reviewed `fr` previews, saved plans and history applications on this task itself.
+100 receipts from reviewed `fr` previews, saved plans and history applications on this task itself.
 New declarations, tests, fixtures, metadata and documentation use direct edits as recorded there.
 All builds, full test gates and large evidence regeneration run on GitHub; local checks use the
 resource guard and the existing binary.

@@ -61,7 +61,8 @@ Supply a dated `prefix` such as `2026-09-28-virtual` to retain new report direct
 The default `all` group checks virtual workspace boundaries before measuring seven evidence groups.
 The `flow` group runs scalar, package and SDK boundary tests, then refreshes ten flow reports and index measurements.
 The `dependency` group refreshes compiler, correspondence, semantic, index-consumer, proof and host
-evidence after shared dependency changes. Different groups can run independently on GitHub.
+evidence after shared dependency changes. The `contexts` group refreshes four workflow comparisons
+with the pinned tokenizer. Different groups can run independently on GitHub.
 Index-resolution evidence binds every Rust source file and must be refreshed after any Rust source change.
 Choose one group to refresh only its measurements. Update audit-test report paths before refreshing:
 host-recovery evidence includes its audit test's source identity.
