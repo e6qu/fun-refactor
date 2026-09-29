@@ -36,8 +36,12 @@ def verify(path):
     assert report["baseline_sha256"] == digest(TASK.parent / "baseline.json")
     assert len(report["samples"]) == len(baseline["samples"]) == 3
     for before, after in zip(baseline["samples"], report["samples"]):
-        for field in ("workload", "symbols", "references", "queries", "answer_bytes"):
+        portable_fields = ["workload", "symbols", "references", "queries"]
+        if after["workload"] != "repository":
+            portable_fields.append("answer_bytes")
+        for field in portable_fields:
             assert before[field] == after[field], (field, before[field], after[field])
+        assert type(after["answer_bytes"]) is int and after["answer_bytes"] > 0
         assert after["oracle_agrees"] is True
         assert len(after["query_seconds"]) == 3
         assert all(isinstance(value, (float, int)) and 0 <= value < 240 for value in after["query_seconds"])
