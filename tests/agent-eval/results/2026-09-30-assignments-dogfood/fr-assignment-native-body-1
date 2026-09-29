@@ -1,0 +1,33 @@
+{
+        match node.kind() {
+            "expression_statement" => {
+                for expression in node.named_children(&mut node.walk()) {
+                    if expression.kind() == "assignment" && self.solver.enabled {
+                        self.scalar_assignment(expression, state);
+                    } else if expression.kind() == "assignment" {
+                        let (Some(left), Some(right)) = (
+                            expression.child_by_field_name("left"),
+                            expression.child_by_field_name("right"),
+                        ) else {
+                            self.cutoff("unsupported-assignment");
+                            continue;
+                        };
+                        let value = self.expression(right, state);
+                        if left.kind() == "identifier" {
+                            let name = self.text(left).to_owned();
+                            state
+                                .values
+                                .insert(name.clone(), self.extend(value, left, "definition"));
+                            state.defined.insert(name);
+                        } else {
+                            self.cutoff("alias-or-destructuring-assignment");
+                        }
+                    } else {
+                        self.expression(expression, state);
+                    }
+                }
+            }
+            "pass_statement" | "comment" => (),
+            _ => self.cutoff(format!("unsupported-statement:{}", node.kind())),
+        }
+    }

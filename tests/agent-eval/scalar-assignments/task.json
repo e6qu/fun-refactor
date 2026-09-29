@@ -1,0 +1,24 @@
+{
+  "schema": "fr-scalar-assignments-task-1",
+  "baseline": "3e89b125de9418814e0fad4e71c14aa03dc18174",
+  "task": "Discover and repair a leaking helper through parallel swaps and chained scalar assignments, then deliver a sink-free preview.",
+  "subset": "Exact literal tuple/list unpacking into local scalar names and chained assignments; source-order evaluation before writes. No arbitrary iterables, aliases, starred targets, annotated or heap writes.",
+  "budgets": {
+    "steps": 4096,
+    "depth": 8,
+    "modules": 16,
+    "summary_functions": 64,
+    "assignment_rhs_nodes": 64,
+    "assignment_names": 64,
+    "assignment_depth": 16
+  },
+  "oracle": "CPython values and ordered effects, independent AST coordinates, clean/cache agreement and checked delivery with independent receiver replay.",
+  "acceptance": [
+    "Preserve swaps, repeated targets, nesting and chain order with RHS evaluation once.",
+    "Retain exact assignment definition sites and lexical shadowing.",
+    "Refuse unsupported shapes and exhausted budgets; preserve explicit raises.",
+    "Invalidate assignment edits, refuse forged contracts, resume checked repair and feature delivery."
+  ],
+  "claims": "Finite deterministic scalar corpus; no live-agent, token-saving, feasible-path or source-equivalence claim.",
+  "authoring": "Guarded fr previews, saved plans and history for existing function bodies; direct edits for new declarations, fixtures, metadata and documentation."
+}

@@ -1,0 +1,38 @@
+{
+    let root = tempfile::tempdir().unwrap();
+    for (parameters, call, complete, witness) in [
+        ("left, right", "choose(right=0, left=source())", true, true),
+        ("left, right", "choose(left=0, right=source())", true, false),
+        ("left, /, *, right", "choose(source(), right=0)", true, true),
+        (
+            "*, left, right",
+            "choose(right=0, left=source())",
+            true,
+            true,
+        ),
+        (
+            "left, /, right",
+            "choose(left=source(), right=0)",
+            false,
+            false,
+        ),
+        ("left, *, right", "choose(source(), 0)", false, false),
+        (
+            "left, right",
+            "choose(source(), left=0, right=0)",
+            false,
+            false,
+        ),
+        ("left, right", "choose(sink(source()))", false, true),
+    ] {
+        let (_, report) = analyze(root.path(), parameters, call);
+        assert_eq!(
+            report["complete"], complete,
+            "{parameters}: {call}: {}",
+            report["cutoffs"]
+        );
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
+        assert_eq!(report["semantics"], "python-scalar-summaries-5");
+        assert_eq!(report["call_binding"], report["inputs"]["call_binding"]);
+    }
+}

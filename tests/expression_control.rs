@@ -102,7 +102,7 @@ fn selected_expressions_skip_effects_and_keep_normal_alternatives() {
             witness,
             "{expression}"
         );
-        assert_eq!(report["semantics"], "python-scalar-summaries-4");
+        assert_eq!(report["semantics"], "python-scalar-summaries-5");
         assert_eq!(
             report["expression_control"],
             report["inputs"]["expression_control"]

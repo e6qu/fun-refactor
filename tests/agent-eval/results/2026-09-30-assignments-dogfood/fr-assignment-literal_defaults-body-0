@@ -1,0 +1,20 @@
+{
+    let root = tempfile::tempdir().unwrap();
+    for (parameters, call, witness) in [
+        ("left=0", "choose()", false),
+        ("left=0", "choose(source())", true),
+        ("left=0, /, *, right=None", "choose(right=source())", false),
+        ("left=-17", "choose()", false),
+        ("left='café'", "choose()", false),
+    ] {
+        let (_, report) = analyze(root.path(), parameters, call);
+        assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
+        assert_eq!(report["semantics"], "python-scalar-summaries-5");
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
+        let first = &report["function_summaries"]["functions"]["choose"]["signature"][0];
+        assert_eq!(first["name"], "left");
+        assert_eq!(first["site"]["role"], "summary-parameter");
+        assert_eq!(first["default"]["role"], "parameter-default");
+        assert_eq!(first["default"]["revision"], report["revision"]);
+    }
+}

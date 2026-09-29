@@ -61,7 +61,7 @@ fn omitted_literals_and_explicit_values_have_distinct_origins() {
     ] {
         let (_, report) = analyze(root.path(), parameters, call);
         assert_eq!(report["complete"], true, "{}", report["cutoffs"]);
-        assert_eq!(report["semantics"], "python-scalar-summaries-4");
+        assert_eq!(report["semantics"], "python-scalar-summaries-5");
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
         let first = &report["function_summaries"]["functions"]["choose"]["signature"][0];
         assert_eq!(first["name"], "left");

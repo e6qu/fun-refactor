@@ -46,6 +46,7 @@ def main():
         'call-binding': 'call-binding-acceptance',
         'literal-defaults': 'literal-defaults-acceptance',
         'namespace-packages': 'namespace-packages-acceptance',
+        'scalar-assignments': 'scalar-assignments-acceptance',
         'index-resolution': 'index-resolution-acceptance',
     }
     dependency_scripts = {

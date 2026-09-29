@@ -1,0 +1,10 @@
+client, rules = install(tmp_path, "left", "choose(source())")
+data = analyze(client, rules, "entry").report.to_data()
+data["semantics"] = "python-scalar-summaries-3"
+data["call_binding"] = copy.deepcopy(_CALL_BINDING)
+data["inputs"]["call_binding"] = copy.deepcopy(_CALL_BINDING)
+for item in data["function_summaries"]["functions"].values(): item.pop("signature")
+data.pop("assignment_control"); data["inputs"].pop("assignment_control")
+summaries = FunctionSummaries.from_report(FrReport(data, ()))
+assert summaries.call_binding.defaults is None
+assert all(item.signature is None for item in summaries.functions)

@@ -1,0 +1,9 @@
+{
+    Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(root)
+        .args(args)
+        .current_dir(root)
+        .output()
+        .unwrap()
+}
