@@ -141,7 +141,7 @@ _ASSIGNMENT_CONTROL = {
     "schema": "fr-scalar-assignment-1",
     "evaluation": "evaluate all scalar RHS leaves left-to-right once before any target write.",
     "binding": "match literal tuple/list shapes; write local names and chained targets left-to-right.",
-    "limits": "64 RHS syntax nodes, 64 target names, 64 chained targets and 16 shape levels per assignment.",
+    "limits": "64 RHS shape nodes, 64 target names, 64 chained targets and nesting depth 16 per assignment.",
     "boundary": "no starred targets, arbitrary iterables, container-valued bindings, attribute/subscript writes, annotations or implicit unpacking exceptions.",
     "implicit_exceptions": False,
 }

@@ -25,9 +25,9 @@ unpacking, mismatched shapes, attributes, subscripts and annotations remain expl
 cutoffs. Unsupported shapes do not establish absence of propagation. Implicit
 unpacking exceptions and overloaded protocols remain outside the contract.
 
-An assignment admits at most 64 RHS syntax nodes, 64 target-name writes in total,
-64 chained target groups and 16 nested shape levels. Parentheses count toward the
-shape budget. The existing global transfer and disclosure budgets still apply.
+An assignment admits at most 64 RHS shape nodes, 64 target-name writes in total,
+64 chained target groups and nesting depth 16. Shape nodes count containers, scalar
+leaves and parentheses; expression operands consume the global transfer budget. The existing global transfer and disclosure budgets still apply.
 A helper that explicitly raises stops later RHS expressions and prevents target
 writes on that normal path. Unknown control alternatives retain the existing may-flow
 semantics; witnesses do not prove path feasibility.

@@ -176,3 +176,26 @@ def test_assignment_budgets_never_establish_absence(tmp_path, body):
     result = analyze(client, rules, "entry")
     assert not result.report.at("/complete")
     assert any("assignment" in reason or "binding" in reason for reason in result.report.at("/cutoffs"))
+
+
+@pytest.mark.parametrize("body", [
+    "if flag:\n    a, b = value, 0\nelse:\n    a, b = 0, value\nreturn a",
+    "a, b = value, 0\nwhile flag:\n    a, b = b, a\n    flag = False\nreturn b",
+    "a, b = value, 0\nif flag:\n    return helper(b, False)\nreturn a",
+])
+def test_assignment_transfers_join_across_branches_loops_and_recursion(tmp_path, body):
+    helper = "def helper(value, flag):\n" + textwrap.indent(body + "\n", "    ")
+    client, rules, source = install(tmp_path, "sink(helper(source(), True))\nsink(helper(source(), False))", helper)
+    result = analyze(client, rules, "entry")
+    assert result.report.at("/complete"), result.report.at("/cutoffs")
+    assert result.summaries.converged and result.witnesses
+    events, raised = observe(source)
+    assert raised is None and ["sink", 17] in events
+
+
+def test_low_transfer_budget_cannot_cache_assignment_absence(tmp_path):
+    client, rules, _ = install(tmp_path, "a, b = source(), 0\na, b = b, a\nsink(b)")
+    cache = FlowCache(MemoryObjectStore())
+    for _ in range(2):
+        result = analyze(client, rules, "entry", cache, steps=2)
+        assert not result.report.at("/complete") and not result.reused
