@@ -529,6 +529,12 @@ See [the expression contract](../../docs/expression-control.md) for effects, cac
 `python-scalar-summaries-3`. Explicit keyword arguments bind independently to positional-or-keyword
 and keyword-only parameters; `/` preserves positional-only parameters. Argument expressions run in
 source order before declaration-order summary substitution. Missing or invalid bindings leave the
-analysis incomplete. Defaults, unpacking, variadics and keyword calls to external rules remain
+analysis incomplete. Evaluated defaults, unpacking, variadics and keyword calls to external rules remain
 unsupported. Earlier report versions read with `call_binding=None` and cannot claim the new contract.
 See [Python call binding](../../docs/call-binding.md) for evaluation and refusal boundaries.
+
+`python-scalar-summaries-4` extends this contract with immutable literal defaults.
+`FunctionSummary.signature` exposes typed names, parameter kinds and exact parameter/default
+occurrences; older reports expose `signature=None`. `SummaryParameter.required` distinguishes
+required slots from admitted defaults. Entry parameters remain symbolic even when defaults exist.
+See [literal defaults](../../docs/literal-defaults.md) for definition-time effects and cache boundaries.

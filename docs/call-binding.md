@@ -1,11 +1,11 @@
 # Python call binding
 
-Opt-in summary analysis binds explicit positional and named arguments to required Python parameters
-with ASCII names. Unicode identifier normalization remains outside this contract.
+Opt-in summary analysis binds explicit positional and named arguments to Python parameters
+with ASCII names, including the [immutable literal defaults](literal-defaults.md) subset. Unicode identifier normalization remains outside this contract.
 Function declarations and identifiers in analyzed bodies must already be in NFKC form.
 Names such as `café` remain supported; spellings that normalize to another name leave analysis
 incomplete. This prevents function and local bindings from silently shadowing another spelling.
-It supports positional-only parameters before `/`, positional-or-keyword parameters, and required
+It supports positional-only parameters before `/`, positional-or-keyword parameters, and
 keyword-only parameters after a bare `*`. Calls can reach same-file helpers, recursive summaries,
 static package functions, re-exports and module aliases.
 
@@ -32,8 +32,8 @@ Lexical checks reject repeated keyword names and invalid argument ordering befor
 transfer, including skipped branches and arguments that never return. Generator argument syntax
 is outside this contract. These checks are bounded subset validation, not a general Python compiler.
 
-Defaults, annotations, variadic parameters and argument unpacking remain outside the admitted
-contract. They require definition-time evaluation or additional execution semantics. External
+Evaluated defaults, annotations, variadic parameters and argument unpacking remain outside the
+admitted contract. They require definition-time evaluation or additional execution semantics. External
 source, sink, propagator and sanitizer rules have no declared parameter names, so keyword calls to
 those rules report `keyword-rule-contract-unchecked`. A caller can use an admitted local wrapper
 with explicit parameters and a positional rule call. Dynamic dispatch, implicit exceptions and
@@ -44,13 +44,14 @@ The finite runtime corpus compares independent CPython observations with origin 
 argument effects, parameter kinds and invalid binding. It does not prove source correspondence or
 general path feasibility.
 
-Reports use `python-scalar-summaries-3` and retain `fr-call-binding-1` in both canonical inputs and
+Current reports use `python-scalar-summaries-4` and retain `fr-call-binding-2` in both canonical inputs and
 the public report. Native reuse validates both identities, even if a modified report has a freshly
 computed digest. Analyzer identities include the binding implementation.
 The response budget includes both contract copies. If even metadata cannot fit, the command refuses;
 omitting analysis sections yields an incomplete report, never a complete absence claim. The SDK exposes
 `FunctionSummaries.call_binding` and validates its complete contract. Version 1 and 2 records stay
-readable with this field set to `None`; a legacy version cannot declare the newer contract.
+readable with this field set to `None`; version three retains its required-parameter contract.
+A legacy version cannot declare newer capabilities.
 
 The [pinned task](../tests/agent-eval/call-binding/task.json) discovers a leaking helper through
 keyword calls and parameter separators. It requires a reviewed repair, a sink-free preview feature,
@@ -63,9 +64,9 @@ occurrences without invalidating the defining-file analysis. Whole-analysis inva
 conservative; finer summary reuse is a separate remaining gate.
 
 
-[Retained acceptance](../tests/agent-eval/results/2026-09-29-calls-call-binding/result.json)
+The earlier required-parameter [retained acceptance](../tests/agent-eval/results/2026-09-29-calls-call-binding/result.json)
 passes the repair, preview and independent receiver outcomes. Ordinary discovery reads 444 source
 bytes across six files; native discovery returns 117,022 bytes across eight calls with no source-body
 reveals. These scripted measurements establish no general efficiency or token-saving benefit.
 The [authoring record](../tests/agent-eval/results/2026-09-29-calls-dogfood/manifest.json)
-retains 100 receipts from actual guarded `fr` edits on this implementation.
+retains 100 receipts from guarded `fr` edits on the required-parameter implementation.

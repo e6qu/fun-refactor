@@ -102,7 +102,8 @@ The solver admits at most 64 functions and 512 control nodes per function. `--st
 An exhausted budget always makes the result incomplete. Unknown externals, aliases, annotations and
 dynamic calls retain their cutoffs. Exception causes remain incomplete.
 [Ordered scalar expressions](expression-control.md) now admit calls with conditional evaluation.
-[Call binding](call-binding.md) adds explicit keywords and required positional-only and keyword-only parameters.
+[Call binding](call-binding.md) adds explicit keywords and positional-only and keyword-only parameters.
+[Literal defaults](literal-defaults.md) extend binding with immutable defaults and exact signature origins.
 All existing rule context and module-effect boundaries still apply. Sources and sinks are external contracts;
 the default solver stays within one file and does not track heap effects.
 
