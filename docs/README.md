@@ -45,6 +45,7 @@ stages.
 - [Expression control](expression-control.md): ordered Python scalar flow, short-circuit calls and analysis boundaries.
 - [Python call binding](call-binding.md): parameter kinds, ordered arguments and versioned contracts.
 - [Literal defaults](literal-defaults.md): immutable default binding and exact typed signature origins.
+- [Namespace packages](namespace-packages.md): static single-root imports and typed directory dependencies.
 - [Body authoring](body-authoring.md): replace bodies and coordinate declarations.
 - [Disclosed editing](disclosed-editing.md): edit through returned scalar and typed-IR capabilities.
 - [Cross-stack surfaces](cross-stack-surfaces.md): CSS, Tailwind, Markdown and Mermaid facts and edits.
@@ -74,6 +75,7 @@ stages.
 ## Maintain the project
 
 - [Development](development.md): build, test, add languages and release.
+- [CI latency and coverage](ci.md): test shards, complete coverage and runner time limits.
 - [Roadmap](../PLAN.md): unfinished product outcomes and acceptance gates.
 - [Agent analysis review](agent-analysis-review.md): baseline evidence, analysis gaps and planning architecture.
 - [Known defects](../BUGS.md): actionable defects and durable analysis boundaries.

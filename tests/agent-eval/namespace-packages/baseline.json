@@ -1,0 +1,71 @@
+{
+  "repository_revision": "3f19518ec710e8d1c6a77c727067cf380d5a64c8",
+  "binary_version": "fr 0.35.0",
+  "binary_sha256": "0a61cc48f243cfe0375e395c46157818644611c74713f076f8fb10dcc1cc5552",
+  "ordinary_runtime_ast": {
+    "call_spans": {
+      "app.py": [
+        [
+          101,
+          119
+        ],
+        [
+          110,
+          118
+        ],
+        [
+          145,
+          178
+        ],
+        [
+          150,
+          177
+        ],
+        [
+          168,
+          176
+        ]
+      ],
+      "archive/transform.py": [],
+      "portal/api.py": [
+        [
+          65,
+          89
+        ],
+        [
+          70,
+          88
+        ]
+      ],
+      "portal/transform.py": []
+    },
+    "results": {
+      "preview": null,
+      "render": {
+        "emitted": [
+          17
+        ],
+        "returned": 17
+      },
+      "safe": {
+        "emitted": [
+          0
+        ],
+        "returned": 0
+      }
+    }
+  },
+  "ordinary_seconds": 0.03243274998385459,
+  "fr_seconds": 0.128255125018768,
+  "fr_complete": false,
+  "fr_cutoffs": [
+    "missing-imported-member:dispatch",
+    "unknown-external-call:dispatch",
+    "unresolved-local-import:archive.transform",
+    "unresolved-local-import:portal.api"
+  ],
+  "fr_context_bytes": 12741,
+  "tokens": null,
+  "live_agent": false,
+  "scope": "Existing local binary baseline; this binary was not built from the pinned source revision."
+}

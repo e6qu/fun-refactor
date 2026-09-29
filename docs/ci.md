@@ -1,0 +1,35 @@
+# CI latency and coverage
+
+PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
+the Python SDK runs on four more. Each runner executes tests serially with one
+Lean worker. Local builds and resource limits do not change.
+
+The last measured serial baseline, [run 36592893805](https://github.com/e6qu/fun-refactor/actions/runs/36592893805),
+spent 54 minutes in `cargo test --all-targets`. Python accounted for 18 minutes,
+formal kernels for 6.4 minutes, author commands for 5 minutes, and project commands
+for 3.8 minutes. `tools/ci-test-durations.json` retains those suite measurements.
+Native scheduling uses longest estimated duration first. Unknown targets receive
+a conservative ten-second estimate and enter the partition automatically.
+
+`tools/ci-shards.py` discovers native targets through Cargo metadata. It includes
+library, binary, integration, example and benchmark targets. The native Python
+SDK wrapper delegates its pytest invocation to the four SDK jobs; all its other
+Rust tests still run. Pytest collects the entire suite in each job and assigns
+complete node IDs, including parameters, by a stable hash. New cases enter the
+partition automatically.
+
+Every successful shard uploads its complete inventory, assignments, capability
+log and advertised matrix. The final `check (default)` gate requires all shards
+and static checks to pass, verifies identical inventories and complete, disjoint
+assignments, then checks combined capability coverage. Missing artifacts, duplicate
+assignments, differing matrices and uncovered capabilities fail the gate.
+
+Formatting, strict Clippy, the focused VFS regressions, Lean kernel checks, Python
+type checking and prose checks run in the static job. Browser feature checks and
+the playground remain separate. `tools/check.sh default` still runs the whole
+native gate serially when appropriate; local resource policy takes precedence.
+The post-merge deep audit retains its existing separate workflow.
+
+The runtime target excludes runner queue delays. Inspect job timestamps and shard
+logs after changes to suite size; update measured weights or split work before a
+job reaches its deadline. A deadline failure must not cause tests to be removed.

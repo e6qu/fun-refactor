@@ -1,0 +1,31 @@
+{
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("nested")).unwrap();
+    fs::write(
+        root.path().join("nested/app.py"),
+        "def entry():\n    return 0\n",
+    )
+    .unwrap();
+    let found = report(root.path(), &["project", "find", "entry"]);
+    let target = found["rows"][0][0].as_str().unwrap();
+    assert!(
+        !run(root.path(), &["project", "dataflow", target, "--imports"])
+            .status
+            .success()
+    );
+    let admitted = report(
+        root.path(),
+        &["project", "dataflow", target, "--imports", "--summaries"],
+    );
+    assert_eq!(admitted["complete"], true);
+    assert_eq!(admitted["inputs"]["modules"]["namespaces"], json!(["nested"]));
+    fs::rename(root.path().join("nested"), root.path().join("not-a-module")).unwrap();
+    let found = report(root.path(), &["project", "find", "entry"]);
+    let target = found["rows"][0][0].as_str().unwrap();
+    let outside = run(
+        root.path(),
+        &["project", "dataflow", target, "--imports", "--summaries"],
+    );
+    assert!(!outside.status.success());
+    assert!(String::from_utf8_lossy(&outside.stderr).contains("root-local"));
+}

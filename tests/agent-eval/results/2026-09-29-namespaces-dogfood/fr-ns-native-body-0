@@ -1,0 +1,32 @@
+{
+    let absolute = project.root.join(path);
+    let mut ancestor = project.root.clone();
+    for part in path.parent().into_iter().flat_map(Path::iter) {
+        ancestor.push(part);
+        match std::fs::symlink_metadata(&ancestor) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Ok(json!({"status":"symlink"}))
+            }
+            Ok(metadata) if !metadata.is_dir() => return Ok(json!({"status":"outside-snapshot"})),
+            Ok(_) => (),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+            Err(error) => return Err(error.into()),
+        }
+    }
+    let metadata = match std::fs::symlink_metadata(&absolute) {
+        Ok(metadata) => Some(metadata),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    if metadata
+        .as_ref()
+        .is_some_and(|m| m.file_type().is_symlink())
+    {
+        return Ok(json!({"status":"symlink"}));
+    }
+    if let Some(source) = project.sources.get(&absolute) {
+        return Ok(json!({"status":"source","digest":hash(source)?}));
+    }
+    Ok(json!({"status":if metadata.as_ref().is_some_and(|m| m.is_dir()) {"directory"}
+        else if metadata.is_some() {"outside-snapshot"} else {"missing"}}))
+}

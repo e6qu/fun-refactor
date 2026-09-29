@@ -19,7 +19,7 @@ fn retained_cache_comparison_matches_sources_oracles_and_measurements() {
         .args([
             "tools/flow-cache-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-defaults-flow-cache/result.json",
+            "tests/agent-eval/results/2026-09-29-namespaces-flow-cache/result.json",
         ])
         .output()
         .unwrap();

@@ -76,7 +76,7 @@ fn package_helpers_with_identical_names_keep_distinct_flow_and_origins() {
     assert_eq!(negative["complete"], true, "{negative}");
     assert!(!positive["witnesses"].as_array().unwrap().is_empty());
     assert!(negative["witnesses"].as_array().unwrap().is_empty());
-    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules-4");
+    assert_eq!(positive["inputs"]["modules"]["schema"], "fr-flow-modules-5");
     let files = positive["inputs"]["modules"]["files"].as_object().unwrap();
     assert_eq!(files.len(), 6);
     for path in [
@@ -144,7 +144,7 @@ fn package_entry_and_initializer_functions_have_exact_identities() {
 }
 
 #[test]
-fn ambiguous_candidates_stubs_namespace_packages_and_effects_stay_incomplete() {
+fn ambiguous_candidates_stubs_and_effects_stay_incomplete() {
     for (path, source) in [
         ("portal.py", "def other():\n    return 0\n"),
         ("portal.pyi", ""),
@@ -164,7 +164,7 @@ fn ambiguous_candidates_stubs_namespace_packages_and_effects_stay_incomplete() {
     let root = fixture();
     fs::remove_file(root.path().join("portal/__init__.py")).unwrap();
     let missing = analyze(root.path(), "render");
-    assert_eq!(missing["complete"], false);
+    assert_eq!(missing["complete"], true);
     write(root.path(), "portal/__init__.py", "");
     let added = analyze(root.path(), "render");
     assert_eq!(added["complete"], true);
@@ -290,7 +290,7 @@ fn package_flow_acceptance_matches_inputs_and_replays_both_deliveries() {
         .args([
             "tools/package-flow-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-defaults-package-flow/result.json",
+            "tests/agent-eval/results/2026-09-29-namespaces-package-flow/result.json",
         ])
         .output()
         .unwrap();
@@ -352,7 +352,7 @@ fn package_reexports_acceptance_replays_checked_delivery() {
         .args([
             "tools/package-reexports-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-defaults-package-reexports/result.json",
+            "tests/agent-eval/results/2026-09-29-namespaces-package-reexports/result.json",
         ])
         .output()
         .unwrap();
@@ -409,7 +409,7 @@ fn module_aliases_acceptance_replays_checked_delivery() {
         .args([
             "tools/module-aliases-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-defaults-module-aliases/result.json",
+            "tests/agent-eval/results/2026-09-29-namespaces-module-aliases/result.json",
         ])
         .output()
         .unwrap();

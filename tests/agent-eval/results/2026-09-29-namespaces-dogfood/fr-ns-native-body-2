@@ -1,0 +1,49 @@
+{
+        let mut file = file.to_owned();
+        let mut name = name.to_owned();
+        let mut chain = Vec::new();
+        for _ in 0..MODULE_LIMIT {
+            let item = (
+                file.strip_prefix(&self.root).unwrap().to_owned(),
+                name.clone(),
+            );
+            if chain.contains(&item) {
+                return ("cyclic", chain, None);
+            }
+            chain.push(item);
+            if !self.known_module(&file) {
+                return ("unavailable", chain, None);
+            }
+            let count = self
+                .definitions
+                .get(&file)
+                .and_then(|items| items.get(&name))
+                .copied()
+                .unwrap_or(0);
+            let binding = self.bindings.get(&file).and_then(|items| items.get(&name));
+            if count > 1
+                || count == 1 && binding.is_some()
+                || binding.is_some_and(|binding| binding.ambiguous)
+            {
+                return ("ambiguous", chain, None);
+            }
+            if count == 1 {
+                return ("function", chain, None);
+            }
+            let Some(binding) = binding else {
+                return ("missing", chain, None);
+            };
+            let Some(target) = &binding.target else {
+                return ("unavailable", chain, None);
+            };
+            if let Some(member) = &binding.member {
+                file = self.root.join(target);
+                name = member.clone();
+            } else if binding.prefix == name && self.known_module(&self.root.join(target)) {
+                return ("module", chain, Some(target.clone()));
+            } else {
+                return ("unavailable", chain, None);
+            }
+        }
+        ("budget", chain, None)
+    }

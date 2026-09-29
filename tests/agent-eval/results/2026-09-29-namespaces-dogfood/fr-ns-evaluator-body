@@ -1,0 +1,114 @@
+bindings = {path: file_digest(ROOT / path) for path in BINDINGS}
+binary = hashlib.sha256(args.fr.read_bytes()).hexdigest()
+with tempfile.TemporaryDirectory(prefix="fr-package-eval-") as temporary:
+    work = Path(temporary)
+    plain = work / "ordinary"
+    copy_fixture(plain)
+    ordinary_result = ordinary(plain)
+    root = work / "project"
+    copy_fixture(root)
+    (root / "rules.json").write_text(json.dumps({"version":"package-1", "sources":["source"], "sinks":["sink"]}))
+    (root / ".fr").mkdir()
+    (root / "artifacts").mkdir()
+    (root / ".fr/checks.json").write_text(json.dumps({"schema":1, "checks":[
+        {"name":name, "argv":[sys.executable,"-c",
+            "import subprocess,sys; modes=sys.argv[1:]; "
+            "codes=[subprocess.run([sys.executable,'-B','oracle.py','.','--expect',m],capture_output=True).returncode for m in modes]; "
+            "sys.exit(0 if 0 in codes else 1)", "baseline" if name == "repair" else "repair", name],
+         "cwd":".","timeout_seconds":10,"covers":[f"Valid before/after states during {name} reversal; strict postconditions run independently."]}
+        for name in ("repair","feature")]}))
+    run(["git","init","-q"],root)
+    run(["git","add","."],root)
+    run(["git","-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","pinned package task"],root)
+    client = MeasuredClient(root, executable=str(args.fr.resolve()), max_output_bytes=1_048_576)
+    start = time.perf_counter()
+    positive, negative = analyze(client,"render"), analyze(client,"safe")
+    candidates = [item.function for item in positive.summaries.functions
+        if item.return_parameters == (0,) and not item.callees and not item.sinks]
+    assert len(candidates) == 1
+    path, member = candidates[0].split("::")
+    selected = client.project("find",member,"--in",path).definition_target()
+    public = client.project("find","render").definition_target().path
+    safe_summary = negative.summaries.for_function(f"{public}::safe")
+    assert len(safe_summary.callees) == 1
+    safe_path, safe_member = safe_summary.callees[0].split("::")
+    lookup = next(item for item in negative.dependencies.lookups if item.importer == public and item.target == safe_path)
+    expression = lookup.alias if lookup.member else f"{lookup.prefix}.{safe_member}"
+    discovery = {"seconds":time.perf_counter()-start,"process_calls":client.calls,
+                 "context_bytes":client.response_bytes,"source_reveals":0,"tokens":None,
+                 "target":candidates[0],"public_path":public,"preview_callee":expression}
+    plan = TaskPlan("Repair package input flow", ("explained",), (
+        TaskStep("flow","Which helper carries the input?",(positive.dependencies.dependency,),satisfies=("explained",)),
+        TaskStep("conclusion","What follows?",(Dependency(DependencyKind.SOURCE,public),),depends_on=("flow",)),
+        TaskStep("independent","Keep the pinned note",(Dependency(DependencyKind.SOURCE,"oracle.py"),)),
+    ))
+    for name in ("flow","conclusion","independent"):
+        plan = satisfy(plan,client,name)
+    store = MemoryObjectStore()
+    plan_root = plan.store(store)
+    reopened = TaskPlan.restore(store,plan_root).resume(client)
+    cache = FlowCache(store)
+    analyze(client,"render",cache)
+    warm = analyze(client,"render",cache)
+    mutations = {}
+    for name, mutation_path, contents in (
+        ("initializer","portal/__init__.py",'"changed initializer"\n'),
+        ("helper",path,f"def {member}(value):\n    return 0\n"),
+        ("parent-shadow","portal.py",""),
+        ("leaf-stub","portal/api.pyi",""),
+        ("unrelated","unrelated.py","def other():\n    return 3\n"),
+    ):
+        target = root / mutation_path
+        original = target.read_bytes() if target.exists() else None
+        target.write_text(contents)
+        resumed = TaskPlan.restore(store,plan_root).resume(client)
+        edited, clean = analyze(client,"render",cache), analyze(client,"render")
+        assert equivalent(edited) == equivalent(clean)
+        mutations[name] = {"resume":resumed.report.to_data(),"reused":edited.reused,
+                           "analysis":edited.report.to_data(),"clean":clean.report.to_data()}
+        if original is None: target.unlink()
+        else: target.write_bytes(original)
+        analyze(client,"render",cache)
+    def change(handle, kind):
+        fragment = "return 0" if kind == "repair" else f"def preview():\n    return {expression}(source())\n"
+        return TaskChange([], [TaskTarget(kind,handle,"replace-body" if kind == "repair" else "insert-declaration",fragment=fragment)],
+            {"files-changed":1,"edits":1,"paths-changed":[path if kind == "repair" else public]},
+            [kind],TaskDelivery(patch=f"artifacts/{kind}.patch"))
+    stale_review = client.review(change(selected.handle,"repair"))
+    parent = root / "portal/__init__.py"
+    original = parent.read_bytes() if parent.exists() else None
+    parent.write_bytes((original or b"") + b"\n# revised parent\n")
+    try: client.execute(stale_review)
+    except FrRuntimeError as error: refusal = str(error)
+    else: raise AssertionError("stale package review admitted")
+    if original is None: parent.unlink()
+    else: parent.write_bytes(original)
+    records = {}
+    for kind in ("repair","feature"):
+        handle = (client.project("find",member,"--in",path).definition_target().handle if kind == "repair" else
+                  client.project("map",public,"--depth","0","--fields","handle,kind").at("/rows/0/0"))
+        review = client.review(change(handle,kind))
+        assert review.at("/ready")
+        delivery = client.execute(review)
+        assert delivery.passed
+        records[kind] = {"review":review.to_data(),"delivery":delivery.to_data(),
+            "patch":(root/f"artifacts/{kind}.patch").read_text(),"oracle":oracle(root,kind)}
+    receiver = work / "receiver"
+    copy_fixture(receiver)
+    run(["git","init","-q"],receiver)
+    for kind in ("repair","feature"):
+        patch = root / f"artifacts/{kind}.patch"
+        run(["git","apply","--check",str(patch)],receiver)
+        run(["git","apply",str(patch)],receiver)
+    result = {"schema":"fr-package-flow-acceptance-1", "source_bindings":bindings,
+        "repository_revision":run(["git","rev-parse","HEAD"],ROOT).stdout.strip(),"platform":platform.platform(),
+        "binary_sha256":binary,"baseline":json.loads((FIXTURE/"baseline.json").read_text()),
+        "oracle":oracle(FIXTURE,"baseline"),"ordinary":ordinary_result,"discovery":discovery,
+        "positive":positive.report.to_data(),"negative":negative.report.to_data(),"warm_reused":warm.reused,
+        "plan":plan.to_data(),"plan_root":plan_root,"reopened":reopened.report.to_data(),"mutations":mutations,
+        "stale_review_refusal":refusal,"records":records,"receiver":oracle(receiver,"feature"),
+        "after":analyze(client,"render").report.to_data(),"resumed_after":plan.resume(client).report.to_data(),
+        "false_claims":0,"live_agent":False,"scope":json.loads((FIXTURE/"task.json").read_text())["claims"]}
+    assert bindings == {path:file_digest(ROOT/path) for path in BINDINGS}
+    assert binary == hashlib.sha256(args.fr.read_bytes()).hexdigest()
+    return result

@@ -1,0 +1,35 @@
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("kind", choices=[*COUNTS, "verify"])
+parser.add_argument("index", type=int, nargs="?", default=0)
+parser.add_argument("--output", type=Path, default=Path("target/ci-results"))
+args = parser.parse_args()
+os.chdir(ROOT)
+directory = args.output.resolve()
+if args.kind == "verify":
+    verify(directory)
+    return
+if not 0 <= args.index < COUNTS[args.kind]:
+    parser.error("shard index out of range")
+directory.mkdir(parents=True, exist_ok=True)
+log = directory / f"{args.kind}-{args.index}.log"
+log.write_text("")
+os.environ["FR_CAPABILITY_LOG"] = str(log)
+os.environ["PYTHONPATH"] = os.pathsep.join(filter(None, [
+    str(ROOT / "sdk/python/src"), os.environ.get("PYTHONPATH", ""),
+]))
+os.environ["LEAN_NUM_THREADS"] = "1"
+os.environ["FR_LEAN_JOBS"] = "1"
+os.environ["ZIG_GLOBAL_CACHE_DIR"] = str(ROOT / "target/zig-cache")
+os.environ["GOCACHE"] = str(ROOT / "target/go-cache")
+if args.kind == "native":
+    run_native(args.index, directory)
+else:
+    subprocess.run(["cargo", "build", "--locked", "--bin", "fr"], check=True)
+    sys.path.insert(0, str(ROOT / "sdk/python/src"))
+    import pytest
+    status = pytest.main(["sdk/python/tests", "-v", "--durations=20"],
+                         plugins=[SdkShard(args.index, directory)])
+    if status:
+        raise SystemExit(status)
+matrix = subprocess.check_output(["target/debug/fr", "capabilities", "--json"])
+(directory / f"{args.kind}-{args.index}-matrix.json").write_bytes(matrix)

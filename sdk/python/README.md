@@ -372,7 +372,7 @@ Use `FlowCache.analyze(..., summaries=True, steps=4096)` for symbolic function s
 Check both `complete` and `converged` before interpreting missing flows. A converged model does not prove runtime termination.
 Cache reuse covers the whole defining file and renews nested summary occurrences after unrelated edits.
 
-Use `imports=True` with `summaries=True` for static workspace-local Python modules and regular packages:
+Use `imports=True` with `summaries=True` for static workspace-local Python modules, regular packages and namespace packages:
 
 ```python
 from fr_ir.flow import FlowCache
@@ -391,7 +391,10 @@ resumed = plan.resume(client)
 `analysis.dependencies` validates file digests, import candidates, member resolutions and closure coverage.
 `FlowDependencies.entry` exposes the selected `ImportResolution`; lookups include target paths, parent packages and call prefixes.
 The SDK independently derives admission from all candidate statuses and checks closure coverage.
-It reads legacy `fr-flow-modules-1` through `fr-flow-modules-3` records and current `fr-flow-modules-4` records.
+It reads legacy `fr-flow-modules-1` through `fr-flow-modules-4` records and current `fr-flow-modules-5` records.
+`FlowDependencies.namespaces` lists retained namespace directories separately from source files.
+Each `ImportResolution` and `ImportLookup` also exposes its namespace paths. The SDK checks their
+directory candidates, absent initializers, closure coverage and shared module budget.
 Each current member lookup retains `binding_chain`, a tuple of `ImportBinding(path, name)` values.
 The SDK checks chain bounds, source closure and each hop against the retained re-export lookup.
 Module aliases expose `terminal_module`; package child fallback exposes a separate `submodule` resolution.

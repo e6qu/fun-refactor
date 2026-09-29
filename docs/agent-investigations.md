@@ -114,7 +114,7 @@ model cases. These theorems do not prove the parser, solver or Python implementa
 
 ### Static local imports
 
-Add `--imports --summaries` to follow workspace-local Python modules and regular packages.
+Add `--imports --summaries` to follow workspace-local Python modules, regular packages and namespace packages.
 Supported forms include `import helper`, `import pkg.helper as alias`, `import pkg.helper`,
 `from pkg.helper import forward as relay` and `from .helper import forward`.
 Explicit relative function imports can ascend within the selected workspace package tree.
@@ -123,9 +123,11 @@ Function identities include the full relative path, such as `pkg/helper.py::forw
 Same-named helpers in separate packages keep separate summaries and exact cross-file occurrences.
 `project flow-facts HANDLE --imports` exposes the same analysis through bounded explanations and semantic links.
 
-The `fr-flow-modules-4` dependency record includes the entry resolution and each import lookup.
-Every module component retains four candidates: `.py`, `/__init__.py`, `.pyi` and `/__init__.pyi`.
-Parent components require regular packages; the final component admits a module or package initializer.
+The `fr-flow-modules-5` dependency record includes the entry resolution and each import lookup.
+Every module component retains its directory, `.py`, `/__init__.py`, `.pyi` and `/__init__.pyi` candidates.
+Parent components admit regular or namespace packages within one root. The final component can also
+select a source module. [Namespace dependencies](namespace-packages.md) retain directories separately
+from source files and count both against the module budget.
 Each admitted source requires absent competing source and stub candidates.
 Missing parents, competing modules, new stubs and changed initializers change the next input identity.
 Named member lookups report functions, modules, missing declarations, ambiguity or unavailable modules.
@@ -139,7 +141,7 @@ retains its ordered `binding_chain` of source paths and names; aliases never inv
 `from . import forward` selects a declared binding or an unambiguous child module.
 Parent initialization dependencies bind source without creating an artificial import cycle.
 Explicit import cycles, duplicate bindings and package names that conflict with loaded child modules remain incomplete.
-Namespace packages, wildcard imports and module effects retain cutoffs.
+Multi-root namespace merging, wildcard imports and module effects remain outside the contract.
 Module aliases retain a terminal module and each explicit re-export binding. When a package lacks
 a declared member, a from-import retains a separate child resolution and all competing candidates.
 Qualified calls follow explicit module bindings to a defining function, within the same 16-component

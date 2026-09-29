@@ -18,6 +18,7 @@ pub(super) struct Binding {
 pub(super) struct Modules {
     root: PathBuf,
     pub parsed: BTreeMap<PathBuf, Parsed>,
+    namespaces: BTreeSet<PathBuf>,
     pub bindings: BTreeMap<PathBuf, BTreeMap<String, Binding>>,
     definitions: BTreeMap<PathBuf, BTreeMap<String, usize>>,
     pub cutoffs: BTreeSet<String>,
@@ -146,7 +147,10 @@ fn candidate(project: &Project<'_>, path: &Path) -> Result<Value> {
     if let Some(source) = project.sources.get(&absolute) {
         return Ok(json!({"status":"source","digest":hash(source)?}));
     }
-    Ok(json!({"status":if metadata.is_some() {"outside-snapshot"} else {"missing"}}))
+    Ok(
+        json!({"status":if metadata.as_ref().is_some_and(|m| m.is_dir()) {"directory"}
+        else if metadata.is_some() {"outside-snapshot"} else {"missing"}}),
+    )
 }
 
 #[derive(Serialize)]
@@ -154,6 +158,7 @@ struct Resolution {
     module: String,
     candidates: BTreeMap<PathBuf, Value>,
     packages: Vec<PathBuf>,
+    namespaces: Vec<PathBuf>,
     target: Option<PathBuf>,
     admitted: bool,
 }
@@ -168,6 +173,7 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
         module: name.into(),
         candidates: BTreeMap::new(),
         packages: Vec::new(),
+        namespaces: Vec::new(),
         target: None,
         admitted: true,
     };
@@ -177,7 +183,8 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
         let package = PathBuf::from(format!("{stem}/__init__.py"));
         let stub = PathBuf::from(format!("{stem}.pyi"));
         let package_stub = PathBuf::from(format!("{stem}/__init__.pyi"));
-        for path in [&module, &package, &stub, &package_stub] {
+        let directory = PathBuf::from(&stem);
+        for path in [&module, &package, &stub, &package_stub, &directory] {
             result
                 .candidates
                 .insert(path.clone(), candidate(project, path)?);
@@ -195,13 +202,23 @@ fn resolve_module(project: &Project<'_>, name: &str) -> Result<Resolution> {
                 status(&package, "missing"),
                 stubs_missing,
             );
-        result.admitted &= is_package || is_module;
-        if count < parts.len() {
+        let is_namespace = local_module_admitted(
+            status(&directory, "directory"),
+            status(&module, "missing"),
+            status(&package, "missing") && stubs_missing,
+        );
+        result.admitted &= is_package || is_module || is_namespace;
+        if is_namespace {
+            result.namespaces.push(directory.clone());
+        }
+        if count < parts.len() && is_package {
             result.packages.push(package.clone());
-        } else if is_package {
+        } else if count == parts.len() && is_package {
             result.target = Some(package);
         } else if is_module {
             result.target = Some(module);
+        } else if count == parts.len() && is_namespace {
+            result.target = Some(directory);
         }
     }
     if !result.admitted {
@@ -280,6 +297,23 @@ fn declares_member(
 type MemberValue = (&'static str, Vec<(PathBuf, String)>, Option<PathBuf>);
 
 impl Modules {
+    fn known_module(&self, path: &Path) -> bool {
+        self.parsed.contains_key(path) || self.namespaces.contains(path)
+    }
+
+    fn retain_namespaces(&mut self, root: &Path, paths: &[PathBuf]) {
+        for path in paths {
+            let absolute = root.join(path);
+            if self.namespaces.contains(&absolute) {
+                continue;
+            }
+            if self.parsed.len() + self.namespaces.len() + 1 >= MODULE_LIMIT {
+                self.cutoffs.insert("import-module-budget".into());
+                break;
+            }
+            self.namespaces.insert(absolute);
+        }
+    }
     fn member_chain(&self, file: &Path, name: &str) -> MemberValue {
         let mut file = file.to_owned();
         let mut name = name.to_owned();
@@ -293,7 +327,7 @@ impl Modules {
                 return ("cyclic", chain, None);
             }
             chain.push(item);
-            if !self.parsed.contains_key(&file) {
+            if !self.known_module(&file) {
                 return ("unavailable", chain, None);
             }
             let count = self
@@ -321,7 +355,7 @@ impl Modules {
             if let Some(member) = &binding.member {
                 file = self.root.join(target);
                 name = member.clone();
-            } else if binding.prefix == name && self.parsed.contains_key(&self.root.join(target)) {
+            } else if binding.prefix == name && self.known_module(&self.root.join(target)) {
                 return ("module", chain, Some(target.clone()));
             } else {
                 return ("unavailable", chain, None);
@@ -362,7 +396,7 @@ impl Modules {
 
     pub fn load(project: &Project<'_>, entry: &Path) -> Result<Self> {
         let name = entry_name(entry.strip_prefix(&project.root)?)
-            .context("imported flow requires a root-local module or regular package entry.")?;
+            .context("imported flow requires a root-local Python source entry.")?;
         let entry_resolution = resolve_module(project, &name)?;
         ensure!(
             entry_resolution.admitted
@@ -370,16 +404,18 @@ impl Modules {
                     .target
                     .as_ref()
                     .is_some_and(|path| project.root.join(path) == entry),
-            "imported flow requires a root-local module or unambiguous regular package entry."
+            "imported flow requires an unambiguous root-local Python source entry."
         );
         let mut result = Self {
             root: project.root.clone(),
             parsed: BTreeMap::new(),
+            namespaces: BTreeSet::new(),
             bindings: BTreeMap::new(),
             definitions: BTreeMap::new(),
             cutoffs: BTreeSet::new(),
             inputs: Value::Null,
         };
+        result.retain_namespaces(&project.root, &entry_resolution.namespaces);
         if name.split('.').skip(1).any(special_attribute) {
             result.cutoffs.insert("special-module-attributes".into());
         }
@@ -397,7 +433,7 @@ impl Modules {
         let mut bytes = 0;
         let mut import_count = 0;
         while let Some(file) = pending.pop_front() {
-            if result.parsed.len() == MODULE_LIMIT {
+            if result.parsed.len() + result.namespaces.len() >= MODULE_LIMIT {
                 result.cutoffs.insert("import-module-budget".into());
                 break;
             }
@@ -458,13 +494,15 @@ impl Modules {
                         (&resolution.target, &binding.member)
                     {
                         let skip = (project.root.join(target) == file).then_some(node.start_byte());
-                        if target.as_path()
-                            == Path::new(&format!(
-                                "{}/__init__.py",
-                                binding.module.replace('.', "/")
-                            ))
+                        if (resolution.namespaces.contains(target)
+                            || target.as_path()
+                                == Path::new(&format!(
+                                    "{}/__init__.py",
+                                    binding.module.replace('.', "/")
+                                )))
                             && !special_attribute(member)
-                            && !declares_member(project, target, member, skip)?
+                            && (resolution.namespaces.contains(target)
+                                || !declares_member(project, target, member, skip)?)
                         {
                             let child = format!("{}.{}", binding.module, member);
                             if module_name(&child) {
@@ -483,7 +521,11 @@ impl Modules {
                     let selected = submodule.as_ref().unwrap_or(&resolution);
                     for dependency in std::iter::once(&resolution).chain(submodule.iter()) {
                         if dependency.admitted {
+                            result.retain_namespaces(&project.root, &dependency.namespaces);
                             for path in dependency.packages.iter().chain(&dependency.target) {
+                                if dependency.namespaces.contains(path) {
+                                    continue;
+                                }
                                 let absolute = project.root.join(path);
                                 if dependency.target.as_ref() == Some(path)
                                     && !(submodule.is_some() && absolute == file)
@@ -541,7 +583,7 @@ impl Modules {
             let fallback = lookup["submodule"]["target"].as_str().map(PathBuf::from);
             let (status, chain, module) = if !lookup["submodule"].is_null() {
                 if let Some(path) =
-                    fallback.filter(|path| result.parsed.contains_key(&project.root.join(path)))
+                    fallback.filter(|path| result.known_module(&project.root.join(path)))
                 {
                     ("module", Vec::new(), Some(path))
                 } else {
@@ -550,7 +592,7 @@ impl Modules {
             } else {
                 match (target, lookup["member"].as_str()) {
                     (Some(file), Some(member)) => result.member_chain(&file, member),
-                    (Some(file), None) if result.parsed.contains_key(&file) => (
+                    (Some(file), None) if result.known_module(&file) => (
                         "module",
                         Vec::new(),
                         Some(file.strip_prefix(&project.root)?.to_owned()),
@@ -571,9 +613,14 @@ impl Modules {
                 ));
             }
         }
-        result.inputs = json!({"schema":"fr-flow-modules-4", "entry":entry_resolution,"files":files,"lookups":lookups,
+        let namespaces: Vec<_> = result
+            .namespaces
+            .iter()
+            .map(|path| path.strip_prefix(&project.root).unwrap())
+            .collect();
+        result.inputs = json!({"schema":"fr-flow-modules-5", "entry":entry_resolution,"files":files,"namespaces":namespaces,"lookups":lookups,
             "complete":result.cutoffs.is_empty(),"cutoffs":result.cutoffs,
-            "policy":"static workspace-local regular packages and .py modules; explicit acyclic function and module re-exports with package child fallback. No initialization effects, namespace packages, native modules, search paths or import hooks",
+            "policy":"static single-root regular and namespace packages and .py modules; explicit acyclic function and module re-exports with package child fallback. No initialization effects, merged namespace portions, implicit child traversal, native modules, search paths or import hooks",
             "limits":{"modules":MODULE_LIMIT,"source_bytes":BYTE_LIMIT,"imports":IMPORT_LIMIT,"module_components":MODULE_LIMIT,"binding_chain":MODULE_LIMIT}});
         Ok(result)
     }

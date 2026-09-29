@@ -1,0 +1,24 @@
+{
+    let page = std::fs::read_to_string(root().join("docs/type-safety.html")).unwrap();
+    let script = std::fs::read_to_string(root().join("docs/type-safety.js")).unwrap();
+    let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
+    let tools =
+        std::fs::read_to_string(root().join(".github/actions/native-tools/action.yml")).unwrap();
+    assert!(workflow.contains("uses: ./.github/actions/native-tools"));
+    let pin = script
+        .split("TY_VERSION = \"")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the script pins a ty version");
+    assert!(
+        page.contains(&format!("ty=={pin}")),
+        "the epilogue and browser metadata disagree about the CI ty version: {pin}"
+    );
+    assert!(
+        tools.contains(&format!("\"ty=={pin}\"")),
+        "the browser metadata and CI dependency disagree about the ty version: {pin}"
+    );
+    assert!(script.contains("https://play.ty.dev/"));
+    assert!(script.contains("navigator.clipboard.writeText(code)"));
+    assert!(!script.contains("mypy"));
+}
