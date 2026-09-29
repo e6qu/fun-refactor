@@ -68,14 +68,12 @@ jobs:
           MESSAGE
           exit 1
 
-  # The default and browser feature sets compile independently, so they run in
-  # parallel. The browser lane checks its public API directly instead of repeating
-  # the default integration suite and its non-browser toolchain setup.
+  # Browser feature checks run alongside the native shards.
   check:
     strategy:
       fail-fast: false
       matrix:
-        slice: [default, wasm]
+        slice: [wasm]
     runs-on: ubuntu-latest
     # Proof freshness hashes the executable. Debug symbols inflate that input
     # on every check; keep assertions and overflow checks without symbol data.
@@ -83,156 +81,12 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
       CARGO_INCREMENTAL: "0"
-    timeout-minutes: 60
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
       - name: Install the toolchain
         run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
-
-      # The tools the validator gate drives. Without them those cases skip themselves
-      # and say so, which keeps the run honest — and leaves a language checked on a
-      # laptop and nowhere else. Only `shellcheck` is already on the runner; `xmllint`
-      # is not, which this step found out by asking rather than by assuming. Every
-      # download is pinned to a version and to its published checksum, because a
-      # gate that changes under you is not a gate. The versions are the current
-      # release of each, which is what this tool targets.
-      - name: Install the validators the gate drives
-        if: matrix.slice == 'default'
-        timeout-minutes: 12
-        run: |
-          set -euo pipefail
-          TERRAFORM=1.16.0
-          TERRAFORM_SHA=41d05b927aa174f15d1228c4eba832a323b716c68b415ef5a00179f46cc602d3
-          HELM=v4.2.4
-          HELM_SHA=c306b46f719b0a4da32d0f78ee21bf90ce8d602f15b22ab753f0674d1670a7f3
-          ZIG=0.16.0
-          ZIG_SHA=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
-          # Every fetch below reaches a host this repository does not control.
-          # Without a deadline `curl` waits forever on a stalled connection. The
-          # job sat here for forty-five minutes, the runner idle and the log
-          # silent. A download that cannot finish in two minutes has failed, and
-          # saying so costs a re-run instead of a six-hour timeout.
-          fetch() {
-            curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
-              --connect-timeout 20 --max-time 120 -o "$1" "$2" \
-              || { echo "could not fetch $2 within the time allowed"; exit 1; }
-          }
-          # `apt-get` waits on a stalled mirror as patiently as `curl` waited
-          # on a stalled host, and this is where both jobs sat.
-          sudo timeout 240 apt-get update -qq
-          # zsh parses the completion script this tool writes for it. Absent, that
-          # script would be checked by nothing and the run would still go green.
-          sudo timeout 240 apt-get install -y -qq libxml2-utils zsh
-          # Zig has been absent since the gate started driving it, and every Zig case
-          # skipped itself here while the run went green. The checksum is the one the
-          # download index publishes for this build.
-          tools/fetch-verified-ranges.sh \
-            "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz" \
-            /tmp/zig.tar.xz "${ZIG_SHA}" 55478392
-          tar -xJf /tmp/zig.tar.xz -C /tmp
-          sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
-          # Both checksums are the ones each project publishes beside its own
-          # release: `terraform_<v>_SHA256SUMS` and `<file>.sha256sum`. Without
-          # them these two downloads were the only unverified thing the gate ran.
-          fetch /tmp/terraform.zip \
-            "https://releases.hashicorp.com/terraform/${TERRAFORM}/terraform_${TERRAFORM}_linux_amd64.zip"
-          echo "${TERRAFORM_SHA}  /tmp/terraform.zip" | sha256sum -c -
-          sudo unzip -o -d /usr/local/bin /tmp/terraform.zip
-          fetch /tmp/helm.tar.gz \
-            "https://get.helm.sh/helm-${HELM}-linux-amd64.tar.gz"
-          echo "${HELM_SHA}  /tmp/helm.tar.gz" | sha256sum -c -
-          tar -xzf /tmp/helm.tar.gz -C /tmp
-          sudo install /tmp/linux-amd64/helm /usr/local/bin/helm
-          terraform version
-          zig version
-          helm version --short
-          shellcheck --version | head -2
-          xmllint --version 2>&1 | head -1
-
-      # The type-safety examples use ty and tsc. The migration fixture uses the
-      # installed FastAPI stack. The gate skips missing local tools, while
-      # `require_on_ci` turns each CI skip into a failure.
-      - uses: actions/setup-python@v7
-        if: matrix.slice == 'default'
-        with:
-          python-version: "3.14"
-      - name: Install Python checks and the FastAPI runtime fixture
-        if: matrix.slice == 'default'
-        run: >-
-          pip install
-          "ty==0.0.80"
-          "fastapi==0.141.1"
-          "pydantic==2.13.5"
-          "starlette==1.6.0"
-          "pytest==9.1.1"
-          "build==1.6.1"
-          "setuptools==84.0.0"
-      - uses: actions/setup-node@v7
-        if: matrix.slice == 'default'
-        with:
-          node-version: 26
-          package-manager-cache: false
-      # Go took the runner's default, which is the same unpinned toolchain that
-      # broke the Java cells. A runner image moves without this repository asking.
-      - uses: actions/setup-go@v7
-        if: matrix.slice == 'default'
-        with:
-          go-version: "1.27"
-          cache: false
-      # The tool targets the current version of every language it writes, and
-      # says so in its output: a niladic `main`, an entry found anywhere in the
-      # file. An Ubuntu runner ships whichever JDK it was built with, which is
-      # older, and the conformance suite failed on Java files that run here and
-      # on any current JDK. A version this repository chooses is a version it
-      # can reason about.
-      - uses: actions/setup-java@v6
-        if: matrix.slice == 'default'
-        with:
-          distribution: temurin
-          java-version: "26"
-      - name: Install the tutorial's TypeScript checker
-        if: matrix.slice == 'default'
-        run: npm ci --no-fund --no-audit
-        working-directory: tests/typesafety/typescript
-      - name: Install the Next.js migration runtime fixture
-        if: matrix.slice == 'default'
-        run: npm ci --no-fund --no-audit
-        working-directory: tests/migration-runtime/nextjs-framework
-      - name: Install the Express application runtime fixture
-        if: matrix.slice == 'default'
-        run: npm ci --no-fund --no-audit
-        working-directory: tests/application-runtime/express
-
-      # Lean runs the translation conformance cells and the checked kernel project.
-      # The toolchain is half a gigabyte, which is why it is cached and why its fetch
-      # gets a deadline of its own rather than the two minutes the others take.
-      - name: Cache the Lean toolchain
-        if: matrix.slice == 'default'
-        id: lean-cache
-        uses: actions/cache@v6
-        with:
-          path: /opt/lean
-          key: lean-4.28.0-linux-x86_64
-      - name: Install Lean
-        if: matrix.slice == 'default' && steps.lean-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 15
-        run: |
-          set -euo pipefail
-          LEAN=4.28.0
-          LEAN_SHA=ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd
-          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
-            --connect-timeout 20 --max-time 600 -o /tmp/lean.tar.zst \
-            "https://github.com/leanprover/lean4/releases/download/v${LEAN}/lean-${LEAN}-linux.tar.zst" \
-            || { echo "could not fetch the Lean toolchain within the time allowed"; exit 1; }
-          echo "${LEAN_SHA}  /tmp/lean.tar.zst" | sha256sum -c -
-          sudo mkdir -p /opt/lean
-          sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
-      - name: Put Lean on the path
-        if: matrix.slice == 'default'
-        run: |
-          echo "/opt/lean/bin" >> "$GITHUB_PATH"
-          /opt/lean/bin/lean --version
 
       # The tree-sitter grammars are C, and there is one per language, so a cold
       # build is minutes and not seconds. Keyed by slice, because each slice compiles
@@ -241,19 +95,83 @@ jobs:
         with:
           key: ${{ matrix.slice }}
 
-      # Formatting, clippy and the focused test suite run on the default feature
-      # set. The browser lane compiles its library surface and drives its native API.
-      #
-      # The commands live in the script so that running it locally and passing here
-      # mean the same thing. Listing them twice let a branch be green on a laptop and
-      # rejected on push, which is how this arrangement was arrived at.
-      #
-      # The default script also reports capability coverage, measured on the test run it
-      # already does. A `✓` in the matrix is computed from a predicate and says the command
-      # would accept the language, not that anything ever ran it; the report fails when a
-      # claimed cell went undriven, so the 270/270 is defended here and not merely checkable.
       - name: Check
         run: ./tools/check.sh ${{ matrix.slice }}
+
+  native:
+    name: native (${{ matrix.kind }}-${{ matrix.index }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {kind: native, index: 0}
+          - {kind: native, index: 1}
+          - {kind: native, index: 2}
+          - {kind: native, index: 3}
+          - {kind: native, index: 4}
+          - {kind: native, index: 5}
+          - {kind: sdk, index: 0}
+          - {kind: sdk, index: 1}
+          - {kind: sdk, index: 2}
+          - {kind: sdk, index: 3}
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal
+      - uses: ./.github/actions/native-tools
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Run the complete assigned test inventory
+        run: python3 tools/ci-shards.py ${{ matrix.kind }} ${{ matrix.index }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ci-${{ matrix.kind }}-${{ matrix.index }}
+          path: target/ci-results/*
+          if-no-files-found: error
+          retention-days: 7
+
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+      - uses: ./.github/actions/native-tools
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: ./tools/check.sh static
+
+  default:
+    name: check (default)
+    needs: [native, static]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every shard and static check
+        env:
+          NATIVE: ${{ needs.native.result }}
+          STATIC: ${{ needs.static.result }}
+        run: test "$NATIVE" = success && test "$STATIC" = success
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: ci-*
+          path: target/ci-results
+          merge-multiple: true
+      - name: Verify complete inventories and combined capability coverage
+        run: python3 tools/ci-shards.py verify
 
   # The site's playground is a WebAssembly build plus a Vite bundle, and it is
   # published by a workflow that only runs on main. Without this, a pull request goes
@@ -261,7 +179,7 @@ jobs:
   # the test job and not after it, so it costs wall-clock and not much else.
   playground:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 

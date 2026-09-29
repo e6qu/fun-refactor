@@ -5,9 +5,9 @@
 # CI calls this script to share one gate definition with developer checks.
 #
 # The browser API is a separate feature set that neither default clippy nor the
-# default test run compiles, so it gets its own pass. CI runs `check.sh default`
-# and `check.sh wasm` as parallel jobs. With no argument the script runs the PR
-# gate; `check.sh deep` runs the exhaustive self-audits after merge and nightly.
+# default test run compiles, so it gets its own pass. CI distributes the native
+# tests through ci-shards.py and runs the static and wasm slices alongside them.
+# With no argument the script runs the complete PR gate; `check.sh deep` runs the exhaustive self-audits after merge and nightly.
 #
 # `check-prose.py` counts the writing habits listed in `docs/style.md` against the
 # numbers in `tools/PROSE-DEBT`. It fails when a count rises, and when a count falls
@@ -19,9 +19,9 @@ cd "$(dirname "$0")/.."
 
 slice="${1:-all}"
 case "$slice" in
-    all|default|wasm|deep) ;;
+    all|default|static|wasm|deep) ;;
     *)
-        echo "unknown slice: $slice (default, wasm, deep, or no argument for the PR gate)" >&2
+        echo "unknown slice: $slice (default, static, wasm, deep, or no argument for the PR gate)" >&2
         exit 1
         ;;
 esac
@@ -43,7 +43,7 @@ go_cache="${GOCACHE:-$PWD/target/go-cache}"
 mkdir -p "$zig_cache" "$go_cache"
 export GOCACHE="$go_cache"
 
-if [ "$slice" = all ] || [ "$slice" = default ]; then
+if [ "$slice" = all ] || [ "$slice" = default ] || [ "$slice" = static ]; then
     # The capability matrix advertises what each command supports, and a `✓` there is
     # computed from a predicate — it says the command would accept the language, not that
     # anything ever ran it. The test run records what it actually drove, and the report below
@@ -53,13 +53,16 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
     matrix="$(mktemp)"
     trap 'rm -f "$log" "$matrix"' EXIT
 
+    run python3 tools/test-ci-shards.py
     run cargo fmt --all --check
     run cargo clippy --all-targets -- -D warnings
     run cargo test --test vfs_choke_point --test virtual_model_workspaces \
         --test resolution_measurements -- --test-threads 1
     run bash tools/check-kernels.sh
-    ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets \
-        -- --test-threads "$FR_LEAN_JOBS"
+    if [ "$slice" != static ]; then
+        ZIG_GLOBAL_CACHE_DIR="$zig_cache" FR_CAPABILITY_LOG="$log" run cargo test --all-targets \
+            -- --test-threads "$FR_LEAN_JOBS"
+    fi
 
     PYTHONPATH="$PWD/sdk/python/src:$PWD/tools${PYTHONPATH:+:$PYTHONPATH}" \
         run ty check sdk/python/src tools/representative-acceptance.py tools/native-intent-context.py tools/source-bodies-context.py tools/upstream-read-agent.py tools/upstream-rename-agent.py tools/upstream-react-agent.py tools/upstream-css-agent.py tools/upstream-tsx-body-agent.py tools/upstream-multibody-agent.py tools/upstream-cross-crate-bodies-agent.py tools/application-migration-agent.py tools/proof-authoring-agent.py tools/upstream-mermaid-agent.py tools/investigation-agent.py tools/investigation-cohort.py tools/outcome-acceptance.py tools/change-scope-acceptance.py tools/structural-change-acceptance.py tools/refinement-acceptance.py tools/agent_eval/investigation.py tools/agent_eval/investigation_run.py tools/agent_eval/investigation_prompt.py
@@ -67,13 +70,15 @@ if [ "$slice" = all ] || [ "$slice" = default ]; then
     printf '\n\033[1m==> writing\033[0m\n'
     python3 tools/check-prose.py
 
-    printf '\n\033[1m==> capability coverage\033[0m\n'
-    # The integration suite uses CARGO_BIN_EXE_fr, so Cargo has already built this
-    # exact default-feature binary. Asking `cargo run` for it again cost almost a
-    # minute on a clean CI runner even though the executable was ready to run.
-    test -x target/debug/fr
-    target/debug/fr capabilities --json > "$matrix"
-    python3 tools/capability-report.py "$matrix" "$log"
+    if [ "$slice" != static ]; then
+        printf '\n\033[1m==> capability coverage\033[0m\n'
+        # The integration suite uses CARGO_BIN_EXE_fr, so Cargo has already built this
+        # exact default-feature binary. Asking `cargo run` for it again cost almost a
+        # minute on a clean CI runner even though the executable was ready to run.
+        test -x target/debug/fr
+        target/debug/fr capabilities --json > "$matrix"
+        python3 tools/capability-report.py "$matrix" "$log"
+    fi
 fi
 
 if [ "$slice" = deep ]; then

@@ -1,0 +1,104 @@
+name: Native validation tools
+description: Pinned validators and language runtimes for the complete native gate
+runs:
+  using: composite
+  steps:
+    - name: Install the validators the gate drives
+      shell: bash
+      run: |
+        set -euo pipefail
+        TERRAFORM=1.16.0
+        TERRAFORM_SHA=41d05b927aa174f15d1228c4eba832a323b716c68b415ef5a00179f46cc602d3
+        HELM=v4.2.4
+        HELM_SHA=c306b46f719b0a4da32d0f78ee21bf90ce8d602f15b22ab753f0674d1670a7f3
+        ZIG=0.16.0
+        ZIG_SHA=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+        fetch() {
+          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+            --connect-timeout 20 --max-time 120 -o "$1" "$2" \
+            || { echo "could not fetch $2 within the time allowed"; exit 1; }
+        }
+        sudo timeout 240 apt-get update -qq
+        sudo timeout 240 apt-get install -y -qq libxml2-utils zsh
+        tools/fetch-verified-ranges.sh \
+          "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz" \
+          /tmp/zig.tar.xz "${ZIG_SHA}" 55478392
+        tar -xJf /tmp/zig.tar.xz -C /tmp
+        sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
+        fetch /tmp/terraform.zip \
+          "https://releases.hashicorp.com/terraform/${TERRAFORM}/terraform_${TERRAFORM}_linux_amd64.zip"
+        echo "${TERRAFORM_SHA}  /tmp/terraform.zip" | sha256sum -c -
+        sudo unzip -o -d /usr/local/bin /tmp/terraform.zip
+        fetch /tmp/helm.tar.gz \
+          "https://get.helm.sh/helm-${HELM}-linux-amd64.tar.gz"
+        echo "${HELM_SHA}  /tmp/helm.tar.gz" | sha256sum -c -
+        tar -xzf /tmp/helm.tar.gz -C /tmp
+        sudo install /tmp/linux-amd64/helm /usr/local/bin/helm
+        terraform version
+        zig version
+        helm version --short
+        shellcheck --version | head -2
+        xmllint --version 2>&1 | head -1
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.14"
+    - name: Install Python checks and the FastAPI runtime fixture
+      shell: bash
+      run: >-
+        pip install
+        "ty==0.0.80"
+        "fastapi==0.141.1"
+        "pydantic==2.13.5"
+        "starlette==1.6.0"
+        "pytest==9.1.1"
+        "build==1.6.1"
+        "setuptools==84.0.0"
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 26
+        package-manager-cache: false
+    - uses: actions/setup-go@v7
+      with:
+        go-version: "1.27"
+        cache: false
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: "26"
+    - name: Install the tutorial's TypeScript checker
+      shell: bash
+      run: npm ci --no-fund --no-audit
+      working-directory: tests/typesafety/typescript
+    - name: Install the Next.js migration runtime fixture
+      shell: bash
+      run: npm ci --no-fund --no-audit
+      working-directory: tests/migration-runtime/nextjs-framework
+    - name: Install the Express application runtime fixture
+      shell: bash
+      run: npm ci --no-fund --no-audit
+      working-directory: tests/application-runtime/express
+    - name: Cache the Lean toolchain
+      id: lean-cache
+      uses: actions/cache@v6
+      with:
+        path: /opt/lean
+        key: lean-4.28.0-linux-x86_64
+    - name: Install Lean
+      if: steps.lean-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        LEAN=4.28.0
+        LEAN_SHA=ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd
+        curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+          --connect-timeout 20 --max-time 600 -o /tmp/lean.tar.zst \
+          "https://github.com/leanprover/lean4/releases/download/v${LEAN}/lean-${LEAN}-linux.tar.zst" \
+          || { echo "could not fetch the Lean toolchain within the time allowed"; exit 1; }
+        echo "${LEAN_SHA}  /tmp/lean.tar.zst" | sha256sum -c -
+        sudo mkdir -p /opt/lean
+        sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
+    - name: Put Lean on the path
+      shell: bash
+      run: |
+        echo "/opt/lean/bin" >> "$GITHUB_PATH"
+        /opt/lean/bin/lean --version
