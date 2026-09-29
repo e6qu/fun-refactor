@@ -1,0 +1,349 @@
+{
+        ensure!(
+            (1..=4096).contains(&options.steps) && (1..=32).contains(&options.depth),
+            "invalid analysis budget"
+        );
+        ensure!(
+            (2048..=1_048_576).contains(&options.bytes),
+            "invalid response byte budget"
+        );
+        let selected = self.target(&options.target)?;
+        let symbol = self.nodes[selected]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("select a function")?;
+        ensure!(
+            symbol.language == Language::Python,
+            "dataflow admits the Python scalar subset only."
+        );
+        let source = &self.sources[&symbol.file];
+        let parsed = Parsers::new().parse(Language::Python, source)?;
+        ensure!(!parsed.has_errors(), "dataflow refuses syntax errors");
+        let modules = options
+            .imports
+            .then(|| modules::Modules::load(self, &symbol.file))
+            .transpose()?;
+        let mut functions = BTreeMap::new();
+        let mut contexts = BTreeMap::new();
+        let mut ambiguous = BTreeSet::new();
+        let mut module_effects = false;
+        let units: Vec<_> = if let Some(modules) = &modules {
+            modules
+                .parsed
+                .iter()
+                .map(|(file, parsed)| (file.as_path(), self.sources[file].as_str(), parsed))
+                .collect()
+        } else {
+            vec![(symbol.file.as_path(), source.as_str(), &parsed)]
+        };
+        for (file, text, parsed) in units {
+            for node in parsed.root().named_children(&mut parsed.root().walk()) {
+                if node.kind() == "function_definition" {
+                    if node.child_by_field_name("return_type").is_some()
+                        || node
+                            .child_by_field_name("parameters")
+                            .is_some_and(|parameters| {
+                                parameters
+                                    .named_children(&mut parameters.walk())
+                                    .any(|p| p.kind() != "identifier")
+                            })
+                    {
+                        module_effects = true;
+                    }
+                    let Some(name_node) = node.child_by_field_name("name") else {
+                        continue;
+                    };
+                    let short = &text[name_node.byte_range()];
+                    let name = if let Some(modules) = &modules {
+                        modules.function_name(file, short)
+                    } else {
+                        short.to_owned()
+                    };
+                    if functions.insert(name.clone(), node).is_some() {
+                        ambiguous.insert(name.clone());
+                    }
+                    contexts.insert(name, (file, text));
+                } else if !(options.imports
+                    && matches!(node.kind(), "import_statement" | "import_from_statement"))
+                    && (!matches!(
+                        node.kind(),
+                        "comment" | "expression_statement" | "pass_statement"
+                    ) || (node.kind() == "expression_statement"
+                        && node.named_child(0).is_some_and(|n| {
+                            n.kind() != "string"
+                                || n.named_children(&mut n.walk())
+                                    .any(|child| child.kind() == "interpolation")
+                        })))
+                {
+                    module_effects = true;
+                }
+            }
+        }
+        let entry = if let Some(modules) = &modules {
+            modules.function_name(&symbol.file, &symbol.name)
+        } else {
+            symbol.name.clone()
+        };
+        let function = *functions
+            .get(&entry)
+            .context("select a top-level scalar function")?;
+        ensure!(
+            Span::from(function) == symbol.full_span,
+            "selected function does not match top-level definition."
+        );
+        let rules = if let Some(path) = &options.rules {
+            ensure!(
+                std::fs::metadata(path)?.len() <= 65536,
+                "rule file exceeds 64 KiB"
+            );
+            let rules: Rules = serde_json::from_slice(&crate::vfs::read(path)?)?;
+            ensure!(
+                !rules.version.is_empty(),
+                "rules require a version identity"
+            );
+            let mut names = BTreeSet::new();
+            for name in rules
+                .sources
+                .iter()
+                .chain(&rules.sinks)
+                .chain(&rules.propagators)
+                .chain(rules.sanitizers.keys())
+            {
+                ensure!(
+                    !options.imports || !name.contains('.'),
+                    "imported flow requires unqualified external rule names."
+                );
+                ensure!(
+                    names.insert(name)
+                        && !functions
+                            .keys()
+                            .any(|key| key.rsplit("::").next() == Some(name.as_str()))
+                        && !modules.as_ref().is_some_and(|m| m
+                            .bindings
+                            .values()
+                            .any(|bindings| bindings.contains_key(name))),
+                    "rule overlaps another rule or local definition."
+                );
+            }
+            rules
+        } else {
+            Rules {
+                version: "no-external-summaries-1".into(),
+                ..Rules::default()
+            }
+        };
+        let rules_digest = hash(&rules)?;
+        let configuration: BTreeMap<_, _> = self
+            .manifests
+            .snapshots
+            .iter()
+            .map(|(path, contents)| {
+                (
+                    path.strip_prefix(&self.root).unwrap_or(path),
+                    json!(contents),
+                )
+            })
+            .chain(self.lockfiles.snapshots.iter().map(|(path, contents)| {
+                (
+                    path.strip_prefix(&self.root).unwrap_or(path),
+                    json!(contents),
+                )
+            }))
+            .collect();
+        let mut inputs = json!({
+            "analyzer":super::flow_cache::analyzer_identity()?,
+            "source":{"path":symbol.file.strip_prefix(&self.root)?,"digest":hash(source)?},
+            "configuration":hash(configuration)?,
+            "selection":{"name":symbol.name,"span":symbol.full_span},
+            "rules":rules_digest,"context":options.context,
+            "budget":{"steps":options.steps,"depth":options.depth,"bytes":options.bytes},
+            "summary_mode":options.summaries,
+            "expression_control":if options.summaries {expression_contract()} else {Value::Null},
+            "dependency_scope":"entire defining file, negative same-file lookups, all indexed manifests/lockfiles, rules and analyzer; no imported execution."});
+        if let Some(modules) = &modules {
+            inputs["modules"] = modules.inputs.clone();
+            inputs["dependency_scope"] = json!("static module closure, import candidates including missing paths, configuration, rules and analyzer.");
+            inputs["rule_file"] = json!(options
+                .rules
+                .as_ref()
+                .map(|path| path.strip_prefix(&self.root).unwrap_or(path)));
+        }
+        let input_digest = hash(&inputs)?;
+        if options.inputs_only {
+            let report = json!({"schema":"fr-dataflow-inputs-1","revision":self.revision,
+                "handle_prefix":format!("frp1:{}:",&self.revision[..32]),"coverage":self.coverage(),
+                "target":options.target,"input_digest":input_digest,"inputs":inputs});
+            ensure!(
+                serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+                "response metadata exceeds byte budget"
+            );
+            return Ok(report);
+        }
+        if let Some(path) = &options.reuse {
+            if let Some(report) = self.reuse_flow(
+                path,
+                options.reuse_digest.as_deref().unwrap(),
+                &inputs,
+                &symbol.file,
+                &options.target,
+            )? {
+                ensure!(
+                    serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+                    "retained response exceeds byte budget"
+                );
+                return Ok(report);
+            }
+        }
+        let mut analyzer = Analyzer {
+            project: self,
+            file: &symbol.file,
+            source,
+            functions,
+            ambiguous,
+            modules: modules.as_ref(),
+            contexts,
+            rules,
+            context: &options.context,
+            remaining: options.steps,
+            depth: options.depth,
+            active: Vec::new(),
+            local_bindings: Vec::new(),
+            cutoffs: BTreeSet::new(),
+            events: Vec::new(),
+            witnesses: BTreeMap::new(),
+            graphs: BTreeMap::new(),
+            summaries: Vec::new(),
+            exceptional_returns: Flow::new(),
+            current_block: None,
+            origins: BTreeMap::new(),
+            solver: summaries::Solver::new(options.summaries),
+            normal: true,
+            normal_return: false,
+            may_raise: false,
+            sink_flows: BTreeMap::new(),
+        };
+        if let Some(modules) = &modules {
+            analyzer.cutoffs.extend(modules.cutoffs.clone());
+            for (file, bindings) in &modules.bindings {
+                for (alias, binding) in bindings {
+                    if binding.member.is_some()
+                        && !modules.is_module(file, alias)
+                        && !analyzer
+                            .functions
+                            .contains_key(&modules.resolve(file, alias))
+                    {
+                        analyzer.cutoff(format!("missing-imported-member:{alias}"));
+                    }
+                }
+            }
+        }
+        if module_effects {
+            analyzer.cutoff("module-effects-unchecked");
+        }
+        if self
+            .manifests
+            .snapshots
+            .values()
+            .any(|value| matches!(value, super::manifests::Snapshot::Skipped(_)))
+            || self
+                .lockfiles
+                .snapshots
+                .values()
+                .any(|value| matches!(value, super::lockfiles::Snapshot::Skipped(_)))
+        {
+            analyzer.cutoff("configuration-snapshot-incomplete");
+        }
+        if analyzer.ambiguous.contains(&entry) {
+            analyzer.cutoff("ambiguous-entry");
+        }
+        let parameters = function
+            .child_by_field_name("parameters")
+            .context("missing parameters")?;
+        let arguments = parameters
+            .named_children(&mut parameters.walk())
+            .map(|p| {
+                let occurrence = analyzer.occurrence(p, "entry-parameter");
+                let origin = format!("parameter:{}", analyzer.text(p));
+                analyzer.origins.insert(origin.clone(), occurrence.clone());
+                BTreeMap::from([(
+                    origin.clone(),
+                    Trace {
+                        origin,
+                        occurrences: vec![occurrence],
+                    },
+                )])
+            })
+            .collect();
+        let returns = if options.summaries {
+            analyzer.solve_summaries(&entry, arguments)
+        } else {
+            analyzer.invoke(&entry, function, arguments)
+        };
+        let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
+            "semantics": if options.summaries {"python-scalar-summaries-2"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
+            "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
+            "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
+            "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
+                "external rules are caller-supplied contracts.", "explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.", "finite origin sets; joins lose branch correlation; traces are derivations, not executable paths."],
+            "rules_digest": rules_digest, "context": options.context,
+            "input_digest":input_digest,"inputs":inputs,
+            "execution":{"kind":"analyzed","analysis_steps":options.steps-analyzer.remaining,
+                "reason":if options.reuse.is_some() {"retained-result-not-reusable"} else {"no-retained-result"}},
+            "events": analyzer.events, "returns": returns, "witnesses": analyzer.witnesses.into_values().collect::<Vec<_>>(),
+            "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
+            "function_summaries":analyzer.solver.report(),
+            "expression_control":if options.summaries {expression_contract()} else {Value::Null},
+            "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
+            "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});
+        let mut omitted = serde_json::Map::new();
+        for field in [
+            "control_flow",
+            "events",
+            "summaries",
+            "function_summaries",
+            "witnesses",
+            "exceptional_returns",
+            "returns",
+            "origins",
+        ] {
+            if serde_json::to_vec(&report)?.len() + 512 <= options.bytes {
+                break;
+            }
+            let count = report[field]
+                .as_array()
+                .map(Vec::len)
+                .or_else(|| report[field].as_object().map(serde_json::Map::len))
+                .unwrap_or(0);
+            omitted.insert(field.into(), json!(count));
+            report[field] = if matches!(
+                field,
+                "returns"
+                    | "exceptional_returns"
+                    | "control_flow"
+                    | "origins"
+                    | "function_summaries"
+            ) {
+                json!({})
+            } else {
+                json!([])
+            };
+            report["complete"] = json!(false);
+            report["omitted"] = json!(omitted);
+            if !report["cutoffs"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v == "response-budget")
+            {
+                report["cutoffs"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!("response-budget"));
+            }
+        }
+        ensure!(
+            serde_json::to_vec(&report)?.len() + 512 <= options.bytes,
+            "response metadata exceeds byte budget"
+        );
+        Ok(report)
+    }

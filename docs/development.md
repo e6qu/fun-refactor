@@ -59,7 +59,7 @@ The manual `Refresh refinement evidence` workflow uploads results from a directo
 run and attempt under the runner's temporary directory. Reports stay outside the compiler cache.
 Supply a dated `prefix` such as `2026-09-28-virtual` to retain new report directories.
 The default `all` group checks virtual workspace boundaries before measuring seven evidence groups.
-The `flow` group runs package and SDK boundary tests, then refreshes eight flow reports and index measurements.
+The `flow` group runs scalar, package and SDK boundary tests, then refreshes nine flow reports and index measurements.
 Index-resolution evidence binds every Rust source file and must be refreshed after any Rust source change.
 Choose one group to refresh only its measurements. Update audit-test report paths before refreshing:
 host-recovery evidence includes its audit test's source identity.

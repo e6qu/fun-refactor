@@ -515,3 +515,11 @@ Explicit parameter maps support Rust refactors and Rust/Python comparison. Revie
 relation, author its `preserves` proof, then attach it with `comparison.requirement()` and
 `run_proofs`. [Model comparisons](../../docs/model-comparisons.md) describes the domain, freshness
 checks and source-correspondence limits.
+
+### Ordered Python expression transfers
+
+Summary analysis now follows `and`, `or`, `not`, conditional expressions and comparison chains.
+Boolean and `None` literals select operands; unknown selectors retain both alternatives.
+`result.summaries.expression_control` exposes the versioned contract for
+`python-scalar-summaries-2`. Earlier summary records remain readable with this field set to `None`.
+See [the expression contract](../../docs/expression-control.md) for effects, cache identities and limits.

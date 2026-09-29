@@ -225,7 +225,12 @@ Checked plans cover workspace, source, configuration and executable identities. 
 The [recursive flow task](tests/agent-eval/recursive-flow/task.json) pins positive and negative recursive helpers.
 Its [evaluator](tools/recursive-flow-acceptance.py) retains runtime and coordinate oracles plus cold, warm and helper-edit comparisons.
 The opt-in solver covers symbolic positional parameters and explicit scalar effects. Whole-file reuse remains conservative;
-short-circuit call control and heap effects remain outside the admitted subset.
+heap effects remain outside the admitted subset.
+[Ordered expression transfers](docs/expression-control.md) now handle scalar Boolean operators,
+conditional expressions and comparison chains. Literal selectors prune skipped effects; unknown
+selectors retain alternatives. Numeric comparison feasibility and overloaded protocols remain open.
+[Expression acceptance](tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json)
+retains discovered repair, feature delivery, cache invalidation and independent receiver replay.
 Static local imports, regular packages and explicit function re-exports now have an opt-in contract.
 Dynamic loading and effectful package initialization remain outside it.
 

@@ -656,3 +656,22 @@ The signature subset admits primitive scalar parameters and literal call argumen
 public-output oracle check their executed cases. General source equivalence, external consumers,
 dynamic dispatch and inferred contracts remain open. The oracle records its rustc version separately;
 its nested compiler process is outside the check runner's executable identity discovery.
+
+## Expression control and checked delivery
+
+The [expression task](../tests/agent-eval/expression-control/task.json) pins a leaking helper behind
+short-circuit operators and a conditional expression. Its independent CPython oracle observes public
+outputs, sink calls and AST byte spans. The baseline uses the existing local 0.35.0 binary and records
+both its hash and its age relative to the pinned source revision. It refuses the expression forms.
+
+The [retained evaluator](../tools/expression-control-acceptance.py) compares ordinary AST discovery
+with native summary discovery, repairs the discovered helper, adds a sink-free preview and replays
+both patches in an independent receiver. It checks cache invalidation, interrupted plans and stale
+review refusal. [Focused runtime cases](../sdk/python/tests/test_expression_control.py) cover
+operand order, skipped calls, recursion, explicit raises and conservative comparison alternatives.
+These are finite deterministic cases, with no live-agent, token-saving or feasible-path claim.
+
+The [retained expression run](../tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json)
+passes both delivered outcomes and independent receiver replay. Ordinary discovery reads 471 source
+bytes across six files. Native discovery returns 128,738 bytes across eight calls with no source-body
+reveals. All observed results remain scoped to this finite scripted fixture.

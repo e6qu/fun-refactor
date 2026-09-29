@@ -1,0 +1,22 @@
+{
+  "schema": "fr-expression-control-task-1",
+  "baseline": "6cb9db1fc7b4209c0ae2060d162667aaa049fe28",
+  "task": "Discover the helper leaking input through short-circuit expressions, repair it and deliver a sink-free preview.",
+  "subset": "Python scalar summary analysis: and/or, conditional expressions, not and ordered comparison chains. Boolean and None literals select branches; unknown values retain alternatives. No overloaded truth/comparison protocols, implicit exceptions, heap effects or path-correlation claim.",
+  "budgets": {
+    "steps": 4096,
+    "depth": 8,
+    "modules": 16,
+    "summary_functions": 64
+  },
+  "oracle": "Independent CPython observations and AST byte spans; finite runtime cases for evaluation order and raises; cached/clean agreement, checked delivery, independent patch replay and reversal.",
+  "acceptance": [
+    "Skip unreachable operands and preserve ordered, at-most-once operand evaluation.",
+    "Keep normal and exceptional alternatives through short-circuit calls and recursion.",
+    "Bind a versioned expression-control contract to native reports and typed SDK readers.",
+    "Reject unsupported evaluated expressions, exhausted budgets, stale reviews and tampered contracts.",
+    "Compare ordinary AST discovery and fr discovery through checked repair, feature delivery and receiver replay."
+  ],
+  "claims": "Finite deterministic scalar corpus; no live-agent, token-saving, feasible-path, overloaded-protocol or source-equivalence claim.",
+  "authoring": "Existing Rust and Python function bodies use reviewed fr previews and history applications. New declarations, fixtures, tests, metadata and documentation use direct edits."
+}

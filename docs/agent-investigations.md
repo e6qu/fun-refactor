@@ -86,7 +86,7 @@ The default route cuts off recursive calls. It does not claim runtime terminatio
 
 ### Recursive function summaries
 
-Add `--summaries` to use `python-scalar-summaries-1`. The solver summarizes each reachable function
+Add `--summaries` to use `python-scalar-summaries-2`. The solver summarizes each reachable function
 with symbolic positional parameters. Each call substitutes its own arguments into return, sink and
 exceptional effects. This keeps separate callers from sharing input values. Direct and mutual recursion
 start with empty summaries and grow monotonically until a global fixed point or a cutoff.
@@ -100,7 +100,8 @@ Branch feasibility and implicit Python exceptions remain outside the model.
 The solver admits at most 64 functions and 512 control nodes per function. `--steps` covers all rounds.
 `--depth` bounds discovery of new helpers; calls to already discovered recursive functions use their current summary.
 An exhausted budget always makes the result incomplete. Unknown externals, aliases, annotations and
-dynamic calls retain their cutoffs. Calls inside short-circuit expressions and exception causes also remain incomplete.
+dynamic calls retain their cutoffs. Exception causes remain incomplete.
+[Ordered scalar expressions](expression-control.md) now admit calls with conditional evaluation.
 All existing rule context and module-effect boundaries still apply. Sources and sinks are external contracts;
 the default solver stays within one file and does not track heap effects.
 
@@ -495,3 +496,11 @@ The report states its trusted components and remaining obligations. Installed Le
 remain trusted. Declared assumption discovery reports syntax; it does not compute transitive axiom dependencies.
 A model theorem supplies no proof that source execution agrees with the model.
 The finite Boolean fixture tests that correspondence only on its two admitted inputs.
+
+## Ordered scalar expressions
+
+[Expression control](expression-control.md) extends opt-in summary analysis to short-circuit
+Boolean operators, `not`, conditional expressions and ordered comparison chains. Known Boolean
+and `None` selectors skip operands. Unknown selectors retain both normal and exceptional alternatives.
+The versioned contract is included in analysis inputs and cache validation. Numeric comparisons,
+variable values and helper results are not specialized; the analysis still reports possible flow.
