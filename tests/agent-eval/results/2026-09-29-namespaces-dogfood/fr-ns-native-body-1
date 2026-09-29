@@ -1,0 +1,63 @@
+{
+    ensure!(
+        module_name(name),
+        "import module name exceeds the admitted component budget."
+    );
+    let parts: Vec<_> = name.split('.').collect();
+    let mut result = Resolution {
+        module: name.into(),
+        candidates: BTreeMap::new(),
+        packages: Vec::new(),
+        namespaces: Vec::new(),
+        target: None,
+        admitted: true,
+    };
+    for count in 1..=parts.len() {
+        let stem = parts[..count].join("/");
+        let module = PathBuf::from(format!("{stem}.py"));
+        let package = PathBuf::from(format!("{stem}/__init__.py"));
+        let stub = PathBuf::from(format!("{stem}.pyi"));
+        let package_stub = PathBuf::from(format!("{stem}/__init__.pyi"));
+        let directory = PathBuf::from(&stem);
+        for path in [&module, &package, &stub, &package_stub, &directory] {
+            result
+                .candidates
+                .insert(path.clone(), candidate(project, path)?);
+        }
+        let status = |path: &Path, expected| result.candidates[path]["status"] == expected;
+        let stubs_missing = status(&stub, "missing") && status(&package_stub, "missing");
+        let is_package = local_module_admitted(
+            status(&package, "source"),
+            status(&module, "missing"),
+            stubs_missing,
+        );
+        let is_module = count == parts.len()
+            && local_module_admitted(
+                status(&module, "source"),
+                status(&package, "missing"),
+                stubs_missing,
+            );
+        let is_namespace = local_module_admitted(
+            status(&directory, "directory"),
+            status(&module, "missing"),
+            status(&package, "missing") && stubs_missing,
+        );
+        result.admitted &= is_package || is_module || is_namespace;
+        if is_namespace {
+            result.namespaces.push(directory.clone());
+        }
+        if count < parts.len() && is_package {
+            result.packages.push(package.clone());
+        } else if count == parts.len() && is_package {
+            result.target = Some(package);
+        } else if is_module {
+            result.target = Some(module);
+        } else if count == parts.len() && is_namespace {
+            result.target = Some(directory);
+        }
+    }
+    if !result.admitted {
+        result.target = None;
+    }
+    Ok(result)
+}

@@ -60,7 +60,7 @@ def test_dependency_records_keep_module_chain_and_fallback_candidates(tmp_path):
     assert fallback.submodule.module == 'pkg.leaf' and fallback.submodule.target == 'pkg/leaf.py'
     assert not fallback.binding_chain
     assert {item.path for item in fallback.submodule.candidates} == {
-        'pkg.py', 'pkg.pyi', 'pkg/__init__.py', 'pkg/__init__.pyi',
+        'pkg', 'pkg/leaf', 'pkg.py', 'pkg.pyi', 'pkg/__init__.py', 'pkg/__init__.pyi',
         'pkg/leaf.py', 'pkg/leaf.pyi', 'pkg/leaf/__init__.py', 'pkg/leaf/__init__.pyi'}
 
 

@@ -1,0 +1,27 @@
+{
+  "schema": "fr-namespace-packages-task-1",
+  "baseline": "3f19518ec710e8d1c6a77c727067cf380d5a64c8",
+  "bug": "The public render operation emits raw input. Find and repair the transformation so emitted values are zero, preserving the safe operation.",
+  "feature": "Expose preview, which returns the same sanitized value as render without invoking a sink. No edit path or private helper name is supplied by either requirement.",
+  "subset": "Static workspace-local Python namespace and regular packages, direct imports, relative imports and explicit child fallback within one root. No multi-root merging, dynamic loading, initializer effects or implicit child traversal.",
+  "budgets": {
+    "modules": 16,
+    "source_bytes": 262144,
+    "imports": 128,
+    "module_components": 16,
+    "steps": 4096,
+    "depth": 8,
+    "report_bytes": 1048576
+  },
+  "acceptance": [
+    "Match CPython public behavior and AST occurrence coordinates for namespace imports.",
+    "Retain directories, missing initializers, stubs and competing modules; invalidate relevant changes and renew unrelated revisions.",
+    "Bound real modules and namespace directories together; reject symlinks, outside-snapshot sources and incomplete resolution.",
+    "Discover, repair, resume, deliver and independently replay/reverse patches."
+  ],
+  "oracle": "A separate Python process executes the public API and records sink values; Python ASTs supply independent UTF-8 call coordinates. Handwritten expected positive, negative and refusal cases check analysis claims.",
+  "edit_boundary": "The fr guide inspects the module loader. Direct edits extend import resolution, qualified function identities, typed dependencies, fixtures, tests and docs; an existing author operation does not express this integrated change.",
+  "claims": "Deterministic task discovery and delivery on a pinned finite corpus. No live-agent, token-saving, feasible-path, source-equivalence or general performance claim.",
+  "task": "Discover a leaked value through a namespace package; deliver reviewed repair and sink-free preview with dependency-bound resumption.",
+  "initializer_mutation_complete": true
+}

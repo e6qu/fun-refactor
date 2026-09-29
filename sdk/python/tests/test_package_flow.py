@@ -63,7 +63,7 @@ def test_runtime_and_utf8_oracles_agree_with_package_evidence(tmp_path):
                     assert [point.location.span.start, point.location.span.end] in oracle["call_spans"][point.path]
     lookup = next(item for item in analyze(client, rules).dependencies.lookups if item.module == "portal.api")
     assert lookup.target == "portal/api.py" and lookup.packages == ("portal/__init__.py",)
-    assert len(lookup.candidates) == 8
+    assert len(lookup.candidates) == 10
 
 
 @pytest.mark.parametrize("change", ["initializer", "helper", "parent-shadow", "parent-stub", "leaf-stub", "missing-parent", "import-alias", "unrelated"])
@@ -91,7 +91,7 @@ def test_package_dependency_changes_agree_with_clean_rebuilds(tmp_path, change):
     assert current.reused == (change == "unrelated")
     assert evidence(current) == evidence(analyze(client, rules))
     assert (current.report.at("/input_digest") == initial.report.at("/input_digest")) == (change == "unrelated")
-    assert current.report.at("/complete") == (change in {"initializer", "helper", "import-alias", "unrelated"})
+    assert current.report.at("/complete") == (change in {"initializer", "helper", "import-alias", "unrelated", "missing-parent"})
 
 
 @pytest.mark.parametrize("change", ["target", "parent", "candidate", "digest", "alias", "prefix", "entry", "entry-parent", "complete"])

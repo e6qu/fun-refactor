@@ -198,12 +198,13 @@ def measure(args):
                 [kind],TaskDelivery(patch=f"artifacts/{kind}.patch"))
         stale_review = client.review(change(selected.handle,"repair"))
         parent = root / "portal/__init__.py"
-        original = parent.read_bytes()
-        parent.write_bytes(original + b"\n# revised parent\n")
+        original = parent.read_bytes() if parent.exists() else None
+        parent.write_bytes((original or b"") + b"\n# revised parent\n")
         try: client.execute(stale_review)
         except FrRuntimeError as error: refusal = str(error)
         else: raise AssertionError("stale package review admitted")
-        parent.write_bytes(original)
+        if original is None: parent.unlink()
+        else: parent.write_bytes(original)
         records = {}
         for kind in ("repair","feature"):
             handle = (client.project("find",member,"--in",path).definition_target().handle if kind == "repair" else

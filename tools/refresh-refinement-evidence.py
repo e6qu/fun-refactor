@@ -45,6 +45,7 @@ def main():
         'expression-control': 'expression-control-acceptance',
         'call-binding': 'call-binding-acceptance',
         'literal-defaults': 'literal-defaults-acceptance',
+        'namespace-packages': 'namespace-packages-acceptance',
         'index-resolution': 'index-resolution-acceptance',
     }
     dependency_scripts = {
