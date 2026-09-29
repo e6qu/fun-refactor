@@ -14,6 +14,7 @@ pub(super) fn analyzer_identity() -> Result<String> {
         include_str!("flow_summaries.rs"),
         include_str!("flow_expressions.rs"),
         include_str!("flow_calls.rs"),
+        include_str!("flow_assignments.rs"),
         include_str!("flow_modules.rs"),
         include_str!("control_flow.rs"),
         include_str!("flow_cache.rs"),
@@ -136,7 +137,7 @@ impl Project<'_> {
             report["input_digest"] == hash(inputs)?
                 && report["semantics"]
                     == if inputs["summary_mode"] == true {
-                        "python-scalar-summaries-4"
+                        "python-scalar-summaries-5"
                     } else {
                         "python-scalar-fixed-point-2"
                     },
@@ -149,6 +150,10 @@ impl Project<'_> {
         ensure!(
             report["call_binding"] == inputs["call_binding"],
             "retained flow has inconsistent call binding."
+        );
+        ensure!(
+            report["assignment_control"] == inputs["assignment_control"],
+            "retained flow has inconsistent assignment control."
         );
         let revision = report["revision"].as_str().unwrap_or_default().to_owned();
         let mut ids = BTreeMap::new();
