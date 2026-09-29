@@ -445,6 +445,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             .into_iter()
             .collect::<Vec<_>>();
         while let Some(node) = lexical.pop() {
+            if node.kind() == "identifier" && !self.text(node).is_ascii() {
+                self.cutoff("non-ascii-binding-unchecked");
+            }
             if self.solver.enabled
                 && node.kind() == "call"
                 && !calls::valid_call_syntax(node, self.source)
@@ -739,6 +742,9 @@ impl Project<'_> {
                         continue;
                     };
                     let short = &text[name_node.byte_range()];
+                    if !short.is_ascii() {
+                        module_effects = true;
+                    }
                     let name = if let Some(modules) = &modules {
                         modules.function_name(file, short)
                     } else {
