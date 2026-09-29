@@ -720,9 +720,13 @@ imported helpers. Python ASTs independently check parameter coordinates. Tests r
 spans, compare cached and clean results after edits, renew occurrences after unrelated changes, and
 reject forged signature contracts. Evaluated and mutable defaults remain outside the admitted subset.
 
-The delivery evaluator requires discovered repair, sink-free preview delivery, fresh-process
-resumption and independent receiver patch replay and reversal. Its claims cover this finite corpus;
-it does not establish source equivalence, path feasibility or general efficiency.
+The [retained run](../tests/agent-eval/results/2026-09-29-defaults-literal-defaults/result.json) passes
+discovered repair, sink-free preview delivery, fresh-process resumption and independent receiver
+patch replay and reversal. Deterministic AST discovery exposes 442 source bytes across six reveals;
+`fr` discovery exposes 118,341 response bytes across eight process calls, with no source reveals.
+These are different disclosure measures, not a token-savings claim. The twelve refreshed
+`2026-09-29-defaults-*` report groups bind the current implementation. These results cover a finite
+corpus and do not establish source equivalence, path feasibility or general efficiency.
 The [dogfood manifest](../tests/agent-eval/results/2026-09-29-defaults-dogfood/manifest.json) records
 actual guarded `fr` edits on this implementation. Compilation, full tests and report regeneration
 run on GitHub under the existing resource policy.

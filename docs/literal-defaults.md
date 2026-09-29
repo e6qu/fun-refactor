@@ -47,8 +47,10 @@ The response budget includes signature metadata, and omitted results remain inco
 
 The [pinned task](../tests/agent-eval/literal-defaults/task.json) discovers a leaking helper through
 an omitted keyword-only default. It requires reviewed repair, sink-free preview delivery,
-fresh-process resumption, independent patch replay and exact reversal. The baseline records the
-installed local binary separately from the source revision.
+fresh-process resumption, independent patch replay and exact reversal. The
+[retained run](../tests/agent-eval/results/2026-09-29-defaults-literal-defaults/result.json) passes those
+checks and binds the current source. The baseline records the installed local binary separately from
+the source revision.
 The [runtime corpus](../sdk/python/tests/test_literal_defaults.py) compares binding and public results
 with CPython, checks exact AST coordinates, and exercises invalidation and forged contract refusals.
 

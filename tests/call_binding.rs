@@ -135,7 +135,7 @@ fn call_binding_acceptance_replays_checked_delivery() {
         .args([
             "tools/call-binding-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-calls-call-binding/result.json",
+            "tests/agent-eval/results/2026-09-29-defaults-call-binding/result.json",
         ])
         .output()
         .unwrap();
