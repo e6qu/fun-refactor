@@ -40,3 +40,9 @@ The [pinned task](../tests/agent-eval/expression-control/task.json) exercises un
 feature delivery, resumption, reversal and independent receiver replay. The [runtime corpus](../sdk/python/tests/test_expression_control.py)
 checks finite positive and negative cases against CPython. These observations establish their stated
 outcomes, not general source/model correspondence.
+
+[Retained acceptance](../tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json)
+binds the evaluator, implementation and fixture. Both delivered outcomes pass independent receiver
+replay. Ordinary discovery reads 471 source bytes across six files; native discovery returns 128,738
+bytes across eight calls with no source-body reveals. These finite measurements establish no general
+efficiency or token-saving benefit.

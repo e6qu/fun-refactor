@@ -670,3 +670,8 @@ both patches in an independent receiver. It checks cache invalidation, interrupt
 review refusal. [Focused runtime cases](../sdk/python/tests/test_expression_control.py) cover
 operand order, skipped calls, recursion, explicit raises and conservative comparison alternatives.
 These are finite deterministic cases, with no live-agent, token-saving or feasible-path claim.
+
+The [retained expression run](../tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json)
+passes both delivered outcomes and independent receiver replay. Ordinary discovery reads 471 source
+bytes across six files. Native discovery returns 128,738 bytes across eight calls with no source-body
+reveals. All observed results remain scoped to this finite scripted fixture.
