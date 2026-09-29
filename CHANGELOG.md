@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.38.0...fun-refactor-v0.39.0) (2026-09-29)
+
+
+### Features
+
+* resolve bounded Python module aliases and package child imports ([#385](https://github.com/e6qu/fun-refactor/issues/385)) ([6cb9db1](https://github.com/e6qu/fun-refactor/commit/6cb9db1fc7b4209c0ae2060d162667aaa049fe28))
+
 ## [0.38.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.37.0...fun-refactor-v0.38.0) (2026-09-28)
 
 
