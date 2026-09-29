@@ -46,7 +46,7 @@ impl Solver {
         json!({"schema":"fr-function-summaries-1", "enabled":self.enabled,
             "converged":self.converged,"rounds":self.rounds,"functions":self.table,
             "function_limit":FUNCTION_LIMIT,
-            "context":"symbolic positional parameters; substitute independently at each call.",
+            "context":"symbolic required parameters; bind each call independently in declaration order.",
             "recursion":"monotone least fixed point over finite origin and effect sets.",
             "effects":"explicit scalar returns, sink contracts and explicit raises; no heap effects.",
             "claim":"may-value derivations in the declared model; neither feasible paths nor runtime termination.",
@@ -119,12 +119,8 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         arguments: Vec<Flow>,
         call: Node<'t>,
     ) -> Flow {
-        let valid = function
-            .child_by_field_name("parameters")
-            .is_some_and(|parameters| {
-                let items: Vec<_> = parameters.named_children(&mut parameters.walk()).collect();
-                items.len() == arguments.len() && items.iter().all(|p| p.kind() == "identifier")
-            });
+        let valid = calls::parameters(function, self.contexts[name].1)
+            .is_some_and(|parameters| parameters.len() == arguments.len());
         if !valid {
             self.cutoff(format!("unsupported-parameter-contract:{name}"));
             return Flow::new();
@@ -177,10 +173,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                 }
                 let function = self.functions[name];
                 (self.file, self.source) = self.contexts[name];
-                let parameters: Vec<_> = function
-                    .child_by_field_name("parameters")
-                    .unwrap()
-                    .named_children(&mut function.walk())
+                let parameters: Vec<_> = self
+                    .parameter_nodes(function)
+                    .unwrap_or_default()
+                    .into_iter()
                     .enumerate()
                     .map(|(index, node)| {
                         let key = format!("argument:{name}:{index}");

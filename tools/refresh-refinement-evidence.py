@@ -43,6 +43,7 @@ def main():
         'package-reexports': 'package-reexports-acceptance',
         'module-aliases': 'module-aliases-acceptance',
         'expression-control': 'expression-control-acceptance',
+        'call-binding': 'call-binding-acceptance',
         'index-resolution': 'index-resolution-acceptance',
     }
     refinement_names = list(scripts)

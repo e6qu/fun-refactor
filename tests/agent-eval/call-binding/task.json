@@ -1,0 +1,21 @@
+{
+  "schema": "fr-call-binding-task-1",
+  "baseline": "9efc931f2f2a3a4f42dedf965dc55d11cfdf5cdf",
+  "task": "Discover and repair a helper reached through keyword calls and required parameter kinds, then deliver a sink-free preview.",
+  "subset": "Python required positional-only, positional-or-keyword and keyword-only binding in scalar summaries. Explicit argument values execute in source order. No defaults, annotations, variadics, unpacking, keyword rule signatures or implicit TypeError semantics.",
+  "budgets": {
+    "steps": 4096,
+    "depth": 8,
+    "modules": 16,
+    "summary_functions": 64
+  },
+  "oracle": "Independent CPython observations and AST byte spans; finite runtime cases for evaluation order and raises; cached/clean agreement, checked delivery, independent patch replay and reversal.",
+  "acceptance": [
+    "Bind reordered keyword values to declaration-order symbolic parameters without cross-call contamination.",
+    "Preserve argument effects and explicit raises before binding or callee execution.",
+    "Reject invalid or unsupported binding, stale caches and forged versioned contracts.",
+    "Retain checked repair, feature delivery, resumption and independent receiver replay."
+  ],
+  "claims": "Finite deterministic scalar corpus; no live-agent, token-saving, feasible-path, overloaded-protocol or source-equivalence claim.",
+  "authoring": "Existing Rust and Python function bodies use reviewed fr previews and history applications. New declarations, fixtures, tests, metadata and documentation use direct edits."
+}

@@ -68,6 +68,34 @@ class ExpressionControl:
         return cls(**{key: item for key, item in value.items() if key != "schema"})
 
 
+_CALL_BINDING = {
+    "schema": "fr-call-binding-1",
+    "parameters": "required positional-only, positional-or-keyword and keyword-only parameters.",
+    "evaluation": "explicit argument values in source order before parameter binding; once per transfer.",
+    "binding": "positional slots followed by exact keyword names; substitute in declaration order.",
+    "invalid": "incomplete analysis for missing, excess, duplicate or unknown arguments; no TypeError model.",
+    "boundary": "no defaults, annotations, variadics, unpacking or keyword external-rule contracts.",
+    "implicit_exceptions": False,
+}
+
+
+@dataclass(frozen=True)
+class CallBinding:
+    parameters: str
+    evaluation: str
+    binding: str
+    invalid: str
+    boundary: str
+    implicit_exceptions: bool
+
+    @classmethod
+    def from_data(cls, value: Any) -> CallBinding:
+        if (not isinstance(value, dict) or value != _CALL_BINDING
+                or type(value.get("implicit_exceptions")) is not bool):
+            raise FrRuntimeError("unsupported call binding contract")
+        return cls(**{key: item for key, item in value.items() if key != "schema"})
+
+
 @dataclass(frozen=True)
 class FunctionSummaries:
     functions: tuple[FunctionSummary, ...]
@@ -75,6 +103,7 @@ class FunctionSummaries:
     complete: bool
     rounds: int
     expression_control: ExpressionControl | None = None
+    call_binding: CallBinding | None = None
 
     def for_function(self, name: str) -> FunctionSummary:
         for item in self.functions:
@@ -87,7 +116,7 @@ class FunctionSummaries:
         data = report.to_data()
         try:
             value = data["function_summaries"]
-            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2"}
+            if (report.schema != "fr-dataflow-1" or data["semantics"] not in {"python-scalar-summaries-1", "python-scalar-summaries-2", "python-scalar-summaries-3"}
                     or value["schema"] != "fr-function-summaries-1" or value["enabled"] is not True
                     or value["mutation_authority"] is not False):
                 raise FrRuntimeError("report does not disclose function summaries")
@@ -97,7 +126,7 @@ class FunctionSummaries:
                     or (data["complete"] and not value["converged"])):
                 raise FrRuntimeError("inconsistent summary convergence")
             control = None
-            if data["semantics"] == "python-scalar-summaries-2":
+            if data["semantics"] in {"python-scalar-summaries-2", "python-scalar-summaries-3"}:
                 control = ExpressionControl.from_data(data["expression_control"])
                 ExpressionControl.from_data(data["inputs"]["expression_control"])
                 if data["inputs"]["expression_control"] != data["expression_control"]:
@@ -105,6 +134,15 @@ class FunctionSummaries:
             elif (data.get("expression_control") is not None
                     or data["inputs"].get("expression_control") is not None):
                 raise FrRuntimeError("legacy summaries cannot declare new expression control")
+            binding = None
+            if data["semantics"] == "python-scalar-summaries-3":
+                binding = CallBinding.from_data(data["call_binding"])
+                CallBinding.from_data(data["inputs"]["call_binding"])
+                if data["inputs"]["call_binding"] != data["call_binding"]:
+                    raise FrRuntimeError("call binding disagrees with analysis inputs")
+            elif (data.get("call_binding") is not None
+                    or data["inputs"].get("call_binding") is not None):
+                raise FrRuntimeError("legacy summaries cannot declare new call binding")
             revision = data["revision"]
 
             def occurrence(raw: Any) -> Occurrence:
@@ -148,6 +186,6 @@ class FunctionSummaries:
                                                  traces(item["exceptional_returns"]), tuple(sinks),
                                                  item["normal_return"], item["may_raise"],
                                                  tuple(item["callees"]), item["evaluations"]))
-            return cls(tuple(functions), value["converged"], data["complete"], value["rounds"], control)
+            return cls(tuple(functions), value["converged"], data["complete"], value["rounds"], control, binding)
         except (KeyError, TypeError, ValueError, AttributeError) as error:
             raise FrRuntimeError("malformed function summaries") from error

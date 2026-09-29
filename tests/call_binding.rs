@@ -11,15 +11,17 @@ fn run(root: &Path, args: &[&str]) -> std::process::Output {
         .unwrap()
 }
 
-fn analyze(root: &Path, expression: &str) -> (String, Value) {
+fn analyze(root: &Path, parameters: &str, call: &str) -> (String, Value) {
     fs::write(
         root.join("app.py"),
-        format!("def stop(value):\n    raise value\ndef entry(flag):\n    return {expression}\n"),
+        format!(
+            "def choose({parameters}):\n    return left\ndef entry():\n    return sink({call})\n"
+        ),
     )
     .unwrap();
     fs::write(
         root.join("rules.json"),
-        r#"{"version":"expressions-1","sources":["source"],"sinks":["sink"]}"#,
+        r#"{"version":"calls-1","sources":["source"],"sinks":["sink"]}"#,
     )
     .unwrap();
     let found: Value =
@@ -49,83 +51,60 @@ fn analyze(root: &Path, expression: &str) -> (String, Value) {
 }
 
 #[test]
-fn selected_expressions_skip_effects_and_keep_normal_alternatives() {
+fn required_parameters_bind_by_kind_and_name() {
     let root = tempfile::tempdir().unwrap();
-    for (expression, normal, raises, witness) in [
-        ("False and sink(source())", true, false, false),
-        ("True or sink(source())", true, false, false),
+    for (parameters, call, complete, witness) in [
+        ("left, right", "choose(right=0, left=source())", true, true),
+        ("left, right", "choose(left=0, right=source())", true, false),
+        ("left, /, *, right", "choose(source(), right=0)", true, true),
         (
-            "(sink(source()) if True else stop(source()))",
-            true,
-            false,
-            true,
-        ),
-        ("flag and stop(source())", true, true, false),
-        (
-            "(stop(source()) if flag else sink(source()))",
-            true,
+            "*, left, right",
+            "choose(right=0, left=source())",
             true,
             true,
         ),
         (
-            "(stop(source()) if flag else stop(source()))",
+            "left, /, right",
+            "choose(left=source(), right=0)",
             false,
-            true,
             false,
         ),
+        ("left, *, right", "choose(source(), 0)", false, false),
         (
-            "(source() < 0 < stop(source()) < sink(source()))",
-            true,
-            true,
+            "left, right",
+            "choose(source(), left=0, right=0)",
+            false,
             false,
         ),
-        (
-            "(source() < stop(source()) < sink(source()))",
-            false,
-            true,
-            false,
-        ),
+        ("left, right", "choose(sink(source()))", false, true),
     ] {
-        let (_, report) = analyze(root.path(), expression);
+        let (_, report) = analyze(root.path(), parameters, call);
         assert_eq!(
-            report["complete"], true,
-            "{expression}: {}",
+            report["complete"], complete,
+            "{parameters}: {call}: {}",
             report["cutoffs"]
         );
-        assert_eq!(
-            report["completion"]["normal_return"], normal,
-            "{expression}"
-        );
-        assert_eq!(report["completion"]["may_raise"], raises, "{expression}");
-        assert_eq!(
-            !report["witnesses"].as_array().unwrap().is_empty(),
-            witness,
-            "{expression}"
-        );
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
         assert_eq!(report["semantics"], "python-scalar-summaries-3");
-        assert_eq!(
-            report["expression_control"],
-            report["inputs"]["expression_control"]
-        );
+        assert_eq!(report["call_binding"], report["inputs"]["call_binding"]);
     }
 }
 
 #[test]
-fn a_recomputed_digest_cannot_change_the_retained_expression_contract() {
+fn retained_call_contract_cannot_be_forged_with_a_new_digest() {
     let root = tempfile::tempdir().unwrap();
-    let (target, original) = analyze(root.path(), "flag and sink(source())");
-    for field in ["semantics", "expression_control"] {
+    let (target, original) = analyze(root.path(), "left", "choose(left=source())");
+    for field in ["semantics", "call_binding"] {
         let mut report = original.clone();
         report[field] = if field == "semantics" {
-            json!("python-scalar-summaries-1")
+            json!("python-scalar-summaries-2")
         } else {
-            json!({"schema":"fr-expression-control-1", "path_feasibility":true})
+            json!({"schema":"fr-call-binding-1", "implicit_exceptions":true})
         };
         let bytes = serde_json::to_vec(&report).unwrap();
         let digest = hex::encode(Sha256::digest(&bytes));
         let retained = tempfile::NamedTempFile::new().unwrap();
-        let path = retained.path();
-        fs::write(path, &bytes).unwrap();
+        fs::write(retained.path(), &bytes).unwrap();
         let output = run(
             root.path(),
             &[
@@ -140,7 +119,7 @@ fn a_recomputed_digest_cannot_change_the_retained_expression_contract() {
                 "--bytes",
                 "1048576",
                 "--reuse",
-                path.to_str().unwrap(),
+                retained.path().to_str().unwrap(),
                 "--reuse-digest",
                 &digest,
             ],
@@ -151,12 +130,12 @@ fn a_recomputed_digest_cannot_change_the_retained_expression_contract() {
 }
 
 #[test]
-fn expression_control_acceptance_replays_checked_delivery() {
+fn call_binding_acceptance_replays_checked_delivery() {
     let output = Command::new("python3")
         .args([
-            "tools/expression-control-acceptance.py",
+            "tools/call-binding-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-expressions-expression-control/result.json",
+            "tests/agent-eval/results/2026-09-29-calls-call-binding/result.json",
         ])
         .output()
         .unwrap();
