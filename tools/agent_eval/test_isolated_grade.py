@@ -21,6 +21,16 @@ def rubric(image=None):
 
 
 class Grading(unittest.TestCase):
+    def test_image_volumes_refuse_before_candidate_execution(self):
+        calls = []
+        def volume_image(command, data, directory, timeout, cap):
+            calls.append(command)
+            return {"exit_code": 0, "stop_reason": None}, b'{"/unbounded":{}}', b""
+        with self.assertRaisesRegex(ValueError, "writable volumes"):
+            grade(self.candidate, self.grader, self.sha, execute=volume_image)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][3:5], ["image", "inspect"])
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -39,6 +49,8 @@ class Grading(unittest.TestCase):
     def execute(self, command, data, directory, timeout, cap):
         self.calls.append((command, data))
         result = {"exit_code": 0, "stop_reason": None}
+        if command[3] == "image":
+            return result, b"null", b""
         if command[3] == "start":
             result["stop_reason"] = self.stop
             return result, self.answer, b""
@@ -49,14 +61,14 @@ class Grading(unittest.TestCase):
     def test_private_expected_output_is_not_sent_to_candidate(self):
         result = grade(self.candidate, self.grader, self.sha, execute=self.execute)
         self.assertEqual(result["outcome"], "passed")
-        self.assertEqual([entry[0][3] for entry in self.calls], ["create", "start", "inspect", "rm"])
+        self.assertEqual([entry[0][3] for entry in self.calls], ["image", "create", "start", "inspect", "rm"])
         self.assertNotIn(str(self.grader), str(self.calls))
         for command, data in self.calls:
             self.assertNotIn("42\n", command)
             self.assertNotEqual(data, b"42\n")
-        self.assertEqual(self.calls[1][1], b"6\n")
+        self.assertEqual(self.calls[2][1], b"6\n")
         for option in ("--network=none", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--cpus=0.5", "--pids-limit=32"):
-            self.assertIn(option, self.calls[0][0])
+            self.assertIn(option, self.calls[1][0])
 
     def test_incorrect_output_timeout_and_oom_cannot_pass(self):
         for answer, stop, oom in ((b"wrong\n", None, False), (b"42\n", "wall_seconds", False), (b"42\n", None, True)):

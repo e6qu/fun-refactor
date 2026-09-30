@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 import time
 
-from .study import encode, number, require, text
+from .study import digest, encode, number, require, text
 from .provider_usage import normalize
 
 MAX_JSON = 16 * 1024 * 1024
@@ -201,8 +201,12 @@ def send(ledger, cell, agent, identity, supplied, directory, *, parent=None, tra
     folder = Path(directory) / identity
     folder.mkdir(parents=True, mode=0o700, exist_ok=False)
     state = "not_dispatched"
+    started = time.monotonic()
     evidence = {"schema": "fr-agent-study-request-1", "cell": cell, "agent": agent, "request": identity,
-                "provider": provider, "model": model["model"], "format": format_name}
+                "provider": provider, "model": model["model"], "format": format_name,
+                "plan_sha256": digest(ledger.frozen), "parent": parent,
+                "harness": model["harness"], "settings": copy.deepcopy(model["settings"]),
+                "started_at": time.time()}
     reserved = False
     def retain(name, value):
         reference = write_json(folder / name, value)
@@ -239,5 +243,6 @@ def send(ledger, cell, agent, identity, supplied, directory, *, parent=None, tra
         evidence.update(state=state, error_type=type(error).__name__)
         raise
     finally:
+        evidence["elapsed_seconds"] = time.monotonic() - started
         evidence["state"] = state
         write_json(folder / "receipt.json", evidence)

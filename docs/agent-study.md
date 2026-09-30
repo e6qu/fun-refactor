@@ -286,7 +286,8 @@ charges outside this gateway. The code does not intercept arbitrary Codex or Cla
 
 Each request creates `attempts/REQUEST_ID/` with payload, count, response when available, and receipt.
 The receipt's `invocation` object plugs into the auditor's agent record; its artifact paths are relative
-to `attempts/`. Failed requests retain a receipt. Ambiguous sends and incomplete usage remain unknown;
+to `attempts/`. Receipts also bind the frozen plan, agent relationship, settings and request elapsed time.
+Failed requests retain a receipt. Ambiguous sends and incomplete usage remain unknown;
 provider errors never trigger a hidden retry. A crash after dispatch retains the full reservation.
 Reconcile such requests before restarting. Complete agent rosters, durations and tool measurements still
 come from the calling host; request receipts alone cannot prove that the host reported every operation.
@@ -304,6 +305,7 @@ Stop all agent processes before grading. Supply a clean exported submission; thi
 check out repositories or establish its base revision. Keep the private grader outside that directory.
 The snapshot rejects symlinks and special files and binds paths, contents, executable bits and empty
 directories. Prepare dependencies in the pinned image; grading never pulls an image or installs packages.
+Images declaring writable volumes refuse before execution.
 The runtime supports a local default Docker context. Use a disposable runner with a trusted daemon.
 
 A small grader file has this shape:

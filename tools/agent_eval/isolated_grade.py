@@ -114,6 +114,10 @@ def grade(candidate, grader_path, expected_sha256, *, execute=invoke):
     with tempfile.TemporaryDirectory(prefix="fr-grade-") as temporary:
         root = Path(temporary)
         root.chmod(0o755)
+        inspected, volumes, _ = execute(DOCKER + ["image", "inspect", "--format", "{{json .Config.Volumes}}", grader["image"]],
+                                        b"", root, 10, 65536)
+        require(inspected["exit_code"] == 0 and not inspected["stop_reason"], "pinned grader image is unavailable")
+        require(decode(volumes) in (None, {}), "grader image declares writable volumes")
         staged = root / "candidate"
         retained = snapshot(candidate, staged, limits["candidate_bytes"])
         for case in grader["cases"]:
