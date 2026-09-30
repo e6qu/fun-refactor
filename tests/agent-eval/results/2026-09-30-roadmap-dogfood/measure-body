@@ -1,0 +1,112 @@
+start = time.monotonic()
+with tempfile.TemporaryDirectory(prefix='fr-upstream-task-') as temporary:
+    root = Path(temporary) / 'project'
+    unpack(task, root)
+    configuration(root, name, task)
+    baseline = oracle(root, name)
+    assert not baseline['passed']
+    original_tests = run([sys.executable, '-B', '-m', 'pytest', '-q', task['upstream_tests']], root)
+    client = FrClient(root, executable=str(binary), timeout=120, max_output_bytes=2_097_152)
+    symbol = 'singularize' if task['kind'] == 'bug' else 'take'
+    selected, discovery = find(client, symbol)
+    discoveries = {'entry': discovery}
+    original_body = body(selected)
+    changes = []
+    if task['kind'] == 'bug':
+        tree = ast.parse(textwrap.dedent(selected['source']['text']))
+        calls = sorted({n.func.id for n in ast.walk(tree) if isinstance(n, ast.Call)
+                        and isinstance(n.func, ast.Name) and n.func.id.startswith('_')})
+        assert len(calls) == 1
+        dependent, discoveries['helper'] = find(client, calls[0], selected['path'])
+        needle = "else:\n    singular = word[:-1]"
+        assert original_body.count(needle) == 1
+        repaired = original_body.replace(needle, "elif word.endswith('ss'):\n    return orig_word\n" + needle)
+        changes = [{'name': symbol, 'path': selected['path'], 'body': repaired},
+                   {'name': dependent['name'], 'path': dependent['path'], 'body': body(dependent)}]
+        replacement = 'return disciple'
+    else:
+        dependent = selected
+        test, discoveries['test'] = find(client, 'test_negative_take')
+        assert test['path'] == task['upstream_tests']
+        repaired = '"""Return the first n items, or the last abs(n) items for negative n.\n\nNegative counts require a finite iterable and retain at most abs(n) items.\nNone consumes all items; nonintegral counts raise TypeError.\n"""\nfrom operator import index\nif n is None:\n    return list(iterable)\nn = index(n)\nif n < 0:\n    return list(deque(iterable, maxlen=-n))\nreturn list(islice(iterable, n))\n'
+        changes = [{'name': symbol, 'path': selected['path'], 'body': repaired},
+                   {'name': test['name'], 'path': test['path'], 'body':
+                    'self.assertEqual(mi.take(-3, range(10)), [7, 8, 9])\n'
+                    'self.assertEqual(mi.take(-20, range(3)), [0, 1, 2])\n'
+                    'self.assertEqual(mi.take(-3, iter(())), [])\n'}]
+        replacement = 'return []'
+    # Full dataflow evidence stays explicit even when these real programs exceed the scalar subset.
+    save(root / '.fr/rules.json', {'version': 'repository-probe-1', 'sources': [symbol], 'sinks': ['print']})
+    selected, _ = find(client, symbol, selected['path'])
+    analysis = client.project('dataflow', selected['handle'], '--summaries', '--imports', '--rules',
+                              str(root / '.fr/rules.json'), '--steps', '4096', '--bytes', '1048576').to_data()
+    refusal = None
+    if task['kind'] == 'feature':
+        public = Path(selected['path']).parent / '__init__.py'
+        public_report = client.project('map', str(public), '--depth', '0', '--fields', 'handle,kind').to_data()
+        discoveries['public_consumer'] = public_report
+        try:
+            client.review(TaskChange([], [TaskTarget('new-api', public_report['rows'][0][0],
+                'insert-declaration', fragment='def take_exact(n, iterable):\n    return list(iterable)\n')],
+                {'files-changed': 1}, ['syntax']))
+        except FrRuntimeError as error:
+            refusal = str(error)
+            assert 'wildcard' in refusal.lower(), refusal
+        else:
+            raise AssertionError('wildcard-import insertion unexpectedly admitted')
+    paths = sorted({c['path'] for c in changes})
+    note = next(p.name for p in sorted(root.glob('README*')) if p.is_file())
+    plan = TaskPlan(task['requirement'], ('delivered',), (
+        TaskStep('analysis', 'Which sources must change?', tuple(Dependency(DependencyKind.SOURCE, p) for p in paths)),
+        TaskStep('independent', 'Keep upstream documentation', (Dependency(DependencyKind.SOURCE, note),)),
+        TaskStep.checked('outcome', 'Do independent behavior and upstream checks pass?',
+                         checks=('behavior', 'upstream'), satisfies=('delivered',)),
+    ))
+    for step in ('analysis', 'independent'):
+        plan = satisfy(plan, client, step)
+    objects = output / 'objects'
+    store = DirectoryObjectStore(objects)
+    plan_root = plan.store(store)
+    stale_review = proposal(client, changes)
+    assert stale_review.at('/ready')
+    # Rediscover because configuration/analysis inputs may have changed the project revision.
+    dependent, _ = find(client, dependent['name'], dependent['path'])
+    perturb(root, dependent, replacement)
+    interrupted_sources = {p: (root / p).read_text() for p in paths}
+    reopened = json.loads(run([sys.executable, '-B', str(Path(__file__).resolve()), '--reopen',
+        '--fr', str(binary), '--project', str(root), '--objects', str(objects), '--plan', plan_root], ROOT).stdout)
+    assert 'analysis' in reopened['invalidated']
+    assert next(s for s in reopened['plan']['steps'] if s['id'] == 'independent')['state'] == 'satisfied'
+    try:
+        client.execute(stale_review)
+    except FrRuntimeError as error:
+        stale_refusal = str(error)
+    else:
+        raise AssertionError('stale reviewed mutation admitted')
+    plan = TaskPlan.restore(store, plan_root).resume(client).plan
+    plan = plan.resume(client, transition='analysis:reset').plan
+    plan = satisfy(plan, client, 'analysis')
+    review = proposal(client, changes)
+    assert review.at('/ready')
+    delivered = run_delivery(plan, client, 'outcome', review, store)
+    assert delivered.passed, (delivered.attachment_error, delivered.receipt.result.to_data())
+    # Source edits invalidate the earlier diagnosis; retain a fresh post-change observation.
+    plan = delivered.resumed.plan.resume(client, transition='analysis:reset').plan
+    plan = satisfy(plan, client, 'analysis')
+    final = plan.resume(client)
+    assert final.complete
+    final_root = final.plan.store(store)
+    accepted = oracle(root, name)
+    assert accepted['passed']
+    patch = (root / 'artifacts/change.patch').read_text()
+    record = {'repository': task['repository'], 'revision': task['revision'], 'archive_sha256': task['sha256'],
+        'baseline': baseline, 'original_upstream': {'exit_code': original_tests.returncode, 'stdout': original_tests.stdout},
+        'discovery': discoveries, 'analysis': analysis, 'wildcard_insertion_refusal': refusal,
+        'interruption': {'sources': interrupted_sources, 'reopened': reopened, 'stale_review_refusal': stale_refusal},
+        'review': review.to_data(), 'delivery': delivered.receipt.result.to_data(),
+        'receipt_root': delivered.receipt_root, 'initial_plan_root': plan_root, 'final_plan_root': final_root,
+        'complete': final.complete, 'oracle': accepted, 'patch': patch,
+        'seconds': time.monotonic() - start}
+    assert record['seconds'] <= TASKS['budgets']['task_seconds']
+    save(output / 'result.json', record)
+    return record

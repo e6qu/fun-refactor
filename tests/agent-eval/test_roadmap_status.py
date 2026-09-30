@@ -48,6 +48,16 @@ class RoadmapStatusTests(unittest.TestCase):
         self.assertEqual(report['milestones_complete'], 3)
         self.assertEqual(report['milestones']['A']['remaining'], ['A.additional'])
 
+    def test_demonstrated_gates_do_not_hide_unfinished_engineering(self):
+        path = self.root / 'PLAN.md'
+        path.write_text(path.read_text().replace('[x]', '[ ]', 1))
+        self.catalog['engineering']['A']['done'] = 0
+        report = self.compute()
+        self.assertEqual(report['milestones']['A']['remaining'], [])
+        self.assertEqual(report['milestones']['A']['engineering_remaining'], 1)
+        self.assertEqual(report['milestones']['A']['state'], 'open')
+        self.assertEqual(report['milestones_complete'], 3)
+
     def test_missing_report_opens_all_dependents(self):
         (self.root / 'result.json').unlink()
         self.assertEqual(self.compute()['milestones_complete'], 0)
@@ -143,6 +153,26 @@ class RoadmapStatusTests(unittest.TestCase):
         path.write_text(path.read_text().replace('[x]', '[ ]', 1))
         with self.assertRaisesRegex(ValueError, 'engineering counts drifted'):
             self.compute()
+
+
+class DogfoodReceiptTests(unittest.TestCase):
+    def test_retained_edits_bind_review_save_and_application(self):
+        root = ROOT / 'tests/agent-eval/results/2026-09-30-roadmap-dogfood'
+        manifest = json.loads((root / 'manifest.json').read_text())
+        actual = {p.name: status.digest(p) for p in root.iterdir() if p.name != 'manifest.json'}
+        self.assertEqual(manifest['files'], actual)
+        saved = sorted(root.glob('*-saved.json'))
+        self.assertGreaterEqual(len(saved), 8)
+        for path in saved:
+            name = path.name.removesuffix('-saved.json')
+            review = json.loads((root / f'{name}-preview.json').read_text())
+            retained = json.loads(path.read_text())
+            applied = json.loads((root / f'{name}-applied.json').read_text())
+            self.assertEqual(review['plan_context_basis'], retained['plan_context_basis'])
+            self.assertTrue(retained['saved'])
+            self.assertEqual(retained['transaction'], applied['transaction'])
+            self.assertEqual(retained['transaction_context_basis'], applied['context_basis'])
+            self.assertTrue(applied['applied'])
 
 
 if __name__ == '__main__':

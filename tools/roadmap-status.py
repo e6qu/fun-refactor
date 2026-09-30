@@ -161,7 +161,9 @@ def compute(root, catalog):
         selected = [g for g in gates if g['id'].startswith(milestone + '.')]
         require(selected, f'empty milestone: {milestone}')
         remaining = [g['id'] for g in selected if g['state'] != 'demonstrated']
-        milestones[milestone] = {'engineering': engineering[milestone], 'state': 'open' if remaining else 'complete',
+        engineering_open = engineering[milestone]['total'] - engineering[milestone]['done']
+        milestones[milestone] = {'engineering': engineering[milestone], 'engineering_remaining': engineering_open,
+                                 'state': 'open' if remaining or engineering_open else 'complete',
                                  'demonstrated': len(selected) - len(remaining), 'total': len(selected), 'remaining': remaining}
     return {'schema': 'fr-roadmap-status-1', 'profile': catalog['profile'], 'baseline': catalog['baseline'],
             'milestones_complete': sum(m['state'] == 'complete' for m in milestones.values()),

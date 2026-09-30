@@ -1,0 +1,61 @@
+require(catalog['schema'] == 'fr-roadmap-catalog-1', 'unknown roadmap schema')
+require(catalog['profile'] == 'agent-analysis-v1', 'unknown acceptance profile')
+entries = catalog['evidence']
+require(len({e['id'] for e in entries}) == len(entries), 'duplicate evidence IDs')
+evaluated = {e['id']: evidence(root, e) for e in entries}
+obligations = catalog['obligations']
+ids = [o['id'] for o in obligations]
+require(len(set(ids)) == len(ids), 'duplicate obligation IDs')
+require(all(re.fullmatch(r'[ABCD]\.[a-z][a-z0-9-]+', i) for i in ids), 'invalid obligation ID')
+gates = []
+for obligation in obligations:
+    require(obligation['acceptance'] and obligation['next'], 'gate requires acceptance and next action')
+    require(obligation['kind'] in set(KINDS.values()) | {'source-proof', 'semantic-contract'}, 'unknown gate evidence kind')
+    requirements = obligation['requires']
+    blockers = []
+    if not requirements:
+        blockers.append('No qualifying retained evidence yet')
+    for requirement in requirements:
+        require(requirement['evidence'] in evaluated, 'unknown evidence reference')
+        item, value = evaluated[requirement['evidence']]
+        require(item['kind'] == obligation['kind'], f"wrong evidence kind for {obligation['id']}")
+        if item['integrity'] != 'checked':
+            blockers.append(f"{item['id']}: missing evidence")
+            continue
+        if item['freshness'] != 'current':
+            blockers.append(f"{item['id']}: {item['freshness']} source binding")
+        require(requirement['assertions'], 'gate requires explicit evidence assertions')
+        for assertion in requirement['assertions']:
+            require(set(assertion) == {'pointer', 'equals'}, 'unknown evidence assertion')
+            try:
+                actual = pointer(value, assertion['pointer'])
+            except (KeyError, IndexError, ValueError, TypeError):
+                blockers.append(f"{item['id']}: missing {assertion['pointer']}")
+                continue
+            wanted = assertion['equals']
+            if type(actual) is not type(wanted) or actual != wanted:
+                blockers.append(f"{item['id']}: unmet {assertion['pointer']}")
+    gates.append({**obligation, 'state': 'open' if blockers else 'demonstrated', 'blockers': blockers})
+plan = (root / 'PLAN.md').read_text()
+engineering = {}
+for milestone in 'ABCD':
+    match = re.search(rf'^### {milestone}\. .*?\n(.*?)(?=^### |^## |\Z)', plan, re.M | re.S)
+    require(match is not None, f'missing PLAN milestone {milestone}')
+    checkboxes = re.findall(r'^- \[([ x])\]', match.group(1), re.M)
+    expected = catalog['engineering'][milestone]
+    require({'done': checkboxes.count('x'), 'total': len(checkboxes)} == expected,
+            f'PLAN engineering counts drifted for {milestone}; review the catalog')
+    engineering[milestone] = expected
+milestones = {}
+for milestone in 'ABCD':
+    selected = [g for g in gates if g['id'].startswith(milestone + '.')]
+    require(selected, f'empty milestone: {milestone}')
+    remaining = [g['id'] for g in selected if g['state'] != 'demonstrated']
+    engineering_open = engineering[milestone]['total'] - engineering[milestone]['done']
+    milestones[milestone] = {'engineering': engineering[milestone], 'engineering_remaining': engineering_open,
+                             'state': 'open' if remaining or engineering_open else 'complete',
+                             'demonstrated': len(selected) - len(remaining), 'total': len(selected), 'remaining': remaining}
+return {'schema': 'fr-roadmap-status-1', 'profile': catalog['profile'], 'baseline': catalog['baseline'],
+        'milestones_complete': sum(m['state'] == 'complete' for m in milestones.values()),
+        'milestones': milestones, 'obligations': gates, 'evidence': [e[0] for e in evaluated.values()],
+        'boundaries': catalog['boundaries']}
