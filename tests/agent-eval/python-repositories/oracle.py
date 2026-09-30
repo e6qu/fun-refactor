@@ -46,6 +46,7 @@ def tail_counts():
         def __index__(self): return -3
     expect('index protocol', lambda: take(Index(), range(8)), [5, 6, 7])
     expect('all', lambda: take(None, range(4)), [0, 1, 2, 3])
+    expect('unbounded integer tail count', lambda: take(-(10 ** 100), range(4)), [0, 1, 2, 3])
     for bad in (1.5, -1.5, '2', object()):
         expect('nonintegral', lambda: take(bad, range(3)), 'TypeError')
     for amount in (0, 2, -2):

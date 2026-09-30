@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tarfile
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 
@@ -78,6 +79,13 @@ def take(n, iterable):
         self.assertIn('bounded tail storage', failures)
         self.assertIn('consumption:0', failures)
         self.assertIn('consumption:2', failures)
+
+    def test_feature_fragment_passes_the_independent_contract(self):
+        source = ('from collections import deque\nfrom itertools import islice\n'
+                  'def take(n, iterable):\n' + textwrap.indent(acceptance.TAKE_TAIL_BODY, '    '))
+        result = self.run_oracle('more_itertools', source, 'take-tail-counts')
+        self.assertTrue(result['passed'], result)
+        self.assertGreater(result['cases'], 260)
 
     def test_tail_oracle_detects_wrong_tail_order(self):
         wrong = '''

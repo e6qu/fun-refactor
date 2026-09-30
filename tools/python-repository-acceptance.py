@@ -39,11 +39,12 @@ Negative counts require a finite iterable and retain at most abs(n) items.
 None consumes all items; nonintegral counts raise TypeError.
 """
 from operator import index
+from sys import maxsize
 if n is None:
     return list(iterable)
 n = index(n)
 if n < 0:
-    return list(deque(iterable, maxlen=-n))
+    return list(deque(iterable, maxlen=min(-n, maxsize)))
 return list(islice(iterable, n))
 '''
 
