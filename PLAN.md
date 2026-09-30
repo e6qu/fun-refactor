@@ -186,8 +186,8 @@ The active acceptance profile is `agent-analysis-v1`: bounded Python analysis an
 checked changes. [Obligations A.exact through D.host](docs/roadmap-status.md#finite-acceptance-obligations)
 make the gates finite without equating parser coverage with semantic support. The next integrated
 work is task-specific semantic contracts and flow oracles (`B.contract`, `B.repository-flow`),
-repository mutation/performance coverage (`C.repository-mutations`, `C.performance`), then bounded
-translation and source correspondence (`D.translation`, `D.existing-proof`, `D.new-proof`).
+and repository mutation/performance coverage (`C.repository-mutations`, `C.performance`).
+Bounded translation and source correspondence follow (`D.translation`, `D.existing-proof`, `D.new-proof`).
 Repeated live trials (`A.live-repeat`) stay separate from deterministic acceptance.
 
 The [pinned Python repository tasks](tests/agent-eval/python-repositories/task.json) connect discovery,

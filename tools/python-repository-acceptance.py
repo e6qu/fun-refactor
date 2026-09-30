@@ -244,10 +244,20 @@ def measure_task(binary, name, task, output):
         note = next(p.name for p in sorted(root.glob('README*')) if p.is_file())
         plan = TaskPlan(task['requirement'], ('delivered',), (
             TaskStep('analysis', 'Which sources must change?', tuple(Dependency(DependencyKind.SOURCE, p) for p in paths)),
-            TaskStep('independent', 'Keep upstream documentation', (Dependency(DependencyKind.SOURCE, note),)),
+            TaskStep('independent', 'Keep independent upstream evidence', (Dependency(DependencyKind.SOURCE, note),)),
             TaskStep.checked('outcome', 'Do independent behavior and upstream checks pass?',
                              checks=('behavior', 'upstream'), satisfies=('delivered',)),
         ))
+        independent_refusal = None
+        try:
+            plan.resume(client)
+        except FrRuntimeError as error:
+            if task['kind'] != 'feature' or 'dependency exists outside the indexed snapshot' not in str(error):
+                raise
+            independent_refusal = str(error)
+            note = str(public)
+            plan = replace(plan, steps=tuple(replace(step, inputs=(Dependency(DependencyKind.SOURCE, note),))
+                           if step.id == 'independent' else step for step in plan.steps))
         for step in ('analysis', 'independent'):
             plan = satisfy(plan, client, step)
         objects = output / 'objects'
@@ -289,6 +299,7 @@ def measure_task(binary, name, task, output):
         record = {'repository': task['repository'], 'revision': task['revision'], 'archive_sha256': task['sha256'],
             'baseline': baseline, 'original_upstream': {'exit_code': original_tests.returncode, 'stdout': original_tests.stdout},
             'discovery': discoveries, 'analysis': analysis, 'wildcard_insertion_refusal': refusal,
+            'independent_path': note, 'unindexed_document_refusal': independent_refusal,
             'interruption': {'sources': interrupted_sources, 'reopened': reopened, 'stale_review_refusal': stale_refusal},
             'review': review.to_data(), 'delivery': delivered.receipt.result.to_data(),
             'receipt_root': delivered.receipt_root, 'initial_plan_root': plan_root, 'final_plan_root': final_root,
@@ -355,6 +366,7 @@ def audit(output):
             assert probe['status'] == ('complete' if probe['report']['complete'] else 'incomplete')
         if task['kind'] == 'feature':
             assert 'wildcard' in record['wildcard_insertion_refusal'].lower()
+            assert 'dependency exists outside the indexed snapshot' in record['unindexed_document_refusal']
         store = DirectoryObjectStore(output / name / 'objects')
         receipt = DeliveryReceipt.restore(store, record['receipt_root'])
         assert receipt.passed and receipt.result.to_data() == record['delivery']
@@ -367,6 +379,7 @@ def audit(output):
         initial = TaskPlan.restore(store, record['initial_plan_root'])
         final = TaskPlan.restore(store, record['final_plan_root'])
         assert initial.steps[1].state.value == 'satisfied'
+        assert initial.steps[1].inputs[0].key == final.steps[1].inputs[0].key == record['independent_path']
         assert all(step.state.value == 'satisfied' for step in final.steps)
         replay(name, task, record)
     return manifest

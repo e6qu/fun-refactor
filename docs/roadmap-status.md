@@ -64,5 +64,6 @@ Exact changed input paths are retained in [the JSON report](roadmap-status.json)
 - Model theorems, exact syntax origins and tested behavior are distinct from source implementation proofs. Neither retained Boolean relations nor repair success closes proof gates.
 - Dynamic imports, package initialization effects, runtime dispatch, multi-root namespace merging and wildcard export insertion remain explicit boundaries unless a pinned profile is extended.
 - Changing pass conditions or language profiles requires a reviewed catalog change. Broader languages and production performance require a new profile rather than silently expanding or shrinking this one.
+- Unindexed RST documents cannot be source dependencies. The more-itertools task retains that refusal and binds its unchanged public Python module as independent evidence.
 
 Run `python3 tools/roadmap-status.py --check` to detect drift, `--write` to regenerate both reports after reviewing catalog changes, or `--require-complete` to enforce milestone closure. On this workstation, use the local guard.

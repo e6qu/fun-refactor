@@ -803,9 +803,10 @@ upstream bug. Only the named upstream test files and independent behavior oracle
 checks; this is not a claim that either entire upstream suite passed.
 
 The evaluator first checks the unmodified failing behavior and passing upstream regression file.
-It persists an observation and an independent README observation, obtains a reviewed mutation,
+It persists an observation and an independent README or public-module observation, obtains a reviewed mutation,
 then performs a semantic external edit. A fresh process reopens the plan; affected evidence becomes
-stale while the README observation survives. The old review must refuse. Fresh targets and a new
+stale while the independent observation survives. The more-itertools README uses unindexed RST;
+its dependency attempt retains a refusal, and the unchanged public Python module supplies the independent observation. The old review must refuse. Fresh targets and a new
 review deliver through syntax checks, explicit post-change behavior and upstream checks, undo,
 redo and patch export. Immutable receipts and final plans are retained. Independent receivers
 start from the interrupted source, apply the patch, verify public behavior, reverse exactly, and
