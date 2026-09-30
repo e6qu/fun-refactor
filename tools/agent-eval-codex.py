@@ -26,13 +26,13 @@ def selected_pairs(sessions, names):
     experiment = load(sessions / "experiment.json")
     planned = experiment.get("trials")
     expected_arms = experiment.get("pair_arms", ["fr", "files"])
-    if not isinstance(planned, list) or not planned:
+    if not isinstance(planned, list) or not planned or not all(isinstance(name, str) for name in planned) or len(set(planned)) != len(planned):
         raise ValueError("Experiment has no planned trials")
     if (
         not isinstance(expected_arms, list)
         or len(expected_arms) != 2
-        or len(set(expected_arms)) != 2
         or not all(isinstance(arm, str) and arm for arm in expected_arms)
+        or len(set(expected_arms)) != 2
     ):
         raise ValueError("Experiment pair_arms must name two distinct non-empty arms")
     if not names:
@@ -41,17 +41,29 @@ def selected_pairs(sessions, names):
         raise ValueError("Selected trials must be distinct members of this experiment")
     selected = []
     groups = {}
-    for name in names:
+    for name in planned:
+        if name not in names:
+            continue
+        if Path(name).name != name or name in {".", ".."}:
+            raise ValueError("Unsafe trial path")
         session = sessions / name
+        if not session.resolve().is_relative_to(sessions.resolve()):
+            raise ValueError("Trial path escapes sessions directory")
         config = load(session / "session.json")
-        key = (config["task"], config["repetition"])
+        key = (config["task"], config["repetition"], config.get("model"), config.get("mode"))
         if config["arm"] not in expected_arms or config["arm"] in groups.setdefault(key, {}):
             raise ValueError(f"Pair {key} has repeated or unknown arms")
         groups.setdefault(key, {})[config["arm"]] = (name, session, config)
     for key, arms in groups.items():
         if set(arms) != set(expected_arms):
             raise ValueError(f"Select both {expected_arms[0]} and {expected_arms[1]} trials for pair {key}")
-        selected.append(tuple(arms[arm] for arm in expected_arms))
+        left, right = (arms[arm][2] for arm in expected_arms)
+        for field in ("repository_revision", "requirement_sha256", "grader_sha256",
+                      "budgets", "model_settings", "fr", "cache_state", "plan_sha256"):
+            if (field in left) != (field in right) or left.get(field) != right.get(field):
+                raise ValueError(f"Pair {key} has unmatched {field}")
+        order = list(arms) if experiment.get("preserve_trial_order") is True else expected_arms
+        selected.append(tuple(arms[arm] for arm in order))
     return selected
 
 
@@ -84,8 +96,17 @@ def codex_command(codex, session, model, effort, service_tier):
     ]
 
 
+def validate_settings(config, model, effort, service_tier):
+    if config.get("model", model) != model:
+        raise ValueError("Requested model differs from the session's declared model")
+    expected = {"reasoning_effort": effort, "service_tier": service_tier}
+    if "model_settings" in config and config["model_settings"] != expected:
+        raise ValueError("Requested settings differ from the session's declared settings")
+
+
 def run_trial(codex, entry, model, effort, service_tier, timeout):
     name, session, config = entry
+    validate_settings(config, model, effort, service_tier)
     record_path = session / "codex-run.json"
     events_path = session / "codex-events.jsonl"
     stderr_path = session / "codex-stderr.txt"
@@ -161,6 +182,9 @@ def main():
         parser.error("--timeout must be at least 60 seconds")
     try:
         pairs = selected_pairs(args.sessions, args.trial)
+        for pair in pairs:
+            for entry in pair:
+                validate_settings(entry[2], args.model, args.effort, args.service_tier)
     except (OSError, KeyError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     if args.dry_run:

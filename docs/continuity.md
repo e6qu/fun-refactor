@@ -25,8 +25,10 @@ The goal is a general CLI that helps agents understand unfamiliar code, make cha
 and write and check useful proofs with less total effort and context. Start with the
 [product review](product-review.md) and the plain-language [plan](../PLAN.md).
 
-Next, prepare honest Sonnet/Luna comparisons with complete parent/child token, cache, time and
-cost accounting. Use those results to simplify overlapping routes and choose useful analysis
+The [study planner and auditor](agent-study.md) now freeze task matrices and audit declared usage,
+including child agents and failed attempts. Integrate provider adapters, isolated workspaces, hidden
+graders and live spend controls next, then run the Sonnet/Luna pilot. No new live trials have run.
+Use those results to simplify overlapping routes and choose useful analysis
 improvements. The older two-task comparison consumed more calls, context and time with `fr`;
 general efficiency remains unproven. Test general language rules on unfamiliar projects; do not
 special-case the two repositories used in the recent scripted delivery tests.

@@ -24,7 +24,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'sdk/python/src'))
-from evidence_basis import file_digest
+from python_repository_basis import file_digest
 from fr_ir.context import DirectoryObjectStore
 from fr_ir.investigation import Dependency, DependencyKind, Evidence, EvidenceKind, TaskPlan, TaskStep
 from fr_ir.investigation_delivery import DeliveryReceipt, run_delivery
@@ -352,13 +352,13 @@ def replay(name, task, record):
 
 def bindings():
     paths = [*ROOT.glob('src/**/*.rs'), *ROOT.glob('crates/**/*.rs'), *ROOT.glob('sdk/python/src/fr_ir/*.py'),
-             *FIXTURE.iterdir(), ROOT / 'Cargo.lock', ROOT / 'tools/evidence_basis.py', Path(__file__).resolve()]
+             *FIXTURE.iterdir(), ROOT / 'Cargo.lock', ROOT / 'tools/evidence_basis.py', ROOT / 'tools/python_repository_basis.py', Path(__file__).resolve()]
     return {str(p.relative_to(ROOT)): file_digest(p) for p in sorted(paths) if p.is_file()}
 
 
 def audit(output):
     manifest = json.loads((output / 'result.json').read_text())
-    assert manifest['schema'] == 'fr-python-repository-acceptance-1'
+    assert manifest['schema'] == 'fr-python-repository-acceptance-2'
     assert manifest['execution'] == TASKS['execution']
     assert manifest['source_bindings'] == bindings(), 'stale repository acceptance source bindings'
     expected = {str(p.relative_to(output)): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -426,7 +426,7 @@ def main():
     records = {name: measure_task(args.fr.resolve(), name, task, args.output / name)
                for name, task in TASKS['tasks'].items()}
     assert initial_bindings == bindings(), 'acceptance inputs changed during execution'
-    manifest = {'schema': 'fr-python-repository-acceptance-1', 'execution': TASKS['execution'],
+    manifest = {'schema': 'fr-python-repository-acceptance-2', 'execution': TASKS['execution'],
         'runner': {'run_id': os.environ['GITHUB_RUN_ID'], 'revision': os.environ['GITHUB_SHA'],
                    'python': sys.version, 'repository': os.environ['GITHUB_REPOSITORY']},
         'source_bindings': initial_bindings, 'binary_sha256': hashlib.sha256(args.fr.read_bytes()).hexdigest(),

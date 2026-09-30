@@ -83,6 +83,10 @@ inventory counted the same tracked files; no build caches were traversed.
 
 ## Pilot before expanding or deleting subsystems
 
+The [study planner and evidence auditor](agent-study.md) now accept independent task manifests and
+account for declared parent and child invocations. They retain missing cells, failures and unknown costs.
+This is offline infrastructure; provider adapters and budget-enforcing execution remain unfinished.
+
 Use the existing runner in `tools/agent_eval/investigation_run.py` and its retained-event auditor
 as a starting point. It currently invokes Codex and its cohort validator names two Rust tasks.
 It does not yet provide a matched Sonnet comparison or complete child-agent accounting. Reuse

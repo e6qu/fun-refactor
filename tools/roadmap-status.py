@@ -15,6 +15,7 @@ import sys
 import tomllib
 
 from evidence_basis import file_digest
+from python_repository_basis import file_digest as python_repository_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = Path('tests/agent-eval/roadmap.json')
@@ -30,6 +31,7 @@ KINDS = {
     'fr-refinement-artifacts-1': 'model-proof',
     'fr-unknown-target-cohort-1': 'live-agent',
     'fr-python-repository-acceptance-1': 'deterministic',
+    'fr-python-repository-acceptance-2': 'deterministic',
 }
 
 
@@ -62,6 +64,8 @@ def pointer(value, path):
 def binding_digest(path, schema):
     # The cache evaluator normalizes workspace release versions in Cargo.toml.
     # Its source bindings otherwise use the shared evidence_basis convention.
+    if schema == 'fr-python-repository-acceptance-2':
+        return python_repository_digest(path)
     if schema != 'fr-flow-cache-acceptance-1' or path.name != 'Cargo.toml':
         return file_digest(path)
     manifest = tomllib.loads(path.read_text())

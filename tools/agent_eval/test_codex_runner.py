@@ -14,6 +14,68 @@ runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
 
 
+class PairIsolation(unittest.TestCase):
+    def prepare(self, root, settings):
+        names = [f"trial-{index}" for index in range(len(settings))]
+        (root / "experiment.json").write_text(json.dumps({"trials": names, "preserve_trial_order": True}))
+        for name, config in zip(names, settings):
+            session = root / name
+            session.mkdir()
+            (session / "session.json").write_text(json.dumps({"task": "unfamiliar", "repetition": 1, **config}))
+        return names
+
+    def test_models_and_modes_form_separate_pairs_in_declared_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            settings = [{"arm": arm, "model": model, "mode": mode}
+                        for model in ("a", "b") for mode in ("single", "delegated") for arm in ("files", "fr")]
+            names = self.prepare(root, settings)
+            pairs = runner.selected_pairs(root, list(reversed(names)))
+            self.assertEqual(len(pairs), 4)
+            self.assertEqual([entry[0] for pair in pairs for entry in pair], names)
+
+    def test_mismatched_inputs_refuse(self):
+        for field in ("repository_revision", "requirement_sha256", "grader_sha256", "budgets",
+                      "model_settings", "fr", "cache_state", "plan_sha256"):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                names = self.prepare(root, [{"arm": "fr", field: "changed"}, {"arm": "files"}])
+                with self.assertRaisesRegex(ValueError, f"unmatched {field}"):
+                    runner.selected_pairs(root, names)
+
+    def test_path_traversal_and_symlink_escape_refuse(self):
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as outside:
+            root = Path(tmp)
+            for name in ("../escape", outside, "linked"):
+                (root / "experiment.json").write_text(json.dumps({"trials": [name]}))
+                if name == "linked":
+                    (root / name).symlink_to(outside)
+                with self.assertRaisesRegex(ValueError, "path"):
+                    runner.selected_pairs(root, [name])
+
+    def test_malformed_arm_list_refuses_without_type_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "experiment.json").write_text(json.dumps({"trials": ["x"], "pair_arms": [{}, "fr"]}))
+            with self.assertRaisesRegex(ValueError, "two distinct"):
+                runner.selected_pairs(root, ["x"])
+
+
+class SettingsIsolation(unittest.TestCase):
+    def test_substitution_refuses_before_creating_run_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for config in ({"model": "declared-model"}, {"model_settings": {"reasoning_effort": "high", "service_tier": "default"}}):
+                with self.assertRaisesRegex(ValueError, "declared"):
+                    runner.run_trial(Path("missing-codex"), ("trial", root, config), "different-model", "low", "default", 60)
+                self.assertEqual(list(root.iterdir()), [])
+
+    def test_matching_settings_and_legacy_sessions_remain_valid(self):
+        runner.validate_settings({}, "chosen", "low", "default")
+        runner.validate_settings({"model": "chosen", "model_settings": {"reasoning_effort": "low", "service_tier": "default"}},
+                                 "chosen", "low", "default")
+
+
 class CodexRunner(unittest.TestCase):
     def sessions(self, root):
         names = ["task-fr-r1", "task-files-r1"]

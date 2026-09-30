@@ -6,6 +6,10 @@ and the command schemas.
 
 ## Evidence classes
 
+Use the [independent study planner and auditor](agent-study.md) for new matched comparisons.
+It records planned cells, failed outcomes and complete declared agent usage without invoking models.
+Its offline tests are infrastructure checks, not evidence of live-agent savings.
+
 - Deterministic protocol checks execute fixed workflows without a model.
 - Live-agent trials retain prompts, tool events, settings, usage and scores.
 - Matched cohorts give two agents the same requested outcomes and compare their exposed context.
@@ -834,8 +838,12 @@ artifact and review both files before committing them.
 Use the workstation guard for local checks. Neither a status report nor a passing repair establishes
 a source implementation proof, a live-agent efficiency claim, or complete roadmap delivery.
 
-The [retained repository acceptance](../tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json)
-passed on [GitHub run 36696869973](https://github.com/e6qu/fun-refactor/actions/runs/36696869973).
+The [retained repository acceptance](../tests/agent-eval/results/2026-09-30-study-python-repositories/result.json)
+passed on [GitHub run 36725830446](https://github.com/e6qu/fun-refactor/actions/runs/36725830446).
+Schema 2 ignores only the marked SDK release-version literal when comparing source bindings.
+Other source changes still invalidate the evidence. The
+[original schema 1 receipts](../tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json)
+remain unchanged; use their recorded evaluator revision for historical replay.
 It contains 102 singularization cases and 263 tail-count cases, including unbounded negative integers.
 The declared upstream files pass 17 and 148 tests; the latter also reports 9,884 subtests.
 Both plans invalidate analysis and outcome after the semantic edit, preserve their independent step,
