@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.41.0...fun-refactor-v0.41.1) (2026-09-30)
+
+
+### Tests
+
+* refocus the roadmap on useful, efficient agent work ([#395](https://github.com/e6qu/fun-refactor/issues/395)) ([2d9b460](https://github.com/e6qu/fun-refactor/commit/2d9b460fc8bff09dd3f7a16a770eda3998d2980c))
+
 ## [0.41.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.40.0...fun-refactor-v0.41.0) (2026-09-30)
 
 
