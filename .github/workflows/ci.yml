@@ -19,6 +19,20 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  agent-study:
+    name: Independent agent study accounting
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - run: python3 tools/agent_eval/test_study.py
+      - run: python3 tools/agent_eval/test_codex_runner.py
+      - run: python3 tools/roadmap-status.py --check
+      - run: python3 tools/check-prose.py
+
   # A pull request is squash-merged, so its title becomes the subject of the one
   # commit that lands on `main`. `release-please` reads those subjects to decide
   # the next version and to write the changelog. A subject it cannot classify is
@@ -154,7 +168,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static]
+    needs: [native, static, agent-study]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -163,7 +177,8 @@ jobs:
         env:
           NATIVE: ${{ needs.native.result }}
           STATIC: ${{ needs.static.result }}
-        run: test "$NATIVE" = success && test "$STATIC" = success
+          AGENT_STUDY: ${{ needs.agent-study.result }}
+        run: test "$NATIVE" = success && test "$STATIC" = success && test "$AGENT_STUDY" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
