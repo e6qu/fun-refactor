@@ -1,0 +1,4 @@
+path.parent.mkdir(parents=True, exist_ok=True)
+text = json.dumps(value, indent=2, sort_keys=True) + '\n'
+assert len(text.encode()) <= TASKS['budgets']['report_bytes'], 'retained report exceeds the declared byte budget'
+path.write_text(text)

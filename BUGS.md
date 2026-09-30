@@ -23,6 +23,10 @@ No actionable correctness defect is currently recorded.
 
 ## Recently fixed
 
+Next.js runtime tests now signal their owned process group through the typed process API.
+Cleanup stops descendants that ignore TERM.
+A [regression](tests/migration_runtime.rs) checks that descendants stop and an unrelated process group keeps running.
+
 Staged history replacements now require the reviewed bytes, kind and mode before publication.
 Recovery rechecks restored paths and synchronizes their ancestors before clearing pending state.
 The [fault corpus](src/history/host/tests.rs) covers altered staging files and failed recovery checkpoints.

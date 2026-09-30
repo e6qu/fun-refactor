@@ -55,7 +55,14 @@ broader validation behavior still need models and independent oracles.
 PR #392 added single-root namespace dependencies and partitioned the complete PR test
 gate across native and SDK runners. Every successful shard retains its inventory and
 capability log; the final gate checks complete assignment and combined coverage.
-The next analysis extension covers ordered scalar assignments and exact target origins.
+PR #393 completed ordered scalar assignments and exact target origins, with all 276 native
+targets and 916 SDK cases assigned exactly once and 311/311 capabilities covered at that baseline.
+
+The next integrated outcome is tracked by the [generated roadmap ledger](roadmap-status.md):
+18 stable obligations separate implemented engineering, demonstrated outcomes and open gates.
+Pinned boltons and more-itertools tasks exercise checked bug/feature delivery after semantic
+interruption. Their results remain deterministic acceptance; repeated live trials and source
+implementation proofs stay open. Keep the ledger current with `tools/roadmap-status.py --check`.
 
 ## Validation
 

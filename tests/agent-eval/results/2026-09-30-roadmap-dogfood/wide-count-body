@@ -1,0 +1,39 @@
+from more_itertools import take
+failures, count = [], 0
+def expect(label, operation, wanted):
+    nonlocal count
+    count += 1
+    try: actual = operation()
+    except Exception as error: actual = type(error).__name__
+    if actual != wanted: failures.append([label, wanted, actual])
+for length in range(10):
+    values = list(range(length))
+    for amount in range(-12, 13):
+        expected = values[amount:] if amount < 0 else values[:amount]
+        expect(f'{length}:{amount}', lambda: take(amount, iter(values)), expected)
+class Index:
+    def __index__(self): return -3
+expect('index protocol', lambda: take(Index(), range(8)), [5, 6, 7])
+expect('all', lambda: take(None, range(4)), [0, 1, 2, 3])
+expect('unbounded integer tail count', lambda: take(-(10 ** 100), range(4)), [0, 1, 2, 3])
+for bad in (1.5, -1.5, '2', object()):
+    expect('nonintegral', lambda: take(bad, range(3)), 'TypeError')
+for amount in (0, 2, -2):
+    seen = []
+    def values():
+        for value in range(5):
+            seen.append(value)
+            yield value
+    try: take(amount, values())
+    except Exception: pass  # Baseline failures are retained by the value checks.
+    expect(f'consumption:{amount}', lambda: seen, [] if amount == 0 else [0, 1] if amount > 0 else list(range(5)))
+expect('boolean count', lambda: take(True, range(3)), [0])
+import tracemalloc
+tracemalloc.start()
+try:
+    expect('large finite stream', lambda: take(-3, range(100_000)), [99_997, 99_998, 99_999])
+    _, peak = tracemalloc.get_traced_memory()
+finally:
+    tracemalloc.stop()
+expect('bounded tail storage', lambda: peak < 262_144, True)
+return count, failures

@@ -123,8 +123,12 @@ impl Drop for RunningNext {
     fn drop(&mut self) {
         #[cfg(unix)]
         {
-            let group = format!("-{}", self.child.id());
-            let _ = Command::new("kill").args(["-TERM", &group]).status();
+            if let Some(group) = i32::try_from(self.child.id())
+                .ok()
+                .and_then(rustix::process::Pid::from_raw)
+            {
+                let _ = rustix::process::kill_process_group(group, rustix::process::Signal::KILL);
+            }
         }
         let _ = self.child.kill();
         let _ = self.child.wait();
@@ -780,4 +784,46 @@ fn fastapi_payload_keys_and_values_survive_nextjs_generation() {
                 .any(|error| error["loc"] == serde_json::json!(["body", "labels", 0])));
         }
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn nextjs_cleanup_stops_owned_descendants_and_preserves_other_groups() {
+    use std::thread::sleep;
+    use std::time::{Duration, Instant};
+
+    let directory = tempfile::tempdir().unwrap();
+    let heartbeat = directory.path().join("heartbeat");
+    let mut unrelated = RunningNext {
+        child: Command::new("sleep")
+            .arg("30")
+            .process_group(0)
+            .spawn()
+            .unwrap(),
+    };
+    let server = RunningNext {
+        child: Command::new("python3")
+            .arg(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/migration-runtime/process-tree.py"
+            ))
+            .arg("parent")
+            .arg(&heartbeat)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .process_group(0)
+            .spawn()
+            .unwrap(),
+    };
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !heartbeat.exists() && Instant::now() < deadline {
+        sleep(Duration::from_millis(10));
+    }
+    assert!(heartbeat.exists(), "descendant did not start");
+    drop(server);
+    sleep(Duration::from_millis(50));
+    let stopped = fs::read(&heartbeat).unwrap();
+    sleep(Duration::from_millis(100));
+    assert_eq!(fs::read(&heartbeat).unwrap(), stopped);
+    assert!(unrelated.child.try_wait().unwrap().is_none());
 }
