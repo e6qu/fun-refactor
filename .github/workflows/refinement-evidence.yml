@@ -156,6 +156,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
+          cache-on-failure: true
       - run: cargo build --locked
       - name: Execute pinned upstream tasks and independent replay
         run: python3 tools/python-repository-acceptance.py --output "$RUNNER_TEMP/roadmap-evidence"

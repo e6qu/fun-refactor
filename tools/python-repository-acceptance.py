@@ -357,6 +357,12 @@ def audit(output):
         store = DirectoryObjectStore(output / name / 'objects')
         receipt = DeliveryReceipt.restore(store, record['receipt_root'])
         assert receipt.passed and receipt.result.to_data() == record['delivery']
+        assert receipt.manifest['acceptance_checks'] == ['behavior', 'upstream']
+        assert record['review']['task_change_basis'] == receipt.result.task_change_basis
+        exported = next(s['result'] for s in record['delivery']['workflow']['stages'] if s['stage'] == 'deliver-patch')
+        assert exported['sha256'] == hashlib.sha256(record['patch'].encode()).hexdigest()
+        assert exported['bytes'] == len(record['patch'].encode())
+        assert next(s for s in record['interruption']['reopened']['plan']['steps'] if s['id'] == 'independent')['state'] == 'satisfied'
         initial = TaskPlan.restore(store, record['initial_plan_root'])
         final = TaskPlan.restore(store, record['final_plan_root'])
         assert initial.steps[1].state.value == 'satisfied'
@@ -386,10 +392,14 @@ def main():
         raise SystemExit('Generate repository acceptance on GitHub Actions; local regeneration is disabled.')
     assert args.output and not args.output.exists()
     args.output.mkdir(parents=True)
+    initial_bindings = bindings()
     records = {name: measure_task(args.fr.resolve(), name, task, args.output / name)
                for name, task in TASKS['tasks'].items()}
+    assert initial_bindings == bindings(), 'acceptance inputs changed during execution'
     manifest = {'schema': 'fr-python-repository-acceptance-1', 'execution': TASKS['execution'],
-        'source_bindings': bindings(), 'binary_sha256': hashlib.sha256(args.fr.read_bytes()).hexdigest(),
+        'runner': {'run_id': os.environ['GITHUB_RUN_ID'], 'revision': os.environ['GITHUB_SHA'],
+                   'python': sys.version, 'repository': os.environ['GITHUB_REPOSITORY']},
+        'source_bindings': initial_bindings, 'binary_sha256': hashlib.sha256(args.fr.read_bytes()).hexdigest(),
         'tasks': {name: {'complete': row['complete'], 'oracle_cases': row['oracle']['cases']} for name, row in records.items()},
         'artifacts': {str(p.relative_to(args.output)): hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in sorted(args.output.rglob('*')) if p.is_file()}}
