@@ -79,6 +79,16 @@ class SettingsIsolation(unittest.TestCase):
 
 
 class CodexRunner(unittest.TestCase):
+    def test_version_probe_has_bounded_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "codex"
+            fake.write_text("#!/bin/sh\necho fake-version\n")
+            fake.chmod(0o700)
+            self.assertEqual(runner.codex_version(fake), "fake-version")
+            fake.write_text("#!/bin/sh\nhead -c 100000 /dev/zero\n")
+            with self.assertRaisesRegex(ValueError, "probe failed"):
+                runner.codex_version(fake)
+
     def sessions(self, root):
         names = ["task-fr-r1", "task-files-r1"]
         (root / "experiment.json").write_text(json.dumps({"trials": names}))

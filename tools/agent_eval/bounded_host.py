@@ -125,6 +125,14 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
                 code = process.wait(timeout=5)
                 process.stdout.close()
                 process.stderr.close()
+    try:
+        stdout.flush()
+        stderr.flush()
+        growth = max(growth, disk_size(workspace) - initial_disk)
+        if reason is None and growth > disk_bytes:
+            reason = "disk_bytes"
+    except OSError as failure:
+        error, reason = str(failure), "monitor_error"
     return {"exit_code": 124 if reason == "wall_seconds" else (125 if reason and process else code),
             "process_exit_code": code,
             "timed_out": reason == "wall_seconds", "stop_reason": reason,

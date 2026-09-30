@@ -243,6 +243,15 @@ class HostBudget(unittest.TestCase):
 
 
 class BoundedHost(unittest.TestCase):
+    def test_fast_exit_cannot_hide_retained_disk_growth(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            command = [sys.executable, "-c", f'from pathlib import Path; Path({str(root / "growth")!r}).write_bytes(b"x"*4096)']
+            result = run(command, b"", io.BytesIO(), io.BytesIO(), root, wall_seconds=3, disk_bytes=1024)
+            self.assertEqual(result["stop_reason"], "disk_bytes")
+            self.assertGreaterEqual(result["sampled_disk_growth_bytes"], 4096)
+            self.assertNotEqual(result["exit_code"], 0)
+
     def execute(self, code, **limits):
         with tempfile.TemporaryDirectory() as directory:
             out, err = io.BytesIO(), io.BytesIO()
