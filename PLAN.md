@@ -7,6 +7,12 @@ This file tracks unfinished outcomes and their completion gates. The [architectu
 holds the baseline and design rationale. The [documentation map](docs/README.md) describes current features.
 Use `fr --json audit` and `fr capabilities` for live support and refusal reasons.
 
+The [generated status](docs/roadmap-status.md) is the current acceptance ledger. Its
+[versioned catalog](tests/agent-eval/roadmap.json) names 18 finite obligations, their exact pass
+conditions, evidence identities, source freshness and next actions. `tools/roadmap-status.py --check`
+rejects report drift and inconsistent evidence claims. Engineering checkboxes below are not milestone
+completion; changing a closure condition requires a reviewed catalog change.
+
 ## Completion criteria
 
 The roadmap is complete when all four milestones pass their gates within explicit language and
@@ -175,6 +181,21 @@ Strict verification rejects stale evidence and hidden proof debt. Delivery passe
 Source implementation claims require a checked correspondence argument or verified generation path.
 
 ## Current implementation and remaining gates
+
+The active acceptance profile is `agent-analysis-v1`: bounded Python analysis and Rust/Python
+checked changes. [Obligations A.exact through D.host](docs/roadmap-status.md#finite-acceptance-obligations)
+make the gates finite without equating parser coverage with semantic support. The next integrated
+work is task-specific semantic contracts and flow oracles (`B.contract`, `B.repository-flow`),
+repository mutation/performance coverage (`C.repository-mutations`, `C.performance`), then bounded
+translation and source correspondence (`D.translation`, `D.existing-proof`, `D.new-proof`).
+Repeated live trials (`A.live-repeat`) stay separate from deterministic acceptance.
+
+The [pinned Python repository tasks](tests/agent-eval/python-repositories/task.json) connect discovery,
+semantic interruption, fresh-process resumption, checked delivery and receiver replay on boltons and
+more-itertools. Their [auditor](tools/python-repository-acceptance.py) checks retained immutable receipts
+and independently replays public behavior. Unsupported flow and wildcard-import insertion remain
+explicit boundaries. Consult the generated ledger for passing evidence rather than inferring success
+from the existence of a fixture or evaluator.
 
 The [investigation contract](docs/agent-investigations.md) documents exact relationship/reference/flow
 occurrences, bounded Python scalar propagation, dependency-bound local plans, immutable plan storage,

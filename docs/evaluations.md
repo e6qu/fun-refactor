@@ -774,3 +774,51 @@ The [dogfood manifest](../tests/agent-eval/results/2026-09-30-assignments-dogfoo
 retains actual guarded `fr` previews and applications for existing function edits. Compilation,
 full gates and evidence regeneration run on GitHub. These finite deterministic results do not
 establish source equivalence, path feasibility or general efficiency.
+
+## Roadmap outcomes on pinned Python repositories
+
+The [roadmap catalog](../tests/agent-eval/roadmap.json) defines the `agent-analysis-v1` acceptance
+profile. The [generated status](roadmap-status.md) separates engineering checkbox counts from
+18 finite outcome obligations and records exact stale source inputs. Missing, historical or stale
+evidence cannot close a current gate. Evidence kinds stay distinct: deterministic execution,
+measurements, live trials, model proofs and source correspondence are not interchangeable.
+The status command audits identities and assertions; the linked behavioral evaluators remain
+required in CI. The Rust integration gate checks generated-report drift and mutation tests.
+
+The [repository task contract](../tests/agent-eval/python-repositories/task.json) pins full source
+archives, revisions, SHA-256 identities, budgets and upstream licenses for two tasks:
+
+- **boltons:** reproduce a historical singularization defect for already-singular double-s words,
+  preserve case and irregular/plural conversion, and restore a deliberately perturbed case helper.
+- **more-itertools:** extend public `take` with negative tail counts on finite iterables, preserve
+  positive/zero/None/index-protocol behavior, reject nonintegral counts with TypeError, and update
+  the explicitly superseded negative-count test. Independent probes check consumption and that
+  selecting three values from 100,000 stays below 256 KiB of traced Python allocations.
+
+These are deterministic, agent-authored solutions. Symbols are discovered through bounded `fr`
+queries; the Python runtime definition is explicitly selected over its ambiguous stub candidate.
+The helper is discovered from revealed call syntax. Discovery is not claimed to be target-free
+reasoning by a fresh agent. The feature changes a requested contract, rather than claiming an
+upstream bug. Only the named upstream test files and independent behavior oracles are acceptance
+checks; this is not a claim that either entire upstream suite passed.
+
+The evaluator first checks the unmodified failing behavior and passing upstream regression file.
+It persists an observation and an independent README observation, obtains a reviewed mutation,
+then performs a semantic external edit. A fresh process reopens the plan; affected evidence becomes
+stale while the README observation survives. The old review must refuse. Fresh targets and a new
+review deliver through syntax checks, explicit post-change behavior and upstream checks, undo,
+redo and patch export. Immutable receipts and final plans are retained. Independent receivers
+start from the interrupted source, apply the patch, verify public behavior, reverse exactly, and
+apply it again. The receiver oracle does not import the evaluator's implementation of the repair.
+
+Actual dataflow reports retain incomplete analysis and its reasons. Probe rules do not establish
+useful task-level flow accuracy, so `B.repository-flow` remains open. Insertion into the public
+wildcard-import module is separately attempted and must retain the explicit refusal. Existing-body
+replacement does not establish that public API insertion or dynamic exports are supported.
+
+Run the `python-repositories` group of **Refresh refinement evidence** on GitHub. Its dedicated
+job has a 15-minute limit and omits the Lean toolchain. Full generation is disabled locally.
+Retained evidence is audited with `tools/python-repository-acceptance.py --audit DIRECTORY`;
+roadmap reports are regenerated with `tools/roadmap-status.py --write` after reviewing catalog changes.
+Use the workstation guard for local checks. Neither a status report nor a passing repair establishes
+a source implementation proof, a live-agent efficiency claim, or complete roadmap delivery.

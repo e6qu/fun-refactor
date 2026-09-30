@@ -1,0 +1,460 @@
+{
+  "baseline": "cdc17dca7ce2564cb21a1e7077e38c7cab572712",
+  "boundaries": [
+    "This finite acceptance profile targets Python static scalar/package analysis and bounded Rust/Python checked changes; 19 parser identities do not imply equal semantic support.",
+    "The historical Rust live cohort remains separate from deterministic Python tasks. No population efficiency, token savings or automatic milestone completion is inferred.",
+    "Current means the report's declared source bindings match; it does not establish that all real dependencies were declared. Behavioral auditors remain required.",
+    "Model theorems, exact syntax origins and tested behavior are distinct from source implementation proofs. Neither retained Boolean relations nor repair success closes proof gates.",
+    "Dynamic imports, package initialization effects, runtime dispatch, multi-root namespace merging and wildcard export insertion remain explicit boundaries unless a pinned profile is extended.",
+    "Changing pass conditions or language profiles requires a reviewed catalog change. Broader languages and production performance require a new profile rather than silently expanding or shrinking this one."
+  ],
+  "evidence": [
+    {
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-facts/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "exact-facts",
+      "integrity": "checked",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-09-30-assignments-flow-facts/result.json",
+      "scope": "Nine scalar cases; exact AST links, omissions and stale refusal."
+    },
+    {
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "package-flow",
+      "integrity": "checked",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json",
+      "scope": "Finite package fixtures, clean agreement, repair and feature replay."
+    },
+    {
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json",
+      "changed_sources": [],
+      "freshness": "unknown",
+      "id": "repository-tasks",
+      "integrity": "missing",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json",
+      "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
+    },
+    {
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "cache-measurements",
+      "integrity": "checked",
+      "kind": "measurement",
+      "path": "tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json",
+      "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
+    },
+    {
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "host-recovery",
+      "integrity": "checked",
+      "kind": "fault-injection",
+      "path": "tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
+      "scope": "224 model cases and native process interruption boundaries; not power loss."
+    },
+    {
+      "audit": "python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change",
+      "changed_sources": [],
+      "freshness": "historical",
+      "id": "structural",
+      "integrity": "checked",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-09-28-structural-change/manifest.json",
+      "scope": "Rust rename/signature migration with 49 calls; frozen source bindings."
+    },
+    {
+      "audit": "python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons",
+      "changed_sources": [],
+      "freshness": "historical",
+      "id": "model-relations",
+      "integrity": "checked",
+      "kind": "model-proof",
+      "path": "tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json",
+      "scope": "Three Boolean model relations; no source implementation correspondence."
+    },
+    {
+      "audit": "python3 tools/investigation-cohort.py",
+      "changed_sources": [],
+      "freshness": "historical",
+      "id": "rust-live-cohort",
+      "integrity": "checked",
+      "kind": "live-agent",
+      "path": "tests/agent-eval/unknown-target/cohort.json",
+      "scope": "Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only."
+    },
+    {
+      "audit": "python3 tools/compiler-evidence-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "compiler-evidence",
+      "integrity": "checked",
+      "kind": "compiler",
+      "path": "tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json",
+      "scope": "Pinned rustc/Cargo diagnostics, toolchain drift, disagreement and exact occurrence tests; consolidated task profile still open."
+    }
+  ],
+  "milestones": {
+    "A": {
+      "demonstrated": 1,
+      "engineering": {
+        "done": 6,
+        "total": 6
+      },
+      "remaining": [
+        "A.repositories",
+        "A.live-repeat",
+        "A.compiler-profile"
+      ],
+      "state": "open",
+      "total": 4
+    },
+    "B": {
+      "demonstrated": 1,
+      "engineering": {
+        "done": 4,
+        "total": 5
+      },
+      "remaining": [
+        "B.contract",
+        "B.repository-flow",
+        "B.effects"
+      ],
+      "state": "open",
+      "total": 4
+    },
+    "C": {
+      "demonstrated": 1,
+      "engineering": {
+        "done": 6,
+        "total": 6
+      },
+      "remaining": [
+        "C.resume",
+        "C.repository-mutations",
+        "C.performance"
+      ],
+      "state": "open",
+      "total": 4
+    },
+    "D": {
+      "demonstrated": 1,
+      "engineering": {
+        "done": 1,
+        "total": 6
+      },
+      "remaining": [
+        "D.checked",
+        "D.structural",
+        "D.translation",
+        "D.existing-proof",
+        "D.new-proof"
+      ],
+      "state": "open",
+      "total": 6
+    }
+  },
+  "milestones_complete": 0,
+  "obligations": [
+    {
+      "acceptance": "Nine scalar positive/negative facts retain exact origins, no false claims and explicit cutoffs.",
+      "blockers": [],
+      "id": "A.exact",
+      "kind": "deterministic",
+      "next": "Keep the exact-coordinate oracle current.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": 0,
+              "pointer": "/false_claims"
+            },
+            {
+              "equals": 11,
+              "pointer": "/validated_semantic_links"
+            }
+          ],
+          "evidence": "exact-facts"
+        }
+      ],
+      "state": "demonstrated"
+    },
+    {
+      "acceptance": "Pinned boltons bug and more-itertools feature both pass independent behavior, checked delivery and replay.",
+      "blockers": [
+        "repository-tasks: missing evidence"
+      ],
+      "id": "A.repositories",
+      "kind": "deterministic",
+      "next": "Retain both source-bound repository outcomes.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": true,
+              "pointer": "/tasks/singularize-idempotency/complete"
+            },
+            {
+              "equals": true,
+              "pointer": "/tasks/take-tail-counts/complete"
+            }
+          ],
+          "evidence": "repository-tasks"
+        }
+      ],
+      "state": "open"
+    },
+    {
+      "acceptance": "Two repetitions of bug and feature on each of the two Python snapshots, with fr and ordinary arms (16 attempts), retain all failures, context and latency.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "A.live-repeat",
+      "kind": "live-agent",
+      "next": "Authorize and run the pinned matched cohort; deterministic scripts cannot satisfy it.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Pin Rust and Python task profiles; build/check inputs, disagreements, same-line calls, shadowing and Unicode evidence have explicit positive and refusal cases.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "A.compiler-profile",
+      "kind": "compiler",
+      "next": "Consolidate compiler/origin tests into a source-bound task-profile report.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Package helper tracing and negative sanitization retain complete scalar reports and zero false claims.",
+      "blockers": [],
+      "id": "B.scalar",
+      "kind": "deterministic",
+      "next": "Keep the admitted scalar package corpus current.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": true,
+              "pointer": "/positive/complete"
+            },
+            {
+              "equals": true,
+              "pointer": "/negative/complete"
+            },
+            {
+              "equals": 0,
+              "pointer": "/false_claims"
+            }
+          ],
+          "evidence": "package-flow"
+        }
+      ],
+      "state": "demonstrated"
+    },
+    {
+      "acceptance": "Versioned Python task subset maps evaluation order, calls, assignments, exceptions and origins to authoring semantics; each admitted construct has compatibility/refusal cases.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "B.contract",
+      "kind": "semantic-contract",
+      "next": "Pin the contract against the two repository tasks; classify every encountered construct.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Both repository tasks have independent positive/negative value-flow oracles; every unsupported path is an explicit cutoff, with no absence claim from incomplete analysis.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "B.repository-flow",
+      "kind": "deterministic",
+      "next": "Add task-specific flow rules and runtime flow oracles; current empty-rule probes do not qualify.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Pinned explicit-raise, implicit-exception, handler and alias cases distinguish supported semantics from refused effects with exact origins.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "B.effects",
+      "kind": "deterministic",
+      "next": "Extend only effects required by the task profile and retain positive/negative boundaries.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Both real tasks reopen in a fresh process after semantic drift, invalidate dependent evidence, preserve independent evidence and reject old reviews.",
+      "blockers": [
+        "repository-tasks: missing evidence"
+      ],
+      "id": "C.resume",
+      "kind": "deterministic",
+      "next": "Keep retained immutable plans and receipt replay current.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": true,
+              "pointer": "/tasks/singularize-idempotency/complete"
+            },
+            {
+              "equals": true,
+              "pointer": "/tasks/take-tail-counts/complete"
+            }
+          ],
+          "evidence": "repository-tasks"
+        }
+      ],
+      "state": "open"
+    },
+    {
+      "acceptance": "Static package dependency edits and unrelated edits produce the same result as clean analysis; warm reuse and reopened plans are retained.",
+      "blockers": [],
+      "id": "C.clean",
+      "kind": "deterministic",
+      "next": "Keep package invalidation and clean comparison current.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": true,
+              "pointer": "/warm_reused"
+            },
+            {
+              "equals": true,
+              "pointer": "/reopened/complete"
+            },
+            {
+              "equals": 0,
+              "pointer": "/false_claims"
+            }
+          ],
+          "evidence": "package-flow"
+        }
+      ],
+      "state": "demonstrated"
+    },
+    {
+      "acceptance": "Both repository profiles cover rename, move, deletion, new candidate, configuration/analyzer drift and negative lookup changes; unaffected evidence survives.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "C.repository-mutations",
+      "kind": "deterministic",
+      "next": "Run the existing synthetic mutation matrix against the pinned upstream task dependencies.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Three repetitions of cold/warm/single-edit task analysis on both upstream snapshots retain latency, sampled aggregate RSS, context, recomputation and clean agreement.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "C.performance",
+      "kind": "measurement",
+      "next": "Add repository-scale measurements; historical six-workload scalar timings are supporting evidence only.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Bug and feature outcomes pass explicit checks, lifecycle reversal, independent receiver replay and immutable completion receipts.",
+      "blockers": [
+        "repository-tasks: missing evidence"
+      ],
+      "id": "D.checked",
+      "kind": "deterministic",
+      "next": "Keep both public behavior oracles and receipts current.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": true,
+              "pointer": "/tasks/singularize-idempotency/complete"
+            },
+            {
+              "equals": true,
+              "pointer": "/tasks/take-tail-counts/complete"
+            }
+          ],
+          "evidence": "repository-tasks"
+        }
+      ],
+      "state": "open"
+    },
+    {
+      "acceptance": "Pin one structural task in each language profile with affected consumers, declared configuration/tests, compiled/runtime behavior, reversal and replay.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "D.structural",
+      "kind": "deterministic",
+      "next": "Extend the historical Rust task to Python; retain wildcard export insertion as unsupported.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Pin one Rust/Python pure-function translation with bounded integer arithmetic, Boolean control and explicit overflow/error/evaluation-order contracts; independent exhaustive bounded and boundary checks.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "D.translation",
+      "kind": "deterministic",
+      "next": "Declare the finite source/target domain and retain a task outcome beyond Boolean model relations.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "For one existing task kernel retain property, model, old/new implementation and a checked source correspondence argument; reject stale proof inputs.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "D.existing-proof",
+      "kind": "source-proof",
+      "next": "Build the source-to-model bridge; syntax origins and model theorems do not satisfy this gate.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Author one new task kernel and specification together, retain implementation correspondence, strict Lean verification, behavior checks and receiver replay.",
+      "blockers": [
+        "No qualifying retained evidence yet"
+      ],
+      "id": "D.new-proof",
+      "kind": "source-proof",
+      "next": "Pin the co-designed kernel and its trusted components before implementation.",
+      "requires": [],
+      "state": "open"
+    },
+    {
+      "acceptance": "Native process-interruption recovery exercises the declared journal boundaries and all 224 executable kernel cases.",
+      "blockers": [],
+      "id": "D.host",
+      "kind": "fault-injection",
+      "next": "Preserve process-interruption scope; power loss stays outside this claim.",
+      "requires": [
+        {
+          "assertions": [
+            {
+              "equals": 224,
+              "pointer": "/model_cases"
+            }
+          ],
+          "evidence": "host-recovery"
+        }
+      ],
+      "state": "demonstrated"
+    }
+  ],
+  "profile": "agent-analysis-v1",
+  "schema": "fr-roadmap-status-1"
+}
