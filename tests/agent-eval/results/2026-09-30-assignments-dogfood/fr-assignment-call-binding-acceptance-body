@@ -1,0 +1,10 @@
+original_audit(value)
+for name in ("positive", "negative", "after"):
+    report = value[name]
+    summaries = package.FunctionSummaries.from_report(package.FrReport(report, ()))
+    assert report["semantics"] in {"python-scalar-summaries-3", "python-scalar-summaries-4", "python-scalar-summaries-5"}
+    assert summaries.call_binding is not None
+    assert summaries.call_binding.implicit_exceptions is False
+    assert report["inputs"]["call_binding"] == report["call_binding"]
+assert value["baseline"]["fr_complete"] is False
+assert "unsupported-expression:keyword_argument" in value["baseline"]["fr_cutoffs"]

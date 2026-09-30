@@ -45,6 +45,7 @@ stages.
 - [Expression control](expression-control.md): ordered Python scalar flow, short-circuit calls and analysis boundaries.
 - [Python call binding](call-binding.md): parameter kinds, ordered arguments and versioned contracts.
 - [Literal defaults](literal-defaults.md): immutable default binding and exact typed signature origins.
+- [Scalar assignments](scalar-assignments.md): ordered unpacking, swaps and chained local writes.
 - [Namespace packages](namespace-packages.md): static single-root imports and typed directory dependencies.
 - [Body authoring](body-authoring.md): replace bodies and coordinate declarations.
 - [Disclosed editing](disclosed-editing.md): edit through returned scalar and typed-IR capabilities.

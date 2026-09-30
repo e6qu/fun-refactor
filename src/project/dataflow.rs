@@ -13,6 +13,9 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
 use tree_sitter::Node;
 
+#[path = "flow_assignments.rs"]
+mod assignments;
+
 #[path = "flow_calls.rs"]
 mod calls;
 
@@ -462,7 +465,13 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
                     .child_by_field_name("left")
                     .or_else(|| node.child_by_field_name("name"))
                 {
-                    if left.kind() == "identifier" {
+                    if self.solver.enabled {
+                        if let Some(names) = assignments::target_names(left) {
+                            locals.extend(names.into_iter().map(|name| self.text(name).to_owned()));
+                        } else {
+                            self.cutoff("unsupported-local-binding");
+                        }
+                    } else if left.kind() == "identifier" {
                         locals.insert(self.text(left).to_owned());
                     } else {
                         self.cutoff("unsupported-local-binding");
@@ -576,7 +585,9 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
         match node.kind() {
             "expression_statement" => {
                 for expression in node.named_children(&mut node.walk()) {
-                    if expression.kind() == "assignment" {
+                    if expression.kind() == "assignment" && self.solver.enabled {
+                        self.scalar_assignment(expression, state);
+                    } else if expression.kind() == "assignment" {
                         let (Some(left), Some(right)) = (
                             expression.child_by_field_name("left"),
                             expression.child_by_field_name("right"),
@@ -850,6 +861,7 @@ impl Project<'_> {
             "budget":{"steps":options.steps,"depth":options.depth,"bytes":options.bytes},
             "summary_mode":options.summaries,
             "call_binding":if options.summaries {call_contract()} else {Value::Null},
+            "assignment_control":if options.summaries {assignments::contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
             "dependency_scope":"entire defining file, negative same-file lookups, all indexed manifests/lockfiles, rules and analyzer; no imported execution."});
         if let Some(modules) = &modules {
@@ -970,7 +982,7 @@ impl Project<'_> {
             analyzer.invoke(&entry, function, arguments)
         };
         let mut report = json!({"schema": "fr-dataflow-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "coverage": self.coverage(), "target": options.target,
-            "semantics": if options.summaries {"python-scalar-summaries-4"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
+            "semantics": if options.summaries {"python-scalar-summaries-5"} else {"python-scalar-fixed-point-2"}, "claim": "possible-value-propagation",
             "scope": if options.imports {"selected function and static workspace-local module/package closure."} else {"selected function and direct helpers in the same file."},
             "complete": analyzer.cutoffs.is_empty(), "cutoffs": analyzer.cutoffs,
             "assumptions": ["scalar values; no aliases, monkey patching or implicit flows.", "branch feasibility unchecked",
@@ -983,6 +995,7 @@ impl Project<'_> {
             "origins":analyzer.origins,"control_flow":analyzer.graphs, "summaries":analyzer.summaries, "exceptional_returns":analyzer.exceptional_returns,
             "function_summaries":analyzer.solver.report(),
             "call_binding":if options.summaries {call_contract()} else {Value::Null},
+            "assignment_control":if options.summaries {assignments::contract()} else {Value::Null},
             "expression_control":if options.summaries {expression_contract()} else {Value::Null},
             "completion":if options.summaries {json!({"normal_return":analyzer.normal_return,"may_raise":analyzer.may_raise})} else {Value::Null},
             "budget": {"steps": options.steps, "used": options.steps - analyzer.remaining, "call_depth": options.depth, "response_bytes": options.bytes}});

@@ -213,6 +213,7 @@ def test_old_contracts_remain_readable_without_new_capabilities(tmp_path, versio
     data["semantics"] = f"python-scalar-summaries-{version}"
     data.pop("call_binding"); data["inputs"].pop("call_binding")
     for item in data["function_summaries"]["functions"].values(): item.pop("signature")
+    data.pop("assignment_control"); data["inputs"].pop("assignment_control")
     if version == 1:
         data.pop("expression_control"); data["inputs"].pop("expression_control")
     result = FunctionSummaries.from_report(FrReport(data, ()))

@@ -1,0 +1,100 @@
+{
+        ensure!(
+            std::fs::metadata(path)?.len() <= 1_048_576,
+            "retained flow exceeds 1 MiB"
+        );
+        let mut report: Value = serde_json::from_slice(&crate::vfs::read(path)?)?;
+        ensure!(hash(&report)? == digest, "retained flow digest mismatch");
+        ensure!(
+            report["schema"] == "fr-dataflow-1",
+            "expected a retained dataflow report"
+        );
+        if report["inputs"] != *inputs || report["complete"] != true {
+            return Ok(None);
+        }
+        ensure!(
+            report["input_digest"] == hash(inputs)?
+                && report["semantics"]
+                    == if inputs["summary_mode"] == true {
+                        "python-scalar-summaries-5"
+                    } else {
+                        "python-scalar-fixed-point-2"
+                    },
+            "retained flow has inconsistent analysis identities."
+        );
+        ensure!(
+            report["expression_control"] == inputs["expression_control"],
+            "retained flow has inconsistent expression control."
+        );
+        ensure!(
+            report["call_binding"] == inputs["call_binding"],
+            "retained flow has inconsistent call binding."
+        );
+        ensure!(
+            report["assignment_control"] == inputs["assignment_control"],
+            "retained flow has inconsistent assignment control."
+        );
+        let revision = report["revision"].as_str().unwrap_or_default().to_owned();
+        let mut ids = BTreeMap::new();
+        let files = if let Some(files) = inputs["modules"]["files"].as_object() {
+            files.keys().map(|path| self.root.join(path)).collect()
+        } else {
+            BTreeSet::from([file.to_owned()])
+        };
+        self.rebind_flow_occurrences(&mut report, &files, &revision, &mut ids)?;
+        origins(&mut report["function_summaries"], &ids);
+        for field in ["returns", "exceptional_returns", "origins"] {
+            if let Some(values) = report[field].as_object_mut() {
+                let old = std::mem::take(values);
+                for (key, mut trace) in old {
+                    let mut key = json!(key);
+                    origins(&mut key, &ids);
+                    if let Some(origin) = trace.get_mut("origin") {
+                        origins(origin, &ids);
+                    }
+                    values.insert(key.as_str().unwrap().into(), trace);
+                }
+            }
+        }
+        if let Some(witnesses) = report["witnesses"].as_array_mut() {
+            for witness in witnesses.iter_mut() {
+                origins(&mut witness["trace"]["origin"], &ids);
+            }
+            witnesses.sort_by(|a, b| {
+                (
+                    a["site"]["path"].as_str(),
+                    a["site"]["location"]["span"]["start"].as_u64(),
+                    a["trace"]["origin"].as_str(),
+                )
+                    .cmp(&(
+                        b["site"]["path"].as_str(),
+                        b["site"]["location"]["span"]["start"].as_u64(),
+                        b["trace"]["origin"].as_str(),
+                    ))
+            });
+        }
+        if let Some(summaries) = report["summaries"].as_array_mut() {
+            for summary in summaries {
+                origins(&mut summary["inputs"], &ids);
+                origins(&mut summary["return_origins"], &ids);
+                if let Some(arguments) = summary["inputs"].as_array_mut() {
+                    for argument in arguments {
+                        if let Some(origins) = argument.as_array_mut() {
+                            origins.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+                        }
+                    }
+                }
+                if let Some(origins) = summary["return_origins"].as_array_mut() {
+                    origins.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+                }
+            }
+        }
+        report["revision"] = json!(self.revision);
+        report["handle_prefix"] = json!(format!("frp1:{}:", &self.revision[..32]));
+        report["coverage"] = self.coverage();
+        report["target"] = json!(target);
+        report.as_object_mut().unwrap().remove("context_basis");
+        report["execution"] = json!({"kind":"retained", "analysis_steps":0,
+            "trust":"caller-supplied digest binds retained analysis; no execution attestation or mutation authority"});
+        Ok(Some(report))
+    }

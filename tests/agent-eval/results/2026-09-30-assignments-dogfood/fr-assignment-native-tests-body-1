@@ -1,0 +1,21 @@
+{
+    let root = tempfile::tempdir().unwrap();
+    for (body, reaches) in [
+        ("    # => swapped source\n    a, b = source(), 0\n    a, b = b, a\n    sink(b)", true),
+        (
+            "    # => swapped literal\n    a, b = source(), 0\n    a, b = b, a\n    sink(a)",
+            false,
+        ),
+        ("    # => duplicate target\n    a, a = source(), 0\n    sink(a)", false),
+        ("    # => chained value\n    a = b = source()\n    a = 0\n    sink(b)", true),
+    ] {
+        let (_, report) = analyze(root.path(), body);
+        assert_eq!(report["complete"], true, "{report}");
+        assert_eq!(report["semantics"], "python-scalar-summaries-5");
+        assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), reaches);
+        assert_eq!(
+            report["assignment_control"],
+            report["inputs"]["assignment_control"]
+        );
+    }
+}

@@ -20,7 +20,7 @@ def audit(value):
     for name in ("positive", "negative", "after"):
         report = value[name]
         summaries = package.FunctionSummaries.from_report(package.FrReport(report, ()))
-        assert report["semantics"] == "python-scalar-summaries-4"
+        assert report["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5"}
         assert summaries.call_binding.defaults is not None
         assert report["inputs"]["call_binding"] == report["call_binding"]
         for function in summaries.functions:

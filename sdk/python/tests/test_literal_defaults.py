@@ -169,6 +169,7 @@ def test_version_three_reports_remain_readable_without_default_claims(tmp_path):
     data["call_binding"] = copy.deepcopy(_CALL_BINDING)
     data["inputs"]["call_binding"] = copy.deepcopy(_CALL_BINDING)
     for item in data["function_summaries"]["functions"].values(): item.pop("signature")
+    data.pop("assignment_control"); data["inputs"].pop("assignment_control")
     summaries = FunctionSummaries.from_report(FrReport(data, ()))
     assert summaries.call_binding.defaults is None
     assert all(item.signature is None for item in summaries.functions)

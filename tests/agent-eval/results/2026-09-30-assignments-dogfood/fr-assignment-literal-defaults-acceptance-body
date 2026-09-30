@@ -1,0 +1,13 @@
+original_audit(value)
+for name in ("positive", "negative", "after"):
+    report = value[name]
+    summaries = package.FunctionSummaries.from_report(package.FrReport(report, ()))
+    assert report["semantics"] in {"python-scalar-summaries-4", "python-scalar-summaries-5"}
+    assert summaries.call_binding.defaults is not None
+    assert report["inputs"]["call_binding"] == report["call_binding"]
+    for function in summaries.functions:
+        assert function.signature is not None
+        assert len(function.signature) == len(function.parameters)
+        assert all(parameter.site.revision == report["revision"] for parameter in function.signature)
+assert value["baseline"]["fr_complete"] is False
+assert "module-effects-unchecked" in value["baseline"]["fr_cutoffs"]

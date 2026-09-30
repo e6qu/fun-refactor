@@ -1,0 +1,60 @@
+{
+    let root = tempfile::tempdir().unwrap();
+    for (expression, normal, raises, witness) in [
+        ("False and sink(source())", true, false, false),
+        ("True or sink(source())", true, false, false),
+        (
+            "(sink(source()) if True else stop(source()))",
+            true,
+            false,
+            true,
+        ),
+        ("flag and stop(source())", true, true, false),
+        (
+            "(stop(source()) if flag else sink(source()))",
+            true,
+            true,
+            true,
+        ),
+        (
+            "(stop(source()) if flag else stop(source()))",
+            false,
+            true,
+            false,
+        ),
+        (
+            "(source() < 0 < stop(source()) < sink(source()))",
+            true,
+            true,
+            false,
+        ),
+        (
+            "(source() < stop(source()) < sink(source()))",
+            false,
+            true,
+            false,
+        ),
+    ] {
+        let (_, report) = analyze(root.path(), expression);
+        assert_eq!(
+            report["complete"], true,
+            "{expression}: {}",
+            report["cutoffs"]
+        );
+        assert_eq!(
+            report["completion"]["normal_return"], normal,
+            "{expression}"
+        );
+        assert_eq!(report["completion"]["may_raise"], raises, "{expression}");
+        assert_eq!(
+            !report["witnesses"].as_array().unwrap().is_empty(),
+            witness,
+            "{expression}"
+        );
+        assert_eq!(report["semantics"], "python-scalar-summaries-5");
+        assert_eq!(
+            report["expression_control"],
+            report["inputs"]["expression_control"]
+        );
+    }
+}

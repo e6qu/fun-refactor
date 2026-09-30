@@ -85,7 +85,7 @@ fn required_parameters_bind_by_kind_and_name() {
             report["cutoffs"]
         );
         assert_eq!(!report["witnesses"].as_array().unwrap().is_empty(), witness);
-        assert_eq!(report["semantics"], "python-scalar-summaries-4");
+        assert_eq!(report["semantics"], "python-scalar-summaries-5");
         assert_eq!(report["call_binding"], report["inputs"]["call_binding"]);
     }
 }
@@ -135,7 +135,7 @@ fn call_binding_acceptance_replays_checked_delivery() {
         .args([
             "tools/call-binding-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-namespaces-call-binding/result.json",
+            "tests/agent-eval/results/2026-09-30-assignments-call-binding/result.json",
         ])
         .output()
         .unwrap();

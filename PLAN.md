@@ -236,7 +236,10 @@ retains discovered repair, feature delivery, cache invalidation and independent 
 [Required call binding](docs/call-binding.md) adds explicit keyword calls and positional-only and
 keyword-only parameters. Declaration-order substitution follows source-order argument effects.
 [Literal defaults](docs/literal-defaults.md) now fill omitted slots and expose exact parameter/default origins.
-Evaluated defaults, variadics, unpacking and implicit binding exceptions remain open.
+Evaluated defaults, variadics, argument unpacking and implicit binding exceptions remain open.
+[Ordered scalar assignments](docs/scalar-assignments.md) add literal sequence unpacking, swaps and chained local writes.
+Exact target origins, lexical shadowing, cache renewal and independent runtime checks cover the admitted shapes.
+Arbitrary iterables, starred targets, heap writes and implicit unpacking exceptions remain open.
 [Binding acceptance](tests/agent-eval/results/2026-09-29-calls-call-binding/result.json) retains
 checked repair, feature delivery, dependency invalidation and independent receiver replay.
 Static local imports, regular and single-root namespace packages, and explicit function re-exports

@@ -28,7 +28,7 @@ from fr_ir.runtime import FrClient, FrReport, FrRuntimeError
 
 FIXTURE = ROOT / "tests/agent-eval/imported-flow"
 NAMES = ("app", "relay", "leaf", "erase", "effects")
-BINDINGS = ["src/project/flow_calls.rs", "src/project/flow_expressions.rs", "src/index/references.rs", "tools/imported-flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs",
+BINDINGS = ["src/project/flow_assignments.rs", "src/project/flow_calls.rs", "src/project/flow_expressions.rs", "src/index/references.rs", "tools/imported-flow-acceptance.py", "tools/evidence_basis.py", "src/project/dataflow.rs",
             "src/project/flow_modules.rs", "src/project/flow_summaries.rs", "src/project/control_flow.rs",
             "src/project/flow_cache.rs", "src/project/flow_facts.rs", "src/project/flow_fact_origins.rs",
             "src/project/investigation.rs", "src/project/occurrence.rs", "src/project/manifests.rs",
