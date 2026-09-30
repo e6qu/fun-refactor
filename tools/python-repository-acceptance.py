@@ -272,6 +272,7 @@ def measure_task(binary, name, task, output):
         plan = TaskPlan.restore(store, plan_root).resume(client).plan
         plan = plan.resume(client, transition='analysis:reset').plan
         plan = satisfy(plan, client, 'analysis')
+        plan = plan.resume(client, transition='outcome:reset').plan
         review = proposal(client, changes)
         assert review.at('/ready')
         delivered = run_delivery(plan, client, 'outcome', review, store)
