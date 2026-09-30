@@ -7,12 +7,14 @@
     "acceptance.audit",
     "acceptance.main",
     "roadmap.compute",
-    "acceptance.save"
+    "acceptance.save",
+    "migration_runtime.RunningNext.drop"
   ],
   "direct_edit_boundaries": [
     "New files, declarations, archive fixtures and YAML/Markdown/catalog documents were authored directly; subsequent admitted existing Python body edits used fr.",
     "The temporary editing helper initially mis-indented a body containing a multiline string; fr refused the invalid fragment. The reviewed valid fragment preserves the string value.",
-    "The Python fragment constant was adjusted directly to saturate deque capacity for unbounded negative integers; Python constant replacement has no admitted author route."
+    "The Python fragment constant was adjusted directly to saturate deque capacity for unbounded negative integers; Python constant replacement has no admitted author route.",
+    "A new process-tree fixture and cleanup regression were added directly. The existing destructor changed through a fresh fr preview and saved plan. An earlier application refused after the new test changed its selected file."
   ],
   "analysis_boundary": "The installed local binary reports python-scalar-summaries-1. These probes are not evidence for current analysis semantics; current-source acceptance is generated separately on GitHub.",
   "files": {
@@ -106,6 +108,12 @@
     "wide-count-preview.json": "49154cdf9bf96530ff82bf4840763132ddc05a6d3e353f93d769add673107cdb",
     "wide-count-saved.json": "76e015d3cec7c1b7c000a7b4b52e3bad780b2563eb0c1e8936022f7726387183",
     "wide-count-applied.json": "c8f9f9b297fa68ee9ed5c7346ee78a6fdde3376d218935fc5262a43784224889",
-    "generation-attempts.json": "ddbc72acb3c1107f787d6e076682aba61330b907a0ab7c6638ff7a9c20153a75"
+    "generation-attempts.json": "ddbc72acb3c1107f787d6e076682aba61330b907a0ab7c6638ff7a9c20153a75",
+    "cleanup-discovery.json": "2f7656a3b89a07d2760361635ddf10f91e15cbb13153887ae4dbb8949a6cf041",
+    "cleanup-body": "b83841b8a264c806d118c3f251ee1f3de619df3cddef234e3e13031f4da429f2",
+    "cleanup-author.json": "58ff15c11a50662b7b32fa9c421976172798dcd629010a4a1ec57a7de964c69c",
+    "cleanup-preview.json": "a2a8f34d2a9deb28051bb077c26067379b6118a52e3f5b39348f456c72f183e6",
+    "cleanup-saved.json": "58def9fd5d20ae5ffa529ac8b8129ae433fdd6946c72ef3289385712aacf6abd",
+    "cleanup-applied.json": "c9ddfcf5f441edd71fd5de64680ce8848139f4e62b7eec0a05db27357ee8dbdd"
   }
 }
