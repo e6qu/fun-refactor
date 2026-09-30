@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.41.1...fun-refactor-v0.41.2) (2026-09-30)
+
+
+### Tests
+
+* measure independent agent studies without hiding failures or costs ([#397](https://github.com/e6qu/fun-refactor/issues/397)) ([a541b66](https://github.com/e6qu/fun-refactor/commit/a541b66982e85c7bf432bd41ba2f1de71f3fd0b9))
+
 ## [0.41.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.41.0...fun-refactor-v0.41.1) (2026-09-30)
 
 
