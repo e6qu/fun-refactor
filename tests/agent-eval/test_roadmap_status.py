@@ -27,7 +27,7 @@ class RoadmapStatusTests(unittest.TestCase):
         (self.root / 'PLAN.md').write_text('\n'.join(f'### {m}. Title\n- [x] Implementation\n' for m in 'ABCD'))
         entry = {'id': 'result', 'path': 'result.json', 'kind': 'deterministic', 'audit': 'independent evaluator',
                  'scope': 'finite fixture', 'sha256': status.digest(self.root / 'result.json')}
-        self.catalog = {'schema': 'fr-roadmap-catalog-1', 'profile': 'agent-analysis-v1', 'baseline': 'pinned',
+        self.catalog = {'schema': 'fr-roadmap-catalog-1', 'profile': 'agent-analysis-v2', 'baseline': 'pinned',
             'engineering': {m: {'done': 1, 'total': 1} for m in 'ABCD'}, 'evidence': [entry], 'boundaries': [],
             'obligations': [{'id': f'{m}.outcome', 'kind': 'deterministic', 'acceptance': 'behavior passes',
                 'next': 'retain evidence', 'requires': [{'evidence': 'result',

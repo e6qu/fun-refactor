@@ -90,5 +90,7 @@ describe the current product contract.
 [Investigation evidence and resumable plans](agent-investigations.md) describes exact occurrences,
 Python scalar flow, dependency invalidation and checked investigation delivery.
 
-The [roadmap status](roadmap-status.md) and [machine-readable ledger](roadmap-status.json)
-show finite completion gates, retained evidence freshness and exact remaining obligations.
+Start with the [product review](product-review.md) for the original goal, existing agent-cost
+results, candidates for simplification and the next evaluation. The [plan](../PLAN.md) gives the
+work sequence. The [roadmap status](roadmap-status.md) explains what each recorded test establishes
+and what remains; its [JSON report](roadmap-status.json) supports automated checks.

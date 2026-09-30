@@ -1,6 +1,6 @@
 {
   "schema": "fr-roadmap-catalog-1",
-  "profile": "agent-analysis-v1",
+  "profile": "agent-analysis-v2",
   "baseline": "cdc17dca7ce2564cb21a1e7077e38c7cab572712",
   "engineering": {
     "A": {
@@ -98,8 +98,8 @@
     {
       "id": "A.exact",
       "kind": "deterministic",
-      "acceptance": "Nine scalar positive/negative facts retain exact origins, no false claims and explicit cutoffs.",
-      "next": "Keep the exact-coordinate oracle current.",
+      "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
+      "next": "Keep these location tests passing as discovery changes.",
       "requires": [
         {
           "evidence": "exact-facts",
@@ -114,13 +114,14 @@
             }
           ]
         }
-      ]
+      ],
+      "title": "Point to the exact code behind an answer"
     },
     {
       "id": "A.repositories",
       "kind": "deterministic",
-      "acceptance": "Pinned boltons bug and more-itertools feature both pass independent behavior, checked delivery and replay.",
-      "next": "Retain both source-bound repository outcomes.",
+      "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
+      "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
       "requires": [
         {
           "evidence": "repository-tasks",
@@ -135,27 +136,30 @@
             }
           ]
         }
-      ]
+      ],
+      "title": "Deliver the two recorded example changes"
     },
     {
       "id": "A.live-repeat",
       "kind": "live-agent",
-      "acceptance": "Two repetitions of bug and feature on each of the two Python snapshots, with fr and ordinary arms (16 attempts), retain all failures, context and latency.",
-      "next": "Authorize and run the pinned matched cohort; deterministic scripts cannot satisfy it.",
-      "requires": []
+      "acceptance": "Run the 48-attempt pilot defined in the product review: two model families, ordinary tools versus fr, repeated tasks, and a separate delegated-task comparison. Retain failures and account for all agents, cache usage, time and cost. Report quality and efficiency separately, including inconclusive or negative results.",
+      "next": "Build the missing provider and child-agent accounting around the existing live runner, freeze tasks and budgets, then run the pilot on remote workers.",
+      "requires": [],
+      "title": "Measure whether agents actually work better with fr"
     },
     {
       "id": "A.compiler-profile",
       "kind": "compiler",
-      "acceptance": "Pin Rust and Python task profiles; build/check inputs, disagreements, same-line calls, shadowing and Unicode evidence have explicit positive and refusal cases.",
-      "next": "Consolidate compiler/origin tests into a source-bound task-profile report.",
-      "requires": []
+      "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
+      "next": "Collect the existing compiler and source-location tests into one reproducible report with an explicit list of supported features.",
+      "requires": [],
+      "title": "Relate explanations to compiler and runtime checks"
     },
     {
       "id": "B.scalar",
       "kind": "deterministic",
-      "acceptance": "Package helper tracing and negative sanitization retain complete scalar reports and zero false claims.",
-      "next": "Keep the admitted scalar package corpus current.",
+      "acceptance": "The existing small package tests correctly report a value reaching a selected use and a value blocked by a context-appropriate sanitizer; both analyses finish with zero false claims.",
+      "next": "Keep the small examples as regression tests while testing more varied programs.",
       "requires": [
         {
           "evidence": "package-flow",
@@ -174,34 +178,38 @@
             }
           ]
         }
-      ]
+      ],
+      "title": "Trace simple values through package helpers"
     },
     {
       "id": "B.contract",
       "kind": "semantic-contract",
-      "acceptance": "Versioned Python task subset maps evaluation order, calls, assignments, exceptions and origins to authoring semantics; each admitted construct has compatibility/refusal cases.",
-      "next": "Pin the contract against the two repository tasks; classify every encountered construct.",
-      "requires": []
+      "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
+      "next": "Define language rules first, with independent examples for each rule. Use real repositories to expose missing rules, not to define special cases.",
+      "requires": [],
+      "title": "Specify reusable Python behavior"
     },
     {
       "id": "B.repository-flow",
       "kind": "deterministic",
-      "acceptance": "Each repository has a runtime-checked positive witness and a complete negative result for a pinned task path; other paths report cutoffs without absence claims.",
-      "next": "Add task-specific flow rules and runtime flow oracles; current empty-rule probes do not qualify.",
-      "requires": []
+      "acceptance": "With one unchanged analyzer, test a value that reaches a selected use and one that cannot reach it on at least three independently selected Python repositories, including one held out until implementation is frozen. Runtime checks and independent inspection must agree. Rename and relocate supported examples without changing results. Unknown effects or exhausted budgets must prevent a no-path claim.",
+      "next": "Choose the coverage and held-out projects before implementation. Apply the same public analysis commands and explicit source/sink configuration everywhere; preserve all failures.",
+      "requires": [],
+      "title": "Trace values in unfamiliar projects"
     },
     {
       "id": "B.effects",
       "kind": "deterministic",
-      "acceptance": "Pinned explicit-raise, implicit-exception, handler and alias cases distinguish supported semantics from refused effects with exact origins.",
-      "next": "Extend only effects required by the task profile and retain positive/negative boundaries.",
-      "requires": []
+      "acceptance": "Independent Python examples cover explicit raise, implicit exceptions, handlers and two names referring to the same object. Report exact locations and distinguish supported behavior from behavior the analyzer cannot determine.",
+      "next": "Prioritize effects that repeatedly block user tasks; add general rules and independent positive and negative tests.",
+      "requires": [],
+      "title": "Handle exceptions and shared mutable values honestly"
     },
     {
       "id": "C.resume",
       "kind": "deterministic",
-      "acceptance": "Both real tasks reopen in a fresh process after semantic drift, invalidate dependent evidence, preserve independent evidence and reject old reviews.",
-      "next": "Keep retained immutable plans and receipt replay current.",
+      "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
+      "next": "Keep the saved-plan and delivery regression tests reproducible.",
       "requires": [
         {
           "evidence": "repository-tasks",
@@ -216,13 +224,14 @@
             }
           ]
         }
-      ]
+      ],
+      "title": "Resume work without trusting outdated conclusions"
     },
     {
       "id": "C.clean",
       "kind": "deterministic",
-      "acceptance": "Static package dependency edits and unrelated edits produce the same result as clean analysis; warm reuse and reopened plans are retained.",
-      "next": "Keep package invalidation and clean comparison current.",
+      "acceptance": "In the existing package examples, edits to dependencies and unrelated files produce the same answer as rebuilding the analysis from scratch. Reuse and restored plans are checked.",
+      "next": "Keep these dependency tests passing; broaden coverage before claiming repository-wide reuse.",
       "requires": [
         {
           "evidence": "package-flow",
@@ -241,27 +250,30 @@
             }
           ]
         }
-      ]
+      ],
+      "title": "Make cached answers agree with a fresh analysis"
     },
     {
       "id": "C.repository-mutations",
       "kind": "deterministic",
-      "acceptance": "Both repository profiles cover rename, move, deletion, new candidate, configuration/analyzer drift and negative lookup changes; unaffected evidence survives.",
-      "next": "Run the existing synthetic mutation matrix against the pinned upstream task dependencies.",
-      "requires": []
+      "acceptance": "Across at least three independently selected projects, including a held-out project, test renames, moves, deletions, added candidates, configuration changes and analyzer changes. A previously missing name becoming available must invalidate affected answers; unrelated evidence must survive.",
+      "next": "Apply one reusable change matrix across projects and compare each result with a fresh analysis.",
+      "requires": [],
+      "title": "Keep answers correct through common project changes"
     },
     {
       "id": "C.performance",
       "kind": "measurement",
-      "acceptance": "Three repetitions of cold/warm/single-edit task analysis on both upstream snapshots retain latency, sampled aggregate RSS, context, recomputation and clean agreement.",
-      "next": "Add repository-scale measurements; historical six-workload scalar timings are supporting evidence only.",
-      "requires": []
+      "acceptance": "On at least three independently selected projects, including a held-out project, repeat first-run, cached and single-edit analysis three times. Record latency, aggregate memory, disk growth, disclosed context, work repeated and agreement with a fresh analysis.",
+      "next": "Measure the current system before selecting cache changes. Separate tool runtime from the full agent costs measured in A.live-repeat.",
+      "requires": [],
+      "title": "Measure useful work, memory and disk at project scale"
     },
     {
       "id": "D.checked",
       "kind": "deterministic",
-      "acceptance": "Bug and feature outcomes pass explicit checks, lifecycle reversal, independent receiver replay and immutable completion receipts.",
-      "next": "Keep both public behavior oracles and receipts current.",
+      "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
+      "next": "Keep these behavior and patch-replay tests passing.",
       "requires": [
         {
           "evidence": "repository-tasks",
@@ -276,41 +288,46 @@
             }
           ]
         }
-      ]
+      ],
+      "title": "Check and replay a delivered change"
     },
     {
       "id": "D.structural",
       "kind": "deterministic",
-      "acceptance": "Pin one structural task in each language profile with affected consumers, declared configuration/tests, compiled/runtime behavior, reversal and replay.",
-      "next": "Extend the historical Rust task to Python; retain wildcard export insertion as unsupported.",
-      "requires": []
+      "acceptance": "Complete one Rust and one Python rename or signature-change task, including affected callers, configuration and tests. Compile or execute the changed program, undo the change and replay its patch in another checkout.",
+      "next": "Add an independently chosen Python task using the same general discovery and edit operations; unsupported export forms must still be reported.",
+      "requires": [],
+      "title": "Change a declaration and update its callers"
     },
     {
       "id": "D.translation",
       "kind": "deterministic",
-      "acceptance": "Pin one Rust/Python pure-function translation with bounded integer arithmetic, Boolean control and explicit overflow/error/evaluation-order contracts; independent exhaustive bounded and boundary checks.",
-      "next": "Declare the finite source/target domain and retain a task outcome beyond Boolean model relations.",
-      "requires": []
+      "acceptance": "Translate one pure function between Rust and Python with integer arithmetic and branches. Specify input ranges, overflow, errors and evaluation order. Independently compare every input in a bounded range and the declared boundary cases.",
+      "next": "Choose the function and its behavior contract before implementing support; express support as language rules reusable by other functions.",
+      "requires": [],
+      "title": "Translate a function without changing its promised behavior"
     },
     {
       "id": "D.existing-proof",
       "kind": "source-proof",
-      "acceptance": "For one existing task kernel retain property, model, old/new implementation and a checked source correspondence argument; reject stale proof inputs.",
-      "next": "Build the source-to-model bridge; syntax origins and model theorems do not satisfy this gate.",
-      "requires": []
+      "acceptance": "For one existing function, retain the property, mathematical model, old and new code, and a checked argument connecting the implementation to the model. A relevant source edit must invalidate the proof claim.",
+      "next": "Implement and test the source-to-model connection. A theorem about a separate model alone cannot close this item.",
+      "requires": [],
+      "title": "Connect a proof to the existing code it describes"
     },
     {
       "id": "D.new-proof",
       "kind": "source-proof",
-      "acceptance": "Author one new task kernel and specification together, retain implementation correspondence, strict Lean verification, behavior checks and receiver replay.",
-      "next": "Pin the co-designed kernel and its trusted components before implementation.",
-      "requires": []
+      "acceptance": "For one new function, write its specification and implementation together, check their correspondence and Lean proof, run behavior tests and replay delivery in a separate checkout. Identify all trusted components.",
+      "next": "Choose a useful function and exact property before writing it; reuse the general proof and delivery interfaces.",
+      "requires": [],
+      "title": "Write new code together with a checked specification"
     },
     {
       "id": "D.host",
       "kind": "fault-injection",
-      "acceptance": "Native process-interruption recovery exercises the declared journal boundaries and all 224 executable kernel cases.",
-      "next": "Preserve process-interruption scope; power loss stays outside this claim.",
+      "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
+      "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
       "requires": [
         {
           "evidence": "host-recovery",
@@ -321,16 +338,18 @@
             }
           ]
         }
-      ]
+      ],
+      "title": "Recover safely when an edit process is interrupted"
     }
   ],
   "boundaries": [
-    "This finite acceptance profile targets Python static scalar/package analysis and bounded Rust/Python checked changes; 19 parser identities do not imply equal semantic support.",
-    "The historical Rust live cohort remains separate from deterministic Python tasks. No population efficiency, token savings or automatic milestone completion is inferred.",
-    "Current means the report's declared source bindings match; it does not establish that all real dependencies were declared. Behavioral auditors remain required.",
-    "Model theorems, exact syntax origins and tested behavior are distinct from source implementation proofs. Neither retained Boolean relations nor repair success closes proof gates.",
-    "Dynamic imports, package initialization effects, runtime dispatch, multi-root namespace merging and wildcard export insertion remain explicit boundaries unless a pinned profile is extended.",
-    "Changing pass conditions or language profiles requires a reviewed catalog change. Broader languages and production performance require a new profile rather than silently expanding or shrinking this one.",
-    "Unindexed RST documents cannot be source dependencies. The more-itertools task retains that refusal and binds its unchanged public Python module as independent evidence."
+    "The goal is a general CLI that helps agents understand, change and prove things about code with less total effort and context. Passing the recorded examples does not establish that product goal.",
+    "The analyzer and SDK must not branch on benchmark repository names, paths, revisions or expected patches. Explicit user rules may select sources and uses; they cannot bypass language semantics or unsupported effects.",
+    "Version 2 strengthens the open evaluation requirements with unfamiliar projects and full agent-cost accounting. The seven previously demonstrated items keep their original narrow scope and evidence; no new experiment is claimed.",
+    "The existing agent comparison used an older Luna model on two Rust tasks. The fr runs consumed more calls, context and time. There is no established general token or cost advantage, and no matched Sonnet or delegated-agent result here.",
+    "Current evidence means the recorded input hashes still match. It does not establish that every dependency was recorded; the independent behavior checks must also run.",
+    "Parsing a language does not imply full analysis or editing support. Dynamic imports, package initialization effects, runtime dispatch, merging namespace packages from multiple roots and wildcard export insertion remain limits of the current Python analysis or writer.",
+    "A proof about a model, a correct source location and a passing runtime test establish different things. Proofs about the source implementation require an explicit checked connection.",
+    "Unindexed RST documents cannot be source dependencies. The recorded more-itertools task reports that limitation and uses its unchanged public Python module as an independent observation."
   ]
 }
