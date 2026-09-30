@@ -21,6 +21,7 @@ The CLI can locate declarations and callers, and return bounded structured views
 It can preview edits, run declared checks, undo and redo edits, and export patches. It has resumable
 task records and Lean proof support for declared subsets. Analysis and editing support vary by
 language; parsing a file does not mean `fr` understands every possible behavior in it.
+Run `fr --json audit` and `fr capabilities` for the installed tool's current support and limits.
 
 The [generated status](docs/roadmap-status.md) records **7 of 18 technical acceptance items
 demonstrated in their stated test cases**. Eleven remain open, and none of the four milestones
