@@ -26,8 +26,10 @@ and write and check useful proofs with less total effort and context. Start with
 [product review](product-review.md) and the plain-language [plan](../PLAN.md).
 
 The [study planner and auditor](agent-study.md) now freeze task matrices and audit declared usage,
-including child agents and failed attempts. Integrate provider adapters, isolated workspaces, hidden
-graders and live spend controls next, then run the Sonnet/Luna pilot. No new live trials have run.
+including child agents and failed attempts. Raw provider conversion, shared reserve/dispatch/settle
+hooks and Codex process-group cleanup now have synthetic regression tests. Wire every paid call through
+the hooks, isolate workspaces and execute hidden graders next. Then run the Sonnet/Luna pilot.
+No new live trials have run; the existing Codex CLI path cannot enforce the pilot dollar cap.
 Use those results to simplify overlapping routes and choose useful analysis
 improvements. The older two-task comparison consumed more calls, context and time with `fr`;
 general efficiency remains unproven. Test general language rules on unfamiliar projects; do not
