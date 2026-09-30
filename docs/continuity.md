@@ -21,6 +21,16 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
+The goal is a general CLI that helps agents understand unfamiliar code, make changes and fixes,
+and write and check useful proofs with less total effort and context. Start with the
+[product review](product-review.md) and the plain-language [plan](../PLAN.md).
+
+Next, prepare honest Sonnet/Luna comparisons with complete parent/child token, cache, time and
+cost accounting. Use those results to simplify overlapping routes and choose useful analysis
+improvements. The older two-task comparison consumed more calls, context and time with `fr`;
+general efficiency remains unproven. Test general language rules on unfamiliar projects; do not
+special-case the two repositories used in the recent scripted delivery tests.
+
 The representative guided delivery milestone is complete for its pinned acceptance corpus.
 Accepted live trials cover upstream read/trace, multi-file Rust rename and body edits, frontend
 changes, application migration and Lean proof authoring. Two matched cohorts repeat one scalar
@@ -40,10 +50,9 @@ literal defaults, regular packages, re-exports, module aliases and single-root n
 Dependency-bound plans support interruption, invalidation, fresh target correspondence
 and reviewed checked delivery. The roadmap retains the remaining milestone gates.
 
-Extend pinned task requirements together with independent oracles, refusal cases,
-source-bound evidence and cache/clean comparisons. Preserve progressive disclosure,
-verified Merkle storage and immutable mutation review. Agent hypotheses remain distinct
-from tool facts and tested outcomes.
+Use concrete tasks to expose missing reusable language behavior. Validate that behavior through
+independent examples, explicit unsupported cases and unfamiliar projects. Preserve bounded reads,
+verified saved data and edit review. Agent hypotheses remain distinct from tested outcomes.
 
 Application IR expansion follows concrete task requirements. The four HTTP adapters read and write
 their documented validation subsets. Selected FastAPI middleware/providers/service calls and
@@ -58,11 +67,12 @@ capability log; the final gate checks complete assignment and combined coverage.
 PR #393 completed ordered scalar assignments and exact target origins, with all 276 native
 targets and 916 SDK cases assigned exactly once and 311/311 capabilities covered at that baseline.
 
-The next integrated outcome is tracked by the [generated roadmap ledger](roadmap-status.md):
-18 stable obligations separate implemented engineering, demonstrated outcomes and open gates.
-Pinned boltons and more-itertools tasks exercise checked bug/feature delivery after semantic
-interruption. Their results remain deterministic acceptance; repeated live trials and source
-implementation proofs stay open. Keep the ledger current with `tools/roadmap-status.py --check`.
+PR #394 added the [roadmap status](roadmap-status.md) and fixed regression scenarios for boltons
+and more-itertools. Those scripts exercise prescribed changes, interruption recovery, checks and
+patch replay; they do not measure independent diagnosis or token savings. At that baseline, CI
+covered 277 native targets, 916 SDK cases and 311 capabilities. Seven of 18 technical acceptance
+items are demonstrated for their stated cases; eleven items and all four milestones remain open.
+Keep the generated report current with `tools/roadmap-status.py --check`.
 
 ## Validation
 

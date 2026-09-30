@@ -777,13 +777,15 @@ establish source equivalence, path feasibility or general efficiency.
 
 ## Roadmap outcomes on pinned Python repositories
 
-The [roadmap catalog](../tests/agent-eval/roadmap.json) defines the `agent-analysis-v1` acceptance
-profile. The [generated status](roadmap-status.md) separates engineering checkbox counts from
-18 finite outcome obligations and records exact stale source inputs. Missing, historical or stale
-evidence cannot close a current gate. Evidence kinds stay distinct: deterministic execution,
-measurements, live trials, model proofs and source correspondence are not interchangeable.
-The status command audits identities and assertions; the linked behavioral evaluators remain
-required in CI. The Rust integration gate checks generated-report drift and mutation tests.
+The [roadmap catalog](../tests/agent-eval/roadmap.json) now uses `agent-analysis-v2`. The
+[generated status](roadmap-status.md) explains 18 technical acceptance items in terms of what an
+agent needs to do. Missing, historical or outdated results cannot complete an item. The status
+command checks recorded identities and assertions; independent behavior tests remain required in CI.
+
+Version 2 changes the still-open requirements: general language behavior must be tested on unfamiliar
+projects, and agent evaluation must include both Sonnet and Luna, complete costs and delegated work.
+The [product review](product-review.md) specifies that future pilot. The seven previously demonstrated
+items retain their original scope and evidence. These are revised requirements, not new live results.
 
 The [repository task contract](../tests/agent-eval/python-repositories/task.json) pins full source
 archives, revisions, SHA-256 identities, budgets and upstream licenses for two tasks:
@@ -795,12 +797,17 @@ archives, revisions, SHA-256 identities, budgets and upstream licenses for two t
   the explicitly superseded negative-count test. Independent probes check consumption and that
   selecting three values from 100,000 stays below 256 KiB of traced Python allocations.
 
-These are deterministic, agent-authored solutions. Symbols are discovered through bounded `fr`
-queries; the Python runtime definition is explicitly selected over its ambiguous stub candidate.
+These are fixed regression scenarios: the driver contains the symbol queries and prescribed solutions.
+It finds those symbols through bounded `fr` queries; the Python runtime definition is explicitly
+selected over its ambiguous stub candidate.
 The helper is discovered from revealed call syntax. Discovery is not claimed to be target-free
 reasoning by a fresh agent. The feature changes a requested contract, rather than claiming an
 upstream bug. Only the named upstream test files and independent behavior oracles are acceptance
 checks; this is not a claim that either entire upstream suite passed.
+
+Repository names, archived revisions and expected fixes belong in these fixtures. They must not
+select production analyzer behavior, cache policy or edit semantics. Future value-tracing acceptance
+uses independent examples and held-out repositories, rather than tuning analysis to these repairs.
 
 The evaluator first checks the unmodified failing behavior and passing upstream regression file.
 It persists an observation and an independent README or public-module observation, obtains a reviewed mutation,
@@ -821,6 +828,9 @@ Run the `python-repositories` group of **Refresh refinement evidence** on GitHub
 job has a 15-minute limit and omits the Lean toolchain. Full generation is disabled locally.
 Retained evidence is audited with `tools/python-repository-acceptance.py --audit DIRECTORY`;
 roadmap reports are regenerated with `tools/roadmap-status.py --write` after reviewing catalog changes.
+The `roadmap-report` group of that same workflow regenerates and audits just the status reports
+in a five-minute Python job, with no Rust build or Lean installation. Download its `roadmap-report`
+artifact and review both files before committing them.
 Use the workstation guard for local checks. Neither a status report nor a passing repair establishes
 a source implementation proof, a live-agent efficiency claim, or complete roadmap delivery.
 
