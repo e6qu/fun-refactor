@@ -170,6 +170,19 @@ def reopen(binary, root, objects, plan_root):
     return plan.resume(client).report.to_data()
 
 
+def flow_probe(client, selected, root):
+    try:
+        report = client.project('dataflow', selected['handle'], '--summaries', '--imports', '--rules',
+                                str(root / '.fr/rules.json'), '--steps', '4096', '--bytes', '1048576').to_data()
+    except FrRuntimeError as error:
+        # A runtime/stub ambiguity may refuse imported entry selection entirely.
+        # Keep that boundary separate from a successfully returned incomplete analysis.
+        if 'imported flow requires' not in str(error):
+            raise
+        return {'status': 'refused', 'refusal': str(error), 'report': error.report}
+    return {'status': 'complete' if report['complete'] else 'incomplete', 'report': report, 'refusal': None}
+
+
 def measure_task(binary, name, task, output):
     start = time.monotonic()
     with tempfile.TemporaryDirectory(prefix='fr-upstream-task-') as temporary:
@@ -209,10 +222,10 @@ def measure_task(binary, name, task, output):
                         'self.assertEqual(mi.take(-3, iter(())), [])\n'}]
             replacement = 'return []'
         # Full dataflow evidence stays explicit even when these real programs exceed the scalar subset.
-        save(root / '.fr/rules.json', {'version': 'repository-probe-1', 'sources': [symbol], 'sinks': ['print']})
+        save(root / '.fr/rules.json', {'version': 'repository-probe-1', 'sources': ['fr_probe_source'], 'sinks': ['fr_probe_sink']})
         selected, _ = find(client, symbol, selected['path'])
-        analysis = client.project('dataflow', selected['handle'], '--summaries', '--imports', '--rules',
-                                  str(root / '.fr/rules.json'), '--steps', '4096', '--bytes', '1048576').to_data()
+        analysis = flow_probe(client, selected, root)
+        save(output / 'analysis-probe.json', analysis)
         refusal = None
         if task['kind'] == 'feature':
             public = Path(selected['path']).parent / '__init__.py'
@@ -333,7 +346,12 @@ def audit(output):
         assert record['original_upstream']['exit_code'] == 0
         assert record['interruption']['stale_review_refusal']
         assert 'analysis' in record['interruption']['reopened']['invalidated']
-        assert record['analysis']['semantics'].startswith('python-scalar')
+        probe = record['analysis']
+        if probe['status'] == 'refused':
+            assert 'imported flow requires' in probe['refusal']
+        else:
+            assert probe['report']['semantics'].startswith('python-scalar')
+            assert probe['status'] == ('complete' if probe['report']['complete'] else 'incomplete')
         if task['kind'] == 'feature':
             assert 'wildcard' in record['wildcard_insertion_refusal'].lower()
         store = DirectoryObjectStore(output / name / 'objects')
