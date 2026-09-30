@@ -33,3 +33,12 @@ The post-merge deep audit retains its existing separate workflow.
 The runtime target excludes runner queue delays. Inspect job timestamps and shard
 logs after changes to suite size; update measured weights or split work before a
 job reaches its deadline. A deadline failure must not cause tests to be removed.
+
+The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
+A five-minute preparation job fills that cache before the PR shards start. Every restore rechecks the
+archive digest. Interrupted range downloads resume verified bytes with five bounded 45-second attempts;
+they retain the existing five-minute installation limit. This addresses the download timeout in
+[main run 36787051550](https://github.com/e6qu/fun-refactor/actions/runs/36787051550).
+
+The study job also exercises isolated graders with an image whose local content ID it records after
+pulling. This is a synthetic CI fixture. Live graders must freeze their own image digest and cases.
