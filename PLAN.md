@@ -164,6 +164,10 @@ between source implementations and proofs. Passing a theorem about a separate mo
 
 ## Working rules
 
+The [study planner and auditor](docs/agent-study.md) now freeze independent tasks and compare retained
+parent/child accounting. Their offline tests do not count as live trials. Provider adapters, isolated
+workspaces, hidden graders and a budget-enforcing host still need integration before the 48-attempt pilot.
+
 Keep reports small and allow explicit follow-up reads. Preserve uncertainty, exact source references
 and stale-result rejection. Check behavior independently of the proposed patch. Review edits before
 applying them, preserve unrelated work, and retain undo and recovery. Use `fr` itself when its public

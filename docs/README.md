@@ -94,3 +94,5 @@ Start with the [product review](product-review.md) for the original goal, existi
 results, candidates for simplification and the next evaluation. The [plan](../PLAN.md) gives the
 work sequence. The [roadmap status](roadmap-status.md) explains what each recorded test establishes
 and what remains; its [JSON report](roadmap-status.json) supports automated checks.
+The [independent agent study guide](agent-study.md) explains frozen task plans, parent/child accounting
+and failure-preserving cost reports. It also lists the execution integrations still needed.

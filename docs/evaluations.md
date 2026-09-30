@@ -6,6 +6,10 @@ and the command schemas.
 
 ## Evidence classes
 
+Use the [independent study planner and auditor](agent-study.md) for new matched comparisons.
+It records planned cells, failed outcomes and complete declared agent usage without invoking models.
+Its offline tests are infrastructure checks, not evidence of live-agent savings.
+
 - Deterministic protocol checks execute fixed workflows without a model.
 - Live-agent trials retain prompts, tool events, settings, usage and scores.
 - Matched cohorts give two agents the same requested outcomes and compare their exposed context.
