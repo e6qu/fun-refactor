@@ -823,3 +823,18 @@ Retained evidence is audited with `tools/python-repository-acceptance.py --audit
 roadmap reports are regenerated with `tools/roadmap-status.py --write` after reviewing catalog changes.
 Use the workstation guard for local checks. Neither a status report nor a passing repair establishes
 a source implementation proof, a live-agent efficiency claim, or complete roadmap delivery.
+
+The [retained repository acceptance](../tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json)
+passed on [GitHub run 36696869973](https://github.com/e6qu/fun-refactor/actions/runs/36696869973).
+It contains 102 singularization cases and 263 tail-count cases, including unbounded negative integers.
+The declared upstream files pass 17 and 148 tests; the latter also reports 9,884 subtests.
+Both plans invalidate analysis and outcome after the semantic edit, preserve their independent step,
+and finish with passing immutable delivery receipts. Independent receivers verify patch application,
+exact reversal and reapplication. The roadmap therefore demonstrates `A.repositories`, `C.resume`
+and `D.checked`, for seven demonstrated obligations overall; eleven obligations and all four
+milestones remain open.
+
+The [dogfood manifest](../tests/agent-eval/results/2026-09-30-roadmap-dogfood/manifest.json)
+binds the local reviewed edits used to build this work. Its generation-attempt ledger preserves
+failed evaluator attempts and later successes. Local probes use the installed older binary and
+have a separate scope from the current-source GitHub acceptance reports.

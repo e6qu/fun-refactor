@@ -33,9 +33,9 @@
     {
       "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json",
       "changed_sources": [],
-      "freshness": "unknown",
+      "freshness": "current",
       "id": "repository-tasks",
-      "integrity": "missing",
+      "integrity": "checked",
       "kind": "deterministic",
       "path": "tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
@@ -103,14 +103,13 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.repositories",
         "A.live-repeat",
         "A.compiler-profile"
       ],
@@ -133,14 +132,13 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "C.resume",
         "C.repository-mutations",
         "C.performance"
       ],
@@ -148,14 +146,13 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 1,
         "total": 6
       },
       "engineering_remaining": 5,
       "remaining": [
-        "D.checked",
         "D.structural",
         "D.translation",
         "D.existing-proof",
@@ -192,9 +189,7 @@
     },
     {
       "acceptance": "Pinned boltons bug and more-itertools feature both pass independent behavior, checked delivery and replay.",
-      "blockers": [
-        "repository-tasks: missing evidence"
-      ],
+      "blockers": [],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Retain both source-bound repository outcomes.",
@@ -213,7 +208,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open"
+      "state": "demonstrated"
     },
     {
       "acceptance": "Two repetitions of bug and feature on each of the two Python snapshots, with fr and ordinary arms (16 attempts), retain all failures, context and latency.",
@@ -299,9 +294,7 @@
     },
     {
       "acceptance": "Both real tasks reopen in a fresh process after semantic drift, invalidate dependent evidence, preserve independent evidence and reject old reviews.",
-      "blockers": [
-        "repository-tasks: missing evidence"
-      ],
+      "blockers": [],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep retained immutable plans and receipt replay current.",
@@ -320,7 +313,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open"
+      "state": "demonstrated"
     },
     {
       "acceptance": "Static package dependency edits and unrelated edits produce the same result as clean analysis; warm reuse and reopened plans are retained.",
@@ -373,9 +366,7 @@
     },
     {
       "acceptance": "Bug and feature outcomes pass explicit checks, lifecycle reversal, independent receiver replay and immutable completion receipts.",
-      "blockers": [
-        "repository-tasks: missing evidence"
-      ],
+      "blockers": [],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep both public behavior oracles and receipts current.",
@@ -394,7 +385,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open"
+      "state": "demonstrated"
     },
     {
       "acceptance": "Pin one structural task in each language profile with affected consumers, declared configuration/tests, compiled/runtime behavior, reversal and replay.",

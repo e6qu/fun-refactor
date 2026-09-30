@@ -10,10 +10,10 @@ Evidence identity and source freshness are checked here. The linked evaluator co
 
 | Milestone | Engineering items | Demonstrated gates | State |
 |---|---:|---:|---|
-| A | 6/6 | 1/4 | open |
+| A | 6/6 | 2/4 | open |
 | B | 4/5 | 1/4 | open |
-| C | 6/6 | 1/4 | open |
-| D | 1/6 | 1/6 | open |
+| C | 6/6 | 2/4 | open |
+| D | 1/6 | 2/6 | open |
 
 ## Finite acceptance obligations
 
@@ -22,18 +22,18 @@ These are the versioned closure conditions for the current roadmap, within the d
 | ID | State | Pass condition | Evidence / blocker | Next action |
 |---|---|---|---|---|
 | A.exact | demonstrated | Nine scalar positive/negative facts retain exact origins, no false claims and explicit cutoffs. | exact-facts | Keep the exact-coordinate oracle current. |
-| A.repositories | open | Pinned boltons bug and more-itertools feature both pass independent behavior, checked delivery and replay. | repository-tasks: missing evidence | Retain both source-bound repository outcomes. |
+| A.repositories | demonstrated | Pinned boltons bug and more-itertools feature both pass independent behavior, checked delivery and replay. | repository-tasks | Retain both source-bound repository outcomes. |
 | A.live-repeat | open | Two repetitions of bug and feature on each of the two Python snapshots, with fr and ordinary arms (16 attempts), retain all failures, context and latency. | No qualifying retained evidence yet | Authorize and run the pinned matched cohort; deterministic scripts cannot satisfy it. |
 | A.compiler-profile | open | Pin Rust and Python task profiles; build/check inputs, disagreements, same-line calls, shadowing and Unicode evidence have explicit positive and refusal cases. | No qualifying retained evidence yet | Consolidate compiler/origin tests into a source-bound task-profile report. |
 | B.scalar | demonstrated | Package helper tracing and negative sanitization retain complete scalar reports and zero false claims. | package-flow | Keep the admitted scalar package corpus current. |
 | B.contract | open | Versioned Python task subset maps evaluation order, calls, assignments, exceptions and origins to authoring semantics; each admitted construct has compatibility/refusal cases. | No qualifying retained evidence yet | Pin the contract against the two repository tasks; classify every encountered construct. |
 | B.repository-flow | open | Each repository has a runtime-checked positive witness and a complete negative result for a pinned task path; other paths report cutoffs without absence claims. | No qualifying retained evidence yet | Add task-specific flow rules and runtime flow oracles; current empty-rule probes do not qualify. |
 | B.effects | open | Pinned explicit-raise, implicit-exception, handler and alias cases distinguish supported semantics from refused effects with exact origins. | No qualifying retained evidence yet | Extend only effects required by the task profile and retain positive/negative boundaries. |
-| C.resume | open | Both real tasks reopen in a fresh process after semantic drift, invalidate dependent evidence, preserve independent evidence and reject old reviews. | repository-tasks: missing evidence | Keep retained immutable plans and receipt replay current. |
+| C.resume | demonstrated | Both real tasks reopen in a fresh process after semantic drift, invalidate dependent evidence, preserve independent evidence and reject old reviews. | repository-tasks | Keep retained immutable plans and receipt replay current. |
 | C.clean | demonstrated | Static package dependency edits and unrelated edits produce the same result as clean analysis; warm reuse and reopened plans are retained. | package-flow | Keep package invalidation and clean comparison current. |
 | C.repository-mutations | open | Both repository profiles cover rename, move, deletion, new candidate, configuration/analyzer drift and negative lookup changes; unaffected evidence survives. | No qualifying retained evidence yet | Run the existing synthetic mutation matrix against the pinned upstream task dependencies. |
 | C.performance | open | Three repetitions of cold/warm/single-edit task analysis on both upstream snapshots retain latency, sampled aggregate RSS, context, recomputation and clean agreement. | No qualifying retained evidence yet | Add repository-scale measurements; historical six-workload scalar timings are supporting evidence only. |
-| D.checked | open | Bug and feature outcomes pass explicit checks, lifecycle reversal, independent receiver replay and immutable completion receipts. | repository-tasks: missing evidence | Keep both public behavior oracles and receipts current. |
+| D.checked | demonstrated | Bug and feature outcomes pass explicit checks, lifecycle reversal, independent receiver replay and immutable completion receipts. | repository-tasks | Keep both public behavior oracles and receipts current. |
 | D.structural | open | Pin one structural task in each language profile with affected consumers, declared configuration/tests, compiled/runtime behavior, reversal and replay. | No qualifying retained evidence yet | Extend the historical Rust task to Python; retain wildcard export insertion as unsupported. |
 | D.translation | open | Pin one Rust/Python pure-function translation with bounded integer arithmetic, Boolean control and explicit overflow/error/evaluation-order contracts; independent exhaustive bounded and boundary checks. | No qualifying retained evidence yet | Declare the finite source/target domain and retain a task outcome beyond Boolean model relations. |
 | D.existing-proof | open | For one existing task kernel retain property, model, old/new implementation and a checked source correspondence argument; reject stale proof inputs. | No qualifying retained evidence yet | Build the source-to-model bridge; syntax origins and model theorems do not satisfy this gate. |
@@ -46,7 +46,7 @@ These are the versioned closure conditions for the current roadmap, within the d
 |---|---|---|---|
 | [exact-facts](../tests/agent-eval/results/2026-09-30-assignments-flow-facts/result.json) / deterministic | checked | current | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-facts/result.json` |
 | [package-flow](../tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json) / deterministic | checked | current | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json` |
-| [repository-tasks](../tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json) / deterministic | missing | unknown | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json` |
+| [repository-tasks](../tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json) / deterministic | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json` |
 | [cache-measurements](../tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json) / measurement | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json) / fault-injection | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / deterministic | checked | historical | Rust rename/signature migration with 49 calls; frozen source bindings. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |
