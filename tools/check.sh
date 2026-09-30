@@ -19,12 +19,25 @@ cd "$(dirname "$0")/.."
 
 slice="${1:-all}"
 case "$slice" in
-    all|default|static|wasm|deep) ;;
+    all|default|static|wasm|deep|study) ;;
     *)
-        echo "unknown slice: $slice (default, static, wasm, deep, or no argument for the PR gate)" >&2
+        echo "unknown slice: $slice (default, static, wasm, deep, study, or no argument for the PR gate)" >&2
         exit 1
         ;;
 esac
+
+if [ "$slice" = study ]; then
+    python3 tools/agent_eval/test_study.py
+    python3 tools/agent_eval/test_codex_runner.py
+    python3 tests/agent-eval/test_python_repository_basis.py
+    python3 tools/roadmap-status.py --check
+    python3 tools/check-prose.py
+    exit 0
+fi
+
+if [ "$slice" = all ] || [ "$slice" = default ]; then
+    bash tools/check.sh study
+fi
 
 if [ "$slice" != wasm ]; then
     source tools/lean-resources.sh

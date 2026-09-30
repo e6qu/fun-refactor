@@ -9,7 +9,7 @@ fn roadmap_reports_and_evidence_classification_stay_honest() {
         vec![
             "tools/python-repository-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-30-roadmap-python-repositories",
+            "tests/agent-eval/results/2026-09-30-study-python-repositories",
         ],
     ] {
         let output = Command::new("python3").args(&args).output().unwrap();
