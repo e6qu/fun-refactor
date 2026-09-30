@@ -8,7 +8,7 @@ develop and check proofs. It should reduce the effort and context needed to comp
 correctly, including when an agent delegates a focused question to another agent. Each feature
 must justify its complexity against that objective.
 
-## What the existing evidence actually says
+## What the existing evidence says
 
 The [two-task live comparison](evaluations.md#unknown-target-investigations) used
 `gpt-5.6-luna`, low reasoning effort, with ordinary files or `fr`. Each task has one comparison
@@ -153,8 +153,8 @@ dump of the parent's transcript or every stored proof record.
 Keep findings separate from hypotheses. A content digest is a reference to data, not evidence
 that a conclusion is true. Before integrating a child agent's proposed edit, refresh dependencies
 and review it against current source. Measure duplicated discovery, contradictions, conflicts,
-handoff tokens and revalidation work. Delegation earns its place when its complete measured cost
-and outcomes justify it; it is not automatically more efficient.
+handoff tokens and revalidation work. Use delegation when its complete measured cost and outcomes
+justify it. Measure that tradeoff for each task type.
 
 ## Removal decisions
 

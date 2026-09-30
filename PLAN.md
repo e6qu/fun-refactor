@@ -17,8 +17,8 @@ measure it. It is the starting point for the next substantial implementation cha
 
 ## Where we are
 
-The CLI can locate declarations and callers, return bounded structured views and source excerpts,
-preview edits, run declared checks, undo and redo edits, and export patches. It has resumable
+The CLI can locate declarations and callers, and return bounded structured views and source excerpts.
+It can preview edits, run declared checks, undo and redo edits, and export patches. It has resumable
 task records and Lean proof support for declared subsets. Analysis and editing support vary by
 language; parsing a file does not mean `fr` understands every possible behavior in it.
 
@@ -26,9 +26,9 @@ The [generated status](docs/roadmap-status.md) records **7 of 18 technical accep
 demonstrated in their stated test cases**. Eleven remain open, and none of the four milestones
 below is complete. These counts are not a percentage of product readiness or effort remaining.
 
-We have not established a general efficiency advantage. In the retained comparison on two Rust
-tasks, the `fr` agent used more calls, context and time on both; it completed an allocation
-requirement the ordinary-file agent missed. The [evaluation results](docs/evaluations.md#unknown-target-investigations)
+We have not established a general efficiency advantage. In the retained two-task Rust comparison,
+the `fr` agent used more calls, context and time on both tasks.
+It completed an allocation requirement the ordinary-file agent missed. The [evaluation results](docs/evaluations.md#unknown-target-investigations)
 include that failure. We need repeated comparisons with current models and unfamiliar tasks.
 
 The recent boltons and more-itertools tests exercise known, scripted edits, recovery after an
@@ -37,7 +37,7 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Next large chunk
 
-First make it possible to decide what earns its place in `fr`:
+First measure which parts help agents:
 
 1. Extend the existing evaluation runner to compare ordinary tools with the `fr` CLI on the same
    tasks, separately for Sonnet and Luna. Record all parent and child agent costs. Keep tasks,
@@ -47,9 +47,9 @@ First make it possible to decide what earns its place in `fr`:
 3. Measure the public guide and edit routes with individual layers disabled. Consolidate routes
    that add instructions and round trips without improving task outcomes. Assess browser UI,
    application migration and retained artifact storage using the [removal review](docs/product-review.md#removal-decisions).
-4. Use observed failures to choose general analysis improvements. The next candidate is Python
-   value tracing: answer whether a selected input can reach a selected use through assignments,
-   branches and helpers, and explain exactly where an answer becomes uncertain.
+4. Use observed failures to choose general analysis improvements. The next candidate is Python value tracing.
+   Determine whether a selected input can reach a selected use through assignments, branches and helpers.
+   Show where an answer becomes uncertain.
 
 This ordering replaces the previous instruction to build task-specific flow rules for two named
 repositories. The tool should learn reusable language behavior. Projects are tests of that behavior.
@@ -60,7 +60,7 @@ repositories. The tool should learn reusable language behavior. Projects are tes
   revisions or expected patches. A user may configure which inputs and uses matter; those rules
   cannot skip language semantics or force a desired answer.
 - Specify a language feature and its limits, then test it in several independently written forms.
-  Renaming a helper or moving a supported module must preserve the answer after references are updated.
+  Rename a helper or move a supported module, update its references, and check that the answer stays the same.
 - Before implementing repository-scale analysis, select at least three independent projects and
   keep one out of implementation work. Freeze the analyzer before that project's first evaluation.
   Preserve failures; after using one to improve the implementation, choose a new held-out project.
@@ -100,8 +100,8 @@ comparison do not establish general autonomous problem solving.
 
 ### B. Explain how values move through code
 
-Example: determine whether a value supplied to a function can reach an output after a helper call,
-or whether it was overwritten first. Report possible paths separately from runtime-proven paths.
+Example: determine whether a value supplied to a function can reach an output after a helper call.
+Check whether an earlier assignment overwrites it. Report possible paths separately from runtime-proven paths.
 
 - [ ] Specify the reusable language rules connecting source, analysis and edits, with independent
   examples and explicit unsupported cases.
