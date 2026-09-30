@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.41.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.40.0...fun-refactor-v0.41.0) (2026-09-30)
+
+
+### Features
+
+* analyze ordered scalar unpacking and chained assignments ([#393](https://github.com/e6qu/fun-refactor/issues/393)) ([cdc17dc](https://github.com/e6qu/fun-refactor/commit/cdc17dca7ce2564cb21a1e7077e38c7cab572712))
+* analyze Python literal defaults and exact signatures ([#391](https://github.com/e6qu/fun-refactor/issues/391)) ([3f19518](https://github.com/e6qu/fun-refactor/commit/3f19518ec710e8d1c6a77c727067cf380d5a64c8))
+* analyze single-root Python namespace packages ([#392](https://github.com/e6qu/fun-refactor/issues/392)) ([3e89b12](https://github.com/e6qu/fun-refactor/commit/3e89b125de9418814e0fad4e71c14aa03dc18174))
+* track roadmap outcomes with real Python repository acceptance ([#394](https://github.com/e6qu/fun-refactor/issues/394)) ([05fb612](https://github.com/e6qu/fun-refactor/commit/05fb612ae7974f70025e1d6208d54e5ef1e7efb8))
+
 ## [0.40.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.39.0...fun-refactor-v0.40.0) (2026-09-29)
 
 
