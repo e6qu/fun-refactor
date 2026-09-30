@@ -201,19 +201,7 @@ def measure_task(binary, name, task, output):
             dependent = selected
             test, discoveries['test'] = find(client, 'test_negative_take')
             assert test['path'] == task['upstream_tests']
-            repaired = '''"""Return the first n items, or the last abs(n) items for negative n.
-
-Negative counts require a finite iterable and retain at most abs(n) items.
-None consumes all items; nonintegral counts raise TypeError.
-"""
-from operator import index
-if n is None:
-    return list(iterable)
-n = index(n)
-if n < 0:
-    return list(deque(iterable, maxlen=-n))
-return list(islice(iterable, n))
-'''
+            repaired = '"""Return the first n items, or the last abs(n) items for negative n.\n\nNegative counts require a finite iterable and retain at most abs(n) items.\nNone consumes all items; nonintegral counts raise TypeError.\n"""\nfrom operator import index\nif n is None:\n    return list(iterable)\nn = index(n)\nif n < 0:\n    return list(deque(iterable, maxlen=-n))\nreturn list(islice(iterable, n))\n'
             changes = [{'name': symbol, 'path': selected['path'], 'body': repaired},
                        {'name': test['name'], 'path': test['path'], 'body':
                         'self.assertEqual(mi.take(-3, range(10)), [7, 8, 9])\n'
@@ -224,7 +212,7 @@ return list(islice(iterable, n))
         save(root / '.fr/rules.json', {'version': 'repository-probe-1', 'sources': [symbol], 'sinks': ['print']})
         selected, _ = find(client, symbol, selected['path'])
         analysis = client.project('dataflow', selected['handle'], '--summaries', '--imports', '--rules',
-                                  '.fr/rules.json', '--steps', '4096', '--bytes', '1048576').to_data()
+                                  str(root / '.fr/rules.json'), '--steps', '4096', '--bytes', '1048576').to_data()
         refusal = None
         if task['kind'] == 'feature':
             public = Path(selected['path']).parent / '__init__.py'
@@ -274,7 +262,7 @@ return list(islice(iterable, n))
         review = proposal(client, changes)
         assert review.at('/ready')
         delivered = run_delivery(plan, client, 'outcome', review, store)
-        assert delivered.receipt.passed, delivered.receipt.result.to_data()
+        assert delivered.passed, (delivered.attachment_error, delivered.receipt.result.to_data())
         # Source edits invalidate the earlier diagnosis; retain a fresh post-change observation.
         plan = delivered.resumed.plan.resume(client, transition='analysis:reset').plan
         plan = satisfy(plan, client, 'analysis')

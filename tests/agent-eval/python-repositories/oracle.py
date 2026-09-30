@@ -58,6 +58,14 @@ def tail_counts():
         except Exception: pass  # Baseline failures are retained by the value checks.
         expect(f'consumption:{amount}', lambda: seen, [] if amount == 0 else [0, 1] if amount > 0 else list(range(5)))
     expect('boolean count', lambda: take(True, range(3)), [0])
+    import tracemalloc
+    tracemalloc.start()
+    try:
+        expect('large finite stream', lambda: take(-3, range(100_000)), [99_997, 99_998, 99_999])
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    expect('bounded tail storage', lambda: peak < 262_144, True)
     return count, failures
 
 
