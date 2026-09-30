@@ -25,11 +25,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
       - run: python3 tools/agent_eval/test_study.py
       - run: python3 tools/agent_eval/test_codex_runner.py
+      - run: python3 tests/agent-eval/test_python_repository_basis.py
       - run: python3 tools/roadmap-status.py --check
       - run: python3 tools/check-prose.py
 

@@ -305,5 +305,78 @@ class StudyTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["outcomes"], {"pending": 48})
 
 
+    def test_missing_resource_measurement_excludes_a_success_pair(self):
+        for cell in self.frozen["cells"][:2]:
+            record = self.record(cell)
+            record["measurements"]["sampled_aggregate_rss_bytes"] = None
+            self.save(record)
+        value = report(self.frozen, self.root)
+        self.assertFalse(value["audit_complete"])
+        pair = next(row for row in value["pairs"] if row["pair"] == self.frozen["cells"][0]["pair"])
+        self.assertFalse(pair["comparable_success"])
+        self.assertIn("fr: unmeasured budgets", pair["excluded_reasons"])
+
+    def test_reused_session_or_invocation_across_arms_refuses(self):
+        left, right = (self.record(cell) for cell in self.frozen["cells"][:2])
+        self.save(left)
+        for reuse in ("session", "invocation"):
+            changed = copy.deepcopy(right)
+            if reuse == "session":
+                changed["agents"][0]["id"] = left["agents"][0]["id"]
+            else:
+                changed["agents"][0]["invocations"][0]["id"] = left["agents"][0]["invocations"][0]["id"]
+            with self.assertRaisesRegex(ValueError, "reused across attempts"):
+                self.audit(changed)
+
+    def test_invalid_token_counts_refuse(self):
+        for field, value in (("output", True), ("output", -1), ("output", 1.2), ("reasoning", 11)):
+            record = self.record()
+            record["agents"][0]["invocations"][0]["tokens"][field] = value
+            with self.assertRaises(ValueError):
+                self.audit(record)
+
+    def test_single_agent_mode_rejects_children(self):
+        cell = next(row for row in self.frozen["cells"] if row["mode"] == "single")
+        record = self.record(cell)
+        child = copy.deepcopy(record["agents"][0])
+        child.update(id="child", parent=record["agents"][0]["id"])
+        record["agents"][0]["children"] = ["child"]
+        record["agents"].append(child)
+        with self.assertRaisesRegex(ValueError, "child budget"):
+            self.audit(record)
+
+    def test_study_cap_overrun_stays_visible(self):
+        record = self.record()
+        record.update(actual_usd=11, billing_evidence=self.artifact("bill.txt", b"bill"))
+        self.audit(record)
+        value = report(self.frozen, self.root)
+        self.assertTrue(value["spend"]["cap_exceeded"])
+        self.assertEqual(value["spend"]["remaining_usd"], 0)
+        self.assertFalse(value["audit_complete"])
+
+    def test_complete_collection_and_failed_outcome_do_not_hide_cost(self):
+        for index, cell in enumerate(self.frozen["cells"]):
+            record = self.record(cell)
+            if index == 0:
+                record["grade"]["outcome"] = "failed"
+            self.save(record)
+        value = report(self.frozen, self.root)
+        self.assertTrue(value["audit_complete"])
+        self.assertEqual(value["outcomes"], {"passed": 47, "failed": 1})
+        self.assertEqual(sum(row["comparable_success"] for row in value["pairs"]), 23)
+        self.assertAlmostEqual(value["spend"]["known_usd"], 48 * 0.000465)
+
+    def test_strict_cli_prints_partial_report_and_exits_one(self):
+        script = Path(__file__).resolve().parents[1] / "agent-eval-study.py"
+        frozen = self.root / "plan.json"
+        frozen.write_text(json.dumps(self.frozen))
+        attempts = self.root / "attempts"
+        attempts.mkdir()
+        result = subprocess.run([sys.executable, str(script), "report", str(frozen), str(attempts), "--require-complete"],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)["outcomes"], {"pending": 48})
+
+
 if __name__ == "__main__":
     unittest.main()
