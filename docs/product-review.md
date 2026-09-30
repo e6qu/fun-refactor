@@ -128,7 +128,14 @@ For each attempt retain:
 - Initial skill/schema instructions, every disclosed tool result, source reads, retries, pagination,
   repeated disclosure and fallback. Measure maximum active context as well as cumulative input.
 - Tool CPU, sampled aggregate RSS, disk and cache growth, cold versus warm behavior, and full build
-  or check costs. Byte ceilings and sampled peaks do not guarantee token or memory maxima.
+  or check costs. Response byte limits do not measure complete prompt usage, and sampled memory
+  peaks can miss short-lived allocations.
+
+The CLI currently labels its disclosure budget a conservative token upper bound compatible with
+byte-fallback tokenizers, calculated from serialized UTF-8 bytes in
+[`src/project/disclose.rs`](../src/project/disclose.rs). That bounds a response under the stated
+assumption; it is not a tokenizer measurement or the provider's charge for the full conversation.
+Keep that safety limit separate from the usage measurements above.
 
 Report success and failure counts first, then costs for all attempts and costs for the comparable
 successful pairs. Also report total spend divided by successful outcomes, with failures included;
