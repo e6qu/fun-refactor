@@ -17,10 +17,15 @@ def main():
     audit.add_argument("plan", type=Path)
     audit.add_argument("attempts", type=Path)
     audit.add_argument("--require-complete", action="store_true", help="Exit 1 for unfinished accounting or budget violations")
+    audit.add_argument("--require-provider-usage", action="store_true", help="Exit 1 unless every executed invocation matches raw provider usage")
     args = parser.parse_args()
     try:
         result = plan(load(args.manifest)) if args.command == "plan" else report(load(args.plan), args.attempts)
         print(json.dumps(result, indent=2, allow_nan=False))
+        if args.command == "report" and args.require_provider_usage:
+            executed = [row for row in result["attempts"] if row["status"] in {"completed", "failed"}]
+            if not executed or any(not row.get("provider_usage_verified") for row in executed):
+                parser.exit(1, "study: executed attempts lack verified provider usage\n")
         if args.command == "report" and args.require_complete and not result["audit_complete"]:
             parser.exit(1, "study: evidence is incomplete or a budget was exceeded\n")
     except (OSError, ValueError, KeyError, TypeError) as error:

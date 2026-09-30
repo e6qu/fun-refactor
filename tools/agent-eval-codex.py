@@ -3,10 +3,13 @@
 
 import argparse
 import hashlib
+import io
 import json
 from pathlib import Path
-import subprocess
+import tempfile
 import time
+
+from agent_eval.bounded_host import run as run_bounded
 
 
 DEFAULT_MODEL = "gpt-5.6-luna"
@@ -115,26 +118,9 @@ def run_trial(codex, entry, model, effort, service_tier, timeout):
     prompt_path = session / "prompt.txt"
     command = codex_command(codex, session, model, effort, service_tier)
     started = time.time()
-    timed_out = False
-    launch_error = None
     with events_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-        try:
-            result = subprocess.run(
-                command,
-                input=prompt_path.read_bytes(),
-                stdout=stdout,
-                stderr=stderr,
-                timeout=timeout,
-                check=False,
-            )
-            exit_code = result.returncode
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            exit_code = 124
-        except OSError as error:
-            launch_error = str(error)
-            stderr.write((launch_error + "\n").encode())
-            exit_code = None
+        execution = run_bounded(command, prompt_path.read_bytes(), stdout, stderr, session,
+                                wall_seconds=timeout)
     record = {
         "schema": "fr-agent-eval-codex-run-1",
         "trial": name,
@@ -153,13 +139,21 @@ def run_trial(codex, entry, model, effort, service_tier, timeout):
         "stderr_sha256": digest(stderr_path),
         "started_at": started,
         "elapsed_seconds": time.time() - started,
-        "exit_code": exit_code,
-        "timed_out": timed_out,
-        "launch_error": launch_error,
+        **execution,
         "command": command,
     }
     record_path.write_text(json.dumps(record, indent=2) + "\n")
     return record
+
+
+def codex_version(codex):
+    with tempfile.TemporaryDirectory() as temporary:
+        stdout, stderr = io.BytesIO(), io.BytesIO()
+        result = run_bounded([str(codex), "--version"], b"", stdout, stderr, Path(temporary),
+                             wall_seconds=10, transcript_bytes=65536)
+    if result["stop_reason"] or result["exit_code"] != 0:
+        raise ValueError(f"Codex version probe failed: {result}")
+    return stdout.getvalue().decode().strip()
 
 
 def main():
@@ -170,7 +164,7 @@ def main():
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--effort", default=DEFAULT_EFFORT)
     parser.add_argument("--service-tier", default=DEFAULT_SERVICE_TIER)
-    parser.add_argument("--timeout", type=int, default=3600)
+    parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--confirm-agent-spend",
@@ -178,8 +172,8 @@ def main():
         help="Required acknowledgement that the selected Codex runs consume quota.",
     )
     args = parser.parse_args()
-    if args.timeout < 60:
-        parser.error("--timeout must be at least 60 seconds")
+    if not 60 <= args.timeout <= 900:
+        parser.error("--timeout must be between 60 and 900 seconds")
     try:
         pairs = selected_pairs(args.sessions, args.trial)
         for pair in pairs:
@@ -204,7 +198,7 @@ def main():
         return
     if not args.confirm_agent_spend:
         parser.error("--confirm-agent-spend is required for a real Codex run")
-    version = subprocess.check_output([args.codex, "--version"], text=True).strip()
+    version = codex_version(args.codex)
     records = []
     for pair in pairs:
         for entry in pair:

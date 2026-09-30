@@ -4,11 +4,13 @@ import importlib.util
 import json
 from pathlib import Path
 import stat
+import sys
 import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tools"))
 spec = importlib.util.spec_from_file_location("agent_eval_codex", ROOT / "tools/agent-eval-codex.py")
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)

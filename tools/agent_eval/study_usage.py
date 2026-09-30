@@ -1,6 +1,7 @@
 """Account for all declared agent invocations without guessing missing usage."""
 from __future__ import annotations
 
+from .provider_usage import verify
 from .study import TOKEN_FIELDS, artifact, number, require, text
 
 MEASUREMENTS = (
@@ -33,6 +34,7 @@ def usage(agents, model, root, max_children, wall_seconds):
             require(cursor["parent"] in by_id, "missing parent agent")
             cursor = by_id[cursor["parent"]]
     missing, turns, seconds = [], set(), 0
+    verified, compatible = 0, True
     totals = dict.fromkeys(TOKEN_FIELDS, 0)
     reasoning = 0
     for agent in agents:
@@ -54,7 +56,12 @@ def usage(agents, model, root, max_children, wall_seconds):
             turn = text(invocation["id"], "invocation id")
             require(turn not in turns, "duplicate invocation (possible double counting)")
             turns.add(turn)
-            artifact(root, invocation["raw_usage"])
+            raw = artifact(root, invocation["raw_usage"])
+            if "format" in invocation:
+                observed = verify(invocation, raw, model)
+                verified += int(observed["model_observed"])
+                compatible = compatible and observed["pricing_compatible"]
+                missing.extend(f"{identity}/{turn}: {issue}" for issue in observed["issues"])
             counters = invocation["tokens"]
             for field in (*TOKEN_FIELDS, "reasoning"):
                 value = counters.get(field)
@@ -74,12 +81,14 @@ def usage(agents, model, root, max_children, wall_seconds):
             if counters.get("reasoning") is not None and counters.get("output") is not None:
                 require(counters["reasoning"] <= counters["output"], "reasoning must be a subset of output")
     complete = all(agent["usage_complete"] and agent["invocations"] for agent in agents)
-    complete = bool(complete and all(value is not None for value in totals.values()))
+    complete = bool(complete and compatible and all(value is not None for value in totals.values()))
     rates = model["pricing"]["usd_per_million"]
     estimate = sum(totals[key] * rates[key] / 1_000_000 for key in TOKEN_FIELDS) if complete else None
     return {"tokens": {**totals, "reasoning": reasoning}, "usage_complete": complete,
             "missing": missing, "estimated_usd": estimate, "agent_seconds": seconds,
-            "agents": len(agents), "invocations": len(turns)}
+            "agents": len(agents), "invocations": len(turns),
+            "provider_verified_invocations": verified,
+            "provider_usage_verified": verified == len(turns) and bool(turns)}
 
 
 def measurements(value):
