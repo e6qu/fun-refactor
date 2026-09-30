@@ -46,16 +46,7 @@ jobs:
 
       - name: Install Zig for the conformance matrix
         timeout-minutes: 5
-        run: |
-          set -euo pipefail
-          ZIG=0.16.0
-          ZIG_SHA=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
-          tools/fetch-verified-ranges.sh \
-            "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz" \
-            /tmp/zig.tar.xz "${ZIG_SHA}" 55478392
-          tar -xJf /tmp/zig.tar.xz -C /tmp
-          sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
-          zig version
+        uses: ./.github/actions/zig-toolchain
 
       - name: Cache the Lean toolchain
         id: lean-cache
