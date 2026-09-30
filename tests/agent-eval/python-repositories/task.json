@@ -19,7 +19,7 @@
       "revision": "1fd388bc237923e92574ae272cd8c71eab4b886c",
       "archive": "more-itertools.tar.gz",
       "sha256": "1bc969f58da693ddb22bd856ca220cc0b32a71d335fd271abff9d4d8759aaf21",
-      "requirement": "Extend the public take API: negative integer counts select up to that many trailing items from a finite iterable. Preserve nonnegative counts, zero without consuming an item, None for all items, index-protocol counts and TypeError rejection of nonintegral counts. Positive counts must not consume extra items. Negative counts consume the finite iterable once with storage bounded by the requested tail. Update the existing negative-count test to the new contract; preserve all other upstream tests. Discover implementation, public consumer and test locations.",
+      "requirement": "Extend the public take API: negative integer counts select up to that many trailing items from a finite iterable. Preserve nonnegative counts, zero without consuming an item, None for all items, index-protocol counts. Standardize nonintegral-count rejection on TypeError (the original islice-based implementation raises ValueError). Positive counts must not consume extra items. Negative counts consume the finite iterable once with storage bounded by the requested tail. Update the existing negative-count test to the new contract; preserve all other upstream tests. Discover implementation, public consumer and test locations.",
       "kind": "feature",
       "upstream_tests": "tests/test_recipes.py",
       "oracle": "Independent list-slice results across count/length combinations, iterator-consumption probes, integer-index objects and invalid counts.",

@@ -93,6 +93,13 @@ def take(n, iterable):
         self.assertFalse(result['passed'])
         self.assertTrue(any(f[0] == 'index protocol' for f in result['failures']))
 
+    def test_report_budget_refuses_before_publishing(self):
+        config = {'budgets': {**acceptance.TASKS['budgets'], 'report_bytes': 16}}
+        destination = self.root / 'result.json'
+        with patch.object(acceptance, 'TASKS', config), self.assertRaisesRegex(AssertionError, 'byte budget'):
+            acceptance.save(destination, {'unexpected': 'large report'})
+        self.assertFalse(destination.exists())
+
     def test_pinned_original_behavior_fails_without_modifying_archives(self):
         for name, task in acceptance.TASKS['tasks'].items():
             root = self.root / name

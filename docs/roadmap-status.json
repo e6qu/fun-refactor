@@ -276,7 +276,7 @@
       "state": "open"
     },
     {
-      "acceptance": "Both repository tasks have independent positive/negative value-flow oracles; every unsupported path is an explicit cutoff, with no absence claim from incomplete analysis.",
+      "acceptance": "Each repository has a runtime-checked positive witness and a complete negative result for a pinned task path; other paths report cutoffs without absence claims.",
       "blockers": [
         "No qualifying retained evidence yet"
       ],

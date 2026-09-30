@@ -791,7 +791,7 @@ archives, revisions, SHA-256 identities, budgets and upstream licenses for two t
 - **boltons:** reproduce a historical singularization defect for already-singular double-s words,
   preserve case and irregular/plural conversion, and restore a deliberately perturbed case helper.
 - **more-itertools:** extend public `take` with negative tail counts on finite iterables, preserve
-  positive/zero/None/index-protocol behavior, reject nonintegral counts with TypeError, and update
+  positive/zero/None/index-protocol behavior, standardize nonintegral-count errors on TypeError, and update
   the explicitly superseded negative-count test. Independent probes check consumption and that
   selecting three values from 100,000 stays below 256 KiB of traced Python allocations.
 

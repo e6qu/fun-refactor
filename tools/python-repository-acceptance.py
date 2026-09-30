@@ -33,11 +33,26 @@ from fr_ir.runtime import FrClient, FrRuntimeError
 
 FIXTURE = ROOT / 'tests/agent-eval/python-repositories'
 TASKS = json.loads((FIXTURE / 'task.json').read_text())
+TAKE_TAIL_BODY = '''"""Return the first n items, or the last abs(n) items for negative n.
+
+Negative counts require a finite iterable and retain at most abs(n) items.
+None consumes all items; nonintegral counts raise TypeError.
+"""
+from operator import index
+if n is None:
+    return list(iterable)
+n = index(n)
+if n < 0:
+    return list(deque(iterable, maxlen=-n))
+return list(islice(iterable, n))
+'''
 
 
 def save(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+    text = json.dumps(value, indent=2, sort_keys=True) + '\n'
+    assert len(text.encode()) <= TASKS['budgets']['report_bytes'], 'retained report exceeds the declared byte budget'
+    path.write_text(text)
 
 
 def run(argv, cwd, check=True):
@@ -214,7 +229,7 @@ def measure_task(binary, name, task, output):
             dependent = selected
             test, discoveries['test'] = find(client, 'test_negative_take')
             assert test['path'] == task['upstream_tests']
-            repaired = '"""Return the first n items, or the last abs(n) items for negative n.\n\nNegative counts require a finite iterable and retain at most abs(n) items.\nNone consumes all items; nonintegral counts raise TypeError.\n"""\nfrom operator import index\nif n is None:\n    return list(iterable)\nn = index(n)\nif n < 0:\n    return list(deque(iterable, maxlen=-n))\nreturn list(islice(iterable, n))\n'
+            repaired = TAKE_TAIL_BODY
             changes = [{'name': symbol, 'path': selected['path'], 'body': repaired},
                        {'name': test['name'], 'path': test['path'], 'body':
                         'self.assertEqual(mi.take(-3, range(10)), [7, 8, 9])\n'

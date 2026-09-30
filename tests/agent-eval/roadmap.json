@@ -186,7 +186,7 @@
     {
       "id": "B.repository-flow",
       "kind": "deterministic",
-      "acceptance": "Both repository tasks have independent positive/negative value-flow oracles; every unsupported path is an explicit cutoff, with no absence claim from incomplete analysis.",
+      "acceptance": "Each repository has a runtime-checked positive witness and a complete negative result for a pinned task path; other paths report cutoffs without absence claims.",
       "next": "Add task-specific flow rules and runtime flow oracles; current empty-rule probes do not qualify.",
       "requires": []
     },
