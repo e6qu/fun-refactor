@@ -27,9 +27,12 @@ and write and check useful proofs with less total effort and context. Start with
 
 The [study planner and auditor](agent-study.md) now freeze task matrices and audit declared usage,
 including child agents and failed attempts. The host CLI now provides a budgeted provider gateway
-and private black-box grading in constrained Docker containers. Tests use fake providers and executable
-submissions; no new paid trial has run. Connect the agent loop to the gateway, prepare pinned task
-checkouts and reviewed graders, and collect complete context/tool measurements before the Sonnet/Luna pilot.
+and private black-box grading in constrained Docker containers. A serial agent loop connects provider
+tool calls, pinned Git exports, isolated commands and grading for fix/feature tasks. Child agents
+receive a focused question and workspace copy; their edits never merge automatically.
+Tests use fake providers and executable submissions; no new paid trial has run. Select independent
+tasks and reviewed graders, add explanation/proof grading adapters, and collect complete context/tool
+and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.
 Use those results to simplify overlapping routes and choose useful analysis
 improvements. The older two-task comparison consumed more calls, context and time with `fr`;

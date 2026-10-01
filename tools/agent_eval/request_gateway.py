@@ -88,7 +88,10 @@ def text_blocks(content, provider):
         kind = block.get("type")
         if kind in {"text", "input_text", "output_text"}:
             require(isinstance(block.get("text"), str), "invalid text block")
-            require(set(block) <= {"type", "text", "cache_control", "annotations"}, "unsupported text block fields")
+            allowed = {"type", "text", "cache_control", "annotations"}
+            if provider == "openai" and kind == "output_text":
+                allowed.add("logprobs")
+            require(set(block) <= allowed, "unsupported text block fields")
         elif provider == "anthropic" and kind == "tool_use":
             require(set(block) <= {"type", "id", "name", "input"}, "unsupported tool-use fields")
         elif provider == "anthropic" and kind == "tool_result":

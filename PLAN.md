@@ -166,8 +166,10 @@ between source implementations and proofs. Passing a theorem about a separate mo
 
 The [study planner and auditor](docs/agent-study.md) now freeze independent tasks and compare retained
 parent/child accounting. The host gateway now reserves and settles provider requests; a container
-grader compares submitted code with private cases. These tests do not count as live agent trials.
-Connect the agent loop, prepare pinned task checkouts and collect complete measurements before the pilot.
+grader compares submitted code with private cases. A serial agent loop now connects those steps for
+fix and feature tasks, with pinned source exports and bounded child investigations.
+These tests use fake providers and do not count as live agent trials.
+Select independent tasks, review graders and complete resource/context measurements before the pilot.
 
 Keep reports small and allow explicit follow-up reads. Preserve uncertainty, exact source references
 and stale-result rejection. Check behavior independently of the proposed patch. Review edits before

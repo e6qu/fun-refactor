@@ -45,7 +45,7 @@ class FakeProvider:
         if provider == "openai":
             output = [{"type": "reasoning", "id": "rs-" + str(len(self.requests)), "summary": [], "encrypted_content": "opaque-fixture"}]
             output += ([{"type": "message", "id": "msg", "role": "assistant", "status": "completed", "phase": "final_answer",
-                         "content": [{"type": "output_text", "text": turn, "annotations": []}]}] if isinstance(turn, str) else
+                         "content": [{"type": "output_text", "text": turn, "annotations": [], "logprobs": []}]}] if isinstance(turn, str) else
                        [{"type": "function_call", "call_id": row["id"], "name": row["name"], "arguments": json.dumps(row["arguments"])} for row in turn])
             return {"object": "response", "model": payload["model"], "id": f"response-{len(self.requests)}", "status": "completed",
                     "output": output, "usage": {"input_tokens": 100, "output_tokens": 10,
@@ -67,6 +67,58 @@ class FakeTools:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_tool_batch_limit_and_unknown_names_execute_nothing(self):
+        loop = self.loop(max_tool_calls=1)
+        loop.transport = FakeProvider([[call(identity="a"), call(identity="b")]])
+        with self.assertRaisesRegex(ValueError, "tool call limit"):
+            loop.agent(files(), "task")
+        self.assertEqual(loop.backend.calls, [])
+
+    def test_invalid_tool_in_batch_refuses_before_first_tool(self):
+        loop = self.loop()
+        loop.transport = FakeProvider([[call(identity="a"), call(name="host_shell", identity="b")]])
+        with self.assertRaisesRegex(ValueError, "unsupported tool"):
+            loop.agent(files(), "task")
+        self.assertEqual(loop.backend.calls, [])
+
+    def test_evidence_limit_stops_before_network(self):
+        loop = self.loop()
+        loop.transport = FakeProvider(["never"])
+        with patch("agent_eval.study_runner.disk_size", return_value=128 * 1024**2), self.assertRaisesRegex(ValueError, "evidence allowance"):
+            loop.agent(files(), "task")
+        self.assertEqual(loop.transport.requests, [])
+
+    def test_tool_container_options_and_cleanup_are_verified_without_docker(self):
+        commands = []
+        def execute(command, data, root, timeout, cap):
+            commands.append(command)
+            result = {"exit_code": 0, "stop_reason": None}
+            if command[3] == "image":
+                return result, b"null", b""
+            if command[3] == "start":
+                return result, json.dumps({"files": files("changed"), "result": {"stdout": "ok"}}).encode(), b""
+            return result, b"", b""
+        settings = profile("sha256:" + "a" * 64, "b" * 64)
+        backend = ContainerTools(settings["image"], settings, self.root, execute=execute)
+        state, _ = backend.command(files(), {"argv": ["cat", "main.py"], "stdin": ""}, 2)
+        self.assertEqual(state, files("changed"))
+        command = commands[1]
+        for flag in ("--network=none", "--read-only", "--memory=256m", "--memory-swap=256m",
+                     "--cpus=0.5", "--pids-limit=32", "--cap-drop=ALL", "--user=65534:65534"):
+            self.assertIn(flag, command)
+        self.assertEqual(commands[-1][3], "rm")
+        self.assertNotIn("--env", command)
+        with patch.object(backend, "execute", return_value=({"exit_code": 1, "stop_reason": None}, b"", b"")), self.assertRaisesRegex(ValueError, "cleanup failed"):
+            backend.command(files(), {"argv": ["true"], "stdin": ""}, 2)
+
+    def test_run_cli_requires_acknowledgement_before_accessing_inputs(self):
+        result = subprocess.run([sys.executable, "tools/agent-eval-host.py", "run", "missing", "missing", "cell",
+                                 "missing", "missing", "missing", "--binary", "missing", "--skill", "missing"],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("confirm-agent-spend", result.stderr)
+        self.assertNotIn("No such file", result.stderr)
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -101,7 +153,7 @@ class RunnerTests(unittest.TestCase):
                 if provider == "openai":
                     self.assertEqual(replay["input"][1]["encrypted_content"], "opaque-fixture")
                     self.assertEqual(replay["input"][-1]["type"], "function_call_output")
-                    self.assertEqual(loop.measurements["peak_context_tokens"], 100)
+                    self.assertEqual(loop.measurements["peak_context_tokens"], 110)
                 else:
                     self.assertEqual(replay["messages"][-1]["content"][0]["type"], "tool_result")
                     self.assertIsNone(loop.measurements["peak_context_tokens"])
@@ -218,7 +270,8 @@ class RunnerTests(unittest.TestCase):
         binary = self.root / "fr"
         binary.write_text("Fixture binary")
         private = self.root / "grader.json"
-        private.write_text("Fixture private grader")
+        from agent_eval.test_isolated_grade import rubric
+        private.write_text(json.dumps(rubric()))
         value = api_manifest()
         value["runner"] = profile("sha256:" + "a" * 64, digest(pack(skill)))
         value["fr"].update(binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
@@ -242,12 +295,62 @@ class RunnerTests(unittest.TestCase):
         self.assertIn("disk_bytes", observed["unmeasured_budgets"])
         self.assertFalse(audit["audit_complete"])
         self.assertEqual(ledger.snapshot()["attempts"][0]["state"], "closed")
+        second = next(row["id"] for row in frozen["cells"] if row["task"] == "fix" and row["mode"] == "single" and row["id"] != cell)
+        failed = run_attempt(ledger, second, repo, private, binary, skill, attempts,
+                             transport=FakeProvider([TimeoutError("private-error-detail")]), backend_factory=FakeTools)
+        self.assertEqual(failed["status"], "failed")
+        self.assertEqual(failed["grade"]["outcome"], "inconclusive")
+        self.assertFalse(failed["agents"][0]["usage_complete"])
+        self.assertTrue(any(row["state"] == "unknown" for row in ledger.snapshot()["calls"]))
+        self.assertNotIn("private-error-detail", (attempts / failed["trace"]["path"]).read_text())
+        self.assertFalse(report(frozen, attempts)["spend"]["complete"])
         with self.assertRaisesRegex(ValueError, "already retained"):
             run_attempt(ledger, cell, repo, private, binary, skill, attempts)
 
 
 @unittest.skipUnless(os.environ.get("FR_STUDY_TEST_IMAGE"), "real tool containers run on GitHub only")
 class ContainerTests(unittest.TestCase):
+    def test_real_tools_and_private_grader_complete_an_auditable_attempt(self):
+        from agent_eval.test_isolated_grade import rubric
+        from agent_eval.isolated_grade import grade
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            helper = RunnerTests()
+            helper.root = root
+            repository, revision = helper.repository()
+            skill = root / "skill"
+            skill.mkdir()
+            (skill / "SKILL.md").write_text("Use fr --version to check this synthetic executable.")
+            binary = root / "fr"
+            binary.write_text("#!/bin/sh\necho fixture-fr\n")
+            binary.chmod(0o555)
+            private = root / "private-grader.json"
+            private.write_text(json.dumps(rubric(os.environ["FR_STUDY_TEST_IMAGE"])))
+            value = api_manifest()
+            value["runner"] = profile(os.environ["FR_STUDY_TEST_IMAGE"], digest(pack(skill)))
+            value["fr"].update(binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
+                               skill_sha256=hashlib.sha256((skill / "SKILL.md").read_bytes()).hexdigest())
+            for task in value["tasks"]:
+                task.update(revision=revision, grader_sha256=hashlib.sha256(private.read_bytes()).hexdigest())
+            for model in value["models"]:
+                model["settings"]["request"]["tools"] = tool_definitions("openai")
+            frozen = plan(value)
+            ledger = Budget(root / "ledger", frozen)
+            cell = next(row["id"] for row in frozen["cells"] if row["arm"] == "fr" and row["task"] == "fix" and row["mode"] == "single")
+            provider = FakeProvider([[call(arguments={"argv": ["python3", "-c",
+                "import pathlib,subprocess; assert subprocess.check_output(['fr','--version']).strip()==b'fixture-fr'; "
+                "assert pathlib.Path('/opt/fr-skill/SKILL.md').is_file(); "
+                "assert not pathlib.Path('/private-grader.json').exists(); "
+                "pathlib.Path('answer.py').write_text('print(int(input())*7)\\n')"], "stdin": ""})], "Finished"])
+            attempts = root / "attempts"
+            record = run_attempt(ledger, cell, repository, private, binary, skill, attempts, transport=provider)
+            self.assertEqual(record["grade"]["outcome"], "passed")
+            audit = next(row for row in report(frozen, attempts)["attempts"] if row["cell"]["id"] == cell)
+            self.assertTrue(audit["provider_usage_verified"])
+            submission = attempts / "artifacts" / cell / "submission"
+            (submission / "answer.py").write_text("print('wrong')\n")
+            self.assertEqual(grade(submission, private, value["tasks"][0]["grader_sha256"])["outcome"], "failed")
+
     def test_command_edits_persist_without_exposing_host_or_provider_credentials(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

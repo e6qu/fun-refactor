@@ -1,16 +1,17 @@
 """A serial provider/tool loop with bounded child investigations and retained failures."""
 import copy
-import hashlib
 from pathlib import Path
 import time
 
 from .bounded_host import disk_size
-from .isolated_grade import grade
+from .isolated_grade import grade, validate as validate_grader
 from .request_gateway import MAX_JSON, decode, prepare, send, write_json
 from .study import digest, encode, load, number, require, text
 from .study_usage import MEASUREMENTS
 from .study_workspace import ContainerTools, file_hash, git_snapshot
 from .workspace_bundle import MAX_BYTES, pack, unpack, validate
+
+REQUEST_EVIDENCE_ALLOWANCE = 6 * MAX_JSON
 
 INSTRUCTIONS = """Solve the supplied task in /workspace/project and check the result.
 Use command with an argv list and stdin string. Use small reads before requesting more detail.
@@ -60,7 +61,7 @@ def configuration(frozen, model):
                 "workspace_bytes": MAX_BYTES, "output_bytes": 65536, "evidence_bytes": 128 * 1024**2}
     for key, maximum in ceilings.items():
         require(number(settings[key], key, integer=True, positive=True) <= maximum, f"runner {key} exceeds limit")
-    require(settings["evidence_bytes"] >= 4 * MAX_JSON, "evidence allowance cannot retain one maximum request")
+    require(settings["evidence_bytes"] >= REQUEST_EVIDENCE_ALLOWANCE, "evidence allowance cannot retain one maximum request")
     require(frozen["manifest"]["cache_state"] == "uncontrolled", "provider cache state cannot be enforced by this runner")
     require(frozen["manifest"]["max_children"] <= 4, "runner supports at most four children")
     require(model["settings"]["request"].get("tools") == tool_definitions(model["provider"]), "freeze the runner's exact tools")
@@ -89,6 +90,7 @@ def response_items(provider, response):
             seen.add(identity)
             arguments = decode(item["arguments"]) if provider == "openai" else item["input"]
             require(isinstance(arguments, dict), "tool arguments must be an object")
+            validate_call(item["name"], arguments)
             calls.append({"id": identity, "name": text(item["name"], "tool name"), "arguments": arguments})
         elif kind == "reasoning" and provider == "openai":
             require(isinstance(item.get("encrypted_content"), str) and item["encrypted_content"], "reasoning replay needs encrypted content")
@@ -106,6 +108,20 @@ def response_items(provider, response):
         require(bool(calls) == (response["stop_reason"] == "tool_use"), "tool stop reason differs from content")
     require(calls or any(part.strip() for part in final), "response has no tools or final answer")
     return items, calls, "\n".join(final)
+
+
+def validate_call(name, arguments):
+    if name == "command":
+        require(set(arguments) == {"argv", "stdin"}, "command needs argv and stdin only")
+        require(isinstance(arguments["argv"], list) and 1 <= len(arguments["argv"]) <= 128
+                and all(isinstance(arg, str) and "\0" not in arg for arg in arguments["argv"])
+                and arguments["argv"][0], "invalid command argv")
+        require(isinstance(arguments["stdin"], str) and len(arguments["stdin"].encode()) <= 65536, "command input limit")
+    elif name == "delegate":
+        require(set(arguments) == {"question"}, "delegate needs exactly one question")
+        require(len(text(arguments["question"], "child question").encode()) <= 16384, "handoff question limit")
+    else:
+        raise ValueError("unsupported tool name")
 
 
 class Loop:
@@ -146,7 +162,7 @@ class Loop:
         self.agents.append(record)
         self.active[identity] = self.clock()
         instructions = self.instructions + ("\nReturn findings with source references; your workspace edits will be discarded." if parent else "")
-        self.measurements["instruction_bytes"] += len(instructions.encode()) + len(encode(tool_definitions(self.model["provider"])))
+        self.measurements["instruction_bytes"] += len(instructions.encode()) + len(question.encode()) + len(encode(tool_definitions(self.model["provider"])))
         messages = [{"role": "user", "content": question}]
         seen = set()
         self.event({"agent": identity, "parent": parent, "instructions": instructions, "question": question,
@@ -155,7 +171,7 @@ class Loop:
             while True:
                 remaining = self.remaining()
                 require(self.turns < self.settings["max_turns"], "provider turn limit exhausted")
-                require(disk_size(self.directory) + 4 * MAX_JSON <= self.settings["evidence_bytes"], "request evidence allowance exhausted")
+                require(disk_size(self.directory) + REQUEST_EVIDENCE_ALLOWANCE <= self.settings["evidence_bytes"], "request evidence allowance exhausted")
                 self.turns += 1
                 request_id = f'{self.cell["id"]}-request-{self.turns}'
                 supplied = ({"input": messages, "instructions": instructions} if self.model["provider"] == "openai"
@@ -173,7 +189,7 @@ class Loop:
                 require(receipt["state"] == "settled", "request charge is unresolved or exceeded its reservation")
                 if self.model["provider"] == "openai":
                     count = load(self.directory / receipt["count"]["path"])["input_tokens"]
-                    self.measurements["peak_context_tokens"] = max(self.measurements["peak_context_tokens"] or 0, count)
+                    self.measurements["peak_context_tokens"] = max(self.measurements["peak_context_tokens"] or 0, count + invocation["tokens"]["output"])
                 raw = load(self.directory / receipt["response"]["path"])
                 items, calls, final = response_items(self.model["provider"], raw)
                 replay = messages + (items if self.model["provider"] == "openai" else [{"role": "assistant", "content": items}])
@@ -229,6 +245,7 @@ def run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempt
     require(file_hash(skill / "SKILL.md", 65536) == frozen["manifest"]["fr"]["skill_sha256"], "fr skill differs")
     require(digest(pack(skill, 1024**2)) == settings["skill_tree_sha256"], "skill reference tree differs")
     require(file_hash(grader_path, 1024**2) == task["grader_sha256"], "private grader differs")
+    validate_grader(load(grader_path))
     require(not grader_path.resolve().is_relative_to(Path(repository).resolve()), "private grader must be outside repository")
     attempts.mkdir(parents=True, exist_ok=True)
     require(not (attempts / f"{cell_id}.json").exists(), "attempt already retained")
@@ -250,6 +267,7 @@ def run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempt
         loop.remaining()
         unpack(files, directory / "submission", settings["workspace_bytes"])
         grading = grader(directory / "submission", grader_path, task["grader_sha256"])
+        loop.remaining()
         status = "completed"
     except (OSError, ValueError, KeyError, TypeError, RuntimeError) as failure:
         error = type(failure).__name__

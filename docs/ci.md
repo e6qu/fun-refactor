@@ -40,5 +40,7 @@ archive digest. Interrupted range downloads resume verified bytes with five boun
 they retain the existing five-minute installation limit. This addresses the download timeout in
 [main run 36787051550](https://github.com/e6qu/fun-refactor/actions/runs/36787051550).
 
-The study job also exercises isolated graders with an image whose local content ID it records after
-pulling. This is a synthetic CI fixture. Live graders must freeze their own image digest and cases.
+The study job also exercises isolated graders and agent command containers with an image whose local
+content ID it records after pulling. Offline providers drive a complete command/edit/grade attempt,
+including a synthetic executable that tests the fr mount. This fixture does not measure model quality
+or real fr effectiveness. Live runs must freeze their own image digest, binary and independent cases.
