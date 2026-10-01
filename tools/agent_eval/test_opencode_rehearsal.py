@@ -125,6 +125,16 @@ class Rehearsal(unittest.TestCase):
         self.assertEqual(report["attempts"][1]["status"], "pending")
         self.assertFalse(report["audit_complete"])
 
+    def test_rehashed_unsafe_or_duplicate_cell_ids_refuse_before_execution(self):
+        for identity in ("../escape", "/tmp/escape", self.frozen["plan"]["cells"][1]["id"]):
+            changed = copy.deepcopy(self.frozen)
+            changed["plan"]["cells"][0]["id"] = identity
+            changed["sha256"] = runner.digest(changed["plan"])
+            with patch.object(runner, "bounded_run") as execute, self.assertRaises(ValueError):
+                runner.run_attempt(changed, identity, FIXTURES, self.root / "out", self.binary, Path("opencode"))
+            execute.assert_not_called()
+            self.assertFalse((self.root / "out").exists())
+
     def files(self, source="a = 1\n"):
         return {"module.py": {"data": base64.b64encode(source.encode()).decode(), "executable": False}}
 

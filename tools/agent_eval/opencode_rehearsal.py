@@ -96,6 +96,11 @@ def checked(frozen):
     require(frozen["plan"]["schema"] == SCHEMA and digest(frozen["plan"]) == frozen["sha256"], "changed rehearsal plan")
     require(frozen["plan"]["limits"] == {"turns": MAX_TURNS, "wall_seconds": 120, "workspace_bytes": MAX_WORKSPACE},
             "unsupported rehearsal limits")
+    cells = frozen["plan"]["cells"]
+    require(isinstance(cells, list) and 0 < len(cells) <= 288, "invalid rehearsal cell count")
+    identities = [cell["id"] for cell in cells]
+    require(all(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{24}", value) for value in identities)
+            and len(set(identities)) == len(identities), "invalid or duplicate rehearsal cell identity")
     return frozen["plan"]
 
 
