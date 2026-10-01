@@ -51,3 +51,5 @@ The study job also prepares temporary systemd slices on its disposable Linux run
 shared command/grader accounting, CPU-budget termination of detached descendants, and kernel memory
 limits. Those tests remove their dedicated units and containers; workstation checks use fake counters
 and never change local cgroups or start Docker.
+The same study job runs the OpenCode rehearsal's offline parser, evidence and private-grader tests.
+It does not launch OpenCode or contact model providers; live local attempts use the workstation guard.

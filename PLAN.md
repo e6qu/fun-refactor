@@ -176,6 +176,9 @@ child investigations. It records kernel CPU and memory counters and fails the at
 stop. Host/daemon resources, disk/cache growth and integration context still need measurement.
 These tests use fake providers and do not count as live agent trials.
 Select independent tasks, review graders and complete resource/context measurements before the pilot.
+The [local OpenCode rehearsal](docs/opencode-rehearsal.md) uses configured Kimi K3 and GLM 5.3 Flash
+profiles for small protocol and task checks under the workstation guard. Its synthetic tasks,
+restricted discovery actions and CLI usage records do not close independent-study acceptance items.
 
 Keep reports small and allow explicit follow-up reads. Preserve uncertainty, exact source references
 and stale-result rejection. Check behavior independently of the proposed patch. Review edits before

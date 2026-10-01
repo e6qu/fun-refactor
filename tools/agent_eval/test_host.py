@@ -243,6 +243,15 @@ class HostBudget(unittest.TestCase):
 
 
 class BoundedHost(unittest.TestCase):
+    def test_explicit_environment_and_directory_reach_child(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = io.BytesIO()
+            command = [sys.executable, "-c", 'import os; print(os.environ["FR_REHEARSAL_TEST"]); print(os.getcwd())']
+            result = run(command, b"", out, io.BytesIO(), Path(directory), wall_seconds=3,
+                         env={**os.environ, "FR_REHEARSAL_TEST": "isolated"}, cwd=directory)
+            self.assertEqual(result["exit_code"], 0)
+            self.assertEqual(out.getvalue().decode().splitlines(), ["isolated", str(Path(directory).resolve())])
+
     def test_fast_exit_cannot_hide_retained_disk_growth(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

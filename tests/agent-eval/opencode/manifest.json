@@ -1,0 +1,24 @@
+{
+  "schema": "fr-opencode-rehearsal-1",
+  "models": ["kimi-code-plan-global/k3", "zai-coding-plan/glm-5.3-flash"],
+  "seed": 406,
+  "repetitions": 1,
+  "tasks": [
+    {
+      "id": "interval-boundaries",
+      "kind": "fix",
+      "source": "intervals",
+      "grader": "grade_intervals.py",
+      "provenance": "Independently specified synthetic rehearsal fixture, not an unfamiliar-repository evaluation.",
+      "requirement": "Repair overlap detection for half-open integer intervals. An interval [start, end) includes start and excludes end. Touching intervals and empty intervals must not overlap. Preserve behavior for disjoint and genuinely overlapping intervals. Find the implementation yourself; preserve the existing public API. Finish with a brief explanation and source reference."
+    },
+    {
+      "id": "stable-deduplication",
+      "kind": "feature",
+      "source": "sequences",
+      "grader": "grade_sequences.py",
+      "provenance": "Independently specified synthetic rehearsal fixture, not an unfamiliar-repository evaluation.",
+      "requirement": "Implement stable_unique(values): return a list keeping the first occurrence of each value, in input order, using equality. Accept any iterable, including generators, and support unhashable values such as lists and dictionaries. Do not mutate the input values. Preserve the public API. Finish with a brief explanation and source reference."
+    }
+  ]
+}

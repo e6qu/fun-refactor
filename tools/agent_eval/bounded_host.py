@@ -54,7 +54,7 @@ def stop(group):
 
 def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
         rss_bytes=768 * 1024**2, disk_bytes=128 * 1024**2,
-        cpu_limit_seconds=600, transcript_bytes=16 * 1024**2):
+        cpu_limit_seconds=600, transcript_bytes=16 * 1024**2, env=None, cwd=None):
     """Stop the entire group on a limit, monitor failure, or parent exit.
 
     Limits are sampled: brief peaks and processes escaping the group need OS
@@ -77,7 +77,7 @@ def run(command, prompt, stdout, stderr, workspace, *, wall_seconds,
         input_file.seek(0)
         try:
             process = subprocess.Popen(command, stdin=input_file, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, start_new_session=True)
+                                       stderr=subprocess.PIPE, start_new_session=True, env=env, cwd=cwd)
             selector.register(process.stdout, selectors.EVENT_READ, stdout)
             selector.register(process.stderr, selectors.EVENT_READ, stderr)
             next_sample = 0

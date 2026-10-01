@@ -85,13 +85,16 @@ inventory counted the same tracked files; no build caches were traversed.
 
 The [study planner and evidence auditor](agent-study.md) now accept independent task manifests and
 account for declared parent and child invocations. They retain missing cells, failures and unknown costs.
-This is offline infrastructure; provider adapters and budget-enforcing execution remain unfinished.
+The provider gateway now reserves and settles requests, and an isolated serial loop connects agent
+tools and private grading for fix/feature tasks. Container resource accounting is implemented;
+whole-worker resources, complete context measurements and explanation/proof grading remain open.
+The [OpenCode rehearsal](opencode-rehearsal.md) adds a separate local Kimi/GLM protocol check. Its
+synthetic tasks and CLI-reported usage do not satisfy the independent pilot requirements.
 
-Use the existing runner in `tools/agent_eval/investigation_run.py` and its retained-event auditor
-as a starting point. It currently invokes Codex and its cohort validator names two Rust tasks.
-It does not yet provide a matched Sonnet comparison or complete child-agent accounting. Reuse
-the recording and independent grading mechanisms; replace fixed task selection with a manifest.
-Do not build a new general agent platform inside `fr`.
+The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.
+The current manifest-driven host is `tools/agent-eval-host.py`; it retains parent and child calls.
+Neither path supplies new matched Sonnet results. Keep orchestration in the evaluation host and
+keep `fr` focused on code operations; do not build a general agent platform inside the product.
 
 Freeze four task instances across at least three independent repositories: explain a behavior,
 fix a bug, add a feature, and prove a stated property about a bounded function. Choose tasks by
