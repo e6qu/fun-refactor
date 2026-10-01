@@ -13,6 +13,7 @@ from agent_eval.isolated_grade import grade
 from agent_eval.study import digest
 from agent_eval.study_runner import profile, run_attempt, tool_definitions
 from agent_eval.workspace_bundle import pack
+from agent_eval.container_resources import limits as resource_limits, unit as resource_unit
 
 
 def budget_action(ledger, request):
@@ -60,6 +61,10 @@ def main():
     check.add_argument("candidate", type=Path)
     check.add_argument("grader", type=Path)
     setup = commands.add_parser("loop-profile", help="Print runner settings and tools to freeze; no model calls")
+    setup.add_argument("--container-resources", action="store_true", help="Freeze a shared cgroup-v2 container budget")
+    scope = commands.add_parser("scope-unit", help="Print a systemd slice unit for a frozen container budget; no system changes")
+    scope.add_argument("plan", type=Path)
+    scope.add_argument("name")
     setup.add_argument("provider", choices=("openai", "anthropic"))
     setup.add_argument("image", help="Pinned local Docker image ID or repository digest")
     setup.add_argument("skill", type=Path, help="Complete skill directory including references")
@@ -72,6 +77,7 @@ def main():
     run.add_argument("attempts", type=Path)
     run.add_argument("--binary", type=Path, required=True)
     run.add_argument("--skill", type=Path, required=True)
+    run.add_argument("--container-slice", help="Fresh prepared systemd slice for the frozen resource profile")
     run.add_argument("--confirm-agent-spend", action="store_true")
     args = parser.parse_args()
     if args.command in {"send", "run"} and not args.confirm_agent_spend:
@@ -80,9 +86,15 @@ def main():
         if args.command == "loop-profile":
             result = {"runner": profile(args.image, digest(pack(args.skill, 1024**2))),
                       "tools": tool_definitions(args.provider)}
+            if args.container_resources:
+                result["runner"]["container_resources"] = resource_limits()
+        elif args.command == "scope-unit":
+            frozen = checked_plan(load(args.plan))
+            print(resource_unit(args.name, frozen["manifest"]["runner"]["container_resources"]), end="")
+            return
         elif args.command == "run":
             result = run_attempt(Budget(args.ledger, load(args.plan)), args.cell, args.repository,
-                                 args.grader, args.binary, args.skill, args.attempts)
+                                 args.grader, args.binary, args.skill, args.attempts, container_slice=args.container_slice)
         elif args.command == "normalize":
             result = normalize(args.format, load(args.response), args.model)
         elif args.command == "send":

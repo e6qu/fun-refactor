@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from .container_resources import audit as audit_resources
 from .request_gateway import decode
 from .source_disclosure import counts
 from .study import ARMS, artifact, checked_plan, digest, load, number, require, text
@@ -32,7 +33,7 @@ def attempt(record, cell, frozen, root):
     counted = usage(record["agents"], model, root, maximum, wall)
     trace = artifact(root, record["trace"])
     disclosure = None
-    if manifest.get("runner", {}).get("schema") == "fr-study-loop-2":
+    if manifest.get("runner", {}).get("schema") in {"fr-study-loop-2", "fr-study-loop-3"}:
         retained = decode(trace)
         require(retained["schema"] == "fr-study-loop-trace-2" and retained["runner"] == manifest["runner"],
                 "trace differs from frozen runner")
@@ -51,6 +52,13 @@ def attempt(record, cell, frozen, root):
                     and (not agent["usage_complete"] or observed_requests == expected_requests),
                     "trace request ledger differs")
         disclosure = counted_trace["source_disclosure"]
+    container_resources = None
+    if manifest.get("runner", {}).get("schema") == "fr-study-loop-3":
+        profile = manifest["runner"]["container_resources"]
+        require((record["container_resources"] is None) == (profile is None), "container resource evidence is missing or unplanned")
+        if profile is not None:
+            container_resources = audit_resources(decode(artifact(root, record["container_resources"])), profile)
+            require(status == "failed" or not container_resources["stopped"], "resource-stopped attempt cannot complete")
     outcome = record["grade"]["outcome"]
     require(outcome in {"passed", "failed", "inconclusive"}, "invalid grader outcome")
     require(status == "completed" or outcome != "passed", "failed execution cannot be a success")
@@ -74,7 +82,7 @@ def attempt(record, cell, frozen, root):
     exceeded = [key for key, value in limits.items() if value is not None and value > budgets[key]]
     return {"cell": cell, "status": status, "outcome": outcome, **counted, "wall_seconds": wall,
             "actual_usd": actual, "grade": record["grade"], "measurements": record["measurements"],
-            "source_disclosure": disclosure, "missing_measurements": missing, "budget_exceeded": exceeded,
+            "container_resources": container_resources, "source_disclosure": disclosure, "missing_measurements": missing, "budget_exceeded": exceeded,
             "unmeasured_budgets": [key for key, value in limits.items() if value is None]}
 
 

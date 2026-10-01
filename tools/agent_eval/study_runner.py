@@ -4,6 +4,7 @@ from pathlib import Path
 import time
 
 from .bounded_host import disk_size
+from .container_resources import ContainerResources, validate as validate_resources
 from .isolated_grade import grade, validate as validate_grader
 from .request_gateway import MAX_JSON, decode, prepare, send, write_json
 from .source_disclosure import counts, read_source, validate_read
@@ -47,21 +48,21 @@ def tool_definitions(provider):
 
 
 def runner_identity():
-    names = ("source_disclosure.py", "study.py", "study_usage.py", "study_runner.py", "study_workspace.py", "workspace_bundle.py", "tool_worker.py",
+    names = ("container_resources.py", "source_disclosure.py", "study.py", "study_usage.py", "study_runner.py", "study_workspace.py", "workspace_bundle.py", "tool_worker.py",
              "request_gateway.py", "study_budget.py", "provider_usage.py", "isolated_grade.py", "bounded_host.py")
     return digest({name: file_hash(Path(__file__).with_name(name), 1024**2) for name in names})
 
 
 def profile(image, skill_tree_sha256):
-    return {"schema": "fr-study-loop-2", "runner_sha256": runner_identity(), "image": image,
+    return {"schema": "fr-study-loop-3", "runner_sha256": runner_identity(), "image": image,
             "skill_tree_sha256": skill_tree_sha256, "max_turns": 32, "max_tool_calls": 64,
             "command_seconds": 20, "workspace_bytes": MAX_BYTES, "output_bytes": 16384,
-            "evidence_bytes": 128 * 1024**2}
+            "evidence_bytes": 128 * 1024**2, "container_resources": None}
 
 
 def configuration(frozen, model):
     settings = frozen["manifest"]["runner"]
-    require(set(settings) == set(profile("", "")) and settings["schema"] == "fr-study-loop-2", "unsupported runner profile")
+    require(set(settings) == set(profile("", "")) and settings["schema"] == "fr-study-loop-3", "unsupported runner profile")
     require(settings["runner_sha256"] == runner_identity(), "runner differs from frozen code")
     ceilings = {"max_turns": 64, "max_tool_calls": 128, "command_seconds": 30,
                 "workspace_bytes": MAX_BYTES, "output_bytes": 65536, "evidence_bytes": 128 * 1024**2}
@@ -74,6 +75,8 @@ def configuration(frozen, model):
     require(model["settings"]["request"].get("tools") == tool_definitions(model["provider"]), "freeze the runner's exact tools")
     empty = {"input": "preflight"} if model["provider"] == "openai" else {"messages": [{"role": "user", "content": "preflight"}]}
     prepare(model, empty)
+    if settings["container_resources"] is not None:
+        validate_resources(settings["container_resources"])
     return settings
 
 
@@ -147,6 +150,8 @@ class Loop:
         self.measurements.update(tool_calls=0, tool_result_bytes=0, retries=0, instruction_bytes=0, handoff_bytes=0)
 
     def remaining(self):
+        if getattr(self, "resources", None) is not None:
+            self.resources.check()
         now = self.clock()
         budgets = self.ledger.frozen["manifest"]["budgets"]
         elapsed = sum(agent["seconds"] for agent in self.agents) + sum(now - start for start in self.active.values())
@@ -244,7 +249,23 @@ class Loop:
 
 
 def run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempts, *, transport=None,
-                backend_factory=ContainerTools, grader=grade):
+                backend_factory=ContainerTools, grader=grade, container_slice=None):
+    require(cell_id in ledger.cells, "unplanned cell")
+    settings = configuration(ledger.frozen, ledger.models[ledger.cells[cell_id]["model"]])
+    require((settings["container_resources"] is None) == (container_slice is None),
+            "frozen container resources and --container-slice must be supplied together")
+    resources = (ContainerResources(settings["container_resources"], container_slice, attempts).start()
+                 if container_slice is not None else None)
+    try:
+        return _run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempts,
+                            transport=transport, backend_factory=backend_factory, grader=grader, resources=resources)
+    finally:
+        if resources:
+            resources.finish()
+
+
+def _run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempts, *, transport=None,
+                 backend_factory=ContainerTools, grader=grade, resources=None):
     require(cell_id in ledger.cells, "unplanned cell")
     cell = ledger.cells[cell_id]
     frozen = ledger.frozen
@@ -265,25 +286,31 @@ def run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempt
     files = git_snapshot(repository, task["revision"], directory)
     validate(files, settings["workspace_bytes"])
     backend = backend_factory(settings["image"], settings, directory,
-                              binary if cell["arm"] == "fr" else None, skill if cell["arm"] == "fr" else None)
+                              binary if cell["arm"] == "fr" else None, skill if cell["arm"] == "fr" else None,
+                              **({"execute": resources.invoke} if resources else {}))
     instructions = INSTRUCTIONS + ("\nUse fr at /opt/fr/fr. Skill references are in /opt/fr-skill.\n" + (skill / "SKILL.md").read_text()
                                    if cell["arm"] == "fr" else "\nUse ordinary file and command tools; fr is not supplied.")
     instructions += f'\nMode: {cell["mode"]}. Child limit: {frozen["manifest"]["max_children"] if cell["mode"] == "delegated" else 0}.'
     ledger.begin(cell_id)
     loop = Loop(ledger, cell, directory, backend, instructions, transport=transport)
+    loop.resources = resources
     status, error, final = "failed", None, None
     grading = {"outcome": "inconclusive", "reason": "agent did not finish"}
     try:
         files, final = loop.agent(files, task["requirement"])
         loop.remaining()
         unpack(files, directory / "submission", settings["workspace_bytes"])
-        grading = grader(directory / "submission", grader_path, task["grader_sha256"])
+        grading = grader(directory / "submission", grader_path, task["grader_sha256"],
+                         **({"execute": resources.invoke} if resources else {}))
         loop.remaining()
         status = "completed"
     except (OSError, ValueError, KeyError, TypeError, RuntimeError) as failure:
         error = type(failure).__name__
         loop.event({"failure_type": error})
     finally:
+        resource_report = resources.finish() if resources else None
+        if resource_report and (resource_report["stop_reason"] or not resource_report["complete"]):
+            status, error = "failed", "ContainerResourceStop"
         snapshot = ledger.snapshot()
         calls = [call for call in snapshot["calls"] if call["cell"] == cell_id]
         if all(call["state"] in {"settled", "cancelled"} for call in calls):
@@ -293,6 +320,7 @@ def run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempt
             reference["path"] = f"artifacts/{cell_id}/{name}"
             return reference
         grade_reference = retain("grade.json", grading)
+        resource_reference = retain("container-resources.json", resource_report) if resources else None
         counted = counts(loop.events, tool_definitions(model["provider"]), completed=status == "completed",
                          output_bytes=settings["output_bytes"])
         loop.measurements.update(counted["measurements"])
@@ -303,7 +331,7 @@ def run_attempt(ledger, cell_id, repository, grader_path, binary, skill, attempt
                   "status": status, "repository_revision": task["revision"], "requirement_sha256": digest(task["requirement"]),
                   "fr": frozen["manifest"]["fr"], "cache_state": frozen["manifest"]["cache_state"],
                   "wall_seconds": loop.clock() - loop.started, "agents": loop.agents,
-                  "trace": trace, "actual_usd": None, "measurements": loop.measurements,
+                  "trace": trace, "container_resources": resource_reference, "actual_usd": None, "measurements": loop.measurements,
                   "grade": {"outcome": grading["outcome"] if status == "completed" else "inconclusive",
                             "grader_sha256": task["grader_sha256"], "evidence": grade_reference,
                             "regressions": 0, "unsupported_claims": 0, "human_interventions": 0}}
