@@ -171,6 +171,12 @@ class Rehearsal(unittest.TestCase):
         self.assertEqual(settings["share"], "disabled")
         self.assertFalse(settings["snapshot"])
 
+    def test_show_accepts_only_full_handles_and_never_path_selectors(self):
+        for handle in ("/etc/passwd", "../secret", "--help", "greet", "frp1:bad:1"):
+            with self.subTest(handle=handle), self.assertRaises(ValueError):
+                self.action({"action": "fr", "operation": "show", "handle": handle}, arm="fr")
+        self.assertEqual(self.action({"action": "fr", "operation": "show", "handle": "frp1:" + "a"*32 + ":1"}, arm="fr"), {})
+
     def test_run_retains_failure_and_cannot_retry_same_cell(self):
         cell = self.frozen["plan"]["cells"][0]["id"]
         def failed(*args, **kwargs):

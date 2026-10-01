@@ -221,7 +221,7 @@ def action(files, request, arm, binary, workspace, execute):
     else:
         require(operation == "show" and set(request) == {"action", "operation", "handle"}, "unknown fr operation")
         handle = text(request["handle"], "handle")
-        require(not handle.startswith("-") and len(handle) <= 512, "invalid handle")
+        require(re.fullmatch(r"frp1:[0-9a-f]{32}:[0-9a-f]{1,16}", handle), "show needs a full fr handle")
         args = ["show", handle, "--source", "--bytes", "4096"]
     # Only the public read routes above can execute. Agent input is never shell code.
     for path, entry in files.items():
