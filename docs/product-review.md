@@ -93,6 +93,11 @@ synthetic tasks and CLI-reported usage do not satisfy the independent pilot requ
 The [explanation adapter](opencode-source-evidence.md) now checks finite factual answers against
 source actually retrieved from three pinned Python projects. This does not establish general
 understanding, efficient delegation or token savings.
+The [native OpenCode adapter](opencode-native-tools.md) addresses the observed JSON-action
+failures. Tool availability and actual use are reported separately: an agent that uses only
+ordinary reads in the `fr` arm supplies no evidence of a benefit from `fr`.
+The native trials have eight reviewed passes out of twelve; only one of six `fr` arms used the CLI.
+The next local comparison should test public guidance and include its instruction costs.
 
 The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.
 The current manifest-driven host is `tools/agent-eval-host.py`; it retains parent and child calls.

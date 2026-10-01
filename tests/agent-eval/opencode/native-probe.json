@@ -1,0 +1,15 @@
+{
+  "schema": "fr-opencode-rehearsal-1",
+  "models": ["kimi-code-plan-global/k3"],
+  "seed": 412,
+  "repetitions": 1,
+  "tasks": [{
+    "id": "native-fr-access",
+    "kind": "explain",
+    "source": "native-probe/source",
+    "grader": "../../../tools/agent_eval/explanation_grade.py",
+    "criteria": "native-probe/criteria.json",
+    "provenance": "Handwritten transport control, selected after the repository attempts. Explicitly requests fr when available; excluded from tool-choice and efficiency comparisons.",
+    "requirement": "Check whether answer() returns 42. This is a tool-access control: if rehearsal_fr_find and rehearsal_fr_show are available, call rehearsal_fr_find with name answer, then rehearsal_fr_show with the returned full handle. Use those fr tools, not read_source, for the fr-enabled control. If those tools are unavailable, use list_files and read_source. Submit exactly one claim named returns_42, containing a boolean value and citations [{path, quote}]. Quote the complete exact function from a previous tool result, including its declaration and return statement. Do not modify code."
+  }]
+}
