@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.46.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.45.0...fun-refactor-v0.46.0) (2026-10-01)
+
+
+### Features
+
+* audit agent explanations against retrieved repository source ([#410](https://github.com/e6qu/fun-refactor/issues/410)) ([fb909af](https://github.com/e6qu/fun-refactor/commit/fb909af8ada522b90efefbee512e653dc8423e0d))
+
 ## [0.45.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.44.0...fun-refactor-v0.45.0) (2026-10-01)
 
 
