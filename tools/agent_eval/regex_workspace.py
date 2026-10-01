@@ -1,11 +1,12 @@
 """Pinned multi-crate source and a caller-side oracle for the public buffer API task."""
 
 import hashlib
-import os
 from pathlib import Path
 import subprocess
 import tarfile
 import tempfile
+
+from agent_eval.external_environment import environment
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "tests/agent-eval/regex"
@@ -106,8 +107,7 @@ def unpack(destination):
 
 
 def verify(root):
-    env = os.environ.copy()
-    env.update(CARGO_HOME=str(ROOT / "target/cargo-home"), CARGO_NET_OFFLINE="true")
+    env = environment()
     target = root / "target"
     build = subprocess.run(["cargo", "build", "-p", "regex", "--lib", "--locked", "--offline", "--target-dir", str(target)],
                            cwd=root, env=env, capture_output=True, timeout=180)

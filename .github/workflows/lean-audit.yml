@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "23 3 * * *"
   workflow_dispatch:
+    inputs:
+      external_replays_only:
+        description: Run pinned external patch replays without repository-wide audits
+        type: boolean
+        default: false
 
 concurrency:
   group: lean-audit-${{ github.ref }}
@@ -20,6 +25,7 @@ env:
 
 jobs:
   audit:
+    if: ${{ !inputs.external_replays_only }}
     name: Full repository audit
     runs-on: ubuntu-latest
     # A cold whole-repository audit includes the pinned external patch replays.
@@ -81,3 +87,21 @@ jobs:
 
       - name: Run every repository-scale audit
         run: ./tools/check.sh deep
+
+  external-replays:
+    if: ${{ inputs.external_replays_only }}
+    name: Pinned external patch replays
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: "2"
+      RUST_TEST_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lean-audit
+      - name: Replay upstream tests, independent oracles and exact patch reversal
+        run: bash tools/check-external-replays.sh

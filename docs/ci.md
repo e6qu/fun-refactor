@@ -33,6 +33,15 @@ the playground remain separate. `tools/check.sh default` still runs the whole
 native gate serially when appropriate; local resource policy takes precedence.
 The post-merge deep audit retains its existing separate workflow.
 
+The deep workflow also accepts `external_replays_only=true` for a focused,
+15-minute remote check of all pinned external patch replays. The default deep
+audit still runs every check. Replay children discard inherited Rust compiler
+flags, including target-specific flags, so fr's `-D warnings` policy cannot
+turn new compiler deprecations in historical upstream code into task failures.
+Warnings remain visible, and each upstream source tree retains its own lints.
+New evaluator fingerprints include this environment policy; retained historical
+results and source snapshots remain unchanged.
+
 The runtime target excludes runner queue delays. Inspect job timestamps and shard
 logs after changes to suite size; update measured weights or split work before a
 job reaches its deadline. A deadline failure must not cause tests to be removed.
