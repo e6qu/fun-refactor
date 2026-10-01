@@ -252,5 +252,106 @@ class Evidence(unittest.TestCase):
                 native.checked(frozen)
 
 
+class Discovery(unittest.TestCase):
+    def test_cli_failure_remains_replayable_without_source_evidence(self):
+        from agent_eval import native_discovery as discovery
+        result = {"error": "fr command failed"}
+        request = {"action": "fr", "operation": "explore", "term": "value"}
+        replay = discovery.action(FILES, request, "fr", Path("fr"), Path("."), lambda *_: encode(result))
+        self.assertEqual(replay, result)
+        self.assertEqual(discovery.disclosed(FILES, request, replay), [])
+
+    def freeze(self):
+        from agent_eval import native_discovery as discovery
+        manifest = ROOT / "tests/agent-eval/opencode/explanations.json"
+        return native.freeze(load(manifest), manifest.parent, Path(__file__), ROOT / "skills/fr/references/explore.md")
+
+    def test_balanced_frozen_guidance_and_instruction_cost(self):
+        from agent_eval import native_discovery as discovery
+        frozen = self.freeze()
+        source = native.checked(frozen)
+        self.assertEqual(len(source["cells"]), 18)
+        self.assertEqual(source["cells"], native.checked(self.freeze())["cells"])
+        self.assertEqual(frozen["plan"]["tools"]["fr"], frozen["plan"]["tools"]["fr-guided"])
+        for arm in discovery.ARMS:
+            self.assertEqual(sum(c["arm"] == arm for c in source["cells"]), 6)
+        costs = [discovery.costs(frozen["plan"], arm, source["tasks"][0]) for arm in discovery.ARMS]
+        self.assertEqual(costs[0]["user_prompt_bytes"], costs[1]["user_prompt_bytes"])
+        self.assertGreater(costs[2]["user_prompt_bytes"], costs[1]["user_prompt_bytes"])
+        self.assertEqual(costs[2]["tool_schema_bytes"], costs[1]["tool_schema_bytes"])
+        self.assertGreater(costs[2]["guidance_bytes"], 0)
+        self.assertEqual(costs[1]["guidance_bytes"], 0)
+        self.assertFalse(costs[2]["complete_context_accounting"])
+
+    def test_rehashed_guidance_and_allocation_mutations_refuse(self):
+        from agent_eval.study import digest
+        for field in ("excerpt", "source", "order"):
+            frozen = self.freeze()
+            plan = frozen["plan"]
+            if field == "excerpt":
+                plan["guidance"]["text"] += "Invented guidance"
+            elif field == "source":
+                plan["guidance"]["source"] += "Changed public document"
+            else:
+                plan["source_plan"]["plan"]["cells"].reverse()
+                plan["source_plan"]["sha256"] = digest(plan["source_plan"]["plan"])
+            frozen["sha256"] = digest(plan)
+            with self.assertRaises(ValueError):
+                native.checked(frozen)
+
+    def test_compact_argv_refusals_and_identical_fr_arms(self):
+        from agent_eval import native_discovery as discovery
+        calls = []
+        result = {"mode": "names", "profile": {"name": "compact", "source_bytes": 2048}, "rows": []}
+        servers = [mcp.Server({**config(arm), "tools_schema_version": 3}, io.BytesIO(),
+                             lambda *args: calls.append(args) or encode(result)) for arm in discovery.ARMS]
+        params = {"name": "fr_explore", "arguments": {"term": "value"}}
+        self.assertTrue(servers[0].call(params)["isError"])
+        for server in servers[1:]:
+            self.assertFalse(server.call(params)["isError"])
+            self.assertEqual(calls[-1][0][-7:], ["project", "explore", "value", "--profile", "compact", "--mode", "names"])
+        count = len(calls)
+        for args in ({"term": "--help"}, {"term": "x", "path": "../secret"},
+                     {"term": "x", "profile": "expanded"}, {"term": "x", "mode": "wrong"},
+                     {"term": "x", "mode": "behavior", "target": "short"},
+                     {"term": "x", "offset": 0}, {"term": "x", "cursor": "--help"},
+                     {"term": "é" * 160}, {"term": "x", "contains": 1}):
+            self.assertTrue(servers[1].call({"name": "fr_explore", "arguments": args})["isError"])
+        self.assertEqual(len(calls), count)
+
+    def test_exploration_source_must_match_snapshot_handle_and_offset(self):
+        from agent_eval import native_discovery as discovery
+        handle = "frp1:" + "a" * 32 + ":1"
+        request = {"action": "fr", "operation": "explore", "term": "value", "mode": "behavior", "target": handle}
+        result = {"declaration": {"node": {"handle": handle, "path": "module.py", "span": {"start": 0, "end": 27}},
+                  "source": {"offset": 0, "returned_bytes": 27, "span": {"start": 0, "end": 27}, "text": "def value():\n    return 42\n"}}}
+        self.assertEqual(discovery.disclosed(FILES, request, result)[0]["end"], 27)
+        for mutate in (lambda d: d["declaration"]["source"].update(text="def value():\n    return 43\n"),
+                       lambda d: d["declaration"]["source"].update(offset=1),
+                       lambda d: d["declaration"]["node"].update(handle=handle[:-1]+"2")):
+            changed = copy.deepcopy(result)
+            mutate(changed)
+            with self.assertRaises(ValueError):
+                discovery.disclosed(FILES, request, changed)
+        self.assertEqual(discovery.disclosed(FILES, request, {"declaration": None}), [])
+        with self.assertRaises(ValueError):
+            discovery.disclosed(FILES, {**request, "mode": "names"}, result)
+
+    def test_guided_transcript_binds_prompt_and_reports_configured_costs(self):
+        from agent_eval import native_discovery as discovery
+        events, exported, rows = fixture()
+        plan = self.freeze()["plan"]
+        prompt = discovery.prompt(plan, "fr-guided") + "\nTask:\ntask"
+        exported["messages"].insert(0, {"info": {"role": "user"}, "parts": [{"type": "text", "text": prompt}]})
+        result = native.audit(b"\n".join(encode(e) for e in events), exported, rows,
+                              {"files": FILES, "requirement": "task"}, {"arm": "fr-guided", "model": "provider/model"}, plan)
+        self.assertGreater(result["metrics"]["configured_context"]["guidance_bytes"], 0)
+        self.assertEqual(result["metrics"]["unique_source_bytes"], 27)
+        exported["messages"][0]["parts"][0]["text"] = discovery.prompt(plan, "fr") + "\nTask:\ntask"
+        with self.assertRaisesRegex(ValueError, "prompt"):
+            native.audit(b"\n".join(encode(e) for e in events), exported, rows,
+                         {"files": FILES, "requirement": "task"}, {"arm": "fr-guided", "model": "provider/model"}, plan)
+
+
 if __name__ == "__main__":
     unittest.main()

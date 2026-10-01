@@ -20,6 +20,7 @@ def main():
     freeze = commands.add_parser("freeze")
     freeze.add_argument("manifest", type=Path)
     freeze.add_argument("--binary", type=Path, required=True)
+    freeze.add_argument("--guidance", type=Path, help="Freeze compact exploration and three arms with this public guide excerpt")
     run = commands.add_parser("run")
     run.add_argument("plan", type=Path)
     run.add_argument("cell")
@@ -37,7 +38,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "freeze":
-            result = opencode_native.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve())
+            result = opencode_native.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve(), args.guidance)
         elif args.command in {"report", "review"}:
             inspect = opencode_native.report if args.command == "report" else opencode_native.review
             result = inspect(load(args.plan), args.output.resolve())
