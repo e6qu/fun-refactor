@@ -123,9 +123,37 @@ class Transport(unittest.TestCase):
 
 
 class Evidence(unittest.TestCase):
+    def test_retained_preflights_replay_without_a_model_or_existing_workspace(self):
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-native/preflight"
+        result = native.report(load(root / "plan.json"), root / "attempts")
+        self.assertEqual(result["passed"], 4)
+        self.assertEqual(result["planned"], 4)
+
+    def test_disabled_assertions_cannot_pass_the_rubric(self):
+        code = "from agent_eval.opencode_native import grade; from pathlib import Path; grade(Path('.'), {})"
+        result = subprocess.run([sys.executable, "-O", "-B", "-c", code], cwd=ROOT / "tools", capture_output=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"requires Python assertions", result.stderr)
+
+    def test_different_prompt_and_duplicate_stream_call_refuse(self):
+        for kind in ("prompt", "duplicate"):
+            data = copy.deepcopy(fixture())
+            events, exported, rows = data
+            user = {"info": {"role": "user"}, "parts": [{"type": "text", "text": native.PROMPT + "\nTask:\ntask"}]}
+            exported["messages"].insert(0, user)
+            if kind == "prompt":
+                user["parts"][0]["text"] += " changed"
+            else:
+                calls = [e for e in events if e["type"] == "tool_use"]
+                calls[1]["part"] = calls[0]["part"]
+            with self.assertRaises(ValueError):
+                native.audit(b"\n".join(encode(e) for e in events), exported, rows,
+                             {"files": FILES, "requirement": "task"}, {"arm": "files", "model": "provider/model"})
+
     def audit(self, data):
-        events, exported, rows = data
-        return native.audit(b"\n".join(encode(e) for e in events), exported, rows, {"files": FILES}, {"arm": "files", "model": "provider/model"})
+        events, exported, rows = copy.deepcopy(data)
+        exported["messages"].insert(0, {"info": {"role": "user"}, "parts": [{"type": "text", "text": native.PROMPT + "\nTask:\ntask"}]})
+        return native.audit(b"\n".join(encode(e) for e in events), exported, rows, {"files": FILES, "requirement": "task"}, {"arm": "files", "model": "provider/model"})
 
     def test_completed_source_and_usage_are_reconstructed(self):
         result = self.audit(fixture())

@@ -13,7 +13,7 @@ from . import native_mcp as mcp
 from . import opencode_rehearsal as legacy
 from . import rehearsal_evidence as evidence
 from .bounded_host import run as bounded_run
-from .explanation_grade import grade
+from .explanation_grade import grade as rubric_grade
 from .source_disclosure import overlap
 from .study import digest, encode, load, number, require
 from .workspace_bundle import unpack
@@ -36,8 +36,14 @@ A source explanation is not a proof. After submission, stop.
 """
 
 
+def grade(root, payload):
+    require(__debug__, "native rubric grading requires Python assertions")
+    return rubric_grade(root, payload)
+
+
 def implementation():
-    return {name: legacy.identity(Path(__file__).with_name(name)) for name in IMPLEMENTATION}
+    return {**{name: legacy.identity(Path(__file__).with_name(name)) for name in IMPLEMENTATION},
+            "native-rehearsal.py": legacy.identity(Path(__file__).parents[1] / "native-rehearsal.py")}
 
 
 def freeze(manifest, base, binary):
@@ -56,6 +62,7 @@ def checked(frozen):
     require(plan["tools"] == {arm: mcp.schemas(arm) for arm in ("files", "fr")}, "native schemas differ")
     source = legacy.checked(plan["source_plan"])
     require(all(t["kind"] == "explain" for t in source["tasks"]), "explanations only")
+    require(all(t["grader_sha256"] == plan["implementation"]["explanation_grade.py"] for t in source["tasks"]), "native rubric grader differs")
     return source
 
 
@@ -84,7 +91,12 @@ def audit(raw, exported, rows, task, cell):
     require(re.fullmatch(r"ses_[A-Za-z0-9]+", session) is not None, "invalid session")
     require(all(row.get("sessionID") == session for row in events), "mixed sessions")
     require(all(row["type"] in {"step_start", "step_finish", "tool_use", "text", "reasoning"} for row in events), "unexpected native event")
+    users = [row for row in exported["messages"] if row["info"]["role"] == "user"]
+    require(len(users) == 1 and exported["messages"][0] is users[0], "unexpected user messages")
+    require(all(part["type"] == "text" for part in users[0]["parts"])
+            and "".join(part["text"] for part in users[0]["parts"]) == PROMPT + "\nTask:\n" + task["requirement"], "exported task prompt differs")
     assistants = [row for row in exported["messages"] if row["info"]["role"] == "assistant"]
+    require(len(exported["messages"]) == len(assistants) + 1, "unexpected message role")
     finishes = [row["part"] for row in events if row["type"] == "step_finish"]
     starts = [row["part"] for row in events if row["type"] == "step_start"]
     require(0 < len(assistants) == len(finishes) == len(starts) <= LIMITS["steps"], "assistant count differs")
@@ -108,6 +120,7 @@ def audit(raw, exported, rows, task, cell):
     require(len(emitted) == len(saved) == len(rows) <= mcp.MAX_CALLS, "tool call count differs")
     require(len({part["callID"] for part in saved}) == len(saved), "duplicate call identity")
     by_id = {part["callID"]: part for part in saved}
+    require(len({part["callID"] for part in emitted}) == len(emitted) and {part["callID"] for part in emitted} == set(by_id), "stream call identities differ")
     for part in emitted:
         require(part == by_id.get(part["callID"]), "stream and export tool differ")
     # Match by arguments and exact result, allowing parallel calls to complete in
@@ -254,8 +267,8 @@ def report(frozen, output):
                            [mcp.decode(line) for line in (folder / "tools.jsonl").read_bytes().splitlines()], task, cell)
             require({k: v for k, v in result.items() if k != "disclosed"} == record["audit"], "audit differs")
             with tempfile.TemporaryDirectory() as temporary:
-                unpack(task["files"], Path(temporary), legacy.MAX_WORKSPACE)
-                verdict = grade(Path(temporary), {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]})
+                unpack(task["files"], Path(temporary) / "source", legacy.MAX_WORKSPACE)
+                verdict = grade(Path(temporary) / "source", {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]})
             require(verdict == record["grade"] and verdict["passed"] == record["passed"], "grade differs")
             require(all(p["exit_code"] == 0 and p["stop_reason"] is None for p in record["processes"]), "completed attempt has failed process")
         records.append(record)

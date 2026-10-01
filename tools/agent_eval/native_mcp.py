@@ -1,7 +1,6 @@
 """Read-only MCP transport for frozen evaluator inputs, not a general fr server."""
 from __future__ import annotations
 
-import io
 import json
 from pathlib import Path
 import subprocess
