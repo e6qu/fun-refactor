@@ -31,12 +31,16 @@ def main():
     report = commands.add_parser("report")
     report.add_argument("plan", type=Path)
     report.add_argument("output", type=Path)
+    review = commands.add_parser("review")
+    review.add_argument("plan", type=Path)
+    review.add_argument("output", type=Path)
     args = parser.parse_args()
     try:
         if args.command == "freeze":
             result = opencode_native.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve())
-        elif args.command == "report":
-            result = opencode_native.report(load(args.plan), args.output.resolve())
+        elif args.command in {"report", "review"}:
+            inspect = opencode_native.report if args.command == "report" else opencode_native.review
+            result = inspect(load(args.plan), args.output.resolve())
         else:
             if not args.confirm_agent_spend:
                 parser.error("run requires --confirm-agent-spend; no dollar cap is enforced")

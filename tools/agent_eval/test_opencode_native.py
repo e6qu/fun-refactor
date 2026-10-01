@@ -123,6 +123,42 @@ class Transport(unittest.TestCase):
 
 
 class Evidence(unittest.TestCase):
+    def test_review_recovers_two_auditor_failures_and_preserves_originals(self):
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-native/repositories"
+        paths = sorted((root / "attempts").glob("*/record.json"))
+        before = [p.read_bytes() for p in paths]
+        with patch.object(native, "bounded_run", side_effect=AssertionError("review must stay offline")):
+            result = native.review(load(root / "plan.json"), root / "attempts")
+        self.assertEqual(result["original_passed"], 2)
+        self.assertEqual(result["reviewed_passed"], 4)
+        self.assertEqual(before, [p.read_bytes() for p in paths])
+        stopped = [row for row in result["attempts"] if row["reviewed_status"] == "failed"]
+        self.assertEqual(len(stopped), 1)
+        self.assertIn("wall_seconds", stopped[0]["reviewed_failure"])
+
+    def test_tool_part_cannot_claim_another_message(self):
+        data = fixture()
+        data[1]["messages"][0]["parts"][0]["messageID"] = "msg_1"
+        with self.assertRaisesRegex(ValueError, "another message"):
+            self.audit(data)
+
+    def test_host_refusal_matches_native_error_without_disclosing_source(self):
+        events, exported, rows = fixture()
+        row = rows[0]
+        row["params"]["arguments"]["sha256"] = "0"
+        row["result"] = {"error": "invalid source SHA-256"}
+        text = encode(row["result"]).decode()
+        row["response"] = {"content": [{"type": "text", "text": text}], "isError": True}
+        state = exported["messages"][0]["parts"][0]["state"]
+        state["input"]["sha256"] = "0"
+        state.update(status="error", error=text)
+        del state["output"]
+        result = self.audit((events, exported, rows))
+        self.assertEqual(result["disclosed"], [])
+        state["error"] = "unrelated failure"
+        with self.assertRaises(ValueError):
+            self.audit((events, exported, rows))
+
     def test_retained_preflights_replay_without_a_model_or_existing_workspace(self):
         root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-native/preflight"
         result = native.report(load(root / "plan.json"), root / "attempts")

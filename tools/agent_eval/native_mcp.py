@@ -18,7 +18,7 @@ MAX_LOG = 1024**2
 PROTOCOL = "2025-06-18"
 
 
-def schemas(arm):
+def schemas(arm, *, read_hint=True):
     def tool(name, description, properties, required=()):
         return {"name": name, "description": description,
                 "inputSchema": {"type": "object", "properties": properties,
@@ -43,6 +43,8 @@ def schemas(arm):
                  {"handle": string, "offset": offset}, ("handle",)),
         ]
     require(arm in {"files", "fr"}, "unknown tool arm")
+    if read_hint:
+        result[2]["inputSchema"]["properties"]["sha256"] = {"type": "string", "description": "Use the empty string for a first read. For continuation, copy sha256 from the preceding result."}
     return result + [tool("submit_answer", "Submit the requested claim object once. Exact keys and quotations; no notes or ellipses.",
                           {"answer": {"type": "object"}}, ("answer",))]
 

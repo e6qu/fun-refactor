@@ -12,7 +12,7 @@ import time
 from . import native_mcp as mcp
 from . import opencode_rehearsal as legacy
 from . import rehearsal_evidence as evidence
-from .bounded_host import run as bounded_run
+from .bounded_host import disk_size, run as bounded_run
 from .explanation_grade import grade as rubric_grade
 from .source_disclosure import overlap
 from .study import digest, encode, load, number, require
@@ -49,7 +49,7 @@ def implementation():
 def freeze(manifest, base, binary):
     source = legacy.freeze(manifest, base, binary)
     require(all(t["kind"] == "explain" for t in source["plan"]["tasks"]), "native rehearsal supports explanations only")
-    plan = {"schema": SCHEMA, "source_plan": source, "limits": LIMITS,
+    plan = {"schema": SCHEMA, "source_plan": source, "limits": LIMITS, "tools_schema_version": 2,
             "tools": {arm: mcp.schemas(arm) for arm in ("files", "fr")},
             "implementation": implementation(), "prompt": PROMPT}
     return {"plan": plan, "sha256": digest(plan)}
@@ -59,10 +59,13 @@ def checked(frozen):
     plan = frozen["plan"]
     require(plan["schema"] == SCHEMA and digest(plan) == frozen["sha256"], "changed native plan")
     require(plan["limits"] == LIMITS and plan["prompt"] == PROMPT, "unsupported native protocol")
-    require(plan["tools"] == {arm: mcp.schemas(arm) for arm in ("files", "fr")}, "native schemas differ")
+    version = plan.get("tools_schema_version", 1)
+    require(type(version) is int and version in (1, 2), "unsupported native tool schema")
+    require(plan["tools"] == {arm: mcp.schemas(arm, read_hint=version == 2) for arm in ("files", "fr")}, "native schemas differ")
     source = legacy.checked(plan["source_plan"])
     require(all(t["kind"] == "explain" for t in source["tasks"]), "explanations only")
     require(all(t["grader_sha256"] == plan["implementation"]["explanation_grade.py"] for t in source["tasks"]), "native rubric grader differs")
+    require(plan["implementation"]["explanation_grade.py"] == legacy.identity(Path(__file__).with_name("explanation_grade.py")), "frozen grader implementation changed")
     return source
 
 
@@ -103,6 +106,7 @@ def audit(raw, exported, rows, task, cell):
     ids, tokens, cost = [], [], 0
     for index, (message, finish, start) in enumerate(zip(assistants, finishes, starts)):
         info = message["info"]
+        require(all(part["messageID"] == info["id"] for part in message["parts"]), "exported part belongs to another message")
         require(info["id"] == start["messageID"] == finish["messageID"] and info["id"] not in ids, "message identity differs")
         require(info["providerID"] + "/" + info["modelID"] == cell["model"], "model differs")
         require(info.get("finish") == finish["reason"] and finish["reason"] in {"tool-calls", "stop"}, "unfinished model response")
@@ -133,8 +137,8 @@ def audit(raw, exported, rows, task, cell):
         require(row["response"] == response, "host response differs")
         match = next((part for part in remaining if part["tool"] == "rehearsal_" + row["params"]["name"]
                       and part["state"].get("input") == row["params"].get("arguments", {})
-                      and part["state"].get("status") == "completed"
-                      and part["state"].get("output", "").strip() == response["content"][0]["text"]), None)
+                      and part["state"].get("status") == ("error" if response["isError"] else "completed")
+                      and part["state"].get("error" if response["isError"] else "output", "").strip() == response["content"][0]["text"]), None)
         require(match is not None, "host result absent from native export")
         remaining.remove(match)
         matched.append((row, ids.index(match["messageID"])))
@@ -181,6 +185,7 @@ def audit(raw, exported, rows, task, cell):
 
 def run_attempt(frozen, cell_id, base, output, binary, opencode):
     source = checked(frozen)
+    require(frozen["plan"]["tools"] == {arm: mcp.schemas(arm) for arm in ("files", "fr")}, "freeze with current tool schemas before execution")
     require(frozen["plan"]["implementation"] == implementation(), "runner changed; freeze again")
     require(legacy.identity(binary) == source["binary_sha256"], "binary changed")
     cell = next((c for c in source["cells"] if c["id"] == cell_id), None)
@@ -212,6 +217,7 @@ def run_attempt(frozen, cell_id, base, output, binary, opencode):
             (directory / (name + ".stdout")).write_bytes(out.getvalue())
             (directory / (name + ".stderr")).write_bytes(err.getvalue())
             processes.append({"name": name, **result})
+            require(disk_size(directory) <= LIMITS["disk_bytes"], "retained attempt exceeds disk budget")
             require(result["exit_code"] == 0 and result["stop_reason"] is None, f"{name} failed: {result['stop_reason'] or result['exit_code']}")
             return out.getvalue()
         try:
@@ -228,6 +234,7 @@ def run_attempt(frozen, cell_id, base, output, binary, opencode):
             # Recreate the frozen source for grading, never execute repository code.
             graded = directory / "graded"
             unpack(task["files"], graded, legacy.MAX_WORKSPACE)
+            require(disk_size(directory) <= LIMITS["disk_bytes"], "retained attempt exceeds disk budget")
             verdict = grade(graded, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]})
             record.update(status="completed", passed=verdict["passed"], grade=verdict,
                           audit={key: value for key, value in result.items() if key != "disclosed"})
@@ -262,7 +269,7 @@ def report(frozen, output):
         if record["status"] == "completed":
             task = next(t for t in source["tasks"] if t["id"] == cell["task"])
             require((folder / "prompt.txt").read_text() == PROMPT + "\nTask:\n" + task["requirement"], "prompt differs")
-            require(load(folder / "schemas.json") == mcp.schemas(cell["arm"]), "schemas differ")
+            require(load(folder / "schemas.json") == frozen["plan"]["tools"][cell["arm"]], "schemas differ")
             result = audit((folder / "opencode.stdout").read_bytes(), load(folder / "export.stdout"),
                            [mcp.decode(line) for line in (folder / "tools.jsonl").read_bytes().splitlines()], task, cell)
             require({k: v for k, v in result.items() if k != "disclosed"} == record["audit"], "audit differs")
@@ -276,3 +283,35 @@ def report(frozen, output):
             "passed": sum(r["passed"] for r in records), "attempts": records,
             "audit_complete": False, "provider_usage_verified": False,
             "scope": "Native tool integration rehearsal on a reviewed corpus; no general efficiency claim."}
+
+
+def review(frozen, output):
+    """Reassess retained transcripts without replacing the original outcomes."""
+    original = report(frozen, output)
+    source, rows = checked(frozen), []
+    for record in original["attempts"]:
+        row = {"cell": record["cell"], "original_status": record["status"], "original_passed": record["passed"],
+               "reviewed_status": record["status"], "reviewed_passed": record["passed"],
+               "reviewed_failure": record.get("failure"), "grade": record.get("grade"), "audit": record.get("audit")}
+        folder = output / record["cell"]["id"]
+        if record["status"] == "failed" and all((folder / name).is_file() for name in ("export.stdout", "opencode.stdout", "tools.jsonl")):
+            try:
+                require(all(p["exit_code"] == 0 and p["stop_reason"] is None for p in record["processes"]), "resource or process failure remains failed")
+                task = next(t for t in source["tasks"] if t["id"] == record["cell"]["task"])
+                require((folder / "prompt.txt").read_text() == PROMPT + "\nTask:\n" + task["requirement"], "prompt differs")
+                require(load(folder / "schemas.json") == frozen["plan"]["tools"][record["cell"]["arm"]], "schemas differ")
+                result = audit((folder / "opencode.stdout").read_bytes(), load(folder / "export.stdout"),
+                               [mcp.decode(line) for line in (folder / "tools.jsonl").read_bytes().splitlines()], task, record["cell"])
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary) / "source"
+                    unpack(task["files"], root, legacy.MAX_WORKSPACE)
+                    verdict = grade(root, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]})
+                row.update(reviewed_status="completed", reviewed_passed=verdict["passed"], reviewed_failure=None,
+                           grade=verdict, audit={k: v for k, v in result.items() if k != "disclosed"})
+            except (ValueError, KeyError, TypeError, OSError) as error:
+                row["reviewed_failure"] = str(error)[:512]
+        rows.append(row)
+    return {"schema": SCHEMA, "plan_sha256": frozen["sha256"], "auditor_implementation": implementation(),
+            "original_passed": original["passed"], "reviewed_passed": sum(r["reviewed_passed"] for r in rows),
+            "attempts": rows, "audit_complete": False,
+            "scope": "Post-hoc transcript review; original attempts unchanged, no new model calls or efficiency claim."}
