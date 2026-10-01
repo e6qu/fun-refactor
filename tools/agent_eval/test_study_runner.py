@@ -294,6 +294,15 @@ class RunnerTests(unittest.TestCase):
         self.assertTrue(observed["usage_complete"])
         self.assertIn("disk_bytes", observed["unmeasured_budgets"])
         self.assertFalse(audit["audit_complete"])
+        self.assertEqual(observed["source_disclosure"]["opaque_command_calls"], 1)
+        record_path = attempts / f"{cell}.json"
+        for field in ("tool_calls", "tool_result_bytes", "instruction_bytes", "handoff_bytes", "source_read_bytes"):
+            changed = copy.deepcopy(record)
+            changed["measurements"][field] = 999
+            record_path.write_text(json.dumps(changed))
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "trace measurement differs"):
+                report(frozen, attempts)
+        record_path.write_text(json.dumps(record))
         self.assertEqual(ledger.snapshot()["attempts"][0]["state"], "closed")
         second = next(row["id"] for row in frozen["cells"] if row["task"] == "fix" and row["mode"] == "single" and row["id"] != cell)
         failed = run_attempt(ledger, second, repo, private, binary, skill, attempts,
