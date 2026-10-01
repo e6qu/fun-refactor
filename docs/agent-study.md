@@ -7,8 +7,9 @@ The same format accepts different models, single agents and delegated work.
 The auditor checks retained evidence. `tools/agent-eval-host.py` now sends provider requests through
 the budget ledger and grades submitted code against private cases in a container. The existing
 Codex launcher bounds process resources. Tests use fake providers and small executable submissions;
-no new paid trial has run. The pilot still needs an agent loop using this gateway, pinned task
-checkouts, reviewed oracles and complete tool/context measurements.
+no new paid trial has run. The serial runner below now connects the gateway to tools and grading
+for fix/feature tasks. The pilot still needs independent tasks, reviewed oracles, explanation/proof
+grading adapters and complete tool/context and system resource measurements.
 The Codex CLI launcher does not enforce a dollar cap and must not run the planned pilot.
 
 ## Freeze the comparison
@@ -345,15 +346,96 @@ The CI study check runs real containers for correct and incorrect submissions, p
 read-only mounts, network denial and timeout cleanup. Local checks skip those cases and use small fake
 providers. No model service or local container starts as part of the workstation tests.
 
+## Run one agent attempt
+
+The `run` command executes one frozen fix/feature cell. It stages the exact commit from a local
+Git object database, runs a conversation through the gateway, dispatches tools and grades the final
+submission. Use it on an isolated GitHub worker. It does not select tasks or launch the 48-cell pilot.
+
+First obtain settings for a reviewed, secret-free tool image with Python 3 and the task's dependencies
+already installed. The image must have no writable `VOLUME` declarations. Pin its local image ID or
+repository digest; the runner never pulls an image. Supply a Linux `fr` binary for Linux containers.
+
+```sh
+python3 tools/agent-eval-host.py loop-profile openai sha256:IMAGE_DIGEST skills/fr > loop-profile.json
+```
+
+Copy `runner` from this output into the study manifest and `tools` into each corresponding model's
+`settings.request.tools`. Generate the other provider's tool definitions with `loop-profile anthropic`.
+Keep `harness: fr-study-api-1`, exact model identities, validated token bounds and dated prices.
+The runner digest binds its implementation and host dependencies; editing those files requires a new plan.
+The skill entry file must match `fr.skill_sha256`; `runner.skill_tree_sha256` also binds its reference files.
+Freeze the plan only after choosing these settings. `loop-profile` performs no provider requests.
+
+```sh
+python3 tools/agent-eval-host.py run frozen-plan.json host-budget.sqlite CELL \
+  /worker/repository /worker/private-grader.json /worker/attempts \
+  --binary /worker/fr --skill /worker/fr-skill --confirm-agent-spend
+```
+
+The command checks source, tool and grader identities before admitting an attempt. It ignores
+uncommitted and untracked files. Git submodules, symlinks, special files, invalid UTF-8 paths and
+archives that omit tracked files refuse. Git archive attributes still apply to exported content;
+the trace retains the exact initial workspace digest. Use ordinary pinned source trees for this runner.
+An existing cell record or ledger admission refuses a second run. A preflight failure can leave an
+artifact directory without an admitted attempt; inspect it before preparing a fresh run.
+
+Both arms expose `command(argv, stdin)` and `delegate(question)`. Only the `fr` arm receives the
+binary and skill mounts. The operator must ensure the shared image does not already contain `fr`.
+Commands can use ordinary tools, execute tests and edit files. Each command starts in a fresh,
+network-free container with a read-only root, two 16 MiB writable tmpfs mounts, 256 MiB memory,
+half a CPU core and 32 processes. The host never mounts credentials, the budget ledger, grader
+or Docker socket. Only the regular files exported from `/workspace/project` persist between calls.
+Environment changes, empty directories, `/tmp` contents and background processes do not persist.
+These constraints suit small tasks; builds that need larger storage require a separately reviewed runner.
+
+Workspace exports have at most 2,000 files and 8 MiB of file contents. Command output defaults to
+16 KiB, command execution to 20 seconds, and each attempt to 32 provider turns and 64 tool calls.
+The frozen profile can lower these limits or raise them only within the implementation's fixed ceilings.
+All agents share the turn, call, token and dollar budgets. The runner reserves evidence capacity before
+another request, limits the trace to 8 MiB and leaves space for submission and grading artifacts.
+It checks wall and summed agent time between operations and keeps time for command cleanup.
+Provider socket deadlines and grading limits do not provide a hard whole-worker lifetime; retain an
+outer GitHub job timeout. Docker limits do not measure total host/daemon memory, CPU or disk use.
+
+Delegation runs serially, with at most four children including descendants. Each child receives the
+same tool policy, a copy of the parent's current files and the supplied question. Parent conversation
+history stays out of its prompt. The parent receives the child's final findings; child edits disappear.
+A child failure fails the attempt and retains every launched agent and request. There is no automatic
+retry, restart, transcript compaction or hidden integration step.
+
+The loop replays OpenAI response items, including encrypted reasoning and message phases, with
+`store: false`. Unsupported items, missing encrypted reasoning, duplicate tool IDs and incomplete
+responses stop execution. Anthropic text/tool exchanges use assistant `tool_use` followed by user
+`tool_result` blocks. Signed thinking remains unsupported. See the official
+[OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning),
+[function calling guide](https://developers.openai.com/api/docs/guides/function-calling) and
+[Anthropic tool definitions](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools).
+
+An attempt retains gateway receipts, provider responses, the tool trace, final submission and private
+grade under `attempts/artifacts/CELL/`, then writes `attempts/CELL.json` for the existing auditor.
+The trace records host-dispatched calls and delivered results; tool output remains untrusted evidence.
+Known charges close normally after failures. Uncertain charges keep their ledger hold and block spending.
+The command exits unsuccessfully when execution or grading fails.
+
+The runner counts tool calls, delivered result bytes, initial instructions/tool schemas/questions,
+handoff question/answer bytes and zero automatic retries. OpenAI peak context records the largest
+counted request input plus its reported output; Anthropic's estimate leaves that measurement null.
+Source reads inside arbitrary commands, repeated reads, fallback use, pages, integration tokens and
+full-system CPU/RSS/disk/cache peaks remain null. Wall time includes the conversation, tools and grade;
+source/image preflight precedes admission. `report --require-complete` therefore remains unsuccessful.
+These records test the machinery and expose missing measurements; they cannot establish efficiency gains.
+
 ## What remains before the pilot
 
 | Ready in this repository | Still required for live evidence |
 |---|---|
 | Frozen pairs and complete-attempt auditor | Independent tasks, pinned repositories and reviewed graders |
-| Count/reserve/send/settle provider gateway | Agent loop that uses it for every parent, child and retry |
-| Persistent child admission and auditor-ready invocation receipts | Complete durations, tool calls, source reads and handoff measurements |
-| Private black-box grading in constrained containers | Pinned task checkouts, reviewed independent cases and suitable runtime images |
+| Provider gateway and serial parent/child loop | Paid protocol preflight with the exact model profiles |
+| Retained conversations, tool calls, durations and handoffs | Source/repeated reads, integration context and full-system resource measurements |
+| Pinned Git exports and isolated command workspaces | Independent task selection, suitable tool images and larger-workspace policy if needed |
+| Private black-box grading in constrained containers | Reviewed cases and explanation/proof grading adapters |
 
-No acceptance item changes from these tests. After connecting the host and preparing tasks, run a small paid
+No acceptance item changes from these tests. After preparing tasks and completing measurements, run a small paid
 preflight before the 48-attempt pilot. Use its complete costs and independent grades to choose which
 fr routes deserve improvement or removal.
