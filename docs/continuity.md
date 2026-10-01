@@ -36,7 +36,9 @@ trace counters. Any command keeps total source reads unknown while preserving me
 A frozen resource profile can now place all command and grader containers in a fresh Linux cgroup.
 Kernel CPU and memory evidence remains separate from the unmeasured host/daemon, disk and cache costs.
 Resource stops fail the attempt and retain evidence; complete worker accounting is still open.
-Tests use fake providers and executable submissions; no new paid trial has run. Select independent
+Study CI uses fake providers and executable submissions. A separate guarded
+[OpenCode rehearsal](opencode-rehearsal.md) now supports local Kimi/GLM protocol and small task checks.
+It uses synthetic cases and retains CLI accounting separately; no new independent pilot has run. Select independent
 tasks and reviewed graders, add explanation/proof grading adapters, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

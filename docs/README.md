@@ -96,3 +96,5 @@ work sequence. The [roadmap status](roadmap-status.md) explains what each record
 and what remains; its [JSON report](roadmap-status.json) supports automated checks.
 The [independent agent study guide](agent-study.md) explains frozen task plans, parent/child accounting
 and failure-preserving cost reports. It also lists the execution integrations still needed.
+The [OpenCode rehearsal](opencode-rehearsal.md) covers small guarded Kimi/GLM comparisons,
+retained CLI accounting and the limits of those local results.

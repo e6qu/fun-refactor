@@ -3,6 +3,7 @@ use std::process::Command;
 fn python(args: &[&str]) {
     let output = Command::new("python3")
         .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .arg("tools/external-eval.py")
         .args(args)
         .output()
         .unwrap();

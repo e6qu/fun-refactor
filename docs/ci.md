@@ -23,12 +23,26 @@ log and advertised matrix. The final `check (default)` gate requires all shards
 and static checks to pass, verifies identical inventories and complete, disjoint
 assignments, then checks combined capability coverage. Missing artifacts, duplicate
 assignments, differing matrices and uncovered capabilities fail the gate.
+The final gate runs after dependency failures but skips cancelled workflows. An `always()`
+condition kept a superseded run queued after its test jobs cancelled, holding the concurrency slot
+needed by the replacement run. See GitHub's [cancellation guidance](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows).
 
 Formatting, strict Clippy, the focused VFS regressions, Lean kernel checks, Python
 type checking and prose checks run in the static job. Browser feature checks and
 the playground remain separate. `tools/check.sh default` still runs the whole
 native gate serially when appropriate; local resource policy takes precedence.
 The post-merge deep audit retains its existing separate workflow.
+
+The deep workflow also accepts `external_replays_only=true` for a focused,
+remote check of all pinned external patch replays, split into six jobs with
+15-minute deadlines. The default deep
+audit still runs every check. Replay children discard inherited Rust compiler
+flags, including target-specific flags, so fr's `-D warnings` policy cannot
+turn new compiler deprecations in historical upstream code into task failures.
+Warnings remain visible, and each upstream source tree retains its own lints.
+The test launcher applies this policy before starting Python; retained historical
+evaluators, results and source snapshots remain unchanged. Direct replay commands
+can use `python3 tools/external-eval.py tools/agent-eval.py replay DIRECTORY`.
 
 The runtime target excludes runner queue delays. Inspect job timestamps and shard
 logs after changes to suite size; update measured weights or split work before a
@@ -51,3 +65,5 @@ The study job also prepares temporary systemd slices on its disposable Linux run
 shared command/grader accounting, CPU-budget termination of detached descendants, and kernel memory
 limits. Those tests remove their dedicated units and containers; workstation checks use fake counters
 and never change local cgroups or start Docker.
+The same study job runs the OpenCode rehearsal's offline parser, evidence and private-grader tests.
+It does not launch OpenCode or contact model providers; live local attempts use the workstation guard.

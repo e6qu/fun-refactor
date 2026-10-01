@@ -53,7 +53,7 @@ Next: Keep these delivery regression tests; evaluate unscripted problem solving 
 
 Evidence or missing work: No qualifying retained evidence yet.
 
-Next: Build the missing provider and child-agent accounting around the existing live runner, freeze tasks and budgets, then run the pilot on remote workers.
+Next: Select independent tasks and graders, complete worker resource and context measurements around the implemented provider/child loop, then run the pilot on remote workers. Local OpenCode rehearsals remain separate protocol evidence.
 
 ### A.compiler-profile: Relate explanations to compiler and runtime checks
 
