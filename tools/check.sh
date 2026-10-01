@@ -29,6 +29,9 @@ esac
 if [ "$slice" = study ]; then
     python3 tools/agent_eval/test_study.py
     python3 tools/agent_eval/test_host.py
+    python3 tools/agent_eval/test_gateway.py
+    python3 tools/agent_eval/test_isolated_grade.py
+    python3 tools/test_fetch_verified_ranges.py
     python3 tools/agent_eval/test_codex_runner.py
     python3 tests/agent-eval/test_python_repository_basis.py
     python3 tools/roadmap-status.py --check

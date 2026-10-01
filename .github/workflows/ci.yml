@@ -19,6 +19,14 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  toolchain:
+    name: Pinned Zig toolchain
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/zig-toolchain
+
   agent-study:
     name: Independent agent study accounting
     runs-on: ubuntu-latest
@@ -28,6 +36,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Prepare the isolated grader test image
+        timeout-minutes: 2
+        run: |
+          docker pull python:3.14-alpine
+          echo "FR_STUDY_TEST_IMAGE=$(docker image inspect python:3.14-alpine --format '{{.Id}}')" >> "$GITHUB_ENV"
       - run: bash tools/check.sh study
 
   # A pull request is squash-merged, so its title becomes the subject of the one
@@ -110,6 +123,7 @@ jobs:
         run: ./tools/check.sh ${{ matrix.slice }}
 
   native:
+    needs: toolchain
     name: native (${{ matrix.kind }}-${{ matrix.index }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -148,6 +162,7 @@ jobs:
           retention-days: 7
 
   static:
+    needs: toolchain
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

@@ -3,6 +3,7 @@ description: Pinned validators and language runtimes for the complete native gat
 runs:
   using: composite
   steps:
+    - uses: ./.github/actions/zig-toolchain
     - name: Install the validators the gate drives
       shell: bash
       run: |
@@ -11,8 +12,6 @@ runs:
         TERRAFORM_SHA=41d05b927aa174f15d1228c4eba832a323b716c68b415ef5a00179f46cc602d3
         HELM=v4.2.4
         HELM_SHA=c306b46f719b0a4da32d0f78ee21bf90ce8d602f15b22ab753f0674d1670a7f3
-        ZIG=0.16.0
-        ZIG_SHA=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
         fetch() {
           curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
             --connect-timeout 20 --max-time 120 -o "$1" "$2" \
@@ -20,11 +19,6 @@ runs:
         }
         sudo timeout 240 apt-get update -qq
         sudo timeout 240 apt-get install -y -qq libxml2-utils zsh
-        tools/fetch-verified-ranges.sh \
-          "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz" \
-          /tmp/zig.tar.xz "${ZIG_SHA}" 55478392
-        tar -xJf /tmp/zig.tar.xz -C /tmp
-        sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
         fetch /tmp/terraform.zip \
           "https://releases.hashicorp.com/terraform/${TERRAFORM}/terraform_${TERRAFORM}_linux_amd64.zip"
         echo "${TERRAFORM_SHA}  /tmp/terraform.zip" | sha256sum -c -

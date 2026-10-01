@@ -1,0 +1,25 @@
+name: Verified Zig toolchain
+description: Restore a pinned archive or fetch it within the existing download deadline
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v6
+      id: zig-cache
+      with:
+        path: ${{ runner.temp }}/fr-zig-0.16.0.tar.xz
+        key: zig-archive-linux-x86_64-70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+    - name: Fetch and verify Zig
+      shell: bash
+      run: |
+        set -euo pipefail
+        archive="${RUNNER_TEMP}/fr-zig-0.16.0.tar.xz"
+        expected=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+        if [ ! -f "$archive" ]; then
+          tools/fetch-verified-ranges.sh \
+            https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz \
+            "$archive" "$expected" 55478392
+        fi
+        echo "$expected  $archive" | sha256sum -c -
+        tar -xJf "$archive" -C "$RUNNER_TEMP"
+        echo "${RUNNER_TEMP}/zig-x86_64-linux-0.16.0" >> "$GITHUB_PATH"
+        "${RUNNER_TEMP}/zig-x86_64-linux-0.16.0/zig" version

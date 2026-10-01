@@ -4,10 +4,11 @@
 Task names and repository identities are data. No production analyzer rule depends on them.
 The same format accepts different models, single agents and delegated work.
 
-The auditor checks retained evidence. `tools/agent-eval-host.py` converts provider responses and
-operates a shared budget ledger. The existing Codex launcher now bounds process resources.
-These pieces have synthetic tests, but no new live trial has run. A complete paid pilot still needs
-a host that gates every model request, isolated task checkouts and independent hidden graders.
+The auditor checks retained evidence. `tools/agent-eval-host.py` now sends provider requests through
+the budget ledger and grades submitted code against private cases in a container. The existing
+Codex launcher bounds process resources. Tests use fake providers and small executable submissions;
+no new paid trial has run. The pilot still needs an agent loop using this gateway, pinned task
+checkouts, reviewed oracles and complete tool/context measurements.
 The Codex CLI launcher does not enforce a dollar cap and must not run the planned pilot.
 
 ## Freeze the comparison
@@ -88,7 +89,8 @@ Executed records, with `completed` or `failed` status, contain:
 `grade` contains `outcome` (`passed`, `failed` or `inconclusive`), `grader_sha256`, pinned `evidence`,
 and nonnegative `regressions`, `unsupported_claims` and `human_interventions` counts.
 A passing outcome requires all three counts to be zero. A failed execution cannot pass.
-This validates the grading contract; it does not rerun or establish the quality of the grader.
+The report validates this grading contract. The `grade` command below executes a pinned black-box
+grader; task reviewers still need to establish the quality and independence of its cases.
 
 ## Count parent and child usage
 
@@ -229,15 +231,129 @@ This is an integration contract, not a proxy around an uninstrumented CLI. It en
 when a trusted host gates every paid operation and supplies valid request bounds and pricing.
 Hosted tools, mixed cache-write prices and unrelated billable services need separate reservation support.
 
+## Send a request through the ledger
+
+Run `send` on a trusted GitHub worker after admitting the cell with `budget` action `begin`.
+Keep provider credentials and the ledger outside model workers. The only credential variables the
+transport reads are `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. It uses fixed provider origins, follows
+no redirects, retries no generation calls and limits retained response bodies to 16 MiB.
+It applies socket timeouts and a body-read deadline; the worker must also enforce its overall lifetime.
+No network call or credential lookup occurs without the CLI spend acknowledgement.
+
+Set the model's `harness` to `fr-study-api-1` and freeze these `settings`:
+
+```json
+{
+  "request": {},
+  "max_output_tokens": 1024,
+  "input_token_ceiling": 1000000,
+  "input_bound_source": "Documented input limit for the exact model and settings"
+}
+```
+
+The numbers illustrate the format. Use the model's documented bounds and freeze suitable prices
+before live use. `request` contains supported provider options such as reasoning effort, service tier
+and client function tools. Callers supply only conversation input and instructions; they cannot replace
+model settings, turn on hosted tools, enable streaming or refer to mutable server-side conversations.
+This adapter accepts text and client tool messages. Media, hosted tools and Anthropic signed thinking
+replay need separate adapters. It refuses them before generation.
+
+OpenAI input files contain `input` and optional `instructions`. Anthropic input files contain `messages`
+and optional `system`. Include all prior client tool calls and their results explicitly.
+
+```sh
+python3 tools/agent-eval-host.py send frozen-plan.json host-budget.sqlite CELL_ID \
+  CELL_PARENT request-001 input.json attempts --confirm-agent-spend
+```
+
+For a child call, use its unique agent ID and `--parent CELL_PARENT`. Admission persists one rooted
+agent tree, enforces the single/delegated child limit and rejects session reuse across attempts.
+The gateway checks the open attempt and unknown-charge state before contacting the provider.
+It then retains the exact request object, counts input, reserves the bounded generation cost,
+dispatches once, retains the response and settles the reservation. Competing parent and child calls
+share the same atomic dollar and token holds. Each retry needs a new request identity.
+
+[OpenAI's counting endpoint](https://developers.openai.com/api/docs/guides/token-counting) documents
+an exact count for explicit request input. That count supplies the input reservation.
+[Anthropic's endpoint](https://platform.claude.com/docs/en/build-with-claude/token-counting) returns an
+estimate, so that path reserves the entire frozen `input_token_ceiling`. The ceiling must bound actual
+provider input, such as the documented model context limit; adding a guessed percentage is insufficient.
+This can require a larger per-attempt budget. Refusal means the frozen cap cannot cover the request.
+
+The ledger covers generation tokens at the frozen rates. Confirm pricing tiers, counting endpoints,
+host compute and other service charges separately before a paid pilot. Account-wide billing can include
+charges outside this gateway. The code does not intercept arbitrary Codex or Claude CLI traffic.
+
+Each request creates `attempts/REQUEST_ID/` with payload, count, response when available, and receipt.
+The receipt's `invocation` object plugs into the auditor's agent record; its artifact paths are relative
+to `attempts/`. Receipts also bind the frozen plan, agent relationship, settings and request elapsed time.
+Failed requests retain a receipt. Ambiguous sends and incomplete usage remain unknown;
+provider errors never trigger a hidden retry. A crash after dispatch retains the full reservation.
+Reconcile such requests before restarting. Complete agent rosters, durations and tool measurements still
+come from the calling host; request receipts alone cannot prove that the host reported every operation.
+
+## Grade an exported submission
+
+The `grade` command reads a grader file whose byte digest matches the frozen task's `grader_sha256`.
+It snapshots a bounded submission, then starts a fresh Docker container for each case. Expected outputs
+remain in the trusted host process. The container receives only the submission, command and that case's
+stdin. It has no network, no capabilities, a read-only root and submission, bounded tmpfs, half a CPU,
+a memory limit with no extra swap, a process-count limit and an unprivileged user.
+See [Docker's runtime controls](https://docs.docker.com/engine/containers/run/).
+
+Stop all agent processes before grading. Supply a clean exported submission; this command does not
+check out repositories or establish its base revision. Keep the private grader outside that directory.
+The snapshot rejects symlinks and special files and binds paths, contents, executable bits and empty
+directories. Prepare dependencies in the pinned image; grading never pulls an image or installs packages.
+Images declaring writable volumes refuse before execution.
+The runtime supports a local default Docker context. Use a disposable runner with a trusted daemon.
+
+A small grader file has this shape:
+
+```json
+{
+  "schema": "fr-stdio-grader-1",
+  "image": "sha256:REPLACE_WITH_THE_LOCAL_IMAGE_ID",
+  "command": ["python3", "/workspace/answer.py"],
+  "limits": {
+    "wall_seconds": 3,
+    "memory_bytes": 67108864,
+    "scratch_bytes": 1048576,
+    "output_bytes": 4096,
+    "candidate_bytes": 1048576
+  },
+  "cases": [{"id": "hidden-case", "stdin": "6\n", "stdout": "42\n", "exit_code": 0}]
+}
+```
+
+Use an actual immutable image ID or repository digest, then hash the complete grader file before
+freezing the plan. Choose independent cases appropriate to the task; this arithmetic example only
+explains the format. The grader compares exact UTF-8 output and exit status. It cannot judge explanation
+quality or arbitrary behavioral correctness without an appropriate executable protocol.
+
+```sh
+python3 tools/agent-eval-host.py grade frozen-plan.json CELL_ID exported-submission private-grader.json
+```
+
+The result binds the grader, image and candidate snapshot and retains each case's output bytes, hashes,
+exit state and resource-stop reason. A wrong answer, timeout, memory failure or execution error cannot
+pass. Cleanup explicitly removes the container, including after a client timeout. Cleanup failure stops
+the worker instead of returning a usable grade. Retain the result as the attempt's grading evidence.
+Docker isolation depends on the worker kernel and daemon; it is not a proof against container escapes.
+
+The CI study check runs real containers for correct and incorrect submissions, private-grader visibility,
+read-only mounts, network denial and timeout cleanup. Local checks skip those cases and use small fake
+providers. No model service or local container starts as part of the workstation tests.
+
 ## What remains before the pilot
 
 | Ready in this repository | Still required for live evidence |
 |---|---|
 | Frozen pairs and complete-attempt auditor | Independent tasks, pinned repositories and reviewed graders |
-| Raw OpenAI/Anthropic response conversion | Host collection of every request, retry and child invocation |
-| Concurrent reserve/dispatch/settle hooks | A provider host wired through those hooks with no bypass |
-| Codex process-group cleanup and sampled limits | Runner containment, isolated checkouts and private grader execution |
+| Count/reserve/send/settle provider gateway | Agent loop that uses it for every parent, child and retry |
+| Persistent child admission and auditor-ready invocation receipts | Complete durations, tool calls, source reads and handoff measurements |
+| Private black-box grading in constrained containers | Pinned task checkouts, reviewed independent cases and suitable runtime images |
 
-No acceptance item changes from these synthetic tests. After integrating the host, run a small paid
+No acceptance item changes from these tests. After connecting the host and preparing tasks, run a small paid
 preflight before the 48-attempt pilot. Use its complete costs and independent grades to choose which
 fr routes deserve improvement or removal.

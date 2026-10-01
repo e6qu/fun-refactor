@@ -165,9 +165,9 @@ between source implementations and proofs. Passing a theorem about a separate mo
 ## Working rules
 
 The [study planner and auditor](docs/agent-study.md) now freeze independent tasks and compare retained
-parent/child accounting. Raw-response adapters and shared budget hooks now support that host work.
-Their synthetic tests do not count as live trials. Connect every paid request to the ledger, isolate
-workspaces and execute hidden graders before the 48-attempt pilot.
+parent/child accounting. The host gateway now reserves and settles provider requests; a container
+grader compares submitted code with private cases. These tests do not count as live agent trials.
+Connect the agent loop, prepare pinned task checkouts and collect complete measurements before the pilot.
 
 Keep reports small and allow explicit follow-up reads. Preserve uncertainty, exact source references
 and stale-result rejection. Check behavior independently of the proposed patch. Review edits before
