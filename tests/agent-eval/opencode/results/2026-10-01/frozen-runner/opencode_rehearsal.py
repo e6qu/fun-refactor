@@ -117,17 +117,8 @@ def environment():
 
 def events(raw, expected_session=None):
     """Reject incomplete turns and unexpected native tools; retain disjoint CLI counters as reported."""
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            require(key not in result, "duplicate JSON key")
-            result[key] = value
-        return result
-    decoder = json.JSONDecoder(object_pairs_hook=unique,
-                               parse_constant=lambda value: require(False, "nonfinite JSON number"))
-    rows = [decoder.decode(line) for line in raw.decode().splitlines() if line.strip()]
+    rows = [json.loads(line) for line in raw.decode().splitlines() if line.strip()]
     require(rows, "empty OpenCode stream")
-    require(rows[0].get("type") == "step_start" and rows[-1].get("type") == "step_finish", "incomplete or reordered stream")
     sessions = {row.get("sessionID") for row in rows}
     require(len(sessions) == 1 and None not in sessions, "mixed or missing OpenCode sessions")
     session = sessions.pop()
@@ -153,6 +144,7 @@ def events(raw, expected_session=None):
     # Some configured models add explanatory prose despite the JSON instruction.
     # Accept one complete action object, never choose among multiple proposals.
     candidates = []
+    decoder = json.JSONDecoder()
     for index, character in enumerate(answer):
         if character != "{":
             continue
@@ -160,7 +152,7 @@ def events(raw, expected_session=None):
             candidate, _ = decoder.raw_decode(answer[index:])
             if isinstance(candidate, dict) and isinstance(candidate.get("action"), str):
                 candidates.append(candidate)
-        except json.JSONDecodeError:
+        except ValueError:
             pass
     require(len(candidates) == 1, "expected exactly one JSON action")
     action = candidates[0]
@@ -362,9 +354,6 @@ def report(frozen, directory):
         passed = record["status"] == "completed" and record["model_observed_by_harness"] and record["grade"]["passed"]
         rows.append({"cell": cell, "status": record["status"], "passed": passed, "failure": record["failure"],
                      "turns": len(parsed), "tokens": [turn["tokens"] for turn in parsed],
-                     "fr_requests": sum(t.get("action", {}).get("action") == "fr" for t in record["trace"]),
-                     "ordinary_requests": sum("result" in t and t["action"]["action"] != "fr" for t in record["trace"]),
-                     "format_deviations": sum(t["action_format"] != "json" for t in parsed),
                      "known_reported_cost": sum(turn["reported_cost"] for turn in parsed),
                      "usage_complete": record["status"] == "completed" and record["model_observed_by_harness"], "actual_usd": None,
                      "seconds": record["seconds"], "tool_result_bytes": sum(len(encode(t["result"])) for t in record["trace"] if "result" in t),

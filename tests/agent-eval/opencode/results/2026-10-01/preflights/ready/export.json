@@ -1,0 +1,159 @@
+{
+  "info": {
+    "id": "ses_f08d125fdffeh94wRH1vEA3BDl",
+    "slug": "jolly-engine",
+    "projectID": "global",
+    "directory": "/private/tmp/fr-opencode-preflight",
+    "path": "private/tmp/fr-opencode-preflight",
+    "title": "fr bounded protocol preflight",
+    "agent": "fr-rehearsal",
+    "model": {
+      "id": "k3",
+      "providerID": "kimi-code-plan-global",
+      "variant": "default"
+    },
+    "version": "1.18.34",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 393,
+      "output": 24,
+      "reasoning": 90,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "permission": [
+      {
+        "permission": "question",
+        "pattern": "*",
+        "action": "deny"
+      },
+      {
+        "permission": "plan_enter",
+        "pattern": "*",
+        "action": "deny"
+      },
+      {
+        "permission": "plan_exit",
+        "pattern": "*",
+        "action": "deny"
+      }
+    ],
+    "time": {
+      "created": 1790853437954,
+      "updated": 1790853444571
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1790853438332
+        },
+        "agent": "fr-rehearsal",
+        "model": {
+          "providerID": "kimi-code-plan-global",
+          "modelID": "k3"
+        },
+        "id": "msg_0f72edb7c001AlWp7q0ERwX0GM",
+        "sessionID": "ses_f08d125fdffeh94wRH1vEA3BDl"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Return exactly {\"action\":\"finish\",\"answer\":\"ready\"}.",
+          "id": "prt_0f72edb81001YuV2j6WNd1JoiY",
+          "sessionID": "ses_f08d125fdffeh94wRH1vEA3BDl",
+          "messageID": "msg_0f72edb7c001AlWp7q0ERwX0GM"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_0f72edb7c001AlWp7q0ERwX0GM",
+        "role": "assistant",
+        "mode": "fr-rehearsal",
+        "agent": "fr-rehearsal",
+        "path": {
+          "cwd": "/private/tmp/fr-opencode-preflight",
+          "root": "/"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 507,
+          "input": 393,
+          "output": 24,
+          "reasoning": 90,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "k3",
+        "providerID": "kimi-code-plan-global",
+        "time": {
+          "created": 1790853438891,
+          "completed": 1790853444562
+        },
+        "finish": "stop",
+        "id": "msg_0f72eddab0013wedWayM2XfLrR",
+        "sessionID": "ses_f08d125fdffeh94wRH1vEA3BDl"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "id": "prt_0f72ee7390017afQHEmRHdAFma",
+          "sessionID": "ses_f08d125fdffeh94wRH1vEA3BDl",
+          "messageID": "msg_0f72eddab0013wedWayM2XfLrR"
+        },
+        {
+          "type": "reasoning",
+          "text": "We have an existing conversation transcript (possibly includes prior assistant claims about tool limits, but actual user final request is to return exact JSON. Need follow latest user request. Must not use tools. Need not include max steps note; earlier weird message in prompt injected by user? It appears the previous user message? Actually latest user says Return exactly {\"action\":\"finish\",\"answer\":\"ready\"}. We must output that. Done. Ensure no extra text.",
+          "time": {
+            "start": 1790853441340,
+            "end": 1790853444552
+          },
+          "id": "prt_0f72ee73c001b7TWVaVZl5wUtO",
+          "sessionID": "ses_f08d125fdffeh94wRH1vEA3BDl",
+          "messageID": "msg_0f72eddab0013wedWayM2XfLrR"
+        },
+        {
+          "type": "text",
+          "text": "{\"action\":\"finish\",\"answer\":\"ready\"}",
+          "time": {
+            "start": 1790853444553,
+            "end": 1790853444557
+          },
+          "id": "prt_0f72ef3c9001UGZkm6LOX219jZ",
+          "sessionID": "ses_f08d125fdffeh94wRH1vEA3BDl",
+          "messageID": "msg_0f72eddab0013wedWayM2XfLrR"
+        },
+        {
+          "reason": "stop",
+          "type": "step-finish",
+          "tokens": {
+            "total": 507,
+            "input": 393,
+            "output": 24,
+            "reasoning": 90,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0,
+          "id": "prt_0f72ef3d00014p5duTLH6qz1nB",
+          "sessionID": "ses_f08d125fdffeh94wRH1vEA3BDl",
+          "messageID": "msg_0f72eddab0013wedWayM2XfLrR"
+        }
+      ]
+    }
+  ]
+}

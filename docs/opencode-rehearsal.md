@@ -7,6 +7,8 @@ or installs OpenCode. The initial profiles name `kimi-code-plan-global/k3` and
 `zai-coding-plan/glm-5.3-flash`; these are the configured IDs observed on October 1, 2026.
 
 This is a small local rehearsal, separate from the [full independent study](agent-study.md).
+The [first retained run](../tests/agent-eval/opencode/results/2026-10-01/README.md) contains all eight
+attempts, three protocol preflights and a separate review of the graders. No model chose an fr operation.
 The supplied tasks are synthetic. Their graders check finite behavior and reject the original
 broken implementations; the agents receive requirements without edit locations or expected patches.
 Neither these tasks nor the constrained tool protocol establish unfamiliar-repository performance,

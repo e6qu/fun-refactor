@@ -67,6 +67,15 @@ class Protocol(unittest.TestCase):
             with self.assertRaises(ValueError):
                 runner.events(serialized(rows))
 
+    def test_duplicate_action_keys_and_out_of_order_events_refuse(self):
+        rows = stream()
+        rows[1]["part"]["text"] = '{"action":"list","action":"finish","answer":"done"}'
+        with self.assertRaises(ValueError):
+            runner.events(serialized(rows))
+        rows = stream()
+        with self.assertRaises(ValueError):
+            runner.events(serialized([rows[-1], *rows[:-1]]))
+
     def test_export_checks_model_all_messages_and_counts(self):
         turn = runner.events(serialized(stream()))
         export = {"info": {"id": "ses_abc"}, "messages": [{"info": {"id": "msg_abc", "role": "assistant", "finish": "stop",
@@ -232,6 +241,56 @@ class Rehearsal(unittest.TestCase):
             source = next(submission.glob("*.py"))
             source.write_text(source.read_text().replace(*replacements[task["id"]]))
             self.assertTrue(grade()["passed"])
+
+
+class RetainedRehearsal(unittest.TestCase):
+    def test_preflights_retain_ready_exchange_and_both_protocol_failures(self):
+        directory = FIXTURES / "results/2026-10-01/preflights"
+        ready = directory / "ready"
+        turn = runner.events((ready / "events.jsonl").read_bytes())
+        self.assertTrue(runner.model_identity(load(ready / "export.json"), turn["session"], "kimi-code-plan-global/k3", [turn]))
+        for name in ("forced-summary", "prose-before-json"):
+            folder = directory / name
+            manifest = load(folder / "manifest.json")
+            self.assertTrue(all(runner.identity(folder / path) == sha for path, sha in manifest["files"].items()))
+            record = load(folder / "record.json")
+            self.assertEqual(record["status"], "failed")
+            self.assertEqual(runner.digest(record), manifest["record_sha256"])
+            self.assertEqual(record["plan_sha256"], load(folder / "plan.json")["sha256"])
+
+    def test_all_frozen_attempts_remain_auditable_without_model_calls(self):
+        directory = FIXTURES / "results/2026-10-01"
+        frozen = load(directory / "plan.json")
+        observed = runner.report(frozen, directory / "attempts")
+        self.assertEqual(observed, load(directory / "report.json"))
+        self.assertEqual(len(observed["attempts"]), 8)
+        self.assertEqual(sum(row["status"] == "failed" for row in observed["attempts"]), 3)
+        self.assertFalse(observed["audit_complete"])
+        self.assertTrue(all(row["actual_usd"] is None and row["fr_requests"] == 0 for row in observed["attempts"]))
+        names = ("opencode_rehearsal.py", "bounded_host.py", "source_disclosure.py", "workspace_bundle.py", "study.py")
+        self.assertEqual(runner.digest({name: runner.identity(directory / "frozen-runner" / name) for name in names}),
+                         frozen["plan"]["implementation_sha256"])
+
+    def test_posthoc_grader_review_replays_without_replacing_original_outcomes(self):
+        directory = FIXTURES / "results/2026-10-01"
+        review = load(directory / "grader-review.json")
+        for row in review["attempts"]:
+            folder = directory / "attempts" / row["cell"]
+            record = load(folder / "record.json")
+            if row["status"] == "not_regraded":
+                self.assertEqual(record["status"], "failed")
+                continue
+            grader = directory / "reviewed-graders" / row["grader"]
+            self.assertEqual(runner.identity(grader), row["grader_sha256"])
+            self.assertEqual(record["submission_sha256"], row["submission_sha256"])
+            with tempfile.TemporaryDirectory() as temporary:
+                submission = Path(temporary) / "submission"
+                runner.unpack(load(folder / "submission.json"), submission, runner.MAX_WORKSPACE)
+                observed = json.loads(subprocess.check_output([sys.executable, "-I", "-B", str(grader), str(submission)], timeout=5))
+            self.assertEqual(observed, row["grade"])
+            if record["grade"]["checks"] == 0:
+                self.assertEqual(observed["checks"], 24)
+                self.assertFalse(observed["passed"])
 
 
 if __name__ == "__main__":

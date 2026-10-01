@@ -5,7 +5,6 @@ from pathlib import Path
 import sys
 
 passed, checks = True, 0
-scope = "Finite integer interval behavior and unchanged span; no proof."
 try:
     tree = ast.parse((Path(sys.argv[1]) / "intervals.py").read_text())
     # This local fixture admits only simple pure expressions and declarations.
@@ -28,9 +27,6 @@ try:
     for interval in intervals:
         passed &= namespace["span"](interval) == len(range(*interval))
         checks += 1
-except AssertionError:
-    passed, scope = False, "Unsupported submission syntax; behavior was not graded."
 except Exception:
     passed = False
-    scope = "Submission execution failed during finite behavior checks; no proof."
-print(json.dumps({"passed": bool(passed), "checks": checks, "scope": scope}))
+print(json.dumps({"passed": bool(passed), "checks": checks, "scope": "Finite integer interval behavior and unchanged span; no proof."}))
