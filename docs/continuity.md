@@ -40,7 +40,9 @@ Study CI uses fake providers and executable submissions. A separate guarded
 [OpenCode rehearsal](opencode-rehearsal.md) now supports local Kimi/GLM protocol and small task checks.
 It retains CLI accounting separately. The [explanation adapter](opencode-source-evidence.md) adds
 three pinned Python projects with factual and retrieved-source checks; this is a bounded rehearsal,
-not the independent pilot. Select independent tasks, extend proof grading, and collect complete context/tool
+not the independent pilot. The [native tool adapter](opencode-native-tools.md) tests the same tasks
+through OpenCode tool calls, avoiding the one-JSON-action response requirement.
+Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.
 Use those results to simplify overlapping routes and choose useful analysis

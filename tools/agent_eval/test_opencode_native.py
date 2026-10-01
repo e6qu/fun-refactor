@@ -123,6 +123,14 @@ class Transport(unittest.TestCase):
 
 
 class Evidence(unittest.TestCase):
+    def test_retained_access_control_used_public_fr_and_exact_source(self):
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-native/access-probe"
+        result = native.report(load(root / "plan.json"), root / "attempts")
+        self.assertEqual(result["passed"], 2)
+        fr = next(row for row in result["attempts"] if row["cell"]["arm"] == "fr")
+        self.assertEqual(fr["audit"]["metrics"]["fr_requests"], 2)
+        self.assertEqual(fr["audit"]["metrics"]["source_available_before_answer_bytes"], 27)
+
     def test_review_recovers_two_auditor_failures_and_preserves_originals(self):
         root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-native/repositories"
         paths = sorted((root / "attempts").glob("*/record.json"))

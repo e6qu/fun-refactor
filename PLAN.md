@@ -40,6 +40,14 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 First measure which parts help agents:
 
+The [native OpenCode rehearsal](docs/opencode-native-tools.md) removes the one-JSON-action
+response requirement that interrupted earlier Kimi/GLM trials. It preserves source and factual
+checks. Treat those reviewed tasks as integration tests, and report whether the models
+use `fr`. They do not close the independent comparison or delegation requirements below.
+The retained native trials have eight passes out of twelve after an auditor correction.
+Only one of six `fr` arms used the CLI. Next test whether public guidance helps agents choose
+useful operations, while retaining ordinary-tool baselines and reporting instruction costs.
+
 1. Extend the existing evaluation runner to compare ordinary tools with the `fr` CLI on the same
    tasks, separately for Sonnet and Luna. Record all parent and child agent costs. Keep tasks,
    model settings, budgets and correctness checks fixed before running them.
