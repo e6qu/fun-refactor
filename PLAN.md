@@ -168,6 +168,9 @@ The [study planner and auditor](docs/agent-study.md) now freeze independent task
 parent/child accounting. The host gateway now reserves and settles provider requests; a container
 grader compares submitted code with private cases. A serial agent loop now connects those steps for
 fix and feature tasks, with pinned source exports and bounded child investigations.
+Both study arms now have bounded source pages with content hashes and continuation offsets. The
+auditor counts overlapping reads across agents and checks delivered-byte counters against the trace.
+Reads inside arbitrary commands remain unknown; partial page counts do not establish total savings.
 These tests use fake providers and do not count as live agent trials.
 Select independent tasks, review graders and complete resource/context measurements before the pilot.
 

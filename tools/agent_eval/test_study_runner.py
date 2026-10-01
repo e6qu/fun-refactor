@@ -294,6 +294,27 @@ class RunnerTests(unittest.TestCase):
         self.assertTrue(observed["usage_complete"])
         self.assertIn("disk_bytes", observed["unmeasured_budgets"])
         self.assertFalse(audit["audit_complete"])
+        self.assertEqual(observed["source_disclosure"]["opaque_command_calls"], 1)
+        record_path = attempts / f"{cell}.json"
+        for field in ("tool_calls", "tool_result_bytes", "instruction_bytes", "handoff_bytes", "source_read_bytes"):
+            changed = copy.deepcopy(record)
+            changed["measurements"][field] = 999
+            record_path.write_text(json.dumps(changed))
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "trace measurement differs"):
+                report(frozen, attempts)
+        record_path.write_text(json.dumps(record))
+        trace_path = attempts / record["trace"]["path"]
+        original_trace = trace_path.read_bytes()
+        changed_trace = json.loads(original_trace)
+        next(event for event in changed_trace["events"] if "request" in event)["request"] = "invented-request"
+        trace_path.write_text(json.dumps(changed_trace))
+        changed = copy.deepcopy(record)
+        changed["trace"]["sha256"] = hashlib.sha256(trace_path.read_bytes()).hexdigest()
+        record_path.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, "trace request ledger differs"):
+            report(frozen, attempts)
+        trace_path.write_bytes(original_trace)
+        record_path.write_text(json.dumps(record))
         self.assertEqual(ledger.snapshot()["attempts"][0]["state"], "closed")
         second = next(row["id"] for row in frozen["cells"] if row["task"] == "fix" and row["mode"] == "single" and row["id"] != cell)
         failed = run_attempt(ledger, second, repo, private, binary, skill, attempts,
@@ -337,16 +358,21 @@ class ContainerTests(unittest.TestCase):
             frozen = plan(value)
             ledger = Budget(root / "ledger", frozen)
             cell = next(row["id"] for row in frozen["cells"] if row["arm"] == "fr" and row["task"] == "fix" and row["mode"] == "single")
-            provider = FakeProvider([[call(arguments={"argv": ["python3", "-c",
+            provider = FakeProvider([[call("read_source", {"path": "main.py", "offset": 0, "bytes": 4096, "sha256": ""}, "before")],
+                                 [call(arguments={"argv": ["python3", "-c",
                 "import pathlib,subprocess; assert subprocess.check_output(['fr','--version']).strip()==b'fixture-fr'; "
                 "assert pathlib.Path('/opt/fr-skill/SKILL.md').is_file(); "
                 "assert not pathlib.Path('/private-grader.json').exists(); "
-                "pathlib.Path('answer.py').write_text('print(int(input())*7)\\n')"], "stdin": ""})], "Finished"])
+                "pathlib.Path('answer.py').write_text('print(int(input())*7)\\n')"], "stdin": ""})], [call("read_source", {"path": "answer.py", "offset": 0, "bytes": 4096, "sha256": ""}, "after")], "Finished"])
             attempts = root / "attempts"
             record = run_attempt(ledger, cell, repository, private, binary, skill, attempts, transport=provider)
             self.assertEqual(record["grade"]["outcome"], "passed")
             audit = next(row for row in report(frozen, attempts)["attempts"] if row["cell"]["id"] == cell)
             self.assertTrue(audit["provider_usage_verified"])
+            self.assertEqual(audit["source_disclosure"]["pages"], 2)
+            self.assertEqual(audit["source_disclosure"]["source_read_bytes"], len("print('before')\nprint(int(input())*7)\n"))
+            self.assertEqual(audit["source_disclosure"]["opaque_command_calls"], 1)
+            self.assertIsNone(audit["measurements"]["source_read_bytes"])
             submission = attempts / "artifacts" / cell / "submission"
             (submission / "answer.py").write_text("print('wrong')\n")
             self.assertEqual(grade(submission, private, value["tasks"][0]["grader_sha256"])["outcome"], "failed")

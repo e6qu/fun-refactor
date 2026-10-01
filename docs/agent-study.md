@@ -380,7 +380,8 @@ the trace retains the exact initial workspace digest. Use ordinary pinned source
 An existing cell record or ledger admission refuses a second run. A preflight failure can leave an
 artifact directory without an admitted attempt; inspect it before preparing a fresh run.
 
-Both arms expose `command(argv, stdin)` and `delegate(question)`. Only the `fr` arm receives the
+Both arms expose `command(argv, stdin)`, `read_source(path, offset, bytes, sha256)` and
+`delegate(question)`. Only the `fr` arm receives the
 binary and skill mounts. The operator must ensure the shared image does not already contain `fr`.
 Commands can use ordinary tools, execute tests and edit files. Each command starts in a fresh,
 network-free container with a read-only root, two 16 MiB writable tmpfs mounts, 256 MiB memory,
@@ -418,13 +419,67 @@ The trace records host-dispatched calls and delivered results; tool output remai
 Known charges close normally after failures. Uncertain charges keep their ledger hold and block spending.
 The command exits unsuccessfully when execution or grading fails.
 
-The runner counts tool calls, delivered result bytes, initial instructions/tool schemas/questions,
-handoff question/answer bytes and zero automatic retries. OpenAI peak context records the largest
-counted request input plus its reported output; Anthropic's estimate leaves that measurement null.
-Source reads inside arbitrary commands, repeated reads, fallback use, pages, integration tokens and
-full-system CPU/RSS/disk/cache peaks remain null. Wall time includes the conversation, tools and grade;
+The runner counts dispatched tool calls, delivered result bytes, initial instructions/tool schemas/questions,
+handoff question/answer bytes and zero automatic retries. The auditor recomputes these counters from
+the retained trace and rejects disagreements. OpenAI peak context records the largest counted request
+input plus its reported output; Anthropic's estimate leaves that measurement null.
+Source reads inside arbitrary commands, fallback use, integration tokens and full-system CPU/RSS/disk/cache
+peaks remain unmeasured. Wall time includes the conversation, tools and grade;
 source/image preflight precedes admission. `report --require-complete` therefore remains unsuccessful.
 These records test the machinery and expose missing measurements; they cannot establish efficiency gains.
+
+### Read source a page at a time
+
+The `fr-study-loop-2` profile adds the same source tool to both arms. Generate and freeze a new profile
+when upgrading; the runner refuses old profiles rather than changing their tool policy silently.
+Historical attempt records remain readable under their original audit rules.
+
+For example, the agent can request:
+
+```json
+{"path":"src/parser.py","offset":0,"bytes":2048,"sha256":""}
+```
+
+The host reads only from the current exported workspace, never from a host filesystem path supplied
+by the agent. It returns UTF-8 `text`, the file's `sha256` and `size_bytes`, exact `offset` and
+`end_offset`, and `next_offset` when more content remains. Continue with that offset and hash.
+If a command changed the file, the old hash produces `stale_source` without revealing its new text;
+start again at offset zero to inspect the changed version. Missing files, non-UTF-8 content, offsets
+inside a character and insufficient page budgets produce explicit refusals.
+
+The requested source limit is at most 65,536 bytes. The complete JSON result must also fit the frozen
+output budget, including metadata and escaped characters. Pages end at whole UTF-8 characters.
+The profile requires at least 1,024 output bytes. A smaller requested page can refuse if it cannot
+hold even the next character. An empty file or a read at end-of-file returns an empty terminal page.
+
+Each reported attempt now includes `source_disclosure`:
+
+| Field | What it counts |
+|---|---|
+| `source_read_bytes` | UTF-8 source bytes delivered through successful `read_source` calls |
+| `repeated_read_bytes` | Delivered bytes already covered by earlier pages from any agent |
+| `same_agent_repeated_bytes` | The subset also disclosed earlier to the receiving agent |
+| `pages` | Successful source pages, including empty terminal pages |
+| `opaque_command_calls` | Dispatched commands whose internal reads are not observed |
+| `failed_read_calls`, `unfinished_read_calls` | Explicit refusals and dispatched reads without retained results |
+| `complete` | Whether all source disclosure in this tool loop can be counted |
+
+Overlap is the union of earlier byte intervals for the same path and full file-content hash. Reading
+overlapping pages three times counts each repeated delivery once. Parent and child reads share the
+attempt-wide history, while each agent also has its own history. Changed content and renamed paths
+start new identities; unchanged spans inside a changed file are conservatively treated as new reads.
+These are disclosure counts, not physical disk I/O, provider tokens or a measure of whether an agent
+understood the content. Replayed conversation history is accounted for in provider usage separately.
+
+If any command was dispatched, or a source call was interrupted, the attempt's total
+`measurements.source_read_bytes`, `repeated_read_bytes` and `pages` remain null. The partial
+`source_disclosure` counters stay visible. A `cat`, test command or `fr` call could read files internally;
+the runner does not guess from executable names, output text or an agent's claim that it read nothing.
+Without such gaps, those three measurements contain the exact host-page counts, including known zeros.
+
+The auditor verifies trace structure, page extents, continuation identities, overlap and delivered-byte
+counts. It rejects invented aggregate counters. The trace remains an attestation by the trusted host;
+it does not independently prove the full file hash from a partial excerpt or recover hidden command reads.
 
 ## What remains before the pilot
 
@@ -432,7 +487,7 @@ These records test the machinery and expose missing measurements; they cannot es
 |---|---|
 | Frozen pairs and complete-attempt auditor | Independent tasks, pinned repositories and reviewed graders |
 | Provider gateway and serial parent/child loop | Paid protocol preflight with the exact model profiles |
-| Retained conversations, tool calls, durations and handoffs | Source/repeated reads, integration context and full-system resource measurements |
+| Retained conversations, audited source pages, tool calls, durations and handoffs | Reads inside commands, integration context and full-system resource measurements |
 | Pinned Git exports and isolated command workspaces | Independent task selection, suitable tool images and larger-workspace policy if needed |
 | Private black-box grading in constrained containers | Reviewed cases and explanation/proof grading adapters |
 

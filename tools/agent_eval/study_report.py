@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from collections import Counter
 
+from .request_gateway import decode
+from .source_disclosure import counts
 from .study import ARMS, artifact, checked_plan, digest, load, number, require, text
 from .study_usage import measurements, usage
 
@@ -28,7 +30,27 @@ def attempt(record, cell, frozen, root):
     wall = number(record["wall_seconds"], "wall seconds")
     maximum = manifest["max_children"] if cell["mode"] == "delegated" else 0
     counted = usage(record["agents"], model, root, maximum, wall)
-    artifact(root, record["trace"])
+    trace = artifact(root, record["trace"])
+    disclosure = None
+    if manifest.get("runner", {}).get("schema") == "fr-study-loop-2":
+        retained = decode(trace)
+        require(retained["schema"] == "fr-study-loop-trace-2" and retained["runner"] == manifest["runner"],
+                "trace differs from frozen runner")
+        counted_trace = counts(retained["events"], model["settings"]["request"]["tools"],
+                               completed=status == "completed", output_bytes=manifest["runner"]["output_bytes"])
+        for key, value in counted_trace["measurements"].items():
+            require(record["measurements"][key] == value, f"trace measurement differs: {key}")
+        require(counted_trace["agent_parents"] == {agent["id"]: agent["parent"] for agent in record["agents"]},
+                "trace agent roster differs")
+        require(set(counted_trace["completed_agents"]) == {agent["id"] for agent in record["agents"] if agent["status"] == "completed"},
+                "trace terminal agents differ")
+        for agent in record["agents"]:
+            expected_requests = [invocation["raw_usage"]["path"].split("/")[-2] for invocation in agent["invocations"]]
+            observed_requests = counted_trace["requests"][agent["id"]]
+            require([identity for identity in observed_requests if identity in expected_requests] == expected_requests
+                    and (not agent["usage_complete"] or observed_requests == expected_requests),
+                    "trace request ledger differs")
+        disclosure = counted_trace["source_disclosure"]
     outcome = record["grade"]["outcome"]
     require(outcome in {"passed", "failed", "inconclusive"}, "invalid grader outcome")
     require(status == "completed" or outcome != "passed", "failed execution cannot be a success")
@@ -52,7 +74,7 @@ def attempt(record, cell, frozen, root):
     exceeded = [key for key, value in limits.items() if value is not None and value > budgets[key]]
     return {"cell": cell, "status": status, "outcome": outcome, **counted, "wall_seconds": wall,
             "actual_usd": actual, "grade": record["grade"], "measurements": record["measurements"],
-            "missing_measurements": missing, "budget_exceeded": exceeded,
+            "source_disclosure": disclosure, "missing_measurements": missing, "budget_exceeded": exceeded,
             "unmeasured_budgets": [key for key, value in limits.items() if value is None]}
 
 
