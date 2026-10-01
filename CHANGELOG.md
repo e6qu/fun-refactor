@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.44.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.43.0...fun-refactor-v0.44.0) (2026-10-01)
+
+
+### Features
+
+* cap and measure CPU and memory across study containers ([#406](https://github.com/e6qu/fun-refactor/issues/406)) ([2134e08](https://github.com/e6qu/fun-refactor/commit/2134e08f7316b38a7bd1fe1ef4e974e777f40eb5))
+
 ## [0.43.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.42.0...fun-refactor-v0.43.0) (2026-10-01)
 
 
