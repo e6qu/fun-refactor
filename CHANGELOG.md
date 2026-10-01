@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.45.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.44.0...fun-refactor-v0.45.0) (2026-10-01)
+
+
+### Features
+
+* rehearse guarded agent tasks through OpenCode ([#408](https://github.com/e6qu/fun-refactor/issues/408)) ([2db567f](https://github.com/e6qu/fun-refactor/commit/2db567ff649797702b4a2cb60e4d27804da34f79))
+
 ## [0.44.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.43.0...fun-refactor-v0.44.0) (2026-10-01)
 
 
