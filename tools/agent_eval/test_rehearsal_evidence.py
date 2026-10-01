@@ -10,9 +10,11 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import explanation_grade, opencode_rehearsal as runner, rehearsal_evidence as evidence
+from agent_eval.test_opencode_rehearsal import stream, serialized
 
 
 def bundle(content="def f():\n    return 12345\n"):
@@ -198,6 +200,32 @@ class Disclosure(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "trace action differs"):
             self.audit()
 
+    def test_changed_file_version_is_not_counted_as_repeated_source(self):
+        self.task["kind"] = "fix"
+        self.task["files"] = copy.deepcopy(self.files)
+        self.read()
+        request = {"action": "replace", "path": "module.py", "old": "12345", "new": "54321"}
+        result = runner.action(self.files, request, "fr", Path("fr"), self.root, None)
+        self.add(request, result)
+        self.read()
+        self.record["submission_sha256"] = runner.digest(self.files)
+        self.finish()
+        counts, _ = self.audit()
+        self.assertEqual(counts["unique_source_bytes"], 2*len(self.source))
+        self.assertEqual(counts["repeated_source_bytes"], 0)
+
+    def test_forged_fr_extents_and_source_refuse(self):
+        handle = "frp1:" + "a"*32 + ":1"
+        request = {"action": "fr", "operation": "show", "handle": handle}
+        valid = {"node": {"handle": handle, "path": "module.py", "span": {"start": 0, "end": len(self.source)}},
+                 "source": {"offset": 0, "span": {"start": 0, "end": len(self.source)},
+                            "returned_bytes": len(self.source), "text": self.source.decode()}}
+        for key, value in (("offset", 1), ("returned_bytes", 0), ("text", "invented source")):
+            wrong = copy.deepcopy(valid)
+            wrong["source"][key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                evidence.disclosed(self.files, request, wrong)
+
     def test_changed_prompt_and_unaccounted_rows_refuse(self):
         self.read()
         self.finish()
@@ -212,6 +240,16 @@ class Disclosure(unittest.TestCase):
         counts, _ = self.audit()
         self.assertEqual(counts["exact_source_bytes"], len(self.source))
         self.assertEqual(counts["tool_calls"], 1)
+
+    def test_result_after_last_allowed_turn_is_not_disclosed_to_agent(self):
+        self.read()
+        self.record["status"] = "failed"
+        counts, spans = self.audit()
+        self.assertEqual(counts["exact_source_bytes"], 0)
+        self.assertEqual(counts["delivered_tool_result_bytes"], 0)
+        self.assertEqual(counts["undelivered_results"], 1)
+        self.assertGreater(counts["tool_result_bytes"], 0)
+        self.assertEqual(spans, [])
 
     def test_unfinished_tool_is_not_successful_zero_disclosure(self):
         self.record["status"] = "failed"
@@ -238,6 +276,27 @@ class Disclosure(unittest.TestCase):
 
 
 class RepositoryRubrics(unittest.TestCase):
+    def test_tenacity_normalization_changes_only_the_documentation_link(self):
+        base = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode/repositories"
+        provenance = json.loads((base / "provenance.json").read_text())[-1]
+        self.assertEqual(runner.identity(base / "tenacity.tar.gz"), provenance["archive_sha256"])
+        self.assertEqual(runner.identity(base / "tenacity-regular.tar.gz"), provenance["regular_archive_sha256"])
+        with tarfile.open(base / "tenacity.tar.gz") as original, tarfile.open(base / "tenacity-regular.tar.gz") as normalized:
+            before, after = original.getmembers(), normalized.getmembers()
+            self.assertEqual([m.name for m in before], [m.name for m in after])
+            links = []
+            for old, new in zip(before, after):
+                if old.isfile():
+                    self.assertEqual(original.extractfile(old).read(), normalized.extractfile(new).read())
+                    self.assertEqual(old.mode, new.mode)
+                elif old.issym():
+                    links.append(old.name.split("/", 1)[1])
+                    raw = normalized.extractfile(new).read()
+                    transformation = provenance["transformations"][0]
+                    self.assertEqual(raw, original.extractfile(transformation["target"]).read())
+                    self.assertEqual(hashlib.sha256(raw).hexdigest(), transformation["sha256"])
+            self.assertEqual(links, ["README.rst"])
+
     def test_frozen_rubrics_accept_controls_and_reject_each_wrong_fact(self):
         base = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode"
         manifest = json.loads((base / "explanations.json").read_text())
@@ -264,6 +323,123 @@ class RepositoryRubrics(unittest.TestCase):
                     value = wrong["answer"][name]["value"]
                     wrong["answer"][name]["value"] = not value if type(value) is bool else "wrong"
                     self.assertFalse(explanation_grade.grade(source, wrong)["passed"])
+
+
+class RetainedPipeline(unittest.TestCase):
+    def test_review_preserves_outcomes_and_binds_both_reports(self):
+        base = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode/results/2026-10-01-explanations"
+        review = runner.load(base / "audit-review.json")
+        for name, field in (("original-report.json", "original_report_sha256"),
+                            ("report.json", "corrected_report_sha256"),
+                            ("reviewed-disclosure.py", "reviewed_disclosure_sha256")):
+            self.assertEqual(runner.identity(base / name), review[field])
+        original, current = runner.load(base / "original-report.json"), runner.load(base / "report.json")
+        for before, after in zip(original["attempts"], current["attempts"]):
+            self.assertEqual({k: v for k, v in before.items() if k != "disclosure"},
+                             {k: v for k, v in after.items() if k != "disclosure"})
+            self.assertLessEqual(after["disclosure"]["exact_source_bytes"], before["disclosure"]["exact_source_bytes"])
+        self.assertEqual(len(review["changes"]), 3)
+
+    def test_recovered_export_does_not_replace_the_failed_attempt(self):
+        base = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode/results/2026-10-01-explanations"
+        diagnostic = runner.load(base / "export-diagnostic.json")
+        folder = base / "attempts" / diagnostic["cell"]
+        record = runner.load(folder / "record.json")
+        self.assertEqual(record["status"], "failed")
+        original = next(folder.glob("*-export.stdout"))
+        self.assertEqual(runner.identity(original), diagnostic["original_export_sha256"])
+        self.assertEqual(original.stat().st_size, 65536)
+        self.assertEqual(runner.identity(base / "export-recovered.json"), diagnostic["recovered_export_sha256"])
+        self.assertEqual(runner.identity(base / "reviewed-export.py"), diagnostic["helper_sha256"])
+        self.assertTrue((base / "export-recovered.json").read_bytes().startswith(original.read_bytes()))
+        self.assertTrue(runner.model_identity(runner.load(base / "export-recovered.json"), record["turns"][0]["session"],
+                                             record["cell"]["model"], record["turns"]))
+        self.assertEqual(diagnostic["process"]["exit_code"], 0)
+        self.assertNotEqual(runner.load(base / "export-wrapper-refusal.json")["process"]["exit_code"], 0)
+
+    def test_boolean_protocol_version_refuses_even_with_matching_hash(self):
+        plan = {"schema": runner.SCHEMA, "protocol": True,
+                "limits": {"turns": runner.MAX_TURNS, "wall_seconds": 120, "workspace_bytes": runner.MAX_WORKSPACE}}
+        frozen = {"plan": plan, "sha256": runner.digest(plan)}
+        with self.assertRaisesRegex(ValueError, "unsupported rehearsal protocol"):
+            runner.checked(frozen)
+
+    def test_live_explanation_records_replay_and_regrade_offline(self):
+        base = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode/results/2026-10-01-explanations"
+        frozen = runner.load(base / "plan.json")
+        report = runner.report(frozen, base / "attempts")
+        self.assertEqual(report, runner.load(base / "report.json"))
+        self.assertEqual(report["planned"], 12)
+        self.assertTrue(all(row["status"] in ("completed", "failed") for row in report["attempts"]))
+        names = ("opencode_rehearsal.py", "bounded_host.py", "source_disclosure.py",
+                 "workspace_bundle.py", "study.py", "rehearsal_evidence.py")
+        self.assertEqual(runner.digest({name: runner.identity(base / "frozen-runner" / name)
+                                       for name in names}), frozen["plan"]["implementation_sha256"])
+        for row in report["attempts"]:
+            folder = base / "attempts" / row["cell"]["id"]
+            record = runner.load(folder / "record.json")
+            task = next(task for task in frozen["plan"]["tasks"] if task["id"] == row["cell"]["task"])
+            self.assertEqual(runner.identity(base / "frozen-runner/explanation_grade.py"), task["grader_sha256"])
+            if record["status"] != "completed":
+                self.assertFalse(row["passed"])
+                continue
+            _, spans = runner.audit_disclosure(frozen["plan"], task, record, folder)
+            with tempfile.TemporaryDirectory() as tmp:
+                source = Path(tmp) / "source"
+                runner.unpack(task["files"], source, runner.MAX_WORKSPACE)
+                grade = explanation_grade.grade(source, {"answer": record["answer"],
+                                                        "criteria": task["private_criteria"], "disclosed": spans})
+            self.assertEqual(grade, record["grade"])
+
+    def test_explanation_runs_grades_and_replays_without_executing_upstream_code(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            source.mkdir()
+            content = "def f():\n    return 12345\n"
+            (source / "module.py").write_text(content)
+            criteria = {"result": {"value": 12345, "evidence": [[{"path": "module.py", "contains": content}]]}}
+            (root / "criteria.json").write_text(json.dumps(criteria))
+            binary = root / "fr"
+            binary.write_text("fake binary")
+            manifest = {"schema": runner.SCHEMA, "models": ["test/model"], "seed": 1, "repetitions": 1,
+                        "tasks": [{"id": "explain", "kind": "explain", "source": "source",
+                                   "criteria": "criteria.json", "grader": str(Path(explanation_grade.__file__).resolve()),
+                                   "requirement": "Explain f", "provenance": "offline control"}]}
+            frozen = runner.freeze(manifest, root, binary)
+            cell = frozen["plan"]["cells"][0]
+            actions = [{"action": "read", "path": "module.py", "offset": 0, "bytes": 4096, "sha256": ""},
+                       {"action": "finish", "answer": {"result": {"value": 12345,
+                        "citations": [{"path": "module.py", "quote": content}]}}}]
+            messages = []
+            def execute(command, prompt, stdout, stderr, *args, **kwargs):
+                if "--version" in command:
+                    raw = b"fake-opencode"
+                elif "run" in command:
+                    index = len(messages)
+                    message = "msg_" + str(index)
+                    raw = serialized(stream(actions[index], message=message))
+                    turn = runner.events(raw)
+                    messages.append({"info": {"id": message, "role": "assistant", "finish": "stop",
+                                              "providerID": "test", "modelID": "model", "tokens": turn["tokens"], "cost": 0}})
+                elif "export" in command:
+                    raw = runner.encode({"info": {"id": "ses_abc"}, "messages": messages})
+                else:
+                    raw = runner.encode(explanation_grade.grade(Path(command[-1]), json.loads(prompt)))
+                stdout.write(raw)
+                return {"exit_code": 0, "stop_reason": None, "sampled_aggregate_rss_bytes": 100}
+            output = root / "attempts"
+            with patch.object(runner, "bounded_run", side_effect=execute):
+                record = runner.run_attempt(frozen, cell["id"], root, output, binary, Path("opencode"))
+            self.assertEqual(record["status"], "completed", record["failure"])
+            result = runner.report(frozen, output)
+            self.assertEqual(result["passed"], 1)
+            self.assertEqual(result["attempts"][0]["disclosure"]["unique_source_bytes"], len(content))
+            self.assertEqual(json.loads((output / cell["id"] / "submission.json").read_text()),
+                             {"source_sha256": frozen["plan"]["tasks"][0]["source_sha256"]})
+            (output / cell["id"] / "unexpected.txt").write_text("unhashed data")
+            with self.assertRaisesRegex(ValueError, "unplanned retained artifact"):
+                runner.report(frozen, output)
 
 
 if __name__ == "__main__":

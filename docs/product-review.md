@@ -87,9 +87,12 @@ The [study planner and evidence auditor](agent-study.md) now accept independent 
 account for declared parent and child invocations. They retain missing cells, failures and unknown costs.
 The provider gateway now reserves and settles requests, and an isolated serial loop connects agent
 tools and private grading for fix/feature tasks. Container resource accounting is implemented;
-whole-worker resources, complete context measurements and explanation/proof grading remain open.
+whole-worker resources, complete context measurements and proof grading remain open.
 The [OpenCode rehearsal](opencode-rehearsal.md) adds a separate local Kimi/GLM protocol check. Its
 synthetic tasks and CLI-reported usage do not satisfy the independent pilot requirements.
+The [explanation adapter](opencode-source-evidence.md) now checks finite factual answers against
+source actually retrieved from three pinned Python projects. This does not establish general
+understanding, efficient delegation or token savings.
 
 The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.
 The current manifest-driven host is `tools/agent-eval-host.py`; it retains parent and child calls.

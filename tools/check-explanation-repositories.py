@@ -64,6 +64,35 @@ assert fallbacks == keys
 assert all(isinstance(signer, Fallback) for signer in signers[1:])
 print('signing key, verification order and fallback order passed')
 ''',
+    "retry-callbacks": r'''
+from tenacity import Retrying, retry_if_exception_type
+events = []
+def wait(state):
+    events.append('wait')
+    return 0
+def stop(state):
+    events.append('stop')
+    return True
+def fallback(state):
+    events.append('callback')
+    return 'fallback'
+retrying = Retrying(retry=retry_if_exception_type(ValueError), wait=wait, stop=stop,
+                    after=lambda state: events.append('after'),
+                    before_sleep=lambda state: events.append('before_sleep'),
+                    sleep=lambda seconds: events.append('sleep'),
+                    retry_error_callback=fallback, reraise=True)
+assert retrying(lambda: 'success') == 'success'
+assert events == []
+def fail():
+    raise ValueError('test failure')
+assert retrying(fail) == 'fallback'
+assert events == ['after', 'wait', 'stop', 'callback']
+events.clear()
+retrying.stop = lambda state: state.attempt_number == 2
+assert retrying(fail) == 'fallback'
+assert events == ['after', 'wait', 'before_sleep', 'sleep', 'after', 'wait', 'callback']
+print('accepted success, wait/stop order, sleep and exhaustion callback passed')
+''',
 }
 
 

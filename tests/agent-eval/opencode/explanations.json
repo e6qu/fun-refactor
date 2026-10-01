@@ -32,6 +32,19 @@
       "criteria": "key-rotation-criteria.json",
       "provenance": "Complete pinned upstream repository, new to this rehearsal corpus. Developer-reviewed factual rubric; no claim about model training exposure.",
       "requirement": "Explain key rotation and fallback signer ordering in this repository. Assume default Serializer and Signer implementations and a supplied secret-key list ordered from oldest to newest. Which position supplies new signatures? In which order does the primary signer verify keys? In which order are individual keys passed to fallback signers, and does the primary signer run before those fallbacks? Finish with an answer object with keys signing_key_position (value first or last), primary_verification_key_order (value oldest-first or newest-first), fallback_key_order (same options), and primary_before_fallback (boolean value). Each claim must also contain citations, an array of {path, quote} objects quoting exact source you obtained through tools. Include the operative statements and any helper needed to justify the claim. Find the files yourself. Do not modify code. This is a source explanation, not a proof."
+    },
+    {
+      "id": "retry-callbacks",
+      "kind": "explain",
+      "source": "repositories/tenacity-regular.tar.gz",
+      "source_format": "tar.gz",
+      "archive_sha256": "5a3b5254e9dcc725d76fc4a1dd4fda61842edaa8f363c2c0b111af9d2453d2e8",
+      "repository": "jd/tenacity",
+      "revision": "3e58094d3bc414975aad9eadf343a32bdb3b89b3",
+      "grader": "../../../tools/agent_eval/explanation_grade.py",
+      "criteria": "retry-callbacks-criteria.json",
+      "provenance": "Pinned upstream repository; only README symlink materialized. Code and rubric inspected after the initial runner implementation commit as a subsequent integration check, not a held-out model evaluation.",
+      "requirement": "Explain synchronous Retrying callback ordering in this repository. Assume ordinary successful returns or exceptions selected by the retry predicate, no explicit TryAgain, and standard default error behavior unless a retry_error_callback is supplied. Does after run on a success accepted without retry? Is the wait duration computed before evaluating stop? Does before_sleep run on the attempt where stop ends retries? Does a configured retry_error_callback replace the usual exhaustion error with its return value? Finish with an answer object with keys after_runs_on_accepted_success, wait_computed_before_stop, before_sleep_runs_when_stopped, and retry_error_callback_replaces_exhaustion_error. Each claim must contain a boolean value and citations, an array of {path, quote} objects quoting exact source you obtained through tools. Include the operative statements and control flow needed to justify the claim. Find the files yourself. Do not modify code. This is a source explanation, not a proof."
     }
   ]
 }

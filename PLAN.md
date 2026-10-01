@@ -179,6 +179,9 @@ Select independent tasks, review graders and complete resource/context measureme
 The [local OpenCode rehearsal](docs/opencode-rehearsal.md) uses configured Kimi K3 and GLM 5.3 Flash
 profiles for small protocol and task checks under the workstation guard. Its synthetic tasks,
 restricted discovery actions and CLI usage records do not close independent-study acceptance items.
+The [explanation adapter](docs/opencode-source-evidence.md) checks finite factual claims and retrieved
+source citations on three pinned upstream Python repositories. It measures repeated source bytes
+across ordinary and fr reads. Full context, source-connected proofs and general efficiency remain open.
 
 Keep reports small and allow explicit follow-up reads. Preserve uncertainty, exact source references
 and stale-result rejection. Check behavior independently of the proposed patch. Review edits before
