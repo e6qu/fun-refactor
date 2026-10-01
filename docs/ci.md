@@ -23,6 +23,9 @@ log and advertised matrix. The final `check (default)` gate requires all shards
 and static checks to pass, verifies identical inventories and complete, disjoint
 assignments, then checks combined capability coverage. Missing artifacts, duplicate
 assignments, differing matrices and uncovered capabilities fail the gate.
+The final gate runs after dependency failures but skips cancelled workflows. An `always()`
+condition kept a superseded run queued after its test jobs cancelled, holding the concurrency slot
+needed by the replacement run. See GitHub's [cancellation guidance](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows).
 
 Formatting, strict Clippy, the focused VFS regressions, Lean kernel checks, Python
 type checking and prose checks run in the static job. Browser feature checks and
