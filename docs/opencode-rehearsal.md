@@ -14,6 +14,10 @@ broken implementations; the agents receive requirements without edit locations o
 Neither these tasks nor the constrained tool protocol establish unfamiliar-repository performance,
 native OpenCode workflow quality, general token savings, or formal proofs.
 
+The [repository explanation comparison](opencode-source-evidence.md) adds three pinned upstream
+projects, finite factual rubrics, source citations and exact disclosure measurements. It uses the
+same bounded local host and keeps the synthetic run's original evidence unchanged.
+
 ## Freeze the comparison
 
 Use the workstation resource guard for every command below. The examples spell out its path;
@@ -69,6 +73,7 @@ JSON action surrounded by prose is accepted and marked `embedded_json`; multiple
 OpenCode's step limit is two because a limit of one injects a forced-summary instruction.
 
 Both arms can list files, search literal text, request source pages and replace unique text.
+Explanation tasks are read-only and return structured claims with source quotations.
 Only the `fr` arm can request public `project map`, `find` and `show` commands with fixed bounds.
 These invoke the existing binary; no alternate analyzer is implemented in the evaluator.
 There is no shell action, arbitrary command execution or child-agent action. The current route

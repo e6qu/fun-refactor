@@ -1,0 +1,52 @@
+{
+  "after_runs_on_accepted_success": {
+    "value": false,
+    "evidence": [
+      [
+        {
+          "path": "tenacity/__init__.py",
+          "contains": "if not (self.iter_state.is_explicit_retry or self.iter_state.retry_run_result):\n            self._add_action_func(lambda rs: rs.outcome.result())\n            return\n\n        if self.after is not None:"
+        }
+      ]
+    ]
+  },
+  "wait_computed_before_stop": {
+    "value": true,
+    "evidence": [
+      [
+        {
+          "path": "tenacity/__init__.py",
+          "contains": "self._add_action_func(self._run_wait)\n        self._add_action_func(self._run_stop)"
+        }
+      ]
+    ]
+  },
+  "before_sleep_runs_when_stopped": {
+    "value": false,
+    "evidence": [
+      [
+        {
+          "path": "tenacity/__init__.py",
+          "contains": "self._add_action_func(exc_check)\n            return\n\n        def next_action"
+        }
+      ],
+      [
+        {
+          "path": "tenacity/__init__.py",
+          "contains": "if self.before_sleep is not None:\n            self._add_action_func(self.before_sleep)"
+        }
+      ]
+    ]
+  },
+  "retry_error_callback_replaces_exhaustion_error": {
+    "value": true,
+    "evidence": [
+      [
+        {
+          "path": "tenacity/__init__.py",
+          "contains": "if self.iter_state.stop_run_result:\n            if self.retry_error_callback:\n                self._add_action_func(self.retry_error_callback)\n                return"
+        }
+      ]
+    ]
+  }
+}

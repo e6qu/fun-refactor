@@ -44,6 +44,8 @@ jobs:
           docker pull python:3.14-alpine
           echo "FR_STUDY_TEST_IMAGE=$(docker image inspect python:3.14-alpine --format '{{.Id}}')" >> "$GITHUB_ENV"
       - run: bash tools/check.sh study
+      - name: Check pinned explanation behavior independently of the rubric
+        run: python3 tools/check-explanation-repositories.py
 
   # A pull request is squash-merged, so its title becomes the subject of the one
   # commit that lands on `main`. `release-please` reads those subjects to decide

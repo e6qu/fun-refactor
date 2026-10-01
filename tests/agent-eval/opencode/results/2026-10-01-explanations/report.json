@@ -1,0 +1,1163 @@
+{
+  "schema": "fr-opencode-rehearsal-1",
+  "plan_sha256": "2869fab784d17aa1556aa3e93dc81412f2276a5801eb06ad36cb6268fdf134fb",
+  "planned": 12,
+  "passed": 1,
+  "attempts": [
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "db66c04486476d01c3806ba6",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "repetition": 1,
+        "task": "cache-expiration"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "expected exactly one JSON action",
+      "turns": 3,
+      "tokens": [
+        {
+          "total": 709,
+          "input": 687,
+          "output": 7,
+          "reasoning": 15,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 1101,
+          "input": 374,
+          "output": 13,
+          "reasoning": 74,
+          "cache": {
+            "write": 0,
+            "read": 640
+          }
+        },
+        {
+          "total": 1512,
+          "input": 416,
+          "output": 76,
+          "reasoning": 60,
+          "cache": {
+            "write": 0,
+            "read": 960
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 3,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 29.964187583012972,
+      "tool_result_bytes": 6101,
+      "sampled_process_group_peak_rss_bytes": 676413440,
+      "disclosure": {
+        "tool_calls": 3,
+        "tool_result_bytes": 6101,
+        "instruction_bytes": 2625,
+        "delivered_tool_result_bytes": 6101,
+        "undelivered_results": 0,
+        "exact_source_bytes": 4221,
+        "repeated_source_bytes": 28,
+        "unique_source_bytes": 4193,
+        "read_source_bytes": 4096,
+        "search_source_bytes": 125,
+        "fr_source_bytes": 0,
+        "source_pages": 4,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "files",
+        "id": "0debc7fed0422f67d0b86d78",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "repetition": 1,
+        "task": "cache-expiration"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "Unterminated string starting at: line 753 column 19 (char 64052)",
+      "turns": 7,
+      "tokens": [
+        {
+          "total": 582,
+          "input": 557,
+          "output": 7,
+          "reasoning": 18,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 1029,
+          "input": 375,
+          "output": 13,
+          "reasoning": 129,
+          "cache": {
+            "write": 0,
+            "read": 512
+          }
+        },
+        {
+          "total": 1412,
+          "input": 472,
+          "output": 76,
+          "reasoning": 32,
+          "cache": {
+            "write": 0,
+            "read": 832
+          }
+        },
+        {
+          "total": 4780,
+          "input": 2321,
+          "output": 74,
+          "reasoning": 1105,
+          "cache": {
+            "write": 0,
+            "read": 1280
+          }
+        },
+        {
+          "total": 9220,
+          "input": 4780,
+          "output": 11,
+          "reasoning": 845,
+          "cache": {
+            "write": 0,
+            "read": 3584
+          }
+        },
+        {
+          "total": 9363,
+          "input": 927,
+          "output": 69,
+          "reasoning": 47,
+          "cache": {
+            "write": 0,
+            "read": 8320
+          }
+        },
+        {
+          "total": 11509,
+          "input": 840,
+          "output": 528,
+          "reasoning": 925,
+          "cache": {
+            "write": 0,
+            "read": 9216
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 6,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 77.34173512499547,
+      "tool_result_bytes": 26292,
+      "sampled_process_group_peak_rss_bytes": 668991488,
+      "disclosure": {
+        "tool_calls": 6,
+        "tool_result_bytes": 26292,
+        "instruction_bytes": 1986,
+        "delivered_tool_result_bytes": 26292,
+        "undelivered_results": 0,
+        "exact_source_bytes": 23150,
+        "repeated_source_bytes": 82,
+        "unique_source_bytes": 23068,
+        "read_source_bytes": 23025,
+        "search_source_bytes": 125,
+        "fr_source_bytes": 0,
+        "source_pages": 6,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "files",
+        "id": "0f3c21b6224114e16274840d",
+        "model": "kimi-code-plan-global/k3",
+        "repetition": 1,
+        "task": "key-rotation"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "turn budget exhausted",
+      "turns": 8,
+      "tokens": [
+        {
+          "total": 667,
+          "input": 641,
+          "output": 20,
+          "reasoning": 6,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 1099,
+          "input": 536,
+          "output": 40,
+          "reasoning": 11,
+          "cache": {
+            "write": 0,
+            "read": 512
+          }
+        },
+        {
+          "total": 1192,
+          "input": 117,
+          "output": 26,
+          "reasoning": 25,
+          "cache": {
+            "write": 0,
+            "read": 1024
+          }
+        },
+        {
+          "total": 2761,
+          "input": 1656,
+          "output": 80,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 1024
+          }
+        },
+        {
+          "total": 4236,
+          "input": 1594,
+          "output": 81,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 2560
+          }
+        },
+        {
+          "total": 6017,
+          "input": 1839,
+          "output": 81,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 4096
+          }
+        },
+        {
+          "total": 7336,
+          "input": 1386,
+          "output": 27,
+          "reasoning": 35,
+          "cache": {
+            "write": 0,
+            "read": 5888
+          }
+        },
+        {
+          "total": 7766,
+          "input": 515,
+          "output": 82,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 7168
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 8,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 54.88576112501323,
+      "tool_result_bytes": 29801,
+      "sampled_process_group_peak_rss_bytes": 654606336,
+      "disclosure": {
+        "tool_calls": 8,
+        "tool_result_bytes": 29801,
+        "instruction_bytes": 2079,
+        "delivered_tool_result_bytes": 22872,
+        "undelivered_results": 1,
+        "exact_source_bytes": 16611,
+        "repeated_source_bytes": 792,
+        "unique_source_bytes": 15819,
+        "read_source_bytes": 15563,
+        "search_source_bytes": 1048,
+        "fr_source_bytes": 0,
+        "source_pages": 27,
+        "refused_calls": 1,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "e10ceea668d3b808f9b20fdb",
+        "model": "kimi-code-plan-global/k3",
+        "repetition": 1,
+        "task": "key-rotation"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "expected exactly one JSON action",
+      "turns": 5,
+      "tokens": [
+        {
+          "total": 834,
+          "input": 769,
+          "output": 18,
+          "reasoning": 47,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 1261,
+          "input": 450,
+          "output": 43,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 768
+          }
+        },
+        {
+          "total": 3516,
+          "input": 2411,
+          "output": 81,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 1024
+          }
+        },
+        {
+          "total": 4049,
+          "input": 666,
+          "output": 43,
+          "reasoning": 12,
+          "cache": {
+            "write": 0,
+            "read": 3328
+          }
+        },
+        {
+          "total": 6437,
+          "input": 2518,
+          "output": 79,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 3840
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 5,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 56.31633045896888,
+      "tool_result_bytes": 28250,
+      "sampled_process_group_peak_rss_bytes": 663142400,
+      "disclosure": {
+        "tool_calls": 5,
+        "tool_result_bytes": 28250,
+        "instruction_bytes": 2718,
+        "delivered_tool_result_bytes": 28250,
+        "undelivered_results": 0,
+        "exact_source_bytes": 25210,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 25210,
+        "read_source_bytes": 25210,
+        "search_source_bytes": 0,
+        "fr_source_bytes": 0,
+        "source_pages": 4,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "008238ce9d82ff73c7375cf8",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "repetition": 1,
+        "task": "retry-callbacks"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "turn budget exhausted",
+      "turns": 8,
+      "tokens": [
+        {
+          "total": 766,
+          "input": 712,
+          "output": 7,
+          "reasoning": 47,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 2576,
+          "input": 1763,
+          "output": 24,
+          "reasoning": 85,
+          "cache": {
+            "write": 0,
+            "read": 704
+          }
+        },
+        {
+          "total": 3173,
+          "input": 631,
+          "output": 41,
+          "reasoning": 69,
+          "cache": {
+            "write": 0,
+            "read": 2432
+          }
+        },
+        {
+          "total": 3810,
+          "input": 730,
+          "output": 26,
+          "reasoning": 46,
+          "cache": {
+            "write": 0,
+            "read": 3008
+          }
+        },
+        {
+          "total": 4335,
+          "input": 583,
+          "output": 40,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 3712
+          }
+        },
+        {
+          "total": 5023,
+          "input": 688,
+          "output": 28,
+          "reasoning": 19,
+          "cache": {
+            "write": 0,
+            "read": 4288
+          }
+        },
+        {
+          "total": 5554,
+          "input": 586,
+          "output": 40,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 4928
+          }
+        },
+        {
+          "total": 6362,
+          "input": 671,
+          "output": 28,
+          "reasoning": 159,
+          "cache": {
+            "write": 0,
+            "read": 5504
+          }
+        }
+      ],
+      "fr_requests": 7,
+      "ordinary_requests": 1,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 32.086440708022565,
+      "tool_result_bytes": 15574,
+      "sampled_process_group_peak_rss_bytes": 654393344,
+      "disclosure": {
+        "tool_calls": 8,
+        "tool_result_bytes": 15574,
+        "instruction_bytes": 2804,
+        "delivered_tool_result_bytes": 14200,
+        "undelivered_results": 1,
+        "exact_source_bytes": 1334,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 1334,
+        "read_source_bytes": 0,
+        "search_source_bytes": 0,
+        "fr_source_bytes": 1334,
+        "source_pages": 3,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "files",
+        "id": "41d9391903b7f5e67d9419f1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "repetition": 1,
+        "task": "retry-callbacks"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "turn budget exhausted",
+      "turns": 8,
+      "tokens": [
+        {
+          "total": 602,
+          "input": 586,
+          "output": 7,
+          "reasoning": 9,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 2369,
+          "input": 1727,
+          "output": 29,
+          "reasoning": 37,
+          "cache": {
+            "write": 0,
+            "read": 576
+          }
+        },
+        {
+          "total": 3067,
+          "input": 739,
+          "output": 71,
+          "reasoning": 17,
+          "cache": {
+            "write": 0,
+            "read": 2240
+          }
+        },
+        {
+          "total": 4951,
+          "input": 1905,
+          "output": 72,
+          "reasoning": 30,
+          "cache": {
+            "write": 0,
+            "read": 2944
+          }
+        },
+        {
+          "total": 6682,
+          "input": 1811,
+          "output": 71,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 4800
+          }
+        },
+        {
+          "total": 9187,
+          "input": 1705,
+          "output": 71,
+          "reasoning": 819,
+          "cache": {
+            "write": 0,
+            "read": 6592
+          }
+        },
+        {
+          "total": 11172,
+          "input": 2782,
+          "output": 17,
+          "reasoning": 117,
+          "cache": {
+            "write": 0,
+            "read": 8256
+          }
+        },
+        {
+          "total": 11249,
+          "input": 191,
+          "output": 13,
+          "reasoning": 37,
+          "cache": {
+            "write": 0,
+            "read": 11008
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 8,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 44.15130712505197,
+      "tool_result_bytes": 37535,
+      "sampled_process_group_peak_rss_bytes": 655441920,
+      "disclosure": {
+        "tool_calls": 8,
+        "tool_result_bytes": 37535,
+        "instruction_bytes": 2165,
+        "delivered_tool_result_bytes": 33258,
+        "undelivered_results": 1,
+        "exact_source_bytes": 26624,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 26624,
+        "read_source_bytes": 26624,
+        "search_source_bytes": 0,
+        "fr_source_bytes": 0,
+        "source_pages": 5,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "127241f9f79ea5ea8b72afc7",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "repetition": 1,
+        "task": "key-rotation"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "Expecting property name enclosed in double quotes: line 650 column 11 (char 65490)",
+      "turns": 6,
+      "tokens": [
+        {
+          "total": 745,
+          "input": 699,
+          "output": 7,
+          "reasoning": 39,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 1199,
+          "input": 491,
+          "output": 32,
+          "reasoning": 36,
+          "cache": {
+            "write": 0,
+            "read": 640
+          }
+        },
+        {
+          "total": 3461,
+          "input": 2284,
+          "output": 78,
+          "reasoning": 11,
+          "cache": {
+            "write": 0,
+            "read": 1088
+          }
+        },
+        {
+          "total": 4139,
+          "input": 604,
+          "output": 77,
+          "reasoning": 130,
+          "cache": {
+            "write": 0,
+            "read": 3328
+          }
+        },
+        {
+          "total": 6594,
+          "input": 2582,
+          "output": 76,
+          "reasoning": 32,
+          "cache": {
+            "write": 0,
+            "read": 3904
+          }
+        },
+        {
+          "total": 11520,
+          "input": 2080,
+          "output": 1408,
+          "reasoning": 1568,
+          "cache": {
+            "write": 0,
+            "read": 6464
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 5,
+      "format_deviations": 2,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 64.96715387498261,
+      "tool_result_bytes": 28250,
+      "sampled_process_group_peak_rss_bytes": 660602880,
+      "disclosure": {
+        "tool_calls": 5,
+        "tool_result_bytes": 28250,
+        "instruction_bytes": 2718,
+        "delivered_tool_result_bytes": 28250,
+        "undelivered_results": 0,
+        "exact_source_bytes": 25210,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 25210,
+        "read_source_bytes": 25210,
+        "search_source_bytes": 0,
+        "fr_source_bytes": 0,
+        "source_pages": 4,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "files",
+        "id": "789a7ecb430ba03cb4e88fc5",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "repetition": 1,
+        "task": "key-rotation"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "expected exactly one JSON action",
+      "turns": 3,
+      "tokens": [
+        {
+          "total": 615,
+          "input": 571,
+          "output": 7,
+          "reasoning": 37,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 1067,
+          "input": 489,
+          "output": 32,
+          "reasoning": 34,
+          "cache": {
+            "write": 0,
+            "read": 512
+          }
+        },
+        {
+          "total": 3530,
+          "input": 2454,
+          "output": 76,
+          "reasoning": 40,
+          "cache": {
+            "write": 0,
+            "read": 960
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 3,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 19.548064875009004,
+      "tool_result_bytes": 17838,
+      "sampled_process_group_peak_rss_bytes": 671924224,
+      "disclosure": {
+        "tool_calls": 3,
+        "tool_result_bytes": 17838,
+        "instruction_bytes": 2079,
+        "delivered_tool_result_bytes": 17838,
+        "undelivered_results": 0,
+        "exact_source_bytes": 15563,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 15563,
+        "read_source_bytes": 15563,
+        "search_source_bytes": 0,
+        "fr_source_bytes": 0,
+        "source_pages": 2,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "files",
+        "id": "64a5570a6b3087bd550b34af",
+        "model": "kimi-code-plan-global/k3",
+        "repetition": 1,
+        "task": "cache-expiration"
+      },
+      "status": "completed",
+      "passed": true,
+      "failure": null,
+      "turns": 6,
+      "tokens": [
+        {
+          "total": 654,
+          "input": 628,
+          "output": 20,
+          "reasoning": 6,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 974,
+          "input": 435,
+          "output": 26,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 512
+          }
+        },
+        {
+          "total": 1262,
+          "input": 466,
+          "output": 27,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 768
+          }
+        },
+        {
+          "total": 1538,
+          "input": 435,
+          "output": 78,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 1024
+          }
+        },
+        {
+          "total": 3345,
+          "input": 1915,
+          "output": 77,
+          "reasoning": 73,
+          "cache": {
+            "write": 0,
+            "read": 1280
+          }
+        },
+        {
+          "total": 5443,
+          "input": 1464,
+          "output": 640,
+          "reasoning": 267,
+          "cache": {
+            "write": 0,
+            "read": 3072
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 5,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": true,
+      "actual_usd": null,
+      "seconds": 58.14146679098485,
+      "tool_result_bytes": 12909,
+      "sampled_process_group_peak_rss_bytes": 672268288,
+      "disclosure": {
+        "tool_calls": 5,
+        "tool_result_bytes": 12909,
+        "instruction_bytes": 1986,
+        "delivered_tool_result_bytes": 12909,
+        "undelivered_results": 0,
+        "exact_source_bytes": 10209,
+        "repeated_source_bytes": 53,
+        "unique_source_bytes": 10156,
+        "read_source_bytes": 10000,
+        "search_source_bytes": 209,
+        "fr_source_bytes": 0,
+        "source_pages": 7,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "2ae5e1763168a80ffe2ef5e6",
+        "model": "kimi-code-plan-global/k3",
+        "repetition": 1,
+        "task": "cache-expiration"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "expected exactly one JSON action",
+      "turns": 3,
+      "tokens": [
+        {
+          "total": 785,
+          "input": 756,
+          "output": 20,
+          "reasoning": 9,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 1130,
+          "input": 566,
+          "output": 29,
+          "reasoning": 23,
+          "cache": {
+            "write": 0,
+            "read": 512
+          }
+        },
+        {
+          "total": 1800,
+          "input": 723,
+          "output": 52,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 1024
+          }
+        }
+      ],
+      "fr_requests": 2,
+      "ordinary_requests": 1,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 48.73691116698319,
+      "tool_result_bytes": 8334,
+      "sampled_process_group_peak_rss_bytes": 674988032,
+      "disclosure": {
+        "tool_calls": 3,
+        "tool_result_bytes": 8334,
+        "instruction_bytes": 2625,
+        "delivered_tool_result_bytes": 8334,
+        "undelivered_results": 0,
+        "exact_source_bytes": 4096,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 4096,
+        "read_source_bytes": 0,
+        "search_source_bytes": 0,
+        "fr_source_bytes": 4096,
+        "source_pages": 1,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "files",
+        "id": "51ad081b5dea8bb6e2ad621b",
+        "model": "kimi-code-plan-global/k3",
+        "repetition": 1,
+        "task": "retry-callbacks"
+      },
+      "status": "completed",
+      "passed": false,
+      "failure": null,
+      "turns": 6,
+      "tokens": [
+        {
+          "total": 688,
+          "input": 659,
+          "output": 20,
+          "reasoning": 9,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 2424,
+          "input": 1842,
+          "output": 43,
+          "reasoning": 27,
+          "cache": {
+            "write": 0,
+            "read": 512
+          }
+        },
+        {
+          "total": 3672,
+          "input": 1290,
+          "output": 77,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 2304
+          }
+        },
+        {
+          "total": 5481,
+          "input": 1819,
+          "output": 77,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 3584
+          }
+        },
+        {
+          "total": 7132,
+          "input": 1678,
+          "output": 77,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 5376
+          }
+        },
+        {
+          "total": 10297,
+          "input": 1777,
+          "output": 1208,
+          "reasoning": 400,
+          "cache": {
+            "write": 0,
+            "read": 6912
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 5,
+      "format_deviations": 1,
+      "known_reported_cost": 0,
+      "usage_complete": true,
+      "actual_usd": null,
+      "seconds": 50.57335854199482,
+      "tool_result_bytes": 28305,
+      "sampled_process_group_peak_rss_bytes": 663257088,
+      "disclosure": {
+        "tool_calls": 5,
+        "tool_result_bytes": 28305,
+        "instruction_bytes": 2165,
+        "delivered_tool_result_bytes": 28305,
+        "undelivered_results": 0,
+        "exact_source_bytes": 22096,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 22096,
+        "read_source_bytes": 22096,
+        "search_source_bytes": 0,
+        "fr_source_bytes": 0,
+        "source_pages": 4,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "df2c35612536128c18be8f01",
+        "model": "kimi-code-plan-global/k3",
+        "repetition": 1,
+        "task": "retry-callbacks"
+      },
+      "status": "failed",
+      "passed": false,
+      "failure": "expected exactly one JSON action",
+      "turns": 3,
+      "tokens": [
+        {
+          "total": 816,
+          "input": 785,
+          "output": 20,
+          "reasoning": 11,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        {
+          "total": 2539,
+          "input": 1714,
+          "output": 27,
+          "reasoning": 30,
+          "cache": {
+            "write": 0,
+            "read": 768
+          }
+        },
+        {
+          "total": 4202,
+          "input": 1820,
+          "output": 77,
+          "reasoning": 1,
+          "cache": {
+            "write": 0,
+            "read": 2304
+          }
+        }
+      ],
+      "fr_requests": 0,
+      "ordinary_requests": 3,
+      "format_deviations": 0,
+      "known_reported_cost": 0,
+      "usage_complete": false,
+      "actual_usd": null,
+      "seconds": 28.44964579201769,
+      "tool_result_bytes": 10502,
+      "sampled_process_group_peak_rss_bytes": 667762688,
+      "disclosure": {
+        "tool_calls": 3,
+        "tool_result_bytes": 10502,
+        "instruction_bytes": 2804,
+        "delivered_tool_result_bytes": 10502,
+        "undelivered_results": 0,
+        "exact_source_bytes": 2714,
+        "repeated_source_bytes": 135,
+        "unique_source_bytes": 2579,
+        "read_source_bytes": 1600,
+        "search_source_bytes": 1114,
+        "fr_source_bytes": 0,
+        "source_pages": 21,
+        "refused_calls": 0,
+        "unfinished_calls": 0,
+        "complete_context_accounting": false
+      }
+    }
+  ],
+  "audit_complete": false,
+  "provider_usage_verified": false,
+  "scope": "Local protocol and task rehearsal; no general efficiency, proof or full-cost claim."
+}

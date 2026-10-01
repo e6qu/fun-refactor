@@ -1,0 +1,52 @@
+{
+  "visible_at_deadline": {
+    "value": false,
+    "evidence": [
+      [
+        {
+          "path": "src/cachetools/__init__.py",
+          "contains": "return self.timer() < link.expires"
+        }
+      ]
+    ]
+  },
+  "expired_read_removes_storage": {
+    "value": false,
+    "evidence": [
+      [
+        {
+          "path": "src/cachetools/__init__.py",
+          "contains": "if expired:\n            return self.__missing__(key)"
+        }
+      ],
+      [
+        {
+          "path": "src/cachetools/__init__.py",
+          "contains": "def __missing__(self, key):\n        raise KeyError(key)"
+        }
+      ]
+    ]
+  },
+  "assignment_refreshes_deadline": {
+    "value": true,
+    "evidence": [
+      [
+        {
+          "path": "src/cachetools/__init__.py",
+          "contains": "link.expires = time + self.__ttl"
+        }
+      ]
+    ]
+  },
+  "expire_reports_removed_pairs": {
+    "value": true,
+    "evidence": [
+      [
+        {
+          "path": "src/cachetools/__init__.py",
+          "contains": "expired.append((curr.key, cache_getitem(self, curr.key)))"
+        }
+      ]
+    ]
+  }
+}
