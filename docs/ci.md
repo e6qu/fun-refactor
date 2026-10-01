@@ -47,3 +47,7 @@ or real fr effectiveness. Live runs must freeze their own image digest, binary a
 The same attempt reads source before and after the isolated edit and verifies that the report keeps
 command-internal reads unknown. Offline cases cover UTF-8 paging, stale continuations, overlap across
 agents, retained failures and rejection of altered disclosure counters.
+The study job also prepares temporary systemd slices on its disposable Linux runner. It verifies
+shared command/grader accounting, CPU-budget termination of detached descendants, and kernel memory
+limits. Those tests remove their dedicated units and containers; workstation checks use fake counters
+and never change local cgroups or start Docker.

@@ -211,6 +211,21 @@ class AttemptResources(unittest.TestCase):
     setUp = fixtures.RunnerTests.setUp
     repository = fixtures.RunnerTests.repository
 
+    def test_offline_reporting_does_not_require_linux_runtime_imports(self):
+        source = """import builtins,sys
+sys.path.insert(0, 'tools')
+original = builtins.__import__
+def guarded(name, *args, **kwargs):
+    if name == 'fcntl':
+        raise ImportError('simulated non-POSIX report consumer')
+    return original(name, *args, **kwargs)
+builtins.__import__ = guarded
+from agent_eval.study_report import report
+from agent_eval.container_resources import limits, unit
+assert 'MemoryMax=' in unit('frstudy' + 'a'*32 + '.slice', limits())
+"""
+        subprocess.run([sys.executable, "-c", source], check=True, capture_output=True, timeout=10)
+
     def attempt(self, stop=False):
         repository, revision = self.repository()
         skill = self.root / "skill"

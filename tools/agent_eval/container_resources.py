@@ -1,5 +1,4 @@
 """Shared cgroup-v2 budgets for study tool and grader containers, not the host."""
-import fcntl
 import os
 from pathlib import Path
 import re
@@ -65,6 +64,7 @@ class ContainerResources:
     """The operator supplies a fresh, empty systemd slice with frozen kernel limits."""
     def __init__(self, profile, name, directory, *, execute=invoke, root=Path("/sys/fs/cgroup")):
         environment()
+        import fcntl
         self.profile, self.name, self.directory = dict(validate(profile)), slice_name(name), directory
         self.execute, self.path = execute, root / name
         self.reason, self.monitor_error, self.kill_error = None, None, None
