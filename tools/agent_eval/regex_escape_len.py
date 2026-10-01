@@ -1,12 +1,12 @@
 """A coordinated regex/regex-syntax task and independent byte/allocation oracle."""
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
 
 from agent_eval import regex_workspace
-from agent_eval.external_environment import environment
 
 TASK = "regex-escape-len"
 PATHS = ("regex-syntax/src/lib.rs", "src/lib.rs")
@@ -86,7 +86,8 @@ def missing_api_only(stderr):
 
 
 def verify(root):
-    env = environment()
+    env = os.environ.copy()
+    env.update(CARGO_HOME=str(regex_workspace.ROOT / "target/cargo-home"), CARGO_NET_OFFLINE="true")
     target = root / "target"
     build = subprocess.run(["cargo", "build", "-p", "regex", "-p", "regex-syntax", "--lib", "--locked", "--offline", "--target-dir", str(target)],
                            cwd=root, env=env, capture_output=True, timeout=180)

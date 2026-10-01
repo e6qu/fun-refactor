@@ -17,7 +17,6 @@ import time
 
 from agent_eval.oracle import verify as verify_strsim
 from agent_eval import regex_workspace, regex_escape_len
-from agent_eval.external_environment import environment
 
 
 TRIAL_FILES = ("session.json", "prompt.txt", "events.jsonl", "result.json")
@@ -34,7 +33,6 @@ EVALUATOR_PATHS = (
     ROOT / "tools/agent_eval/oracle.py",
     ROOT / "tools/agent_eval/regex_workspace.py",
     ROOT / "tools/agent_eval/regex_escape_len.py",
-    ROOT / "tools/agent_eval/external_environment.py",
 )
 ARCHIVE = ROOT / "tests/agent-eval/strsim-0.11.1.crate"
 ARCHIVE_SHA = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
@@ -283,7 +281,8 @@ def within(root, name):
 
 
 def process(argv, cwd):
-    env = environment()
+    env = os.environ.copy()
+    env.update(CARGO_HOME=str(ROOT / "target/cargo-home"), CARGO_NET_OFFLINE="true")
     result = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, timeout=180)
     out, err = result.stdout, result.stderr
     try:

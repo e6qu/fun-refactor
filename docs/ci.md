@@ -34,13 +34,15 @@ native gate serially when appropriate; local resource policy takes precedence.
 The post-merge deep audit retains its existing separate workflow.
 
 The deep workflow also accepts `external_replays_only=true` for a focused,
-15-minute remote check of all pinned external patch replays. The default deep
+remote check of all pinned external patch replays, split into six jobs with
+15-minute deadlines. The default deep
 audit still runs every check. Replay children discard inherited Rust compiler
 flags, including target-specific flags, so fr's `-D warnings` policy cannot
 turn new compiler deprecations in historical upstream code into task failures.
 Warnings remain visible, and each upstream source tree retains its own lints.
-New evaluator fingerprints include this environment policy; retained historical
-results and source snapshots remain unchanged.
+The test launcher applies this policy before starting Python; retained historical
+evaluators, results and source snapshots remain unchanged. Direct replay commands
+can use `python3 tools/external-eval.py tools/agent-eval.py replay DIRECTORY`.
 
 The runtime target excludes runner queue delays. Inspect job timestamps and shard
 logs after changes to suite size; update measured weights or split work before a

@@ -18,7 +18,6 @@ import sys
 import time
 from typing import Any
 from .investigation_lock import session_lock
-from .external_environment import environment as external_environment
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "sdk/python/src"))
@@ -58,14 +57,13 @@ def bindings():
         "tools/agent_eval/investigation_run.py", "tools/agent_eval/investigation_prompt.py", "tools/agent_eval/investigation_rehearsal.py",
         "tools/agent_eval/investigation_lock.py",
         "tools/agent-eval.py", "tools/agent_eval/oracle.py", "tools/agent_eval/regex_workspace.py",
-        "tools/agent_eval/regex_escape_len.py", "tools/agent_eval/external_environment.py",
-        "tests/agent-eval/unknown-target/task.json")]
+        "tools/agent_eval/regex_escape_len.py", "tests/agent-eval/unknown-target/task.json")]
     paths += sorted((ROOT / "sdk/python/src/fr_ir").glob("*.py"))
     return {str(p.relative_to(ROOT)): sha(p.read_bytes()) for p in paths}
 
 
 def environment():
-    return dict(external_environment(),
+    return dict(os.environ, CARGO_HOME=str(ROOT / "target/cargo-home"), CARGO_NET_OFFLINE="true",
                 CARGO_BUILD_JOBS="1", CARGO_INCREMENTAL="0", CARGO_PROFILE_DEV_DEBUG="0",
                 CARGO_PROFILE_TEST_DEBUG="0", RAYON_NUM_THREADS="1", RUST_TEST_THREADS="1")
 

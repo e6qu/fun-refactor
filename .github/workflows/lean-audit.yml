@@ -90,9 +90,19 @@ jobs:
 
   external-replays:
     if: ${{ inputs.external_replays_only }}
-    name: Pinned external patch replays
+    name: External replay (${{ matrix.cohort }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        cohort:
+          - 2026-09-08-regex
+          - 2026-09-08-coordinated
+          - 2026-09-09-structural-authoring
+          - 2026-09-11-context-v3
+          - 2026-09-11-workflow-v4
+          - unknown-target
     env:
       CARGO_BUILD_JOBS: "2"
       RUST_TEST_THREADS: "1"
@@ -104,4 +114,6 @@ jobs:
         with:
           key: lean-audit
       - name: Replay upstream tests, independent oracles and exact patch reversal
-        run: bash tools/check-external-replays.sh
+        env:
+          COHORT: ${{ matrix.cohort }}
+        run: bash tools/check-external-replays.sh --cohort "$COHORT"
