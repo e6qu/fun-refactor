@@ -1,0 +1,52 @@
+{
+  "signing_key_position": {
+    "value": "last",
+    "evidence": [
+      [
+        {
+          "path": "src/itsdangerous/signer.py",
+          "contains": "secret_key = self.secret_keys[-1]"
+        }
+      ],
+      [
+        {
+          "path": "src/itsdangerous/signer.py",
+          "contains": "key = self.derive_key()"
+        }
+      ]
+    ]
+  },
+  "primary_verification_key_order": {
+    "value": "newest-first",
+    "evidence": [
+      [
+        {
+          "path": "src/itsdangerous/signer.py",
+          "contains": "for secret_key in reversed(self.secret_keys):"
+        }
+      ]
+    ]
+  },
+  "fallback_key_order": {
+    "value": "oldest-first",
+    "evidence": [
+      [
+        {
+          "path": "src/itsdangerous/serializer.py",
+          "contains": "for secret_key in self.secret_keys:"
+        }
+      ]
+    ]
+  },
+  "primary_before_fallback": {
+    "value": true,
+    "evidence": [
+      [
+        {
+          "path": "src/itsdangerous/serializer.py",
+          "contains": "yield self.make_signer(salt)\n\n        for fallback in self.fallback_signers:"
+        }
+      ]
+    ]
+  }
+}
