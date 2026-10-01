@@ -10,6 +10,9 @@ from agent_eval.study import checked_plan, load
 from agent_eval.study_budget import Budget
 from agent_eval.request_gateway import send
 from agent_eval.isolated_grade import grade
+from agent_eval.study import digest
+from agent_eval.study_runner import profile, run_attempt, tool_definitions
+from agent_eval.workspace_bundle import pack
 
 
 def budget_action(ledger, request):
@@ -56,11 +59,31 @@ def main():
     check.add_argument("cell")
     check.add_argument("candidate", type=Path)
     check.add_argument("grader", type=Path)
+    setup = commands.add_parser("loop-profile", help="Print runner settings and tools to freeze; no model calls")
+    setup.add_argument("provider", choices=("openai", "anthropic"))
+    setup.add_argument("image", help="Pinned local Docker image ID or repository digest")
+    setup.add_argument("skill", type=Path, help="Complete skill directory including references")
+    run = commands.add_parser("run", help="Run one frozen cell, retain its tool trace and grade the submission")
+    run.add_argument("plan", type=Path)
+    run.add_argument("ledger", type=Path)
+    run.add_argument("cell")
+    run.add_argument("repository", type=Path)
+    run.add_argument("grader", type=Path)
+    run.add_argument("attempts", type=Path)
+    run.add_argument("--binary", type=Path, required=True)
+    run.add_argument("--skill", type=Path, required=True)
+    run.add_argument("--confirm-agent-spend", action="store_true")
     args = parser.parse_args()
-    if args.command == "send" and not args.confirm_agent_spend:
+    if args.command in {"send", "run"} and not args.confirm_agent_spend:
         parser.error("--confirm-agent-spend is required; this command can incur provider charges")
     try:
-        if args.command == "normalize":
+        if args.command == "loop-profile":
+            result = {"runner": profile(args.image, digest(pack(args.skill, 1024**2))),
+                      "tools": tool_definitions(args.provider)}
+        elif args.command == "run":
+            result = run_attempt(Budget(args.ledger, load(args.plan)), args.cell, args.repository,
+                                 args.grader, args.binary, args.skill, args.attempts)
+        elif args.command == "normalize":
             result = normalize(args.format, load(args.response), args.model)
         elif args.command == "send":
             result = send(Budget(args.ledger, load(args.plan)), args.cell, args.agent, args.identity,
@@ -75,6 +98,8 @@ def main():
         else:
             result = budget_action(Budget(args.ledger, load(args.plan)), load(args.request))
         print(json.dumps(result, indent=2, allow_nan=False))
+        if args.command == "run" and (result["status"] != "completed" or result["grade"]["outcome"] != "passed"):
+            parser.exit(1, "host: attempt failed or did not pass independent grading; evidence retained\n")
         if args.command == "send" and result["state"] != "settled":
             parser.exit(1, "host: request charge is unresolved or exceeded its reservation\n")
         if args.command == "grade" and result["outcome"] != "passed":

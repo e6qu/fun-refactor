@@ -141,8 +141,14 @@ def prepare(model, supplied):
                 require(set(message) <= {"type", "call_id", "name", "arguments", "output", "id", "status"}, "unsupported function item")
                 if "output" in message:
                     require(isinstance(message["output"], str), "function output must be text")
+            elif provider == "openai" and message.get("type") == "reasoning":
+                require(set(message) <= {"type", "id", "summary", "content", "encrypted_content", "status"}, "unsupported reasoning fields")
+                require(isinstance(message.get("encrypted_content"), str) and message["encrypted_content"],
+                        "stateless reasoning replay requires encrypted content")
+                require(isinstance(message.get("summary"), list), "invalid reasoning summary")
             else:
-                require(set(message) <= {"role", "content", "type"}, "unsupported message fields")
+                allowed_message = {"role", "content", "type", "id", "status", "phase"} if provider == "openai" else {"role", "content", "type"}
+                require(set(message) <= allowed_message, "unsupported message fields")
                 require(message.get("type", "message") == "message", "unsupported input item")
                 text_blocks(message["content"], provider)
     if "system" in supplied:
