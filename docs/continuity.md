@@ -30,6 +30,9 @@ including child agents and failed attempts. The host CLI now provides a budgeted
 and private black-box grading in constrained Docker containers. A serial agent loop connects provider
 tool calls, pinned Git exports, isolated commands and grading for fix/feature tasks. Child agents
 receive a focused question and workspace copy; their edits never merge automatically.
+Both arms also have a bounded source-read tool. Its content hashes detect stale continuations;
+retained byte ranges measure repeated disclosure within and across agents. The auditor recomputes
+trace counters. Any command keeps total source reads unknown while preserving measured page counts.
 Tests use fake providers and executable submissions; no new paid trial has run. Select independent
 tasks and reviewed graders, add explanation/proof grading adapters, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.

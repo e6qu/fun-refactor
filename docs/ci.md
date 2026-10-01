@@ -44,3 +44,6 @@ The study job also exercises isolated graders and agent command containers with 
 content ID it records after pulling. Offline providers drive a complete command/edit/grade attempt,
 including a synthetic executable that tests the fr mount. This fixture does not measure model quality
 or real fr effectiveness. Live runs must freeze their own image digest, binary and independent cases.
+The same attempt reads source before and after the isolated edit and verifies that the report keeps
+command-internal reads unknown. Offline cases cover UTF-8 paging, stale continuations, overlap across
+agents, retained failures and rejection of altered disclosure counters.

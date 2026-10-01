@@ -40,6 +40,16 @@ def attempt(record, cell, frozen, root):
                                completed=status == "completed", output_bytes=manifest["runner"]["output_bytes"])
         for key, value in counted_trace["measurements"].items():
             require(record["measurements"][key] == value, f"trace measurement differs: {key}")
+        require(counted_trace["agent_parents"] == {agent["id"]: agent["parent"] for agent in record["agents"]},
+                "trace agent roster differs")
+        require(set(counted_trace["completed_agents"]) == {agent["id"] for agent in record["agents"] if agent["status"] == "completed"},
+                "trace terminal agents differ")
+        for agent in record["agents"]:
+            expected_requests = [invocation["raw_usage"]["path"].split("/")[-2] for invocation in agent["invocations"]]
+            observed_requests = counted_trace["requests"][agent["id"]]
+            require([identity for identity in observed_requests if identity in expected_requests] == expected_requests
+                    and (not agent["usage_complete"] or observed_requests == expected_requests),
+                    "trace request ledger differs")
         disclosure = counted_trace["source_disclosure"]
     outcome = record["grade"]["outcome"]
     require(outcome in {"passed", "failed", "inconclusive"}, "invalid grader outcome")

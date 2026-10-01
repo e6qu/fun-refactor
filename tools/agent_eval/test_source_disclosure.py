@@ -34,6 +34,34 @@ def events_for(state, requests):
 
 
 class SourceTests(unittest.TestCase):
+    def test_ambiguous_events_hidden_source_in_errors_and_post_final_calls_refuse(self):
+        events = events_for({}, [("parent", arguments())])
+        changed = copy.deepcopy(events)
+        changed[-1]["result"]["text"] = "unaccounted source"
+        with self.assertRaisesRegex(ValueError, "refusal contains disclosure"):
+            counts(changed, [])
+        changed = copy.deepcopy(events)
+        changed[-1]["instructions"] = "pretend this is an instruction event"
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            counts(changed, [])
+        with self.assertRaisesRegex(ValueError, "unfinished agents"):
+            counts(events, [], completed=True)
+        events.append({"agent": "parent", "final": "Done"})
+        events.append({"agent": "parent", "tool_call": call(identity="late")})
+        with self.assertRaisesRegex(ValueError, "replayed tool call"):
+            counts(events, [])
+
+    def test_request_and_agent_identities_are_retained_without_hiding_failed_sends(self):
+        events = [start(), {"agent": "parent", "request": "first"},
+                  start("child", "parent"), {"agent": "child", "request": "second"},
+                  {"failure_type": "TimeoutError"}]
+        observed = counts(events, [])
+        self.assertEqual(observed["agent_parents"], {"parent": None, "child": "parent"})
+        self.assertEqual(observed["requests"], {"parent": ["first"], "child": ["second"]})
+        self.assertEqual(observed["completed_agents"], [])
+        with self.assertRaisesRegex(ValueError, "replayed trace request"):
+            counts(events + [{"agent": "child", "request": "first"}], [])
+
     def test_pages_reassemble_utf8_at_exact_byte_boundaries(self):
         content = "α😀line\n" * 300
         state, args, chunks = files(content), arguments(size=23), []
@@ -91,6 +119,7 @@ class SourceTests(unittest.TestCase):
         identity = read_source(state, arguments(), 1024)["sha256"]
         events = events_for(state, [("parent", arguments(size=6)), ("parent", arguments(2, 6, identity)),
                                     ("child", arguments(4, 8, identity)), ("parent", arguments(size=12))])
+        events.extend({"agent": agent, "final": "Done"} for agent in ("child", "parent"))
         observed = counts(events, [], completed=True)["source_disclosure"]
         self.assertEqual(observed["source_read_bytes"], 32)
         self.assertEqual(observed["repeated_read_bytes"], 20)

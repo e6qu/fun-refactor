@@ -78,19 +78,23 @@ def counts(events, tools, *, completed=False, output_bytes=65536):
     measured = dict(tool_calls=0, tool_result_bytes=0, instruction_bytes=0, handoff_bytes=0, retries=0)
     disclosure = dict(source_read_bytes=0, repeated_read_bytes=0, same_agent_repeated_bytes=0,
                       pages=0, opaque_command_calls=0, failed_read_calls=0, unfinished_read_calls=0)
-    agents, pending, seen, ranges, local_ranges = set(), {}, set(), {}, {}
+    agents, pending, seen, ranges, local_ranges = {}, {}, set(), {}, {}
+    requests, finished, request_ids = {}, set(), set()
     for event in events:
         require(isinstance(event, dict), "invalid trace event")
+        require(sum(key in event for key in ("instructions", "tool_call", "tool_result", "request", "final", "failure_type")) == 1,
+                "ambiguous trace event")
         if "instructions" in event:
             agent = event["agent"]
             require(agent not in agents and (event["parent"] is None or event["parent"] in agents),
                     "duplicate or unparented trace agent")
-            agents.add(agent)
+            agents[agent] = event["parent"]
+            requests[agent] = []
             measured["instruction_bytes"] += len(event["instructions"].encode()) + len(event["question"].encode()) + len(encode(tools))
         elif "tool_call" in event:
             agent, call = event["agent"], event["tool_call"]
             key = (agent, call["id"])
-            require(agent in agents and key not in seen, "unknown agent or replayed tool call")
+            require(agent in agents and agent not in finished and key not in seen, "unknown agent or replayed tool call")
             require(call["name"] in {"command", "delegate", "read_source"}, "unknown trace tool")
             seen.add(key)
             pending[key] = call
@@ -103,7 +107,7 @@ def counts(events, tools, *, completed=False, output_bytes=65536):
                 validate_read(call["arguments"])
         elif "tool_result" in event:
             key = (event["agent"], event["tool_result"])
-            require(key in pending, "orphan or repeated tool result")
+            require(key in pending and event["agent"] not in finished, "orphan or repeated tool result")
             call, result = pending.pop(key), event["result"]
             measured["tool_result_bytes"] += len(encode(result))
             if call["name"] == "delegate":
@@ -113,6 +117,10 @@ def counts(events, tools, *, completed=False, output_bytes=65536):
             if "error" in result:
                 require(result["error"] in {"missing_file", "stale_source", "offset_out_of_range",
                                            "invalid_utf8_or_boundary", "page_budget_too_small"}, "unknown source refusal")
+                require(set(result) == ({"error", "sha256"} if result["error"] == "stale_source" else {"error"}),
+                        "source refusal contains disclosure")
+                if result["error"] == "stale_source":
+                    sha(result["sha256"], "changed source")
                 disclosure["failed_read_calls"] += 1
                 continue
             args = call["arguments"]
@@ -127,6 +135,8 @@ def counts(events, tools, *, completed=False, output_bytes=65536):
                     and (not args["sha256"] or args["sha256"] == result["sha256"]), "source page identity differs")
             require(start <= end <= result["size_bytes"] and end - start == length <= args["bytes"]
                     and (length or end == result["size_bytes"]), "source page extent differs")
+            if result["next_offset"] is not None:
+                number(result["next_offset"], "next offset", integer=True)
             require(result["next_offset"] == (end if end < result["size_bytes"] else None)
                     and len(encode(result)) <= output_bytes, "source continuation or output bound differs")
             identity = (result["path"], result["sha256"])
@@ -135,12 +145,22 @@ def counts(events, tools, *, completed=False, output_bytes=65536):
             disclosure["repeated_read_bytes"] += overlap(ranges.setdefault(identity, []), start, end)
             disclosure["same_agent_repeated_bytes"] += overlap(local_ranges.setdefault((key[0], identity), []), start, end)
         elif "request" in event or "final" in event:
-            require(event["agent"] in agents, "unknown trace agent")
+            agent = event["agent"]
+            require(agent in agents and agent not in finished, "unknown or finished trace agent")
+            if "request" in event:
+                require(event["request"] not in request_ids, "replayed trace request")
+                request_ids.add(event["request"])
+                requests[agent].append(event["request"])
+            else:
+                require(not any(key[0] == agent for key in pending), "agent finished with pending tools")
+                finished.add(agent)
         else:
             require(set(event) == {"failure_type"}, "unknown trace event")
     require(not completed or not pending, "completed attempt has unfinished tools")
+    require(not completed or set(agents) == finished, "completed attempt has unfinished agents")
     disclosure["unfinished_read_calls"] = sum(call["name"] == "read_source" for call in pending.values())
     disclosure["complete"] = not (disclosure["opaque_command_calls"] or disclosure["unfinished_read_calls"])
     for field in ("source_read_bytes", "repeated_read_bytes", "pages"):
         measured[field] = disclosure[field] if disclosure["complete"] else None
-    return {"measurements": measured, "source_disclosure": disclosure}
+    return {"measurements": measured, "source_disclosure": disclosure,
+            "agent_parents": agents, "requests": requests, "completed_agents": sorted(finished)}
