@@ -171,6 +171,9 @@ fix and feature tasks, with pinned source exports and bounded child investigatio
 Both study arms now have bounded source pages with content hashes and continuation offsets. The
 auditor counts overlapping reads across agents and checks delivered-byte counters against the trace.
 Reads inside arbitrary commands remain unknown; partial page counts do not establish total savings.
+An optional frozen cgroup budget now covers all agent and grader containers in an attempt, including
+child investigations. It records kernel CPU and memory counters and fails the attempt on a resource
+stop. Host/daemon resources, disk/cache growth and integration context still need measurement.
 These tests use fake providers and do not count as live agent trials.
 Select independent tasks, review graders and complete resource/context measurements before the pilot.
 

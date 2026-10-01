@@ -33,6 +33,9 @@ receive a focused question and workspace copy; their edits never merge automatic
 Both arms also have a bounded source-read tool. Its content hashes detect stale continuations;
 retained byte ranges measure repeated disclosure within and across agents. The auditor recomputes
 trace counters. Any command keeps total source reads unknown while preserving measured page counts.
+A frozen resource profile can now place all command and grader containers in a fresh Linux cgroup.
+Kernel CPU and memory evidence remains separate from the unmeasured host/daemon, disk and cache costs.
+Resource stops fail the attempt and retain evidence; complete worker accounting is still open.
 Tests use fake providers and executable submissions; no new paid trial has run. Select independent
 tasks and reviewed graders, add explanation/proof grading adapters, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.

@@ -428,6 +428,78 @@ peaks remain unmeasured. Wall time includes the conversation, tools and grade;
 source/image preflight precedes admission. `report --require-complete` therefore remains unsuccessful.
 These records test the machinery and expose missing measurements; they cannot establish efficiency gains.
 
+### Bound and measure container work
+
+`fr-study-loop-3` can freeze a shared resource budget for every command and private grader container
+in an attempt. This includes containers launched for child investigations and all private grading cases.
+The Python host, Docker daemon, disk use and cache growth remain outside this measurement.
+Their attempt-wide counters stay null; this feature does not close the full-system resource requirement.
+
+Generate a profile with the budget enabled before freezing the study:
+
+```sh
+python3 tools/agent-eval-host.py loop-profile openai sha256:IMAGE_DIGEST skills/fr \
+  --container-resources > loop-profile.json
+```
+
+The resulting `runner.container_resources` defaults to 60 CPU seconds, 256 MiB of charged memory,
+and 64 processes. Limits can be lowered before freezing. Fixed ceilings are 600 CPU seconds,
+512 MiB and 64 processes; memory must be a multiple of 4,096 bytes and at least 16 MiB.
+The process limit must be at least eight. The kernel CPU rate is fixed at half a core with no swap.
+Omitting the flag freezes `container_resources: null` and explicitly leaves container resources unmeasured.
+Older profiles cannot be silently upgraded; old attempt reports retain their original audit rules.
+
+Run this setup on a disposable Linux worker with local rootful Docker, the systemd cgroup driver,
+and a unified cgroup-v2 mount. Prepare images before the attempt. The host does not change daemon
+settings, create administrative units or grant itself permissions. `scope-unit` prints a unit definition
+from the frozen plan; it performs no system changes or provider calls.
+
+For example, an operator can prepare a fresh unit on that worker:
+
+```sh
+study_slice="frstudy$(python3 -c 'import uuid; print(uuid.uuid4().hex)').slice"
+python3 tools/agent-eval-host.py scope-unit frozen-plan.json "$study_slice" > "/tmp/$study_slice"
+sudo install -m 0644 "/tmp/$study_slice" "/run/systemd/system/$study_slice"
+sudo systemctl daemon-reload
+sudo systemctl start "$study_slice"
+sudo chown "$(id -u)" "/sys/fs/cgroup/$study_slice/cgroup.kill"
+```
+
+Then supply `--container-slice "$study_slice"` to the existing `run` command. Both the option and
+the frozen resource profile are required together. The scope must be empty and unused, its kernel
+settings must match, and the host must remain outside it. An exclusive host lock prevents concurrent
+admission into the same scope. Arbitrary system slice names, remote Docker sockets and rootless
+Docker refuse before admitting an attempt or contacting a provider.
+
+Every container receives the common parent, which the host checks before starting it. The monitor
+reads cumulative kernel CPU and memory counters every 50 milliseconds and between operations.
+At the CPU budget, a memory-limit event, or a process-limit event, it kills the scope's processes and
+stops further work. Descendants remain covered even if they create new process groups. CPU stopping
+is sampled and can overshoot while the monitor is descheduled. Memory and process limits are enforced
+by the kernel; memory accounting includes charged file pages and kernel memory, not just process RSS.
+See the [Linux cgroup-v2 interfaces](https://cdn.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html)
+and [Docker cgroup-parent rules](https://docs.docker.com/reference/cli/dockerd/#default-cgroup-parent).
+
+The host retains `container-resources.json` beside the trace and grade. It includes the frozen limits,
+scope identity, CPU microseconds, kernel memory peak, limit events, sample count and stop reason.
+The report verifies that artifact and exposes its scoped CPU seconds and memory peak separately.
+A resource stop makes the attempt failed and its grade inconclusive, even if a command or grader
+returned a correct answer. Monitoring errors, backwards counters and failed cleanup cannot produce
+a clean resource result. Unresolved provider charges retain their existing ledger holds.
+
+After the attempt, the operator removes the dedicated unit on the disposable worker:
+
+```sh
+sudo systemctl stop "$study_slice"
+sudo rm -- "/run/systemd/system/$study_slice"
+sudo systemctl daemon-reload
+rm -- "/tmp/$study_slice" "/tmp/$study_slice.lock"
+```
+
+Keep an outer worker deadline and cleanup step for host crashes. The resource adapter cannot report
+after the host itself is killed, and it does not replace machine-wide isolation or disk quotas.
+No paid trial should infer total resource savings from these container-only measurements.
+
 ### Read source a page at a time
 
 The `fr-study-loop-2` profile adds the same source tool to both arms. Generate and freeze a new profile
@@ -487,7 +559,8 @@ it does not independently prove the full file hash from a partial excerpt or rec
 |---|---|
 | Frozen pairs and complete-attempt auditor | Independent tasks, pinned repositories and reviewed graders |
 | Provider gateway and serial parent/child loop | Paid protocol preflight with the exact model profiles |
-| Retained conversations, audited source pages, tool calls, durations and handoffs | Reads inside commands, integration context and full-system resource measurements |
+| Retained conversations, audited source pages, tool calls, durations and handoffs | Reads inside commands and integration context |
+| Shared container CPU, memory and process budgets with retained kernel counters | Host/daemon accounting, disk/cache measurement and complete worker resource enforcement |
 | Pinned Git exports and isolated command workspaces | Independent task selection, suitable tool images and larger-workspace policy if needed |
 | Private black-box grading in constrained containers | Reviewed cases and explanation/proof grading adapters |
 
