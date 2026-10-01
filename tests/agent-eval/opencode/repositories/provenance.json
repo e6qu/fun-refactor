@@ -24,6 +24,16 @@
     "files": 91,
     "bytes": 256399,
     "source": "tenacity",
-    "scope": "Complete upstream repository snapshot, excluding archive root directory; no source changes."
+    "scope": "Complete upstream file contents; README symlink materialized as a regular file. Runtime source bytes unchanged.",
+    "regular_archive_sha256": "5a3b5254e9dcc725d76fc4a1dd4fda61842edaa8f363c2c0b111af9d2453d2e8",
+    "transformations": [
+      {
+        "path": "README.rst",
+        "target": "jd-tenacity-3e58094/doc/source/index.rst",
+        "kind": "materialize-internal-symlink",
+        "sha256": "86b17820856b09e98bd2a59be26dd93d916c624aef686fab457e46b3ff9194b6",
+        "bytes": 21530
+      }
+    ]
   }
 ]
