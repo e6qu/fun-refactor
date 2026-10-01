@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.43.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.42.0...fun-refactor-v0.43.0) (2026-10-01)
+
+
+### Features
+
+* measure source disclosure across agent investigations ([#404](https://github.com/e6qu/fun-refactor/issues/404)) ([ae6d915](https://github.com/e6qu/fun-refactor/commit/ae6d91532a125e53897c8ee00262dfb558a7227d))
+
 ## [0.42.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.41.2...fun-refactor-v0.42.0) (2026-10-01)
 
 
