@@ -6,6 +6,7 @@
 ### Features
 
 * gate provider requests and grade isolated code submissions ([#400](https://github.com/e6qu/fun-refactor/issues/400)) ([173a941](https://github.com/e6qu/fun-refactor/commit/173a94160d0829499a28317baaad2a173626e8b1))
+* run budgeted agent tasks in isolated workspaces ([#402](https://github.com/e6qu/fun-refactor/issues/402)) ([6237a22](https://github.com/e6qu/fun-refactor/commit/6237a22e2f125c7bde0c462525c94d6bccbd0732))
 
 ## [0.41.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.41.1...fun-refactor-v0.41.2) (2026-09-30)
 
