@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 
 const WORKFLOW: &str = include_str!("../.github/workflows/release.yml");
 const CI: &str = include_str!("../.github/workflows/ci.yml");
+const TITLE: &str = include_str!("../.github/workflows/pr-title.yml");
 const README: &str = include_str!("../README.md");
 const MANIFEST: &str = include_str!("../.release-please-manifest.json");
 const CARGO: &str = include_str!("../Cargo.toml");
@@ -186,10 +187,10 @@ fn the_release_reads_the_config_this_repository_holds() {
 #[test]
 fn the_kinds_of_change_the_title_gate_takes_are_the_kinds_the_changelog_sorts() {
     // The gate on a pull request title decides what may land.
-    let gate = CI
+    let gate = TITLE
         .lines()
         .find(|l| l.contains("pattern='^("))
-        .expect("CI holds the title pattern");
+        .expect("the title workflow holds the title pattern");
     let kinds: Vec<&str> = gate
         .split_once("'^(")
         .and_then(|(_, rest)| rest.split_once(')'))
@@ -361,9 +362,24 @@ fn no_job_asks_for_a_runner_that_is_retired() {
     // A job naming a retired image waits for a runner that never comes.
     for retired in ["macos-13", "macos-11", "macos-12", "ubuntu-20.04"] {
         assert!(
-            !WORKFLOW.contains(retired) && !CI.contains(retired),
+            !WORKFLOW.contains(retired) && !CI.contains(retired) && !TITLE.contains(retired),
             "a job asks for {retired}, which GitHub no longer offers. It waits \
              for a runner that never comes."
         );
     }
+}
+
+#[test]
+fn description_edits_do_not_restart_the_full_test_suite() {
+    let events = |workflow: &str| {
+        workflow
+            .lines()
+            .find(|line| line.trim_start().starts_with("types:"))
+            .expect("pull request event types are explicit")
+            .contains("edited")
+    };
+    assert!(!events(CI), "description edits must not restart full CI");
+    assert!(events(TITLE), "retitled pull requests must be checked");
+    assert!(CI.contains("group: ci-${{ github.ref }}"));
+    assert!(TITLE.contains("group: title-${{ github.ref }}"));
 }
