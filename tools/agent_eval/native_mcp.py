@@ -9,6 +9,7 @@ import tempfile
 import time
 
 from . import native_discovery as discovery
+from . import native_references as refs
 from . import opencode_rehearsal as legacy
 from .study import encode, load, require
 from .workspace_bundle import validate
@@ -107,10 +108,11 @@ class Server:
     def __init__(self, config, log, execute=execute_fr):
         require(set(config) - {"tools_schema_version"} == {"files", "arm", "binary", "workspace"}, "invalid server configuration")
         version = config.get("tools_schema_version", 2)
-        require(type(version) is int and version in (2, 3), "unsupported server tool schema")
+        require(type(version) is int and version in (2, 3, 4), "unsupported server tool schema")
         validate(config["files"], legacy.MAX_WORKSPACE)
         self.config, self.log, self.execute = config, log, execute
-        self.tools = {t["name"]: t for t in (discovery.schemas(config["arm"]) if version == 3 else schemas(config["arm"]))}
+        self.protocol = refs if version == 4 else discovery
+        self.tools = {t["name"]: t for t in (self.protocol.schemas(config["arm"]) if version in (3, 4) else schemas(config["arm"]))}
         self.calls, self.written, self.finished = 0, 0, False
         self.initialized, self.ready = False, False
 
@@ -128,7 +130,7 @@ class Server:
                 self.finished = True
                 result = {"submitted": True}
             else:
-                result = discovery.action(self.config["files"], request(name, args), self.config["arm"],
+                result = self.protocol.action(self.config["files"], request(name, args), self.config["arm"],
                                       Path(self.config["binary"]), Path(self.config["workspace"]), self.execute)
             require(len(encode(result)) <= legacy.MAX_OUTPUT, "tool result exceeds budget")
         except (ValueError, KeyError, TypeError, UnicodeError, OSError, subprocess.SubprocessError) as error:

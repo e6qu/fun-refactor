@@ -180,3 +180,33 @@ recovers three Kimi answers: ordinary-tools retry, guided cache and guided key r
 total is six passes, six citation failures and six timeouts; the original three passes remain in
 `report.json`. This corrects evidence accounting without showing improved model reasoning or a
 benefit from `fr`. No additional model call produced these reviewed results.
+
+## Cite retrieved code without copying it
+
+`freeze --source-references` selects tool schema version 4. It keeps the same source,
+tool-call, time and memory limits. Earlier schemas and retained reports keep their original rules.
+The flag works with the two ordinary/fr arms or with `--guidance` and all three arms.
+
+A first `read_source` call can start at a known byte offset with an empty `sha256` because
+the host owns an immutable snapshot. Continuations still check a supplied hash. Invalid UTF-8
+boundaries, stale hashes, missing files and path escapes refuse. This rule applies to the
+native evaluation interface; the general study reader keeps its existing contract.
+
+Source-bearing results include `source_refs`: IDs with file paths and exact byte ranges.
+Each ID binds the file hash and a 16-to-2048-byte UTF-8 slice. Names and relationship metadata
+do not create evidence. A model can submit `{"source":"src1:..."}` instead of copying that
+slice into a quotation; exact `{path, quote}` citations remain valid. Slices shorter than
+16 bytes have no reference. Ordinary pages can contain several reference slices.
+
+Replay recomputes the IDs from frozen source and checks their presence in the retained tool
+results. Grading resolves only source delivered before the answer's assistant step, then uses
+the same factual values, required anchors and maximum six citations per claim. A guessed ID,
+missing anchor or incorrect value fails. References can make broad citations cheaper to submit;
+they do not establish deeper understanding, a proof or an efficiency advantage.
+
+The audit records reference-metadata bytes produced and submitted-answer bytes separately.
+Those counters do not capture the full provider context. Task instructions must permit reference
+citations; the older tasks explicitly required quotations. The new
+[`source-references.json`](../tests/agent-eval/opencode/source-references.json) manifest changes
+that format instruction for one already-reviewed cache task, with the same factual rubric.
+It is an integration pilot, not an independent comparison.

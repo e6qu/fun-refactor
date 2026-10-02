@@ -21,6 +21,7 @@ def main():
     freeze.add_argument("manifest", type=Path)
     freeze.add_argument("--binary", type=Path, required=True)
     freeze.add_argument("--guidance", type=Path, help="Freeze compact exploration and three arms with this public guide excerpt")
+    freeze.add_argument("--source-references", action="store_true", help="Freeze direct source reads and citations by disclosed source ID")
     run = commands.add_parser("run")
     run.add_argument("plan", type=Path)
     run.add_argument("cell")
@@ -39,7 +40,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "freeze":
-            result = opencode_native.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve(), args.guidance)
+            result = opencode_native.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve(), args.guidance, source_references=args.source_references)
         elif args.command in {"report", "review"}:
             if args.command == "review":
                 policy = source_coverage.POLICY if args.contiguous_source else None

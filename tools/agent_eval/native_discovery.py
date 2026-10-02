@@ -38,13 +38,14 @@ def schemas(arm):
     return tools
 
 
-def cells(manifest):
+def cells(manifest, *, available=ARMS):
+    require(available in (("files", "fr"), ARMS), "unsupported comparison arms")
     groups, rng = [], random.Random(manifest["seed"])
     for task in manifest["tasks"]:
         for model in manifest["models"]:
             for repetition in range(manifest["repetitions"]):
                 pair = {"task": task["id"], "model": model, "repetition": repetition + 1}
-                arms = list(ARMS)
+                arms = list(available)
                 rng.shuffle(arms)
                 groups.append([{**pair, "arm": arm, "id": digest({**pair, "arm": arm})[:24]} for arm in arms])
     rng.shuffle(groups)
@@ -69,7 +70,7 @@ def prompt(plan, arm):
     if plan is None or plan.get("tools_schema_version", 1) < 3:
         from .opencode_native import PROMPT as previous
         return previous
-    return PROMPT + ("\nPublic fr usage guidance (optional):\n" + plan["guidance"]["text"] if arm == "fr-guided" else "")
+    return plan["prompt"] + ("\nPublic fr usage guidance (optional):\n" + plan["guidance"]["text"] if arm == "fr-guided" else "")
 
 
 def checked(plan, source):
