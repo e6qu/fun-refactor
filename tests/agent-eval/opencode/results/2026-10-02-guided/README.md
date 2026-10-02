@@ -45,8 +45,8 @@ grading workspaces were removed. No original trial record or older cohort change
 
 `plan.json` binds the source snapshots, factual rubric, runner hashes, prompt, guide document and
 excerpt, schemas and binary. `runner/` retains the exact implementation used. After the trials,
-the current runner gained an early refusal for plans over 288 cells; these eighteen cells and
-their audit semantics are unchanged. `attempts/` keeps root artifacts and integrity manifests.
+the current runner gained an early refusal for plans over 288 cells and accurate path labels for
+alternative guide files. These eighteen cells and their audit semantics are unchanged. `attempts/` keeps root artifacts and integrity manifests.
 `report.json` comes from offline replay; `summary.json` adds per-claim diagnostics and compact counts.
 
 From the repository root, replay without a model service:

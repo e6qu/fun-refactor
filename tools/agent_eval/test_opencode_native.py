@@ -253,6 +253,17 @@ class Evidence(unittest.TestCase):
 
 
 class Discovery(unittest.TestCase):
+    def test_selected_guide_path_is_not_mislabeled_as_the_bundled_guide(self):
+        from agent_eval import native_discovery as discovery
+        original = ROOT / "skills/fr/references/explore.md"
+        self.assertEqual(discovery.guidance(original)["path"], "skills/fr/references/explore.md")
+        with tempfile.TemporaryDirectory() as tmp:
+            selected = Path(tmp) / "selected-guide.md"
+            selected.write_bytes(original.read_bytes())
+            guide = discovery.guidance(selected)
+            self.assertEqual(guide["path"], selected.resolve().as_posix())
+            self.assertEqual(guide["source_sha256"], discovery.guidance(original)["source_sha256"])
+
     def test_oversized_three_arm_allocation_refuses_at_freeze(self):
         from agent_eval import native_discovery as discovery
         manifest = {"seed": 1, "tasks": [{"id": str(i)} for i in range(12)],

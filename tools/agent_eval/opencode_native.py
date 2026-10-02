@@ -12,7 +12,6 @@ import time
 from . import native_discovery as discovery
 from . import native_mcp as mcp
 from . import opencode_rehearsal as legacy
-from . import rehearsal_evidence as evidence
 from .bounded_host import disk_size, run as bounded_run
 from .explanation_grade import grade as rubric_grade
 from .source_disclosure import overlap

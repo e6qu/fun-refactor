@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 import random
 import re
 
@@ -53,11 +54,14 @@ def cells(manifest):
 
 
 def guidance(path):
+    path = path.resolve()
+    root = Path(__file__).resolve().parents[2]
+    label = path.relative_to(root) if path.is_relative_to(root) else path
     raw = path.read_bytes()
     require(len(raw) <= 65536, "guidance exceeds budget")
     start = raw.index(b"For behavior discovery,")
     end = raw.index(b"Use `--profile expanded`", start)
-    return {"path": "skills/fr/references/explore.md", "source_sha256": hashlib.sha256(raw).hexdigest(),
+    return {"path": label.as_posix(), "source_sha256": hashlib.sha256(raw).hexdigest(),
             "source": raw.decode(), "start": start, "end": end, "text": raw[start:end].decode().rstrip() + "\n"}
 
 
