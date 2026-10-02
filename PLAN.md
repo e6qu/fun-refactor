@@ -75,9 +75,16 @@ replay checks submitted bytes while separate containers check behavior. Real CLI
 Python, nested async Python and Rust, including stale handles and failed application. Test feedback,
 broader edit operations and an independently reviewed task comparison remain open.
 The [four-attempt public-edit pilot](tests/agent-eval/opencode/results/2026-10-02-public-edit-code-changes/README.md)
-retained three submissions and one timeout on the reused signal-name task. None called fr,
-despite the extra guide and tools. GitHub behavior grading is pending. This is a usability
+retained three behavior passes and one timeout on the reused signal-name task. GitHub containers
+checked all three submissions against nine frozen cases each. None called fr despite the extra
+guide and tools. This is a usability
 integration check, not evidence of an efficiency advantage or an independent comparison.
+
+The [combined outcome report](docs/native-change-outcomes.md) now includes observed work from
+both timeouts and separates host-produced results from native-stream confirmations. Earlier
+failures used 8 and 12 tool calls; they are not zero-cost attempts. Full token/billing totals,
+host/cache costs and independent task review remain open. The reporter checks grade identities
+and pass conditions before submissions enter successful-pair comparisons.
 
 Next select independently reviewed unfamiliar tasks that require investigation across code, and
 compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private

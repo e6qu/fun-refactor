@@ -297,3 +297,43 @@ Python and Rust controls exercise the public CLI on GitHub. Behavior grading sti
 Author output and edit arguments count toward total disclosure. Source-page counters exclude
 source repeated in diffs, so `source_disclosure_complete` remains false; do not treat those counters
 as complete source or context cost.
+
+## Count work from failed attempts too
+
+The [outcome and cost report](native-change-outcomes.md) includes every planned change attempt,
+including timeouts and submissions that are still waiting for behavior grading. Its
+[JSON companion](../tests/agent-eval/opencode/native-change-outcomes.json) retains per-attempt
+coverage, resource samples, instruction costs and matched pairs. Original records are unchanged.
+
+The reporter replays complete host records from a failed attempt against its frozen source.
+It matches native tool results by exact arguments and output. The reporter counts a host result
+absent from the native stream as produced, not confirmed delivered. It measures an incomplete final
+JSON line as an unparsed tail; malformed complete records and contradictory identities refuse.
+Completed step counters remain reported CLI usage. Missing export or unfinished steps
+cannot establish the full attempt's token use, model response identity or provider bill.
+
+Before joining a behavior grade, the reporter checks the plan, cells, submitted-file inventory,
+grader identity, exact case set, output hashes and recorded pass conditions. A report hash does
+not authenticate its publisher. GitHub run provenance remains separate from offline consistency.
+An observed edit or submission in a timeout log does not promote a failed collection to a pass.
+
+Costs group by cohort, model and tool arm. Collection seconds per behavior pass includes failed
+attempts; it remains undefined when grading is incomplete or there are no passes. Successful pairs
+appear separately, with all other pairs retained. Source-page counters omit author diffs, sampled
+resources omit host/cache totals, and CLI usage is not provider-verified. Do not claim full cost
+accounting or attribute a difference to fr when the agent did not call it.
+
+```sh
+python3 tools/native-change-report.py tests/agent-eval/opencode/results/*-code-changes \
+  --json tests/agent-eval/opencode/native-change-outcomes.json \
+  --markdown docs/native-change-outcomes.md --check
+```
+
+Run local checks through the workstation guard. CI also builds a separate report from fresh
+container grades and uploads it with the grade artifact; it does not rewrite historical attempts.
+
+Future native collections share the existing 20-second sampled CPU allowance across version
+detection, the model run and export. Each launch receives only the remainder; missing counters,
+exhaustion or a sampled overrun fail collection. The 120-second wall deadline and workstation
+guard remain in force. Frozen historical runners retain their original behavior, and the report
+sums their recorded process samples without claiming the tighter rule governed those runs.

@@ -213,7 +213,7 @@ class Evidence(unittest.TestCase):
                 else:
                     out.write(raw)
                     (directory / "tools.jsonl").write_bytes(b"".join(encode(r) + b"\n" for r in rows))
-                return {"exit_code": 0, "stop_reason": None}
+                return {"exit_code": 0, "stop_reason": None, "sampled_cpu_seconds": 0}
             with patch.object(runner, "bounded_run", side_effect=execute), patch.object(runner.isolated_grade, "grade", side_effect=AssertionError("no local grading")):
                 record = runner.run_attempt(frozen, cell["id"], root / "attempts", root / "fr", Path("opencode"))
             self.assertEqual(record["status"], "submitted", record)

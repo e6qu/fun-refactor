@@ -180,6 +180,13 @@ def audit(raw, exported, rows, task, cell, plan=None):
             "metrics": metrics, **usage}
 
 
+def cpu_remaining(processes, *, allow_zero=False):
+    spent = sum(number(p["sampled_cpu_seconds"], "sampled collection CPU") for p in processes)
+    remaining = LIMITS["cpu_seconds"] - spent
+    require(remaining >= 0 if allow_zero else remaining > 0, "attempt CPU budget exhausted")
+    return remaining
+
+
 def run_attempt(frozen, cell_id, base, output, binary, opencode):
     source = checked(frozen)
     plan = frozen["plan"]
@@ -211,12 +218,13 @@ def run_attempt(frozen, cell_id, base, output, binary, opencode):
             require(remaining > 0, "attempt wall budget exhausted")
             out, err = io.BytesIO(), io.BytesIO()
             result = bounded_run(command, data, out, err, directory, wall_seconds=remaining,
-                                 cpu_limit_seconds=LIMITS["cpu_seconds"], rss_bytes=LIMITS["rss_bytes"],
+                                 cpu_limit_seconds=cpu_remaining(processes), rss_bytes=LIMITS["rss_bytes"],
                                  disk_bytes=LIMITS["disk_bytes"], transcript_bytes=LIMITS["transcript_bytes"],
                                  env=env, cwd=isolated)
             (directory / (name + ".stdout")).write_bytes(out.getvalue())
             (directory / (name + ".stderr")).write_bytes(err.getvalue())
             processes.append({"name": name, **result})
+            cpu_remaining(processes, allow_zero=True)
             require(disk_size(directory) <= LIMITS["disk_bytes"], "retained attempt exceeds disk budget")
             require(result["exit_code"] == 0 and result["stop_reason"] is None, f"{name} failed: {result['stop_reason'] or result['exit_code']}")
             return out.getvalue()

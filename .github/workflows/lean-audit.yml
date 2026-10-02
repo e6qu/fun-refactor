@@ -22,15 +22,31 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
+  CARGO_BUILD_JOBS: "2"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  CARGO_INCREMENTAL: "0"
 
 jobs:
   audit:
     if: ${{ !inputs.external_replays_only }}
-    name: Full repository audit
+    name: Repository audit (${{ matrix.target }}-${{ matrix.index }})
     runs-on: ubuntu-latest
-    # A cold whole-repository audit includes the pinned external patch replays.
-    # One hour permits that work while still failing a stalled runner.
-    timeout-minutes: 60
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {target: commands_agree, index: 0}
+          - {target: commands_agree, index: 1}
+          - {target: commands_agree, index: 2}
+          - {target: commands_agree, index: 3}
+          - {target: commands_agree, index: 4}
+          - {target: commands_agree, index: 5}
+          - {target: conformance, index: 0}
+          - {target: round_trip, index: 0}
+          - {target: self_translation, index: 0}
+          - {target: lean_kernels, index: 0}
     steps:
       - uses: actions/checkout@v7
 
@@ -85,11 +101,19 @@ jobs:
         with:
           key: lean-audit
 
-      - name: Run every repository-scale audit
-        run: ./tools/check.sh deep
+      - name: Run the assigned audit inventory
+        env:
+          TARGET: ${{ matrix.target }}
+          INDEX: ${{ matrix.index }}
+        run: python3 tools/deep-audit.py "$TARGET" "$INDEX"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: deep-${{ matrix.target }}-${{ matrix.index }}
+          path: target/deep-audit/*.json
+          if-no-files-found: error
+          retention-days: 7
 
   external-replays:
-    if: ${{ inputs.external_replays_only }}
     name: External replay (${{ matrix.cohort }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -117,3 +141,24 @@ jobs:
         env:
           COHORT: ${{ matrix.cohort }}
         run: bash tools/check-external-replays.sh --cohort "$COHORT"
+
+  complete:
+    name: Complete deep audit
+    needs: [audit, external-replays]
+    if: ${{ !cancelled() && !inputs.external_replays_only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all audits and external replays
+        env:
+          AUDIT: ${{ needs.audit.result }}
+          REPLAYS: ${{ needs.external-replays.result }}
+        run: test "$AUDIT" = success && test "$REPLAYS" = success
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: deep-*
+          path: target/deep-audit
+          merge-multiple: true
+      - name: Require every discovered audit test exactly once
+        run: python3 tools/deep-audit.py verify
