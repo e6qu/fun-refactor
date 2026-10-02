@@ -10,11 +10,12 @@ import sys
 import tempfile
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval.container_resources import ContainerResources, audit, limits, slice_name, unit
+from agent_eval.docker_info import MAX_BYTES, resource_info
 from agent_eval.isolated_grade import DOCKER
 from agent_eval.study import digest, plan
 from agent_eval.study_budget import Budget
@@ -26,7 +27,53 @@ from agent_eval.test_gateway import api_manifest
 from agent_eval.test_isolated_grade import rubric
 
 
+class DockerInfo(unittest.TestCase):
+    def query(self, data, status=200, connect_error=None):
+        connection, channel = Mock(), Mock()
+        connection.getresponse.return_value.status = status
+        connection.getresponse.return_value.read.return_value = data
+        channel.connect.side_effect = connect_error
+        with patch("agent_eval.docker_info.http.client.HTTPConnection", return_value=connection) as client, \
+                patch("agent_eval.docker_info.socket.socket", return_value=channel):
+            try:
+                return resource_info()
+            finally:
+                client.assert_called_once_with("localhost", timeout=10)
+                channel.settimeout.assert_called_once_with(10)
+                channel.connect.assert_called_once_with("/var/run/docker.sock")
+                connection.close.assert_called_once()
+                channel.close.assert_called_once()
+                if connect_error is None:
+                    connection.request.assert_called_once_with("GET", "/info", headers={"Connection": "close"})
+                    if status == 200:
+                        connection.getresponse.return_value.read.assert_called_once_with(MAX_BYTES + 1)
+
+    def test_only_resource_fields_leave_the_daemon_response(self):
+        expected = {"CgroupDriver": "systemd", "CgroupVersion": "2", "SecurityOptions": ["name=seccomp"]}
+        self.assertEqual(self.query(json.dumps({**expected, "HttpProxy": "private", "Plugins": {}}).encode()), expected)
+
+    def test_invalid_oversized_and_unsuccessful_responses_fail_closed(self):
+        for data, status in ((b"{}", 500), (b"x" * (MAX_BYTES + 1), 200), (b"[1]", 200),
+                             (b"not json", 200), (b"{}", 200),
+                             (b'{"CgroupDriver":"systemd","CgroupVersion":2,"SecurityOptions":[null]}', 200)):
+            with self.subTest(status=status, size=len(data)), self.assertRaises(ValueError):
+                self.query(data, status)
+
+    def test_failed_socket_connection_is_closed(self):
+        with self.assertRaises(TimeoutError):
+            self.query(b"", connect_error=TimeoutError("deadline"))
+
+
 class Resources(unittest.TestCase):
+    def test_preflight_retains_stop_diagnostics_without_retry_and_releases_lease(self):
+        for code, reason in ((124, "wall_seconds"), (125, "transcript_bytes"), (1, None)):
+            execute = Mock(return_value=({"exit_code": code, "stop_reason": reason}, b"", b"private daemon data"))
+            with self.subTest(reason=reason), self.assertRaisesRegex(ValueError, f"exit={code} stop={reason}"):
+                ContainerResources(self.profile, self.name, self.root, execute=execute, root=self.root)
+            execute.assert_called_once()
+            self.assertEqual(execute.call_args.args[-2:], (10, 65536))
+            self.scope().finish()
+
     def test_missing_first_monitor_sample_retains_auditable_incomplete_evidence(self):
         scope = self.scope()
         (self.path / "cpu.stat").unlink()
@@ -70,7 +117,8 @@ class Resources(unittest.TestCase):
     def execute(self, command, data, directory, timeout, cap):
         self.calls.append(command)
         payload = None
-        if command[3] == "info":
+        if command[:3] == [sys.executable, "-I", "-B"] and Path(command[3]).name == "docker_info.py":
+            self.assertEqual((timeout, cap), (10, 65536))
             payload = {"CgroupDriver": self.driver, "CgroupVersion": "2", "SecurityOptions": []}
         elif command[3] == "context":
             payload = "unix:///var/run/docker.sock"

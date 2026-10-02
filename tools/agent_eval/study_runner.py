@@ -48,7 +48,7 @@ def tool_definitions(provider):
 
 
 def runner_identity():
-    names = ("container_resources.py", "source_disclosure.py", "study.py", "study_usage.py", "study_runner.py", "study_workspace.py", "workspace_bundle.py", "tool_worker.py",
+    names = ("docker_info.py", "container_resources.py", "source_disclosure.py", "study.py", "study_usage.py", "study_runner.py", "study_workspace.py", "workspace_bundle.py", "tool_worker.py",
              "request_gateway.py", "study_budget.py", "provider_usage.py", "isolated_grade.py", "bounded_host.py")
     return digest({name: file_hash(Path(__file__).with_name(name), 1024**2) for name in names})
 

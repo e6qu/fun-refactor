@@ -89,8 +89,10 @@ class ContainerResources:
                     "container slice is populated or was already used")
             self.last = first
             self.samples = 1
-            result, data, _ = execute(DOCKER + ["info", "--format", "{{json .}}"], b"", directory, 10, 65536)
-            require(result["exit_code"] == 0 and not result["stop_reason"], "Docker resource preflight failed")
+            result, data, _ = execute([sys.executable, "-I", "-B", str(Path(__file__).with_name("docker_info.py"))],
+                                      b"", directory, 10, 65536)
+            require(result["exit_code"] == 0 and not result["stop_reason"],
+                    f'Docker resource preflight failed: exit={result["exit_code"]} stop={result["stop_reason"]}')
             info = decode(data)
             require(info.get("CgroupDriver") == "systemd" and str(info.get("CgroupVersion")) == "2"
                     and not any("rootless" in option for option in info.get("SecurityOptions", [])),
