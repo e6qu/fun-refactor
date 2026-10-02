@@ -210,3 +210,9 @@ citations; the older tasks explicitly required quotations. The new
 [`source-references.json`](../tests/agent-eval/opencode/source-references.json) manifest changes
 that format instruction for one already-reviewed cache task, with the same factual rubric.
 It is an integration pilot, not an independent comparison.
+
+The [retained six-attempt pilot](../tests/agent-eval/opencode/results/2026-10-02-source-references/README.md)
+has two passes and four 120-second timeouts. Both passes used source IDs. Guided Kimi used fr names,
+behavior and a continuation; the other passing attempt used only ordinary tools. The guided pass
+delivered less source but produced more total tool output. This pilot does not establish an efficiency benefit.
+The incomplete attempts have no complete usage accounting. The report retains every original failure.

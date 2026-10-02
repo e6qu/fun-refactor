@@ -51,11 +51,18 @@ Correcting source coverage across adjacent retrieved pages recovers three answer
 Original records remain unchanged. All completed answers had correct factual values. Only two of twelve attempts with `fr` available called it;
 both had public guidance and used names only. We measured guidance costs without establishing a benefit.
 
-The next implementation chunk should remove avoidable evidence-copying and ordinary-read costs.
-Allow a bounded first read at a known byte offset in an immutable snapshot. Retain hash checks for
-continuations. Support references to disclosed source without requiring the model to copy it.
-Keep exact source identity and the same required factual anchors. Freeze a new protocol, preserve
-these failures, and then add independently graded change tasks; do not tune production for these repositories.
+The native evaluator now offers bounded first reads at known offsets in immutable snapshots and
+references to source already delivered to the agent. The
+[six-attempt pilot](tests/agent-eval/opencode/results/2026-10-02-source-references/README.md)
+retained two passes and four timeouts. Both passes used source IDs. Guided Kimi followed fr names,
+behavior and a source continuation; the other passing attempt used ordinary tools throughout.
+The guided run delivered less source but more total tool output. This pilot does not establish an efficiency benefit.
+
+The next implementation chunk should add independently graded code-change tasks. Freeze unfamiliar
+tasks, allowed tools, budgets and private behavior checks before model calls. Keep grading on GitHub,
+ordinary tools available in every arm, and all failed attempts. Measure total tool/context costs,
+including fr metadata and delegation, rather than source bytes alone. Preserve these reviewed
+integration cases without tuning production for their repositories.
 
 1. Extend the existing evaluation runner to compare ordinary tools with the `fr` CLI on the same
    tasks, separately for Sonnet and Luna. Record all parent and child agent costs. Keep tasks,

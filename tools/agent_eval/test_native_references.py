@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import native_references as refs, native_mcp as mcp, opencode_native as native, source_coverage
@@ -104,6 +105,18 @@ class Contract(unittest.TestCase):
 
 
 class NativeProtocol(unittest.TestCase):
+    def test_retained_pilot_replays_offline_with_failures_and_overhead(self):
+        root = ROOT / 'tests/agent-eval/opencode/results/2026-10-02-source-references'
+        with patch.object(native, 'bounded_run', side_effect=AssertionError('replay must stay offline')):
+            report = native.report(load(root / 'plan.json'), root / 'attempts')
+        self.assertEqual(report, load(root / 'report.json'))
+        self.assertEqual((report['planned'], report['passed']), (6, 2))
+        self.assertEqual(sum(row['status'] == 'failed' for row in report['attempts']), 4)
+        complete = [row['audit']['metrics'] for row in report['attempts'] if row['status'] == 'completed']
+        self.assertEqual(sorted(row['fr_requests'] for row in complete), [0, 3])
+        self.assertTrue(all(row['source_reference_citations'] == 5 for row in complete))
+        self.assertTrue(all(row['source_reference_metadata_bytes'] > 0 for row in complete))
+
     def transcript(self, same_step=False):
         from agent_eval.test_opencode_native import fixture, FILES
         events, exported, rows = fixture(same_step)

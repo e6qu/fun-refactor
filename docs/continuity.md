@@ -45,8 +45,11 @@ through OpenCode tool calls, avoiding the one-JSON-action response requirement.
 The later compact/guided comparison retained eighteen attempts: three passes, nine citation failures
 and six timeouts originally. A separate contiguous-source review recovers three answers, for six passes.
 All completed factual values were correct. Two guided attempts used `fr` names;
-none used behavior continuations. Next simplify bounded reads and disclosed-source references while
-preserving source identity, factual anchors and historical verdicts. Then add independent change tasks.
+none used behavior continuations. The following source-reference pilot retained two passes and four
+timeouts. Both passes used source IDs; guided Kimi followed names, behavior and a source continuation.
+The other passing attempt used ordinary tools only. Required anchors and historical verdicts remain
+unchanged. Total tool output increased in the guided pass despite fewer source bytes.
+Next add independently graded change tasks with complete cost accounting.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

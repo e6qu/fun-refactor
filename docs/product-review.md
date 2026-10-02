@@ -101,9 +101,13 @@ The later compact exploration comparison originally had three passes, nine citat
 across eighteen attempts. A separate coverage correction recovers three answers whose exact quotations
 crossed adjacent retrieved pages. The reviewed total is six passes; original records remain unchanged. Both observed `fr` calls came from guided attempts and stopped at names.
 All completed factual values were correct; source citation checks still failed in nine attempts.
-The public excerpt added prompt bytes without an established benefit. Next simplify bounded reads
-and source references in the evaluator before adding independent change tasks. Preserve required
-source anchors and old results; lowering the correctness bar would not demonstrate progress.
+The public excerpt added prompt bytes without an established benefit. The next source-reference
+pilot retained two passes and four timeouts on one reviewed task. Both passes used source IDs;
+guided Kimi followed fr behavior and source continuation. The other passing attempt used ordinary
+tools. The guided run delivered 6,784 source bytes but 19,736 total tool-result bytes; the other
+pass delivered 9,119 source bytes and 14,644 total tool-result bytes. Source bytes alone cannot
+establish context efficiency. Required factual anchors and historical records remain unchanged.
+Next add independently graded change tasks and measure total costs, including metadata and handoffs.
 
 The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.
 The current manifest-driven host is `tools/agent-eval-host.py`; it retains parent and child calls.
