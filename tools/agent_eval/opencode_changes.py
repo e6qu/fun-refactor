@@ -19,7 +19,7 @@ LIMITS = native.LIMITS
 
 
 def implementation():
-    names = (*native.IMPLEMENTATION, "native_changes.py", "opencode_changes.py",
+    names = (*native.IMPLEMENTATION, "native_changes.py", "native_author.py", "opencode_changes.py",
              "isolated_grade.py", "request_gateway.py", "provider_usage.py")
     return {**{name: legacy.identity(Path(__file__).with_name(name)) for name in names},
             "native-changes.py": legacy.identity(Path(__file__).parents[1] / "native-changes.py")}
@@ -37,7 +37,7 @@ def retain_runner(frozen, destination):
         require(legacy.identity(target) == sha, "retained runner differs")
 
 
-def freeze(manifest, base, binary):
+def freeze(manifest, base, binary, *, public_edits=False):
     source = legacy.freeze(manifest, base, binary)
     graders = {}
     for task in source["plan"]["tasks"]:
@@ -45,9 +45,12 @@ def freeze(manifest, base, binary):
         raw = (base / task["grader"]).read_text()
         isolated_grade.validate(mcp.decode(raw))
         graders[task["id"]] = raw
+    version = 2 if public_edits else 1
     plan = {"schema": SCHEMA, "source_plan": source, "limits": LIMITS,
-            "prompt": changes.PROMPT, "tools": {arm: changes.schemas(arm) for arm in ("files", "fr")},
+            "prompt": changes.PROMPT, "tools": {arm: changes.schemas(arm, version) for arm in ("files", "fr")},
             "graders": graders, "implementation": implementation()}
+    if public_edits:
+        plan.update(tools_schema_version=2, edit_guidance=changes.native_author.GUIDANCE)
     frozen = {"plan": plan, "sha256": digest(plan)}
     checked(frozen)
     return frozen
@@ -57,7 +60,9 @@ def checked(frozen):
     plan = frozen["plan"]
     require(plan["schema"] == SCHEMA and digest(plan) == frozen["sha256"], "changed code-change plan")
     require(plan["limits"] == LIMITS and plan["prompt"] == changes.PROMPT, "unsupported change protocol")
-    require(plan["tools"] == {arm: changes.schemas(arm) for arm in ("files", "fr")}, "change schemas differ")
+    version = plan.get("tools_schema_version", 1)
+    require(plan["tools"] == {arm: changes.schemas(arm, version) for arm in ("files", "fr")}, "change schemas differ")
+    require(plan.get("edit_guidance") == (changes.native_author.GUIDANCE if version == 2 else None), "edit guidance differs")
     source = legacy.checked(plan["source_plan"])
     require(source["cells"] == discovery.cells(source["manifest"], available=("files", "fr")), "change allocation differs")
     require(len(source["tasks"]) == len(source["manifest"]["tasks"]), "task count differs")
@@ -74,8 +79,8 @@ def checked(frozen):
     return source
 
 
-def environment(config, log):
-    env = native.environment(config, log, changes.PROMPT)
+def environment(config, log, instructions=changes.PROMPT):
+    env = native.environment(config, log, instructions)
     settings = json.loads(env["OPENCODE_CONFIG_CONTENT"])
     settings["mcp"]["rehearsal"]["command"][2] = str(Path(__file__).parents[1] / "native-changes.py")
     env["OPENCODE_CONFIG_CONTENT"] = json.dumps(settings)
@@ -84,6 +89,7 @@ def environment(config, log):
 
 def run_attempt(frozen, cell_id, output, binary, opencode):
     source = checked(frozen)
+    version = frozen["plan"].get("tools_schema_version", 1)
     require(frozen["plan"]["implementation"] == implementation(), "runner changed; freeze again")
     require(legacy.identity(binary) == source["binary_sha256"], "binary changed")
     cell = next((c for c in source["cells"] if c["id"] == cell_id), None)
@@ -92,15 +98,19 @@ def run_attempt(frozen, cell_id, output, binary, opencode):
     directory = output / cell_id
     directory.mkdir(parents=True, exist_ok=False)
     config = directory / "server.json"
-    config.write_bytes(encode({"files": task["files"], "arm": cell["arm"], "binary": str(binary)}))
-    prompt = changes.PROMPT + "\nTask:\n" + task["requirement"]
+    settings = {"files": task["files"], "arm": cell["arm"], "binary": str(binary)}
+    if version != 1:
+        settings["tools_schema_version"] = version
+    config.write_bytes(encode(settings))
+    instructions = changes.prompt(cell["arm"], version)
+    prompt = instructions + "\nTask:\n" + task["requirement"]
     (directory / "prompt.txt").write_text(prompt)
-    (directory / "schemas.json").write_bytes(encode(changes.schemas(cell["arm"])))
+    (directory / "schemas.json").write_bytes(encode(changes.schemas(cell["arm"], version)))
     record = {"cell": cell, "plan_sha256": frozen["sha256"], "status": "failed", "failure": None,
               "grade_status": "pending", "provider_usage_verified": False, "actual_usd": None}
     started, processes = time.monotonic(), []
     with tempfile.TemporaryDirectory(prefix="fr-change-agent-") as isolated:
-        env = environment(config, directory / "tools.jsonl")
+        env = environment(config, directory / "tools.jsonl", instructions)
 
         def execute(command, data, name):
             remaining = LIMITS["wall_seconds"] - (time.monotonic() - started)
@@ -126,7 +136,7 @@ def run_attempt(frozen, cell_id, output, binary, opencode):
             exported = mcp.decode(execute([sys.executable, "-I", "-B", str(Path(__file__).with_name("opencode_export.py")),
                 str(opencode), "export", session, str(directory)], b"", "export"))
             rows = [mcp.decode(line) for line in (directory / "tools.jsonl").read_bytes().splitlines()]
-            result = changes.audit(raw, exported, rows, task, cell)
+            result = changes.audit(raw, exported, rows, task, cell, version)
             (directory / "submission.json").write_bytes(encode(result.pop("files")))
             record.update(status="submitted", audit=result)
         except (OSError, ValueError, KeyError, TypeError, IndexError) as error:
@@ -145,6 +155,7 @@ def run_attempt(frozen, cell_id, output, binary, opencode):
 
 def replay(frozen, output):
     source, records = checked(frozen), []
+    version = frozen["plan"].get("tools_schema_version", 1)
     require(not output.exists() or all(p.name in {c["id"] for c in source["cells"]} and not p.is_symlink() for p in output.iterdir()), "unplanned attempt")
     for cell in source["cells"]:
         folder = output / cell["id"]
@@ -162,11 +173,11 @@ def replay(frozen, output):
         require(record["cell"] == cell and record["plan_sha256"] == frozen["sha256"], "record identity differs")
         require(record["status"] in {"submitted", "failed"} and record["grade_status"] == "pending", "invalid ungraded outcome")
         task = next(t for t in source["tasks"] if t["id"] == cell["task"])
-        require((folder / "prompt.txt").read_text() == changes.PROMPT + "\nTask:\n" + task["requirement"], "prompt differs")
-        require(load(folder / "schemas.json") == changes.schemas(cell["arm"]), "schemas differ")
+        require((folder / "prompt.txt").read_text() == changes.prompt(cell["arm"], version) + "\nTask:\n" + task["requirement"], "prompt differs")
+        require(load(folder / "schemas.json") == changes.schemas(cell["arm"], version), "schemas differ")
         if record["status"] == "submitted":
             result = changes.audit((folder / "opencode.stdout").read_bytes(), load(folder / "export.stdout"),
-                [mcp.decode(line) for line in (folder / "tools.jsonl").read_bytes().splitlines()], task, cell)
+                [mcp.decode(line) for line in (folder / "tools.jsonl").read_bytes().splitlines()], task, cell, version)
             require(load(folder / "submission.json") == result.pop("files"), "submitted files differ from replay")
             require(result == record["audit"], "change audit differs")
             require(all(p["exit_code"] == 0 and p["stop_reason"] is None for p in record["processes"]), "submitted attempt has failed process")

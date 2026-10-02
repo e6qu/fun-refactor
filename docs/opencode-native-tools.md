@@ -223,8 +223,8 @@ The incomplete attempts have no complete usage accounting. The report retains ev
 Both arms have list, search, bounded reads and exact replacements. The `fr` arm also has compact
 public discovery. An edit must name an existing UTF-8 file, supply its current whole-file hash,
 and replace one unique exact string. Stale hashes, ambiguous matches, additions, deletions and
-workspace growth beyond 1 MiB refuse. This comparison measures discovery plus ordinary edits;
-it does not yet compare public `fr author` edit routes or delegated work.
+workspace growth beyond 1 MiB refuse. The original protocol measures discovery plus ordinary
+edits. An optional second protocol adds public authoring; neither protocol offers delegation.
 
 Each attempt owns a stable private source path so public handles survive successive reads.
 An accepted edit refreshes that snapshot and discards its old caches. The snapshot is inside the
@@ -269,3 +269,31 @@ unchanged-source controls failed, both reference fixes passed, and all six wrong
 The original collection records remain ungraded; separate retained GitHub reports hold the results.
 CI reruns those cases and compares their outcomes with the retained report. These checks do not
 establish general correctness or an efficiency benefit.
+
+### Review and apply a public fr body edit
+
+Freeze with `--public-edits` to add `fr_preview_body` and `fr_apply_preview` to the `fr` arm.
+The ordinary arm keeps the original tools and instructions. The fr arm gets a short frozen usage
+guide; ordinary edits remain available. The plan retains the exact guide and schemas, and the
+audit counts their bytes. An agent can choose either route; availability is not evidence of use.
+
+The agent discovers a full handle through `fr_explore`, then supplies the existing path, handle
+and replacement body. The host invokes public `fr author batch` with one `replace-body` operation
+and a path postcondition. It returns the complete bounded preview and diff. No file is changed.
+After reviewing it, the agent supplies the preview ID. The host saves that exact plan with its
+`plan_context_basis`, then calls public `fr history apply` with its transaction basis. It checks
+every submitted file against the preview before committing the new snapshot. A stale preview,
+clipped diff, changed path, failed save or failed apply cannot commit partial source.
+
+Preview fragments are limited to 8,192 characters, arguments and responses to 16 KiB, and the
+diff to 8,192 bytes. Existing attempt limits remain unchanged. Invalid or unsupported source may
+refuse; ordinary edits remain available. The adapter only exposes body replacement, not every
+public author operation. It does not run candidate code or tests locally.
+
+Offline replay checks every old byte in the unified diff, body extents and hashes, unchanged
+surrounding code, preview identity, save/apply records and the final submission. It does not rerun
+the frozen language parser: `author_semantics_reexecuted` remains false. Real Python, nested async
+Python and Rust controls exercise the public CLI on GitHub. Behavior grading still runs separately.
+Author output and edit arguments count toward total disclosure. Source-page counters exclude
+source repeated in diffs, so `source_disclosure_complete` remains false; do not treat those counters
+as complete source or context cost.

@@ -26,12 +26,14 @@ def edit(files=FILES, **kw):
     return {"name": "replace_source", "arguments": args}
 
 
-def fixture(calls=None, arm="files"):
+def fixture(calls=None, arm="files", version=1, execute=None):
     log = io.BytesIO()
-    server = changes.Server({"files": FILES, "arm": arm, "binary": "fr"}, log)
+    server = changes.Server({"files": FILES, "arm": arm, "binary": "fr", "tools_schema_version": version}, log)
+    if execute is not None:
+        server.machine.execute = execute
     calls = calls or [{"name": "read_source", "arguments": {"path": "module.py", "offset": 0, "bytes": 8192, "sha256": ""}},
                       edit(), {"name": "submit_patch", "arguments": {"summary": "Changed value; tests not run."}}]
-    events, messages = [], [{"info": {"role": "user"}, "parts": [{"type": "text", "text": changes.PROMPT + "\nTask:\ntask"}]}]
+    events, messages = [], [{"info": {"role": "user"}, "parts": [{"type": "text", "text": changes.prompt(arm, version) + "\nTask:\ntask"}]}]
     tokens = {"input": 10, "output": 20, "reasoning": 0, "cache": {"read": 1, "write": 0}}
     for index in range(len(calls) + 1):
         mid, parts = f"msg_{index}", []
@@ -49,6 +51,7 @@ def fixture(calls=None, arm="files"):
         events.append({"type": "step_finish", "sessionID": "ses_abc", "part": {"messageID": mid, "reason": reason, "tokens": tokens, "cost": 0}})
         messages.append({"info": {"id": mid, "role": "assistant", "providerID": "provider", "modelID": "model", "finish": reason,
                                   "tokens": tokens, "cost": 0}, "parts": parts})
+    server.machine.close()
     return b"\n".join(encode(e) for e in events), {"info": {"id": "ses_abc"}, "messages": messages}, [mcp.decode(line) for line in log.getvalue().splitlines()]
 
 

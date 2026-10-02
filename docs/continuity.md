@@ -57,6 +57,9 @@ reviewed tasks with complete cost accounting.
 The first eight-attempt collection retained seven behavior passes and one timeout. Separate GitHub
 containers graded the exact submissions, with baseline, reference and wrong-fix controls checked.
 No attempt called fr; these results do not establish an efficiency benefit.
+An optional native protocol now exposes public body previews and reviewed history application.
+Ordinary edits remain available in both arms. Byte replay, real CLI controls and separate behavior
+grading have distinct roles; none closes independent task review or complete context accounting.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

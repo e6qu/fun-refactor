@@ -22,6 +22,7 @@ def main():
     freeze.add_argument("manifest", type=Path)
     freeze.add_argument("--binary", type=Path, required=True)
     freeze.add_argument("--save-runner", type=Path, help="Retain an independently executable copy in a fresh directory")
+    freeze.add_argument("--public-edits", action="store_true", help="Offer public fr author previews and history apply in the fr arm")
     run = commands.add_parser("run")
     run.add_argument("plan", type=Path)
     run.add_argument("cell")
@@ -36,7 +37,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "freeze":
-            result = opencode_changes.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve())
+            result = opencode_changes.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve(), public_edits=args.public_edits)
             if args.save_runner:
                 opencode_changes.retain_runner(result, args.save_runner.resolve())
         elif args.command == "run":
