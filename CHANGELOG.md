@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.48.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.47.0...fun-refactor-v0.48.0) (2026-10-02)
+
+
+### Features
+
+* compare public fr edits in native OpenCode trials ([#418](https://github.com/e6qu/fun-refactor/issues/418)) ([1e5a8a0](https://github.com/e6qu/fun-refactor/commit/1e5a8a09a24c4019fe1238f1e6691acae41a5b0f))
+* grade native OpenCode changes against private behavior checks ([#416](https://github.com/e6qu/fun-refactor/issues/416)) ([7cf5a74](https://github.com/e6qu/fun-refactor/commit/7cf5a74b0969ed32897d17a303f50fac8b80e9ea))
+
+
+### Fixes
+
+* account for failed trials and split timed-out audits ([8efd760](https://github.com/e6qu/fun-refactor/commit/8efd760b96d149c28c13dc16b51fcb750999f033))
+
 ## [0.47.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.46.0...fun-refactor-v0.47.0) (2026-10-02)
 
 
