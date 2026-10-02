@@ -26,9 +26,16 @@ def edit(files=FILES, **kw):
     return {"name": "replace_source", "arguments": args}
 
 
-def fixture(calls=None, arm="files", version=1, execute=None):
+def fixture(calls=None, arm="files", version=1, execute=None, public_check=None, check_execute=None):
     log = io.BytesIO()
-    server = changes.Server({"files": FILES, "arm": arm, "binary": "fr", "tools_schema_version": version}, log)
+    config = {"files": FILES, "arm": arm, "binary": "fr", "tools_schema_version": version}
+    if version == 3:
+        from types import SimpleNamespace
+        config.update(public_check=public_check, container_slice="frstudy" + "a" * 32 + ".slice")
+        with patch.object(changes.native_checks, "DockerChecks", return_value=SimpleNamespace(run=check_execute)):
+            server = changes.Server(config, log)
+    else:
+        server = changes.Server(config, log)
     if execute is not None:
         server.machine.execute = execute
     calls = calls or [{"name": "read_source", "arguments": {"path": "module.py", "offset": 0, "bytes": 8192, "sha256": ""}},

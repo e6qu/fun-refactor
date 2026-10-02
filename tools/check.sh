@@ -42,6 +42,7 @@ if [ "$slice" = study ]; then
     python3 tools/agent_eval/test_native_changes.py
     python3 tools/agent_eval/test_native_author.py
     python3 tools/agent_eval/test_native_outcomes.py
+    python3 tools/agent_eval/test_native_checks.py
     python3 tools/agent_eval/test_external_environment.py
     python3 tools/test_fetch_verified_ranges.py
     python3 tools/test-deep-audit.py

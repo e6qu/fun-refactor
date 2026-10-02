@@ -102,7 +102,7 @@ def invoke(command, data, directory, timeout, cap):
     return result, stdout.getvalue(), stderr.getvalue()
 
 
-def grade(candidate, grader_path, expected_sha256, *, execute=invoke):
+def grade(candidate, grader_path, expected_sha256, *, execute=invoke, temporary_parent=None):
     raw = Path(grader_path).read_bytes()
     require(len(raw) <= 1024**2, "grader exceeds size limit")
     require(hashlib.sha256(raw).hexdigest() == expected_sha256, "grader digest differs from frozen task")
@@ -111,7 +111,7 @@ def grade(candidate, grader_path, expected_sha256, *, execute=invoke):
     candidate = Path(candidate).resolve()
     require(not Path(grader_path).resolve().is_relative_to(candidate), "private grader cannot be inside candidate directory")
     results = []
-    with tempfile.TemporaryDirectory(prefix="fr-grade-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="fr-grade-", dir=temporary_parent) as temporary:
         root = Path(temporary)
         root.chmod(0o755)
         inspected, volumes, _ = execute(DOCKER + ["image", "inspect", "--format", "{{json .Config.Volumes}}", grader["image"]],
