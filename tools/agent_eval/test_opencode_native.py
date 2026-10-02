@@ -252,5 +252,219 @@ class Evidence(unittest.TestCase):
                 native.checked(frozen)
 
 
+class Discovery(unittest.TestCase):
+    def test_selected_guide_path_is_not_mislabeled_as_the_bundled_guide(self):
+        from agent_eval import native_discovery as discovery
+        original = ROOT / "skills/fr/references/explore.md"
+        self.assertEqual(discovery.guidance(original)["path"], "skills/fr/references/explore.md")
+        with tempfile.TemporaryDirectory() as tmp:
+            selected = Path(tmp) / "selected-guide.md"
+            selected.write_bytes(original.read_bytes())
+            guide = discovery.guidance(selected)
+            self.assertEqual(guide["path"], selected.resolve().as_posix())
+            self.assertEqual(guide["source_sha256"], discovery.guidance(original)["source_sha256"])
+
+    def test_oversized_three_arm_allocation_refuses_at_freeze(self):
+        from agent_eval import native_discovery as discovery
+        manifest = {"seed": 1, "tasks": [{"id": str(i)} for i in range(12)],
+                    "models": ["provider/" + str(i) for i in range(4)], "repetitions": 3}
+        with self.assertRaisesRegex(ValueError, "288"):
+            discovery.cells(manifest)
+
+    def test_retained_three_arm_comparison_replays_without_models(self):
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-guided"
+        with patch.object(native, "bounded_run", side_effect=AssertionError("replay must stay offline")):
+            result = native.report(load(root / "plan.json"), root / "attempts")
+        self.assertEqual(result, load(root / "report.json"))
+        self.assertEqual(result["planned"], 18)
+        for arm in ("files", "fr", "fr-guided"):
+            self.assertEqual(sum(r["cell"]["arm"] == arm for r in result["attempts"]), 6)
+        self.assertFalse(result["audit_complete"])
+
+    def test_cli_failure_remains_replayable_without_source_evidence(self):
+        from agent_eval import native_discovery as discovery
+        result = {"error": "fr command failed"}
+        request = {"action": "fr", "operation": "explore", "term": "value"}
+        replay = discovery.action(FILES, request, "fr", Path("fr"), Path("."), lambda *_: encode(result))
+        self.assertEqual(replay, result)
+        self.assertEqual(discovery.disclosed(FILES, request, replay), [])
+
+    def freeze(self):
+        from agent_eval import native_discovery as discovery
+        manifest = ROOT / "tests/agent-eval/opencode/explanations.json"
+        return native.freeze(load(manifest), manifest.parent, Path(__file__), ROOT / "skills/fr/references/explore.md")
+
+    def test_balanced_frozen_guidance_and_instruction_cost(self):
+        from agent_eval import native_discovery as discovery
+        frozen = self.freeze()
+        source = native.checked(frozen)
+        self.assertEqual(len(source["cells"]), 18)
+        self.assertEqual(source["cells"], native.checked(self.freeze())["cells"])
+        self.assertEqual(frozen["plan"]["tools"]["fr"], frozen["plan"]["tools"]["fr-guided"])
+        for arm in discovery.ARMS:
+            self.assertEqual(sum(c["arm"] == arm for c in source["cells"]), 6)
+        costs = [discovery.costs(frozen["plan"], arm, source["tasks"][0]) for arm in discovery.ARMS]
+        self.assertEqual(costs[0]["user_prompt_bytes"], costs[1]["user_prompt_bytes"])
+        self.assertGreater(costs[2]["user_prompt_bytes"], costs[1]["user_prompt_bytes"])
+        self.assertEqual(costs[2]["tool_schema_bytes"], costs[1]["tool_schema_bytes"])
+        self.assertGreater(costs[2]["guidance_bytes"], 0)
+        self.assertEqual(costs[1]["guidance_bytes"], 0)
+        self.assertFalse(costs[2]["complete_context_accounting"])
+
+    def test_rehashed_guidance_and_allocation_mutations_refuse(self):
+        from agent_eval.study import digest
+        for field in ("excerpt", "source", "order"):
+            frozen = self.freeze()
+            plan = frozen["plan"]
+            if field == "excerpt":
+                plan["guidance"]["text"] += "Invented guidance"
+            elif field == "source":
+                plan["guidance"]["source"] += "Changed public document"
+            else:
+                plan["source_plan"]["plan"]["cells"].reverse()
+                plan["source_plan"]["sha256"] = digest(plan["source_plan"]["plan"])
+            frozen["sha256"] = digest(plan)
+            with self.assertRaises(ValueError):
+                native.checked(frozen)
+
+    def test_compact_argv_refusals_and_identical_fr_arms(self):
+        from agent_eval import native_discovery as discovery
+        calls = []
+        result = {"mode": "names", "profile": {"name": "compact", "source_bytes": 2048}, "rows": []}
+        servers = [mcp.Server({**config(arm), "tools_schema_version": 3}, io.BytesIO(),
+                             lambda *args: calls.append(args) or encode(result)) for arm in discovery.ARMS]
+        params = {"name": "fr_explore", "arguments": {"term": "value"}}
+        self.assertTrue(servers[0].call(params)["isError"])
+        for server in servers[1:]:
+            self.assertFalse(server.call(params)["isError"])
+            self.assertEqual(calls[-1][0][-7:], ["project", "explore", "value", "--profile", "compact", "--mode", "names"])
+        count = len(calls)
+        for args in ({"term": "--help"}, {"term": "x", "path": "../secret"},
+                     {"term": "x", "profile": "expanded"}, {"term": "x", "mode": "wrong"},
+                     {"term": "x", "mode": "behavior", "target": "short"},
+                     {"term": "x", "offset": 0}, {"term": "x", "cursor": "--help"},
+                     {"term": "é" * 160}, {"term": "x", "contains": 1}):
+            self.assertTrue(servers[1].call({"name": "fr_explore", "arguments": args})["isError"])
+        self.assertEqual(len(calls), count)
+
+    def test_exploration_source_must_match_snapshot_handle_and_offset(self):
+        from agent_eval import native_discovery as discovery
+        handle = "frp1:" + "a" * 32 + ":1"
+        request = {"action": "fr", "operation": "explore", "term": "value", "mode": "behavior", "target": handle}
+        result = {"declaration": {"node": {"handle": handle, "path": "module.py", "span": {"start": 0, "end": 27}},
+                  "source": {"offset": 0, "returned_bytes": 27, "span": {"start": 0, "end": 27}, "text": "def value():\n    return 42\n"}}}
+        self.assertEqual(discovery.disclosed(FILES, request, result)[0]["end"], 27)
+        for mutate in (lambda d: d["declaration"]["source"].update(text="def value():\n    return 43\n"),
+                       lambda d: d["declaration"]["source"].update(offset=1),
+                       lambda d: d["declaration"]["node"].update(handle=handle[:-1]+"2")):
+            changed = copy.deepcopy(result)
+            mutate(changed)
+            with self.assertRaises(ValueError):
+                discovery.disclosed(FILES, request, changed)
+        self.assertEqual(discovery.disclosed(FILES, request, {"declaration": None}), [])
+        with self.assertRaises(ValueError):
+            discovery.disclosed(FILES, {**request, "mode": "names"}, result)
+
+    def test_guided_transcript_binds_prompt_and_reports_configured_costs(self):
+        from agent_eval import native_discovery as discovery
+        events, exported, rows = fixture()
+        plan = self.freeze()["plan"]
+        prompt = discovery.prompt(plan, "fr-guided") + "\nTask:\ntask"
+        exported["messages"].insert(0, {"info": {"role": "user"}, "parts": [{"type": "text", "text": prompt}]})
+        result = native.audit(b"\n".join(encode(e) for e in events), exported, rows,
+                              {"files": FILES, "requirement": "task"}, {"arm": "fr-guided", "model": "provider/model"}, plan)
+        self.assertGreater(result["metrics"]["configured_context"]["guidance_bytes"], 0)
+        self.assertEqual(result["metrics"]["unique_source_bytes"], 27)
+        exported["messages"][0]["parts"][0]["text"] = discovery.prompt(plan, "fr") + "\nTask:\ntask"
+        with self.assertRaisesRegex(ValueError, "prompt"):
+            native.audit(b"\n".join(encode(e) for e in events), exported, rows,
+                         {"files": FILES, "requirement": "task"}, {"arm": "fr-guided", "model": "provider/model"}, plan)
+
+
+class SourceCoverage(unittest.TestCase):
+    def test_contiguous_and_overlapping_pages_preserve_utf8_without_mutation(self):
+        from agent_eval.source_coverage import contiguous
+        identity = {"path": "example.py", "sha256": "a" * 64}
+        spans = [{**identity, "start": 2, "end": 5, "text": "abc"},
+                 {**identity, "start": 0, "end": 3, "text": "éa"},
+                 {**identity, "start": 3, "end": 4, "text": "b"}]
+        before = copy.deepcopy(spans)
+        self.assertEqual(contiguous(spans), [{**identity, "start": 0, "end": 5, "text": "éabc"}])
+        self.assertEqual(spans, before)
+        for other in ({"path": "other.py"}, {"sha256": "b" * 64}, {"start": 4, "end": 7}):
+            self.assertEqual(len(contiguous([spans[1], {**spans[0], **other}])), 2)
+        with self.assertRaisesRegex(ValueError, "disagrees"):
+            contiguous([spans[1], {**spans[0], "text": "xyz"}])
+
+    def test_malformed_extents_and_excessive_coverage_refuse(self):
+        from agent_eval.source_coverage import contiguous
+        span = {"path": "example.py", "sha256": "a" * 64, "start": 0, "end": 2, "text": "é"}
+        for change in ({"start": True}, {"end": 1}, {"text": None}, {"start": -1}):
+            with self.assertRaises(ValueError):
+                contiguous([{**span, **change}])
+        with self.assertRaises(ValueError):
+            contiguous([span] * 1025)
+        with self.assertRaisesRegex(ValueError, "budget"):
+            contiguous([{**span, "text": "x" * 2048, "end": 2048}] * 513)
+
+    def test_cross_page_quote_passes_only_when_every_byte_was_available(self):
+        from agent_eval.source_coverage import POLICY
+        from agent_eval.workspace_bundle import unpack
+        import hashlib
+        raw = base64.b64decode(FILES["module.py"]["data"])
+        identity = {"path": "module.py", "sha256": hashlib.sha256(raw).hexdigest()}
+        spans = [{**identity, "start": 0, "end": 15, "text": raw[:15].decode()},
+                 {**identity, "start": 15, "end": len(raw), "text": raw[15:].decode()}]
+        payload = {"answer": {"value": {"value": 42, "citations": [{"path": "module.py", "quote": raw.decode()}]}},
+                   "criteria": {"value": {"value": 42, "evidence": [[{"path": "module.py", "contains": "return 42"}]]}},
+                   "disclosed": spans}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "source"
+            unpack(FILES, root, 1024**2)
+            self.assertFalse(native.grade(root, payload)["passed"])
+            self.assertTrue(native.grade(root, payload, POLICY)["passed"])
+            for unavailable in (spans[:1], [spans[0], {**spans[1], "start": 16, "text": raw[16:].decode()}],
+                                [spans[0], {**spans[1], "sha256": "0" * 64}],
+                                [spans[0], {**spans[1], "path": "other.py"}]):
+                self.assertFalse(native.grade(root, {**payload, "disclosed": unavailable}, POLICY)["passed"])
+            wrong = copy.deepcopy(payload)
+            wrong["answer"]["value"]["value"] = 43
+            self.assertFalse(native.grade(root, wrong, POLICY)["passed"])
+
+    def test_review_recovers_page_boundary_failures_and_preserves_originals(self):
+        from agent_eval.source_coverage import POLICY
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-guided"
+        records = sorted((root / "attempts").glob("*/record.json"))
+        before = [p.read_bytes() for p in records]
+        with patch.object(native, "bounded_run", side_effect=AssertionError("review must stay offline")):
+            review = native.review(load(root / "plan.json"), root / "attempts", POLICY)
+        self.assertEqual(review["original_passed"], 3)
+        self.assertEqual(review["reviewed_passed"], 6)
+        self.assertEqual(sum(r["reviewed_status"] == "failed" for r in review["attempts"]), 6)
+        self.assertEqual([p.read_bytes() for p in records], before)
+        self.assertEqual(native.report(load(root / "plan.json"), root / "attempts")["passed"], 3)
+
+    def test_review_error_cannot_retain_an_original_pass(self):
+        from agent_eval import source_coverage
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-guided"
+        with patch.object(source_coverage, "contiguous", side_effect=ValueError("invalid source coverage")):
+            review = native.review(load(root / "plan.json"), root / "attempts", source_coverage.POLICY)
+        self.assertEqual(review["original_passed"], 3)
+        self.assertEqual(review["reviewed_passed"], 0)
+        self.assertTrue(all(r["reviewed_status"] == "failed" for r in review["attempts"]))
+
+    def test_new_plans_bind_source_policy_and_unknown_policy_refuses(self):
+        from agent_eval.source_coverage import POLICY
+        from agent_eval.study import digest
+        manifest = ROOT / "tests/agent-eval/opencode/explanations.json"
+        frozen = native.freeze(load(manifest), manifest.parent, Path(__file__))
+        self.assertEqual(frozen["plan"]["source_policy"], POLICY)
+        native.checked(frozen)
+        frozen["plan"]["source_policy"] = "trust-unread-source"
+        frozen["sha256"] = digest(frozen["plan"])
+        with self.assertRaisesRegex(ValueError, "policy"):
+            native.checked(frozen)
+
+
 if __name__ == "__main__":
     unittest.main()

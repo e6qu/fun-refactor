@@ -103,3 +103,80 @@ Across all fourteen attempts, peak sampled process-group RSS was 678.3 MiB. The 
 serial under the workstation guard. Retained evidence occupies about 3.3 MiB after removing disposable workspaces.
 The earlier JSON-action trials remain separate. Changed interaction budgets, reviewed tasks and
 small sample sizes prevent an efficiency claim or a general success-rate estimate.
+
+
+## Compare compact exploration with public guidance
+
+Tool schema version 3 adds a three-arm comparison. `files` has ordinary list, search and source
+reads. `fr` adds one public `project explore` tool with the compact profile. `fr-guided` has exactly
+the same tools plus a frozen excerpt from `skills/fr/references/explore.md`. Ordinary tools remain
+available in every arm. Guidance is optional; the task questions do not require agents to call `fr`.
+
+Freeze this protocol with `--guidance skills/fr/references/explore.md`. The plan retains the full
+public document, its hash, excerpt byte offsets, exact prompts, schemas and seeded cell order.
+The base prompt makes no recommendation between ordinary and structured tools. The chosen excerpt
+explains names, a selected row's next action, and truncation continuations. It excludes the expanded
+profile and batch routes that this adapter does not expose.
+
+`fr_explore` accepts a term, mode, full target handle, source-file filter and continuation fields.
+It always requests the compact profile: twelve name rows, 2048 source bytes, eight relationships
+and a 16 KiB report budget. Agent arguments never become shell text. Exact source from a behavior
+result must match the frozen repository bytes, handle and offset before it can support a claim.
+An absent declaration or failed call contributes no source evidence.
+
+The report records configured agent-prompt bytes, user-prompt bytes, tool-schema bytes and guidance
+bytes separately. The instructions appear in both the agent configuration and the user prompt;
+the report exposes that duplication. These counts do not describe provider serialization, hidden
+instructions or every repeated input. OpenCode token counters remain reported usage, not verified
+billing. Versions 1 and 2 keep their original prompts, schemas, records and replay rules.
+
+
+## Compact exploration results
+
+The [three-arm comparison](../tests/agent-eval/opencode/results/2026-10-02-guided/README.md)
+retains eighteen attempts with `fr` 0.46.0 and OpenCode 1.18.34. It used the same reviewed repository
+tasks and fixed 120-second budget. The original records show three passes, nine citation failures and six
+timeouts. All twelve completed answers had correct factual values. This does not erase missing
+or altered citations: the original rubric and outcomes remain unchanged.
+
+| Task | Model | Ordinary tools | Compact fr | Compact fr + guide |
+|---|---|---|---|---|
+| cache-expiration | Kimi K3 | Pass, 78.7 s | Pass, 46.2 s | Citation failure, 69.5 s; 1 fr call |
+| cache-expiration | GLM 5.3 Flash | Timeout, 120.1 s | Timeout, 120.0 s | Timeout, 120.0 s |
+| key-rotation | Kimi K3 | Pass, 46.0 s | Citation failure, 48.3 s | Citation failure, 56.4 s; 1 fr call |
+| key-rotation | GLM 5.3 Flash | Citation failure, 75.2 s | Citation failure, 96.1 s | Citation failure, 112.0 s |
+| retry-callbacks | Kimi K3 | Citation failure, 75.3 s | Citation failure, 69.4 s | Citation failure, 70.3 s |
+| retry-callbacks | GLM 5.3 Flash | Timeout, 120.1 s | Timeout, 120.1 s | Timeout, 120.1 s |
+
+Two of twelve attempts with `fr` available called it, both with guidance. They used names only;
+neither followed the behavior continuation. Both failed the original single-page evidence rule. This sample does
+not show that public guidance improves success or efficiency. The earlier 0.35.0 cohort used a
+different prompt and tool surface; its eight reviewed passes out of twelve remain a separate result.
+
+The optional guidance adds 273 bytes to each configured prompt, including its heading. The tool
+schema adds 635 bytes over ordinary tools. The guided cache attempt found the class through `fr`,
+then hit the ordinary read tool's hash requirement for a nonzero first offset. It recovered with
+reads from the beginning. That cost belongs to the evaluator's read interface, not to program analysis.
+
+Next remove avoidable source-copying and read restrictions in the evaluation interface while
+preserving frozen source identities, required evidence and unchanged historical results. Then test
+actual changes on independent tasks. Do not expand analysis or force tool use based on these results.
+The technical status remains seven of eighteen items demonstrated and no completed milestone.
+
+
+## Correct citations across source pages
+
+The original quotation check required an entire quote inside one tool result. That rejected exact
+source across adjacent pages even when every byte had reached the model before its answer.
+New plans bind the `contiguous-source-v1` policy. Grading joins verified adjacent or consistently
+overlapping spans with the same file and content hash. Unread gaps, conflicting overlaps and changed
+identities refuse. Source from the submission's own step or a later step remains unavailable.
+Factual values, required anchors and the 16-to-2048-byte quotation bound stay the same.
+
+`report` keeps the frozen policy and original outcomes. `review --contiguous-source` writes a
+separate assessment with the correction. It cannot turn a resource-stopped attempt into a pass.
+The [retained review](../tests/agent-eval/opencode/results/2026-10-02-guided/coverage-review.json)
+recovers three Kimi answers: ordinary-tools retry, guided cache and guided key rotation. The reviewed
+total is six passes, six citation failures and six timeouts; the original three passes remain in
+`report.json`. This corrects evidence accounting without showing improved model reasoning or a
+benefit from `fr`. No additional model call produced these reviewed results.

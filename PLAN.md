@@ -44,9 +44,18 @@ The [native OpenCode rehearsal](docs/opencode-native-tools.md) removes the one-J
 response requirement that interrupted earlier Kimi/GLM trials. It preserves source and factual
 checks. Treat those reviewed tasks as integration tests, and report whether the models
 use `fr`. They do not close the independent comparison or delegation requirements below.
-The retained native trials have eight passes out of twelve after an auditor correction.
-Only one of six `fr` arms used the CLI. Next test whether public guidance helps agents choose
-useful operations, while retaining ordinary-tool baselines and reporting instruction costs.
+The first native trials have eight reviewed passes out of twelve. The subsequent
+[compact exploration comparison](tests/agent-eval/opencode/results/2026-10-02-guided/README.md)
+originally had three passes, nine citation failures and six timeouts across eighteen attempts.
+Correcting source coverage across adjacent retrieved pages recovers three answers, for six reviewed passes.
+Original records remain unchanged. All completed answers had correct factual values. Only two of twelve attempts with `fr` available called it;
+both had public guidance and used names only. We measured guidance costs without establishing a benefit.
+
+The next implementation chunk should remove avoidable evidence-copying and ordinary-read costs.
+Allow a bounded first read at a known byte offset in an immutable snapshot. Retain hash checks for
+continuations. Support references to disclosed source without requiring the model to copy it.
+Keep exact source identity and the same required factual anchors. Freeze a new protocol, preserve
+these failures, and then add independently graded change tasks; do not tune production for these repositories.
 
 1. Extend the existing evaluation runner to compare ordinary tools with the `fr` CLI on the same
    tasks, separately for Sonnet and Luna. Record all parent and child agent costs. Keep tasks,
