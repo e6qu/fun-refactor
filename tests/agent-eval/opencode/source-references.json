@@ -1,0 +1,24 @@
+{
+  "schema": "fr-opencode-rehearsal-1",
+  "models": [
+    "kimi-code-plan-global/k3",
+    "zai-coding-plan/glm-5.3-flash"
+  ],
+  "seed": 415,
+  "repetitions": 1,
+  "tasks": [
+    {
+      "id": "cache-expiration",
+      "kind": "explain",
+      "source": "repositories/cachetools.tar.gz",
+      "source_format": "tar.gz",
+      "archive_sha256": "4d378d61ebf7aa4d11aedad0b2d9160110ea4434b7180799ac69c51b0c029466",
+      "repository": "tkem/cachetools",
+      "revision": "3c082c654c2804b9354e4b62dbd2994f1aac464d",
+      "grader": "../../../tools/agent_eval/explanation_grade.py",
+      "criteria": "cache-expiration-criteria.json",
+      "provenance": "Complete pinned upstream repository, new to this rehearsal corpus. Developer-reviewed factual rubric; no claim about model training exposure.",
+      "requirement": "Explain TTLCache behavior in this repository, using its standard unmodified classes and a monotonic timer. At the exact expiration time, is an entry visible through membership? Does an expired lookup physically remove its stored value? Does assigning an existing live entry refresh its expiration? Does expire() report removed key/value pairs? Finish with an answer object whose keys are visible_at_deadline, expired_read_removes_storage, assignment_refreshes_deadline, and expire_reports_removed_pairs. Each value must be an object containing a boolean value and citations to exact source you obtained through tools. Cite source_refs IDs or exact {path, quote} objects. Include the operative statement and any helper needed to justify the claim. Find the files yourself. Do not modify code. This is a source explanation, not a proof."
+    }
+  ]
+}
