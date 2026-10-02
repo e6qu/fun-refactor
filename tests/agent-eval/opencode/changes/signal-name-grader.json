@@ -1,0 +1,74 @@
+{
+  "schema": "fr-stdio-grader-1",
+  "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+  "command": [
+    "python3",
+    "-I",
+    "-B",
+    "-c",
+    "import json, sys\nsys.path.insert(0, \"/workspace/src\")\nfrom blinker import Namespace, signal\ncase = json.load(sys.stdin)\nclass Name(str): pass\nclass Poison:\n    def __hash__(self): raise RuntimeError(\"lookup happened before validation\")\nif case[\"mode\"] == \"invalid\":\n    name = {\"integer\": 7, \"bytes\": b\"event\", \"none\": None, \"list\": [], \"poison\": Poison()}[case[\"form\"]]\n    namespace = Namespace()\n    if case[\"form\"] == \"integer\": namespace[7] = \"existing invalid key\"\n    before = dict(namespace)\n    try:\n        namespace.signal(name)\n    except Exception as error:\n        result = type(error).__name__\n    else:\n        result = \"accepted\"\n    print(json.dumps([result, namespace == before], separators=(\",\", \":\")))\nelif case[\"mode\"] == \"alias\":\n    try: signal(7)\n    except Exception as error: print(type(error).__name__)\n    else: print(\"accepted\")\nelse:\n    name = {\"ordinary\": \"event\", \"empty\": \"\", \"subclass\": Name(\"event\")}[case[\"form\"]]\n    namespace = Namespace()\n    first = namespace.signal(name, doc=\"original\")\n    second = namespace.signal(str(name), doc=\"replacement\")\n    receiver = lambda sender: \"received\"\n    first.connect(receiver, weak=False)\n    checks = [first is second, first.name == name, first.__doc__ == \"original\",\n              second.send(\"sender\") == [(receiver, \"received\")], namespace.signal(\"other\") is not first]\n    print(json.dumps(checks, separators=(\",\", \":\")))\n"
+  ],
+  "limits": {
+    "wall_seconds": 3,
+    "memory_bytes": 67108864,
+    "scratch_bytes": 1048576,
+    "output_bytes": 4096,
+    "candidate_bytes": 1048576
+  },
+  "cases": [
+    {
+      "id": "invalid-integer",
+      "stdin": "{\"mode\": \"invalid\", \"form\": \"integer\"}",
+      "stdout": "[\"TypeError\",true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "invalid-bytes",
+      "stdin": "{\"mode\": \"invalid\", \"form\": \"bytes\"}",
+      "stdout": "[\"TypeError\",true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "invalid-none",
+      "stdin": "{\"mode\": \"invalid\", \"form\": \"none\"}",
+      "stdout": "[\"TypeError\",true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "invalid-list",
+      "stdin": "{\"mode\": \"invalid\", \"form\": \"list\"}",
+      "stdout": "[\"TypeError\",true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "invalid-poison",
+      "stdin": "{\"mode\": \"invalid\", \"form\": \"poison\"}",
+      "stdout": "[\"TypeError\",true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "module-alias",
+      "stdin": "{\"mode\":\"alias\"}",
+      "stdout": "TypeError\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-ordinary",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"ordinary\"}",
+      "stdout": "[true,true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-empty",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"empty\"}",
+      "stdout": "[true,true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-subclass",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"subclass\"}",
+      "stdout": "[true,true,true,true,true]\n",
+      "exit_code": 0
+    }
+  ]
+}

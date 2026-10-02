@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 
+from . import native_session
 from . import source_coverage
 from . import native_discovery as discovery
 from . import native_references as refs
@@ -25,7 +26,7 @@ AGENT = "fr-native"
 LIMITS = {"steps": 12, "tool_calls": 24, "wall_seconds": 120,
           "cpu_seconds": 20, "rss_bytes": 768 * 1024**2,
           "disk_bytes": 16 * 1024**2, "transcript_bytes": 1024**2}
-IMPLEMENTATION = (*legacy.IMPLEMENTATION, "native_mcp.py", "opencode_native.py", "explanation_grade.py", "native_discovery.py", "source_coverage.py", "native_references.py")
+IMPLEMENTATION = (*legacy.IMPLEMENTATION, "native_mcp.py", "opencode_native.py", "explanation_grade.py", "native_discovery.py", "source_coverage.py", "native_references.py", "native_session.py")
 PROMPT = """Investigate the task using the provided native tools, then call submit_answer once.
 Do not write JSON actions in prose. Use list/search/read tools to discover source.
 If fr tools are available, use their bounded maps, signatures and source views when useful.
@@ -118,60 +119,7 @@ def audit(raw, exported, rows, task, cell, plan=None):
     protocol = refs if plan and plan.get("tools_schema_version") == 4 else discovery
     prompt = discovery.prompt(plan, cell["arm"])
     tools = plan["tools"][cell["arm"]] if plan else mcp.schemas(cell["arm"])
-    events = [mcp.decode(line) for line in raw.splitlines() if line.strip()]
-    require(events and events[0]["type"] == "step_start" and events[-1]["type"] == "step_finish", "incomplete native stream")
-    session = exported["info"]["id"]
-    require(re.fullmatch(r"ses_[A-Za-z0-9]+", session) is not None, "invalid session")
-    require(all(row.get("sessionID") == session for row in events), "mixed sessions")
-    require(all(row["type"] in {"step_start", "step_finish", "tool_use", "text", "reasoning"} for row in events), "unexpected native event")
-    users = [row for row in exported["messages"] if row["info"]["role"] == "user"]
-    require(len(users) == 1 and exported["messages"][0] is users[0], "unexpected user messages")
-    require(all(part["type"] == "text" for part in users[0]["parts"])
-            and "".join(part["text"] for part in users[0]["parts"]) == prompt + "\nTask:\n" + task["requirement"], "exported task prompt differs")
-    assistants = [row for row in exported["messages"] if row["info"]["role"] == "assistant"]
-    require(len(exported["messages"]) == len(assistants) + 1, "unexpected message role")
-    finishes = [row["part"] for row in events if row["type"] == "step_finish"]
-    starts = [row["part"] for row in events if row["type"] == "step_start"]
-    require(0 < len(assistants) == len(finishes) == len(starts) <= LIMITS["steps"], "assistant count differs")
-    ids, tokens, cost = [], [], 0
-    for index, (message, finish, start) in enumerate(zip(assistants, finishes, starts)):
-        info = message["info"]
-        require(all(part["messageID"] == info["id"] for part in message["parts"]), "exported part belongs to another message")
-        require(info["id"] == start["messageID"] == finish["messageID"] and info["id"] not in ids, "message identity differs")
-        require(info["providerID"] + "/" + info["modelID"] == cell["model"], "model differs")
-        require(info.get("finish") == finish["reason"] and finish["reason"] in {"tool-calls", "stop"}, "unfinished model response")
-        require(info["tokens"] == finish["tokens"] and info["cost"] == finish["cost"], "usage differs")
-        usage = info["tokens"]
-        for count in [usage["input"], usage["output"], usage["reasoning"], usage["cache"]["read"], usage["cache"]["write"]]:
-            number(count, "tokens", integer=True)
-        cost += number(info["cost"], "reported cost")
-        ids.append(info["id"])
-        tokens.append(usage)
-    require(finishes[-1]["reason"] == "stop", "native session did not finish")
-    require(all(row["part"]["messageID"] in ids for row in events), "unaccounted message")
-    emitted = [row["part"] for row in events if row["type"] == "tool_use"]
-    saved = [part for message in assistants for part in message["parts"] if part["type"] == "tool"]
-    require(len(emitted) == len(saved) == len(rows) <= mcp.MAX_CALLS, "tool call count differs")
-    require(len({part["callID"] for part in saved}) == len(saved), "duplicate call identity")
-    by_id = {part["callID"]: part for part in saved}
-    require(len({part["callID"] for part in emitted}) == len(emitted) and {part["callID"] for part in emitted} == set(by_id), "stream call identities differ")
-    for part in emitted:
-        require(part == by_id.get(part["callID"]), "stream and export tool differ")
-    # Match by arguments and exact result, allowing parallel calls to complete in
-    # a different order. Duplicate calls still consume distinct host records.
-    remaining = list(saved)
-    matched = []
-    for sequence, row in enumerate(rows, 1):
-        require(row["sequence"] == sequence, "host sequence differs")
-        response = {"content": [{"type": "text", "text": encode(row["result"]).decode()}], "isError": "error" in row["result"]}
-        require(row["response"] == response, "host response differs")
-        match = next((part for part in remaining if part["tool"] == "rehearsal_" + row["params"]["name"]
-                      and part["state"].get("input") == row["params"].get("arguments", {})
-                      and part["state"].get("status") == ("error" if response["isError"] else "completed")
-                      and part["state"].get("error" if response["isError"] else "output", "").strip() == response["content"][0]["text"]), None)
-        require(match is not None, "host result absent from native export")
-        remaining.remove(match)
-        matched.append((row, ids.index(match["messageID"])))
+    matched, usage = native_session.audit(raw, exported, rows, prompt, task, cell)
     submits = [(row, index) for row, index in matched if row["params"]["name"] == "submit_answer" and "error" not in row["result"]]
     require(len(submits) == 1, "expected exactly one native submission")
     submission, submitted_at = submits[0]
@@ -229,7 +177,7 @@ def audit(raw, exported, rows, task, cell, plan=None):
             for claim in answer.values() if isinstance(claim, dict) and isinstance(claim.get("citations"), list)
             for citation in claim["citations"])
     return {"answer": submission["params"]["arguments"]["answer"], "disclosed": spans,
-            "metrics": metrics, "tokens": tokens, "reported_cost": cost, "session": session}
+            "metrics": metrics, **usage}
 
 
 def run_attempt(frozen, cell_id, base, output, binary, opencode):

@@ -216,3 +216,47 @@ has two passes and four 120-second timeouts. Both passes used source IDs. Guided
 behavior and a continuation; the other passing attempt used only ordinary tools. The guided pass
 delivered less source but produced more total tool output. This pilot does not establish an efficiency benefit.
 The incomplete attempts have no complete usage accounting. The report retains every original failure.
+
+## Make changes and grade the submitted code separately
+
+`tools/native-changes.py` collects native OpenCode edits without executing candidate code locally.
+Both arms have list, search, bounded reads and exact replacements. The `fr` arm also has compact
+public discovery. An edit must name an existing UTF-8 file, supply its current whole-file hash,
+and replace one unique exact string. Stale hashes, ambiguous matches, additions, deletions and
+workspace growth beyond 1 MiB refuse. This comparison measures discovery plus ordinary edits;
+it does not yet compare public `fr author` edit routes or delegated work.
+
+Each attempt owns a stable private source path so public handles survive successive reads.
+An accepted edit refreshes that snapshot and discards its old caches. The snapshot is inside the
+monitored attempt directory. It is removed after the process group stops; transcripts and the
+submitted regular-file bundle remain. No candidate code, public tests or private tests run locally.
+OpenCode keeps the existing 120-second attempt, 12-step, 24-call and sampled process limits.
+
+`submit_patch` binds the original and resulting snapshots and lists changed paths. A completed
+collection is `submitted`, never `passed`. Replay checks the native stream, exported model/session
+identity and ordered host calls, then reconstructs every accepted edit and verifies the submitted
+files. It counts edit arguments, source overlap and tool results separately. CLI token counters
+remain reported usage; full context, billing and host/cache costs remain incomplete.
+
+```sh
+python3 tools/native-changes.py freeze tests/agent-eval/opencode/changes/manifest.json --binary /path/to/fr
+python3 tools/native-changes.py run PLAN CELL OUTPUT --binary /path/to/fr --opencode /path/to/opencode --confirm-agent-spend
+python3 tools/native-changes.py replay PLAN OUTPUT
+```
+
+Use the workstation guard around local commands. Commit the plan and exact runner before calls.
+Collection exposes only source, requirements and allowed tools to the model. Private grader code,
+case inputs and expected results stay outside that tool surface. They are retained in the plan for
+reproducibility, not claimed to be confidential after publication.
+
+On GitHub, `grade PLAN OUTPUT` runs the pinned black-box cases through the existing network-free,
+read-only, unprivileged Docker grader. The image digest, command, cases and limits are frozen before
+collection. Grading uses the exact frozen runner and leaves original attempt records unchanged.
+CI uploads the resulting grades separately. Agent failures remain results; broken grader controls,
+changed evidence and invalid submissions fail CI.
+
+The first task pack contains two reviewed tasks: empty signing-key collections in `itsdangerous`
+and signal-name validation in `blinker`. The former project appeared in earlier explanations;
+the latter is new to these trials. Each grader has an unchanged-source control, a reference fix and
+three wrong-fix controls. The checks examine behavior, not patch equality. These integration cases
+do not close independent task review, unfamiliar-project generalization or efficiency requirements.

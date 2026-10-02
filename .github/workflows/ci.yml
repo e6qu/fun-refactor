@@ -46,6 +46,13 @@ jobs:
       - run: bash tools/check.sh study
       - name: Check pinned explanation behavior independently of the rubric
         run: python3 tools/check-explanation-repositories.py
+      - name: Check code-change graders and retained submissions
+        run: python3 tools/check-code-change-trials.py
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-code-change-grades
+          path: target/agent-change-grades/*.json
 
   # A pull request is squash-merged, so its title becomes the subject of the one
   # commit that lands on `main`. `release-please` reads those subjects to decide
