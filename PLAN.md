@@ -65,11 +65,13 @@ baseline, reference and wrong-fix controls check their graders. See the
 They are reviewed integration cases, not an independently reviewed comparison.
 
 The [eight-attempt collection](tests/agent-eval/opencode/results/2026-10-02-code-changes/README.md)
-retains seven replay-verified submissions and one timeout. None called fr. Behavior grading is
-separate and pending; submission counts do not establish correctness or efficiency.
+retains seven behavior passes and one timeout. Separate GitHub containers checked every submitted
+patch against the frozen cases; baseline, reference and wrong-fix controls passed. None called fr.
+These bounded behavior checks do not establish an efficiency benefit or general correctness.
 
-Next assess the frozen code-change trials, then select independently reviewed unfamiliar
-tasks. Freeze tasks, allowed tools, budgets and private behavior checks before model calls. Keep grading on GitHub,
+Next select independently reviewed unfamiliar tasks that require investigation across code, and
+compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private
+behavior checks before model calls. Keep grading on GitHub,
 ordinary tools available in every arm, and all failed attempts. Measure total tool/context costs,
 including fr metadata and delegation, rather than source bytes alone. Preserve these reviewed
 integration cases without tuning production for their repositories.

@@ -13,7 +13,18 @@ Each attempt retains the existing 120-second wall, 20-second sampled CPU, 768 Mi
 
 Behavior grading runs only on GitHub using the frozen image, cases and runner.
 A submitted patch is not a passing task. Seven submissions replay successfully; one GLM attempt timed out.
-No attempt called fr, including the retained partial host log. Behavior grading is separate and pending.
+No attempt called fr, including the retained partial host log.
+
+Separate [GitHub grading](https://github.com/e6qu/fun-refactor/actions/runs/36988560398)
+passed all seven submitted patches: ten cases per signing-key submission and nine per signal-name
+submission. The timed-out attempt remains failed. Both unchanged-source controls failed, both
+reference fixes passed, and all six deliberately wrong fixes failed as expected. The job finished
+in 2 minutes 51 seconds, including the other study tests.
+
+`github-grades.json` and `github-controls.json` retain those results; `github-grading.json` binds
+their workflow, tested commit and verified candidate identities. Original attempt records and the
+collection report remain unchanged. Their pending grade field describes collection, not a later
+behavior verdict. CI regrades the submissions and checks agreement with the retained outcomes.
 
 | Task | Model | Arm | Collection | Seconds | Calls | Edits |
 |---|---|---|---|---:|---:|---:|

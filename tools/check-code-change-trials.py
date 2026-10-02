@@ -60,6 +60,13 @@ def main():
             "grade", str(cohort / "plan.json"), str(cohort / "attempts")], b"", destination, 120, 4 * 1024**2)
         require(process["exit_code"] == 0 and not process["stop_reason"], "frozen cohort grading failed")
         report = json.loads(raw)
+        retained = cohort / "github-grades.json"
+        if retained.exists():
+            def verdicts(value):
+                return [(r["cell"], r["outcome"], r.get("submission_sha256"),
+                         [(c["id"], c["passed"]) for c in r.get("grade", {}).get("cases", [])])
+                        for r in value["outcomes"]]
+            require(verdicts(report) == verdicts(load(retained)), "retained behavior outcomes differ from fresh grading")
         (destination / (cohort.name + ".json")).write_bytes(encode(report))
         print(json.dumps({"cohort": cohort.name, "passed": report["passed"],
                           "outcomes": [r["outcome"] for r in report["outcomes"]]}))

@@ -108,9 +108,11 @@ tools. The guided run delivered 6,784 source bytes but 19,736 total tool-result 
 pass delivered 9,119 source bytes and 14,644 total tool-result bytes. Source bytes alone cannot
 establish context efficiency. Required factual anchors and historical records remain unchanged.
 Native change collection now retains exact submissions for separate GitHub behavior grading.
-The first eight attempts produced seven replay-verified submissions and one timeout across two
-reviewed tasks. None called fr, including the partial timeout log. Correctness awaits the separate
-grader; tool availability alone cannot establish a benefit. Next independently review tasks and
+The first eight attempts produced seven behavior passes and one timeout across two reviewed tasks.
+Separate GitHub containers checked each submitted patch against the frozen cases, with baseline,
+reference and wrong-fix controls validated. None called fr, including the partial timeout log.
+These bounded cases do not establish general correctness; tool availability alone cannot establish
+a benefit. Next independently review tasks and
 graders, and measure total costs, including metadata and handoffs.
 
 The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.
