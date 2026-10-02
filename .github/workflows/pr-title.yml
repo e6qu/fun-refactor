@@ -1,0 +1,60 @@
+name: Pull request title
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: title-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # A pull request is squash-merged, so its title becomes the subject of the one
+  # commit that lands on `main`. `release-please` reads those subjects to decide
+  # the next version and to write the changelog. A subject it cannot classify is
+  # not an error anywhere: the release simply never mentions the change, and the
+  # version never moves. That is the silent failure this job refuses to allow.
+  #
+  # Written out rather than pulled from an action, because the rule is nine lines
+  # and a third-party action here would run on every pull request with the
+  # repository's token.
+  title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the title says what kind of change this is
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          # type(optional scope)!: subject
+          pattern='^(feat|fix|perf|refactor|docs|test|build|ci|chore|revert)(\([a-z0-9./-]+\))?!?: .+'
+          if printf '%s' "$TITLE" | grep -Eq "$pattern"; then
+            echo "title: $TITLE"
+            exit 0
+          fi
+          cat >&2 <<MESSAGE
+          The title of this pull request is:
+
+            $TITLE
+
+          A squash merge writes that as the commit subject, and the release is
+          built from those subjects. Start it with the kind of change it is:
+
+            feat:     a capability that was not there before, bumps the minor
+            fix:      a defect that was reported, bumps the patch
+            revert:   an earlier change taken back
+            perf:     the same answer, arrived at faster
+            refactor: the same behaviour, differently arranged
+            docs:     a document, and nothing a program reads
+            test:     a gate, and nothing it gates
+            build:    the toolchain, the manifest, the packaging
+            ci:       a workflow
+            chore:    housekeeping that changes nothing anybody runs
+
+          A scope in brackets narrows it, as in "fix(transpile): ...". A trailing
+          "!" or a "BREAKING CHANGE:" footer means the change breaks something;
+          under 1.0 that bumps the minor, and after it the major.
+          MESSAGE
+          exit 1
+
