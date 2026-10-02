@@ -15,6 +15,11 @@ cargo run --locked --features cli -- --version
 
 The check script defines the same gates as CI. The default and WASM lanes run on pull requests.
 The deep lane runs repository-scale audits, every Lean case and external consumer replays.
+GitHub splits the command-agreement tests into six shards and runs the other audit suites and
+external replay cohorts separately. Each job has a 15-minute limit; runner queue time can make the
+whole workflow take longer. The final job requires every discovered audit test exactly once,
+matching source revisions, and successful external replays. `check.sh deep` retains the full
+serial gate for machines with sufficient resources.
 
 ```sh
 PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
