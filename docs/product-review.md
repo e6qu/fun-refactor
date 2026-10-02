@@ -112,7 +112,11 @@ The first eight attempts produced seven behavior passes and one timeout across t
 Separate GitHub containers checked each submitted patch against the frozen cases, with baseline,
 reference and wrong-fix controls validated. None called fr, including the partial timeout log.
 These bounded cases do not establish general correctness; tool availability alone cannot establish
-a benefit. Next independently review tasks and
+a benefit. A subsequent four-attempt pilot added optional public body previews, reviewed history
+application and usage guidance on the reused signal-name task. It retained three submissions and
+one timeout, with behavior grading pending. Again, no attempt used fr. Added instructions and
+tool schemas have a measured cost; these tasks still provide no evidence that the edit route helps.
+Next independently review tasks and
 graders, and measure total costs, including metadata and handoffs.
 
 The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.

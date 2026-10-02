@@ -227,7 +227,7 @@ workspace growth beyond 1 MiB refuse. The original protocol measures discovery p
 edits. An optional second protocol adds public authoring; neither protocol offers delegation.
 
 Each attempt owns a stable private source path so public handles survive successive reads.
-An accepted edit refreshes that snapshot and discards its old caches. The snapshot is inside the
+An ordinary replacement refreshes that snapshot and discards its old caches. The snapshot is inside the
 monitored attempt directory. It is removed after the process group stops; transcripts and the
 submitted regular-file bundle remain. No candidate code, public tests or private tests run locally.
 OpenCode keeps the existing 120-second attempt, 12-step, 24-call and sampled process limits.

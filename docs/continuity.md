@@ -60,6 +60,8 @@ No attempt called fr; these results do not establish an efficiency benefit.
 An optional native protocol now exposes public body previews and reviewed history application.
 Ordinary edits remain available in both arms. Byte replay, real CLI controls and separate behavior
 grading have distinct roles; none closes independent task review or complete context accounting.
+Its four-attempt pilot retained three submissions and one timeout; no attempt used fr. Keep
+that lack of adoption visible. Behavior grading is pending; do not label submissions as passes.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

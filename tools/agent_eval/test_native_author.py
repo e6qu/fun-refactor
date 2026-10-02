@@ -11,7 +11,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import native_author as author, native_changes as changes
 from agent_eval import opencode_changes as runner
-from agent_eval.study import digest, encode
+from agent_eval.study import digest, encode, load
 from agent_eval.test_native_changes import FILES, edit, fixture, plan
 
 HANDLE = "frp1:" + "a" * 32 + ":1"
@@ -56,6 +56,14 @@ class FakeFr:
 
 
 class PublicEdits(unittest.TestCase):
+    def test_retained_public_edit_pilot_replays_with_its_timeout_and_no_fr_adoption(self):
+        root = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode/results/2026-10-02-public-edit-code-changes"
+        report = runner.replay(load(root / "plan.json"), root / "attempts")
+        self.assertEqual(report, load(root / "collection-report.json"))
+        self.assertEqual(report["submitted"], 3)
+        self.assertEqual([r["status"] for r in report["attempts"]], ["submitted", "submitted", "submitted", "failed"])
+        self.assertTrue(all(r["audit"]["metrics"]["fr_requests"] == 0 for r in report["attempts"] if r["status"] == "submitted"))
+
     def machine(self, **kwargs):
         machine = changes.Machine(FILES, "fr", execute=FakeFr(), version=2, **kwargs)
         self.addCleanup(machine.close)
