@@ -224,7 +224,7 @@ Both arms have list, search, bounded reads and exact replacements. The `fr` arm 
 public discovery. An edit must name an existing UTF-8 file, supply its current whole-file hash,
 and replace one unique exact string. Stale hashes, ambiguous matches, additions, deletions and
 workspace growth beyond 1 MiB refuse. The original protocol measures discovery plus ordinary
-edits. An optional second protocol adds public authoring; neither protocol offers delegation.
+edits. Optional protocols add public authoring and isolated test feedback. None offers delegation.
 
 Each attempt owns a stable private source path so public handles survive successive reads.
 An ordinary replacement refreshes that snapshot and discards its old caches. The snapshot is inside the
@@ -297,6 +297,43 @@ Python and Rust controls exercise the public CLI on GitHub. Behavior grading sti
 Author output and edit arguments count toward total disclosure. Source-page counters exclude
 source repeated in diffs, so `source_disclosure_complete` remains false; do not treat those counters
 as complete source or context cost.
+
+### Run public checks before submitting
+
+Freeze with `--public-checks CHECKS.json` to enable protocol 3. The JSON object maps every task ID
+to one public check definition using the existing isolated-grader format. Each definition has a
+pinned image, command, one case and explicit limits. A command may check several assertions.
+Keep this definition separate from the private grader. Both arms receive `describe_checks` and
+`run_checks`; the fr arm also keeps public body previews and reviewed application.
+
+An agent can inspect the check, run it, change the source and run it once more. Every result names
+the exact source snapshot and check definition. Editing makes earlier feedback stale. Submission
+records the latest status and whether it still matches the submitted files. Public success never
+changes a submission into a behavior pass; separate private grading remains required.
+
+This protocol runs only on Linux GitHub runners with a fresh, prepared systemd slice. Print its
+unit with the frozen runner's `scope-unit PLAN frstudy<32 hex digits>.slice` command. The operator
+installs and starts that unit, grants the runner access to its `cgroup.kill`, and passes the same
+name to `run --container-slice NAME`. Use a new slice for every attempt. Preparation follows the
+[study container controls](agent-study.md); the CLI refuses missing or previously used slices.
+
+The existing 120-second attempt deadline includes container preflight and check calls. Of the
+20-second CPU allowance, 10 seconds are reserved for both public checks together; version
+detection, OpenCode and export share the remaining 10 sampled seconds. The container slice has
+128 MiB memory, no swap, 32 processes and half a CPU core. Each check also has at most 10 seconds
+wall time, 1 MiB scratch and 2,048 bytes of captured output. The candidate limit stays 1 MiB.
+Containers cannot write source, access the network or read host files outside their mounts.
+
+The parent collector monitors containers even when OpenCode's MCP child exits. It stops leftover
+processes and removes only containers labeled for this attempt. Resource stops and cleanup failures
+fail collection. Container counters are retained separately from sampled agent-process counters;
+neither includes complete host, Docker daemon, disk or cache costs.
+
+Offline replay checks identities, output hashes, exit status, verdicts, call limits and stale
+feedback. It does not execute candidate code again. GitHub controls exercise failure, repair,
+success, isolation, the actual MCP child and stranded-container cleanup. Local controls use a fake
+backend without executing candidate code. No new live-agent trial is claimed by these controls;
+independent task selection and an efficiency comparison remain open.
 
 ## Count work from failed attempts too
 

@@ -86,6 +86,11 @@ failures used 8 and 12 tool calls; they are not zero-cost attempts. Full token/b
 host/cache costs and independent task review remain open. The reporter checks grade identities
 and pass conditions before submissions enter successful-pair comparisons.
 
+Optional native test feedback now lets both arms inspect a frozen public check and run it twice
+on GitHub before submission. Results bind to source snapshots; later edits make them stale.
+Shared container limits and cleanup failures are audited separately from private behavior grading.
+Scripted controls cover repair and containment, but no live-agent benefit is established.
+
 Next select independently reviewed unfamiliar tasks that require investigation across code, and
 compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private
 behavior checks before model calls. Keep grading on GitHub,

@@ -120,6 +120,9 @@ The [combined cost report](native-change-outcomes.md) includes observed timeout 
 unknown totals explicit. The earlier GLM fr-arm timeout accounts for 8 calls and 19,095 result bytes;
 including it gives 227.4 collection seconds per behavior pass in that model/arm group. This is
 collection time on two reviewed tasks, not complete task cost or an estimate of general performance.
+The next optional protocol adds public check feedback before submission in both arms. It retains
+snapshot identity, stale-result status and shared container resource evidence. Scripted controls
+test failure, repair and isolation; no new agent cohort or efficiency advantage is claimed.
 Next independently review tasks and
 graders, and measure total costs, including metadata and handoffs.
 
