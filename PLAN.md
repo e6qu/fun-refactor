@@ -79,6 +79,12 @@ retained three submissions and one timeout on the reused signal-name task. None 
 despite the extra guide and tools. GitHub behavior grading is pending. This is a usability
 integration check, not evidence of an efficiency advantage or an independent comparison.
 
+The [combined outcome report](docs/native-change-outcomes.md) now includes observed work from
+both timeouts and separates host-produced results from native-stream confirmations. Earlier
+failures used 8 and 12 tool calls; they are not zero-cost attempts. Full token/billing totals,
+host/cache costs and independent task review remain open. The reporter checks grade identities
+and pass conditions before submissions enter successful-pair comparisons.
+
 Next select independently reviewed unfamiliar tasks that require investigation across code, and
 compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private
 behavior checks before model calls. Keep grading on GitHub,

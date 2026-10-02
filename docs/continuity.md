@@ -62,6 +62,12 @@ Ordinary edits remain available in both arms. Byte replay, real CLI controls and
 grading have distinct roles; none closes independent task review or complete context accounting.
 Its four-attempt pilot retained three submissions and one timeout; no attempt used fr. Keep
 that lack of adoption visible. Behavior grading is pending; do not label submissions as passes.
+The [combined report](native-change-outcomes.md) preserves failed-attempt work, partial CLI usage,
+resource samples and grade identities. It separates produced tool output from native-stream
+confirmations. Unknown totals remain unknown; neither these reviewed tasks nor their cost tables
+close independent task selection, complete accounting or efficiency requirements.
+Future native collectors also share one sampled CPU allowance across their subprocesses. Version
+detection and export no longer receive fresh allowances. Historical runners and records stay intact.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

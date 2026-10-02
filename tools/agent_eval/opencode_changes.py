@@ -117,11 +117,12 @@ def run_attempt(frozen, cell_id, output, binary, opencode):
             require(remaining > 0, "attempt wall budget exhausted")
             out, err = io.BytesIO(), io.BytesIO()
             result = bounded_run(command, data, out, err, directory, wall_seconds=remaining,
-                cpu_limit_seconds=LIMITS["cpu_seconds"], rss_bytes=LIMITS["rss_bytes"],
+                cpu_limit_seconds=native.cpu_remaining(processes), rss_bytes=LIMITS["rss_bytes"],
                 disk_bytes=LIMITS["disk_bytes"], transcript_bytes=LIMITS["transcript_bytes"], env=env, cwd=isolated)
             (directory / (name + ".stdout")).write_bytes(out.getvalue())
             (directory / (name + ".stderr")).write_bytes(err.getvalue())
             processes.append({"name": name, **result})
+            native.cpu_remaining(processes, allow_zero=True)
             require(disk_size(directory) <= LIMITS["disk_bytes"], "retained attempt exceeds disk budget")
             require(result["exit_code"] == 0 and result["stop_reason"] is None, f"{name} failed: {result['stop_reason'] or result['exit_code']}")
             return out.getvalue()

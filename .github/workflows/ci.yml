@@ -48,11 +48,17 @@ jobs:
         run: python3 tools/check-explanation-repositories.py
       - name: Check code-change graders and retained submissions
         run: python3 tools/check-code-change-trials.py
+      - name: Report all native attempts and observed costs
+        run: >-
+          python3 tools/native-change-report.py tests/agent-eval/opencode/results/*-code-changes
+          --grades-dir target/agent-change-grades
+          --json target/agent-change-grades/comparison.json
+          --markdown target/agent-change-grades/comparison.md
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: native-code-change-grades
-          path: target/agent-change-grades/*.json
+          path: target/agent-change-grades/*
 
   # Browser feature checks run alongside the native shards.
   check:

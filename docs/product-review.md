@@ -116,6 +116,10 @@ a benefit. A subsequent four-attempt pilot added optional public body previews, 
 application and usage guidance on the reused signal-name task. It retained three submissions and
 one timeout, with behavior grading pending. Again, no attempt used fr. Added instructions and
 tool schemas have a measured cost; these tasks still provide no evidence that the edit route helps.
+The [combined cost report](native-change-outcomes.md) includes observed timeout work and keeps
+unknown totals explicit. The earlier GLM fr-arm timeout accounts for 8 calls and 19,095 result bytes;
+including it gives 227.4 collection seconds per behavior pass in that model/arm group. This is
+collection time on two reviewed tasks, not complete task cost or an estimate of general performance.
 Next independently review tasks and
 graders, and measure total costs, including metadata and handoffs.
 
