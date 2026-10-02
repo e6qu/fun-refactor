@@ -43,7 +43,8 @@ three pinned Python projects with factual and retrieved-source checks; this is a
 not the independent pilot. The [native tool adapter](opencode-native-tools.md) tests the same tasks
 through OpenCode tool calls, avoiding the one-JSON-action response requirement.
 The later compact/guided comparison retained eighteen attempts: three passes, nine citation failures
-and six timeouts. All completed factual values were correct. Two guided attempts used `fr` names;
+and six timeouts originally. A separate contiguous-source review recovers three answers, for six passes.
+All completed factual values were correct. Two guided attempts used `fr` names;
 none used behavior continuations. Next simplify bounded reads and disclosed-source references while
 preserving source identity, factual anchors and historical verdicts. Then add independent change tasks.
 Select independent tasks, extend proof grading, and collect complete context/tool

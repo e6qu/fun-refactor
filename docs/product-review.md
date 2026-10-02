@@ -97,8 +97,9 @@ The [native OpenCode adapter](opencode-native-tools.md) addresses the observed J
 failures. Tool availability and actual use are reported separately: an agent that uses only
 ordinary reads in the `fr` arm supplies no evidence of a benefit from `fr`.
 The native trials have eight reviewed passes out of twelve; only one of six `fr` arms used the CLI.
-The later compact exploration comparison has three passes, nine citation failures and six timeouts
-across eighteen attempts. Both observed `fr` calls came from guided attempts and stopped at names.
+The later compact exploration comparison originally had three passes, nine citation failures and six timeouts
+across eighteen attempts. A separate coverage correction recovers three answers whose exact quotations
+crossed adjacent retrieved pages. The reviewed total is six passes; original records remain unchanged. Both observed `fr` calls came from guided attempts and stopped at names.
 All completed factual values were correct; source citation checks still failed in nine attempts.
 The public excerpt added prompt bytes without an established benefit. Next simplify bounded reads
 and source references in the evaluator before adding independent change tasks. Preserve required

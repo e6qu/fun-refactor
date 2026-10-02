@@ -135,8 +135,8 @@ billing. Versions 1 and 2 keep their original prompts, schemas, records and repl
 
 The [three-arm comparison](../tests/agent-eval/opencode/results/2026-10-02-guided/README.md)
 retains eighteen attempts with `fr` 0.46.0 and OpenCode 1.18.34. It used the same reviewed repository
-tasks and fixed 120-second budget. Three passed, nine completed with citation failures, and six
-timed out. All twelve completed answers had correct factual values. This does not erase missing
+tasks and fixed 120-second budget. The original records show three passes, nine citation failures and six
+timeouts. All twelve completed answers had correct factual values. This does not erase missing
 or altered citations: the original rubric and outcomes remain unchanged.
 
 | Task | Model | Ordinary tools | Compact fr | Compact fr + guide |
@@ -149,7 +149,7 @@ or altered citations: the original rubric and outcomes remain unchanged.
 | retry-callbacks | GLM 5.3 Flash | Timeout, 120.1 s | Timeout, 120.1 s | Timeout, 120.1 s |
 
 Two of twelve attempts with `fr` available called it, both with guidance. They used names only;
-neither followed the behavior continuation or passed the full evidence rubric. This sample does
+neither followed the behavior continuation. Both failed the original single-page evidence rule. This sample does
 not show that public guidance improves success or efficiency. The earlier 0.35.0 cohort used a
 different prompt and tool surface; its eight reviewed passes out of twelve remain a separate result.
 
@@ -162,3 +162,21 @@ Next remove avoidable source-copying and read restrictions in the evaluation int
 preserving frozen source identities, required evidence and unchanged historical results. Then test
 actual changes on independent tasks. Do not expand analysis or force tool use based on these results.
 The technical status remains seven of eighteen items demonstrated and no completed milestone.
+
+
+## Correct citations across source pages
+
+The original quotation check required an entire quote inside one tool result. That rejected exact
+source across adjacent pages even when every byte had reached the model before its answer.
+New plans bind the `contiguous-source-v1` policy. Grading joins verified adjacent or consistently
+overlapping spans with the same file and content hash. Unread gaps, conflicting overlaps and changed
+identities refuse. Source from the submission's own step or a later step remains unavailable.
+Factual values, required anchors and the 16-to-2048-byte quotation bound stay the same.
+
+`report` keeps the frozen policy and original outcomes. `review --contiguous-source` writes a
+separate assessment with the correction. It cannot turn a resource-stopped attempt into a pass.
+The [retained review](../tests/agent-eval/opencode/results/2026-10-02-guided/coverage-review.json)
+recovers three Kimi answers: ordinary-tools retry, guided cache and guided key rotation. The reviewed
+total is six passes, six citation failures and six timeouts; the original three passes remain in
+`report.json`. This corrects evidence accounting without showing improved model reasoning or a
+benefit from `fr`. No additional model call produced these reviewed results.

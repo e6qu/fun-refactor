@@ -381,5 +381,90 @@ class Discovery(unittest.TestCase):
                          {"files": FILES, "requirement": "task"}, {"arm": "fr-guided", "model": "provider/model"}, plan)
 
 
+class SourceCoverage(unittest.TestCase):
+    def test_contiguous_and_overlapping_pages_preserve_utf8_without_mutation(self):
+        from agent_eval.source_coverage import contiguous
+        identity = {"path": "example.py", "sha256": "a" * 64}
+        spans = [{**identity, "start": 2, "end": 5, "text": "abc"},
+                 {**identity, "start": 0, "end": 3, "text": "éa"},
+                 {**identity, "start": 3, "end": 4, "text": "b"}]
+        before = copy.deepcopy(spans)
+        self.assertEqual(contiguous(spans), [{**identity, "start": 0, "end": 5, "text": "éabc"}])
+        self.assertEqual(spans, before)
+        for other in ({"path": "other.py"}, {"sha256": "b" * 64}, {"start": 4, "end": 7}):
+            self.assertEqual(len(contiguous([spans[1], {**spans[0], **other}])), 2)
+        with self.assertRaisesRegex(ValueError, "disagrees"):
+            contiguous([spans[1], {**spans[0], "text": "xyz"}])
+
+    def test_malformed_extents_and_excessive_coverage_refuse(self):
+        from agent_eval.source_coverage import contiguous
+        span = {"path": "example.py", "sha256": "a" * 64, "start": 0, "end": 2, "text": "é"}
+        for change in ({"start": True}, {"end": 1}, {"text": None}, {"start": -1}):
+            with self.assertRaises(ValueError):
+                contiguous([{**span, **change}])
+        with self.assertRaises(ValueError):
+            contiguous([span] * 1025)
+        with self.assertRaisesRegex(ValueError, "budget"):
+            contiguous([{**span, "text": "x" * 2048, "end": 2048}] * 513)
+
+    def test_cross_page_quote_passes_only_when_every_byte_was_available(self):
+        from agent_eval.source_coverage import POLICY
+        from agent_eval.workspace_bundle import unpack
+        import hashlib
+        raw = base64.b64decode(FILES["module.py"]["data"])
+        identity = {"path": "module.py", "sha256": hashlib.sha256(raw).hexdigest()}
+        spans = [{**identity, "start": 0, "end": 15, "text": raw[:15].decode()},
+                 {**identity, "start": 15, "end": len(raw), "text": raw[15:].decode()}]
+        payload = {"answer": {"value": {"value": 42, "citations": [{"path": "module.py", "quote": raw.decode()}]}},
+                   "criteria": {"value": {"value": 42, "evidence": [[{"path": "module.py", "contains": "return 42"}]]}},
+                   "disclosed": spans}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "source"
+            unpack(FILES, root, 1024**2)
+            self.assertFalse(native.grade(root, payload)["passed"])
+            self.assertTrue(native.grade(root, payload, POLICY)["passed"])
+            for unavailable in (spans[:1], [spans[0], {**spans[1], "start": 16, "text": raw[16:].decode()}],
+                                [spans[0], {**spans[1], "sha256": "0" * 64}],
+                                [spans[0], {**spans[1], "path": "other.py"}]):
+                self.assertFalse(native.grade(root, {**payload, "disclosed": unavailable}, POLICY)["passed"])
+            wrong = copy.deepcopy(payload)
+            wrong["answer"]["value"]["value"] = 43
+            self.assertFalse(native.grade(root, wrong, POLICY)["passed"])
+
+    def test_review_recovers_page_boundary_failures_and_preserves_originals(self):
+        from agent_eval.source_coverage import POLICY
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-guided"
+        records = sorted((root / "attempts").glob("*/record.json"))
+        before = [p.read_bytes() for p in records]
+        with patch.object(native, "bounded_run", side_effect=AssertionError("review must stay offline")):
+            review = native.review(load(root / "plan.json"), root / "attempts", POLICY)
+        self.assertEqual(review["original_passed"], 3)
+        self.assertEqual(review["reviewed_passed"], 6)
+        self.assertEqual(sum(r["reviewed_status"] == "failed" for r in review["attempts"]), 6)
+        self.assertEqual([p.read_bytes() for p in records], before)
+        self.assertEqual(native.report(load(root / "plan.json"), root / "attempts")["passed"], 3)
+
+    def test_review_error_cannot_retain_an_original_pass(self):
+        from agent_eval import source_coverage
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-guided"
+        with patch.object(source_coverage, "contiguous", side_effect=ValueError("invalid source coverage")):
+            review = native.review(load(root / "plan.json"), root / "attempts", source_coverage.POLICY)
+        self.assertEqual(review["original_passed"], 3)
+        self.assertEqual(review["reviewed_passed"], 0)
+        self.assertTrue(all(r["reviewed_status"] == "failed" for r in review["attempts"]))
+
+    def test_new_plans_bind_source_policy_and_unknown_policy_refuses(self):
+        from agent_eval.source_coverage import POLICY
+        from agent_eval.study import digest
+        manifest = ROOT / "tests/agent-eval/opencode/explanations.json"
+        frozen = native.freeze(load(manifest), manifest.parent, Path(__file__))
+        self.assertEqual(frozen["plan"]["source_policy"], POLICY)
+        native.checked(frozen)
+        frozen["plan"]["source_policy"] = "trust-unread-source"
+        frozen["sha256"] = digest(frozen["plan"])
+        with self.assertRaisesRegex(ValueError, "policy"):
+            native.checked(frozen)
+
+
 if __name__ == "__main__":
     unittest.main()

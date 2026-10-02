@@ -46,8 +46,9 @@ checks. Treat those reviewed tasks as integration tests, and report whether the 
 use `fr`. They do not close the independent comparison or delegation requirements below.
 The first native trials have eight reviewed passes out of twelve. The subsequent
 [compact exploration comparison](tests/agent-eval/opencode/results/2026-10-02-guided/README.md)
-has three passes, nine citation failures and six timeouts across eighteen attempts. All completed
-answers had correct factual values. Only two of twelve attempts with `fr` available called it;
+originally had three passes, nine citation failures and six timeouts across eighteen attempts.
+Correcting source coverage across adjacent retrieved pages recovers three answers, for six reviewed passes.
+Original records remain unchanged. All completed answers had correct factual values. Only two of twelve attempts with `fr` available called it;
 both had public guidance and used names only. We measured guidance costs without establishing a benefit.
 
 The next implementation chunk should remove avoidable evidence-copying and ordinary-read costs.

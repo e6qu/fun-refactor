@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 
+from . import source_coverage
 from . import native_discovery as discovery
 from . import native_mcp as mcp
 from . import opencode_rehearsal as legacy
@@ -23,7 +24,7 @@ AGENT = "fr-native"
 LIMITS = {"steps": 12, "tool_calls": 24, "wall_seconds": 120,
           "cpu_seconds": 20, "rss_bytes": 768 * 1024**2,
           "disk_bytes": 16 * 1024**2, "transcript_bytes": 1024**2}
-IMPLEMENTATION = (*legacy.IMPLEMENTATION, "native_mcp.py", "opencode_native.py", "explanation_grade.py", "native_discovery.py")
+IMPLEMENTATION = (*legacy.IMPLEMENTATION, "native_mcp.py", "opencode_native.py", "explanation_grade.py", "native_discovery.py", "source_coverage.py")
 PROMPT = """Investigate the task using the provided native tools, then call submit_answer once.
 Do not write JSON actions in prose. Use list/search/read tools to discover source.
 If fr tools are available, use their bounded maps, signatures and source views when useful.
@@ -36,8 +37,11 @@ A source explanation is not a proof. After submission, stop.
 """
 
 
-def grade(root, payload):
+def grade(root, payload, source_policy=None):
     require(__debug__, "native rubric grading requires Python assertions")
+    require(source_policy in (None, source_coverage.POLICY), "unsupported source evidence policy")
+    if source_policy == source_coverage.POLICY:
+        payload = {**payload, "disclosed": source_coverage.contiguous(payload["disclosed"])}
     return rubric_grade(root, payload)
 
 
@@ -51,7 +55,7 @@ def freeze(manifest, base, binary, guidance_path=None):
     require(all(t["kind"] == "explain" for t in source["plan"]["tasks"]), "native rehearsal supports explanations only")
     plan = {"schema": SCHEMA, "source_plan": source, "limits": LIMITS, "tools_schema_version": 2,
             "tools": {arm: mcp.schemas(arm) for arm in ("files", "fr")},
-            "implementation": implementation(), "prompt": PROMPT}
+            "implementation": implementation(), "prompt": PROMPT, "source_policy": source_coverage.POLICY}
     if guidance_path is not None:
         source["plan"]["cells"] = discovery.cells(manifest)
         source["sha256"] = digest(source["plan"])
@@ -64,6 +68,7 @@ def checked(frozen):
     plan = frozen["plan"]
     require(plan["schema"] == SCHEMA and digest(plan) == frozen["sha256"], "changed native plan")
     require(plan["limits"] == LIMITS, "unsupported native limits")
+    require(plan.get("source_policy") in (None, source_coverage.POLICY), "unsupported source evidence policy")
     version = plan.get("tools_schema_version", 1)
     require(type(version) is int and version in (1, 2, 3), "unsupported native tool schema")
     source = legacy.checked(plan["source_plan"])
@@ -252,7 +257,7 @@ def run_attempt(frozen, cell_id, base, output, binary, opencode):
             graded = directory / "graded"
             unpack(task["files"], graded, legacy.MAX_WORKSPACE)
             require(disk_size(directory) <= LIMITS["disk_bytes"], "retained attempt exceeds disk budget")
-            verdict = grade(graded, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]})
+            verdict = grade(graded, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, plan.get("source_policy"))
             record.update(status="completed", passed=verdict["passed"], grade=verdict,
                           audit={key: value for key, value in result.items() if key != "disclosed"})
         except (OSError, ValueError, KeyError, TypeError, UnicodeError, IndexError) as error:
@@ -292,7 +297,7 @@ def report(frozen, output):
             require({k: v for k, v in result.items() if k != "disclosed"} == record["audit"], "audit differs")
             with tempfile.TemporaryDirectory() as temporary:
                 unpack(task["files"], Path(temporary) / "source", legacy.MAX_WORKSPACE)
-                verdict = grade(Path(temporary) / "source", {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]})
+                verdict = grade(Path(temporary) / "source", {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, frozen["plan"].get("source_policy"))
             require(verdict == record["grade"] and verdict["passed"] == record["passed"], "grade differs")
             require(all(p["exit_code"] == 0 and p["stop_reason"] is None for p in record["processes"]), "completed attempt has failed process")
         records.append(record)
@@ -302,16 +307,18 @@ def report(frozen, output):
             "scope": "Native tool integration rehearsal on a reviewed corpus; no general efficiency claim."}
 
 
-def review(frozen, output):
+def review(frozen, output, source_policy=None):
     """Reassess retained transcripts without replacing the original outcomes."""
+    require(source_policy in (None, source_coverage.POLICY), "unsupported source evidence policy")
     original = report(frozen, output)
+    policy = source_policy or frozen["plan"].get("source_policy")
     source, rows = checked(frozen), []
     for record in original["attempts"]:
         row = {"cell": record["cell"], "original_status": record["status"], "original_passed": record["passed"],
                "reviewed_status": record["status"], "reviewed_passed": record["passed"],
                "reviewed_failure": record.get("failure"), "grade": record.get("grade"), "audit": record.get("audit")}
         folder = output / record["cell"]["id"]
-        if record["status"] == "failed" and all((folder / name).is_file() for name in ("export.stdout", "opencode.stdout", "tools.jsonl")):
+        if (record["status"] == "failed" or source_policy is not None and record["status"] == "completed") and all((folder / name).is_file() for name in ("export.stdout", "opencode.stdout", "tools.jsonl")):
             try:
                 require(all(p["exit_code"] == 0 and p["stop_reason"] is None for p in record["processes"]), "resource or process failure remains failed")
                 task = next(t for t in source["tasks"] if t["id"] == record["cell"]["task"])
@@ -322,13 +329,13 @@ def review(frozen, output):
                 with tempfile.TemporaryDirectory() as temporary:
                     root = Path(temporary) / "source"
                     unpack(task["files"], root, legacy.MAX_WORKSPACE)
-                    verdict = grade(root, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]})
+                    verdict = grade(root, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, policy)
                 row.update(reviewed_status="completed", reviewed_passed=verdict["passed"], reviewed_failure=None,
                            grade=verdict, audit={k: v for k, v in result.items() if k != "disclosed"})
             except (ValueError, KeyError, TypeError, OSError) as error:
-                row["reviewed_failure"] = str(error)[:512]
+                row.update(reviewed_status="failed", reviewed_passed=False, reviewed_failure=str(error)[:512])
         rows.append(row)
     return {"schema": SCHEMA, "plan_sha256": frozen["sha256"], "auditor_implementation": implementation(),
             "original_passed": original["passed"], "reviewed_passed": sum(r["reviewed_passed"] for r in rows),
-            "attempts": rows, "audit_complete": False,
+            "attempts": rows, "audit_complete": False, "source_policy": policy,
             "scope": "Post-hoc transcript review; original attempts unchanged, no new model calls or efficiency claim."}

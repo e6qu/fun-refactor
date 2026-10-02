@@ -18,11 +18,19 @@ These are development trials on previously reviewed source and rubrics, not held
 | retry-callbacks | Kimi K3 | Citation failure, 75.3 s | Citation failure, 69.4 s | Citation failure, 70.3 s |
 | retry-callbacks | GLM 5.3 Flash | Timeout, 120.1 s | Timeout, 120.1 s | Timeout, 120.1 s |
 
-Three attempts passed, nine completed with citation failures, and six reached the unchanged
+The original records show three passes, nine completed citation failures, and six stops at the unchanged
 120-second wall deadline. All twelve completed answers supplied the four correct factual values.
 The per-claim diagnostics in `summary.json` retain citation failures separately from value checks;
 they do not change the original verdicts. Failed attempts lack a complete session export, so their
 source and token totals remain unknown. Counts of recorded tool calls do not imply model delivery.
+
+The separate `coverage-review.json` corrects an overly strict source-page rule. The original grader
+required every quotation to occur in one returned page, even when the model had retrieved all its
+bytes across adjacent pages. Joining verified, contiguous coverage recovers three answers: Kimi's
+ordinary-tools retry answer, guided cache answer and guided key-rotation answer. The reviewed total
+is six passes, six citation failures and six timeouts. Required factual values, anchors and quotation
+bounds remain unchanged. Unread gaps, conflicting overlaps, different identities and later source
+cannot supply evidence. This offline correction involved no new model calls or original-record edits.
 
 Only two of twelve attempts with `fr` available called it. Both were guided Kimi attempts: one
 names lookup for `TTLCache`, and one for `Signer`. Neither followed the behavior continuation.
@@ -46,8 +54,10 @@ grading workspaces were removed. No original trial record or older cohort change
 `plan.json` binds the source snapshots, factual rubric, runner hashes, prompt, guide document and
 excerpt, schemas and binary. `runner/` retains the exact implementation used. After the trials,
 the current runner gained an early refusal for plans over 288 cells and accurate path labels for
-alternative guide files. These eighteen cells and their audit semantics are unchanged. `attempts/` keeps root artifacts and integrity manifests.
-`report.json` comes from offline replay; `summary.json` adds per-claim diagnostics and compact counts.
+alternative guide files. New plans also bind `contiguous-source-v1`; old plans retain their original
+grading policy. The separate review records the corrected policy and auditor implementation. `attempts/` keeps root artifacts and integrity manifests.
+`report.json` replays original verdicts; `summary.json` adds original per-claim diagnostics and counts.
+`coverage-review.json` records the corrected coverage review separately.
 
 From the repository root, replay without a model service:
 
@@ -57,7 +67,8 @@ python3 tools/native-rehearsal.py report \
   tests/agent-eval/opencode/results/2026-10-02-guided/attempts
 ```
 
-On the local workstation, prefix that command with the required resource guard. CI runs the
+To reproduce the separate correction, use `review` with the same paths and `--contiguous-source`.
+On the local workstation, prefix these commands with the required resource guard. CI runs the
 retained-record replay test without live model calls. This cohort closes a development experiment,
 not an acceptance item: independent tasks, real change/proof grading, delegation and complete cost
 accounting remain open. Improve source references and ordinary read access before another comparison;
