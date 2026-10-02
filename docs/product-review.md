@@ -113,8 +113,8 @@ Separate GitHub containers checked each submitted patch against the frozen cases
 reference and wrong-fix controls validated. None called fr, including the partial timeout log.
 These bounded cases do not establish general correctness; tool availability alone cannot establish
 a benefit. A subsequent four-attempt pilot added optional public body previews, reviewed history
-application and usage guidance on the reused signal-name task. It retained three submissions and
-one timeout, with behavior grading pending. Again, no attempt used fr. Added instructions and
+application and usage guidance on the reused signal-name task. GitHub containers verified all three
+submissions against nine frozen cases each; one attempt timed out. Again, no attempt used fr. Added instructions and
 tool schemas have a measured cost; these tasks still provide no evidence that the edit route helps.
 The [combined cost report](native-change-outcomes.md) includes observed timeout work and keeps
 unknown totals explicit. The earlier GLM fr-arm timeout accounts for 8 calls and 19,095 result bytes;

@@ -60,8 +60,8 @@ No attempt called fr; these results do not establish an efficiency benefit.
 An optional native protocol now exposes public body previews and reviewed history application.
 Ordinary edits remain available in both arms. Byte replay, real CLI controls and separate behavior
 grading have distinct roles; none closes independent task review or complete context accounting.
-Its four-attempt pilot retained three submissions and one timeout; no attempt used fr. Keep
-that lack of adoption visible. Behavior grading is pending; do not label submissions as passes.
+Its four-attempt pilot retained three behavior passes and one timeout; no attempt used fr. GitHub
+containers checked nine cases per submitted patch. Keep that lack of adoption and the timeout visible.
 The [combined report](native-change-outcomes.md) preserves failed-attempt work, partial CLI usage,
 resource samples and grade identities. It separates produced tool output from native-stream
 confirmations. Unknown totals remain unknown; neither these reviewed tasks nor their cost tables

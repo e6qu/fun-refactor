@@ -8,6 +8,9 @@ from pathlib import PurePosixPath
 from . import native_changes as changes, native_costs, opencode_changes as runner
 from .study import digest, encode, load, number, require
 
+OUTCOMES = {"passed": "behavior pass", "behavior_failed": "behavior failed", "failed": "collection failed",
+            "pending_grading": "awaiting grading", "pending": "not run", "interrupted": "incomplete artifacts"}
+
 
 def candidate_identity(files):
     entries, directories = [], set()
@@ -140,22 +143,23 @@ def markdown(reports):
              "Failed attempts remain in cost totals. Missing totals are unknown, not zero.", ""]
     for report in reports:
         lines += ["## " + report["cohort"], "", "Plan: `" + report["plan_sha256"] + "`.", "",
-                  "| Configured model | Tools | Outcome | Host calls | fr calls | Result bytes | Collection seconds | CLI steps complete |",
+                  "| Configured model | Tools available | Outcome | Host calls | fr calls | Result bytes | Collection seconds | CLI steps complete |",
                   "|---|---|---|---:|---:|---:|---:|---|"]
         for row in report["attempts"]:
             cost = row["costs"]
-            values = [row["cell"]["model"], row["cell"]["arm"], row["outcome"],
+            values = [row["cell"]["model"], "ordinary files + fr" if row["cell"]["arm"] == "fr" else "ordinary files", OUTCOMES[row["outcome"]],
                       cost["observed"]["host_calls"] if cost else "unknown", cost["observed"]["fr_calls"] if cost else "unknown",
                       cost["observed"]["produced_result_bytes"] if cost else "unknown",
                       f"{cost['processes']['collection_wall_seconds']:.1f}" if cost else "unknown",
                       "yes" if cost and cost["coverage"]["reported_step_usage_complete"] else "no"]
             lines.append("| " + " | ".join(map(str, values)) + " |")
-        lines += ["", "| Configured model | Tools | Outcomes | Collection seconds per behavior pass |",
+        lines += ["", "| Configured model | Tools available | Outcomes | Collection seconds per behavior pass |",
                   "|---|---|---|---:|"]
         for group in report["groups"]:
             rate = group["collection_wall_seconds_per_behavior_pass"]
-            counts = ", ".join(f"{v} {k}" for k, v in sorted(group["outcomes"].items()))
-            lines.append("| " + " | ".join([group["model"], group["arm"], counts, f"{rate:.1f}" if rate is not None else "undefined"]) + " |")
+            counts = ", ".join(f"{v} {OUTCOMES[k]}" for k, v in sorted(group["outcomes"].items()))
+            tools = "ordinary files + fr" if group["arm"] == "fr" else "ordinary files"
+            lines.append("| " + " | ".join([group["model"], tools, counts, f"{rate:.1f}" if rate is not None else "undefined"]) + " |")
         lines += ["", "Collection time includes failed attempts; it excludes remote grading time.",
                   "Host bytes are produced results, not complete model context. See JSON for native stream confirmations,",
                   "partial usage, resource samples, tool schemas and paired outcomes. Provider billing remains unverified.", ""]
