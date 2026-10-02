@@ -47,7 +47,9 @@ def cells(manifest):
                 rng.shuffle(arms)
                 groups.append([{**pair, "arm": arm, "id": digest({**pair, "arm": arm})[:24]} for arm in arms])
     rng.shuffle(groups)
-    return [cell for group in groups for cell in group]
+    result = [cell for group in groups for cell in group]
+    require(0 < len(result) <= 288, "discovery comparison exceeds 288 cells")
+    return result
 
 
 def guidance(path):

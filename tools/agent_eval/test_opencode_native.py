@@ -253,6 +253,23 @@ class Evidence(unittest.TestCase):
 
 
 class Discovery(unittest.TestCase):
+    def test_oversized_three_arm_allocation_refuses_at_freeze(self):
+        from agent_eval import native_discovery as discovery
+        manifest = {"seed": 1, "tasks": [{"id": str(i)} for i in range(12)],
+                    "models": ["provider/" + str(i) for i in range(4)], "repetitions": 3}
+        with self.assertRaisesRegex(ValueError, "288"):
+            discovery.cells(manifest)
+
+    def test_retained_three_arm_comparison_replays_without_models(self):
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-guided"
+        with patch.object(native, "bounded_run", side_effect=AssertionError("replay must stay offline")):
+            result = native.report(load(root / "plan.json"), root / "attempts")
+        self.assertEqual(result, load(root / "report.json"))
+        self.assertEqual(result["planned"], 18)
+        for arm in ("files", "fr", "fr-guided"):
+            self.assertEqual(sum(r["cell"]["arm"] == arm for r in result["attempts"]), 6)
+        self.assertFalse(result["audit_complete"])
+
     def test_cli_failure_remains_replayable_without_source_evidence(self):
         from agent_eval import native_discovery as discovery
         result = {"error": "fr command failed"}
