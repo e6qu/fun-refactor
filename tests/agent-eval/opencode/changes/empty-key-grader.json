@@ -1,0 +1,80 @@
+{
+  "schema": "fr-stdio-grader-1",
+  "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+  "command": [
+    "python3",
+    "-I",
+    "-B",
+    "-c",
+    "import json, sys\nsys.path.insert(0, \"/workspace/src\")\nfrom itsdangerous import Signer\ncase = json.load(sys.stdin)\nif case[\"mode\"] == \"empty\":\n    keys = {\"list\": [], \"tuple\": (), \"iterator\": iter(())}[case[\"form\"]]\n    try:\n        Signer(keys)\n    except Exception as error:\n        print(type(error).__name__)\n    else:\n        print(\"accepted\")\nelse:\n    values = {\"str\": \"new\", \"bytes\": b\"new\", \"empty-str\": \"\", \"empty-bytes\": b\"\",\n              \"list\": [\"old\", \"new\"], \"tuple\": (b\"old\", b\"new\"), \"iterator\": iter([\"old\", \"new\"])}\n    signer = Signer(values[case[\"form\"]])\n    checks = [signer.unsign(signer.sign(value)) == value for value in (b\"\", b\"payload\", b\"a.b.c\")]\n    checks.append(not signer.validate(signer.sign(b\"payload\") + b\"bad\"))\n    if case[\"form\"] in (\"list\", \"tuple\", \"iterator\"):\n        checks += [signer.unsign(Signer(\"old\").sign(b\"payload\")) == b\"payload\",\n                   signer.sign(b\"payload\") == Signer(\"new\").sign(b\"payload\")]\n    print(json.dumps(checks, separators=(\",\", \":\")))\n"
+  ],
+  "limits": {
+    "wall_seconds": 3,
+    "memory_bytes": 67108864,
+    "scratch_bytes": 1048576,
+    "output_bytes": 4096,
+    "candidate_bytes": 1048576
+  },
+  "cases": [
+    {
+      "id": "empty-list",
+      "stdin": "{\"mode\": \"empty\", \"form\": \"list\"}",
+      "stdout": "ValueError\n",
+      "exit_code": 0
+    },
+    {
+      "id": "empty-tuple",
+      "stdin": "{\"mode\": \"empty\", \"form\": \"tuple\"}",
+      "stdout": "ValueError\n",
+      "exit_code": 0
+    },
+    {
+      "id": "empty-iterator",
+      "stdin": "{\"mode\": \"empty\", \"form\": \"iterator\"}",
+      "stdout": "ValueError\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-str",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"str\"}",
+      "stdout": "[true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-bytes",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"bytes\"}",
+      "stdout": "[true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-empty-str",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"empty-str\"}",
+      "stdout": "[true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-empty-bytes",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"empty-bytes\"}",
+      "stdout": "[true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-list",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"list\"}",
+      "stdout": "[true,true,true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-tuple",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"tuple\"}",
+      "stdout": "[true,true,true,true,true,true]\n",
+      "exit_code": 0
+    },
+    {
+      "id": "valid-iterator",
+      "stdin": "{\"mode\": \"valid\", \"form\": \"iterator\"}",
+      "stdout": "[true,true,true,true,true,true]\n",
+      "exit_code": 0
+    }
+  ]
+}

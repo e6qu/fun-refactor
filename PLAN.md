@@ -58,8 +58,20 @@ retained two passes and four timeouts. Both passes used source IDs. Guided Kimi 
 behavior and a source continuation; the other passing attempt used ordinary tools throughout.
 The guided run delivered less source but more total tool output. This pilot does not establish an efficiency benefit.
 
-The next implementation chunk should add independently graded code-change tasks. Freeze unfamiliar
-tasks, allowed tools, budgets and private behavior checks before model calls. Keep grading on GitHub,
+Native code-change collection now supports hash-checked edits, replayable submitted files and separate
+GitHub container grading. Two pinned task packs cover signing-key collections and signal-name types;
+baseline, reference and wrong-fix controls check their graders. See the
+[native change protocol](docs/opencode-native-tools.md#make-changes-and-grade-the-submitted-code-separately).
+They are reviewed integration cases, not an independently reviewed comparison.
+
+The [eight-attempt collection](tests/agent-eval/opencode/results/2026-10-02-code-changes/README.md)
+retains seven behavior passes and one timeout. Separate GitHub containers checked every submitted
+patch against the frozen cases; baseline, reference and wrong-fix controls passed. None called fr.
+These bounded behavior checks do not establish an efficiency benefit or general correctness.
+
+Next select independently reviewed unfamiliar tasks that require investigation across code, and
+compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private
+behavior checks before model calls. Keep grading on GitHub,
 ordinary tools available in every arm, and all failed attempts. Measure total tool/context costs,
 including fr metadata and delegation, rather than source bytes alone. Preserve these reviewed
 integration cases without tuning production for their repositories.

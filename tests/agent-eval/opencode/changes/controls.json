@@ -1,0 +1,62 @@
+{
+  "empty-key-collection": [
+    {
+      "id": "reference",
+      "expected": "passed",
+      "path": "src/itsdangerous/signer.py",
+      "old": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n",
+      "new": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n        if not self.secret_keys:\n            raise ValueError(\"At least one secret key is required.\")\n"
+    },
+    {
+      "id": "list-only",
+      "expected": "failed",
+      "path": "src/itsdangerous/signer.py",
+      "old": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n",
+      "new": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n        if secret_key == []:\n            raise ValueError(\"No keys\")\n"
+    },
+    {
+      "id": "reject-all-collections",
+      "expected": "failed",
+      "path": "src/itsdangerous/signer.py",
+      "old": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n",
+      "new": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n        if not isinstance(secret_key, (str, bytes)):\n            raise ValueError(\"No collections\")\n"
+    },
+    {
+      "id": "reject-empty-individual",
+      "expected": "failed",
+      "path": "src/itsdangerous/signer.py",
+      "old": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n",
+      "new": "        self.secret_keys: list[bytes] = _make_keys_list(secret_key)\n        if not self.secret_keys or not self.secret_keys[0]:\n            raise ValueError(\"No empty keys\")\n"
+    }
+  ],
+  "signal-name-type": [
+    {
+      "id": "reference",
+      "expected": "passed",
+      "path": "src/blinker/base.py",
+      "old": "        if name not in self:\n",
+      "new": "        if not isinstance(name, str):\n            raise TypeError(\"Signal names must be strings\")\n        if name not in self:\n"
+    },
+    {
+      "id": "coerce-names",
+      "expected": "failed",
+      "path": "src/blinker/base.py",
+      "old": "        if name not in self:\n",
+      "new": "        name = str(name)\n        if name not in self:\n"
+    },
+    {
+      "id": "exact-type",
+      "expected": "failed",
+      "path": "src/blinker/base.py",
+      "old": "        if name not in self:\n",
+      "new": "        if type(name) is not str:\n            raise TypeError(\"Signal names must be strings\")\n        if name not in self:\n"
+    },
+    {
+      "id": "reject-empty",
+      "expected": "failed",
+      "path": "src/blinker/base.py",
+      "old": "        if name not in self:\n",
+      "new": "        if not isinstance(name, str) or not name:\n            raise TypeError(\"Signal names must be nonempty strings\")\n        if name not in self:\n"
+    }
+  ]
+}

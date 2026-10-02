@@ -49,7 +49,14 @@ none used behavior continuations. The following source-reference pilot retained 
 timeouts. Both passes used source IDs; guided Kimi followed names, behavior and a source continuation.
 The other passing attempt used ordinary tools only. Required anchors and historical verdicts remain
 unchanged. Total tool output increased in the guided pass despite fewer source bytes.
-Next add independently graded change tasks with complete cost accounting.
+Native code-change trials now separate collection from GitHub behavior grading. Hash-checked
+replacements replay into exact submitted files. Two pinned task packs have baseline, reference and
+wrong-fix controls; no candidate code executes locally. Submitted patches remain ungraded until the
+separate container checks finish. Next assess these integration trials and select independently
+reviewed tasks with complete cost accounting.
+The first eight-attempt collection retained seven behavior passes and one timeout. Separate GitHub
+containers graded the exact submissions, with baseline, reference and wrong-fix controls checked.
+No attempt called fr; these results do not establish an efficiency benefit.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.
