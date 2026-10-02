@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.47.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.46.0...fun-refactor-v0.47.0) (2026-10-02)
+
+
+### Features
+
+* evaluate compact fr discovery and public guidance ([ff772cb](https://github.com/e6qu/fun-refactor/commit/ff772cbe483deb6cc6c765427df1eb7784dab8d7))
+* support direct source reads and verified citation references ([cc814fe](https://github.com/e6qu/fun-refactor/commit/cc814fee17536f94eee8eb2148aa4b58d2484edd))
+* test OpenCode with native source tools and audited explanations ([61dd432](https://github.com/e6qu/fun-refactor/commit/61dd4320e73bdda9b23ff5b86c42ac50f419a3a3))
+
 ## [0.46.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.45.0...fun-refactor-v0.46.0) (2026-10-01)
 
 
