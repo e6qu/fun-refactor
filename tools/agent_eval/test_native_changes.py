@@ -129,6 +129,16 @@ class Edits(unittest.TestCase):
 
 
 class Evidence(unittest.TestCase):
+    def test_retained_eight_attempts_replay_without_models_or_candidate_execution(self):
+        root = ROOT / "tests/agent-eval/opencode/results/2026-10-02-code-changes"
+        with patch.object(runner, "bounded_run", side_effect=AssertionError("offline replay only")):
+            report = runner.replay(load(root / "plan.json"), root / "attempts")
+        self.assertEqual(report, load(root / "collection-report.json"))
+        self.assertEqual(report["submitted"], 7)
+        self.assertEqual(sum(row["status"] == "failed" for row in report["attempts"]), 1)
+        self.assertTrue(all(row["audit"]["metrics"]["fr_requests"] == 0
+                            for row in report["attempts"] if row["status"] == "submitted"))
+
     def audit(self, data):
         return changes.audit(*data, {"files": FILES, "requirement": "task"}, {"arm": "files", "model": "provider/model"})
 

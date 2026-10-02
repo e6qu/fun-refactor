@@ -260,3 +260,8 @@ and signal-name validation in `blinker`. The former project appeared in earlier 
 the latter is new to these trials. Each grader has an unchanged-source control, a reference fix and
 three wrong-fix controls. The checks examine behavior, not patch equality. These integration cases
 do not close independent task review, unfamiliar-project generalization or efficiency requirements.
+
+The [first frozen collection](../tests/agent-eval/opencode/results/2026-10-02-code-changes/README.md)
+retains seven replay-verified submissions and one 120-second timeout. No attempt called fr.
+The largest sampled process-group RSS was 684.6 MiB, with the workstation guard also active.
+Behavior grading remains separate and pending; these are submission counts, not correctness results.

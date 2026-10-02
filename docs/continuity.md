@@ -54,6 +54,8 @@ replacements replay into exact submitted files. Two pinned task packs have basel
 wrong-fix controls; no candidate code executes locally. Submitted patches remain ungraded until the
 separate container checks finish. Next assess these integration trials and select independently
 reviewed tasks with complete cost accounting.
+The first eight-attempt collection retained seven replay-verified submissions and one timeout.
+No attempt called fr; all behavioral outcomes remain pending separate GitHub grading.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.
