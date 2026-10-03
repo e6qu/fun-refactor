@@ -17,6 +17,16 @@ ROOT = Path(__file__).resolve().parents[2]
 PACK = ROOT / "tests/agent-eval/opencode/candidates"
 
 
+def declarations(raw):
+    tree = ast.parse(raw)
+    functions = (ast.FunctionDef, ast.AsyncFunctionDef)
+    names = {(node.name,) for node in tree.body if isinstance(node, functions)}
+    for parent in ast.walk(tree):
+        if isinstance(parent, ast.ClassDef):
+            names.update((parent.name, node.name) for node in parent.body if isinstance(node, functions))
+    return names
+
+
 class CandidateControls(unittest.TestCase):
     def test_all_candidate_edits_parse_without_running_source(self):
         tasks = load(PACK / "manifest.json")["tasks"]
@@ -34,7 +44,9 @@ class CandidateControls(unittest.TestCase):
                     self.assertEqual(set(files), set(original))
                     for name, item in files.items():
                         if name.endswith(".py"):
-                            ast.parse(base64.b64decode(item["data"]), filename=name)
+                            current = declarations(base64.b64decode(item["data"]))
+                            existing = declarations(base64.b64decode(original[name]["data"]))
+                            self.assertLessEqual(existing, current, "control removed declarations from " + name)
                     if row["id"] != "unchanged":
                         self.assertNotEqual(files, original)
             for spec in (load(PACK / task["grader"]), public):
