@@ -16,7 +16,7 @@
       "grader": "dotenv-alternate-grader.json",
       "repository": "https://github.com/theskumar/python-dotenv",
       "revision": "0b2880591780a426b0551436f47a17e7a76d954f",
-      "requirement": "Add ${NAME:+word} interpolation to python-dotenv: substitute word only when NAME resolves to a nonempty string; otherwise substitute an empty string. Apply this through dotenv_values and load_dotenv, preserving override precedence between earlier file values and the process environment. Word is literal text, not recursively interpolated. Preserve existing ${NAME}, ${NAME:-default}, bare variables, adjacent substitutions, interpolate=False, unassigned keys and malformed-expression behavior. Do not change unrelated parsing or environment behavior.",
+      "requirement": "Add ${NAME:+word} interpolation to python-dotenv: substitute word only when NAME resolves to a nonempty string; otherwise substitute an empty string. Apply this through dotenv_values and load_dotenv, preserving override precedence between earlier file values and the process environment. Keep the existing flat expression grammar: word ends at the first closing brace and is not recursively interpolated; do not add nested expansion or shell evaluation. Preserve existing ${NAME}, ${NAME:-default}, bare variables, adjacent substitutions, interpolate=False, unassigned keys and malformed-expression behavior. Do not change unrelated parsing or environment behavior.",
       "provenance": "Candidate task prepared before model calls. Unmodified pinned runtime source, licenses and project metadata; upstream tests and other files are omitted. New to the retained native change cohorts, not proven unseen by a model. Independent task and grader review is pending."
     },
     {
