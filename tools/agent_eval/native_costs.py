@@ -1,5 +1,6 @@
 """Observed native tool work, including prefixes retained after a resource stop."""
 import json
+import io
 import re
 
 from . import native_changes as changes, native_discovery as discovery, native_mcp as mcp
@@ -40,7 +41,28 @@ def usage(finishes):
             "scope": "CLI-reported completed steps only. Fields retain provider semantics; do not add reasoning to output."}
 
 
-def observed(raw, host, task, arm, version):
+class ReadOnlyReplay:
+    """Reuse the native read server while independently rebuilding source results."""
+    def __init__(self, files, arm, version):
+        self.files, self.edits, self.checks = files, 0, None
+        self.retained = None
+        self.server = mcp.Server({"files": files, "arm": arm, "binary": "fr", "workspace": "/unused",
+                                  "tools_schema_version": version}, io.BytesIO(), self.execute)
+
+    @property
+    def finished(self):
+        return self.server.finished
+
+    def execute(self, *args):
+        return encode({key: value for key, value in self.retained.items() if key != "source_refs"})
+
+    def call(self, params, retained):
+        self.retained = retained
+        response = self.server.call(params)
+        return mcp.decode(response["content"][0]["text"])
+
+
+def observed(raw, host, task, arm, version, *, read_only=False):
     events, stream_tail = prefix(raw, 1024**2)
     rows, host_tail = prefix(host, mcp.MAX_LOG)
     require(len(rows) <= mcp.MAX_CALLS, "host call budget exceeded")
@@ -70,8 +92,10 @@ def observed(raw, host, task, arm, version):
             require(part["callID"] not in {p["callID"] for p in tools}, "duplicate partial call identity")
             tools.append(part)
     remaining, matched = list(tools), set()
-    machine, ranges, delivered_ranges = changes.Machine(task["files"], arm, replay=True, version=version,
-                                                       public_check=task.get("public_check")), {}, {}
+    require(type(read_only) is bool, "invalid native tool mode")
+    machine = (ReadOnlyReplay(task["files"], arm, version) if read_only else
+               changes.Machine(task["files"], arm, replay=True, version=version, public_check=task.get("public_check")))
+    ranges, delivered_ranges = {}, {}
     counters = {"host_calls": len(rows), "native_confirmed_results": 0, "fr_calls": 0, "author_applies": 0,
                 "refused_calls": 0, "produced_result_bytes": 0, "native_confirmed_result_bytes": 0,
                 "edit_argument_bytes": 0, "source_page_bytes": 0, "repeated_source_page_bytes": 0,
@@ -98,7 +122,7 @@ def observed(raw, host, task, arm, version):
         counters["author_applies"] += name == "fr_apply_preview" and "error" not in result
         if name in {"replace_source", "fr_preview_body", "fr_apply_preview"}:
             counters["edit_argument_bytes"] += len(encode(params.get("arguments", {})))
-        elif name not in {"submit_patch", "describe_checks", "run_checks"} and "error" not in result:
+        elif name not in {"submit_patch", "submit_answer", "describe_checks", "run_checks"} and "error" not in result:
             for span in discovery.disclosed(machine.files, mcp.request(name, params.get("arguments", {})), result):
                 key, size = (span["path"], span["sha256"]), span["end"] - span["start"]
                 counters["source_page_bytes"] += size
@@ -114,6 +138,6 @@ def observed(raw, host, task, arm, version):
     return {"session": session, "observed": counters, "usage": usage(finishes),
             "coverage": {"started_steps": len(starts), "unfinished_steps": len(starts) - len(finishes),
                          "unparsed_stream_tail_bytes": stream_tail, "unparsed_host_tail_bytes": host_tail,
-                         "source_pages_exclude_author_diffs": True, "complete_context_accounting": False,
+                         "source_pages_exclude_author_diffs": not read_only, "complete_context_accounting": False,
                          "export_and_model_identity_verified": False},
             "scope": "Retained host work and native stream confirmations. Incomplete streams provide observed lower bounds, never zero-cost failures."}

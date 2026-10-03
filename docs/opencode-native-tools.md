@@ -381,3 +381,29 @@ detection, the model run and export. Each launch receives only the remainder; mi
 exhaustion or a sampled overrun fail collection. The 120-second wall deadline and workstation
 guard remain in force. Frozen historical runners retain their original behavior, and the report
 sums their recorded process samples without claiming the tighter rule governed those runs.
+
+### Count unfinished source-reading work
+
+`tools/native-read-report.py` applies the shared accounting engine to read-only schemas 2, 3
+and 4. It replays ordinary responses and checks fr source against frozen files, matches host
+results to native events, and retains usage from finished steps when a later step times out.
+It preserves original grades and leaves subsequent citation reviews separate. An unfinished
+attempt cannot become a pass through cost reporting. Missing attempts retain unknown costs.
+
+The [source-reading report](native-read-outcomes.md) covers all six source-reference attempts.
+The four timeouts produced 33 calls and 100,968 result bytes. Two attempts passed, but neither
+ordinary-file baseline did; there is no successful ordinary/fr pair. Only the guided Kimi pass
+used fr. Total context and billing remain unknown, including code repeated in metadata.
+
+```sh
+python3 tools/native-read-report.py \
+  tests/agent-eval/opencode/results/2026-10-02-source-references \
+  --json tests/agent-eval/opencode/native-read-outcomes.json \
+  --markdown docs/native-read-outcomes.md --check
+```
+
+The [source-based candidate reviews](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
+reuse the existing read-only MCP server and preserve exact source references. Both models
+timed out without submitting findings, and the stop rule prevented four further calls. Their
+17 tool calls and partial usage are replayed with the same engine. A source-backed claim still
+needs separate verification; these attempts do not close independent review or any milestone.

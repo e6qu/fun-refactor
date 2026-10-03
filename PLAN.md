@@ -57,6 +57,9 @@ references to source already delivered to the agent. The
 retained two passes and four timeouts. Both passes used source IDs. Guided Kimi followed fr names,
 behavior and a source continuation; the other passing attempt used ordinary tools throughout.
 The guided run delivered less source but more total tool output. This pilot does not establish an efficiency benefit.
+The [source-reading cost report](docs/native-read-outcomes.md) now replays all six attempts,
+including 33 calls and 100,968 result bytes from the four timeouts. No ordinary/fr pair has two
+successful outcomes. Partial usage remains partial; original verdicts are unchanged.
 
 Native code-change collection now supports hash-checked edits, replayable submitted files and separate
 GitHub container grading. Two pinned task packs cover signing-key collections and signal-name types;
@@ -99,6 +102,10 @@ The [bounded model-review attempts](tests/agent-eval/opencode/reviews/2026-10-03
 retained two timeouts and no completed review; four planned calls were not started. These new
 controls are task-author counterexamples. Independent review and live trials remain pending;
 preparing these tasks does not close an acceptance item.
+The follow-up [source-based reviews](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
+used the native read-only tools. Both models timed out after 17 total tool calls without submitting
+findings or using fr. The frozen stop rule prevented the other four calls. Source-based review
+is still incomplete; retain this result when deciding what review can fit the existing budget.
 
 Next select independently reviewed unfamiliar tasks that require investigation across code, and
 compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private
