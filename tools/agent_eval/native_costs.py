@@ -70,7 +70,8 @@ def observed(raw, host, task, arm, version):
             require(part["callID"] not in {p["callID"] for p in tools}, "duplicate partial call identity")
             tools.append(part)
     remaining, matched = list(tools), set()
-    machine, ranges, delivered_ranges = changes.Machine(task["files"], arm, replay=True, version=version), {}, {}
+    machine, ranges, delivered_ranges = changes.Machine(task["files"], arm, replay=True, version=version,
+                                                       public_check=task.get("public_check")), {}, {}
     counters = {"host_calls": len(rows), "native_confirmed_results": 0, "fr_calls": 0, "author_applies": 0,
                 "refused_calls": 0, "produced_result_bytes": 0, "native_confirmed_result_bytes": 0,
                 "edit_argument_bytes": 0, "source_page_bytes": 0, "repeated_source_page_bytes": 0,
@@ -97,7 +98,7 @@ def observed(raw, host, task, arm, version):
         counters["author_applies"] += name == "fr_apply_preview" and "error" not in result
         if name in {"replace_source", "fr_preview_body", "fr_apply_preview"}:
             counters["edit_argument_bytes"] += len(encode(params.get("arguments", {})))
-        elif name != "submit_patch" and "error" not in result:
+        elif name not in {"submit_patch", "describe_checks", "run_checks"} and "error" not in result:
             for span in discovery.disclosed(machine.files, mcp.request(name, params.get("arguments", {})), result):
                 key, size = (span["path"], span["sha256"]), span["end"] - span["start"]
                 counters["source_page_bytes"] += size
@@ -108,6 +109,8 @@ def observed(raw, host, task, arm, version):
     require(not remaining, "native result absent from retained host calls")
     counters.update(native_confirmed_results=len(matched), produced_only_results=len(rows) - len(matched),
                     accepted_edits=machine.edits, submission_observed=machine.finished)
+    if machine.checks is not None:
+        counters["public_checks"] = machine.checks.summary()
     return {"session": session, "observed": counters, "usage": usage(finishes),
             "coverage": {"started_steps": len(starts), "unfinished_steps": len(starts) - len(finishes),
                          "unparsed_stream_tail_bytes": stream_tail, "unparsed_host_tail_bytes": host_tail,

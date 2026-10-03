@@ -68,6 +68,11 @@ confirmations. Unknown totals remain unknown; neither these reviewed tasks nor t
 close independent task selection, complete accounting or efficiency requirements.
 Future native collectors also share one sampled CPU allowance across their subprocesses. Version
 detection and export no longer receive fresh allowances. Historical runners and records stay intact.
+Optional native protocol 3 adds public test feedback in both arms, limited to two calls on GitHub.
+Checks use frozen commands in isolated containers with one shared resource allowance. Results bind
+to exact source snapshots and become stale after edits. Parent-owned cleanup handles interrupted
+MCP children; resource stops and cleanup failures fail collection. Private grading stays separate.
+Offline controls and GitHub container tests do not establish live-agent adoption or efficiency.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

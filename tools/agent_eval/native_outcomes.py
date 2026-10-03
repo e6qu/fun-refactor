@@ -1,11 +1,9 @@
 """Join immutable native change attempts, observed costs and behavior grades."""
-import base64
 from collections import Counter
 import hashlib
 import json
-from pathlib import PurePosixPath
 
-from . import native_changes as changes, native_costs, opencode_changes as runner
+from . import native_changes as changes, native_costs, native_checks, opencode_changes as runner
 from .study import digest, encode, load, number, require
 
 OUTCOMES = {"passed": "behavior pass", "behavior_failed": "behavior failed", "failed": "collection failed",
@@ -13,15 +11,7 @@ OUTCOMES = {"passed": "behavior pass", "behavior_failed": "behavior failed", "fa
 
 
 def candidate_identity(files):
-    entries, directories = [], set()
-    for path, item in files.items():
-        raw = base64.b64decode(item["data"], validate=True)
-        entries.append({"path": path, "executable": item["executable"],
-                        "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)})
-        directories.update(str(p) for p in PurePosixPath(path).parents if str(p) != ".")
-    entries.extend({"path": p, "directory": True, "bytes": 0} for p in directories)
-    return {"sha256": digest(sorted(entries, key=lambda e: e["path"])), "files": len(entries),
-            "bytes": sum(e["bytes"] for e in entries)}
+    return native_checks.candidate_identity(files)
 
 
 def grades(frozen, report, attempts, root):
@@ -39,27 +29,9 @@ def grades(frozen, report, attempts, root):
         spec = json.loads(frozen["plan"]["graders"][task["id"]])
         grade = row["grade"]
         files = load(root / "attempts" / cell["id"] / "submission.json")
-        require(row["submission_sha256"] == digest(files) and grade["candidate"] == candidate_identity(files), "graded candidate differs")
-        require(grade["schema"] == "fr-isolated-grade-1" and grade["image"] == spec["image"]
-                and grade["grader_sha256"] == task["grader_sha256"], "grader identity differs")
-        require([c["id"] for c in grade["cases"]] == [c["id"] for c in spec["cases"]], "graded case set differs")
-        for actual, expected in zip(grade["cases"], spec["cases"]):
-            require(type(actual["passed"]) is bool, "invalid case verdict")
-            if "execution" not in actual:
-                require(actual["passed"] is False and isinstance(actual["failure"], str) and actual["failure"], "missing failed case evidence")
-                continue
-            for channel in ("stdout", "stderr"):
-                raw = base64.b64decode(actual[channel + "_base64"], validate=True)
-                require(len(raw) == actual[channel + "_bytes"]
-                        and hashlib.sha256(raw).hexdigest() == actual[channel + "_sha256"], "case stream identity differs")
-            state = actual["container_state"]
-            passed = (not actual["execution"]["stop_reason"] and not state["Running"]
-                      and not state["OOMKilled"] and not state.get("Error")
-                      and state["ExitCode"] == expected["exit_code"]
-                      and base64.b64decode(actual["stdout_base64"]) == expected["stdout"].encode())
-            require(actual["passed"] == passed, "case verdict differs from retained execution")
-        passed = all(c["passed"] for c in grade["cases"])
-        require(row["outcome"] == grade["outcome"] == ("passed" if passed else "failed"), "grade outcome differs")
+        require(row["submission_sha256"] == digest(files), "graded candidate differs")
+        passed = native_checks.verify_grade(spec, task["grader_sha256"], candidate_identity(files), grade)
+        require(row["outcome"] == grade["outcome"], "grade outcome differs")
         result[cell["id"]] = "passed" if passed else "behavior_failed"
     require(type(report["passed"]) is int and report["passed"] == sum(v == "passed" for v in result.values()), "grade pass count differs")
     return result
@@ -91,7 +63,7 @@ def cohort(root, grade_path=None):
                "outcome": outcomes.get(cell["id"], "pending_grading" if status == "submitted" else status),
                "failure": record.get("failure"), "costs": None}
         if status in {"submitted", "failed"}:
-            task = next(t for t in source["tasks"] if t["id"] == cell["task"])
+            task = runner.runtime_task(frozen, next(t for t in source["tasks"] if t["id"] == cell["task"]))
             folder = root / "attempts" / cell["id"]
             def retained(name):
                 path = folder / name
@@ -100,6 +72,11 @@ def cohort(root, grade_path=None):
             cost["coverage"].update(collection_complete=status == "submitted", reported_step_usage_complete=status == "submitted",
                                     export_and_model_identity_verified=status == "submitted")
             cost["processes"] = process_cost(record)
+            if version == 3:
+                cost["public_check_containers"] = {
+                    **runner.container_resources.audit(record["public_check_resources"], native_checks.RESOURCES),
+                    "cleanup_failure": record["public_check_cleanup_failure"],
+                    "scope": "Public check containers only; excludes private grading, host, daemon, disk and caches."}
             cost["configured_context"] = {"prompt_bytes": len((changes.prompt(cell["arm"], version) + "\nTask:\n" + task["requirement"]).encode()),
                                           "tool_schema_bytes": len(encode(changes.schemas(cell["arm"], version)))}
             cost["attempt_manifest_sha256"] = hashlib.sha256((folder / "manifest.json").read_bytes()).hexdigest()
