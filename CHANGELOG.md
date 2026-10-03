@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.49.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.49.0...fun-refactor-v0.49.1) (2026-10-03)
+
+
+### Tests
+
+* strengthen candidate graders with six proven counterexamples ([#423](https://github.com/e6qu/fun-refactor/issues/423)) ([91a41d7](https://github.com/e6qu/fun-refactor/commit/91a41d7fa66aafb263c0511eba130b6f65b5ff1f))
+
 ## [0.49.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.48.0...fun-refactor-v0.49.0) (2026-10-03)
 
 
