@@ -13,8 +13,10 @@
   "evidence": [
     {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-facts/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "src/project/explore.rs"
+      ],
+      "freshness": "stale",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
@@ -33,8 +35,10 @@
     },
     {
       "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-09-30-study-python-repositories/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "src/project/explore.rs"
+      ],
+      "freshness": "stale",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
@@ -104,13 +108,15 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 2,
+      "demonstrated": 0,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
+        "A.exact",
+        "A.repositories",
         "A.live-repeat",
         "A.compiler-profile"
       ],
@@ -133,13 +139,14 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
+        "C.resume",
         "C.repository-mutations",
         "C.performance"
       ],
@@ -147,13 +154,14 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 1,
         "total": 6
       },
       "engineering_remaining": 5,
       "remaining": [
+        "D.checked",
         "D.structural",
         "D.translation",
         "D.existing-proof",
@@ -167,7 +175,9 @@
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
-      "blockers": [],
+      "blockers": [
+        "exact-facts: stale source binding"
+      ],
       "id": "A.exact",
       "kind": "deterministic",
       "next": "Keep these location tests passing as discovery changes.",
@@ -186,12 +196,14 @@
           "evidence": "exact-facts"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Point to the exact code behind an answer"
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -210,7 +222,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -303,7 +315,9 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -322,7 +336,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
@@ -379,7 +393,9 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -398,7 +414,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Check and replay a delivered change"
     },
     {

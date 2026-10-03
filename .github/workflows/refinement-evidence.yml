@@ -40,6 +40,7 @@ on:
           - namespace-packages
           - scalar-assignments
           - python-repositories
+          - discovery-pages
           - roadmap-report
 permissions:
   contents: read
@@ -48,7 +49,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -159,6 +160,46 @@ jobs:
           path: |
             docs/roadmap-status.md
             docs/roadmap-status.json
+          if-no-files-found: error
+          retention-days: 7
+
+  discovery-pages:
+    if: inputs.group == 'discovery-pages'
+    name: Revalidate discovery (${{ matrix.evidence }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        evidence: [flow-facts, python-repositories]
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      RAYON_NUM_THREADS: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: python3 -m pip install 'pytest==9.1.1'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked
+      - name: Revalidate exact fact locations
+        if: matrix.evidence == 'flow-facts'
+        run: python3 tools/flow-facts-acceptance.py --output "$RUNNER_TEMP/discovery-evidence/result.json"
+      - name: Revalidate repository changes, resumption and patch replay
+        if: matrix.evidence == 'python-repositories'
+        run: python3 tools/python-repository-acceptance.py --output "$RUNNER_TEMP/discovery-evidence"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: discovery-${{ matrix.evidence }}
+          path: ${{ runner.temp }}/discovery-evidence
           if-no-files-found: error
           retention-days: 7
 

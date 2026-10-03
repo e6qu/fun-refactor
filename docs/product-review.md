@@ -225,6 +225,13 @@ Those costs occur on the path every agent uses. In parallel with that design rev
 evidence snapshots for exact duplication and active references. Defer further framework expansion
 and broad new proof infrastructure until a task demonstrates why it is needed.
 
+The first concrete output reduction separates source and relationship pagination in
+`project explore`. The retained guided source-reading pass repeated the same 978-byte relationship
+object while requesting its next source page. Focused continuations now return only the requested
+view with its identity, limits and coverage. Python/Rust regression tests require complete page
+traversal and fewer serialized bytes than the same combined page. This removes measured duplication;
+it does not establish lower total agent cost or close an efficiency acceptance item.
+
 This review does not label working subsystems as dead code or remove evidence to improve the
 appearance of the results. The next removal PR should state what behavior is preserved, what is
 deliberately retired, which measurements justify the cut and which full gates passed on GitHub.

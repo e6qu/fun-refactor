@@ -3,6 +3,8 @@
 ```sh
 fr project explore greet --in app.py
 fr project explore greet --mode behavior --target '<HANDLE>'
+fr project explore greet --mode behavior --target '<HANDLE>' --view source
+fr project explore greet --mode behavior --target '<HANDLE>' --view relationships
 fr project select greet render validate --signature --source --bytes 2048
 fr project show '<HANDLE>'
 fr project show '<HANDLE>' --relations --limit 8
@@ -22,7 +24,10 @@ Keep the cache enabled. Cold calls may emit `indexing` progress on stderr; stdou
 
 For behavior discovery, start with `project explore TERM [--contains]`. Names mode returns no source
 and at most twelve rows. Run a selected row's `next.arguments` for bounded source and relationships.
-Follow truncation continuations. Use `--profile expanded` only through its reported action.
+Follow truncation continuations. Source continuations use `--view source`; relationship continuations
+use `--view relationships`. Each returns only the requested view, plus identity and coverage metadata.
+An omitted view is not evidence that no source or relationships exist.
+Use `--profile expanded` only through its reported action; it keeps the current view and page position.
 
 Put known multi-stage reads in one `project batch --profile compact` manifest. Reference prior
 handles through `/rows/0/handle`; the batch shares one snapshot and report budget.

@@ -21,7 +21,7 @@ A source explanation is not a proof. After submission, stop.
 """
 
 
-def schemas(arm):
+def schemas(arm, *, focused_pages=False):
     from .native_mcp import schemas as ordinary
     require(arm in ARMS, "unknown discovery arm")
     tools = ordinary("files")
@@ -35,6 +35,13 @@ def schemas(arm):
                 "offset": {"type": "integer", "minimum": 0, "maximum": 1024**2},
                 "cursor": {"type": "string", "maxLength": 4096},
                 "relations_cursor": {"type": "string", "maxLength": 4096}}}})
+    if focused_pages and arm != "files":
+        explore = next(tool for tool in tools if tool["name"] == "fr_explore")
+        explore["inputSchema"]["properties"]["view"] = {
+            "type": "string", "enum": ["both", "source", "relationships"],
+            "description": "Behavior view. Copy the view from continuation arguments; default both."}
+        explore["description"] = ("Public compact fr exploration. Start with names, then inspect a declaration. "
+                                   "Follow source or relationship continuations with their view and position.")
     return tools
 
 
@@ -89,12 +96,19 @@ def action(files, request, arm, binary, workspace, execute):
         return legacy.action(files, request, "fr" if arm == "fr-guided" else arm, binary, workspace,
                              execute, read_only=True, materialize=False)
     require(arm in {"fr", "fr-guided"} and request["action"] == "fr", "action unavailable in this arm")
-    require(set(request) <= {"action", "operation", "term", "mode", "target", "path", "contains", "offset", "cursor", "relations_cursor"}, "unexpected exploration fields")
+    require(set(request) <= {"action", "operation", "term", "mode", "target", "path", "contains", "offset", "cursor", "relations_cursor", "view"}, "unexpected exploration fields")
     term, mode = request["term"], request.get("mode", "names")
     require(isinstance(term, str) and 0 < len(term.encode()) <= 160 and not term.startswith("-") and "\0" not in term, "invalid exploration term")
     require(mode in {"names", "behavior"}, "invalid exploration mode")
     require(type(request.get("contains", False)) is bool, "contains must be boolean")
+    view = request.get("view", "both")
+    require(isinstance(view, str) and view in {"both", "source", "relationships"}, "invalid exploration view")
+    require(mode == "behavior" or view == "both", "focused views require behavior mode")
+    require(view != "source" or "relations_cursor" not in request, "source view has no relationship cursor")
+    require(view != "relationships" or request.get("offset", 0) == 0, "relationship view has no source offset")
     args = ["explore", term, "--profile", "compact", "--mode", mode]
+    if "view" in request:
+        args += ["--view", view]
     if mode == "behavior":
         target = request.get("target", "")
         require(isinstance(target, str) and re.fullmatch(r"frp1:[0-9a-f]{32}:[0-9a-f]{1,16}", target), "behavior needs a full fr handle")
@@ -124,6 +138,11 @@ def action(files, request, arm, binary, workspace, execute):
         return result
     require(result["mode"] == mode and result["profile"]["name"] == "compact"
             and result["profile"]["source_bytes"] == 2048, "exploration profile differs")
+    require(result.get("view", "both") == view, "exploration view differs")
+    if view == "source":
+        require("relationships" not in result, "source view unexpectedly returned relationships")
+    if view == "relationships":
+        require("source" not in result.get("declaration", {}), "relationship view unexpectedly returned source")
     return result
 
 
@@ -135,6 +154,12 @@ def disclosed(files, request, result):
         return []
     declaration = result.get("declaration")
     if declaration is None:  # A public stale/absent response is not source evidence.
+        return []
+    view = request.get("view", "both")
+    require(view in {"both", "source", "relationships"} and result.get("view", "both") == view,
+            "exploration view differs")
+    if view == "relationships":
+        require("source" not in declaration, "relationship view unexpectedly returned source")
         return []
     source = declaration.get("source")
     require(source and len(source["text"].encode()) <= 2048, "exploration source exceeds compact budget")

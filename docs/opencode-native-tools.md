@@ -217,6 +217,31 @@ behavior and a continuation; the other passing attempt used only ordinary tools.
 delivered less source but produced more total tool output. This pilot does not establish an efficiency benefit.
 The incomplete attempts have no complete usage accounting. The report retains every original failure.
 
+## Read more source without repeating relationships
+
+`project explore` still starts with names and offers a combined behavior read. Its next source
+page uses `--view source`; its next relationship page uses `--view relationships`.
+Follow the returned arguments, including the view, offset or cursor, and query scope.
+Expanding the profile keeps the current position. Missing fields identify the view the caller
+omitted; they do not establish that the declaration has no source or relationships.
+
+`freeze --source-references --focused-pages` selects read-only tool schema version 5.
+It exposes the same `view` choices on `fr_explore`, under the existing compact limits.
+Use a binary that supports `project explore --view`. The ordinary-file arm and the 120-second,
+20 sampled CPU-second and 768 MiB attempt limits stay the same. Both two-arm and guided comparisons
+can opt in. Schemas 2 through 4 keep their original fields and retained reports.
+
+The adapter verifies that the CLI returned the requested view. Relationship-only results cannot
+carry source pages or mint source references. Source-only results still undergo frozen-file and
+exact-range checks. Partial-attempt accounting includes all produced metadata bytes and counts
+source only when a result supplied it; produced output does not prove provider delivery.
+
+In the retained guided source-reading pass, the second source page repeated an identical 978-byte
+relationship object. The CLI regression tests compare focused and combined responses for the same
+Python and Rust pages, reconstruct complete source and relationships, and require smaller focused
+responses. These checks demonstrate the pagination contract, not an improvement in agent task cost.
+No new model collection accompanies this change.
+
 ## Make changes and grade the submitted code separately
 
 `tools/native-changes.py` collects native OpenCode edits without executing candidate code locally.
