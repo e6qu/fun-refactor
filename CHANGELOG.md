@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.49.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.48.0...fun-refactor-v0.49.0) (2026-10-03)
+
+
+### Features
+
+* add isolated public test feedback to native change trials ([#420](https://github.com/e6qu/fun-refactor/issues/420)) ([c46baff](https://github.com/e6qu/fun-refactor/commit/c46baff2aa0076e83ad7accb57c1a1f07989b9e7))
+
 ## [0.48.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.47.0...fun-refactor-v0.48.0) (2026-10-02)
 
 
