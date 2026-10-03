@@ -81,6 +81,12 @@ and fail newly added cases. Bounded Kimi/GLM review calls both timed out without
 the four other planned calls were not started. See the retained
 [attempts and limits](../tests/agent-eval/opencode/reviews/2026-10-03-candidates/README.md).
 Do not treat task-author controls as independent evidence.
+The follow-up [source-based reviews](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
+also timed out: 17 source-tool calls, no completed findings and no fr use. Four remaining calls
+were stopped by the frozen rule. The shared read-only cost auditor now checks partial tool logs,
+source identities and reported finished-step usage. The
+[earlier source-reading report](native-read-outcomes.md) retains 33 calls and 100,968 result bytes
+from four timeouts, alongside two passes. There is no successful ordinary/fr comparison pair.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

@@ -126,6 +126,15 @@ test failure, repair and isolation; no new agent cohort or efficiency advantage 
 Next independently review tasks and
 graders, and measure total costs, including metadata and handoffs.
 
+The [source-reading cost report](native-read-outcomes.md) now includes work from every attempt
+in the six-run source-reference pilot. Its four timeouts produced 33 tool calls and 100,968 result
+bytes. Neither ordinary-file attempt passed, so there is no successful ordinary/fr comparison pair.
+The later [source-based grader reviews](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
+both timed out after 17 total tool calls, with no completed findings or fr use. Four remaining
+calls were stopped by the frozen rule. Native tools exposed the source, but this review scope
+did not finish within the existing budget. Independent review remains open; complete usage and
+provider billing are still unknown.
+
 The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.
 The current manifest-driven host is `tools/agent-eval-host.py`; it retains parent and child calls.
 Neither path supplies new matched Sonnet results. Keep orchestration in the evaluation host and

@@ -55,6 +55,9 @@ case in the strengthened grader. Both grades bind to the same submitted source a
 These are task-author counterexamples, not independent review findings. The bounded
 [OpenCode review attempts](../reviews/2026-10-03-candidates/README.md) retained two timeouts and
 no completed review. The other four planned reviews were not started.
+The follow-up [source-based reviews](../reviews/2026-10-04-native/README.md) also stopped after
+two timeouts. They retained 17 source-tool calls but no submitted findings; independent review
+remains pending.
 
 ## Validate on GitHub
 
