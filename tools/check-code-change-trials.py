@@ -1,50 +1,51 @@
 #!/usr/bin/env python3
 """CI-only controls and grading for retained native code-change trials."""
-import base64
+import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
-import tempfile
 import sys
 
-from agent_eval import isolated_grade, native_changes, opencode_changes, rehearsal_evidence
-from agent_eval.study import digest, encode, load, require
-from agent_eval.workspace_bundle import unpack
+from agent_eval import change_controls, isolated_grade
+from agent_eval.study import encode, load, require
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run candidate controls on GitHub")
-    task_root = ROOT / "tests/agent-eval/opencode/changes"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task-pack", type=Path, default=ROOT / "tests/agent-eval/opencode/changes")
+    parser.add_argument("--task", help="Run one declared task's controls")
+    parser.add_argument("--controls-only", action="store_true")
+    parser.add_argument("--verify-upstream", action="store_true", help="Compare selected source blobs with the pinned GitHub tree")
+    parser.add_argument("--output", type=Path, default=ROOT / "target/agent-change-grades")
+    args = parser.parse_args()
+    require(args.controls_only or args.task_pack.resolve() == (ROOT / "tests/agent-eval/opencode/changes").resolve(),
+            "alternate task packs require --controls-only")
+    task_root = args.task_pack
     manifest = load(task_root / "manifest.json")
     image = load(task_root / manifest["tasks"][0]["grader"])["image"]
     result, _, _ = isolated_grade.invoke(isolated_grade.DOCKER + ["pull", image], b"", task_root, 90, 131072)
     require(result["exit_code"] == 0 and not result["stop_reason"], "pinned grading image unavailable")
-    destination = ROOT / "target/agent-change-grades"
+    destination = args.output
     destination.mkdir(parents=True, exist_ok=True)
-    results = []
-    for task in manifest["tasks"]:
-        grader_path = task_root / task["grader"]
-        require(load(grader_path)["image"] == image, "task image differs")
-        files = rehearsal_evidence.source_bundle(task, task_root)
-        sha = hashlib.sha256(grader_path.read_bytes()).hexdigest()
-        for control in [{"id": "unchanged", "expected": "failed"}, *load(task_root / "controls.json")[task["id"]]]:
-            machine = native_changes.Machine(files, "files")
-            if "old" in control:
-                arguments = {k: control[k] for k in ("path", "old", "new")}
-                arguments["sha256"] = hashlib.sha256(base64.b64decode(files[control["path"]]["data"])).hexdigest()
-                require("error" not in machine.call({"name": "replace_source", "arguments": arguments}), "control edit failed")
-            with tempfile.TemporaryDirectory() as tmp:
-                candidate = Path(tmp) / "candidate"
-                unpack(machine.files, candidate)
-                result = isolated_grade.grade(candidate, grader_path, sha)
-            results.append({"id": task["id"] + "/" + control["id"], "repository_revision": task["revision"],
-                            "expected": control["expected"], "submission_sha256": digest(machine.files), "grade": result})
-    (destination / "controls.json").write_bytes(encode({"results": results}))
-    require(all(row["grade"]["outcome"] == row["expected"] for row in results), "baseline/reference/mutation control failed")
-    print(json.dumps({"controls": {r["id"]: r["grade"]["outcome"] for r in results}}))
+    tasks = [task for task in manifest["tasks"] if args.task is None or task["id"] == args.task]
+    require(bool(tasks), "unknown control task")
+    change_controls.verify_sources(task_root, manifest["tasks"])
+    results, upstream = [], []
+    for task in tasks:
+        require(load(task_root / task["grader"])["image"] == image, "task image differs")
+        if args.verify_upstream:
+            upstream.append(change_controls.verify_upstream(task_root, task))
+        results.extend(change_controls.grade_controls(task_root, task))
+    (destination / "controls.json").write_bytes(encode({"results": results, "upstream": upstream}))
+    change_controls.verify(results)
+    print(json.dumps({"controls": {r["id"]: {"private": r["grade"]["outcome"],
+                       "public": r.get("public_grade", {}).get("outcome")} for r in results}}))
+    if args.controls_only:
+        return
     for cohort in sorted((ROOT / "tests/agent-eval/opencode/results").glob("*-code-changes")):
         frozen = load(cohort / "plan.json")
         # Every frozen grader must use the image pulled above; refuse silent

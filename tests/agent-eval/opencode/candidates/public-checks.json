@@ -1,0 +1,80 @@
+{
+  "dotenv-alternate": {
+    "schema": "fr-stdio-grader-1",
+    "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+    "command": [
+      "python3",
+      "-I",
+      "-B",
+      "-c",
+      "\nimport io, os, sys\nsys.path.insert(0, '/workspace/src')\nfrom dotenv import dotenv_values\nos.environ.clear()\ngot = dotenv_values(stream=io.StringIO('BASE=present\\nOUT=${BASE:+chosen}\\n'))\nassert got['OUT'] == 'chosen', got\nprint('ok')\n"
+    ],
+    "limits": {
+      "wall_seconds": 3,
+      "memory_bytes": 67108864,
+      "scratch_bytes": 1048576,
+      "output_bytes": 2048,
+      "candidate_bytes": 1048576
+    },
+    "cases": [
+      {
+        "id": "public-alternate",
+        "stdin": "{}",
+        "stdout": "ok\n",
+        "exit_code": 0
+      }
+    ]
+  },
+  "packaging-prerelease": {
+    "schema": "fr-stdio-grader-1",
+    "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+    "command": [
+      "python3",
+      "-I",
+      "-B",
+      "-c",
+      "\nimport sys\nsys.path.insert(0, '/workspace/src')\nfrom packaging.specifiers import SpecifierSet\ngot = list(SpecifierSet('>=1,<2').filter(iter(['0.9', '1.5a1', '2.1'])))\nassert got == ['1.5a1'], got\nprint('ok')\n"
+    ],
+    "limits": {
+      "wall_seconds": 3,
+      "memory_bytes": 67108864,
+      "scratch_bytes": 1048576,
+      "output_bytes": 2048,
+      "candidate_bytes": 1048576
+    },
+    "cases": [
+      {
+        "id": "public-fallback",
+        "stdin": "{}",
+        "stdout": "ok\n",
+        "exit_code": 0
+      }
+    ]
+  },
+  "platformdirs-xdg": {
+    "schema": "fr-stdio-grader-1",
+    "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+    "command": [
+      "python3",
+      "-I",
+      "-B",
+      "-c",
+      "import json, os, sys, types\nsys.path.insert(0, '/workspace/src')\nsys.modules['platformdirs.version'] = types.SimpleNamespace(__version__='4.3.6', __version_tuple__=(4, 3, 6))\n\nfrom platformdirs import user_config_dir\nos.environ.clear()\nos.environ.update(HOME='/tmp/public-home', XDG_CONFIG_HOME='relative')\ngot = user_config_dir('demo', version='2')\nassert got == '/tmp/public-home/.config/demo/2', got\nprint('ok')\n"
+    ],
+    "limits": {
+      "wall_seconds": 3,
+      "memory_bytes": 67108864,
+      "scratch_bytes": 1048576,
+      "output_bytes": 2048,
+      "candidate_bytes": 1048576
+    },
+    "cases": [
+      {
+        "id": "public-config",
+        "stdin": "{}",
+        "stdout": "ok\n",
+        "exit_code": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "dotenv-alternate": {
+    "unchanged": [
+      "alternate",
+      "precedence",
+      "literal",
+      "disabled-and-unassigned"
+    ],
+    "reference": [],
+    "empty-is-present": [
+      "alternate",
+      "precedence",
+      "disabled-and-unassigned"
+    ],
+    "always-choose-word": [
+      "alternate",
+      "precedence",
+      "disabled-and-unassigned"
+    ],
+    "change-default-semantics": [
+      "legacy"
+    ]
+  },
+  "packaging-prerelease": {
+    "unchanged": [
+      "fallback",
+      "bounds-and-exclusions",
+      "empty-and-objects"
+    ],
+    "reference": [],
+    "always-allow-prereleases": [
+      "matching-finals",
+      "explicit",
+      "empty-and-objects"
+    ],
+    "ignore-explicit-false": [
+      "explicit",
+      "empty-and-objects"
+    ],
+    "discard-order-and-duplicates": [
+      "fallback",
+      "matching-finals",
+      "explicit"
+    ]
+  },
+  "platformdirs-xdg": {
+    "unchanged": [
+      "user-homes",
+      "site-mixed",
+      "site-defaults",
+      "wrappers-and-iterators",
+      "creation-and-spaces"
+    ],
+    "reference": [],
+    "config-home-only": [
+      "user-homes",
+      "site-mixed",
+      "site-defaults",
+      "wrappers-and-iterators"
+    ],
+    "drop-duplicate-site-dirs": [
+      "site-mixed"
+    ],
+    "no-empty-site-fallback": [
+      "site-defaults"
+    ]
+  }
+}

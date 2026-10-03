@@ -1,0 +1,50 @@
+{
+  "schema": "fr-stdio-grader-1",
+  "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+  "command": [
+    "python3",
+    "-I",
+    "-B",
+    "-c",
+    "\nimport json, sys\nsys.path.insert(0, '/workspace/src')\nfrom packaging.specifiers import SpecifierSet\nfrom packaging.version import Version\ncase = json.load(sys.stdin)\ndef check(spec, values, expected, constructor=None, call=None):\n    original = list(values)\n    seen = []\n    def once():\n        for item in original:\n            seen.append(item)\n            yield item\n    result = list(SpecifierSet(spec, prereleases=constructor).filter(once(), prereleases=call))\n    assert [str(v) for v in result] == expected, result\n    assert seen == original and all(any(v is item for item in original) for v in result)\nif case == 'fallback':\n    check('>=1,<2', ['0.9', '1.5a1', '2.1'], ['1.5a1'])\n    check('<2,>=1', ['1.6rc1', '1.5a1', '1.6rc1'], ['1.6rc1', '1.5a1', '1.6rc1'])\nelif case == 'matching-finals':\n    check('>=1,<2', ['1.5a1', '1.4', '2.1', '1.6rc1', '1.4'], ['1.4', '1.4'])\n    check('>=1,<2', ['1.5a1', '1.4.post1'], ['1.4.post1'])\nelif case == 'explicit':\n    for kwargs in [dict(constructor=False), dict(call=False), dict(constructor=True, call=False)]:\n        check('>=1,<2', ['1.5a1'], [], **kwargs)\n    for kwargs in [dict(constructor=True), dict(call=True), dict(constructor=False, call=True)]:\n        check('>=1,<2', ['1.5a1', '1.4'], ['1.5a1', '1.4'], **kwargs)\nelif case == 'bounds-and-exclusions':\n    check('>=1.5a1,<2', ['1.5a1', '1.6'], ['1.5a1', '1.6'])\n    check('>=1,<2,!=1.5a1', ['1.5a1', '1.6rc1', '3'], ['1.6rc1'])\n    check('>1.0,<2', ['1.0.post1', '1.1a1'], ['1.1a1'])\nelif case == 'empty-and-objects':\n    check('', ['1.2a1', '1.1'], ['1.1'])\n    check('', ['1.2a1'], ['1.2a1'])\n    check('', ['1.2a1'], [], call=False)\n    values = [Version('1.5a1'), Version('1.6rc1')]\n    result = list(SpecifierSet('>=1,<2').filter(iter(values)))\n    assert len(result) == 2 and all(a is b for a, b in zip(values, result))\n    assert list(SpecifierSet('>=1,<2').filter(iter([]))) == []\nelse: raise AssertionError(case)\nprint('ok')\n"
+  ],
+  "limits": {
+    "wall_seconds": 3,
+    "memory_bytes": 67108864,
+    "scratch_bytes": 1048576,
+    "output_bytes": 2048,
+    "candidate_bytes": 1048576
+  },
+  "cases": [
+    {
+      "id": "fallback",
+      "stdin": "\"fallback\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "matching-finals",
+      "stdin": "\"matching-finals\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "explicit",
+      "stdin": "\"explicit\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "bounds-and-exclusions",
+      "stdin": "\"bounds-and-exclusions\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "empty-and-objects",
+      "stdin": "\"empty-and-objects\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    }
+  ]
+}

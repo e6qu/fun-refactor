@@ -60,6 +60,33 @@ jobs:
           name: native-code-change-grades
           path: target/agent-change-grades/*
 
+  candidate-controls:
+    name: Candidate task (${{ matrix.task }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [dotenv-alternate, packaging-prerelease, platformdirs-xdg]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Grade unchanged source, the reference and incomplete repairs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 tools/check-code-change-trials.py
+          --task-pack tests/agent-eval/opencode/candidates
+          --task '${{ matrix.task }}' --controls-only --verify-upstream
+          --output target/candidate-controls
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: candidate-controls-${{ matrix.task }}
+          path: target/candidate-controls/controls.json
+
   # Browser feature checks run alongside the native shards.
   check:
     strategy:

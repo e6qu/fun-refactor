@@ -335,6 +335,11 @@ success, isolation, the actual MCP child and stranded-container cleanup. Local c
 backend without executing candidate code. No new live-agent trial is claimed by these controls;
 independent task selection and an efficiency comparison remain open.
 
+The [candidate task pack](../tests/agent-eval/opencode/candidates/README.md) provides public check
+definitions for three broader tasks. It includes reference and incomplete-repair controls, source
+provenance checks and separate GitHub jobs. Independent review is pending; no model results are
+claimed for that pack.
+
 ## Count work from failed attempts too
 
 The [outcome and cost report](native-change-outcomes.md) includes every planned change attempt,

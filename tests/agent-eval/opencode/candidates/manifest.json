@@ -1,0 +1,47 @@
+{
+  "schema": "fr-opencode-rehearsal-1",
+  "seed": 421,
+  "repetitions": 1,
+  "models": [
+    "kimi-code-plan-global/k3",
+    "zai-coding-plan/glm-5.3-flash"
+  ],
+  "tasks": [
+    {
+      "id": "dotenv-alternate",
+      "kind": "feature",
+      "source": "dotenv.tar.gz",
+      "source_format": "tar.gz",
+      "archive_sha256": "a0b8d03047d8e07444ffd0e3e3adb9e73449ab7e7939b9d4657ec4cac02333c5",
+      "grader": "dotenv-alternate-grader.json",
+      "repository": "https://github.com/theskumar/python-dotenv",
+      "revision": "0b2880591780a426b0551436f47a17e7a76d954f",
+      "requirement": "Add ${NAME:+word} interpolation to python-dotenv: substitute word only when NAME resolves to a nonempty string; otherwise substitute an empty string. Apply this through dotenv_values and load_dotenv, preserving override precedence between earlier file values and the process environment. Keep the existing flat expression grammar: word ends at the first closing brace and is not recursively interpolated; do not add nested expansion or shell evaluation. Preserve existing ${NAME}, ${NAME:-default}, bare variables, adjacent substitutions, interpolate=False, unassigned keys and malformed-expression behavior. Do not change unrelated parsing or environment behavior.",
+      "provenance": "Candidate task prepared before model calls. Unmodified pinned runtime source, licenses and project metadata; upstream tests and other files are omitted. New to the retained native change cohorts, not proven unseen by a model. Independent task and grader review is pending."
+    },
+    {
+      "id": "packaging-prerelease",
+      "kind": "fix",
+      "source": "packaging.tar.gz",
+      "source_format": "tar.gz",
+      "archive_sha256": "cfc6b14252bac21d1d5690f2c3148cf64f0df1a3cd5b50d76c842aa625df4684",
+      "grader": "packaging-prerelease-grader.json",
+      "repository": "https://github.com/pypa/packaging",
+      "revision": "d8e3b31b734926ebbcaff654279f6855a73e052f",
+      "requirement": "Fix SpecifierSet.filter so its automatic prerelease policy considers the complete intersection: when no matching final or post release exists, return matching prereleases; an out-of-range final must not suppress them. When a matching final exists, suppress prereleases unless explicitly enabled. Preserve explicit True/False policies at both constructor and call levels, prerelease bounds, exclusions, empty sets, Version objects, original item identity, input order and duplicates. Accept one-shot iterables without restarting them. Preserve existing contains and individual Specifier comparison behavior.",
+      "provenance": "Candidate task prepared before model calls. Unmodified pinned runtime source, licenses and project metadata; upstream tests and other files are omitted. New to the retained native change cohorts, not proven unseen by a model. Independent task and grader review is pending."
+    },
+    {
+      "id": "platformdirs-xdg",
+      "kind": "fix",
+      "source": "platformdirs.tar.gz",
+      "source_format": "tar.gz",
+      "archive_sha256": "359b1d53016592812c8c0d0100e5e57cef2e2b1f9b29c90432825222b5ef313c",
+      "grader": "platformdirs-xdg-grader.json",
+      "repository": "https://github.com/tox-dev/platformdirs",
+      "revision": "bc0405cb9c9439e6923b2dc090f91ad5daaf7dec",
+      "requirement": "On Unix, ignore relative XDG_DATA_HOME, XDG_CONFIG_HOME, XDG_CACHE_HOME and XDG_STATE_HOME values and use their existing defaults. For XDG_DATA_DIRS and XDG_CONFIG_DIRS, discard empty and relative entries individually; if no absolute entries remain, use the existing defaults. Preserve absolute paths verbatim, including spaces, input order and duplicates. Keep app/version suffixes, multipath selection, Path wrappers, directory iterators and ensure_exists consistent. Never create a directory from a rejected relative value. Do not change runtime, media or non-Unix directory behavior.",
+      "provenance": "Candidate task prepared before model calls. Unmodified pinned runtime source, licenses and project metadata; upstream tests and other files are omitted. New to the retained native change cohorts, not proven unseen by a model. Independent task and grader review is pending."
+    }
+  ]
+}

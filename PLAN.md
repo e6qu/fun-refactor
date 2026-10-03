@@ -72,8 +72,8 @@ These bounded behavior checks do not establish an efficiency benefit or general 
 Native trials can now offer public body-edit previews and reviewed history application alongside
 ordinary edits. The versioned protocol retains the exact guide, diff and save/apply records;
 replay checks submitted bytes while separate containers check behavior. Real CLI controls cover
-Python, nested async Python and Rust, including stale handles and failed application. Test feedback,
-broader edit operations and an independently reviewed task comparison remain open.
+Python, nested async Python and Rust, including stale handles and failed application. Live use of test
+feedback, broader edit operations and an independently reviewed task comparison remain open.
 The [four-attempt public-edit pilot](tests/agent-eval/opencode/results/2026-10-02-public-edit-code-changes/README.md)
 retained three behavior passes and one timeout on the reused signal-name task. GitHub containers
 checked all three submissions against nine frozen cases each. None called fr despite the extra
@@ -90,6 +90,12 @@ Optional native test feedback now lets both arms inspect a frozen public check a
 on GitHub before submission. Results bind to source snapshots; later edits make them stale.
 Shared container limits and cleanup failures are audited separately from private behavior grading.
 Scripted controls cover repair and containment, but no live-agent benefit is established.
+
+The [candidate task pack](tests/agent-eval/opencode/candidates/README.md) adds interpolation,
+prerelease filtering and Unix directory tasks from three projects new to the native change cohorts.
+Its public examples, private cases and incomplete repairs are fixed before model calls. Separate
+GitHub jobs verify pinned source and exact control outcomes. Independent review and live trials
+remain pending; preparing these tasks does not close an acceptance item.
 
 Next select independently reviewed unfamiliar tasks that require investigation across code, and
 compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private
