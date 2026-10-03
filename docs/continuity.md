@@ -76,7 +76,11 @@ Offline controls and GitHub container tests do not establish live-agent adoption
 The [candidate task pack](../tests/agent-eval/opencode/candidates/README.md) prepares three broader
 change tasks with public examples and private boundary checks. GitHub verifies pinned source and
 grades unchanged, reference and incomplete repairs in separate five-minute jobs. Independent review
-and live collection are still pending. Do not treat task-author controls as independent evidence.
+and live collection are still pending. Six new incomplete repairs must pass the original graders
+and fail newly added cases. Bounded Kimi/GLM review calls both timed out without a completed review;
+the four other planned calls were not started. See the retained
+[attempts and limits](../tests/agent-eval/opencode/reviews/2026-10-03-candidates/README.md).
+Do not treat task-author controls as independent evidence.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.

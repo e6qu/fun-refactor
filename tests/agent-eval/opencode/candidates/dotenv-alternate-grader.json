@@ -6,7 +6,7 @@
     "-I",
     "-B",
     "-c",
-    "\nimport io, json, os, sys\nsys.path.insert(0, '/workspace/src')\nfrom dotenv import dotenv_values, load_dotenv\ncase = json.load(sys.stdin)\nos.environ.clear()\nif case == 'alternate':\n    for value, expected in [('present', 'chosen'), ('', ''), (None, '')]:\n        if value is not None: os.environ['BASE'] = value\n        else: os.environ.pop('BASE', None)\n        got = dotenv_values(stream=io.StringIO('OUT=before${BASE:+chosen}after\\n'))\n        assert got['OUT'] == 'before' + expected + 'after', got\nelif case == 'precedence':\n    for override, external, local, expected in [(False, '', 'file', ''), (True, '', 'file', 'chosen'),\n                                               (False, 'env', '', 'chosen'), (True, 'env', '', '')]:\n        os.environ.clear(); os.environ['BASE'] = external\n        load_dotenv(stream=io.StringIO('BASE=' + local + '\\nOUT=${BASE:+chosen}\\n'), override=override)\n        assert os.environ['OUT'] == expected, dict(os.environ)\nelif case == 'legacy':\n    os.environ['BASE'] = ''\n    got = dotenv_values(stream=io.StringIO('A=${BASE:-fallback}\\nB=${MISSING:-fallback}\\nC=${BASE}\\nD=$BASE\\nE\\n'))\n    assert got == dict(A='', B='fallback', C='', D='$BASE', E=None), got\nelif case == 'literal':\n    os.environ.update(BASE='yes', OTHER='expanded')\n    got = dotenv_values(stream=io.StringIO('A=${BASE:+$OTHER}\\nB=${BASE:+}\\nC=x${BASE:+α}${BASE:+β}y\\nD=${BASE:+unfinished\\n'))\n    assert got == dict(A='$OTHER', B='', C='xαβy', D='${BASE:+unfinished'), got\nelif case == 'disabled-and-unassigned':\n    got = dotenv_values(stream=io.StringIO('BASE\\nA=${BASE:+chosen}\\nB=${ABSENT:+chosen}\\n'))\n    assert got == dict(BASE=None, A='', B=''), got\n    got = dotenv_values(stream=io.StringIO('A=${BASE:+chosen}\\n'), interpolate=False)\n    assert got['A'] == '${BASE:+chosen}', got\nelse: raise AssertionError(case)\nprint('ok')\n"
+    "\nimport io, json, os, sys\nsys.path.insert(0, '/workspace/src')\nfrom dotenv import dotenv_values, load_dotenv\ncase = json.load(sys.stdin)\nos.environ.clear()\nif case == 'alternate':\n    for value, expected in [('present', 'chosen'), ('', ''), (None, '')]:\n        if value is not None: os.environ['BASE'] = value\n        else: os.environ.pop('BASE', None)\n        got = dotenv_values(stream=io.StringIO('OUT=before${BASE:+chosen}after\\n'))\n        assert got['OUT'] == 'before' + expected + 'after', got\nelif case == 'precedence':\n    for override, external, local, expected in [(False, '', 'file', ''), (True, '', 'file', 'chosen'),\n                                               (False, 'env', '', 'chosen'), (True, 'env', '', '')]:\n        os.environ.clear(); os.environ['BASE'] = external\n        load_dotenv(stream=io.StringIO('BASE=' + local + '\\nOUT=${BASE:+chosen}\\n'), override=override)\n        assert os.environ['OUT'] == expected, dict(os.environ)\nelif case == 'legacy':\n    os.environ['BASE'] = ''\n    got = dotenv_values(stream=io.StringIO('A=${BASE:-fallback}\\nB=${MISSING:-fallback}\\nC=${BASE}\\nD=$BASE\\nE\\n'))\n    assert got == dict(A='', B='fallback', C='', D='$BASE', E=None), got\nelif case == 'literal':\n    os.environ.update(BASE='yes', OTHER='expanded')\n    got = dotenv_values(stream=io.StringIO('A=${BASE:+$OTHER}\\nB=${BASE:+}\\nC=x${BASE:+α}${BASE:+β}y\\nD=${BASE:+unfinished\\n'))\n    assert got == dict(A='$OTHER', B='', C='xαβy', D='${BASE:+unfinished'), got\nelif case == 'disabled-and-unassigned':\n    got = dotenv_values(stream=io.StringIO('BASE\\nA=${BASE:+chosen}\\nB=${ABSENT:+chosen}\\n'))\n    assert got == dict(BASE=None, A='', B=''), got\n    got = dotenv_values(stream=io.StringIO('A=${BASE:+chosen}\\n'), interpolate=False)\n    assert got['A'] == '${BASE:+chosen}', got\nelif case == 'ordinary-values':\n    os.environ['BASE'] = 'process'\n    got = dotenv_values(stream=io.StringIO('A=${BASE}\\nB=x${BASE}${BASE}y\\n'))\n    assert got == dict(A='process', B='xprocessprocessy'), got\nelif case == 'values-precedence':\n    for external, local, expected in [('', 'file', 'chosen'), ('env', '', '')]:\n        os.environ.clear(); os.environ['BASE'] = external\n        got = dotenv_values(stream=io.StringIO('BASE=' + local + '\\nOUT=${BASE:+chosen}\\n'))\n        assert got['OUT'] == expected, got\nelse: raise AssertionError(case)\nprint('ok')\n"
   ],
   "limits": {
     "wall_seconds": 3,
@@ -43,6 +43,18 @@
     {
       "id": "disabled-and-unassigned",
       "stdin": "\"disabled-and-unassigned\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "ordinary-values",
+      "stdin": "\"ordinary-values\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "values-precedence",
+      "stdin": "\"values-precedence\"",
       "stdout": "ok\n",
       "exit_code": 0
     }

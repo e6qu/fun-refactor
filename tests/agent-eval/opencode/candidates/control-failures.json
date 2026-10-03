@@ -4,21 +4,30 @@
       "alternate",
       "precedence",
       "literal",
-      "disabled-and-unassigned"
+      "disabled-and-unassigned",
+      "values-precedence"
     ],
     "reference": [],
     "empty-is-present": [
       "alternate",
       "precedence",
-      "disabled-and-unassigned"
+      "disabled-and-unassigned",
+      "values-precedence"
     ],
     "always-choose-word": [
       "alternate",
       "precedence",
-      "disabled-and-unassigned"
+      "disabled-and-unassigned",
+      "values-precedence"
     ],
     "change-default-semantics": [
       "legacy"
+    ],
+    "erase-plain-substitutions": [
+      "ordinary-values"
+    ],
+    "values-use-process-precedence": [
+      "values-precedence"
     ]
   },
   "packaging-prerelease": {
@@ -41,6 +50,12 @@
       "fallback",
       "matching-finals",
       "explicit"
+    ],
+    "accept-every-contained-version": [
+      "contains-policy"
+    ],
+    "break-individual-filter": [
+      "individual-filter"
     ]
   },
   "platformdirs-xdg": {
@@ -49,20 +64,28 @@
       "site-mixed",
       "site-defaults",
       "wrappers-and-iterators",
-      "creation-and-spaces"
+      "creation-and-spaces",
+      "site-creation"
     ],
     "reference": [],
     "config-home-only": [
       "user-homes",
       "site-mixed",
       "site-defaults",
-      "wrappers-and-iterators"
+      "wrappers-and-iterators",
+      "site-creation"
     ],
     "drop-duplicate-site-dirs": [
       "site-mixed"
     ],
     "no-empty-site-fallback": [
       "site-defaults"
+    ],
+    "create-before-filtering": [
+      "site-creation"
+    ],
+    "filter-runtime-directories-too": [
+      "unrelated-directories"
     ]
   }
 }

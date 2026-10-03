@@ -35,7 +35,7 @@ class CandidateControls(unittest.TestCase):
         for task in tasks:
             original, rows, public = controls.definitions(PACK, task)
             before = copy.deepcopy(original)
-            self.assertEqual(len(rows), 5)
+            self.assertEqual(len(rows), 7)
             self.assertTrue(all(row["expected_public"] == "passed" for row in rows[1:]))
             for row in rows:
                 with self.subTest(task=task["id"], control=row["id"]):
@@ -104,14 +104,17 @@ class CandidateControls(unittest.TestCase):
         def fake(candidate, profile, sha):
             self.assertEqual(hashlib.sha256(profile.read_bytes()).hexdigest(), sha)
             self.assertTrue((candidate / "src/dotenv/main.py").is_file())
-            seen.append((candidate, sha))
+            seen.append((candidate, sha, profile.name == "public.json"))
             return {"outcome": "failed", "cases": []}
         rows = controls.grade_controls(PACK, task, grader=fake)
-        self.assertEqual(len(seen), 10)
-        self.assertEqual(len(rows), 5)
-        for private, public in zip(seen[::2], seen[1::2]):
-            self.assertEqual(private[0], public[0])
-            self.assertNotEqual(private[1], public[1])
+        self.assertEqual(len(seen), 16)
+        self.assertEqual(len(rows), 7)
+        self.assertEqual(sum("baseline_grade" in row for row in rows), 2)
+        for candidate in {item[0] for item in seen}:
+            executions = [item for item in seen if item[0] == candidate]
+            self.assertIn(len(executions), (2, 3))
+            self.assertEqual(sum(item[2] for item in executions), 1)
+            self.assertEqual(len({item[1] for item in executions}), len(executions))
         self.assertTrue(all("submission_sha256" in row and "public_grade" in row for row in rows))
 
     def test_changed_source_inventory_and_failure_case_names_refuse(self):
@@ -140,6 +143,29 @@ class CandidateControls(unittest.TestCase):
                     {**tree, "tree": [row, {**row, "path": "src/omitted.py"}]}):
             with self.subTest(tree=bad), self.assertRaises(ValueError):
                 controls.compare_upstream(files, record, bad)
+
+    def test_baseline_grader_paths_hashes_and_images_are_bound(self):
+        task = load(PACK / "manifest.json")["tasks"][0]
+        row = load(PACK / "controls.json")[task["id"]][-1]
+        image = load(PACK / task["grader"])["image"]
+        path, sha = controls.baseline_grader(PACK, row, image)
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), sha)
+        for key, value in [("grader", "../outside.json"), ("grader", "/tmp/outside.json"),
+                           ("sha256", "0" * 64), ("expected", "failed")]:
+            changed = {**row, "baseline": {**row["baseline"], key: value}}
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                controls.baseline_grader(PACK, changed, image)
+        with self.assertRaisesRegex(ValueError, "image"):
+            controls.baseline_grader(PACK, row, "different-image")
+
+    def test_comparison_requires_an_earlier_pass_on_the_same_candidate(self):
+        row = {"id": "task/gap", "expected": "failed", "expected_baseline": "passed",
+               "baseline_grader_sha256": "old", "grade": {"outcome": "failed", "candidate": {"sha256": "same"}},
+               "baseline_grade": {"outcome": "passed", "grader_sha256": "old", "candidate": {"sha256": "same"}}}
+        controls.verify([row])
+        for key, value in [("outcome", "failed"), ("grader_sha256", "different"), ("candidate", {"sha256": "other"})]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                controls.verify([{**row, "baseline_grade": {**row["baseline_grade"], key: value}}])
 
 
 if __name__ == "__main__":

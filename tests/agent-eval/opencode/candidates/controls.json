@@ -182,6 +182,110 @@
           "new": "result = env.get(self.name) or default"
         }
       ]
+    },
+    {
+      "id": "erase-plain-substitutions",
+      "expected": "failed",
+      "expected_public": "passed",
+      "baseline": {
+        "grader": "review-baseline/dotenv-alternate-grader.json",
+        "sha256": "5eccc4ba925f06612537f630ba75c6c7c7cab9cc8042a266a1439b7ca725c0d2",
+        "expected": "passed"
+      },
+      "edits": [
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "(?::-",
+          "new": "(?::(?P<operator>[-+])"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "def __init__(self, name: str, default: Optional[str]) -> None:",
+          "new": "def __init__(self, name: str, default: Optional[str], operator: str = \"-\") -> None:"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        self.default = default\n",
+          "new": "        self.default = default\n        self.operator = operator\n"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return (self.name, self.default) == (other.name, other.default)",
+          "new": "        return (self.name, self.default, self.operator) == (other.name, other.default, other.operator)"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return hash((self.__class__, self.name, self.default))",
+          "new": "        return hash((self.__class__, self.name, self.default, self.operator))"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        default = self.default if self.default is not None else \"\"",
+          "new": "        if self.operator == \"+\":\n            return (self.default or \"\") if env.get(self.name) else \"\"\n        default = self.default if self.default is not None else \"\""
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "yield Variable(name=name, default=default)",
+          "new": "yield Variable(name=name, default=default, operator=match[\"operator\"] or \"-\")"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        result = env.get(self.name, default)",
+          "new": "        result = env.get(self.name, default)\n        if self.default is None:\n            return \"\""
+        }
+      ]
+    },
+    {
+      "id": "values-use-process-precedence",
+      "expected": "failed",
+      "expected_public": "passed",
+      "baseline": {
+        "grader": "review-baseline/dotenv-alternate-grader.json",
+        "sha256": "5eccc4ba925f06612537f630ba75c6c7c7cab9cc8042a266a1439b7ca725c0d2",
+        "expected": "passed"
+      },
+      "edits": [
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "(?::-",
+          "new": "(?::(?P<operator>[-+])"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "def __init__(self, name: str, default: Optional[str]) -> None:",
+          "new": "def __init__(self, name: str, default: Optional[str], operator: str = \"-\") -> None:"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        self.default = default\n",
+          "new": "        self.default = default\n        self.operator = operator\n"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return (self.name, self.default) == (other.name, other.default)",
+          "new": "        return (self.name, self.default, self.operator) == (other.name, other.default, other.operator)"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return hash((self.__class__, self.name, self.default))",
+          "new": "        return hash((self.__class__, self.name, self.default, self.operator))"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        default = self.default if self.default is not None else \"\"",
+          "new": "        if self.operator == \"+\":\n            return (self.default or \"\") if env.get(self.name) else \"\"\n        default = self.default if self.default is not None else \"\""
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "yield Variable(name=name, default=default)",
+          "new": "yield Variable(name=name, default=default, operator=match[\"operator\"] or \"-\")"
+        },
+        {
+          "path": "src/dotenv/main.py",
+          "old": "        override=True,\n        encoding=encoding,\n    ).dict()",
+          "new": "        override=False,\n        encoding=encoding,\n    ).dict()"
+        }
+      ]
     }
   ],
   "packaging-prerelease": [
@@ -265,6 +369,60 @@
           "path": "src/packaging/specifiers.py",
           "old": "        return selected()",
           "new": "        return iter(sorted(set(selected()), key=_coerce_version))"
+        }
+      ]
+    },
+    {
+      "id": "accept-every-contained-version",
+      "expected": "failed",
+      "expected_public": "passed",
+      "baseline": {
+        "grader": "review-baseline/packaging-prerelease-grader.json",
+        "sha256": "d5f746a2d1a7d9a31c3c54d0cb21001a93596cbb69d802fb17ebdf0933fee062",
+        "expected": "passed"
+      },
+      "edits": [
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:\n            filtered: list[UnparsedVersionVar] = []\n            found_prereleases: list[UnparsedVersionVar] = []\n\n            for item in iterable:\n                parsed_version = _coerce_version(item)\n\n                # Store any item which is a pre-release for later unless we've\n                # already found a final version or we are accepting prereleases\n                if parsed_version.is_prerelease and not prereleases:\n                    if not filtered:\n                        found_prereleases.append(item)\n                else:\n                    filtered.append(item)\n\n            # If we've found no items except for pre-releases, then we'll go\n            # ahead and use the pre-releases\n            if not filtered and found_prereleases and prereleases is None:\n                return iter(found_prereleases)\n\n            return iter(filtered)\n",
+          "new": "        if prereleases is None:\n            prereleases = self._prereleases\n            if prereleases is None and any(s.prereleases for s in self._specs):\n                prereleases = True\n\n        def selected():\n            pending = []\n            found_final = False\n            for item in iterable:\n                parsed = _coerce_version(item)\n                if not all(s.contains(parsed, prereleases=True) for s in self._specs):\n                    continue\n                if not parsed.is_prerelease or prereleases is True:\n                    found_final = True\n                    yield item\n                elif prereleases is None:\n                    pending.append(item)\n            if not found_final and prereleases is None:\n                yield from pending\n\n        return selected()\n"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []",
+          "new": "        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        ['1.5a1']"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        if not isinstance(item, Version):\n            item = Version(item)\n\n        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # We can determine if we're going to allow pre-releases by looking to\n        # see if any of the underlying items supports them. If none of them do\n        # and this item is a pre-release then we do not allow it and we can\n        # short circuit that here.\n        # Note: This means that 1.0.dev1 would not be contained in something\n        #       like >=1.0.devabc however it would be in >=1.0.debabc,>0.0.dev0\n        if not prereleases and item.is_prerelease:\n            return False\n\n        if installed and item.is_prerelease:\n            item = Version(item.base_version)\n\n        # We simply dispatch to the underlying specs here to make sure that the\n        # given version is contained within all of them.\n        # Note: This use of all() here means that an empty set of specifiers\n        #       will always return True, this is an explicit design decision.\n        return all(s.contains(item, prereleases=prereleases) for s in self._specs)\n",
+          "new": "        return True\n"
+        }
+      ]
+    },
+    {
+      "id": "break-individual-filter",
+      "expected": "failed",
+      "expected_public": "passed",
+      "baseline": {
+        "grader": "review-baseline/packaging-prerelease-grader.json",
+        "sha256": "d5f746a2d1a7d9a31c3c54d0cb21001a93596cbb69d802fb17ebdf0933fee062",
+        "expected": "passed"
+      },
+      "edits": [
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:\n            filtered: list[UnparsedVersionVar] = []\n            found_prereleases: list[UnparsedVersionVar] = []\n\n            for item in iterable:\n                parsed_version = _coerce_version(item)\n\n                # Store any item which is a pre-release for later unless we've\n                # already found a final version or we are accepting prereleases\n                if parsed_version.is_prerelease and not prereleases:\n                    if not filtered:\n                        found_prereleases.append(item)\n                else:\n                    filtered.append(item)\n\n            # If we've found no items except for pre-releases, then we'll go\n            # ahead and use the pre-releases\n            if not filtered and found_prereleases and prereleases is None:\n                return iter(found_prereleases)\n\n            return iter(filtered)\n",
+          "new": "        if prereleases is None:\n            prereleases = self._prereleases\n            if prereleases is None and any(s.prereleases for s in self._specs):\n                prereleases = True\n\n        def selected():\n            pending = []\n            found_final = False\n            for item in iterable:\n                parsed = _coerce_version(item)\n                if not all(s.contains(parsed, prereleases=True) for s in self._specs):\n                    continue\n                if not parsed.is_prerelease or prereleases is True:\n                    found_final = True\n                    yield item\n                elif prereleases is None:\n                    pending.append(item)\n            if not found_final and prereleases is None:\n                yield from pending\n\n        return selected()\n"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []",
+          "new": "        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        ['1.5a1']"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        yielded = False\n        found_prereleases = []\n\n        kw = {\"prereleases\": prereleases if prereleases is not None else True}\n\n        # Attempt to iterate over all the values in the iterable and if any of\n        # them match, yield them.\n        for version in iterable:\n            parsed_version = _coerce_version(version)\n\n            if self.contains(parsed_version, **kw):\n                # If our version is a prerelease, and we were not set to allow\n                # prereleases, then we'll store it for later in case nothing\n                # else matches this specifier.\n                if parsed_version.is_prerelease and not (\n                    prereleases or self.prereleases\n                ):\n                    found_prereleases.append(version)\n                # Either this is not a prerelease, or we should have been\n                # accepting prereleases from the beginning.\n                else:\n                    yielded = True\n                    yield version\n\n        # Now that we've iterated over everything, determine if we've yielded\n        # any values, and if we have not and we have any prereleases stored up\n        # then we will go ahead and yield the prereleases.\n        if not yielded and found_prereleases:\n            for version in found_prereleases:\n                yield version\n",
+          "new": "        return iter(())\n"
         }
       ]
     }
@@ -460,6 +618,110 @@
           "path": "src/platformdirs/unix.py",
           "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]",
           "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if path == \"\":\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        }
+      ]
+    },
+    {
+      "id": "create-before-filtering",
+      "expected": "failed",
+      "expected_public": "passed",
+      "baseline": {
+        "grader": "review-baseline/platformdirs-xdg-grader.json",
+        "sha256": "1b074bf8eb1590f47bab6851543a27f8e255634f45e916baead6a6e60d4677c0",
+        "expected": "passed"
+      },
+      "edits": [
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        if not path.strip():\n            path = f\"/usr/local/share{os.pathsep}/usr/share\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        if not path.strip():\n            path = \"/etc/xdg\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]\n",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        for item in path.split(os.pathsep):\n            self._append_app_name_and_version(item)\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]\n"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]\n",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        for item in path.split(os.pathsep):\n            self._append_app_name_and_version(item)\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]\n"
+        }
+      ]
+    },
+    {
+      "id": "filter-runtime-directories-too",
+      "expected": "failed",
+      "expected_public": "passed",
+      "baseline": {
+        "grader": "review-baseline/platformdirs-xdg-grader.json",
+        "sha256": "1b074bf8eb1590f47bab6851543a27f8e255634f45e916baead6a6e60d4677c0",
+        "expected": "passed"
+      },
+      "edits": [
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        if not path.strip():\n            path = f\"/usr/local/share{os.pathsep}/usr/share\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        if not path.strip():\n            path = \"/etc/xdg\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_RUNTIME_DIR\", \"\")\n        if not path.strip():\n            if sys.platform.startswith((\"freebsd\", \"openbsd\", \"netbsd\")):\n                path = f\"/var/run/user/{getuid()}\"\n                if not Path(path).exists():\n                    path = f\"/tmp/runtime-{getuid()}\"  # noqa: S108\n            else:\n                path = f\"/run/user/{getuid()}\"\n        return self._append_app_name_and_version(path)\n",
+          "new": "        path = os.environ.get(\"XDG_RUNTIME_DIR\", \"\")\n        if not os.path.isabs(path):\n            if sys.platform.startswith((\"freebsd\", \"openbsd\", \"netbsd\")):\n                path = f\"/var/run/user/{getuid()}\"\n                if not Path(path).exists():\n                    path = f\"/tmp/runtime-{getuid()}\"  # noqa: S108\n            else:\n                path = f\"/run/user/{getuid()}\"\n        return self._append_app_name_and_version(path)\n"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_RUNTIME_DIR\", \"\")\n        if not path.strip():\n            if sys.platform.startswith((\"freebsd\", \"openbsd\", \"netbsd\")):\n                path = \"/var/run\"\n            else:\n                path = \"/run\"\n        return self._append_app_name_and_version(path)\n",
+          "new": "        path = os.environ.get(\"XDG_RUNTIME_DIR\", \"\")\n        if not os.path.isabs(path):\n            if sys.platform.startswith((\"freebsd\", \"openbsd\", \"netbsd\")):\n                path = \"/var/run\"\n            else:\n                path = \"/run\"\n        return self._append_app_name_and_version(path)\n"
         }
       ]
     }
