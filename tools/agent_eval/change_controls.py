@@ -64,6 +64,24 @@ def apply(files, control):
     return machine.files
 
 
+def baseline_grader(root, control, image):
+    value = control.get("baseline")
+    if value is None:
+        return None
+    require(isinstance(value, dict) and set(value) == {"grader", "sha256", "expected"}
+            and value["expected"] == "passed", "baseline comparison must demonstrate an earlier pass")
+    name = Path(value["grader"])
+    require(not name.is_absolute() and ".." not in name.parts, "baseline grader must stay inside the task pack")
+    path = root / name
+    require(path.resolve().is_relative_to(root.resolve()) and path.is_file() and path.stat().st_size <= 65536,
+            "invalid baseline grader path")
+    require(hashlib.sha256(path.read_bytes()).hexdigest() == value["sha256"], "baseline grader identity differs")
+    profile = load(path)
+    isolated_grade.validate(profile)
+    require(profile["image"] == image, "baseline grading image differs")
+    return path, value["sha256"]
+
+
 def definitions(root, task):
     files = rehearsal_evidence.source_bundle(task, root)
     controls = load(root / "controls.json")[task["id"]]
@@ -94,6 +112,8 @@ def definitions(root, task):
                     "unknown or repeated expected failed case")
             require(bool(failures) == (row["expected"] == "failed"), "failure expectations contradict outcome")
             row["failed_cases"] = sorted(failures)
+    for row in rows:
+        baseline_grader(root, row, profile["image"])
     return files, rows, public
 
 
@@ -110,6 +130,11 @@ def grade_controls(root, task, *, grader=isolated_grade.grade):
             grade = grader(candidate, grader_path, sha)
             row = {"id": task["id"] + "/" + control["id"], "repository_revision": task["revision"],
                    "expected": control["expected"], "submission_sha256": digest(candidate_files), "grade": grade}
+            previous = baseline_grader(root, control, load(grader_path)["image"])
+            if previous is not None:
+                path, previous_sha = previous
+                row.update(expected_baseline="passed", baseline_grader_sha256=previous_sha,
+                           baseline_grade=grader(candidate, path, previous_sha))
             if "failed_cases" in control:
                 row["expected_failed_cases"] = control["failed_cases"]
             if public is not None:
@@ -128,5 +153,10 @@ def verify(results):
         if "expected_failed_cases" in row:
             observed = sorted(case["id"] for case in row["grade"]["cases"] if not case["passed"])
             require(observed == row["expected_failed_cases"], "failed case set differs: " + row["id"] + " " + str(observed))
+        if "baseline_grade" in row:
+            previous = row["baseline_grade"]
+            require(previous["outcome"] == row["expected_baseline"] == "passed", "earlier grader did not pass: " + row["id"])
+            require(previous["grader_sha256"] == row["baseline_grader_sha256"]
+                    and previous["candidate"] == row["grade"]["candidate"], "baseline comparison identity differs")
         if "public_grade" in row:
             require(row["public_grade"]["outcome"] == row["expected_public"], "public control outcome differs: " + row["id"])

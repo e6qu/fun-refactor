@@ -93,9 +93,12 @@ Scripted controls cover repair and containment, but no live-agent benefit is est
 
 The [candidate task pack](tests/agent-eval/opencode/candidates/README.md) adds interpolation,
 prerelease filtering and Unix directory tasks from three projects new to the native change cohorts.
-Its public examples, private cases and incomplete repairs are fixed before model calls. Separate
-GitHub jobs verify pinned source and exact control outcomes. Independent review and live trials
-remain pending; preparing these tasks does not close an acceptance item.
+Separate GitHub jobs verify pinned source and exact control outcomes. Six additional incomplete
+repairs must pass the original graders and fail the strengthened ones, using the same source.
+The [bounded model-review attempts](tests/agent-eval/opencode/reviews/2026-10-03-candidates/README.md)
+retained two timeouts and no completed review; four planned calls were not started. These new
+controls are task-author counterexamples. Independent review and live trials remain pending;
+preparing these tasks does not close an acceptance item.
 
 Next select independently reviewed unfamiliar tasks that require investigation across code, and
 compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private

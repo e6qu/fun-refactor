@@ -337,8 +337,10 @@ independent task selection and an efficiency comparison remain open.
 
 The [candidate task pack](../tests/agent-eval/opencode/candidates/README.md) provides public check
 definitions for three broader tasks. It includes reference and incomplete-repair controls, source
-provenance checks and separate GitHub jobs. Independent review is pending; no model results are
-claimed for that pack.
+provenance checks and separate GitHub jobs. Six new controls compare frozen original graders with
+strengthened graders on the same source. The bounded
+[review attempts](../tests/agent-eval/opencode/reviews/2026-10-03-candidates/README.md) both timed
+out; no completed model findings or live change results are claimed. Independent review is pending.
 
 ## Count work from failed attempts too
 
