@@ -73,6 +73,10 @@ Checks use frozen commands in isolated containers with one shared resource allow
 to exact source snapshots and become stale after edits. Parent-owned cleanup handles interrupted
 MCP children; resource stops and cleanup failures fail collection. Private grading stays separate.
 Offline controls and GitHub container tests do not establish live-agent adoption or efficiency.
+The [candidate task pack](../tests/agent-eval/opencode/candidates/README.md) prepares three broader
+change tasks with public examples and private boundary checks. GitHub verifies pinned source and
+grades unchanged, reference and incomplete repairs in separate five-minute jobs. Independent review
+and live collection are still pending. Do not treat task-author controls as independent evidence.
 Select independent tasks, extend proof grading, and collect complete context/tool
 and system resource measurements before the Sonnet/Luna pilot.
 The existing Codex CLI path still cannot enforce the pilot dollar cap.
