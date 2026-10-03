@@ -1,0 +1,50 @@
+{
+  "schema": "fr-stdio-grader-1",
+  "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+  "command": [
+    "python3",
+    "-I",
+    "-B",
+    "-c",
+    "\nimport io, json, os, sys\nsys.path.insert(0, '/workspace/src')\nfrom dotenv import dotenv_values, load_dotenv\ncase = json.load(sys.stdin)\nos.environ.clear()\nif case == 'alternate':\n    for value, expected in [('present', 'chosen'), ('', ''), (None, '')]:\n        if value is not None: os.environ['BASE'] = value\n        else: os.environ.pop('BASE', None)\n        got = dotenv_values(stream=io.StringIO('OUT=before${BASE:+chosen}after\\n'))\n        assert got['OUT'] == 'before' + expected + 'after', got\nelif case == 'precedence':\n    for override, external, local, expected in [(False, '', 'file', ''), (True, '', 'file', 'chosen'),\n                                               (False, 'env', '', 'chosen'), (True, 'env', '', '')]:\n        os.environ.clear(); os.environ['BASE'] = external\n        load_dotenv(stream=io.StringIO('BASE=' + local + '\\nOUT=${BASE:+chosen}\\n'), override=override)\n        assert os.environ['OUT'] == expected, dict(os.environ)\nelif case == 'legacy':\n    os.environ['BASE'] = ''\n    got = dotenv_values(stream=io.StringIO('A=${BASE:-fallback}\\nB=${MISSING:-fallback}\\nC=${BASE}\\nD=$BASE\\nE\\n'))\n    assert got == dict(A='', B='fallback', C='', D='$BASE', E=None), got\nelif case == 'literal':\n    os.environ.update(BASE='yes', OTHER='expanded')\n    got = dotenv_values(stream=io.StringIO('A=${BASE:+$OTHER}\\nB=${BASE:+}\\nC=x${BASE:+α}${BASE:+β}y\\nD=${BASE:+unfinished\\n'))\n    assert got == dict(A='$OTHER', B='', C='xαβy', D='${BASE:+unfinished'), got\nelif case == 'disabled-and-unassigned':\n    got = dotenv_values(stream=io.StringIO('BASE\\nA=${BASE:+chosen}\\nB=${ABSENT:+chosen}\\n'))\n    assert got == dict(BASE=None, A='', B=''), got\n    got = dotenv_values(stream=io.StringIO('A=${BASE:+chosen}\\n'), interpolate=False)\n    assert got['A'] == '${BASE:+chosen}', got\nelse: raise AssertionError(case)\nprint('ok')\n"
+  ],
+  "limits": {
+    "wall_seconds": 3,
+    "memory_bytes": 67108864,
+    "scratch_bytes": 1048576,
+    "output_bytes": 2048,
+    "candidate_bytes": 1048576
+  },
+  "cases": [
+    {
+      "id": "alternate",
+      "stdin": "\"alternate\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "precedence",
+      "stdin": "\"precedence\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "legacy",
+      "stdin": "\"legacy\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "literal",
+      "stdin": "\"literal\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    },
+    {
+      "id": "disabled-and-unassigned",
+      "stdin": "\"disabled-and-unassigned\"",
+      "stdout": "ok\n",
+      "exit_code": 0
+    }
+  ]
+}

@@ -1,0 +1,447 @@
+{
+  "dotenv-alternate": [
+    {
+      "id": "reference",
+      "expected": "passed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "(?::-",
+          "new": "(?::(?P<operator>[-+])"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "def __init__(self, name: str, default: Optional[str]) -> None:",
+          "new": "def __init__(self, name: str, default: Optional[str], operator: str = \"-\") -> None:"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        self.default = default\n",
+          "new": "        self.default = default\n        self.operator = operator\n"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return (self.name, self.default) == (other.name, other.default)",
+          "new": "        return (self.name, self.default, self.operator) == (other.name, other.default, other.operator)"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return hash((self.__class__, self.name, self.default))",
+          "new": "        return hash((self.__class__, self.name, self.default, self.operator))"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        default = self.default if self.default is not None else \"\"",
+          "new": "        if self.operator == \"+\":\n            return (self.default or \"\") if env.get(self.name) else \"\"\n        default = self.default if self.default is not None else \"\""
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "yield Variable(name=name, default=default)",
+          "new": "yield Variable(name=name, default=default, operator=match[\"operator\"] or \"-\")"
+        }
+      ]
+    },
+    {
+      "id": "empty-is-present",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "(?::-",
+          "new": "(?::(?P<operator>[-+])"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "def __init__(self, name: str, default: Optional[str]) -> None:",
+          "new": "def __init__(self, name: str, default: Optional[str], operator: str = \"-\") -> None:"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        self.default = default\n",
+          "new": "        self.default = default\n        self.operator = operator\n"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return (self.name, self.default) == (other.name, other.default)",
+          "new": "        return (self.name, self.default, self.operator) == (other.name, other.default, other.operator)"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return hash((self.__class__, self.name, self.default))",
+          "new": "        return hash((self.__class__, self.name, self.default, self.operator))"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        default = self.default if self.default is not None else \"\"",
+          "new": "        if self.operator == \"+\":\n            return (self.default or \"\") if env.get(self.name) else \"\"\n        default = self.default if self.default is not None else \"\""
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "yield Variable(name=name, default=default)",
+          "new": "yield Variable(name=name, default=default, operator=match[\"operator\"] or \"-\")"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "if env.get(self.name) else",
+          "new": "if self.name in env else"
+        }
+      ]
+    },
+    {
+      "id": "always-choose-word",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "(?::-",
+          "new": "(?::(?P<operator>[-+])"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "def __init__(self, name: str, default: Optional[str]) -> None:",
+          "new": "def __init__(self, name: str, default: Optional[str], operator: str = \"-\") -> None:"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        self.default = default\n",
+          "new": "        self.default = default\n        self.operator = operator\n"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return (self.name, self.default) == (other.name, other.default)",
+          "new": "        return (self.name, self.default, self.operator) == (other.name, other.default, other.operator)"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return hash((self.__class__, self.name, self.default))",
+          "new": "        return hash((self.__class__, self.name, self.default, self.operator))"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        default = self.default if self.default is not None else \"\"",
+          "new": "        if self.operator == \"+\":\n            return (self.default or \"\") if env.get(self.name) else \"\"\n        default = self.default if self.default is not None else \"\""
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "yield Variable(name=name, default=default)",
+          "new": "yield Variable(name=name, default=default, operator=match[\"operator\"] or \"-\")"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "return (self.default or \"\") if env.get(self.name) else \"\"",
+          "new": "return self.default or \"\""
+        }
+      ]
+    },
+    {
+      "id": "change-default-semantics",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "(?::-",
+          "new": "(?::(?P<operator>[-+])"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "def __init__(self, name: str, default: Optional[str]) -> None:",
+          "new": "def __init__(self, name: str, default: Optional[str], operator: str = \"-\") -> None:"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        self.default = default\n",
+          "new": "        self.default = default\n        self.operator = operator\n"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return (self.name, self.default) == (other.name, other.default)",
+          "new": "        return (self.name, self.default, self.operator) == (other.name, other.default, other.operator)"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return hash((self.__class__, self.name, self.default))",
+          "new": "        return hash((self.__class__, self.name, self.default, self.operator))"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        default = self.default if self.default is not None else \"\"",
+          "new": "        if self.operator == \"+\":\n            return (self.default or \"\") if env.get(self.name) else \"\"\n        default = self.default if self.default is not None else \"\""
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "yield Variable(name=name, default=default)",
+          "new": "yield Variable(name=name, default=default, operator=match[\"operator\"] or \"-\")"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "result = env.get(self.name, default)",
+          "new": "result = env.get(self.name) or default"
+        }
+      ]
+    }
+  ],
+  "packaging-prerelease": [
+    {
+      "id": "reference",
+      "expected": "passed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # We can determine if we're going to allow pre-releases by looking to\n        # see if any of the underlying items supports them. If none of them do\n        # and this item is a pre-release then we do not allow it and we can\n        # short circuit that here.\n        # Note: This means that 1.0.dev1 would not be contained in something\n        #       like >=1.0.devabc however it would be in >=1.0.debabc,>0.0.dev0\n        if not prereleases and item.is_prerelease:\n            return False\n\n        if installed and item.is_prerelease:\n            item = Version(item.base_version)\n\n        # We simply dispatch to the underlying specs here to make sure that the\n        # given version is contained within all of them.\n        # Note: This use of all() here means that an empty set of specifiers\n        #       will always return True, this is an explicit design decision.\n        return all(s.contains(item, prereleases=prereleases) for s in self._specs)\n\n    def filter(\n        self, iterable: Iterable[UnparsedVersionVar], prereleases: bool | None = None\n    ) -> Iterator[UnparsedVersionVar]:\n        \"\"\"Filter items in the given iterable, that match the specifiers in this set.\n\n        :param iterable:\n            An iterable that can contain version strings and :class:`Version` instances.\n            The items in the iterable will be filtered according to the specifier.\n        :param prereleases:\n            Whether or not to allow prereleases in the returned iterator. If set to\n            ``None`` (the default), it will be intelligently decide whether to allow\n            prereleases or not (based on the :attr:`prereleases` attribute, and\n            whether the only versions matching are prereleases).\n\n        This method is smarter than just ``filter(SpecifierSet(...).contains, [...])``\n        because it implements the rule from :pep:`440` that a prerelease item\n        SHOULD be accepted if no other versions match the given specifier.\n\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", Version(\"1.4\")]))\n        ['1.3', <Version('1.4')>]\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\">=1.2.3\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n\n        An \"empty\" SpecifierSet will filter items based on the presence of prerelease\n        versions in the set.\n\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\"\").filter([\"1.5a1\"]))\n        ['1.5a1']\n        >>> list(SpecifierSet(\"\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        \"\"\"\n        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:\n            filtered: list[UnparsedVersionVar] = []\n            found_prereleases: list[UnparsedVersionVar] = []\n\n            for item in iterable:\n                parsed_version = _coerce_version(item)\n\n                # Store any item which is a pre-release for later unless we've\n                # already found a final version or we are accepting prereleases\n                if parsed_version.is_prerelease and not prereleases:\n                    if not filtered:\n                        found_prereleases.append(item)\n                else:\n                    filtered.append(item)\n\n            # If we've found no items except for pre-releases, then we'll go\n            # ahead and use the pre-releases\n            if not filtered and found_prereleases and prereleases is None:\n                return iter(found_prereleases)\n\n            return iter(filtered)\n",
+          "new": "        if prereleases is None:\n            prereleases = self._prereleases\n            if prereleases is None and any(s.prereleases for s in self._specs):\n                prereleases = True\n\n        def selected():\n            pending = []\n            found_final = False\n            for item in iterable:\n                parsed = _coerce_version(item)\n                if not all(s.contains(parsed, prereleases=True) for s in self._specs):\n                    continue\n                if not parsed.is_prerelease or prereleases is True:\n                    found_final = True\n                    yield item\n                elif prereleases is None:\n                    pending.append(item)\n            if not found_final and prereleases is None:\n                yield from pending\n\n        return selected()\n"
+        }
+      ]
+    },
+    {
+      "id": "always-allow-prereleases",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # We can determine if we're going to allow pre-releases by looking to\n        # see if any of the underlying items supports them. If none of them do\n        # and this item is a pre-release then we do not allow it and we can\n        # short circuit that here.\n        # Note: This means that 1.0.dev1 would not be contained in something\n        #       like >=1.0.devabc however it would be in >=1.0.debabc,>0.0.dev0\n        if not prereleases and item.is_prerelease:\n            return False\n\n        if installed and item.is_prerelease:\n            item = Version(item.base_version)\n\n        # We simply dispatch to the underlying specs here to make sure that the\n        # given version is contained within all of them.\n        # Note: This use of all() here means that an empty set of specifiers\n        #       will always return True, this is an explicit design decision.\n        return all(s.contains(item, prereleases=prereleases) for s in self._specs)\n\n    def filter(\n        self, iterable: Iterable[UnparsedVersionVar], prereleases: bool | None = None\n    ) -> Iterator[UnparsedVersionVar]:\n        \"\"\"Filter items in the given iterable, that match the specifiers in this set.\n\n        :param iterable:\n            An iterable that can contain version strings and :class:`Version` instances.\n            The items in the iterable will be filtered according to the specifier.\n        :param prereleases:\n            Whether or not to allow prereleases in the returned iterator. If set to\n            ``None`` (the default), it will be intelligently decide whether to allow\n            prereleases or not (based on the :attr:`prereleases` attribute, and\n            whether the only versions matching are prereleases).\n\n        This method is smarter than just ``filter(SpecifierSet(...).contains, [...])``\n        because it implements the rule from :pep:`440` that a prerelease item\n        SHOULD be accepted if no other versions match the given specifier.\n\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", Version(\"1.4\")]))\n        ['1.3', <Version('1.4')>]\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\">=1.2.3\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n\n        An \"empty\" SpecifierSet will filter items based on the presence of prerelease\n        versions in the set.\n\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\"\").filter([\"1.5a1\"]))\n        ['1.5a1']\n        >>> list(SpecifierSet(\"\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        \"\"\"\n        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:\n            filtered: list[UnparsedVersionVar] = []\n            found_prereleases: list[UnparsedVersionVar] = []\n\n            for item in iterable:\n                parsed_version = _coerce_version(item)\n\n                # Store any item which is a pre-release for later unless we've\n                # already found a final version or we are accepting prereleases\n                if parsed_version.is_prerelease and not prereleases:\n                    if not filtered:\n                        found_prereleases.append(item)\n                else:\n                    filtered.append(item)\n\n            # If we've found no items except for pre-releases, then we'll go\n            # ahead and use the pre-releases\n            if not filtered and found_prereleases and prereleases is None:\n                return iter(found_prereleases)\n\n            return iter(filtered)\n",
+          "new": "        if prereleases is None:\n            prereleases = self._prereleases\n            if prereleases is None and any(s.prereleases for s in self._specs):\n                prereleases = True\n\n        def selected():\n            pending = []\n            found_final = False\n            for item in iterable:\n                parsed = _coerce_version(item)\n                if not all(s.contains(parsed, prereleases=True) for s in self._specs):\n                    continue\n                if not parsed.is_prerelease or prereleases is True:\n                    found_final = True\n                    yield item\n                elif prereleases is None:\n                    pending.append(item)\n            if not found_final and prereleases is None:\n                yield from pending\n\n        return selected()\n"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        def selected():",
+          "new": "        prereleases = True\n\n        def selected():"
+        }
+      ]
+    },
+    {
+      "id": "ignore-explicit-false",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # We can determine if we're going to allow pre-releases by looking to\n        # see if any of the underlying items supports them. If none of them do\n        # and this item is a pre-release then we do not allow it and we can\n        # short circuit that here.\n        # Note: This means that 1.0.dev1 would not be contained in something\n        #       like >=1.0.devabc however it would be in >=1.0.debabc,>0.0.dev0\n        if not prereleases and item.is_prerelease:\n            return False\n\n        if installed and item.is_prerelease:\n            item = Version(item.base_version)\n\n        # We simply dispatch to the underlying specs here to make sure that the\n        # given version is contained within all of them.\n        # Note: This use of all() here means that an empty set of specifiers\n        #       will always return True, this is an explicit design decision.\n        return all(s.contains(item, prereleases=prereleases) for s in self._specs)\n\n    def filter(\n        self, iterable: Iterable[UnparsedVersionVar], prereleases: bool | None = None\n    ) -> Iterator[UnparsedVersionVar]:\n        \"\"\"Filter items in the given iterable, that match the specifiers in this set.\n\n        :param iterable:\n            An iterable that can contain version strings and :class:`Version` instances.\n            The items in the iterable will be filtered according to the specifier.\n        :param prereleases:\n            Whether or not to allow prereleases in the returned iterator. If set to\n            ``None`` (the default), it will be intelligently decide whether to allow\n            prereleases or not (based on the :attr:`prereleases` attribute, and\n            whether the only versions matching are prereleases).\n\n        This method is smarter than just ``filter(SpecifierSet(...).contains, [...])``\n        because it implements the rule from :pep:`440` that a prerelease item\n        SHOULD be accepted if no other versions match the given specifier.\n\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", Version(\"1.4\")]))\n        ['1.3', <Version('1.4')>]\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\">=1.2.3\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n\n        An \"empty\" SpecifierSet will filter items based on the presence of prerelease\n        versions in the set.\n\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\"\").filter([\"1.5a1\"]))\n        ['1.5a1']\n        >>> list(SpecifierSet(\"\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        \"\"\"\n        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:\n            filtered: list[UnparsedVersionVar] = []\n            found_prereleases: list[UnparsedVersionVar] = []\n\n            for item in iterable:\n                parsed_version = _coerce_version(item)\n\n                # Store any item which is a pre-release for later unless we've\n                # already found a final version or we are accepting prereleases\n                if parsed_version.is_prerelease and not prereleases:\n                    if not filtered:\n                        found_prereleases.append(item)\n                else:\n                    filtered.append(item)\n\n            # If we've found no items except for pre-releases, then we'll go\n            # ahead and use the pre-releases\n            if not filtered and found_prereleases and prereleases is None:\n                return iter(found_prereleases)\n\n            return iter(filtered)\n",
+          "new": "        if prereleases is None:\n            prereleases = self._prereleases\n            if prereleases is None and any(s.prereleases for s in self._specs):\n                prereleases = True\n\n        def selected():\n            pending = []\n            found_final = False\n            for item in iterable:\n                parsed = _coerce_version(item)\n                if not all(s.contains(parsed, prereleases=True) for s in self._specs):\n                    continue\n                if not parsed.is_prerelease or prereleases is True:\n                    found_final = True\n                    yield item\n                elif prereleases is None:\n                    pending.append(item)\n            if not found_final and prereleases is None:\n                yield from pending\n\n        return selected()\n"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        def selected():",
+          "new": "        if prereleases is False:\n            prereleases = None\n\n        def selected():"
+        }
+      ]
+    },
+    {
+      "id": "discard-order-and-duplicates",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # We can determine if we're going to allow pre-releases by looking to\n        # see if any of the underlying items supports them. If none of them do\n        # and this item is a pre-release then we do not allow it and we can\n        # short circuit that here.\n        # Note: This means that 1.0.dev1 would not be contained in something\n        #       like >=1.0.devabc however it would be in >=1.0.debabc,>0.0.dev0\n        if not prereleases and item.is_prerelease:\n            return False\n\n        if installed and item.is_prerelease:\n            item = Version(item.base_version)\n\n        # We simply dispatch to the underlying specs here to make sure that the\n        # given version is contained within all of them.\n        # Note: This use of all() here means that an empty set of specifiers\n        #       will always return True, this is an explicit design decision.\n        return all(s.contains(item, prereleases=prereleases) for s in self._specs)\n\n    def filter(\n        self, iterable: Iterable[UnparsedVersionVar], prereleases: bool | None = None\n    ) -> Iterator[UnparsedVersionVar]:\n        \"\"\"Filter items in the given iterable, that match the specifiers in this set.\n\n        :param iterable:\n            An iterable that can contain version strings and :class:`Version` instances.\n            The items in the iterable will be filtered according to the specifier.\n        :param prereleases:\n            Whether or not to allow prereleases in the returned iterator. If set to\n            ``None`` (the default), it will be intelligently decide whether to allow\n            prereleases or not (based on the :attr:`prereleases` attribute, and\n            whether the only versions matching are prereleases).\n\n        This method is smarter than just ``filter(SpecifierSet(...).contains, [...])``\n        because it implements the rule from :pep:`440` that a prerelease item\n        SHOULD be accepted if no other versions match the given specifier.\n\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.3\", Version(\"1.4\")]))\n        ['1.3', <Version('1.4')>]\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []\n        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\">=1.2.3\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n\n        An \"empty\" SpecifierSet will filter items based on the presence of prerelease\n        versions in the set.\n\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"]))\n        ['1.3']\n        >>> list(SpecifierSet(\"\").filter([\"1.5a1\"]))\n        ['1.5a1']\n        >>> list(SpecifierSet(\"\", prereleases=True).filter([\"1.3\", \"1.5a1\"]))\n        ['1.3', '1.5a1']\n        >>> list(SpecifierSet(\"\").filter([\"1.3\", \"1.5a1\"], prereleases=True))\n        ['1.3', '1.5a1']\n        \"\"\"\n        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:\n            filtered: list[UnparsedVersionVar] = []\n            found_prereleases: list[UnparsedVersionVar] = []\n\n            for item in iterable:\n                parsed_version = _coerce_version(item)\n\n                # Store any item which is a pre-release for later unless we've\n                # already found a final version or we are accepting prereleases\n                if parsed_version.is_prerelease and not prereleases:\n                    if not filtered:\n                        found_prereleases.append(item)\n                else:\n                    filtered.append(item)\n\n            # If we've found no items except for pre-releases, then we'll go\n            # ahead and use the pre-releases\n            if not filtered and found_prereleases and prereleases is None:\n                return iter(found_prereleases)\n\n            return iter(filtered)\n",
+          "new": "        if prereleases is None:\n            prereleases = self._prereleases\n            if prereleases is None and any(s.prereleases for s in self._specs):\n                prereleases = True\n\n        def selected():\n            pending = []\n            found_final = False\n            for item in iterable:\n                parsed = _coerce_version(item)\n                if not all(s.contains(parsed, prereleases=True) for s in self._specs):\n                    continue\n                if not parsed.is_prerelease or prereleases is True:\n                    found_final = True\n                    yield item\n                elif prereleases is None:\n                    pending.append(item)\n            if not found_final and prereleases is None:\n                yield from pending\n\n        return selected()\n"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        return selected()",
+          "new": "        return iter(sorted(set(selected()), key=_coerce_version))"
+        }
+      ]
+    }
+  ],
+  "platformdirs-xdg": [
+    {
+      "id": "reference",
+      "expected": "passed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        if not path.strip():\n            path = f\"/usr/local/share{os.pathsep}/usr/share\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        if not path.strip():\n            path = \"/etc/xdg\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        }
+      ]
+    },
+    {
+      "id": "config-home-only",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        if not path.strip():\n            path = f\"/usr/local/share{os.pathsep}/usr/share\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        if not path.strip():\n            path = \"/etc/xdg\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not os.path.isabs(path):",
+          "new": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not path.strip():"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not os.path.isabs(path):",
+          "new": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not path.strip():"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not os.path.isabs(path):",
+          "new": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not path.strip():"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        if not path.strip():\n            path = f\"/usr/local/share{os.pathsep}/usr/share\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        if not path.strip():\n            path = \"/etc/xdg\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]"
+        }
+      ]
+    },
+    {
+      "id": "drop-duplicate-site-dirs",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        if not path.strip():\n            path = f\"/usr/local/share{os.pathsep}/usr/share\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        if not path.strip():\n            path = \"/etc/xdg\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in dict.fromkeys(paths)]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in dict.fromkeys(paths)]"
+        }
+      ]
+    },
+    {
+      "id": "no-empty-site-fallback",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_DATA_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_CACHE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not path.strip():",
+          "new": "        path = os.environ.get(\"XDG_STATE_HOME\", \"\")\n        if not os.path.isabs(path):"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        if not path.strip():\n            path = f\"/usr/local/share{os.pathsep}/usr/share\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        if not path.strip():\n            path = \"/etc/xdg\"\n        return [self._append_app_name_and_version(p) for p in path.split(os.pathsep)]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]",
+          "new": "        path = os.environ.get(\"XDG_DATA_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if path == \"\":\n            paths = (f\"/usr/local/share{os.pathsep}/usr/share\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "old": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if not paths:\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]",
+          "new": "        path = os.environ.get(\"XDG_CONFIG_DIRS\", \"\")\n        paths = [p for p in path.split(os.pathsep) if os.path.isabs(p)]\n        if path == \"\":\n            paths = (\"/etc/xdg\").split(os.pathsep)\n        return [self._append_app_name_and_version(p) for p in paths]"
+        }
+      ]
+    }
+  ]
+}
