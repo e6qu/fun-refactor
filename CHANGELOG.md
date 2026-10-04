@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.49.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.49.1...fun-refactor-v0.49.2) (2026-10-03)
+
+
+### Tests
+
+* audit partial source-reading work and retain review timeouts ([b1525fa](https://github.com/e6qu/fun-refactor/commit/b1525fafe19e05210b92bd43a8b6ec514a1f92a1))
+
 ## [0.49.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.49.0...fun-refactor-v0.49.1) (2026-10-03)
 
 
