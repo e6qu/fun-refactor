@@ -838,8 +838,8 @@ artifact and review both files before committing them.
 Use the workstation guard for local checks. Neither a status report nor a passing repair establishes
 a source implementation proof, a live-agent efficiency claim, or complete roadmap delivery.
 
-The [retained repository acceptance](../tests/agent-eval/results/2026-09-30-study-python-repositories/result.json)
-passed on [GitHub run 36725830446](https://github.com/e6qu/fun-refactor/actions/runs/36725830446).
+The [current repository acceptance](../tests/agent-eval/results/2026-10-04-focused-pages-python-repositories/result.json)
+passed on [GitHub run 37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730).
 Schema 2 ignores only the marked SDK release-version literal when comparing source bindings.
 Other source changes still invalidate the evidence. The
 [original schema 1 receipts](../tests/agent-eval/results/2026-09-30-roadmap-python-repositories/result.json)

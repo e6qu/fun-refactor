@@ -8,6 +8,24 @@ pub(super) enum Mode {
     Behavior,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum View {
+    Both,
+    Source,
+    Relationships,
+}
+
+impl View {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Both => "both",
+            Self::Source => "source",
+            Self::Relationships => "relationships",
+        }
+    }
+}
+
 #[derive(clap::Args)]
 pub struct Options {
     #[arg(help = "Exact declaration name, or a case-sensitive substring with --contains.")]
@@ -20,6 +38,13 @@ pub struct Options {
     contains: bool,
     #[arg(long, value_enum, default_value = "names")]
     mode: Mode,
+    #[arg(
+        long,
+        value_enum,
+        default_value = "both",
+        help = "Behavior view: combined, source only, or relationships only."
+    )]
+    view: View,
     #[arg(long, help = "Full handle selected by the names response.")]
     target: Option<String>,
     #[arg(
@@ -66,21 +91,8 @@ fn base_arguments(options: &Options, mode: Mode) -> Vec<String> {
 }
 
 fn behavior_arguments(options: &Options, target: String) -> Vec<String> {
-    let mut arguments = vec![
-        "project".to_owned(),
-        "explore".to_owned(),
-        options.term.clone(),
-        "--mode".to_owned(),
-        "behavior".to_owned(),
-        "--target".to_owned(),
-        target,
-    ];
-    if options.contains {
-        arguments.push("--contains".to_owned());
-    }
-    if options.profile == AgentProfile::Expanded {
-        push_option(&mut arguments, "--profile", "expanded");
-    }
+    let mut arguments = base_arguments(options, Mode::Behavior);
+    push_option(&mut arguments, "--target", target);
     arguments
 }
 
@@ -125,8 +137,11 @@ impl Project<'_> {
 
     fn explore_names(&self, options: &Options) -> Result<Value> {
         ensure!(
-            options.target.is_none() && options.offset == 0 && options.relations_cursor.is_none(),
-            "--target, --offset and --relations-cursor require --mode behavior."
+            options.target.is_none()
+                && options.offset == 0
+                && options.relations_cursor.is_none()
+                && options.view == View::Both,
+            "--target, --offset, --relations-cursor and focused --view require --mode behavior."
         );
         let selected =
             self.target(&self.explicit_handle(&options.scope, options.revision.as_deref())?)?;
@@ -233,6 +248,14 @@ impl Project<'_> {
 
     fn explore_behavior(&self, options: &Options) -> Result<Value> {
         ensure!(options.cursor.is_none(), "--cursor requires --mode names.");
+        ensure!(
+            options.view != View::Source || options.relations_cursor.is_none(),
+            "--relations-cursor is unavailable with --view source."
+        );
+        ensure!(
+            options.view != View::Relationships || options.offset == 0,
+            "--offset is unavailable with --view relationships."
+        );
         let target = options
             .target
             .as_deref()
@@ -265,32 +288,33 @@ impl Project<'_> {
         let mut declaration = self.show(&ShowOptions {
             handle: target.to_owned(),
             revision: None,
-            source: true,
+            source: options.view != View::Relationships,
             offset: options.offset,
             bytes: options.profile.source_bytes(),
-            relations: true,
+            relations: options.view != View::Source,
             limit: options.profile.relationship_limit(),
             cursor: options.relations_cursor.clone(),
         })?;
         let source_next = declaration["source"]["next_offset"].as_u64();
         let relationships = declaration
             .as_object_mut()
-            .and_then(|object| object.remove("relations"))
-            .context("behavior inspection did not return relationships.")?;
-        let relationships_next = relationships["page"]["next"].as_str().map(str::to_owned);
+            .context("behavior inspection did not return a declaration.")?
+            .remove("relations");
+        let relationships_next = relationships
+            .as_ref()
+            .and_then(|report| report["page"]["next"].as_str());
         strip_envelope(&mut declaration);
 
         let mut continuations = Vec::new();
         if let Some(offset) = source_next {
-            let mut arguments = base_arguments(options, Mode::Behavior);
-            push_option(&mut arguments, "--target", target);
+            let mut arguments = behavior_arguments(options, target.to_owned());
+            push_option(&mut arguments, "--view", "source");
             push_option(&mut arguments, "--offset", offset);
             continuations.push(json!({"reason": "more-source", "arguments": arguments}));
         }
         if let Some(cursor) = relationships_next {
-            let mut arguments = base_arguments(options, Mode::Behavior);
-            push_option(&mut arguments, "--target", target);
-            push_option(&mut arguments, "--offset", options.offset);
+            let mut arguments = behavior_arguments(options, target.to_owned());
+            push_option(&mut arguments, "--view", "relationships");
             push_option(&mut arguments, "--relations-cursor", cursor);
             continuations.push(json!({"reason": "more-relationships", "arguments": arguments}));
         }
@@ -300,22 +324,31 @@ impl Project<'_> {
                     + serde_json::to_vec(&relationships)?.len()
                     > options.profile.report_bytes() / 2)
         {
-            let mut arguments = base_arguments(options, Mode::Behavior);
-            push_option(&mut arguments, "--target", target);
+            let mut arguments = behavior_arguments(options, target.to_owned());
+            push_option(&mut arguments, "--view", options.view.as_str());
             push_option(&mut arguments, "--profile", "expanded");
+            if options.offset != 0 {
+                push_option(&mut arguments, "--offset", options.offset);
+            }
+            if let Some(cursor) = &options.relations_cursor {
+                push_option(&mut arguments, "--relations-cursor", cursor);
+            }
             continuations
                 .push(json!({"reason": "explicit-profile-expansion", "arguments": arguments}));
         }
 
         let mut result = self.envelope("explore");
         result["mode"] = json!(Mode::Behavior);
+        result["view"] = json!(options.view);
         result["profile"] = self.exploration_profile(options.profile);
         result["match"] = json!({
             "term": options.term,
             "mode": if options.contains { "literal-substring" } else { "exact" }
         });
         result["declaration"] = declaration;
-        result["relationships"] = relationships;
+        if let Some(relationships) = relationships {
+            result["relationships"] = relationships;
+        }
         result["continuations"] = json!(continuations);
         ensure!(
             serde_json::to_vec(&result)?.len() <= options.profile.report_bytes(),
