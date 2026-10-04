@@ -5,20 +5,23 @@
       "precedence",
       "literal",
       "disabled-and-unassigned",
-      "values-precedence"
+      "values-precedence",
+      "flat-braces"
     ],
     "reference": [],
     "empty-is-present": [
       "alternate",
       "precedence",
       "disabled-and-unassigned",
-      "values-precedence"
+      "values-precedence",
+      "flat-braces"
     ],
     "always-choose-word": [
       "alternate",
       "precedence",
       "disabled-and-unassigned",
-      "values-precedence"
+      "values-precedence",
+      "flat-braces"
     ],
     "change-default-semantics": [
       "legacy"
@@ -28,6 +31,9 @@
     ],
     "values-use-process-precedence": [
       "values-precedence"
+    ],
+    "recursively-expand-alternate-word": [
+      "flat-braces"
     ]
   },
   "packaging-prerelease": {

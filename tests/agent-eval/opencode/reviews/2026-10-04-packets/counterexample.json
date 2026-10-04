@@ -1,0 +1,1229 @@
+{
+  "schema": "fr-review-counterexample-1",
+  "run": {
+    "id": 37192769004,
+    "head_sha": "8a316d00d85ee7a10bf82d4d515311279eb79322",
+    "url": "https://github.com/e6qu/fun-refactor/actions/runs/37192769004",
+    "job_id": 111408265330,
+    "job_url": "https://github.com/e6qu/fun-refactor/actions/runs/37192769004/job/111408265330",
+    "job_conclusion": "success"
+  },
+  "artifact": {
+    "id": 11299647661,
+    "name": "candidate-controls-dotenv-alternate",
+    "digest": "sha256:7549152d4201a86f8516c3eaa3350e5cd4c3e9f7de0eb5c939adfa27ab825dbd",
+    "controls_sha256": "0a58ca8bd2cf934a7c75a13dd6e9b40c134f508f9c6c2e1511045cce1a8d9084"
+  },
+  "review_plan_sha256": "e072769e116bdd93c65bfb6899cc399324408e1bc530ba70734ff22810acb117",
+  "review_cell": "dotenv-flat-grammar-0",
+  "candidate_inputs": {
+    "manifest.json": "32da0b6d36a003bdaf107691885749a3e6caedbce9987fc2d53e507842baac68",
+    "controls.json": "b5d9637b33a3e0916c6f577db7c11d01fde5d9a3aa15385dc304e267c9cb3699",
+    "control-failures.json": "cd8d676e2f43337942723f8c04230831550bc91a52bdb267166e8ab2534ffcb2",
+    "sources.json": "52db5f6f2dae7525ff42222b8d6e44e30ea95c32e79e4b31b0baa2e8bc792492",
+    "public-checks.json": "ac276a1420ffbc86170e8af359de2fdee4e619b86a20a0f980632bf2f57bf788",
+    "dotenv.tar.gz": "a0b8d03047d8e07444ffd0e3e3adb9e73449ab7e7939b9d4657ec4cac02333c5",
+    "dotenv-alternate-grader.json": "d884e649856b591105f07bd7c07cef934bab9b8078c939a3e239ed268d019771",
+    "review-baseline/dotenv-flat-grammar-grader.json": "7ec1dcad7f41c535fab12201adcc37cca19853d7a4eced97d641e6cb9ef3fc78"
+  },
+  "upstream": [
+    {
+      "repository": "https://github.com/theskumar/python-dotenv",
+      "revision": "0b2880591780a426b0551436f47a17e7a76d954f",
+      "tree_sha": "0b2880591780a426b0551436f47a17e7a76d954f"
+    }
+  ],
+  "results": [
+    {
+      "expected": "passed",
+      "expected_failed_cases": [],
+      "expected_public": "passed",
+      "grade": {
+        "candidate": {
+          "bytes": 47069,
+          "files": 14,
+          "sha256": "4a7b70dec402b7bce1d99524ce71308b65da92a8a036f6eda6f91dbacf2f9e82"
+        },
+        "cases": [
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:32.888135482Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:32.103864845Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8289339139999967,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30605312,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "alternate",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:33.758091719Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:32.977027073Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8195824300000041,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30916608,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "precedence",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:34.598813632Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:33.843720108Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8010029810000034,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30859264,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "legacy",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:35.497065131Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:34.710878291Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8448014780000008,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30797824,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "literal",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:36.346019818Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:35.58656687Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.801120785000002,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30818304,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "disabled-and-unassigned",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:37.257852483Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:36.435661339Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8648285400000049,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30957568,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "ordinary-values",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:38.127699151Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:37.35119483Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8176533259999985,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30777344,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "values-precedence",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:39.00823137Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:38.21994973Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8328895969999977,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30842880,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "flat-braces",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          }
+        ],
+        "grader_sha256": "d884e649856b591105f07bd7c07cef934bab9b8078c939a3e239ed268d019771",
+        "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+        "outcome": "passed",
+        "schema": "fr-isolated-grade-1",
+        "scope": "Exact stdout and exit status on pinned black-box cases; no general correctness claim."
+      },
+      "id": "dotenv-alternate/reference",
+      "public_grade": {
+        "candidate": {
+          "bytes": 47069,
+          "files": 14,
+          "sha256": "4a7b70dec402b7bce1d99524ce71308b65da92a8a036f6eda6f91dbacf2f9e82"
+        },
+        "cases": [
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:50:39.875546611Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:50:39.123179311Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.7960290990000018,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30855168,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "public-alternate",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          }
+        ],
+        "grader_sha256": "c474177ecd80a3250dc6ca2b874caaf441cf245b5d55c8a2c620670287a1dfd2",
+        "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+        "outcome": "passed",
+        "schema": "fr-isolated-grade-1",
+        "scope": "Exact stdout and exit status on pinned black-box cases; no general correctness claim."
+      },
+      "repository_revision": "0b2880591780a426b0551436f47a17e7a76d954f",
+      "submission_sha256": "24465850ab55328cd02d2e7590f2379a8d3e7b29b324f313fdb4ac45131fc8e8"
+    },
+    {
+      "baseline_grade": {
+        "candidate": {
+          "bytes": 47206,
+          "files": 14,
+          "sha256": "ff87fd6a53aa72e32b6f5291e26fb038f11b002e92844d7677e01c94d7ac5c67"
+        },
+        "cases": [
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:36.821225333Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:36.071140147Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.7989943529999977,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 33128448,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "alternate",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:37.650707617Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:36.913158812Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.7859302970000073,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30834688,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "precedence",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:38.520184089Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:37.749728631Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.81264731200001,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30699520,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "legacy",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:39.337151971Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:38.615547488Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.7631176040000014,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30855168,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "literal",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:40.211183693Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:39.436503633Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8432064380000099,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 31076352,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "disabled-and-unassigned",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:41.057908599Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:40.332106642Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.770891258000006,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 31248384,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "ordinary-values",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:41.879027734Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:41.155688971Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.7649387170000068,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30953472,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "values-precedence",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          }
+        ],
+        "grader_sha256": "7ec1dcad7f41c535fab12201adcc37cca19853d7a4eced97d641e6cb9ef3fc78",
+        "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+        "outcome": "passed",
+        "schema": "fr-isolated-grade-1",
+        "scope": "Exact stdout and exit status on pinned black-box cases; no general correctness claim."
+      },
+      "baseline_grader_sha256": "7ec1dcad7f41c535fab12201adcc37cca19853d7a4eced97d641e6cb9ef3fc78",
+      "expected": "failed",
+      "expected_baseline": "passed",
+      "expected_failed_cases": [
+        "flat-braces"
+      ],
+      "expected_public": "passed",
+      "grade": {
+        "candidate": {
+          "bytes": 47206,
+          "files": 14,
+          "sha256": "ff87fd6a53aa72e32b6f5291e26fb038f11b002e92844d7677e01c94d7ac5c67"
+        },
+        "cases": [
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:29.816569876Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:29.031551306Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8315438010000094,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 31141888,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "alternate",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:30.695977565Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:29.922486862Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8188383399999992,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 32890880,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "precedence",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:31.530222506Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:30.791273183Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.7889269040000073,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30674944,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "legacy",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:32.407575466Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:31.629549639Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8268471230000074,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30879744,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "literal",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:33.295674972Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:32.505871851Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8351269900000062,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30789632,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "disabled-and-unassigned",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:34.182124772Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:33.396069715Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8330845330000045,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30851072,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "ordinary-values",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:35.067236375Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:34.279107321Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8289896859999999,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30846976,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "values-precedence",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          },
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 1,
+              "FinishedAt": "2026-10-04T09:51:35.945827665Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:35.162337326Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8289939419999968,
+              "exit_code": 1,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 1,
+              "sampled_aggregate_rss_bytes": 30707712,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 253
+            },
+            "failure": "candidate output, exit status or resource limits differ",
+            "id": "flat-braces",
+            "passed": false,
+            "stderr_base64": "VHJhY2ViYWNrIChtb3N0IHJlY2VudCBjYWxsIGxhc3QpOgogIEZpbGUgIjxzdHJpbmc+IiwgbGluZSA0OSwgaW4gPG1vZHVsZT4KICAgIGFzc2VydCBnb3RbJ09VVCddID09ICdwcmVmaXgnICsgZXhwZWN0ZWQgKyAnc3VmZml4JywgZ290CiAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4KQXNzZXJ0aW9uRXJyb3I6IE9yZGVyZWREaWN0KHsnT1VUJzogJ3ByZWZpeGV4cGFuZGVkc3VmZml4J30pCg==",
+            "stderr_bytes": 253,
+            "stderr_sha256": "f46effa78a82b19594d7bf86305babe30e21714c6919b6c895a946f180a42408",
+            "stdout_base64": "",
+            "stdout_bytes": 0,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "grader_sha256": "d884e649856b591105f07bd7c07cef934bab9b8078c939a3e239ed268d019771",
+        "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+        "outcome": "failed",
+        "schema": "fr-isolated-grade-1",
+        "scope": "Exact stdout and exit status on pinned black-box cases; no general correctness claim."
+      },
+      "id": "dotenv-alternate/recursively-expand-alternate-word",
+      "public_grade": {
+        "candidate": {
+          "bytes": 47206,
+          "files": 14,
+          "sha256": "ff87fd6a53aa72e32b6f5291e26fb038f11b002e92844d7677e01c94d7ac5c67"
+        },
+        "cases": [
+          {
+            "container_state": {
+              "Dead": false,
+              "Error": "",
+              "ExitCode": 0,
+              "FinishedAt": "2026-10-04T09:51:42.760997857Z",
+              "OOMKilled": false,
+              "Paused": false,
+              "Pid": 0,
+              "Restarting": false,
+              "Running": false,
+              "StartedAt": "2026-10-04T09:51:41.980109612Z",
+              "Status": "exited"
+            },
+            "execution": {
+              "elapsed_seconds": 0.8252847320000001,
+              "exit_code": 0,
+              "launch_error": null,
+              "limits": {
+                "cpu_seconds": 600,
+                "disk_bytes": 134217728,
+                "rss_bytes": 805306368,
+                "transcript_bytes": 2048,
+                "wall_seconds": 3
+              },
+              "monitor_error": null,
+              "process_exit_code": 0,
+              "sampled_aggregate_rss_bytes": 30736384,
+              "sampled_cpu_seconds": 0,
+              "sampled_disk_growth_bytes": 0,
+              "stop_reason": null,
+              "timed_out": false,
+              "transcript_bytes": 3
+            },
+            "failure": null,
+            "id": "public-alternate",
+            "passed": true,
+            "stderr_base64": "",
+            "stderr_bytes": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout_base64": "b2sK",
+            "stdout_bytes": 3,
+            "stdout_sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+          }
+        ],
+        "grader_sha256": "c474177ecd80a3250dc6ca2b874caaf441cf245b5d55c8a2c620670287a1dfd2",
+        "image": "python@sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8",
+        "outcome": "passed",
+        "schema": "fr-isolated-grade-1",
+        "scope": "Exact stdout and exit status on pinned black-box cases; no general correctness claim."
+      },
+      "repository_revision": "0b2880591780a426b0551436f47a17e7a76d954f",
+      "submission_sha256": "dc086479e43dcd1383fb402b450bdb97d149ffb5e968362b254ab1a40aab11a5"
+    }
+  ],
+  "scope": "GitHub behavior of one constructed wrong repair and the reference; not full grader acceptance."
+}

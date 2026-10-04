@@ -33,12 +33,23 @@ passes and two timeouts; none used fr. Complete context and billing remain unkno
 Two [source-based review attempts](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
 timed out after 17 tool calls without findings. Do not restart their four stopped cells or raise limits.
 
-The current change removes repeated output during `project explore` pagination. Source follow-ups
-omit relationships; relationship follow-ups omit source. Initial behavior reads still include both.
-Query scope, source identities, page positions and profile limits remain checked. Native read-only
-schema 5 exposes these views through `freeze --source-references --focused-pages`; older schemas
-and retained outcomes remain unchanged. CLI tests cover complete Python/Rust page traversal and
-smaller responses for the same requested page. No new live-agent results establish a benefit.
+PR #427 merged at `3c1d2008` after all 20 CI checks passed. It removes repeated output during
+`project explore` pagination. Source follow-ups omit relationships; relationship follow-ups omit
+source. Native schema 5 exposes these views; older schemas retain their original behavior.
+Post-merge deep validation is still pending at this handoff.
+Release creation initially failed after main advanced past the release commit. A temporary branch
+at `38413ce6` restored an existing ref for that commit. Retrying run `37190700691` created the
+`fun-refactor-v0.49.2` tag at that exact revision; cleanup then removed the recovery branch.
+Release artifact builds remain separate from the passing release-creation step.
+
+The current change adds [narrow source-packet reviews](../tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md).
+One Kimi review completed; two following calls timed out and the remaining three were stopped.
+Do not resume this collection or raise its limits. GLM submitted before timing out, but its session
+audit did not finish, so it remains failed. The completed finding targets recursive interpolation
+accepted by the old dotenv grader. GitHub job `111408265330` verified the same wrong repair passes
+the old grader and fails only the new case. The reference passes. The collection retains both grades
+in `counterexample.json`; full task review and agent-efficiency comparisons remain open.
+
 GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
 the location and repository evidence against `20688a31`. It checked 11 semantic links with zero
 false claims and 365 repository behavior cases. The imported bundles match 259 current source
@@ -47,7 +58,7 @@ Run [37166142952](https://github.com/e6qu/fun-refactor/actions/runs/37166142952)
 pagination tests and refreshed index evidence against `7517d5d6`. Its eight symbol/reference
 comparisons match the pinned baseline, and the imported result matches 194 current source bindings.
 
-Next complete independent review with a newly frozen, narrower scope, then compare public edits
+Next finish independent task and grader review, then compare public edits
 and test feedback on unfamiliar tasks. Keep GitHub container grading separate from local OpenCode
 rehearsals. Retain every failure and complete parent/child costs before claiming an efficiency gain.
 The [study host](agent-study.md) supports constrained commands, provider reservations, private

@@ -36,23 +36,23 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: stop repeating unrelated pages
+## Current chunk: turn a narrow review into a grader regression
 
-An agent asking for more source should receive the next source page. Previously, each source
-continuation also repeated the first relationship page. Asking for more relationships repeated
-source in turn. The successful guided source-reading trial repeated an identical 978-byte
-relationship object on its second source page. This is a concrete output cost to remove.
+PR #427 merged after its 20 CI checks passed. Source and relationship follow-ups
+now omit unrelated pages. That removes measured repeated output; agent efficiency remains unproven.
 
-The CLI now separates source and relationship continuations under the existing compact and
-expanded limits. The first behavior read still includes both. Follow-ups preserve the selected
-declaration, revision and query scope; expanding a page keeps its current position.
-An optional native OpenCode schema exposes the same views and checks source against frozen files.
-Older tool schemas, retained attempts and outcomes keep their original rules.
+The next review gives each model one question and a small packet of exact, hash-bound source.
+Requirements, graders, source spans, models and budgets were committed before the first call.
+Reference repairs were withheld. Optional reads remain available for omitted source.
 
-The regression tests reconstruct exact Python and Rust source and compare every relationship row.
-They check stale inputs and UTF-8 boundaries. Focused pages must use fewer output bytes than
-combined reads of the same page. These are CLI and protocol checks. They do not establish cheaper
-agent tasks, better diagnosis or an independent review of the candidate graders.
+The [retained collection](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) has one
+completed Kimi review, two timeouts and three unstarted calls. Its stop rule remains in force.
+Kimi identified a missing nested-interpolation case in the dotenv grader. A deliberately wrong
+repair targets that omission: GitHub verified it passes the old grader and fails only the new case.
+The reference repair passes. Retained container results establish this counterexample; citations alone do not.
+
+This is progress on one review question. Packaging, platformdirs and the remaining dotenv behavior
+still need review. No matched efficiency comparison or full task acceptance follows from this result.
 
 ## Evidence and remaining gaps
 
@@ -62,6 +62,7 @@ agent tasks, better diagnosis or an independent review of the candidate graders.
 | [Native code-change trials](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts across twelve attempts; GitHub graded exact submissions | No attempt called fr; no evidence that its edit route helped |
 | [Candidate task controls](tests/agent-eval/opencode/candidates/README.md) | Three new projects, with unchanged, reference and incomplete-repair controls checked on GitHub | Independent grader review and live comparisons remain open |
 | [Source-based review attempts](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md) | Two timeouts, 17 tool calls, no completed findings or fr use | Review scope did not fit the budget; the frozen stop rule prevented four remaining calls |
+| [Narrow source-packet reviews](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) | One GitHub-verified counterexample, two timeouts and three stopped calls | Broader independent review remains open |
 | [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
 | [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 

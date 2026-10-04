@@ -286,6 +286,58 @@
           "new": "        override=False,\n        encoding=encoding,\n    ).dict()"
         }
       ]
+    },
+    {
+      "id": "recursively-expand-alternate-word",
+      "expected": "failed",
+      "expected_public": "passed",
+      "baseline": {
+        "grader": "review-baseline/dotenv-flat-grammar-grader.json",
+        "sha256": "7ec1dcad7f41c535fab12201adcc37cca19853d7a4eced97d641e6cb9ef3fc78",
+        "expected": "passed"
+      },
+      "edits": [
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "(?::-",
+          "new": "(?::(?P<operator>[-+])"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "def __init__(self, name: str, default: Optional[str]) -> None:",
+          "new": "def __init__(self, name: str, default: Optional[str], operator: str = \"-\") -> None:"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        self.default = default\n",
+          "new": "        self.default = default\n        self.operator = operator\n"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return (self.name, self.default) == (other.name, other.default)",
+          "new": "        return (self.name, self.default, self.operator) == (other.name, other.default, other.operator)"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        return hash((self.__class__, self.name, self.default))",
+          "new": "        return hash((self.__class__, self.name, self.default, self.operator))"
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "        default = self.default if self.default is not None else \"\"",
+          "new": "        if self.operator == \"+\":\n            return (self.default or \"\") if env.get(self.name) else \"\"\n        default = self.default if self.default is not None else \"\""
+        },
+        {
+          "path": "src/dotenv/variables.py",
+          "old": "yield Variable(name=name, default=default)",
+          "new": "yield Variable(name=name, default=default, operator=match[\"operator\"] or \"-\")"
+        },
+        {
+          "path": "src/dotenv/main.py",
+          "old": "            result = \"\".join(atom.resolve(env) for atom in atoms)",
+          "new": "            result = \"\".join(atom.resolve(env) for atom in atoms)\n            if \":+\" in value and \"${\" in result:\n                result = \"\".join(atom.resolve(env) for atom in parse_variables(result))"
+        }
+      ]
     }
   ],
   "packaging-prerelease": [

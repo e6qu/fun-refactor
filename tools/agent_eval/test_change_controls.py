@@ -35,7 +35,7 @@ class CandidateControls(unittest.TestCase):
         for task in tasks:
             original, rows, public = controls.definitions(PACK, task)
             before = copy.deepcopy(original)
-            self.assertEqual(len(rows), 7)
+            self.assertEqual(len(rows), 8 if task["id"] == "dotenv-alternate" else 7)
             self.assertTrue(all(row["expected_public"] == "passed" for row in rows[1:]))
             for row in rows:
                 with self.subTest(task=task["id"], control=row["id"]):
@@ -107,9 +107,9 @@ class CandidateControls(unittest.TestCase):
             seen.append((candidate, sha, profile.name == "public.json"))
             return {"outcome": "failed", "cases": []}
         rows = controls.grade_controls(PACK, task, grader=fake)
-        self.assertEqual(len(seen), 16)
-        self.assertEqual(len(rows), 7)
-        self.assertEqual(sum("baseline_grade" in row for row in rows), 2)
+        self.assertEqual(len(seen), 19)
+        self.assertEqual(len(rows), 8)
+        self.assertEqual(sum("baseline_grade" in row for row in rows), 3)
         for candidate in {item[0] for item in seen}:
             executions = [item for item in seen if item[0] == candidate]
             self.assertIn(len(executions), (2, 3))

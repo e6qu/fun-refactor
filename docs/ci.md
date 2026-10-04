@@ -67,3 +67,11 @@ limits. Those tests remove their dedicated units and containers; workstation che
 and never change local cgroups or start Docker.
 The same study job runs the OpenCode rehearsal's offline parser, evidence and private-grader tests.
 It does not launch OpenCode or contact model providers; live local attempts use the workstation guard.
+
+After merging a release PR, wait for release creation before advancing main again. GitHub can reject
+release creation against an older commit without an existing branch or tag, even with `contents: write`.
+See its [workflow-scope rule](https://github.blog/changelog/2023-11-02-github-actions-enforcing-workflow-scope-when-creating-a-release/).
+If this occurs, confirm the intended release commit and preserve it on a temporary branch using an
+authorized maintainer account. Retry the failed release job, verify the tag targets that exact commit,
+then delete the temporary branch. Do not retarget the release to newer code or broaden token permissions.
+Run [37190700691](https://github.com/e6qu/fun-refactor/actions/runs/37190700691) recovered version 0.49.2 this way.
