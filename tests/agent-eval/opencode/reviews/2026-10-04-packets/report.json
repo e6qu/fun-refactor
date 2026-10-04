@@ -1,0 +1,267 @@
+{
+  "schema": "fr-source-review-report-1",
+  "plan_sha256": "e072769e116bdd93c65bfb6899cc399324408e1bc530ba70734ff22810acb117",
+  "attempts": [
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "dotenv-flat-grammar-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "dotenv-flat-grammar"
+      },
+      "status": "completed",
+      "failure": null,
+      "wall_seconds": 44.39746941695921,
+      "review": {
+        "findings": [
+          {
+            "citations": [
+              {
+                "path": "review/requirement.txt",
+                "quote": "Add ${NAME:+word} interpolation to python-dotenv: substitute word only when NAME resolves to a nonempty string; otherwise substitute an empty string. Apply this through dotenv_values and load_dotenv, preserving override precedence between earlier file values and the process environment. Keep the existing flat expression grammar: word ends at the first closing brace and is not recursively interpolated; do not add nested expansion or shell evaluation. Preserve existing ${NAME}, ${NAME:-default}, bare variables, adjacent substitutions, interpolate=False, unassigned keys and malformed-expression behavior. Do not change unrelated parsing or environment behavior."
+              },
+              {
+                "path": "review/grader.py",
+                "quote": "  for external, local, expected in [('', 'file', 'chosen'), ('env', '', '')]:\n        os.environ.clear(); os.environ['BASE'] = external\n        got = dotenv_values(stream=io.StringIO('BASE=' + local + '\\nOUT=${BASE:+chosen}\\n'))\n        assert got['OUT'] == expected, got\nelse: raise AssertionError(case)\nprint('ok')\n"
+              }
+            ],
+            "expected": "Per the requirement ('word ends at the first closing brace and is not recursively interpolated'), OUT == '${OTHER}' (literal word '${OTHER' plus the trailing '}'). The nested-expansion repair yields 'expanded' and is still accepted by the grader.",
+            "gap": "The requirement mandates a flat grammar where the alternate word ends at the first closing brace and is never recursively interpolated, but the grader's 'literal' case only checks a brace-free word ($OTHER, empty, \u03b1/\u03b2) and a malformed unterminated expression; it never puts a closing brace inside the word. Therefore a repair that adds nested-brace matching/expansion for ${...} inside the word (while still leaving bare $OTHER literal) passes every grader case yet violates the flat-grammar rule.",
+            "input": "os.environ.update(BASE='yes', OTHER='expanded'); dotenv_values(stream=io.StringIO('OUT=${BASE:+${OTHER}}\\n'))",
+            "wrong_repair": "A repair that balances nested braces so that in ${BASE:+${OTHER}} the word is ${OTHER} and is recursively expanded.",
+            "verified_counterexample": false
+          }
+        ],
+        "limitations": "Reviewed only the flat/nonrecursive and literal-word aspect against the supplied packet; the full grader beyond byte 4413 and other parser files were not inspected, so other acceptance gaps may exist.",
+        "claims_verified": false
+      },
+      "costs": {
+        "session": "ses_ef9c9eeffffe1x7vpuKVbHZY1q",
+        "observed": {
+          "host_calls": 1,
+          "native_confirmed_results": 1,
+          "fr_calls": 0,
+          "author_applies": 0,
+          "refused_calls": 0,
+          "produced_result_bytes": 18,
+          "native_confirmed_result_bytes": 18,
+          "edit_argument_bytes": 0,
+          "source_page_bytes": 0,
+          "repeated_source_page_bytes": 0,
+          "native_confirmed_source_page_bytes": 0,
+          "native_confirmed_repeated_source_page_bytes": 0,
+          "produced_only_results": 0,
+          "accepted_edits": 0,
+          "submission_observed": true
+        },
+        "usage": {
+          "finished_steps": 2,
+          "reported_tokens": {
+            "input": 4295,
+            "output": 603,
+            "reasoning": 539,
+            "cache_read": 3072,
+            "cache_write": 0
+          },
+          "reported_cost": 0,
+          "actual_usd": null,
+          "provider_usage_verified": false,
+          "scope": "CLI-reported completed steps only. Fields retain provider semantics; do not add reasoning to output."
+        },
+        "coverage": {
+          "started_steps": 2,
+          "unfinished_steps": 0,
+          "unparsed_stream_tail_bytes": 0,
+          "unparsed_host_tail_bytes": 0,
+          "source_pages_exclude_author_diffs": false,
+          "complete_context_accounting": false,
+          "export_and_model_identity_verified": true,
+          "collection_complete": true,
+          "reported_step_usage_complete": true
+        },
+        "scope": "Retained host work and native stream confirmations. Incomplete streams provide observed lower bounds, never zero-cost failures."
+      },
+      "initial_packet": {
+        "bytes": 6714,
+        "source_bytes": 5378
+      },
+      "combined_source_before_answer": {
+        "provided_packet_bytes": 6714,
+        "provided_source_bytes": 5378,
+        "retrieved_source_bytes": 0,
+        "repeated_source_bytes": 0,
+        "unique_source_bytes": 5378,
+        "complete_context_accounting": false
+      },
+      "initial_packet_export_verified": true,
+      "actual_usd": null,
+      "claims_verified": false
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "dotenv-flat-grammar-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "dotenv-flat-grammar"
+      },
+      "status": "failed",
+      "failure": "opencode failed: wall_seconds",
+      "wall_seconds": 120.06637712498195,
+      "review": null,
+      "costs": {
+        "session": "ses_ef9c8c1daffeNGopCU1TmAQg1u",
+        "observed": {
+          "host_calls": 2,
+          "native_confirmed_results": 2,
+          "fr_calls": 0,
+          "author_applies": 0,
+          "refused_calls": 0,
+          "produced_result_bytes": 674,
+          "native_confirmed_result_bytes": 674,
+          "edit_argument_bytes": 0,
+          "source_page_bytes": 317,
+          "repeated_source_page_bytes": 0,
+          "native_confirmed_source_page_bytes": 317,
+          "native_confirmed_repeated_source_page_bytes": 0,
+          "produced_only_results": 0,
+          "accepted_edits": 0,
+          "submission_observed": true
+        },
+        "usage": {
+          "finished_steps": 2,
+          "reported_tokens": {
+            "input": 8376,
+            "output": 619,
+            "reasoning": 4953,
+            "cache_read": 3264,
+            "cache_write": 0
+          },
+          "reported_cost": 0,
+          "actual_usd": null,
+          "provider_usage_verified": false,
+          "scope": "CLI-reported completed steps only. Fields retain provider semantics; do not add reasoning to output."
+        },
+        "coverage": {
+          "started_steps": 2,
+          "unfinished_steps": 0,
+          "unparsed_stream_tail_bytes": 0,
+          "unparsed_host_tail_bytes": 0,
+          "source_pages_exclude_author_diffs": false,
+          "complete_context_accounting": false,
+          "export_and_model_identity_verified": false,
+          "collection_complete": false,
+          "reported_step_usage_complete": false
+        },
+        "scope": "Retained host work and native stream confirmations. Incomplete streams provide observed lower bounds, never zero-cost failures."
+      },
+      "initial_packet": {
+        "bytes": 6714,
+        "source_bytes": 5378
+      },
+      "combined_source_before_answer": null,
+      "initial_packet_export_verified": false,
+      "actual_usd": null,
+      "claims_verified": false
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "packaging-iterable-identity-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "packaging-iterable-identity"
+      },
+      "status": "failed",
+      "failure": "opencode failed: wall_seconds",
+      "wall_seconds": 120.07851691602264,
+      "review": null,
+      "costs": {
+        "session": "ses_ef9c6a700ffeaDqgRAsas69zgG",
+        "observed": {
+          "host_calls": 0,
+          "native_confirmed_results": 0,
+          "fr_calls": 0,
+          "author_applies": 0,
+          "refused_calls": 0,
+          "produced_result_bytes": 0,
+          "native_confirmed_result_bytes": 0,
+          "edit_argument_bytes": 0,
+          "source_page_bytes": 0,
+          "repeated_source_page_bytes": 0,
+          "native_confirmed_source_page_bytes": 0,
+          "native_confirmed_repeated_source_page_bytes": 0,
+          "produced_only_results": 0,
+          "accepted_edits": 0,
+          "submission_observed": false
+        },
+        "usage": {
+          "finished_steps": 0,
+          "reported_tokens": {
+            "input": 0,
+            "output": 0,
+            "reasoning": 0,
+            "cache_read": 0,
+            "cache_write": 0
+          },
+          "reported_cost": 0,
+          "actual_usd": null,
+          "provider_usage_verified": false,
+          "scope": "CLI-reported completed steps only. Fields retain provider semantics; do not add reasoning to output."
+        },
+        "coverage": {
+          "started_steps": 1,
+          "unfinished_steps": 1,
+          "unparsed_stream_tail_bytes": 0,
+          "unparsed_host_tail_bytes": 0,
+          "source_pages_exclude_author_diffs": false,
+          "complete_context_accounting": false,
+          "export_and_model_identity_verified": false,
+          "collection_complete": false,
+          "reported_step_usage_complete": false
+        },
+        "scope": "Retained host work and native stream confirmations. Incomplete streams provide observed lower bounds, never zero-cost failures."
+      },
+      "initial_packet": {
+        "bytes": 6454,
+        "source_bytes": 5038
+      },
+      "combined_source_before_answer": null,
+      "initial_packet_export_verified": false,
+      "actual_usd": null,
+      "claims_verified": false
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "packaging-iterable-identity-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "packaging-iterable-identity"
+      },
+      "status": "not_started"
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "platformdirs-creation-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "platformdirs-creation"
+      },
+      "status": "not_started"
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "platformdirs-creation-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "platformdirs-creation"
+      },
+      "status": "not_started"
+    }
+  ],
+  "planned": 6,
+  "completed": 1,
+  "failed": 2,
+  "not_started": 3,
+  "claims_verified": false,
+  "independent_task_selection": false,
+  "efficiency_comparison": false
+}

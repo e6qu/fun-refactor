@@ -120,6 +120,44 @@ class Packets(unittest.TestCase):
 
 
 class Collection(unittest.TestCase):
+    def test_retained_attempts_replay_without_promoting_timeout_submissions(self):
+        root = Path(__file__).resolve().parents[2]
+        directory = root / "tests/agent-eval/opencode/reviews/2026-10-04-packets"
+        plan = reviews.load(directory / "plan.json")
+        snapshots = reviews.read_inputs(directory)
+        result = reviews.report(plan, snapshots, directory / "attempts")
+        self.assertEqual(result, reviews.load(directory / "report.json"))
+        self.assertEqual((result["completed"], result["failed"], result["not_started"]), (1, 2, 3))
+        complete, submitted_timeout, unfinished = result["attempts"][:3]
+        self.assertEqual(len(complete["review"]["findings"]), 1)
+        self.assertTrue(complete["initial_packet_export_verified"])
+        self.assertEqual(complete["combined_source_before_answer"]["retrieved_source_bytes"], 0)
+        self.assertTrue(submitted_timeout["costs"]["observed"]["submission_observed"])
+        for row in (submitted_timeout, unfinished):
+            self.assertIsNone(row["review"])
+            self.assertIsNone(row["actual_usd"])
+            self.assertIsNone(row["combined_source_before_answer"])
+            self.assertFalse(row["initial_packet_export_verified"])
+
+    def test_counterexample_preserves_the_grader_given_to_the_reviewer(self):
+        root = Path(__file__).resolve().parents[2]
+        directory = root / "tests/agent-eval/opencode/reviews/2026-10-04-packets"
+        pack = root / "tests/agent-eval/opencode/candidates"
+        plan = reviews.load(directory / "plan.json")["plan"]
+        snapshots = reviews.read_inputs(directory)
+        variant = next(row for row in reviews.load(pack / "controls.json")["dotenv-alternate"]
+                       if row["id"] == "recursively-expand-alternate-word")
+        baseline = pack / variant["baseline"]["grader"]
+        self.assertEqual(hashlib.sha256(baseline.read_bytes()).hexdigest(),
+                         plan["provenance"]["public_inputs"]["dotenv-alternate-grader.json"])
+        old = reviews.load(baseline)
+        source = base64.b64decode(snapshots["dotenv-flat-grammar"]["review/grader.py"]["data"])
+        self.assertEqual(old["command"][-1].encode(), source)
+        current = reviews.load(pack / "dotenv-alternate-grader.json")
+        self.assertEqual(len(current["cases"]), len(old["cases"]) + 1)
+        failures = reviews.load(pack / "control-failures.json")["dotenv-alternate"]
+        self.assertEqual(failures[variant["id"]], ["flat-braces"])
+
     def test_retained_plan_binds_narrow_questions_and_withholds_reference_repairs(self):
         root = Path(__file__).resolve().parents[2]
         directory = root / "tests/agent-eval/opencode/reviews/2026-10-04-packets"
