@@ -49,7 +49,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -201,6 +201,45 @@ jobs:
           name: discovery-${{ matrix.evidence }}
           path: ${{ runner.temp }}/discovery-evidence
           if-no-files-found: error
+          retention-days: 7
+
+  index-resolution:
+    if: inputs.group == 'index-resolution'
+    name: Revalidate exploration pages and index resolution
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+      RAYON_NUM_THREADS: '1'
+      RUST_TEST_THREADS: '1'
+      FR_EVIDENCE_PREFIX: ${{ inputs.prefix }}
+      FR_EVIDENCE_GROUP: index-resolution
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - name: Check independent source and relationship pagination
+        run: cargo test --locked --test project_explore_pages -- --test-threads 1
+      - name: Compare complete index outputs with the pinned baseline
+        run: python3 tools/refresh-refinement-evidence.py
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: index-resolution-evidence
+          path: |
+            ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-evidence
+            ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
           retention-days: 7
 
   repositories:
