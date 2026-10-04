@@ -31,6 +31,36 @@ def fixture(root, raw=b'{"retained": "exact bytes"}\n'):
 
 
 class Archives(unittest.TestCase):
+    def test_destination_created_during_verification_is_preserved(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            entry = fixture(root)["entries"][0]
+            destination = root / "restored.json"
+            transfer = archive.transfer
+
+            def concurrent_creation(*args):
+                count = transfer(*args)
+                with destination.open("xb") as stream:
+                    stream.write(b"another writer's contents")
+                return count
+
+            with patch.object(archive, "transfer", side_effect=concurrent_creation):
+                with self.assertRaises(FileExistsError):
+                    archive.restore(root, entry, destination)
+            self.assertEqual(destination.read_bytes(), b"another writer's contents")
+            self.assertFalse(list(root.glob(".fr-evidence-*")))
+
+    def test_flush_failure_leaves_no_destination_or_temporary_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            entry = fixture(root)["entries"][0]
+            destination = root / "restored.json"
+            with patch.object(archive.os, "fsync", side_effect=OSError("write failed")):
+                with self.assertRaisesRegex(OSError, "write failed"):
+                    archive.restore(root, entry, destination)
+            self.assertFalse(destination.exists())
+            self.assertFalse(list(root.glob(".fr-evidence-*")))
+
     def test_restore_preserves_original_bytes_and_refuses_existing_destination(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
