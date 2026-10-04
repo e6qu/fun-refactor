@@ -23,10 +23,9 @@ task records and Lean proof support for declared subsets. Analysis and editing s
 language; parsing a file does not mean `fr` understands every possible behavior in it.
 Run `fr --json audit` and `fr capabilities` for the installed tool's current support and limits.
 
-The [generated status](docs/roadmap-status.md) records **3 of 18 technical acceptance items
-demonstrated against the current source**. Fifteen remain open, and none of the four milestones
+The [generated status](docs/roadmap-status.md) records **7 of 18 technical acceptance items
+demonstrated in their stated test cases**. Eleven remain open, and none of the four milestones
 below is complete. These counts are not a percentage of product readiness or effort remaining.
-Four previously demonstrated items await GitHub revalidation after the exploration changes.
 
 We have not established a general efficiency advantage. In the retained two-task Rust comparison,
 the `fr` agent used more calls, context and time on both tasks.
@@ -64,7 +63,7 @@ agent tasks, better diagnosis or an independent review of the candidate graders.
 | [Candidate task controls](tests/agent-eval/opencode/candidates/README.md) | Three new projects, with unchanged, reference and incomplete-repair controls checked on GitHub | Independent grader review and live comparisons remain open |
 | [Source-based review attempts](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md) | Two timeouts, 17 tool calls, no completed findings or fr use | Review scope did not fit the budget; the frozen stop rule prevented four remaining calls |
 | [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
-| [Technical acceptance](docs/roadmap-status.md) | Three of 18 items currently demonstrated; four previous demonstrations await source revalidation | Fifteen items and all four milestones remain open |
+| [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 
 Earlier native discovery and citation experiments remain in the
 [native evaluation guide](docs/opencode-native-tools.md). Keep their failures and the

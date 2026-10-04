@@ -232,7 +232,7 @@ Use a binary that supports `project explore --view`. The ordinary-file arm and t
 can opt in. Schemas 2 through 4 keep their original fields and retained reports.
 
 The adapter verifies that the CLI returned the requested view. Relationship-only results cannot
-carry source pages or mint source references. Source-only results still undergo frozen-file and
+carry source pages or create source references. Source-only results still undergo frozen-file and
 exact-range checks. Partial-attempt accounting includes all produced metadata bytes and counts
 source only when a result supplied it; produced output does not prove provider delivery.
 

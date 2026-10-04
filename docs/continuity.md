@@ -39,6 +39,10 @@ Query scope, source identities, page positions and profile limits remain checked
 schema 5 exposes these views through `freeze --source-references --focused-pages`; older schemas
 and retained outcomes remain unchanged. CLI tests cover complete Python/Rust page traversal and
 smaller responses for the same requested page. No new live-agent results establish a benefit.
+GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
+the location and repository evidence against `20688a31`. It checked 11 semantic links with zero
+false claims and 365 repository behavior cases. The imported bundles match 259 current source
+bindings; the roadmap again has seven demonstrated items, with all four milestones open.
 
 Next complete independent review with a newly frozen, narrower scope, then compare public edits
 and test feedback on unfamiliar tasks. Keep GitHub container grading separate from local OpenCode
