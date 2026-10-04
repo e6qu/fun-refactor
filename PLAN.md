@@ -36,98 +36,60 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Next large chunk
+## Current chunk: stop repeating unrelated pages
 
-First measure which parts help agents:
+An agent asking for more source should receive the next source page. Previously, each source
+continuation also repeated the first relationship page. Asking for more relationships repeated
+source in turn. The successful guided source-reading trial repeated an identical 978-byte
+relationship object on its second source page. This is a concrete output cost to remove.
 
-The [native OpenCode rehearsal](docs/opencode-native-tools.md) removes the one-JSON-action
-response requirement that interrupted earlier Kimi/GLM trials. It preserves source and factual
-checks. Treat those reviewed tasks as integration tests, and report whether the models
-use `fr`. They do not close the independent comparison or delegation requirements below.
-The first native trials have eight reviewed passes out of twelve. The subsequent
-[compact exploration comparison](tests/agent-eval/opencode/results/2026-10-02-guided/README.md)
-originally had three passes, nine citation failures and six timeouts across eighteen attempts.
-Correcting source coverage across adjacent retrieved pages recovers three answers, for six reviewed passes.
-Original records remain unchanged. All completed answers had correct factual values. Only two of twelve attempts with `fr` available called it;
-both had public guidance and used names only. We measured guidance costs without establishing a benefit.
+The CLI now separates source and relationship continuations under the existing compact and
+expanded limits. The first behavior read still includes both. Follow-ups preserve the selected
+declaration, revision and query scope; expanding a page keeps its current position.
+An optional native OpenCode schema exposes the same views and checks source against frozen files.
+Older tool schemas, retained attempts and outcomes keep their original rules.
 
-The native evaluator now offers bounded first reads at known offsets in immutable snapshots and
-references to source already delivered to the agent. The
-[six-attempt pilot](tests/agent-eval/opencode/results/2026-10-02-source-references/README.md)
-retained two passes and four timeouts. Both passes used source IDs. Guided Kimi followed fr names,
-behavior and a source continuation; the other passing attempt used ordinary tools throughout.
-The guided run delivered less source but more total tool output. This pilot does not establish an efficiency benefit.
-The [source-reading cost report](docs/native-read-outcomes.md) now replays all six attempts,
-including 33 calls and 100,968 result bytes from the four timeouts. No ordinary/fr pair has two
-successful outcomes. Partial usage remains partial; original verdicts are unchanged.
+The regression tests reconstruct exact Python and Rust source and compare every relationship row.
+They check stale inputs and UTF-8 boundaries. Focused pages must use fewer output bytes than
+combined reads of the same page. These are CLI and protocol checks. They do not establish cheaper
+agent tasks, better diagnosis or an independent review of the candidate graders.
 
-Native code-change collection now supports hash-checked edits, replayable submitted files and separate
-GitHub container grading. Two pinned task packs cover signing-key collections and signal-name types;
-baseline, reference and wrong-fix controls check their graders. See the
-[native change protocol](docs/opencode-native-tools.md#make-changes-and-grade-the-submitted-code-separately).
-They are reviewed integration cases, not an independently reviewed comparison.
+## Evidence and remaining gaps
 
-The [eight-attempt collection](tests/agent-eval/opencode/results/2026-10-02-code-changes/README.md)
-retains seven behavior passes and one timeout. Separate GitHub containers checked every submitted
-patch against the frozen cases; baseline, reference and wrong-fix controls passed. None called fr.
-These bounded behavior checks do not establish an efficiency benefit or general correctness.
+| Evidence | What it establishes | What is still missing |
+|---|---|---|
+| [Native source-reading pilot](docs/native-read-outcomes.md) | Two passes and four timeouts across six attempts; records observed work from timeouts | No successful ordinary/fr comparison pair; complete provider context and billing unknown |
+| [Native code-change trials](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts across twelve attempts; GitHub graded exact submissions | No attempt called fr; no evidence that its edit route helped |
+| [Candidate task controls](tests/agent-eval/opencode/candidates/README.md) | Three new projects, with unchanged, reference and incomplete-repair controls checked on GitHub | Independent grader review and live comparisons remain open |
+| [Source-based review attempts](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md) | Two timeouts, 17 tool calls, no completed findings or fr use | Review scope did not fit the budget; the frozen stop rule prevented four remaining calls |
+| [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
+| [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 
-Native trials can now offer public body-edit previews and reviewed history application alongside
-ordinary edits. The versioned protocol retains the exact guide, diff and save/apply records;
-replay checks submitted bytes while separate containers check behavior. Real CLI controls cover
-Python, nested async Python and Rust, including stale handles and failed application. Live use of test
-feedback, broader edit operations and an independently reviewed task comparison remain open.
-The [four-attempt public-edit pilot](tests/agent-eval/opencode/results/2026-10-02-public-edit-code-changes/README.md)
-retained three behavior passes and one timeout on the reused signal-name task. GitHub containers
-checked all three submissions against nine frozen cases each. None called fr despite the extra
-guide and tools. This is a usability
-integration check, not evidence of an efficiency advantage or an independent comparison.
+Earlier native discovery and citation experiments remain in the
+[native evaluation guide](docs/opencode-native-tools.md). Keep their failures and the
+[older Rust comparison](docs/evaluations.md#unknown-target-investigations), where fr increased
+calls, context and time. Smaller source pages alone do not demonstrate lower total agent cost.
 
-The [combined outcome report](docs/native-change-outcomes.md) now includes observed work from
-both timeouts and separates host-produced results from native-stream confirmations. Earlier
-failures used 8 and 12 tool calls; they are not zero-cost attempts. Full token/billing totals,
-host/cache costs and independent task review remain open. The reporter checks grade identities
-and pass conditions before submissions enter successful-pair comparisons.
+Next steps, in order:
 
-Optional native test feedback now lets both arms inspect a frozen public check and run it twice
-on GitHub before submission. Results bind to source snapshots; later edits make them stale.
-Shared container limits and cleanup failures are audited separately from private behavior grading.
-Scripted controls cover repair and containment, but no live-agent benefit is established.
+1. Complete independent task and grader review with questions that fit the existing budget.
+   The stopped review collections remain stopped. A different review requires a new frozen plan;
+   do not increase limits or retry until a review happens to pass.
+2. Compare ordinary tools with the public fr read/edit routes and test feedback on those unfamiliar
+   tasks. Freeze requirements, allowed tools, models, budgets and private checks before calls.
+   Use the configured Kimi/GLM OpenCode profiles for bounded local rehearsals and GitHub for grading.
+   The planned Sonnet/Luna study still needs independent tasks and complete cost accounting.
+3. Compare a single agent with narrowly delegated investigation and review. Count parent and child
+   usage, failed children, repeated reads, handoff context and integration effort.
+4. Measure guide, intent and task layers individually. Consolidate routes that add instructions or
+   round trips without improving outcomes. Follow the
+   [removal review](docs/product-review.md#removal-decisions) for UI, migration and evidence storage.
+5. Use observed task failures to choose reusable analysis improvements. The next candidate is
+   Python value tracing through assignments, branches and helpers, with explicit uncertainty.
 
-The [candidate task pack](tests/agent-eval/opencode/candidates/README.md) adds interpolation,
-prerelease filtering and Unix directory tasks from three projects new to the native change cohorts.
-Separate GitHub jobs verify pinned source and exact control outcomes. Six additional incomplete
-repairs must pass the original graders and fail the strengthened ones, using the same source.
-The [bounded model-review attempts](tests/agent-eval/opencode/reviews/2026-10-03-candidates/README.md)
-retained two timeouts and no completed review; four planned calls were not started. These new
-controls are task-author counterexamples. Independent review and live trials remain pending;
-preparing these tasks does not close an acceptance item.
-The follow-up [source-based reviews](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
-used the native read-only tools. Both models timed out after 17 total tool calls without submitting
-findings or using fr. The frozen stop rule prevented the other four calls. Source-based review
-is still incomplete; retain this result when deciding what review can fit the existing budget.
-
-Next select independently reviewed unfamiliar tasks that require investigation across code, and
-compare public edit routes and test feedback. Freeze tasks, allowed tools, budgets and private
-behavior checks before model calls. Keep grading on GitHub,
-ordinary tools available in every arm, and all failed attempts. Measure total tool/context costs,
-including fr metadata and delegation, rather than source bytes alone. Preserve these reviewed
-integration cases without tuning production for their repositories.
-
-1. Extend the existing evaluation runner to compare ordinary tools with the `fr` CLI on the same
-   tasks, separately for Sonnet and Luna. Record all parent and child agent costs. Keep tasks,
-   model settings, budgets and correctness checks fixed before running them.
-2. Compare a single agent with narrowly delegated investigation and review. Share small findings
-   with source references; measure repeated reads, handoff costs and conflicts as well as latency.
-3. Measure the public guide and edit routes with individual layers disabled. Consolidate routes
-   that add instructions and round trips without improving task outcomes. Assess browser UI,
-   application migration and retained artifact storage using the [removal review](docs/product-review.md#removal-decisions).
-4. Use observed failures to choose general analysis improvements. The next candidate is Python value tracing.
-   Determine whether a selected input can reach a selected use through assignments, branches and helpers.
-   Show where an answer becomes uncertain.
-
-This ordering replaces the previous instruction to build task-specific flow rules for two named
-repositories. The tool should learn reusable language behavior. Projects are tests of that behavior.
+Keep ordinary tools available in every arm and retain failed attempts. Measure all tool output,
+including fr metadata and delegation, alongside correctness. Production must not recognize a
+benchmark repository or encode its expected repair.
 
 ## Generalization requirements
 

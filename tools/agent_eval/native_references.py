@@ -20,8 +20,8 @@ A source explanation is not a proof. After submission, stop.
 """
 
 
-def schemas(arm):
-    tools = discovery.schemas(arm)
+def schemas(arm, *, focused_pages=False):
+    tools = discovery.schemas(arm, focused_pages=focused_pages)
     read = next(tool for tool in tools if tool['name'] == 'read_source')
     read['description'] = ('Read bounded UTF-8 source at any known byte offset in the frozen file. '
                            'Use an empty sha256 for a first read; copy the returned hash for continuation.')
@@ -116,7 +116,7 @@ def resolve(answer, spans):
 def checked(plan, source):
     require(plan.get('source_policy') == POLICY, 'source references need contiguous source validation')
     arms = discovery.ARMS if 'guidance' in plan else ('files', 'fr')
-    require(plan['prompt'] == PROMPT and plan['tools'] == {arm: schemas(arm) for arm in arms},
+    require(plan['prompt'] == PROMPT and plan['tools'] == {arm: schemas(arm, focused_pages=plan.get("tools_schema_version") == 5) for arm in arms},
             'source reference protocol differs')
     require(source['cells'] == discovery.cells(source['manifest'], available=arms), 'source reference allocation differs')
     if 'guidance' in plan:

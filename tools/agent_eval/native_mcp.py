@@ -108,11 +108,13 @@ class Server:
     def __init__(self, config, log, execute=execute_fr):
         require(set(config) - {"tools_schema_version"} == {"files", "arm", "binary", "workspace"}, "invalid server configuration")
         version = config.get("tools_schema_version", 2)
-        require(type(version) is int and version in (2, 3, 4), "unsupported server tool schema")
+        require(type(version) is int and version in (2, 3, 4, 5), "unsupported server tool schema")
         validate(config["files"], legacy.MAX_WORKSPACE)
         self.config, self.log, self.execute = config, log, execute
-        self.protocol = refs if version == 4 else discovery
-        self.tools = {t["name"]: t for t in (self.protocol.schemas(config["arm"]) if version in (3, 4) else schemas(config["arm"]))}
+        self.protocol = refs if version in (4, 5) else discovery
+        selected = (refs.schemas(config["arm"], focused_pages=True) if version == 5 else
+                    self.protocol.schemas(config["arm"]) if version in (3, 4) else schemas(config["arm"]))
+        self.tools = {tool["name"]: tool for tool in selected}
         self.calls, self.written, self.finished = 0, 0, False
         self.initialized, self.ready = False, False
 

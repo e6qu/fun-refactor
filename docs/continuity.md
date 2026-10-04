@@ -25,75 +25,35 @@ The goal is a general CLI that helps agents understand unfamiliar code, make cha
 and write and check useful proofs with less total effort and context. Start with the
 [product review](product-review.md) and the plain-language [plan](../PLAN.md).
 
-The [study planner and auditor](agent-study.md) now freeze task matrices and audit declared usage,
-including child agents and failed attempts. The host CLI now provides a budgeted provider gateway
-and private black-box grading in constrained Docker containers. A serial agent loop connects provider
-tool calls, pinned Git exports, isolated commands and grading for fix/feature tasks. Child agents
-receive a focused question and workspace copy; their edits never merge automatically.
-Both arms also have a bounded source-read tool. Its content hashes detect stale continuations;
-retained byte ranges measure repeated disclosure within and across agents. The auditor recomputes
-trace counters. Any command keeps total source reads unknown while preserving measured page counts.
-A frozen resource profile can now place all command and grader containers in a fresh Linux cgroup.
-Kernel CPU and memory evidence remains separate from the unmeasured host/daemon, disk and cache costs.
-Resource stops fail the attempt and retain evidence; complete worker accounting is still open.
-Study CI uses fake providers and executable submissions. A separate guarded
-[OpenCode rehearsal](opencode-rehearsal.md) now supports local Kimi/GLM protocol and small task checks.
-It retains CLI accounting separately. The [explanation adapter](opencode-source-evidence.md) adds
-three pinned Python projects with factual and retrieved-source checks; this is a bounded rehearsal,
-not the independent pilot. The [native tool adapter](opencode-native-tools.md) tests the same tasks
-through OpenCode tool calls, avoiding the one-JSON-action response requirement.
-The later compact/guided comparison retained eighteen attempts: three passes, nine citation failures
-and six timeouts originally. A separate contiguous-source review recovers three answers, for six passes.
-All completed factual values were correct. Two guided attempts used `fr` names;
-none used behavior continuations. The following source-reference pilot retained two passes and four
-timeouts. Both passes used source IDs; guided Kimi followed names, behavior and a source continuation.
-The other passing attempt used ordinary tools only. Required anchors and historical verdicts remain
-unchanged. Total tool output increased in the guided pass despite fewer source bytes.
-Native code-change trials now separate collection from GitHub behavior grading. Hash-checked
-replacements replay into exact submitted files. Two pinned task packs have baseline, reference and
-wrong-fix controls; no candidate code executes locally. Submitted patches remain ungraded until the
-separate container checks finish. Next assess these integration trials and select independently
-reviewed tasks with complete cost accounting.
-The first eight-attempt collection retained seven behavior passes and one timeout. Separate GitHub
-containers graded the exact submissions, with baseline, reference and wrong-fix controls checked.
-No attempt called fr; these results do not establish an efficiency benefit.
-An optional native protocol now exposes public body previews and reviewed history application.
-Ordinary edits remain available in both arms. Byte replay, real CLI controls and separate behavior
-grading have distinct roles; none closes independent task review or complete context accounting.
-Its four-attempt pilot retained three behavior passes and one timeout; no attempt used fr. GitHub
-containers checked nine cases per submitted patch. Keep that lack of adoption and the timeout visible.
-The [combined report](native-change-outcomes.md) preserves failed-attempt work, partial CLI usage,
-resource samples and grade identities. It separates produced tool output from native-stream
-confirmations. Unknown totals remain unknown; neither these reviewed tasks nor their cost tables
-close independent task selection, complete accounting or efficiency requirements.
-Future native collectors also share one sampled CPU allowance across their subprocesses. Version
-detection and export no longer receive fresh allowances. Historical runners and records stay intact.
-Optional native protocol 3 adds public test feedback in both arms, limited to two calls on GitHub.
-Checks use frozen commands in isolated containers with one shared resource allowance. Results bind
-to exact source snapshots and become stale after edits. Parent-owned cleanup handles interrupted
-MCP children; resource stops and cleanup failures fail collection. Private grading stays separate.
-Offline controls and GitHub container tests do not establish live-agent adoption or efficiency.
-The [candidate task pack](../tests/agent-eval/opencode/candidates/README.md) prepares three broader
-change tasks with public examples and private boundary checks. GitHub verifies pinned source and
-grades unchanged, reference and incomplete repairs in separate five-minute jobs. Independent review
-and live collection are still pending. Six new incomplete repairs must pass the original graders
-and fail newly added cases. Bounded Kimi/GLM review calls both timed out without a completed review;
-the four other planned calls were not started. See the retained
-[attempts and limits](../tests/agent-eval/opencode/reviews/2026-10-03-candidates/README.md).
-Do not treat task-author controls as independent evidence.
-The follow-up [source-based reviews](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
-also timed out: 17 source-tool calls, no completed findings and no fr use. Four remaining calls
-were stopped by the frozen rule. The shared read-only cost auditor now checks partial tool logs,
-source identities and reported finished-step usage. The
-[earlier source-reading report](native-read-outcomes.md) retains 33 calls and 100,968 result bytes
-from four timeouts, alongside two passes. There is no successful ordinary/fr comparison pair.
-Select independent tasks, extend proof grading, and collect complete context/tool
-and system resource measurements before the Sonnet/Luna pilot.
-The existing Codex CLI path still cannot enforce the pilot dollar cap.
-Use those results to simplify overlapping routes and choose useful analysis
-improvements. The older two-task comparison consumed more calls, context and time with `fr`;
-general efficiency remains unproven. Test general language rules on unfamiliar projects; do not
-special-case the two repositories used in the recent scripted delivery tests.
+PR #425 retained source-based candidate reviews and added failed-attempt accounting for native
+source reads. Its 20 current CI checks passed before squash merge at `b1525faf`.
+The [source-reading report](native-read-outcomes.md) has two passes and four timeouts, with no
+successful ordinary/fr pair. The [code-change report](native-change-outcomes.md) has ten behavior
+passes and two timeouts; none used fr. Complete context and billing remain unknown.
+Two [source-based review attempts](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
+timed out after 17 tool calls without findings. Do not restart their four stopped cells or raise limits.
+
+The current change removes repeated output during `project explore` pagination. Source follow-ups
+omit relationships; relationship follow-ups omit source. Initial behavior reads still include both.
+Query scope, source identities, page positions and profile limits remain checked. Native read-only
+schema 5 exposes these views through `freeze --source-references --focused-pages`; older schemas
+and retained outcomes remain unchanged. CLI tests cover complete Python/Rust page traversal and
+smaller responses for the same requested page. No new live-agent results establish a benefit.
+GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
+the location and repository evidence against `20688a31`. It checked 11 semantic links with zero
+false claims and 365 repository behavior cases. The imported bundles match 259 current source
+bindings; the roadmap again has seven demonstrated items, with all four milestones open.
+Run [37166142952](https://github.com/e6qu/fun-refactor/actions/runs/37166142952) passed all seven
+pagination tests and refreshed index evidence against `7517d5d6`. Its eight symbol/reference
+comparisons match the pinned baseline, and the imported result matches 194 current source bindings.
+
+Next complete independent review with a newly frozen, narrower scope, then compare public edits
+and test feedback on unfamiliar tasks. Keep GitHub container grading separate from local OpenCode
+rehearsals. Retain every failure and complete parent/child costs before claiming an efficiency gain.
+The [study host](agent-study.md) supports constrained commands, provider reservations, private
+grading and bounded child work. Full worker/context costs and source-connected proof grading remain
+open. Its fake-provider tests do not count as live trials; the older Codex CLI cannot enforce the
+pilot dollar cap. The [product review](product-review.md) records the evidence and removal criteria.
 
 The representative guided delivery milestone is complete for its pinned acceptance corpus.
 Accepted live trials cover upstream read/trace, multi-file Rust rename and body edits, frontend
