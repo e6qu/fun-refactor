@@ -220,7 +220,7 @@ root as prior analysis. Tampering refuses; mismatched inputs and incomplete reco
 
 Reuse remains opt-in and coarse. It avoids flow transfer while retaining parsing, indexing, dependency
 checks and occurrence renewal. Small inputs may cost more to restore than to analyze.
-The [cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json) measures six scalar workloads and six edit types.
+The [cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) measures six scalar workloads and six edit types.
 Report chunks reduced warm median latency 24–68% on that host. Warmed stores used 1.35–2.91 times
 the bytes of per-node records because repeated subtrees no longer deduplicate at every field.
 The native call count and disclosed context are unchanged. This tradeoff does not justify partial-summary reuse or a general speed claim.
@@ -515,3 +515,5 @@ Opt-in summary version five adds exact literal tuple/list unpacking and chained 
 Right-hand expressions run before target writes; repeated targets bind left-to-right.
 [Scalar assignments](scalar-assignments.md) defines shape budgets, exact definition occurrences,
 SDK contracts and the remaining alias, iterable and exception boundaries.
+
+Historical compressed evidence has [verified restoration instructions](../tests/agent-eval/EVIDENCE-ARCHIVES.md).

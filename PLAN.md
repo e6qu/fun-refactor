@@ -36,23 +36,21 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: turn a narrow review into a grader regression
+## Current chunk: reduce stored evidence without losing results
 
-PR #427 merged after its 20 CI checks passed. Source and relationship follow-ups
-now omit unrelated pages. That removes measured repeated output; agent efficiency remains unproven.
+PR #428 completed one narrow Kimi review and verified its dotenv grader counterexample on GitHub.
+The following two calls timed out; three calls remain stopped. Broader task review remains open.
+Do not resume those collections or increase their limits.
 
-The next review gives each model one question and a small packet of exact, hash-bound source.
-Requirements, graders, source spans, models and budgets were committed before the first call.
-Reference repairs were withheld. Optional reads remain available for omitted source.
+The storage review found eleven historical flow-cache reports occupying 409.3 MB. Lossless gzip
+archives now hold the same bytes in 24.9 MB, removing 366.6 MiB from an expanded checkout. The
+[archive catalog and restoration guide](tests/agent-eval/EVIDENCE-ARCHIVES.md) retain original
+paths, source revision, SHA-256 hashes and Git blob IDs. Every archive must restore exactly.
 
-The [retained collection](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) has one
-completed Kimi review, two timeouts and three unstarted calls. Its stop rule remains in force.
-Kimi identified a missing nested-interpolation case in the dotenv grader. A deliberately wrong
-repair targets that omission: GitHub verified it passes the old grader and fails only the new case.
-The reference repair passes. Retained container results establish this counterexample; citations alone do not.
-
-This is progress on one review question. Packaging, platformdirs and the remaining dotenv behavior
-still need review. No matched efficiency comparison or full task acceptance follows from this result.
+The latest acceptance report stays directly readable by its existing audit. Historical samples,
+failures, source bindings and conclusions remain intact. CI verifies the archives and refusal cases.
+This reduces checkout storage; it does not shrink existing Git history or demonstrate cheaper agent
+tasks. The roadmap remains at seven of eighteen demonstrated items, with all four milestones open.
 
 ## Evidence and remaining gaps
 
@@ -63,6 +61,7 @@ still need review. No matched efficiency comparison or full task acceptance foll
 | [Candidate task controls](tests/agent-eval/opencode/candidates/README.md) | Three new projects, with unchanged, reference and incomplete-repair controls checked on GitHub | Independent grader review and live comparisons remain open |
 | [Source-based review attempts](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md) | Two timeouts, 17 tool calls, no completed findings or fr use | Review scope did not fit the budget; the frozen stop rule prevented four remaining calls |
 | [Narrow source-packet reviews](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) | One GitHub-verified counterexample, two timeouts and three stopped calls | Broader independent review remains open |
+| [Historical evidence archives](tests/agent-eval/EVIDENCE-ARCHIVES.md) | Eleven reports restore byte for byte; expanded checkout saves 366.6 MiB | Git history and agent-efficiency measurements remain unchanged |
 | [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
 | [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 
