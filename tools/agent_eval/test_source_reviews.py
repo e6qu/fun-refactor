@@ -120,6 +120,57 @@ class Packets(unittest.TestCase):
 
 
 class Collection(unittest.TestCase):
+    def test_frozen_reference_sources_replay_exact_edits_without_candidate_execution(self):
+        from agent_eval import change_controls
+        root = Path(__file__).resolve().parents[2]
+        directory = root / "tests/agent-eval/opencode/reviews/2026-10-05-references"
+        frozen_plan = reviews.load(directory / "plan.json")
+        snapshots = reviews.read_inputs(directory)
+        plan = reviews.checked(frozen_plan, snapshots)
+        self.assertTrue(plan["reference_repairs_disclosed"])
+        self.assertFalse(plan["candidate_execution"])
+        self.assertEqual(len(plan["cells"]), 6)
+        self.assertEqual(plan["stop_after_consecutive_failures"], 2)
+        self.assertEqual(plan["retries"], 0)
+        for task in plan["tasks"]:
+            files = snapshots[task["id"]]
+            baseline = {p.removeprefix("baseline/"): row for p, row in files.items() if p.startswith("baseline/")}
+            repaired = {p: row for p, row in files.items() if not p.startswith(("baseline/", "review/"))}
+            reference = mcp.decode(base64.b64decode(files["review/reference.json"]["data"]))
+            bindings = plan["provenance"]["references"][task["id"]]
+            self.assertEqual(bindings["baseline_sha256"], digest(baseline))
+            self.assertEqual(bindings["reference_sha256"], digest(repaired))
+            self.assertEqual(bindings["control_sha256"], digest(reference))
+            self.assertEqual(change_controls.apply(baseline, reference), repaired)
+            self.assertTrue(all(s["path"].startswith(("src/", "review/")) for s in task["packet"]["spans"]))
+            self.assertIn("proposed reference repair, not a proven answer", task["question"])
+
+    def test_reference_disclosure_is_versioned_and_does_not_change_old_reports(self):
+        old, snapshots = frozen()
+        reference, revised = reviews.freeze_reference(
+            [question()], ["provider/model"], Path(__file__), Path(__file__), {})
+        self.assertEqual(snapshots, revised)
+        self.assertEqual(old["plan"]["limits"], reference["plan"]["limits"])
+        for plan in (old, reference):
+            reviews.checked(plan, snapshots, execution=True)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "attempts"
+            original = reviews.report(old, snapshots, output)
+            disclosed = reviews.report(reference, snapshots, output)
+        self.assertEqual(original["schema"], "fr-source-review-report-1")
+        self.assertNotIn("reference_repairs_disclosed", original)
+        self.assertEqual(disclosed["schema"], "fr-source-review-report-2")
+        self.assertIs(disclosed["reference_repairs_disclosed"], True)
+        self.assertFalse(disclosed["claims_verified"])
+        self.assertEqual(disclosed["not_started"], 1)
+        for plan, values in ((old, (True, 0, None)), (reference, (False, 1, "true"))):
+            for value in values:
+                altered = copy.deepcopy(plan)
+                altered["plan"]["reference_repairs_disclosed"] = value
+                altered["sha256"] = digest(altered["plan"])
+                with self.assertRaisesRegex(ValueError, "reference disclosure"):
+                    reviews.checked(altered, snapshots)
+
     def test_github_counterexample_binds_review_inputs_and_the_same_wrong_repair(self):
         from agent_eval import change_controls as controls
         root = Path(__file__).resolve().parents[2]
