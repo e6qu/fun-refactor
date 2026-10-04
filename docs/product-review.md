@@ -81,6 +81,21 @@ The storage counts can be reproduced from `git ls-tree -r -l 05fb612a --
 tests/agent-eval/results grammars/lean web` by summing blob sizes within each directory. A working-tree
 inventory counted the same tracked files; no build caches were traversed.
 
+## Measured evidence storage cleanup
+
+At commit `ced10cb8`, the retained-results tree contains 6,609 files totaling 656,952,323 bytes.
+Exact duplicate files account for only 4,673,353 bytes. The largest storage cost comes from twelve
+flow-cache JSON reports, each about 37 MB, rather than duplicate source files.
+
+The [archive conversion](../tests/agent-eval/EVIDENCE-ARCHIVES.md) compresses eleven historical
+reports from 409,344,894 bytes to 24,891,122 bytes. The latest acceptance report remains expanded
+for its current audit. The resulting tree occupies 272,498,551 bytes. Every archived report must
+restore its original bytes, SHA-256 and Git blob ID; the catalog records the source revision.
+CI checks all archives and restoration failure cases. Unique historical failures remain available.
+
+This saves 366.6 MiB in an expanded checkout. Existing Git history, analysis behavior and measured
+agent costs do not change. Future pruning still requires a consumer review and preserved evidence.
+
 ## Pilot before expanding or deleting subsystems
 
 The [study planner and evidence auditor](agent-study.md) now accept independent task manifests and

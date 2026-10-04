@@ -171,7 +171,7 @@ That corpus excludes dynamic imports, namespace packages and initialization effe
 
 ## Current matched results
 
-The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json) contains 288 samples across six generated scalar workloads.
+The [flow-cache comparison](../tests/agent-eval/results/2026-09-25-flow-cache/result.json.gz) contains 288 samples across six generated scalar workloads.
 Pipelines, imported fanout and mutual recursion each have two sizes. Three repetitions rotate the
 previous SDK cache and bounded report chunks through cold, warm and six single-edit scenarios.
 Every retained answer agrees with clean analysis. Independent Python execution, source digests and
@@ -856,3 +856,5 @@ The [dogfood manifest](../tests/agent-eval/results/2026-09-30-roadmap-dogfood/ma
 binds the local reviewed edits used to build this work. Its generation-attempt ledger preserves
 failed evaluator attempts and later successes. Local probes use the installed older binary and
 have a separate scope from the current-source GitHub acceptance reports.
+
+Historical compressed evidence has [verified restoration instructions](../tests/agent-eval/EVIDENCE-ARCHIVES.md).

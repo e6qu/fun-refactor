@@ -36,19 +36,27 @@ timed out after 17 tool calls without findings. Do not restart their four stoppe
 PR #427 merged at `3c1d2008` after all 20 CI checks passed. It removes repeated output during
 `project explore` pagination. Source follow-ups omit relationships; relationship follow-ups omit
 source. Native schema 5 exposes these views; older schemas retain their original behavior.
-Post-merge deep validation is still pending at this handoff.
+Its post-merge deep validation passed.
 Release creation initially failed after main advanced past the release commit. A temporary branch
 at `38413ce6` restored an existing ref for that commit. Retrying run `37190700691` created the
 `fun-refactor-v0.49.2` tag at that exact revision; cleanup then removed the recovery branch.
-Release artifact builds remain separate from the passing release-creation step.
+All release artifact builds passed as well.
 
-The current change adds [narrow source-packet reviews](../tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md).
+PR #428 merged at `feadf1cb` after all 20 checks passed. Its post-merge deep audit also passed.
+It added [narrow source-packet reviews](../tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md).
 One Kimi review completed; two following calls timed out and the remaining three were stopped.
 Do not resume this collection or raise its limits. GLM submitted before timing out, but its session
 audit did not finish, so it remains failed. The completed finding targets recursive interpolation
 accepted by the old dotenv grader. GitHub job `111408265330` verified the same wrong repair passes
 the old grader and fails only the new case. The reference passes. The collection retains both grades
 in `counterexample.json`; full task review and agent-efficiency comparisons remain open.
+
+The current change compresses eleven historical flow-cache reports, saving 366.6 MiB in an
+expanded checkout. The [restoration guide](../tests/agent-eval/EVIDENCE-ARCHIVES.md) records exact
+hashes and original Git blob IDs. The latest acceptance report and its source-bound evaluator stay
+unchanged. The conversion preserves all samples and failures; no roadmap acceptance item closes.
+Release PR #429 merged at `ced10cb8`; its post-merge release workflow passed. Its earlier PR runs
+contained no jobs and supplied no test evidence. Current full checks must pass on this branch.
 
 GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
 the location and repository evidence against `20688a31`. It checked 11 semantic links with zero
