@@ -120,6 +120,36 @@ class Packets(unittest.TestCase):
 
 
 class Collection(unittest.TestCase):
+    def test_github_counterexample_binds_review_inputs_and_the_same_wrong_repair(self):
+        from agent_eval import change_controls as controls
+        root = Path(__file__).resolve().parents[2]
+        directory = root / "tests/agent-eval/opencode/reviews/2026-10-04-packets"
+        pack = root / "tests/agent-eval/opencode/candidates"
+        evidence = reviews.load(directory / "counterexample.json")
+        self.assertEqual(evidence["review_plan_sha256"], reviews.load(directory / "plan.json")["sha256"])
+        self.assertEqual(evidence["review_cell"], "dotenv-flat-grammar-0")
+        for name, sha in evidence["candidate_inputs"].items():
+            self.assertEqual(hashlib.sha256((pack / name).read_bytes()).hexdigest(), sha)
+        task = reviews.load(pack / "manifest.json")["tasks"][0]
+        files, variants, public = controls.definitions(pack, task)
+        rows = evidence["results"]
+        self.assertEqual({r["id"] for r in rows}, {"dotenv-alternate/reference",
+                         "dotenv-alternate/recursively-expand-alternate-word"})
+        controls.verify(rows)
+        current = reviews.load(pack / task["grader"])
+        for row in rows:
+            variant = next(v for v in variants if row["id"] == task["id"] + "/" + v["id"])
+            self.assertEqual(row["submission_sha256"], digest(controls.apply(files, variant)))
+            self.assertEqual(row["grade"]["grader_sha256"], evidence["candidate_inputs"][task["grader"]])
+            self.assertEqual(row["grade"]["image"], current["image"])
+            self.assertEqual(row["public_grade"]["candidate"], row["grade"]["candidate"])
+            self.assertEqual(row["public_grade"]["grader_sha256"], digest(public))
+            self.assertEqual([c["id"] for c in row["grade"]["cases"]], [c["id"] for c in current["cases"]])
+            if "baseline_grade" in row:
+                old = reviews.load(pack / variant["baseline"]["grader"])
+                self.assertEqual(row["baseline_grade"]["image"], current["image"])
+                self.assertEqual([c["id"] for c in row["baseline_grade"]["cases"]], [c["id"] for c in old["cases"]])
+
     def test_retained_attempts_replay_without_promoting_timeout_submissions(self):
         root = Path(__file__).resolve().parents[2]
         directory = root / "tests/agent-eval/opencode/reviews/2026-10-04-packets"

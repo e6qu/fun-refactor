@@ -54,7 +54,8 @@ case in the strengthened grader. Both grades bind to the same submitted source a
 | platformdirs | Also reject relative runtime-directory values | `unrelated-directories` |
 
 Six are task-author counterexamples. The recursive-expansion control follows a completed Kimi
-[source-packet review](../reviews/2026-10-04-packets/README.md); GitHub execution must verify it. The bounded
+[source-packet review](../reviews/2026-10-04-packets/README.md). GitHub verified that control against
+the old and new graders and retained both results with the passing reference repair. The bounded
 [OpenCode review attempts](../reviews/2026-10-03-candidates/README.md) retained two timeouts and
 no completed review. The other four planned reviews were not started.
 The follow-up [source-based reviews](../reviews/2026-10-04-native/README.md) also stopped after

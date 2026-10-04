@@ -48,8 +48,8 @@ Reference repairs were withheld. Optional reads remain available for omitted sou
 The [retained collection](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) has one
 completed Kimi review, two timeouts and three unstarted calls. Its stop rule remains in force.
 Kimi identified a missing nested-interpolation case in the dotenv grader. A deliberately wrong
-repair now targets that omission: GitHub must show it passes the old grader and fails the new case.
-The reference repair must still pass. Citation checks alone do not verify the finding.
+repair targets that omission: GitHub verified it passes the old grader and fails only the new case.
+The reference repair passes. Retained container results establish this counterexample; citations alone do not.
 
 This is progress on one review question. Packaging, platformdirs and the remaining dotenv behavior
 still need review. No matched efficiency comparison or full task acceptance follows from this result.
@@ -62,7 +62,7 @@ still need review. No matched efficiency comparison or full task acceptance foll
 | [Native code-change trials](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts across twelve attempts; GitHub graded exact submissions | No attempt called fr; no evidence that its edit route helped |
 | [Candidate task controls](tests/agent-eval/opencode/candidates/README.md) | Three new projects, with unchanged, reference and incomplete-repair controls checked on GitHub | Independent grader review and live comparisons remain open |
 | [Source-based review attempts](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md) | Two timeouts, 17 tool calls, no completed findings or fr use | Review scope did not fit the budget; the frozen stop rule prevented four remaining calls |
-| [Narrow source-packet reviews](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) | One completed finding, two timeouts and three stopped calls | Counterexample execution and broader independent review remain open |
+| [Narrow source-packet reviews](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) | One GitHub-verified counterexample, two timeouts and three stopped calls | Broader independent review remains open |
 | [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
 | [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 

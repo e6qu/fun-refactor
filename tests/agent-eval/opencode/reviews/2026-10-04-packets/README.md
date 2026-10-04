@@ -40,9 +40,14 @@ For `BASE=yes`, `OTHER=expanded` and `OUT=${BASE:+${OTHER}}`, the requirement gi
 `${OTHER}`. Recursive expansion instead gives `expanded`. The old grader lacked that distinction.
 
 The candidate pack now preserves that exact old grader and adds a `flat-braces` case. A deliberately
-wrong repair expands the resolved value again. GitHub must show the same candidate passes its public
-example and old grader, then fails only `flat-braces` in the new grader. The reference must pass both
-public and current private checks. Until that run passes, this remains a model-proposed counterexample.
+wrong repair expands the resolved value again. GitHub job
+[111408265330](https://github.com/e6qu/fun-refactor/actions/runs/37192769004/job/111408265330)
+verified that the same candidate passes its public example and old grader, then fails only
+`flat-braces` in the new grader. The reference passes both public and current private checks.
+`counterexample.json` retains these two controls, source identities, grader hashes and artifact
+provenance at commit `8a316d00`. Offline tests replay edits and check those bindings; CI also executes
+the current controls afresh. This verifies one constructed wrong repair, not every possible repair.
+The original model report still records citation-only validation; container evidence stays separate.
 
 The review's two citations resolve to the requirement and the grader's last 317 bytes. They do not
 directly quote the earlier literal-word case. Its limitations text also says the grader beyond byte

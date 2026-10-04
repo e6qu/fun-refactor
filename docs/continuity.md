@@ -37,13 +37,18 @@ PR #427 merged at `3c1d2008` after all 20 CI checks passed. It removes repeated 
 `project explore` pagination. Source follow-ups omit relationships; relationship follow-ups omit
 source. Native schema 5 exposes these views; older schemas retain their original behavior.
 Post-merge deep validation is still pending at this handoff.
+Release creation initially failed after main advanced past the release commit. A temporary branch
+at `38413ce6` restored an existing ref for that commit. Retrying run `37190700691` created the
+`fun-refactor-v0.49.2` tag at that exact revision; cleanup then removed the recovery branch.
+Release artifact builds remain separate from the passing release-creation step.
 
 The current change adds [narrow source-packet reviews](../tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md).
 One Kimi review completed; two following calls timed out and the remaining three were stopped.
 Do not resume this collection or raise its limits. GLM submitted before timing out, but its session
 audit did not finish, so it remains failed. The completed finding targets recursive interpolation
-accepted by the old dotenv grader. GitHub must check the same wrong repair against old and new
-graders, plus the reference repair. Full task review and agent-efficiency comparisons remain open.
+accepted by the old dotenv grader. GitHub job `111408265330` verified the same wrong repair passes
+the old grader and fails only the new case. The reference passes. The collection retains both grades
+in `counterexample.json`; full task review and agent-efficiency comparisons remain open.
 
 GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
 the location and repository evidence against `20688a31`. It checked 11 semantic links with zero
