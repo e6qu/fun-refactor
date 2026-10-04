@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.50.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.49.2...fun-refactor-v0.50.0) (2026-10-04)
+
+
+### Features
+
+* avoid repeated source and relationships during pagination ([#427](https://github.com/e6qu/fun-refactor/issues/427)) ([3c1d200](https://github.com/e6qu/fun-refactor/commit/3c1d20089c74776a739842cba31599b6f9d6013b))
+* review source packets and test a grader counterexample ([feadf1c](https://github.com/e6qu/fun-refactor/commit/feadf1cb30c416ebb0f8708b1d6395b43f59a9a7))
+
 ## [0.49.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.49.1...fun-refactor-v0.49.2) (2026-10-03)
 
 
