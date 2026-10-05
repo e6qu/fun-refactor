@@ -36,7 +36,23 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: finish the repository audit within its deadline
+## Current chunk: make native submissions finish reliably
+
+The last live review collection stopped after a missing submission and repeated submissions.
+The new scripted check drives OpenCode 1.18.34 with a local fake provider. It exercises one terminal
+answer, an omitted answer, two answers, and another tool call alongside an answer.
+The audit compares the request, events, independent session export, MCP log and provider requests.
+It counts every response and rejects mismatched evidence. No live model calls are part of this check.
+
+The [scripted GitHub check](https://github.com/e6qu/fun-refactor/actions/runs/37338076823)
+passed all four cases in 43 seconds on `c35a99c2`. Independent replay passes with the current audit.
+Each case made two provider requests, including failures. Twelve offline tests check the audit.
+Existing native runners and stopped collections retain their original rules and outcomes.
+Next connect the validated protocol to a new frozen review design, then assess model reliability.
+Task acceptance, fr adoption, provider billing and general efficiency remain unproven.
+See [the scripted submission check](docs/opencode-native-tools.md#check-terminal-submissions-with-scripted-responses).
+
+## Recent work: finish the repository audit within its deadline
 
 PR #435 passed its 20 PR checks, but its post-merge recipe replay exceeded the
 15-minute deep-audit job deadline. The replay covers the entire workspace. Each
@@ -53,8 +69,8 @@ plus 224 model cases. Eight refreshed index samples reproduce the pinned baselin
 symbol/reference answers. Their retained source bindings match the current tree. The complete
 deep run passed all 17 jobs. The recipe test fell from 12m57s to 5m04s in these two runner samples.
 Its whole job fell from 14m47s to 6m52s, with coverage and the deadline unchanged. This is not a
-general performance benchmark. Resume submission-reliability work after this repair; stopped
-model collections remain stopped.
+general performance benchmark. PR #436 merged after all 20 final checks passed; its post-merge
+workflows passed too. Stopped model collections remain stopped.
 
 ## Recent work: review concrete assertions and expose the remaining gaps
 
