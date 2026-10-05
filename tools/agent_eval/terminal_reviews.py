@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from . import native_mcp as mcp, native_references as refs, opencode_native as native
 from . import source_packets as packets, source_reviews, structured_submission as protocol
 from . import terminal_review_costs as costs
-from .study import digest, encode, require
+from .study import digest, encode, number, require
 from .workspace_bundle import validate
 
 SCHEMA = "fr-terminal-source-review-1"
@@ -17,6 +17,21 @@ MAX_BYTES = 1024**2
 ARTIFACTS = {"request.json", "terminal.json", "messages.json", "export.json", "events.jsonl",
              "tools.jsonl", "identity.json", "process.json", "host.stdout", "host.stderr",
              "server.stdout", "server.stderr", "export.stderr", "startup-error.json"}
+
+
+def retained_process(record, process, manifest, directory):
+    require(type(process["exit_code"]) is int and type(process["timed_out"]) is bool, "invalid process outcome")
+    for key in ("elapsed_seconds", "sampled_cpu_seconds", "sampled_aggregate_rss_bytes",
+                "sampled_disk_growth_bytes", "transcript_bytes"):
+        number(process[key], key)
+    truncated = record["truncated_artifacts"]
+    require(isinstance(truncated, dict), "invalid artifact truncation record")
+    for name, sizes in truncated.items():
+        require(name in manifest and set(sizes) == {"observed_bytes", "retained_bytes"}
+                and type(sizes["observed_bytes"]) is int and sizes["observed_bytes"] > MAX_BYTES
+                and sizes["retained_bytes"] == MAX_BYTES and (directory / name).stat().st_size == MAX_BYTES,
+                "artifact truncation differs")
+    require(not truncated or record["status"] == "failed", "completed review lost artifacts")
 
 
 def implementation():
@@ -31,6 +46,7 @@ def profile(value):
             "invalid provider profile")
     require(all(isinstance(value[k], str) and re.fullmatch(r"[\w./-]+", value[k]) for k in ("providerID", "modelID")),
             "invalid provider or model identity")
+    require(isinstance(value["baseURL"], str) and not any(c in value["baseURL"] for c in "{}\r\n\0"), "invalid endpoint substitution")
     endpoint = urlsplit(value["baseURL"])
     require(endpoint.hostname and not endpoint.username and not endpoint.password and not endpoint.query
             and not endpoint.fragment and (endpoint.scheme == "https" or
@@ -147,6 +163,7 @@ def report(frozen, snapshots, output):
         require(record["status"] in {"completed", "failed"}, "incomplete attempt record")
         failures = failures + 1 if record["status"] == "failed" else 0
         process = mcp.decode(read(directory / "process.json"))
+        retained_process(record, process, manifest, directory)
         require(process["limits"] == {k: v for k, v in plan["limits"].items() if k not in {"steps", "tool_calls"}}, "process limits changed")
         task = {**next(t for t in plan["tasks"] if t["id"] == cell["task"]), "files": snapshots[cell["task"]]}
         observed = costs.observed(read(directory / "events.jsonl", optional=True), read(directory / "tools.jsonl", optional=True), task)
@@ -160,7 +177,8 @@ def report(frozen, snapshots, output):
             require("audit" not in record and isinstance(record["failure"], str) and record["failure"], "missing failure record")
             # A failed attempt never becomes accepted merely because an answer survives.
         attempts.append({"cell": cell, "status": record["status"], "failure": record["failure"],
-                         "audit": reviewed, "observed": observed, "process": process})
+                         "audit": reviewed, "observed": observed, "process": process,
+                         "truncated_artifacts": record["truncated_artifacts"]})
     return {"schema": SCHEMA, "plan_sha256": frozen["sha256"], "attempts": attempts,
             "completed": sum(a["status"] == "completed" for a in attempts),
             "failed": sum(a["status"] == "failed" for a in attempts),

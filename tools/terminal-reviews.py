@@ -6,7 +6,7 @@ from pathlib import Path
 
 from agent_eval import native_mcp as mcp, source_reviews, terminal_reviews as review
 from agent_eval import terminal_review_runner as runner
-from agent_eval.study import encode
+from agent_eval.study import encode, require
 
 
 def main():
@@ -25,6 +25,8 @@ def main():
         command.add_argument("output", type=Path)
         command.add_argument("--fr", type=Path, required=True)
         command.add_argument("--opencode", type=Path, required=True)
+        if name == "capture":
+            command.add_argument("--plan-sha", required=True)
     report = commands.add_parser("report")
     report.add_argument("inputs", type=Path)
     report.add_argument("output", type=Path)
@@ -53,6 +55,7 @@ def main():
         result = runner.collect(frozen, snapshots, args.cell, args.output.resolve(),
                                 args.fr.resolve(), args.opencode.resolve(), inputs)
     else:
+        require(frozen["sha256"] == args.plan_sha, "capture plan differs from parent")
         plan = review.checked(frozen, snapshots, execution=True)
         cell = next(c for c in plan["cells"] if c["id"] == args.cell)
         runner.capture(frozen, snapshots, cell, args.output.resolve(), args.fr.resolve(), args.opencode.resolve())

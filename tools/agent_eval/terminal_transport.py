@@ -14,6 +14,8 @@ MAX_BYTES = 1024**2
 
 def capture(binary, root, env, body):
     """Run beneath bounded_host; retain partial files when the process stops."""
+    env = {**env, "TMPDIR": str(root / "tmp")}
+    (root / "tmp").mkdir()
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]

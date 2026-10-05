@@ -1,10 +1,12 @@
 """Offline source, plan and failure-accounting controls for terminal reviews."""
 import base64
 import copy
+import gzip
 import hashlib
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -12,7 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import native_mcp as mcp, source_reviews, structured_probe as probe
 from agent_eval import terminal_reviews as review, terminal_review_runner as runner
-from agent_eval import terminal_review_costs as costs, test_structured_submission as base
+from agent_eval import test_structured_submission as base
 from agent_eval.study import digest, encode
 
 
@@ -57,6 +59,37 @@ def write_capture(root, plan, snapshots, cell, *, packet=False, mutate=None):
 
 
 class TerminalReview(unittest.TestCase):
+    def test_capture_refuses_changed_parent_plan_before_starting_client(self):
+        f, snapshots = frozen()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "plan.json").write_bytes(encode(f))
+            (root / "inputs.json.gz").write_bytes(gzip.compress(encode(snapshots), mtime=0))
+            result = subprocess.run([sys.executable, "-B", str(Path(__file__).parents[1] / "terminal-reviews.py"),
+                "capture", str(root), f["plan"]["cells"][0]["id"], str(root / "unused"),
+                "--fr", "/missing-fr", "--opencode", "/missing-opencode", "--plan-sha", "0" * 64],
+                capture_output=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"capture plan differs from parent", result.stderr)
+            self.assertFalse((root / "unused").exists())
+
+    def test_large_failed_log_is_bounded_and_truncation_is_reported(self):
+        f, snapshots = frozen()
+        cell = f["plan"]["cells"][0]
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            root = output / cell["id"]
+            root.mkdir()
+            process = write_capture(root, f["plan"], snapshots, cell)
+            (root / "server.stderr").write_bytes(b"x" * (review.MAX_BYTES + 31))
+            record = runner.seal(f, snapshots, cell, root, process)
+            self.assertEqual(record["status"], "failed")
+            self.assertEqual(record["truncated_artifacts"]["server.stderr"]["observed_bytes"], review.MAX_BYTES + 31)
+            self.assertEqual((root / "server.stderr").stat().st_size, review.MAX_BYTES)
+            row = review.report(f, snapshots, output)["attempts"][0]
+            self.assertEqual(row["observed"]["usage"]["finished_steps"], 2)
+            self.assertIsNone(row["audit"])
+
     def test_packet_and_retrieved_citations_replay(self):
         for packet in (False, True):
             f, snapshots = frozen(packet=packet)

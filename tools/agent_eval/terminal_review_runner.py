@@ -13,6 +13,26 @@ from .study import encode, require
 from .workspace_bundle import unpack
 
 
+def cleanup(folder):
+    for name in ("work", "config", "cache", "data", "state", "tmp"):
+        path = folder / name
+        if path.exists():
+            require(path.is_dir() and not path.is_symlink(), "invalid temporary client directory")
+            shutil.rmtree(path)
+
+
+def retain_prefixes(root):
+    truncated = {}
+    for path in root.iterdir():
+        require(path.name in review.ARTIFACTS and path.is_file() and not path.is_symlink(), "unexpected capture file")
+        size = path.stat().st_size
+        if size > review.MAX_BYTES:
+            with path.open("r+b") as stream:
+                stream.truncate(review.MAX_BYTES)
+            truncated[path.name] = {"observed_bytes": size, "retained_bytes": review.MAX_BYTES}
+    return truncated
+
+
 def environment(root, model, config):
     env = structured_probe.environment(root, model["baseURL"])
     settings = json.loads(env["OPENCODE_CONFIG_CONTENT"])
@@ -25,7 +45,7 @@ def environment(root, model, config):
         provider["options"]["apiKey"] = "{env:FR_REVIEW_API_KEY}"
         env["FR_REVIEW_API_KEY"] = os.environ["FR_REVIEW_API_KEY"]
     settings.update(enabled_providers=[model["providerID"]], provider={model["providerID"]: provider})
-    settings["agent"]["fr-submission"]["prompt"] = review.PROMPT
+    settings["agent"]["fr-submission"]["prompt"] = "Answer the supplied source-review question using the permitted tools."
     settings["mcp"]["rehearsal"]["command"] = [sys.executable, "-B",
         str(Path(__file__).parents[1] / "terminal-reviews.py"), "serve", str(config), str(root / "tools.jsonl")]
     env["OPENCODE_CONFIG_CONTENT"] = json.dumps(settings)
@@ -59,8 +79,11 @@ def seal(frozen, snapshots, cell, root, process):
     plan = frozen["plan"]
     task = {**next(t for t in plan["tasks"] if t["id"] == cell["task"]), "files": snapshots[cell["task"]]}
     (root / "process.json").write_bytes(encode(process))
-    record = {"cell": cell, "plan_sha256": frozen["sha256"], "status": "failed", "failure": None}
+    truncated = retain_prefixes(root)
+    record = {"cell": cell, "plan_sha256": frozen["sha256"], "status": "failed", "failure": None,
+              "truncated_artifacts": truncated}
     try:
+        require(not truncated, "capture artifact exceeded retention limit")
         structured_probe.checked_process(process)
         record.update(audit=review.audit(plan, task, cell, root), status="completed")
     except (OSError, ValueError, KeyError, TypeError, IndexError, UnicodeError) as error:
@@ -82,15 +105,10 @@ def collect(frozen, snapshots, cell_id, output, binary, opencode, inputs):
     out, err = io.BytesIO(), io.BytesIO()
     limits = plan["limits"]
     process = bounded_host.run([sys.executable, "-B", str(Path(__file__).parents[1] / "terminal-reviews.py"),
-        "capture", str(inputs), cell_id, str(folder), "--fr", str(binary), "--opencode", str(opencode)],
+        "capture", str(inputs), cell_id, str(folder), "--fr", str(binary), "--opencode", str(opencode), "--plan-sha", frozen["sha256"]],
         b"", out, err, folder, wall_seconds=limits["wall_seconds"], cpu_limit_seconds=limits["cpu_seconds"],
         rss_bytes=limits["rss_bytes"], disk_bytes=limits["disk_bytes"], transcript_bytes=limits["transcript_bytes"])
-    # Only this attempt's temporary source/configuration and isolated client stores are removed.
-    for name in ("work", "config", "cache", "data", "state"):
-        path = folder / name
-        if path.exists():
-            require(path.is_dir() and not path.is_symlink(), "invalid temporary client directory")
-            shutil.rmtree(path)
+    cleanup(folder)
     (folder / "host.stdout").write_bytes(out.getvalue())
     (folder / "host.stderr").write_bytes(err.getvalue())
     return seal(frozen, snapshots, cell, folder, process)

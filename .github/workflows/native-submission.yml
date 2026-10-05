@@ -29,10 +29,28 @@ jobs:
           tar -xzf target/opencode/archive.tar.gz -C target/opencode
       - name: Reject malformed and inconsistent submission evidence
         run: python3 -B tools/agent_eval/test_structured_submission.py
+      - name: Check frozen source reviews and interrupted accounting
+        run: python3 -B tools/agent_eval/test_terminal_reviews.py
       - name: Exercise terminal answers with a scripted loopback provider
         run: >-
           python3 -B tools/check-native-submission.py check target/native-submission
           --opencode target/opencode/opencode
+      - name: Install pinned fr for source-review tools
+        run: |
+          mkdir -p target/review-fr
+          curl --fail --location --retry 2 --max-time 90 \
+            https://github.com/e6qu/fun-refactor/releases/download/fun-refactor-v0.52.1/fr-v0.52.1-x86_64-unknown-linux-musl.tar.gz \
+            -o target/review-fr/archive.tar.gz
+          echo '29dc93be63d0c681a37f02f33860ea828ef0c3cb91f413ce941b61cc2d32f68e  target/review-fr/archive.tar.gz' | sha256sum -c -
+          tar -xzf target/review-fr/archive.tar.gz -C target/review-fr --strip-components=1
+      - name: Author the extracted capture function through fr
+        run: >-
+          python3 -B tools/check-terminal-reviews.py author target/terminal-author
+          --fr target/review-fr/fr
+      - name: Review source packets and retain failed client work
+        run: >-
+          python3 -B tools/check-terminal-reviews.py check target/terminal-reviews
+          --fr target/review-fr/fr --opencode target/opencode/opencode
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -43,4 +61,14 @@ jobs:
             target/native-submission/*/*.jsonl
             target/native-submission/*/*.stdout
             target/native-submission/*/*.stderr
+            target/terminal-reviews/result.json
+            target/terminal-author/preview.json
+            target/terminal-reviews/*/*.json
+            target/terminal-reviews/*/*.json.gz
+            target/terminal-reviews/*/*.stdout
+            target/terminal-reviews/*/*.stderr
+            target/terminal-reviews/*/attempts/*/*.json
+            target/terminal-reviews/*/attempts/*/*.jsonl
+            target/terminal-reviews/*/attempts/*/*.stdout
+            target/terminal-reviews/*/attempts/*/*.stderr
           retention-days: 7
