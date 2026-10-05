@@ -25,7 +25,7 @@ fn workspace() -> &'static (PathBuf, Index) {
 
 #[test]
 fn the_self_hosted_recipe_replays_without_changing_the_workspace() {
-    let (root, _index) = workspace();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let scanned = scan(root, &ScanOptions::default()).expect("scan");
     let sources = scanned
         .files

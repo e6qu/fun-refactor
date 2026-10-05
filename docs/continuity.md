@@ -21,6 +21,42 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
+The user merged release PR #434 at `eae73262` (0.52.0). PR #435's 20 PR checks passed,
+but its post-merge full-workspace recipe replay timed out. The current branch removes
+unnecessary indexing for unchanged recipe steps and repairs single-file preview paths
+found while dogfooding. Full builds, Rust tests and evidence refreshes run on GitHub.
+Repository-delivery, recovery and index evidence has been refreshed and verified against current
+source bindings. The complete [deep run](https://github.com/e6qu/fun-refactor/actions/runs/37301872179)
+passed all 17 jobs. Its recipe test took 303.91 seconds and the whole job took 6m52s.
+The unmodified rerun took 777.19 seconds and 14m47s respectively. These are two runner samples
+with identical coverage and deadlines. Resume scripted native-submission work after CI passes.
+
+GitHub [37301881349](https://github.com/e6qu/fun-refactor/actions/runs/37301881349) completed
+both scripted repository tasks with 365 behavior cases on `c272d5fb`. The imported bundle
+matches 227 source bindings. Recovery run
+[37304200800](https://github.com/e6qu/fun-refactor/actions/runs/37304200800) passed on
+`ededba2a`, after updating its source-bound runner reference. Its 18 bindings match,
+with 430 handled-failure and 430 process-exit boundaries and 224 model cases.
+The roadmap retains seven demonstrated items; no broader claim follows from this refresh.
+Index run [37303849906](https://github.com/e6qu/fun-refactor/actions/runs/37303849906) passed
+in 8 minutes 23 seconds. Its eight samples reproduce the pinned baseline's complete symbol
+and reference answers; all 195 source bindings match the current tree.
+
+Four other active reports also bound `src/cli.rs`. GitHub refreshed
+[guided edit accounting](https://github.com/e6qu/fun-refactor/actions/runs/37310459036),
+[intent edit accounting](https://github.com/e6qu/fun-refactor/actions/runs/37310483336),
+[seven completion workflows](https://github.com/e6qu/fun-refactor/actions/runs/37310763209), and
+[retained proof delivery](https://github.com/e6qu/fun-refactor/actions/runs/37310785657)
+against `1acf1294`. All passed, and their 54 recorded source bindings match the current tree.
+Active tests now select the new reports; historical reports remain unchanged. These scripted
+checks do not establish a live-agent efficiency advantage. The [CI guide](ci.md) lists all seven
+refresh groups and explains the recovery runner's own source binding.
+
+The first PR gate also exposed a race in the fake-provider budget test. It now holds
+the winning reservation until the competing admission is refused. All 14 gateway tests
+and 20 repeated contention cases passed locally under the guard. The single-file patch
+regression has its own target so the historical author runner stays byte-identical.
+
 The goal is a general CLI that helps agents understand unfamiliar code, make changes and fixes,
 and write and check useful proofs with less total effort and context. Start with the
 [product review](product-review.md) and the plain-language [plan](../PLAN.md).

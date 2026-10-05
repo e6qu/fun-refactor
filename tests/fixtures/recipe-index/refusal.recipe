@@ -1,0 +1,9 @@
+schema 1
+recipe refusal {
+  remove-flag "ABSENT_FLAG" = false on-refusal allow
+  delete where name="missing" allow-empty
+  rename to "finished" where name="original" kind=function
+  expect refusals = 1
+  expect step 2 matched = 0
+  expect step 3 applied = 1
+}

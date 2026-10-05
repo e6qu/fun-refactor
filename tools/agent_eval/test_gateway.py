@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from threading import Event
 import unittest
 from unittest.mock import patch
 
@@ -39,10 +40,12 @@ class Gateway(unittest.TestCase):
             ledger.begin(cell)
             admit_agent(ledger, cell, "root", None)
             sends = []
+            refused = Event()
             def transport(provider, path, payload, timeout):
                 if path.endswith("input_tokens"):
                     return {"object": "response.input_tokens", "input_tokens": 350}
                 sends.append(path)
+                self.assertTrue(refused.wait(5), "competing request never reached admission")
                 raw = response()
                 raw["model"] = ledger.cells[cell]["model"]
                 return raw
@@ -52,11 +55,16 @@ class Gateway(unittest.TestCase):
                                 {"input": "x"}, root / "evidence", parent=None if index == 0 else "root",
                                 transport=transport)["state"]
                 except ValueError as error:
+                    refused.set()
                     self.assertIn("spend cap", str(error))
                     return "refused"
             with ThreadPoolExecutor(max_workers=2) as pool:
                 self.assertEqual(sorted(pool.map(invoke, (0, 1))), ["refused", "settled"])
             self.assertEqual(len(sends), 1)
+            calls = ledger.snapshot()["calls"]
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0]["state"], "settled")
+            self.assertLessEqual(calls[0]["spent_nano_usd"], ledger.attempt_cap)
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

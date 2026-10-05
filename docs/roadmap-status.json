@@ -32,13 +32,13 @@
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-python-repositories/result.json",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-04-focused-pages-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
@@ -52,13 +52,13 @@
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {

@@ -1,0 +1,14 @@
+schema 1
+recipe first {
+  requires symbol "original"
+  rename to "unused" where name="missing" allow-empty
+  delete where name="also_missing" allow-empty
+  expect matched = 0
+  expect changed = 0 files
+}
+recipe second {
+  requires symbol "original"
+  rename to "unused" where name="missing" allow-empty
+  expect applied = 0
+  expect refusals = 0
+}

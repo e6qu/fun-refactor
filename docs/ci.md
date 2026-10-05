@@ -48,6 +48,42 @@ The runtime target excludes runner queue delays. Inspect job timestamps and shar
 logs after changes to suite size; update measured weights or split work before a
 job reaches its deadline. A deadline failure must not cause tests to be removed.
 
+In [run 37290564129](https://github.com/e6qu/fun-refactor/actions/runs/37290564129),
+the single repository recipe replay exhausted its job's 15-minute deadline. Build
+time was 50 seconds; the test then ran for more than 13 minutes before cancellation.
+Splitting other tests cannot shorten this individual test. The repair removes an
+unused test index and avoids rebuilding indexes for recipe steps that make no edits.
+It preserves the complete workspace replay and tests real edits between empty steps.
+The complete deep run measures the actual replay time; small fixture timings cannot establish it.
+
+The [unmodified rerun](https://github.com/e6qu/fun-refactor/actions/runs/37297977834/job/111723664639)
+passed in 777.19 seconds, with a 14m47s whole-job time. The
+[repaired replay](https://github.com/e6qu/fun-refactor/actions/runs/37301872179/job/111736249724)
+passed in 303.91 seconds, with a 6m52s whole-job time. Both retained the full workspace and the
+same deadline. The repaired runtime's complete deep audit passed all 17 jobs. These two runner
+samples establish this observed improvement, not a general speed guarantee. Queue time remains
+outside these job measurements.
+
+Active evidence references also live in Rust tests, including paths assembled with `join`.
+Check those references as well as the roadmap catalog before refreshing runtime evidence.
+A change to `src/cli.rs` can affect all the groups below in the
+[refresh workflow](../.github/workflows/refinement-evidence.yml).
+
+| Refresh group | What its report checks |
+|---|---|
+| `agent-guide-context` | Command and byte accounting for a checked scalar edit |
+| `intent-action-context` | The same reviewed edit through composed calls and an intent action |
+| `completion-workflows` | Seven workflow families reach executable actions from a guide |
+| `retained-proofs` | Proof records invalidate after relevant changes and replay delivery |
+| `host-recovery` | Edit recovery at process-interruption boundaries |
+| `index-resolution` | Complete symbol and reference answers match a pinned baseline |
+| `python-repositories` | Two scripted repository edits pass behavior checks and patch replay |
+
+Freeze the bound source inputs before dispatch, then import results from the exact successful
+run after checking every source hash. Update active test references and preserve historical reports.
+The recovery evaluator binds `tests/host_recovery.rs` itself, so update its report path before
+regeneration. This avoids generating a report that immediately becomes stale when its test changes.
+
 The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
 A five-minute toolchain check can fill that cache, but native and static jobs now queue independently.
 Each already installs and checksum-verifies its own archive through `native-tools`; waiting for another

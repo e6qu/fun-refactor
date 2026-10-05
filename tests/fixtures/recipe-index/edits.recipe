@@ -1,0 +1,13 @@
+schema 1
+recipe edits {
+  delete where name="missing" allow-empty
+  rename to "intermediate" where name="original" kind=function
+  delete where name="missing" allow-empty
+  rename to "finished" where name="intermediate" kind=function changed
+  expect step 1 matched = 0
+  expect step 2 applied = 1
+  expect step 3 matched = 0
+  expect step 4 applied = 1
+  expect changed = 1 files
+  expect refusals = 0
+}

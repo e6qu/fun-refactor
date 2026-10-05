@@ -36,7 +36,27 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: review concrete assertions and expose the remaining gaps
+## Current chunk: finish the repository audit within its deadline
+
+PR #435 passed its 20 PR checks, but its post-merge recipe replay exceeded the
+15-minute deep-audit job deadline. The replay covers the entire workspace. Each
+unchanged recipe step rebuilt the index twice, and the test built another unused index.
+
+This change skips speculative indexing for empty selections and retains the current
+index after an unchanged step. Real edits still refresh it. Regression cases cover
+zero limits, renamed callers, changed-file selectors and permitted refusals. Dogfooding
+with a single-file root also exposed blank patch filenames; previews now name that file.
+
+GitHub refreshed repository delivery against `c272d5fb`: both tasks pass 365 behavior cases.
+Recovery against `ededba2a` passes 430 handled-failure and 430 process-exit boundaries,
+plus 224 model cases. Eight refreshed index samples reproduce the pinned baseline's complete
+symbol/reference answers. Their retained source bindings match the current tree. The complete
+deep run passed all 17 jobs. The recipe test fell from 12m57s to 5m04s in these two runner samples.
+Its whole job fell from 14m47s to 6m52s, with coverage and the deadline unchanged. This is not a
+general performance benchmark. Resume submission-reliability work after this repair; stopped
+model collections remain stopped.
+
+## Recent work: review concrete assertions and expose the remaining gaps
 
 PR #430 preserved eleven historical reports in lossless archives, saving 366.6 MiB per expanded
 checkout. Its 20 final checks passed. Current acceptance evidence remains unchanged.
