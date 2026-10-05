@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.51.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.50.0...fun-refactor-v0.51.0) (2026-10-05)
+
+
+### Features
+
+* recover discovery refusals and verify reference reviews ([0fd6436](https://github.com/e6qu/fun-refactor/commit/0fd64365cd6643dd0846092742d8f8c32d411df3))
+
 ## [0.50.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.49.2...fun-refactor-v0.50.0) (2026-10-04)
 
 
