@@ -74,6 +74,12 @@ dotenv timeouts; four packaging and platformdirs calls remain unstarted. No new 
 closed. Its table lists the still-unreviewed clauses and its separate source audit measures identical
 file content read under different paths. The stopped collection must not be resumed.
 
+The [single-assertion collection](../reviews/2026-10-05-assertions/README.md) completed three reviews
+covering two assertions: both models checked two original `Version` objects, and Kimi checked one
+rejected relative directory. Two subsequent submission failures stopped its final cell. None used
+fr. The [requirement review table](../../../../docs/candidate-review-status.md) lists the exact
+coverage and remaining gaps; these tasks remain unaccepted for the independent live comparison.
+
 ## Validate on GitHub
 
 Each task has its own five-minute CI job. It compares the archive's file bytes and executable modes

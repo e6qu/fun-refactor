@@ -90,7 +90,20 @@ exercise handle recovery. No independent task-review gap closes.
 audit. `source_reviews.source_reuse` binds it to a frozen collection and retains unstarted cells.
 It detects 12,310 bytes repeated across paths beyond existing counters in the two failed attempts.
 Old reports and counters remain unchanged. File identities do not imply equivalent module behavior.
-Before further calls, narrow the question to one contract assertion and expose unchanged-file context.
+PR #433 merged at `61f0ec9a` after all 20 checks passed. PR #432's post-merge workflows also passed.
+
+The [single-assertion reviews](../tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md)
+were frozen at `c938151b` before calls. Three reviews completed: both models reviewed two-object
+identity and Kimi reviewed one rejected directory. All found no scoped contradiction. GLM's next
+response omitted the submission tool; Kimi's following attempt submitted four times. Those two
+failures stopped the final GLM cell. Never resume this collection or promote its readable failed
+responses to completion. All attempts finished within budget; none called fr.
+
+`source_packets.compare` records selected before/after file hashes, lengths and executable flags.
+`check_comparison` recomputes them from frozen bytes, rejecting forged or stale metadata. This adds
+context to new packets without changing historical reports or asserting equivalent path behavior.
+The [requirement review table](candidate-review-status.md) names the remaining gaps. Next address
+reliable native submission with scripted checks before allocating further frozen model calls.
 
 GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
 the location and repository evidence against `20688a31`. It checked 11 semantic links with zero

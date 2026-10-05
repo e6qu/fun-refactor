@@ -45,6 +45,27 @@ class AssertionReviews(unittest.TestCase):
         self.assertFalse(report["efficiency_comparison"])
         self.assertEqual(report["planned"], report["completed"] + report["failed"] + report["not_started"])
 
+    def test_text_answers_and_repeated_submissions_stay_failed_and_stop_collection(self):
+        frozen, snapshots = load(HERE / "plan.json"), reviews.read_inputs(HERE)
+        plan = frozen["plan"]
+        output = HERE / "attempts"
+        report = reviews.report(frozen, snapshots, output)
+        self.assertEqual((report["completed"], report["failed"], report["not_started"]), (3, 2, 1))
+        for index, failure in ((3, "expected exactly one native submission"), (4, "calls after submission")):
+            cell = plan["cells"][index]
+            task = {**next(t for t in plan["tasks"] if t["id"] == cell["task"]), "files": snapshots[cell["task"]]}
+            with self.assertRaisesRegex(ValueError, failure):
+                reviews.audit(plan, task, cell, output / cell["id"])
+            row = report["attempts"][index]
+            self.assertIsNone(row["review"])
+            self.assertGreater(row["costs"]["usage"]["reported_tokens"]["input"], 0)
+            self.assertFalse(row["costs"]["coverage"]["collection_complete"])
+        observed = report["attempts"][4]["costs"]["observed"]
+        self.assertEqual((observed["host_calls"], observed["refused_calls"]), (4, 3))
+        self.assertTrue(observed["submission_observed"])
+        with self.assertRaisesRegex(ValueError, "consecutive-failure stop rule"):
+            reviews.eligible(plan, plan["cells"][5]["id"], output, frozen["sha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -38,4 +38,35 @@ unknown; a completed answer alone is not a verified counterexample or an efficie
 
 ## Results
 
-Calls have not started. The frozen plan contains six cells.
+Frozen commit: `c938151b206a3df63d7c1bd067b76bcbb135a844`, pushed before any calls.
+The collection is stopped: **three completed, two failed, one not started**. Do not resume it.
+
+| Question | Model | Result | Seconds | Host calls | Additional source bytes |
+|---|---|---|---:|---:|---:|
+| Version object identity | Kimi | Completed, no scoped finding | 33.96 | 1 | 0 |
+| Version object identity | GLM | Completed, no scoped finding | 64.74 | 5 | 584 |
+| Rejected directory | Kimi | Completed, no scoped finding | 21.32 | 1 | 0 |
+| Rejected directory | GLM | Failed: answered as text without submitting | 36.53 | 0 | 0 |
+| Absent alternate | Kimi | Failed: submitted four times; three refusals | 37.74 | 4 | 0 |
+| Absent alternate | GLM | Not started after two consecutive failures | — | — | — |
+
+The completed reviews cover two assertions, not two whole tasks. Both packaging reviewers traced
+original objects through `pending` and `yield from pending`. Kimi's directory review traced the
+rejected relative value to the existing absolute fallback before directory creation.
+Neither result establishes general repair correctness or a complete grader review.
+
+GLM's directory response contains a readable no-finding explanation, but it never called
+`submit_answer`. Kimi's dotenv attempt made one accepted submission and three duplicate calls.
+The host refused all duplicates; the audit rejected calls after submission. Keep both failures,
+their completed-step usage and the final unstarted cell. Do not recover an answer from ordinary
+text, accept only the first submission, or retry these cells.
+
+All five attempts ended within their budgets. There were 11 host calls, 2,800 result bytes and
+584 retrieved source bytes. No attempt called fr. GLM's packaging reads repeated 76 source bytes;
+including overlap with the initial packet raises that to 110 bytes. The separate exact-file audit
+found no additional cross-path repetition. None of these numbers proves the file comparison
+caused fewer reads: question scope and supplied source changed too, with no matched control.
+
+Local guard CPU measurements ranged from 4.23 to 6.20 seconds per attempt. Those samples omit
+provider work. Full context and billing remain unknown. All recorded process outcomes, including
+the failed reviews' exported sessions, are retained for replay.

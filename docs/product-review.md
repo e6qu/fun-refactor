@@ -156,6 +156,13 @@ contents. Same-path counters alone missed those reads. Equal contents do not mak
 and repeated bytes do not establish avoidable token cost. The next review design should expose
 unchanged-file context and ask about one contract assertion before allocating more calls.
 
+The [single-assertion collection](../tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md)
+then supplied that context. Three reviews completed, covering two assertions; two submission failures
+stopped the last cell. All five attempts finished within budget and none called fr. There is no
+matched control attributing the result to narrower scope or file metadata. The
+[requirement review table](candidate-review-status.md) names what remains unreviewed. Native
+submission reliability now needs scripted checks before more model calls; old failures stay failed.
+
 The [source-reading cost report](native-read-outcomes.md) now includes work from every attempt
 in the six-run source-reference pilot. Its four timeouts produced 33 tool calls and 100,968 result
 bytes. Neither ordinary-file attempt passed, so there is no successful ordinary/fr comparison pair.
