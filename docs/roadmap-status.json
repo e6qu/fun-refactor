@@ -32,16 +32,13 @@
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-python-repositories/result.json",
-      "changed_sources": [
-        "src/cli.rs",
-        "src/recipe/run.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-04-focused-pages-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
@@ -55,16 +52,13 @@
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
-      "changed_sources": [
-        "src/cli.rs",
-        "tests/host_recovery.rs"
-      ],
-      "freshness": "stale",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json",
+      "changed_sources": [],
+      "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {
@@ -110,14 +104,13 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "A.repositories",
         "A.live-repeat",
         "A.compiler-profile"
       ],
@@ -140,14 +133,13 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 1,
+      "demonstrated": 2,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
-        "C.resume",
         "C.repository-mutations",
         "C.performance"
       ],
@@ -155,19 +147,17 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 0,
+      "demonstrated": 2,
       "engineering": {
         "done": 1,
         "total": 6
       },
       "engineering_remaining": 5,
       "remaining": [
-        "D.checked",
         "D.structural",
         "D.translation",
         "D.existing-proof",
-        "D.new-proof",
-        "D.host"
+        "D.new-proof"
       ],
       "state": "open",
       "total": 6
@@ -201,9 +191,7 @@
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -222,7 +210,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -315,9 +303,7 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -336,7 +322,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
@@ -393,9 +379,7 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [
-        "repository-tasks: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -414,7 +398,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Check and replay a delivered change"
     },
     {
@@ -467,9 +451,7 @@
     },
     {
       "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
-      "blockers": [
-        "host-recovery: stale source binding"
-      ],
+      "blockers": [],
       "id": "D.host",
       "kind": "fault-injection",
       "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
@@ -484,7 +466,7 @@
           "evidence": "host-recovery"
         }
       ],
-      "state": "open",
+      "state": "demonstrated",
       "title": "Recover safely when an edit process is interrupted"
     }
   ],

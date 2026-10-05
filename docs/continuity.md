@@ -25,8 +25,25 @@ The user merged release PR #434 at `eae73262` (0.52.0). PR #435's 20 PR checks p
 but its post-merge full-workspace recipe replay timed out. The current branch removes
 unnecessary indexing for unchanged recipe steps and repairs single-file preview paths
 found while dogfooding. Full builds, Rust tests and evidence refreshes run on GitHub.
-Repository-delivery and recovery bindings changed; refresh those reports before making
-current-evidence claims. Resume scripted native-submission work after CI passes.
+Repository-delivery, recovery and index evidence has been refreshed and verified against current
+source bindings. The complete [deep run](https://github.com/e6qu/fun-refactor/actions/runs/37301872179)
+checks repository behavior and replay timing. Resume scripted native-submission work after CI passes.
+
+GitHub [37301881349](https://github.com/e6qu/fun-refactor/actions/runs/37301881349) completed
+both scripted repository tasks with 365 behavior cases on `c272d5fb`. The imported bundle
+matches 227 source bindings. Recovery run
+[37304200800](https://github.com/e6qu/fun-refactor/actions/runs/37304200800) passed on
+`ededba2a`, after updating its source-bound runner reference. Its 18 bindings match,
+with 430 handled-failure and 430 process-exit boundaries and 224 model cases.
+The roadmap retains seven demonstrated items; no broader claim follows from this refresh.
+Index run [37303849906](https://github.com/e6qu/fun-refactor/actions/runs/37303849906) passed
+in 8 minutes 23 seconds. Its eight samples reproduce the pinned baseline's complete symbol
+and reference answers; all 195 source bindings match the current tree.
+
+The first PR gate also exposed a race in the fake-provider budget test. It now holds
+the winning reservation until the competing admission is refused. All 14 gateway tests
+and 20 repeated contention cases passed locally under the guard. The single-file patch
+regression has its own target so the historical author runner stays byte-identical.
 
 The goal is a general CLI that helps agents understand unfamiliar code, make changes and fixes,
 and write and check useful proofs with less total effort and context. Start with the

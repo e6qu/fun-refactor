@@ -54,7 +54,7 @@ time was 50 seconds; the test then ran for more than 13 minutes before cancellat
 Splitting other tests cannot shorten this individual test. The repair removes an
 unused test index and avoids rebuilding indexes for recipe steps that make no edits.
 It preserves the complete workspace replay and tests real edits between empty steps.
-The replacement deep run must establish the actual runtime before declaring this fixed.
+The complete deep run measures the actual replay time; small fixture timings cannot establish it.
 
 The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
 A five-minute toolchain check can fill that cache, but native and static jobs now queue independently.

@@ -23,9 +23,8 @@ task records and Lean proof support for declared subsets. Analysis and editing s
 language; parsing a file does not mean `fr` understands every possible behavior in it.
 Run `fr --json audit` and `fr capabilities` for the installed tool's current support and limits.
 
-The last refreshed evidence demonstrated **7 of 18 technical acceptance items in their stated
-test cases**. The [generated status](docs/roadmap-status.md) currently counts three while the
-runtime changes await repository-delivery and recovery refreshes. None of the four milestones
+The [generated status](docs/roadmap-status.md) records **7 of 18 technical acceptance items
+demonstrated in their stated test cases**. Eleven remain open, and none of the four milestones
 below is complete. These counts are not a percentage of product readiness or effort remaining.
 
 We have not established a general efficiency advantage. In the retained two-task Rust comparison,
@@ -48,9 +47,12 @@ index after an unchanged step. Real edits still refresh it. Regression cases cov
 zero limits, renamed callers, changed-file selectors and permitted refusals. Dogfooding
 with a single-file root also exposed blank patch filenames; previews now name that file.
 
-Remote validation must run the full audit and refresh affected repository-delivery and
-recovery evidence before merge. No audit scope or deadline changes. Runtime improvement
-remains unmeasured until those jobs finish. Resume the submission-reliability work below
+GitHub refreshed repository delivery against `c272d5fb`: both tasks pass 365 behavior cases.
+Recovery against `ededba2a` passes 430 handled-failure and 430 process-exit boundaries,
+plus 224 model cases. Eight refreshed index samples reproduce the pinned baseline's complete
+symbol/reference answers. Their retained source bindings match the current tree. The full deep
+audit measures repository replay time with the existing coverage and deadline. These smaller
+regressions alone do not establish a full-workspace speedup. Resume submission-reliability work
 after this repair; stopped model collections remain stopped.
 
 ## Recent work: review concrete assertions and expose the remaining gaps

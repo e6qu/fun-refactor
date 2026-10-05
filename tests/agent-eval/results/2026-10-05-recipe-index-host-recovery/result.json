@@ -1,0 +1,76 @@
+{
+  "schema": "fr-host-recovery-acceptance-1",
+  "source_bindings": {
+    "tools/host-recovery-acceptance.py": "9c6f55bfce6a6c532946556bc2cf78e359197f0462eb3abab345ad32c9b4ea79",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "tests/host_recovery.rs": "1e14f974ce151736892652917320bd19847b5c2e660bd4e763940433582e86eb",
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
+    "src/history/host.rs": "531271f88fee6251671ac472a44815967a2625036b0e39843fc838114c9d89a9",
+    "src/history/host/tests.rs": "34d885ad96ad601db38a1a09bc0d79b8c744d3dfbe2ff5c0e4d47026f45f05a5",
+    "src/history/failure.rs": "cff93ca07a547c2c1120ef1ba165048210e8a18f024e67aa1221f7d36195f8ba",
+    "src/cli.rs": "bcca0a5bda9a4741c86afe4edff730320fd89d815be8bbdd4d16cc4a249e1687",
+    "src/transaction_kernel.rs": "594f9c99dbfe3bc75e803e12f96e59d74042cf4bb33a978e759a894342d58e67",
+    "tests/lean_kernels.rs": "5db221495bbe84218fda47988d5bbe39ec22313f0f162767f17555285c47c420",
+    "tools/lean-guard.py": "6d1f352815a9a6282dd05c952707a63839cd48655f522b1a59fc36d168ead403",
+    "tools/lean-resources.sh": "2b8dd9f9c84fae0520926d50318adeaa851b2a3ea7a1e9b6ab93dcc9e5fa8946",
+    "kernels/FrKernels/HostRecovery.lean": "79f7f2762e634cfe40c5f9e713791d94303f46adacf71c20a4b2d5cba9d0d783",
+    "kernels/FrKernels/EditPlan.lean": "003514abcf9602abfa6adb053fd0b8697816a097eccee232ead069971fdd94e3",
+    "kernels/HistoryMain.lean": "fd2c999e5ed7605820515f7429edcae0c844df303e313c283382abdd6608f539",
+    "tests/agent-eval/host-recovery/task.json": "5b1a81ed5490b2daf561e1c79ac340bb6a7aef322f4b5884cc0d030e6e5628c6",
+    "tests/agent-eval/host-recovery/baseline.json": "b8188bd929b7680cc114c6dbd3348102717d5851d8288865485115e2c9e1f290"
+  },
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "baseline": {
+    "revision": "06ff94aae5870be331cd6f4a4346637b620a714a",
+    "command": "cargo test --lib history:: -- --test-threads 2",
+    "passed": 22,
+    "failed": 0,
+    "seconds": 6.26,
+    "coverage": "Existing post-publication faults only; staging, journal writes and synchronization do not have injection boundaries.",
+    "gap": "Staged files are renamed without checking their content and kind against the reviewed snapshot. Recovery clears pending state without rechecking and syncing paths it found already restored."
+  },
+  "boundaries": {
+    "handled": 430,
+    "process-exit": 430
+  },
+  "model_cases": 224,
+  "runs": [
+    {
+      "arguments": [
+        "cargo",
+        "test",
+        "--lib",
+        "history::host::tests::",
+        "--",
+        "--test-threads",
+        "1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "seconds": 83.407616088,
+      "output": "    Updating crates.io index\n Downloading crates ...\n  Downloaded zmij v1.0.23\n  Downloaded predicates-tree v1.0.13\n  Downloaded anstyle-parse v1.0.0\n  Downloaded anstyle-query v1.1.5\n  Downloaded streaming-iterator v0.1.9\n  Downloaded foldhash v0.1.5\n  Downloaded anstyle v1.0.14\n  Downloaded const-oid v0.10.2\n  Downloaded ryu v1.0.23\n  Downloaded cc v1.4.6\n  Downloaded anstream v1.0.0\n  Downloaded spin v0.9.9\n  Downloaded syn v3.0.5\n  Downloaded aho-corasick v1.1.5\n  Downloaded anyhow v1.0.104\n  Downloaded stable_deref_trait v1.2.1\n  Downloaded strsim v0.11.1\n  Downloaded regex-syntax v0.8.11\n  Downloaded tempfile v3.27.0\n  Downloaded libc v0.2.189\n  Downloaded assert_cmd v2.2.2\n  Downloaded autocfg v1.5.1\n  Downloaded colorchoice v1.0.5\n  Downloaded syn v2.0.119\n  Downloaded bitflags v2.13.2\n  Downloaded thiserror v2.0.20\n  Downloaded embedded-io v0.6.1\n  Downloaded tinyvec v1.13.3\n  Downloaded toml_edit v0.25.15+spec-1.1.0\n  Downloaded tree-sitter-html v0.23.2\n  Downloaded difflib v0.4.0\n  Downloaded futures-task v0.3.34\n  Downloaded bstr v1.13.1\n  Downloaded clap_derive v4.6.4\n  Downloaded fastrand v2.5.0\n  Downloaded equivalent v1.0.2\n  Downloaded cfg-if v1.0.4\n  Downloaded toml_parser v1.1.3+spec-1.1.0\n  Downloaded thread_local v1.1.10\n  Downloaded cpufeatures v0.3.1\n  Downloaded either v1.18.0\n  Downloaded futures-timer v3.0.4\n  Downloaded block-buffer v0.12.1\n  Downloaded byteorder v1.5.0\n  Downloaded cobs v0.3.0\n  Downloaded termtree v0.5.1\n  Downloaded toml_writer v1.1.2+spec-1.1.0\n  Downloaded tree-sitter-yaml v0.7.2\n  Downloaded unicode-ident v1.0.24\n  Downloaded tracing-log v0.2.0\n  Downloaded utf8parse v0.2.2\n  Downloaded thiserror-impl v2.0.20\n  Downloaded tracing-attributes v0.1.31\n  Downloaded tree-sitter-json v0.24.8\n  Downloaded wait-timeout v0.2.1\n  Downloaded toml_datetime v1.1.1+spec-1.1.0\n  Downloaded walkdir v2.5.0\n  Downloaded digest v0.11.3\n  Downloaded errno v0.3.14\n  Downloaded rstest v0.27.0\n  Downloaded crypto-common v0.2.2\n  Downloaded tree-sitter-hcl v1.1.0\n  Downloaded unsafe-libyaml v0.2.11\n  Downloaded clap_lex v1.1.0\n  Downloaded float-cmp v0.10.0\n  Downloaded tree-sitter-css v0.25.0\n  Downloaded clap v4.6.6\n  Downloaded fixedbitset v0.5.7\n  Downloaded tracing-core v0.1.36\n  Downloaded tree-sitter-xml v0.7.0\n  Downloaded typenum v1.20.1\n  Downloaded ignore v0.4.33\n  Downloaded tree-sitter-java v0.23.5\n  Downloaded unicode-normalization v0.1.25\n  Downloaded crossbeam-epoch v0.9.21\n  Downloaded crossbeam-utils v0.8.23\n  Downloaded futures-core v0.3.34\n  Downloaded futures-util v0.3.34\n  Downloaded find-msvc-tools v0.1.12\n  Downloaded lazy_static v1.5.0\n  Downloaded winnow v1.0.4\n  Downloaded clap_builder v4.6.6\n  Downloaded glob v0.3.4\n  Downloaded tracing-subscriber v0.3.23\n  Downloaded crossbeam-deque v0.8.8\n  Downloaded predicates-core v1.0.10\n  Downloaded quote v1.0.47\n  Downloaded tree-sitter v0.27.0\n  Downloaded serde_core v1.0.229\n  Downloaded hybrid-array v0.4.15\n  Downloaded pin-project-lite v0.2.17\n  Downloaded rustc_version v0.4.1\n  Downloaded embedded-io v0.4.0\n  Downloaded getrandom v0.4.3\n  Downloaded sharded-slab v0.1.7\n  Downloaded tree-sitter-bash v0.25.1\n  Downloaded tree-sitter-rust v0.24.2\n  Downloaded tree-sitter-md-025 v0.5.6\n  Downloaded matchers v0.2.0\n  Downloaded memchr v2.8.3\n  Downloaded proc-macro2 v1.0.107\n  Downloaded tracing v0.1.44\n  Downloaded lock_api v0.4.14\n  Downloaded itoa v1.0.18\n  Downloaded same-file v1.0.6\n  Downloaded globset v0.4.20\n  Downloaded scopeguard v1.2.0\n  Downloaded shlex v2.0.1\n  Downloaded heck v0.5.0\n  Downloaded hex v0.4.3\n  Downloaded is_terminal_polyfill v1.70.2\n  Downloaded proc-macro-crate v3.5.0\n  Downloaded hash32 v0.2.1\n  Downloaded normalize-line-endings v0.3.0\n  Downloaded nu-ansi-term v0.50.3\n  Downloaded smallvec v1.16.1\n  Downloaded relative-path v1.9.3\n  Downloaded once_cell v1.21.4\n  Downloaded postcard v1.1.3\n  Downloaded predicates v3.1.4\n  Downloaded semver v1.0.28\n  Downloaded sha2 v0.11.0\n  Downloaded num-traits v0.2.19\n  Downloaded serde_derive v1.0.229\n  Downloaded heapless v0.7.17\n  Downloaded rayon-core v1.13.0\n  Downloaded rstest_macros v0.27.0\n  Downloaded serde v1.0.229\n  Downloaded serde_yaml v0.9.34+deprecated\n  Downloaded log v0.4.34\n  Downloaded indexmap v2.14.2\n  Downloaded similar v3.2.0\n  Downloaded serde_json v1.0.151\n  Downloaded hashbrown v0.17.1\n  Downloaded hashbrown v0.15.5\n  Downloaded rayon v1.12.0\n  Downloaded regex v1.13.1\n  Downloaded rustix v1.1.4\n  Downloaded regex-automata v0.4.18\n  Downloaded petgraph v0.8.3\n  Downloaded linux-raw-sys v0.12.1\n   Compiling find-msvc-tools v0.1.12\n   Compiling shlex v2.0.1\n   Compiling cc v1.4.6\n   Compiling tree-sitter-language v0.1.8 (/home/runner/work/fun-refactor/fun-refactor/crates/tree-sitter-language)\n   Compiling proc-macro2 v1.0.107\n   Compiling quote v1.0.47\n   Compiling unicode-ident v1.0.24\n   Compiling regex-syntax v0.8.11\n   Compiling equivalent v1.0.2\n   Compiling hashbrown v0.17.1\n   Compiling indexmap v2.14.2\n   Compiling memchr v2.8.3\n   Compiling aho-corasick v1.1.5\n   Compiling syn v3.0.5\n   Compiling regex-automata v0.4.18\n   Compiling semver v1.0.28\n   Compiling rustc_version v0.4.1\n   Compiling zmij v1.0.23\n   Compiling serde_core v1.0.229\n   Compiling crossbeam-utils v0.8.23\n   Compiling cfg-if v1.0.4\n   Compiling itoa v1.0.18\n   Compiling serde_json v1.0.151\n   Compiling crossbeam-epoch v0.9.21\n   Compiling winnow v1.0.4\n   Compiling autocfg v1.5.1\n   Compiling libc v0.2.189\n   Compiling num-traits v0.2.19\n   Compiling toml_parser v1.1.3+spec-1.1.0\n   Compiling syn v2.0.119\n   Compiling typenum v1.20.1\n   Compiling serde v1.0.229\n   Compiling once_cell v1.21.4\n   Compiling toml_datetime v1.1.1+spec-1.1.0\n   Compiling anstyle v1.0.14\n   Compiling crossbeam-deque v0.8.8\n   Compiling hybrid-array v0.4.15\n   Compiling serde_derive v1.0.229\n   Compiling pin-project-lite v0.2.17\n   Compiling utf8parse v0.2.2\n   Compiling scopeguard v1.2.0\n   Compiling log v0.4.34\n   Compiling thiserror v2.0.20\n   Compiling lock_api v0.4.14\n   Compiling anstyle-parse v1.0.0\n   Compiling tree-sitter v0.27.0\n   Compiling toml_edit v0.25.15+spec-1.1.0\n   Compiling tracing-core v0.1.36\n   Compiling regex v1.13.1\n   Compiling bstr v1.13.1\n   Compiling rstest_macros v0.27.0\n   Compiling heapless v0.7.17\n   Compiling thiserror-impl v2.0.20\n   Compiling rayon-core v1.13.0\n   Compiling predicates-core v1.0.10\n   Compiling is_terminal_polyfill v1.70.2\n   Compiling getrandom v0.4.3\n   Compiling anstyle-query v1.1.5\n   Compiling colorchoice v1.0.5\n   Compiling rustix v1.1.4\n   Compiling byteorder v1.5.0\n   Compiling hash32 v0.2.1\n   Compiling anstream v1.0.0\n   Compiling proc-macro-crate v3.5.0\n   Compiling float-cmp v0.10.0\n   Compiling spin v0.9.9\n   Compiling tracing-attributes v0.1.31\n   Compiling crypto-common v0.2.2\n   Compiling block-buffer v0.12.1\n   Compiling tree-sitter-hcl v1.1.0\n   Compiling tree-sitter-bash v0.25.1\n   Compiling fun-refactor-go-grammar v0.52.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/go)\n   Compiling tree-sitter-md-025 v0.5.6\n   Compiling fun-refactor-typescript-grammar v0.52.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/typescript)\n   Compiling tree-sitter-rust v0.24.2\n   Compiling fun-refactor-sass-grammar v0.52.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/sass)\n   Compiling fun-refactor-lean-grammar v0.52.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/lean)\n   Compiling tree-sitter-xml v0.7.0\n   Compiling tree-sitter-html v0.23.2\n   Compiling tree-sitter-css v0.25.0\n   Compiling fun-refactor-zig-grammar v0.52.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/zig)\n   Compiling fun-refactor-scss-grammar v0.52.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/scss)\n   Compiling fun-refactor-python-grammar v0.52.0 (/home/runner/work/fun-refactor/fun-refactor/grammars/python)\n   Compiling tree-sitter-java v0.23.5\n   Compiling tree-sitter-yaml v0.7.2\n   Compiling tree-sitter-json v0.24.8\n   Compiling difflib v0.4.0\n   Compiling lazy_static v1.5.0\n   Compiling anyhow v1.0.104\n   Compiling assert_cmd v2.2.2\n   Compiling bitflags v2.13.2\n   Compiling stable_deref_trait v1.2.1\n   Compiling futures-core v0.3.34\n   Compiling const-oid v0.10.2\n   Compiling foldhash v0.1.5\n   Compiling termtree v0.5.1\n   Compiling strsim v0.11.1\n   Compiling same-file v1.0.6\n   Compiling normalize-line-endings v0.3.0\n   Compiling heck v0.5.0\n   Compiling clap_lex v1.1.0\n   Compiling futures-task v0.3.34\n   Compiling relative-path v1.9.3\n   Compiling glob v0.3.4\n   Compiling linux-raw-sys v0.12.1\n   Compiling futures-util v0.3.34\n   Compiling clap_builder v4.6.6\n   Compiling clap_derive v4.6.4\n   Compiling predicates v3.1.4\n   Compiling walkdir v2.5.0\n   Compiling predicates-tree v1.0.13\n   Compiling hashbrown v0.15.5\n   Compiling digest v0.11.3\n   Compiling sharded-slab v0.1.7\n   Compiling tracing v0.1.44\n   Compiling cobs v0.3.0\n   Compiling globset v0.4.20\n   Compiling tracing-log v0.2.0\n   Compiling wait-timeout v0.2.1\n   Compiling matchers v0.2.0\n   Compiling thread_local v1.1.10\n   Compiling fastrand v2.5.0\n   Compiling nu-ansi-term v0.50.3\n   Compiling either v1.18.0\n   Compiling streaming-iterator v0.1.9\n   Compiling ryu v1.0.23\n   Compiling cpufeatures v0.3.1\n   Compiling unsafe-libyaml v0.2.11\n   Compiling fun-refactor v0.52.0 (/home/runner/work/fun-refactor/fun-refactor)\n   Compiling toml_writer v1.1.2+spec-1.1.0\n   Compiling futures-timer v3.0.4\n   Compiling tinyvec v1.13.3\n   Compiling fixedbitset v0.5.7\n   Compiling smallvec v1.16.1\n   Compiling tracing-subscriber v0.3.23\n   Compiling petgraph v0.8.3\n   Compiling unicode-normalization v0.1.25\n   Compiling rstest v0.27.0\n   Compiling serde_yaml v0.9.34+deprecated\n   Compiling sha2 v0.11.0\n   Compiling rayon v1.12.0\n   Compiling tempfile v3.27.0\n   Compiling ignore v0.4.33\n   Compiling postcard v1.1.3\n   Compiling clap v4.6.6\n   Compiling hex v0.4.3\n   Compiling similar v3.2.0\n    Finished `test` profile [unoptimized] target(s) in 1m 03s\n     Running unittests src/lib.rs (target/debug/deps/fun_refactor-bfe9246328b96685)\n\nrunning 7 tests\ntest history::host::tests::already_restored_recovery_syncs_parents_before_clearing_pending ... ok\ntest history::host::tests::altered_staged_bytes_modes_and_kinds_never_reach_targets ... ok\ntest history::host::tests::altered_staged_symlink_refuses_and_rolls_back_prior_writes ... ok\ntest history::host::tests::handled_failures_cover_every_host_boundary_and_resume_from_disk ... host-recovery Apply boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Redo boundaries: 112\nhost-recovery Recover boundaries: 94\nhost-recovery handled boundaries: 430\nok\ntest history::host::tests::process_exits_cover_every_host_boundary_and_resume_from_disk ... host-recovery Apply boundaries: 112\nhost-recovery Undo boundaries: 112\nhost-recovery Redo boundaries: 112\nhost-recovery Recover boundaries: 94\nhost-recovery process-exit boundaries: 430\nok\ntest history::host::tests::recovery_rechecks_paths_already_restored_before_clearing_pending ... ok\ntest history::host::tests::rollback_failure_retains_both_errors_and_can_resume ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 452 filtered out; finished in 19.72s\n\n"
+    },
+    {
+      "arguments": [
+        "cargo",
+        "test",
+        "--test",
+        "lean_kernels",
+        "host_recovery_decisions",
+        "--",
+        "--test-threads",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 78.680715486,
+      "output": "   Compiling fun-refactor v0.52.0 (/home/runner/work/fun-refactor/fun-refactor)\n    Finished `test` profile [unoptimized] target(s) in 33.86s\n     Running tests/lean_kernels.rs (target/debug/deps/lean_kernels-8159b22caa5dd486)\n\nrunning 1 test\ntest host_recovery_decisions_match_lean_for_all_booleans_and_snapshot_cases ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 101 filtered out; finished in 44.80s\n\n"
+    }
+  ],
+  "claims": {
+    "process_interruption": true,
+    "power_loss": false,
+    "source_correspondence_proved": false,
+    "live_agent_trial": false
+  }
+}
