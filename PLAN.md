@@ -50,10 +50,11 @@ with a single-file root also exposed blank patch filenames; previews now name th
 GitHub refreshed repository delivery against `c272d5fb`: both tasks pass 365 behavior cases.
 Recovery against `ededba2a` passes 430 handled-failure and 430 process-exit boundaries,
 plus 224 model cases. Eight refreshed index samples reproduce the pinned baseline's complete
-symbol/reference answers. Their retained source bindings match the current tree. The full deep
-audit measures repository replay time with the existing coverage and deadline. These smaller
-regressions alone do not establish a full-workspace speedup. Resume submission-reliability work
-after this repair; stopped model collections remain stopped.
+symbol/reference answers. Their retained source bindings match the current tree. The complete
+deep run passed all 17 jobs. The recipe test fell from 12m57s to 5m04s in these two runner samples.
+Its whole job fell from 14m47s to 6m52s, with coverage and the deadline unchanged. This is not a
+general performance benchmark. Resume submission-reliability work after this repair; stopped
+model collections remain stopped.
 
 ## Recent work: review concrete assertions and expose the remaining gaps
 

@@ -27,7 +27,9 @@ unnecessary indexing for unchanged recipe steps and repairs single-file preview 
 found while dogfooding. Full builds, Rust tests and evidence refreshes run on GitHub.
 Repository-delivery, recovery and index evidence has been refreshed and verified against current
 source bindings. The complete [deep run](https://github.com/e6qu/fun-refactor/actions/runs/37301872179)
-checks repository behavior and replay timing. Resume scripted native-submission work after CI passes.
+passed all 17 jobs. Its recipe test took 303.91 seconds and the whole job took 6m52s.
+The unmodified rerun took 777.19 seconds and 14m47s respectively. These are two runner samples
+with identical coverage and deadlines. Resume scripted native-submission work after CI passes.
 
 GitHub [37301881349](https://github.com/e6qu/fun-refactor/actions/runs/37301881349) completed
 both scripted repository tasks with 365 behavior cases on `c272d5fb`. The imported bundle
@@ -39,6 +41,16 @@ The roadmap retains seven demonstrated items; no broader claim follows from this
 Index run [37303849906](https://github.com/e6qu/fun-refactor/actions/runs/37303849906) passed
 in 8 minutes 23 seconds. Its eight samples reproduce the pinned baseline's complete symbol
 and reference answers; all 195 source bindings match the current tree.
+
+Four other active reports also bound `src/cli.rs`. GitHub refreshed
+[guided edit accounting](https://github.com/e6qu/fun-refactor/actions/runs/37310459036),
+[intent edit accounting](https://github.com/e6qu/fun-refactor/actions/runs/37310483336),
+[seven completion workflows](https://github.com/e6qu/fun-refactor/actions/runs/37310763209), and
+[retained proof delivery](https://github.com/e6qu/fun-refactor/actions/runs/37310785657)
+against `1acf1294`. All passed, and their 54 recorded source bindings match the current tree.
+Active tests now select the new reports; historical reports remain unchanged. These scripted
+checks do not establish a live-agent efficiency advantage. The [CI guide](ci.md) lists all seven
+refresh groups and explains the recovery runner's own source binding.
 
 The first PR gate also exposed a race in the fake-provider budget test. It now holds
 the winning reservation until the competing admission is refused. All 14 gateway tests
