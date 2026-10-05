@@ -118,7 +118,6 @@ jobs:
         run: ./tools/check.sh ${{ matrix.slice }}
 
   native:
-    needs: toolchain
     name: native (${{ matrix.kind }}-${{ matrix.index }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -157,7 +156,6 @@ jobs:
           retention-days: 7
 
   static:
-    needs: toolchain
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -175,7 +173,7 @@ jobs:
 
   default:
     name: check (default)
-    needs: [native, static, agent-study]
+    needs: [native, static, agent-study, toolchain]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -185,7 +183,8 @@ jobs:
           NATIVE: ${{ needs.native.result }}
           STATIC: ${{ needs.static.result }}
           AGENT_STUDY: ${{ needs.agent-study.result }}
-        run: test "$NATIVE" = success && test "$STATIC" = success && test "$AGENT_STUDY" = success
+          TOOLCHAIN: ${{ needs.toolchain.result }}
+        run: test "$NATIVE" = success && test "$STATIC" = success && test "$AGENT_STUDY" = success && test "$TOOLCHAIN" = success
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:

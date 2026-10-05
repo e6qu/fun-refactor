@@ -19,8 +19,8 @@ complete node IDs, including parameters, by a stable hash. New cases enter the
 partition automatically.
 
 Every successful shard uploads its complete inventory, assignments, capability
-log and advertised matrix. The final `check (default)` gate requires all shards
-and static checks to pass, verifies identical inventories and complete, disjoint
+log and advertised matrix. The final `check (default)` gate requires all shards,
+static checks, study checks and toolchain verification to pass. It verifies identical inventories and complete, disjoint
 assignments, then checks combined capability coverage. Missing artifacts, duplicate
 assignments, differing matrices and uncovered capabilities fail the gate.
 The final gate runs after dependency failures but skips cancelled workflows. An `always()`
@@ -49,8 +49,15 @@ logs after changes to suite size; update measured weights or split work before a
 job reaches its deadline. A deadline failure must not cause tests to be removed.
 
 The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
-A five-minute preparation job fills that cache before the PR shards start. Every restore rechecks the
-archive digest. Interrupted range downloads resume verified bytes with five bounded 45-second attempts;
+A five-minute toolchain check can fill that cache, but native and static jobs now queue independently.
+Each already installs and checksum-verifies its own archive through `native-tools`; waiting for another
+runner adds no validation. On October 5 the main-branch cache was present, yet PR #431's toolchain job
+remained queued after the browser and packaging checks finished, blocking all eleven native/static jobs.
+Removing that dependency preserves every check, shard and deadline. A cold cache can cause duplicate
+bounded downloads; it does not permit unchecked archives or longer limits. This avoids one scheduling
+barrier but cannot guarantee a 15-minute end-to-end gate when hosted runners are queued.
+
+Every restore rechecks the archive digest. Interrupted range downloads resume verified bytes with five bounded 45-second attempts;
 they retain the existing five-minute installation limit. This addresses the download timeout in
 [main run 36787051550](https://github.com/e6qu/fun-refactor/actions/runs/36787051550).
 

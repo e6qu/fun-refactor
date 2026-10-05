@@ -71,6 +71,9 @@ Kimi's only fr request was refused because behavior mode lacked a handle. New na
 selected with `native-rehearsal.py freeze --recovery-hints`, returns a names query after that refusal.
 It preserves selectors and performs no automatic extra call. Schemas 1–5 and historical reports
 remain unchanged. Scripted recovery and replay pass; no live recovery benefit has been measured.
+PR #431 also lets native/static jobs queue independently of the standalone Zig cache check.
+Each job retains its own pinned, checksum-verified toolchain installation and existing deadline.
+The [CI guide](ci.md) records the observed queue delay and cold-cache tradeoff; no test is removed.
 
 GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
 the location and repository evidence against `20688a31`. It checked 11 semantic links with zero
