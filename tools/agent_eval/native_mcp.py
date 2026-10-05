@@ -104,15 +104,37 @@ def execute_fr(command, prompt, label):
             child.wait(timeout=5)
 
 
+def exploration_recovery(files, params, result):
+    """Offer discovery after a handle refusal, without executing a second call."""
+    if result != {"error": "behavior needs a full fr handle"} or params.get("name") != "fr_explore":
+        return result
+    args = params.get("arguments", {})
+    if not isinstance(args, dict) or args.get("mode") != "behavior":
+        return result
+    term = args.get("term")
+    if not isinstance(term, str) or not 0 < len(term.encode()) <= 160 or term.startswith("-") or "\0" in term:
+        return result
+    if type(args.get("contains", False)) is not bool:
+        return result
+    if "path" in args and (not isinstance(args["path"], str) or args["path"] not in files or args["path"].startswith("-")):
+        return result
+    selected = {key: args[key] for key in ("term", "path", "contains") if key in args}
+    selected["mode"] = "names"
+    proposed = {**result, "next": {"name": "fr_explore", "arguments": selected},
+                "hint": "Run next to find declarations, then copy a returned next action for behavior."}
+    return proposed if len(encode(proposed)) <= legacy.MAX_OUTPUT else result
+
+
 class Server:
     def __init__(self, config, log, execute=execute_fr):
         require(set(config) - {"tools_schema_version"} == {"files", "arm", "binary", "workspace"}, "invalid server configuration")
         version = config.get("tools_schema_version", 2)
-        require(type(version) is int and version in (2, 3, 4, 5), "unsupported server tool schema")
+        require(type(version) is int and version in (2, 3, 4, 5, 6), "unsupported server tool schema")
         validate(config["files"], legacy.MAX_WORKSPACE)
         self.config, self.log, self.execute = config, log, execute
-        self.protocol = refs if version in (4, 5) else discovery
-        selected = (refs.schemas(config["arm"], focused_pages=True) if version == 5 else
+        self.protocol = refs if version in (4, 5, 6) else discovery
+        selected = (refs.recovery_schemas(config["arm"]) if version == 6 else
+                    refs.schemas(config["arm"], focused_pages=True) if version == 5 else
                     self.protocol.schemas(config["arm"]) if version in (3, 4) else schemas(config["arm"]))
         self.tools = {tool["name"]: tool for tool in selected}
         self.calls, self.written, self.finished = 0, 0, False
@@ -137,6 +159,8 @@ class Server:
             require(len(encode(result)) <= legacy.MAX_OUTPUT, "tool result exceeds budget")
         except (ValueError, KeyError, TypeError, UnicodeError, OSError, subprocess.SubprocessError) as error:
             result = {"error": str(error)[:256]}
+        if self.config.get("tools_schema_version") == 6:
+            result = exploration_recovery(self.config["files"], params, result)
         response = {"content": [{"type": "text", "text": encode(result).decode()}], "isError": "error" in result}
         row = encode({"sequence": self.calls, "params": params, "result": result, "response": response}) + b"\n"
         require(self.written + len(row) <= MAX_LOG, "tool log budget exhausted")

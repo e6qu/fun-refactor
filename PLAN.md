@@ -36,21 +36,24 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: reduce stored evidence without losing results
+## Current chunk: verify review claims and make fr refusals actionable
 
-PR #428 completed one narrow Kimi review and verified its dotenv grader counterexample on GitHub.
-The following two calls timed out; three calls remain stopped. Broader task review remains open.
-Do not resume those collections or increase their limits.
+PR #430 preserved eleven historical reports in lossless archives, saving 366.6 MiB per expanded
+checkout. Its 20 final checks passed. Current acceptance evidence remains unchanged.
 
-The storage review found eleven historical flow-cache reports occupying 409.3 MB. Lossless gzip
-archives now hold the same bytes in 24.9 MB, removing 366.6 MiB from an expanded checkout. The
-[archive catalog and restoration guide](tests/agent-eval/EVIDENCE-ARCHIVES.md) retain original
-paths, source revision, SHA-256 hashes and Git blob IDs. Every archive must restore exactly.
+The [reference-repair reviews](tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
+finished three narrow Kimi reviews and retained three GLM timeouts. Two reviews found no scoped
+contradiction. The packaging finding was incorrect: it confused version ordering with specifier
+membership. A separate rejection binds that finding to exact source and successful GitHub behavior
+evidence. The grader and reference remain unchanged. The linked table names each remaining review gap.
 
-The latest acceptance report stays directly readable by its existing audit. Historical samples,
-failures, source bindings and conclusions remain intact. CI verifies the archives and refusal cases.
-This reduces checkout storage; it does not shrink existing Git history or demonstrate cheaper agent
-tasks. The roadmap remains at seven of eighteen demonstrated items, with all four milestones open.
+One attempted fr call omitted the handle required by behavior mode, then fell back to ordinary reads.
+The new opt-in native adapter returns a ready names query after this refusal. Scripted tests check
+scope preservation, replay and source accounting; no live benefit is claimed. The six recorded calls
+used the old adapter. Earlier stopped review collections stay stopped, and their limits stay fixed.
+
+Full independent task and grader review remains open. The roadmap still has seven of eighteen
+demonstrated items, with all four milestones open. No general efficiency advantage is established.
 
 ## Evidence and remaining gaps
 
@@ -62,6 +65,7 @@ tasks. The roadmap remains at seven of eighteen demonstrated items, with all fou
 | [Source-based review attempts](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md) | Two timeouts, 17 tool calls, no completed findings or fr use | Review scope did not fit the budget; the frozen stop rule prevented four remaining calls |
 | [Narrow source-packet reviews](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) | One GitHub-verified counterexample, two timeouts and three stopped calls | Broader independent review remains open |
 | [Historical evidence archives](tests/agent-eval/EVIDENCE-ARCHIVES.md) | Eleven reports restore byte for byte; expanded checkout saves 366.6 MiB | Git history and agent-efficiency measurements remain unchanged |
+| [Reference-repair reviews](tests/agent-eval/opencode/reviews/2026-10-05-references/README.md) | Three completed narrow reviews, three timeouts, one incorrect finding rejected against execution | Full task review, valid packaging assessment and live recovery-hint usefulness remain open |
 | [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
 | [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 

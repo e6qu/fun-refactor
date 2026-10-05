@@ -242,6 +242,23 @@ Python and Rust pages, reconstruct complete source and relationships, and requir
 responses. These checks demonstrate the pagination contract, not an improvement in agent task cost.
 No new model collection accompanies this change.
 
+## Recover from a missing behavior handle
+
+`freeze --recovery-hints` selects read-only tool schema 6, including source references and focused
+pages. It preserves the existing limits and ordinary-file tools. Schemas 1 through 5 stay unchanged.
+
+If `fr_explore` receives behavior mode without a valid full handle, it still returns an error.
+The response also supplies `next`, a tool call for names discovery with the same term, file scope
+and substring choice. The caller can run that query and select a returned behavior action. The
+adapter does not choose a declaration, widen the scope or execute another call automatically.
+Invalid paths and unrelated argument errors receive no speculative recovery action.
+
+The [reference-review trace](../tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
+contains the triggering failure: Kimi requested behavior without a handle, then used ordinary reads.
+Those calls used schema 4. Scripted tests now follow the suggested names query and verify completed
+session replay, refusal accounting and forged-hint rejection. Recovery text is counted as output,
+never as retrieved source. No live-agent improvement has been measured for schema 6.
+
 ## Make changes and grade the submitted code separately
 
 `tools/native-changes.py` collects native OpenCode edits without executing candidate code locally.

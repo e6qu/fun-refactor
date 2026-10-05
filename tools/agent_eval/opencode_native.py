@@ -78,15 +78,23 @@ def freeze(manifest, base, binary, guidance_path=None, *, source_references=Fals
     return {"plan": plan, "sha256": digest(plan)}
 
 
+def freeze_recovery(manifest, base, binary, guidance_path=None):
+    frozen = freeze(manifest, base, binary, guidance_path, source_references=True, focused_pages=True)
+    plan = frozen["plan"]
+    plan.update(tools_schema_version=6, tools={arm: refs.recovery_schemas(arm) for arm in plan["tools"]})
+    frozen["sha256"] = digest(plan)
+    return frozen
+
+
 def checked(frozen):
     plan = frozen["plan"]
     require(plan["schema"] == SCHEMA and digest(plan) == frozen["sha256"], "changed native plan")
     require(plan["limits"] == LIMITS, "unsupported native limits")
     require(plan.get("source_policy") in (None, source_coverage.POLICY), "unsupported source evidence policy")
     version = plan.get("tools_schema_version", 1)
-    require(type(version) is int and version in (1, 2, 3, 4, 5), "unsupported native tool schema")
+    require(type(version) is int and version in (1, 2, 3, 4, 5, 6), "unsupported native tool schema")
     source = legacy.checked(plan["source_plan"])
-    if version in (4, 5):
+    if version in (4, 5, 6):
         refs.checked(plan, source)
     elif version == 3:
         discovery.checked(plan, source)
@@ -118,7 +126,7 @@ def audit(raw, exported, rows, task, cell, plan=None):
     Exported completed results followed by another assistant message are evidence
     of context availability, not a capture of provider requests or billing.
     """
-    protocol = refs if plan and plan.get("tools_schema_version") in (4, 5) else discovery
+    protocol = refs if plan and plan.get("tools_schema_version") in (4, 5, 6) else discovery
     prompt = discovery.prompt(plan, cell["arm"])
     tools = plan["tools"][cell["arm"]] if plan else mcp.schemas(cell["arm"])
     matched, usage = native_session.audit(raw, exported, rows, prompt, task, cell)
@@ -159,6 +167,8 @@ def audit(raw, exported, rows, task, cell, plan=None):
                                        lambda *_: encode(replayed))
         except (ValueError, KeyError, TypeError, UnicodeError) as error:
             expected = {"error": str(error)[:256]}
+        if plan and plan.get("tools_schema_version") == 6:
+            expected = mcp.exploration_recovery(task["files"], params, expected)
         require(expected == result, "tool replay differs")
         if index >= submitted_at:
             metrics["results_not_available_before_answer"] += 1
@@ -169,7 +179,7 @@ def audit(raw, exported, rows, task, cell, plan=None):
             metrics["repeated_source_bytes"] += overlap(ranges.setdefault((span["path"], span["sha256"]), []), span["start"], span["end"])
             spans.append(span)
     metrics["unique_source_bytes"] = metrics["source_available_before_answer_bytes"] - metrics["repeated_source_bytes"]
-    if plan and plan.get("tools_schema_version") in (3, 4, 5):
+    if plan and plan.get("tools_schema_version") in (3, 4, 5, 6):
         metrics["configured_context"] = discovery.costs(plan, cell["arm"], task)
     if protocol is refs:
         answer = submission["params"]["arguments"]["answer"]
@@ -192,7 +202,7 @@ def cpu_remaining(processes, *, allow_zero=False):
 def run_attempt(frozen, cell_id, base, output, binary, opencode):
     source = checked(frozen)
     plan = frozen["plan"]
-    require(plan.get("tools_schema_version") in (2, 3, 4, 5), "freeze with current tool schemas before execution")
+    require(plan.get("tools_schema_version") in (2, 3, 4, 5, 6), "freeze with current tool schemas before execution")
     require(frozen["plan"]["implementation"] == implementation(), "runner changed; freeze again")
     require(legacy.identity(binary) == source["binary_sha256"], "binary changed")
     cell = next((c for c in source["cells"] if c["id"] == cell_id), None)
@@ -245,7 +255,7 @@ def run_attempt(frozen, cell_id, base, output, binary, opencode):
             graded = directory / "graded"
             unpack(task["files"], graded, legacy.MAX_WORKSPACE)
             require(disk_size(directory) <= LIMITS["disk_bytes"], "retained attempt exceeds disk budget")
-            verdict = grade(graded, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, plan.get("source_policy"), references=plan["tools_schema_version"] in (4, 5))
+            verdict = grade(graded, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, plan.get("source_policy"), references=plan["tools_schema_version"] in (4, 5, 6))
             record.update(status="completed", passed=verdict["passed"], grade=verdict,
                           audit={key: value for key, value in result.items() if key != "disclosed"})
         except (OSError, ValueError, KeyError, TypeError, UnicodeError, IndexError) as error:
@@ -285,7 +295,7 @@ def report(frozen, output):
             require({k: v for k, v in result.items() if k != "disclosed"} == record["audit"], "audit differs")
             with tempfile.TemporaryDirectory() as temporary:
                 unpack(task["files"], Path(temporary) / "source", legacy.MAX_WORKSPACE)
-                verdict = grade(Path(temporary) / "source", {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, frozen["plan"].get("source_policy"), references=frozen["plan"].get("tools_schema_version") in (4, 5))
+                verdict = grade(Path(temporary) / "source", {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, frozen["plan"].get("source_policy"), references=frozen["plan"].get("tools_schema_version") in (4, 5, 6))
             require(verdict == record["grade"] and verdict["passed"] == record["passed"], "grade differs")
             require(all(p["exit_code"] == 0 and p["stop_reason"] is None for p in record["processes"]), "completed attempt has failed process")
         records.append(record)
@@ -317,7 +327,7 @@ def review(frozen, output, source_policy=None):
                 with tempfile.TemporaryDirectory() as temporary:
                     root = Path(temporary) / "source"
                     unpack(task["files"], root, legacy.MAX_WORKSPACE)
-                    verdict = grade(root, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, policy, references=frozen["plan"].get("tools_schema_version") in (4, 5))
+                    verdict = grade(root, {"answer": result["answer"], "criteria": task["private_criteria"], "disclosed": result["disclosed"]}, policy, references=frozen["plan"].get("tools_schema_version") in (4, 5, 6))
                 row.update(reviewed_status="completed", reviewed_passed=verdict["passed"], reviewed_failure=None,
                            grade=verdict, audit={k: v for k, v in result.items() if k != "disclosed"})
             except (ValueError, KeyError, TypeError, OSError) as error:

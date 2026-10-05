@@ -32,6 +32,16 @@ def schemas(arm, *, focused_pages=False):
     return tools
 
 
+def recovery_schemas(arm):
+    tools = schemas(arm, focused_pages=True)
+    if arm != "files":
+        explore = next(tool for tool in tools if tool["name"] == "fr_explore")
+        explore["description"] += " A missing behavior handle returns a next tool call for names discovery."
+        explore["inputSchema"]["properties"]["target"]["description"] = (
+            "Full revision-bound handle from a names response; required for behavior mode.")
+    return tools
+
+
 def read_frozen(files, arguments, output_bytes):
     require(isinstance(arguments, dict) and type(arguments.get('sha256')) is str, 'invalid source identity')
     validate_read({**arguments, 'sha256': arguments['sha256'] or '0' * 64})
@@ -116,7 +126,8 @@ def resolve(answer, spans):
 def checked(plan, source):
     require(plan.get('source_policy') == POLICY, 'source references need contiguous source validation')
     arms = discovery.ARMS if 'guidance' in plan else ('files', 'fr')
-    require(plan['prompt'] == PROMPT and plan['tools'] == {arm: schemas(arm, focused_pages=plan.get("tools_schema_version") == 5) for arm in arms},
+    require(plan['prompt'] == PROMPT and plan['tools'] == {arm: recovery_schemas(arm) if plan.get("tools_schema_version") == 6 else
+            schemas(arm, focused_pages=plan.get("tools_schema_version") == 5) for arm in arms},
             'source reference protocol differs')
     require(source['cells'] == discovery.cells(source['manifest'], available=arms), 'source reference allocation differs')
     if 'guidance' in plan:

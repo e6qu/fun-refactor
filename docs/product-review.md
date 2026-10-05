@@ -141,6 +141,14 @@ test failure, repair and isolation; no new agent cohort or efficiency advantage 
 Next independently review tasks and
 graders, and measure total costs, including metadata and handoffs.
 
+The [reference reviews](../tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
+completed three narrow Kimi calls and retained three GLM timeouts. Two reviews found no scoped
+contradiction; the packaging finding was refuted by the pinned source and an existing GitHub control.
+Completed, source-cited reviews are not automatically correct. One fr behavior request lacked a
+handle and was refused before ordinary-file fallback. Native schema 6 now offers a names query after
+that refusal, with scripted recovery checks. Its live usefulness and full independent task review
+remain unmeasured.
+
 The [source-reading cost report](native-read-outcomes.md) now includes work from every attempt
 in the six-run source-reference pilot. Its four timeouts produced 33 tool calls and 100,968 result
 bytes. Neither ordinary-file attempt passed, so there is no successful ordinary/fr comparison pair.
