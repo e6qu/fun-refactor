@@ -69,7 +69,7 @@ def source_slices(files, path, scope, name, workspace):
                     and node.name == name and node.lineno == row["location"]["name"]["range"]["start"]["line"])
     span = row["location"]["definition"]["span"]
     require(row["source"]["text"].encode() == raw[span["start"]:span["end"]], "fr source differs from snapshot")
-    if ast.get_docstring(function) is None:
+    if ast.get_docstring(function) is None or scope != "SpecifierSet":
         return [extent(files, path, span["start"], span["end"])]
     doc = function.body[0]
     return [extent(files, path, span["start"], sum(map(len, lines[:doc.lineno - 1]))),
