@@ -48,6 +48,14 @@ The runtime target excludes runner queue delays. Inspect job timestamps and shar
 logs after changes to suite size; update measured weights or split work before a
 job reaches its deadline. A deadline failure must not cause tests to be removed.
 
+In [run 37290564129](https://github.com/e6qu/fun-refactor/actions/runs/37290564129),
+the single repository recipe replay exhausted its job's 15-minute deadline. Build
+time was 50 seconds; the test then ran for more than 13 minutes before cancellation.
+Splitting other tests cannot shorten this individual test. The repair removes an
+unused test index and avoids rebuilding indexes for recipe steps that make no edits.
+It preserves the complete workspace replay and tests real edits between empty steps.
+The replacement deep run must establish the actual runtime before declaring this fixed.
+
 The pinned Zig archive now has one checksum-verified cache shared by native jobs and the deep audit.
 A five-minute toolchain check can fill that cache, but native and static jobs now queue independently.
 Each already installs and checksum-verifies its own archive through `native-tools`; waiting for another

@@ -21,6 +21,13 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
+The user merged release PR #434 at `eae73262` (0.52.0). PR #435's 20 PR checks passed,
+but its post-merge full-workspace recipe replay timed out. The current branch removes
+unnecessary indexing for unchanged recipe steps and repairs single-file preview paths
+found while dogfooding. Full builds, Rust tests and evidence refreshes run on GitHub.
+Repository-delivery and recovery bindings changed; refresh those reports before making
+current-evidence claims. Resume scripted native-submission work after CI passes.
+
 The goal is a general CLI that helps agents understand unfamiliar code, make changes and fixes,
 and write and check useful proofs with less total effort and context. Start with the
 [product review](product-review.md) and the plain-language [plan](../PLAN.md).

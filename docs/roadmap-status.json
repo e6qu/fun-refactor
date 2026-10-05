@@ -33,8 +33,11 @@
     },
     {
       "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-python-repositories/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "src/cli.rs",
+        "src/recipe/run.rs"
+      ],
+      "freshness": "stale",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
@@ -53,8 +56,10 @@
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "src/cli.rs"
+      ],
+      "freshness": "stale",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
@@ -104,13 +109,14 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
+        "A.repositories",
         "A.live-repeat",
         "A.compiler-profile"
       ],
@@ -133,13 +139,14 @@
       "total": 4
     },
     "C": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
+        "C.resume",
         "C.repository-mutations",
         "C.performance"
       ],
@@ -147,17 +154,19 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 0,
       "engineering": {
         "done": 1,
         "total": 6
       },
       "engineering_remaining": 5,
       "remaining": [
+        "D.checked",
         "D.structural",
         "D.translation",
         "D.existing-proof",
-        "D.new-proof"
+        "D.new-proof",
+        "D.host"
       ],
       "state": "open",
       "total": 6
@@ -191,7 +200,9 @@
     },
     {
       "acceptance": "The recorded boltons bug fix and more-itertools feature pass their independent behavior tests and can be applied again in a separate checkout. These scripts already contain the intended edits.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "A.repositories",
       "kind": "deterministic",
       "next": "Keep these delivery regression tests; evaluate unscripted problem solving separately.",
@@ -210,7 +221,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Deliver the two recorded example changes"
     },
     {
@@ -303,7 +314,9 @@
     },
     {
       "acceptance": "In both recorded repository tasks, restart the process after code changes. Discard affected conclusions, keep an unrelated observation and reject the previously reviewed edit.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "C.resume",
       "kind": "deterministic",
       "next": "Keep the saved-plan and delivery regression tests reproducible.",
@@ -322,7 +335,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Resume work without trusting outdated conclusions"
     },
     {
@@ -379,7 +392,9 @@
     },
     {
       "acceptance": "The two recorded example changes pass their behavior checks, undo and redo correctly, and pass again when their exported patch is applied in a separate checkout. Saved completion records identify what was checked.",
-      "blockers": [],
+      "blockers": [
+        "repository-tasks: stale source binding"
+      ],
       "id": "D.checked",
       "kind": "deterministic",
       "next": "Keep these behavior and patch-replay tests passing.",
@@ -398,7 +413,7 @@
           "evidence": "repository-tasks"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Check and replay a delivered change"
     },
     {
@@ -451,7 +466,9 @@
     },
     {
       "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
-      "blockers": [],
+      "blockers": [
+        "host-recovery: stale source binding"
+      ],
       "id": "D.host",
       "kind": "fault-injection",
       "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
@@ -466,7 +483,7 @@
           "evidence": "host-recovery"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Recover safely when an edit process is interrupted"
     }
   ],

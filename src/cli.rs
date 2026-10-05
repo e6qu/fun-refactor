@@ -2343,12 +2343,8 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
 /// A unified diff whose headers `git apply -p1` accepts.
 fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
-    let shown = outcome.path.strip_prefix(&root).unwrap_or(&outcome.path);
-    crate::edit::unified_diff(
-        &outcome.original,
-        &outcome.updated,
-        &shown.display().to_string(),
-    )
+    let shown = shown_path(&root, &outcome.path);
+    crate::edit::unified_diff(&outcome.original, &outcome.updated, &shown)
 }
 
 struct PlanContext {

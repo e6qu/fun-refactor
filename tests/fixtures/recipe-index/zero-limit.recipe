@@ -1,0 +1,7 @@
+schema 1
+recipe limited {
+  rename to "unused" where name="original" limit 0
+  expect matched = 1
+  expect applied = 0
+  expect changed = 0 files
+}

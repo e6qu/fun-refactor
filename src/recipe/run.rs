@@ -161,7 +161,11 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
             changed.insert(path.clone());
         }
         apply(&mut sources, &report.edits)?;
-        index = reindex(&sources)?;
+        if report.edits.is_empty() {
+            activate_sources(&sources);
+        } else {
+            index = reindex(&sources)?;
+        }
         steps.push(report.report);
     }
 
@@ -290,6 +294,24 @@ pub fn run_file(
     ))
 }
 
+fn activate_sources(sources: &Sources) {
+    let handle = crate::vfs::new_handle(
+        sources
+            .iter()
+            .map(|(path, (_, text))| (path.clone(), text.clone())),
+    );
+    crate::vfs::activate(&handle);
+}
+
+#[cfg(test)]
+thread_local! {
+    static INDEX_BUILDS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+#[path = "run_tests.rs"]
+mod tests;
+
 /// Rebuild the index, and hand the same text to everything that reads a file.
 fn reindex(sources: &Sources) -> Result<Index> {
     // Extraction is per-file and depends only on the file's bytes, and a step touches a handful
@@ -300,12 +322,9 @@ fn reindex(sources: &Sources) -> Result<Index> {
         static FACTS: RefCell<HashMap<(PathBuf, u64), crate::model::FileFacts>> =
             RefCell::new(HashMap::new());
     }
-    let handle = crate::vfs::new_handle(
-        sources
-            .iter()
-            .map(|(path, (_, text))| (path.clone(), text.clone())),
-    );
-    crate::vfs::activate(&handle);
+    #[cfg(test)]
+    INDEX_BUILDS.with(|count| count.set(count.get() + 1));
+    activate_sources(sources);
     let parsers = crate::parse::Parsers::new();
     let mut extractor = crate::extract::Extractor::new();
     let mut extracted = Vec::with_capacity(sources.len());
@@ -668,57 +687,60 @@ fn run_step(
                 None => chosen,
             };
 
-            // Each subject is planned against the workspace the previous one left.
-            let mut running = sources.clone();
-            let mut current = reindex(&running)?;
-            let mut touched: BTreeSet<PathBuf> = BTreeSet::new();
-            let mut reaches_other_files = false;
-            for subject in taken {
-                if matches!(subject, Subject::Symbol { .. }) && subject.resolve(&current).is_none()
-                {
-                    continue;
-                }
-                let home = match &subject {
-                    Subject::Symbol { file, .. } | Subject::File(file) => file.clone(),
-                };
-                if reaches_other_files || touched.contains(&home) {
-                    current = reindex(&running)?;
-                }
-                match act(&step.operation, &current, &subject, options.root) {
-                    Ok((set, said, sites)) => {
-                        applied += sites;
-                        warnings.extend(said);
-                        for path in set.paths() {
-                            if *path != home {
-                                reaches_other_files = true;
-                            }
-                            touched.insert(path.clone());
-                        }
-                        apply(&mut running, &set)?;
+            if !taken.is_empty() {
+                // Each subject is planned against the workspace the previous one left.
+                let mut running = sources.clone();
+                let mut current = reindex(&running)?;
+                let mut touched: BTreeSet<PathBuf> = BTreeSet::new();
+                let mut reaches_other_files = false;
+                for subject in taken {
+                    if matches!(subject, Subject::Symbol { .. })
+                        && subject.resolve(&current).is_none()
+                    {
+                        continue;
                     }
-                    Err(e) => refusals.push(Refusal {
-                        subject: subject.describe(),
-                        reason: e.to_string(),
-                        permitted,
-                        references: refusal_sites(&e),
-                    }),
+                    let home = match &subject {
+                        Subject::Symbol { file, .. } | Subject::File(file) => file.clone(),
+                    };
+                    if reaches_other_files || touched.contains(&home) {
+                        current = reindex(&running)?;
+                    }
+                    match act(&step.operation, &current, &subject, options.root) {
+                        Ok((set, said, sites)) => {
+                            applied += sites;
+                            warnings.extend(said);
+                            for path in set.paths() {
+                                if *path != home {
+                                    reaches_other_files = true;
+                                }
+                                touched.insert(path.clone());
+                            }
+                            apply(&mut running, &set)?;
+                        }
+                        Err(e) => refusals.push(Refusal {
+                            subject: subject.describe(),
+                            reason: e.to_string(),
+                            permitted,
+                            references: refusal_sites(&e),
+                        }),
+                    }
                 }
-            }
 
-            // The step's edit is the difference it made, whole-file: each span points into
-            // intermediate text that no longer exists.
-            for (path, (language, text)) in &running {
-                let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
-                if before != text {
-                    edits.add(
-                        path.clone(),
-                        crate::edit::Edit::new(
-                            crate::span::Span::new(0, before.len()),
-                            text,
-                            step.operation.describe(),
-                        ),
-                    );
-                    edits.declare_language(path.clone(), *language);
+                // The step's edit is the difference it made, whole-file: each span points into
+                // intermediate text that no longer exists.
+                for (path, (language, text)) in &running {
+                    let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
+                    if before != text {
+                        edits.add(
+                            path.clone(),
+                            crate::edit::Edit::new(
+                                crate::span::Span::new(0, before.len()),
+                                text,
+                                step.operation.describe(),
+                            ),
+                        );
+                        edits.declare_language(path.clone(), *language);
+                    }
                 }
             }
             total
