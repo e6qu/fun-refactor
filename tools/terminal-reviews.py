@@ -41,9 +41,11 @@ def main():
         frozen, snapshots = review.freeze(mcp.decode(review.read(args.questions)),
             mcp.decode(review.read(args.models)), args.fr.resolve(), args.opencode.resolve(),
             {"scope": "New terminal source review; no previous collection is resumed."})
+        archived = gzip.compress(encode(snapshots), mtime=0)
+        require(len(archived) <= review.MAX_BYTES, "review input archive exceeds replay budget")
         args.output.mkdir(parents=True, exist_ok=False)
         (args.output / "plan.json").write_bytes(encode(frozen))
-        (args.output / "inputs.json.gz").write_bytes(gzip.compress(encode(snapshots), mtime=0))
+        (args.output / "inputs.json.gz").write_bytes(archived)
         print(frozen["sha256"])
         return
     inputs = args.inputs.resolve()

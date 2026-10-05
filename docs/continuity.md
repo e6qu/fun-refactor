@@ -21,21 +21,26 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #436 merged as `50dc0c9f` after all 20 checks passed. Its post-merge workflows passed too.
-The next branch adds a scripted terminal-submission check for OpenCode 1.18.34.
-It captures the request, event stream, independent export, MCP calls and scripted provider requests.
-Offline tests reject duplicate answers, later calls, missing usage and mismatched source handoffs.
-GitHub runs the real client because local memory approached the existing 768-MiB capture limit.
-Do not raise the limits or rerun the stopped live collections.
+PR #438 merged as `25da0e17` after all 21 checks passed. Its longest PR job took 10m05s;
+GitHub queue delays made the overall wait much longer. The final scripted submission job passed
+in 40 seconds, and its four captures replayed independently. Monitoring of post-merge workflows continues.
 
-The [four-case run](https://github.com/e6qu/fun-refactor/actions/runs/37338076823) passed in 43 seconds
-on `c35a99c2`. All four captures replay with the current audit. Their peak sampled RSS was
-683.9 MiB; the longest case took 7.01 seconds and seven sampled CPU seconds.
-Each case retained two provider requests. Failed cases remain visible in observed-work counters.
+The current branch, `feat/terminal-source-reviews`, connects terminal submission to source review.
+`tools/terminal-reviews.py` freezes questions, source packets, model profiles, tool schemas and
+runtime identities. Its report replays source reads and citations and counts interrupted work
+without requiring a successful export. The shared transport keeps client stores and temporary
+files inside the measured directory. Oversized retained files mark an attempt failed and report
+exact prefix sizes; they cannot silently become complete evidence.
 
-The live review runner still uses its historical submission protocol. Connect the terminal protocol
-to a new frozen adapter before more Kimi or GLM calls.
-This work establishes a client control, not live reliability or an efficiency advantage.
+Twenty-four offline controls pass. GitHub will run the pinned client on packet-only and source-read
+reviews, two submission failures, and an interruption before export. It will also use fr to restore
+the extracted function in a throwaway copy. The workload guard refused a local fr preview;
+we moved that validation to GitHub. Subsequent distinct fr edits passed under the guard.
+
+GitHub has no repository provider secret, and we have not called live models. The adapter
+currently uses the OpenAI-compatible transport; do not assume configured Kimi or GLM compatibility.
+Finish hosted controls before freezing live questions. The old runners and every stopped collection
+remain unchanged. Do not raise limits or retry their cells. No roadmap acceptance item closes here.
 
 ## Completed recipe audit repair
 

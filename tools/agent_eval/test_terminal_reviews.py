@@ -5,6 +5,7 @@ import gzip
 import hashlib
 import os
 from pathlib import Path
+import runpy
 import sys
 import subprocess
 import tempfile
@@ -59,6 +60,30 @@ def write_capture(root, plan, snapshots, cell, *, packet=False, mutate=None):
 
 
 class TerminalReview(unittest.TestCase):
+    def test_freeze_rejects_inputs_that_cannot_be_replayed(self):
+        f, _ = frozen()
+        for field, value in (("providerID", "x" * 257), ("modelID", "x" * 257),
+                             ("baseURL", "https://example.test/" + "x" * 2048)):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                review.profile({**f["plan"]["models"][0], field: value})
+        with patch.object(review, "MAX_BYTES", len(encode(f)) - 1):
+            with self.assertRaisesRegex(ValueError, "plan exceeds retention budget"):
+                frozen()
+
+    def test_oversized_archive_refuses_before_creating_output(self):
+        f, snapshots = frozen()
+        cli = runpy.run_path(str(Path(__file__).parents[1] / "terminal-reviews.py"))
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "unused"
+            args = ["terminal-reviews.py", "freeze", "questions.json", "models.json", str(output),
+                    "--fr", sys.executable, "--opencode", sys.executable]
+            with patch.object(sys, "argv", args), patch.object(review, "read", return_value=b"[]"), \
+                    patch.object(review, "freeze", return_value=(f, snapshots)), \
+                    patch.object(gzip, "compress", return_value=b"x" * (review.MAX_BYTES + 1)):
+                with self.assertRaisesRegex(ValueError, "archive exceeds replay budget"):
+                    cli["main"]()
+            self.assertFalse(output.exists())
+
     def test_capture_refuses_changed_parent_plan_before_starting_client(self):
         f, snapshots = frozen()
         with tempfile.TemporaryDirectory() as temporary:

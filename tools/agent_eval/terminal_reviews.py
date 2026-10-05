@@ -44,9 +44,9 @@ def implementation():
 def profile(value):
     require(isinstance(value, dict) and set(value) == {"providerID", "modelID", "baseURL", "context", "output"},
             "invalid provider profile")
-    require(all(isinstance(value[k], str) and re.fullmatch(r"[\w./-]+", value[k]) for k in ("providerID", "modelID")),
+    require(all(isinstance(value[k], str) and len(value[k].encode()) <= 256 and re.fullmatch(r"[\w./-]+", value[k]) for k in ("providerID", "modelID")),
             "invalid provider or model identity")
-    require(isinstance(value["baseURL"], str) and not any(c in value["baseURL"] for c in "{}\r\n\0"), "invalid endpoint substitution")
+    require(isinstance(value["baseURL"], str) and len(value["baseURL"].encode()) <= 2048 and not any(c in value["baseURL"] for c in "{}\r\n\0"), "invalid endpoint substitution")
     endpoint = urlsplit(value["baseURL"])
     require(endpoint.hostname and not endpoint.username and not endpoint.password and not endpoint.query
             and not endpoint.fragment and (endpoint.scheme == "https" or
@@ -85,6 +85,8 @@ def design(questions, models, identities, provenance):
             "tools_schema_version": 6, "tools": tools, "stop_after_consecutive_failures": 2, "retries": 0,
             "candidate_execution": False, "claims_verified": False, "independent_task_selection": False,
             "efficiency_comparison": False, "provenance": provenance, **identities}
+    require(len(encode({"plan": plan, "sha256": digest(plan)})) <= MAX_BYTES, "review plan exceeds retention budget")
+    require(len(encode(snapshots)) <= 8 * MAX_BYTES, "review snapshots exceed replay budget")
     return {"plan": copy.deepcopy(plan), "sha256": digest(plan)}, snapshots
 
 

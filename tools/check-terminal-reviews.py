@@ -12,9 +12,10 @@ import sys
 import subprocess
 import textwrap
 import threading
+import time
 from unittest.mock import patch
 
-from agent_eval import bounded_host, native_mcp as mcp, source_packets, source_reviews
+from agent_eval import bounded_host, native_costs, native_mcp as mcp, source_packets, source_reviews
 from agent_eval import structured_probe as probe, terminal_reviews as review, terminal_review_runner as runner
 from agent_eval.study import encode, require
 
@@ -61,8 +62,15 @@ def questions(case):
                                              "start": 0, "end": len(raw[selected])}]}]
 
 
-def response(original, case, turn, answer):
+def response(original, case, turn, answer, folder):
     if case == "interrupt" and turn == 2:
+        deadline = time.monotonic() + 2
+        while True:
+            events, _ = native_costs.prefix(review.read(folder / "events.jsonl", optional=True), 1024**2)
+            if any(e["type"] == "message.part.updated" and e["properties"]["part"]["type"] == "step-finish" for e in events):
+                break
+            require(time.monotonic() < deadline, "first response usage did not reach the retained stream")
+            time.sleep(0.01)
         os._exit(17)
     if case == "packet":
         require(turn == 1, "unexpected request after terminal answer")
@@ -96,7 +104,7 @@ def capture(root, case, binary, opencode):
             answer = {"answer": {"findings": [{"gap": "The implementation returns 42", "wrong_repair": "Leave value unchanged",
                 "input": "value()", "expected": "43", "citations": [{"source": packet["source_refs"][0]["source"]}]}],
                 "limitations": "Scripted source-citation control, not an independent model judgment."}}
-            with patch.object(probe, "response", lambda turn, _: response(original, case, turn, answer)):
+            with patch.object(probe, "response", lambda turn, _: response(original, case, turn, answer, folder)):
                 runner.capture(frozen, snapshots, cell, folder, binary, opencode)
             require(not server.errors and len(server.requests) == (1 if case == "packet" else 2), "unexpected provider work")
         finally:
@@ -134,6 +142,8 @@ def report(root, case):
         require(row["observed"]["usage"]["finished_steps"] >= 1 and row["observed"]["host_calls"] == 1,
                 "failed work was lost")
         if case == "interrupt":
+            require(row["process"]["exit_code"] == row["process"]["process_exit_code"] == 17
+                    and row["process"]["stop_reason"] is None, "capture did not stop at the planned interruption")
             require(not (root / "attempts" / row["cell"]["id"] / "export.json").exists(), "interruption unexpectedly exported")
     return {"case": case, "provider_requests": len(requests), "report": result}
 
