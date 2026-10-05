@@ -48,6 +48,19 @@ The report includes hashes of the nine retained inputs for each case.
 Rejected cases also report observed responses, tool calls and client token counters.
 Those counters are not verified provider billing.
 
+The [first complete GitHub run](https://github.com/e6qu/fun-refactor/actions/runs/37338076823)
+passed on `c35a99c2` in 43 seconds. Its four captures also pass independent replay with the current audit.
+
+| Scripted response | Audit result | Provider requests | Tool calls |
+|---|---|---|---|
+| One answer | Accepted | 2 | 2 |
+| Text without submission | Rejected | 2 | 1 |
+| Two answers | Rejected | 2 | 3 |
+| Answer alongside another tool | Rejected | 2 | 3 |
+
+The longest capture took 7.01 seconds. Peak sampled RSS was 683.9 MiB, and disk growth stayed
+below 1.27 MiB per case. These are control measurements, not model-performance comparisons.
+
 This is a scripted client control. It does not show that Kimi or GLM will submit valid answers,
 that an answer is correct for an unfamiliar repository, or that fr improves agent efficiency.
 The next live adapter needs a new frozen design and the same evidence checks.

@@ -28,8 +28,13 @@ Offline tests reject duplicate answers, later calls, missing usage and mismatche
 GitHub runs the real client because local memory approached the existing 768-MiB capture limit.
 Do not raise the limits or rerun the stopped live collections.
 
-The live review runner still uses its historical submission protocol. After scripted checks pass,
-connect the terminal protocol to a new frozen adapter before more Kimi or GLM calls.
+The [four-case run](https://github.com/e6qu/fun-refactor/actions/runs/37338076823) passed in 43 seconds
+on `c35a99c2`. All four captures replay with the current audit. Their peak sampled RSS was
+683.9 MiB; the longest case took 7.01 seconds and seven sampled CPU seconds.
+Each case retained two provider requests. Failed cases remain visible in observed-work counters.
+
+The live review runner still uses its historical submission protocol. Connect the terminal protocol
+to a new frozen adapter before more Kimi or GLM calls.
 This work establishes a client control, not live reliability or an efficiency advantage.
 
 ## Completed recipe audit repair

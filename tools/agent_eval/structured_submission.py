@@ -22,7 +22,6 @@ def audit(request, terminal, messages, events, rows):
     require(len(request["parts"]) == 1 and set(request["parts"][0]) == {"type", "text"}
             and request["parts"][0]["type"] == "text" and isinstance(request["parts"][0]["text"], str)
             and 0 < len(request["parts"][0]["text"].encode()) <= 16384, "invalid requested prompt")
-    model = request["model"]["providerID"] + "/" + request["model"]["modelID"]
     require(2 <= len(messages) <= 13, "message budget exceeded")
     user, *assistants = messages
     session = user["info"]["sessionID"]
@@ -66,7 +65,7 @@ def audit(request, terminal, messages, events, rows):
         if index == 0:
             continue
         require(info["role"] == "assistant" and "error" not in info, "failed assistant response")
-        require(info["providerID"] + "/" + info["modelID"] == model, "model differs")
+        require({key: info[key] for key in ("providerID", "modelID")} == request["model"], "model differs")
         require(info["parentID"] == user["info"]["id"], "unexpected parent message")
         require(info["finish"] in {"stop", "tool-calls"} and info["time"].get("completed"),
                 "incomplete assistant response")

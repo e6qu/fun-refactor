@@ -144,6 +144,17 @@ def events_for(messages):
 
 
 class Submission(unittest.TestCase):
+    def test_model_identity_uses_separate_provider_and_model_fields(self):
+        request, _, messages, _, rows = fixture()
+        request["model"] = {"providerID": "vendor", "modelID": "family/model"}
+        messages[0]["info"]["model"] = copy.deepcopy(request["model"])
+        for message in messages[1:]:
+            message["info"].update(request["model"])
+        protocol.audit(request, copy.deepcopy(messages[-1]), messages, events_for(messages), rows)
+        messages[1]["info"].update(providerID="vendor/family", modelID="model")
+        with self.assertRaisesRegex(ValueError, "model differs"):
+            protocol.audit(request, copy.deepcopy(messages[-1]), messages, events_for(messages), rows)
+
     def test_one_terminal_answer_accounts_for_both_responses(self):
         result = protocol.audit(*fixture())
         self.assertEqual(result["answer"], probe.ANSWER["answer"])

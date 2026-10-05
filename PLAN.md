@@ -44,7 +44,9 @@ answer, an omitted answer, two answers, and another tool call alongside an answe
 The audit compares the request, events, independent session export, MCP log and provider requests.
 It counts every response and rejects mismatched evidence. No live model calls are part of this check.
 
-The GitHub check and offline replay must pass before this protocol can support a new live adapter.
+The [scripted GitHub check](https://github.com/e6qu/fun-refactor/actions/runs/37338076823)
+passed all four cases in 43 seconds on `c35a99c2`. Independent replay passes with the current audit.
+Each case made two provider requests, including failures. Twelve offline tests check the audit.
 Existing native runners and stopped collections retain their original rules and outcomes.
 Next connect the validated protocol to a new frozen review design, then assess model reliability.
 Task acceptance, fr adoption, provider billing and general efficiency remain unproven.
