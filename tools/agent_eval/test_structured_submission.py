@@ -36,6 +36,29 @@ def capture_fixture(root):
 
 
 class Replay(unittest.TestCase):
+    def test_missing_answer_keeps_both_responses_in_observed_work(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            capture_fixture(root)
+            messages = mcp.decode((root / "messages.json").read_bytes())
+            final = messages[-1]
+            final["info"].pop("structured")
+            final["info"]["error"] = {"name": "StructuredOutputError"}
+            final["parts"].pop(1)
+            for name, value in (("messages.json", messages), ("terminal.json", final),
+                                ("export.json", {"info": {"id": "ses_control"}, "messages": messages})):
+                (root / name).write_bytes(encode(value))
+            (root / "events.jsonl").write_bytes(b"".join(encode(e) + b"\n" for e in events_for(messages)))
+            identity = mcp.decode((root / "identity.json").read_bytes())
+            identity["case"] = "missing-answer"
+            (root / "identity.json").write_bytes(encode(identity))
+            result = probe.review(root, "missing-answer")
+            self.assertFalse(result["accepted"])
+            self.assertEqual(result["observed_work"]["assistant_responses"], 2)
+            self.assertEqual(result["observed_work"]["provider_requests"], 2)
+            self.assertEqual(len(result["observed_work"]["tokens"]), 2)
+            self.assertEqual(result["observed_work"]["tool_calls"], 1)
+
     def test_capture_replays_without_starting_a_client(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

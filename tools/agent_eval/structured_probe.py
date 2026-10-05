@@ -25,6 +25,23 @@ CASES = ("one-answer", "missing-answer", "duplicate-answer", "adjacent-tool")
 MAX_BYTES = 1024**2
 
 
+def observed_work(messages, requests):
+    """Count failed responses too; these are client counters, not verified billing."""
+    assistants = [m for m in messages if m["info"]["role"] == "assistant"]
+    tokens, cost = [], 0
+    for message in assistants:
+        info = message["info"]
+        usage = info["tokens"]
+        for count in (usage["input"], usage["output"], usage["reasoning"],
+                      usage["cache"]["read"], usage["cache"]["write"]):
+            number(count, "observed tokens", integer=True)
+        tokens.append(usage)
+        cost += number(info["cost"], "observed cost")
+    return {"assistant_responses": len(assistants), "provider_requests": len(requests),
+            "tool_calls": sum(p["type"] == "tool" for m in assistants for p in m["parts"]),
+            "tokens": tokens, "reported_cost": cost, "provider_usage_verified": False}
+
+
 def checked_process(process):
     limits = {"wall_seconds": 120, "cpu_seconds": 20, "rss_bytes": 768 * 1024**2,
               "disk_bytes": 16 * 1024**2, "transcript_bytes": MAX_BYTES}
@@ -84,7 +101,7 @@ def review(root, case):
             [mcp.decode(line) for line in data["events.jsonl"].splitlines()], rows)
     except ValueError as error:
         refusal = str(error)
-    expected = {"missing-answer": "error or removed evidence in event stream",
+    expected = {"missing-answer": "failed assistant response",
                 "duplicate-answer": "expected exactly one structured submission",
                 "adjacent-tool": "other calls alongside submission"}
     if case == "one-answer":
@@ -97,6 +114,7 @@ def review(root, case):
             require(parsed["terminal.json"]["info"]["error"]["name"] == "StructuredOutputError",
                     "missing answer failed for another reason")
     return {"case": case, "accepted": verdict is not None, "refusal": refusal, "audit": verdict,
+            "observed_work": observed_work(messages, requests),
             "evidence_sha256": {name: hashlib.sha256(raw).hexdigest() for name, raw in data.items()}}
 
 

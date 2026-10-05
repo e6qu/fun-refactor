@@ -45,6 +45,8 @@ Replay checks identities, prompts, source handoff, usage and unchanged resource 
 Every ordinary call must match a host record. Exactly one successful answer must end the session;
 other calls in its response are refused too. Negative cases must fail for their expected reason.
 The report includes hashes of the nine retained inputs for each case.
+Rejected cases also report observed responses, tool calls and client token counters.
+Those counters are not verified provider billing.
 
 This is a scripted client control. It does not show that Kimi or GLM will submit valid answers,
 that an answer is correct for an unfamiliar repository, or that fr improves agent efficiency.
