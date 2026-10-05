@@ -6,9 +6,46 @@ import re
 from . import native_references as refs, source_coverage
 from .source_disclosure import overlap
 from .study import encode, require
+from .workspace_bundle import validate
 
 MAX_SOURCE = 8192
 MAX_PACKET = 12288
+
+
+def compare(files, pairs):
+    """Identify selected before/after files without asserting equivalent behavior."""
+    validate(files)
+    require(isinstance(pairs, list) and 1 <= len(pairs) <= 16, "choose one to sixteen file pairs")
+    rows, seen = [], set()
+    for pair in pairs:
+        require(isinstance(pair, dict) and set(pair) == {"before", "after"}, "invalid file pair")
+        paths = (pair["before"], pair["after"])
+        require(all(isinstance(p, str) and p in files for p in paths), "comparison source missing")
+        require(paths[0] != paths[1] and paths not in seen, "duplicate comparison pair")
+        seen.add(paths)
+        identities = {}
+        for side, path in pair.items():
+            raw = base64.b64decode(files[path]["data"], validate=True)
+            identities[side] = {"path": path, "sha256": hashlib.sha256(raw).hexdigest(),
+                                "bytes": len(raw), "executable": files[path]["executable"]}
+        before, after = identities["before"], identities["after"]
+        rows.append({**identities, "same_content": before["sha256"] == after["sha256"],
+                     "same_executable": before["executable"] == after["executable"]})
+    result = {"schema": "fr-selected-file-comparison-1", "pairs": rows,
+              "scope": "Selected files only; equal bytes do not establish equal behavior at different paths."}
+    require(len(encode(result)) <= MAX_PACKET, "comparison metadata budget exceeded")
+    return result
+
+
+def check_comparison(files, comparison):
+    """Recompute identities and flags, including unchanged files, from frozen bytes."""
+    require(isinstance(comparison, dict) and isinstance(comparison.get("pairs"), list), "invalid file comparison")
+    require(all(isinstance(row, dict) and all(isinstance(row.get(side), dict)
+                and "path" in row[side] for side in ("before", "after"))
+                for row in comparison["pairs"]), "invalid comparison identities")
+    pairs = [{side: row[side]["path"] for side in ("before", "after")} for row in comparison["pairs"]]
+    require(encode(compare(files, pairs)) == encode(comparison), "file comparison differs from frozen source")
+    return comparison
 
 
 def build(files, selections):
