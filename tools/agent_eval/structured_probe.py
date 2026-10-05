@@ -1,5 +1,6 @@
 """Scripted loopback provider for testing OpenCode's terminal submission protocol."""
 import base64
+import hashlib
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -15,13 +16,87 @@ import time
 from . import native_mcp as mcp
 from . import structured_submission as protocol
 from .opencode_rehearsal import settings
-from .study import encode, require
+from .study import encode, number, require
 
 SOURCE = b"def value():\n    return 42\n"
 ANSWER = {"answer": {"value": {"value": 42, "citations": [{
     "path": "module.py", "quote": SOURCE.decode()}]}}}
 CASES = ("one-answer", "missing-answer", "duplicate-answer", "adjacent-tool")
 MAX_BYTES = 1024**2
+
+
+def checked_process(process):
+    limits = {"wall_seconds": 120, "cpu_seconds": 20, "rss_bytes": 768 * 1024**2,
+              "disk_bytes": 16 * 1024**2, "transcript_bytes": MAX_BYTES}
+    require(process["limits"] == limits, "capture limits changed")
+    require(process["exit_code"] == process["process_exit_code"] == 0
+            and process["stop_reason"] is None and process["timed_out"] is False
+            and process["launch_error"] is None and process["monitor_error"] is None,
+            "capture process did not complete")
+    for field, limit in (("elapsed_seconds", "wall_seconds"), ("sampled_cpu_seconds", "cpu_seconds"),
+                         ("sampled_aggregate_rss_bytes", "rss_bytes"),
+                         ("sampled_disk_growth_bytes", "disk_bytes"), ("transcript_bytes", "transcript_bytes")):
+        require(number(process[field], field) <= limits[limit], "capture exceeded resource limits")
+
+
+def review(root, case):
+    """Replay a scripted capture without starting OpenCode or executing source."""
+    require(case in CASES, "unknown scripted case")
+    names = ("request.json", "terminal.json", "export.json", "messages.json", "events.jsonl",
+             "tools.jsonl", "provider.json", "identity.json", "process.json")
+    data = {}
+    for name in names:
+        path = root / name
+        require(path.is_file() and not path.is_symlink() and path.stat().st_size <= MAX_BYTES,
+                "missing or oversized capture")
+        data[name] = path.read_bytes()
+    parsed = {name: mcp.decode(raw) for name, raw in data.items() if name.endswith(".json")}
+    process, identity = parsed["process.json"], parsed["identity.json"]
+    checked_process(process)
+    require(identity == {"schema": protocol.SCHEMA, "opencode_version": protocol.VERSION,
+                         "case": case, "provider_requests": 2}, "capture identity differs")
+    messages = parsed["messages.json"]
+    require(parsed["export.json"]["messages"] == messages, "saved messages differ from export")
+    require(parsed["export.json"]["info"]["id"] == messages[0]["info"]["sessionID"], "export session differs")
+    rows = [mcp.decode(line) for line in data["tools.jsonl"].splitlines()]
+    requests = parsed["provider.json"]
+    require(len(requests) == 2, "provider request count differs")
+    for request in requests:
+        require(request["model"] == "protocol" and request["tool_choice"] == "required", "provider model or choice differs")
+        tools = request["tools"]
+        names = [t["function"]["name"] for t in tools]
+        require(len(names) == len(set(names)) and set(names) == {
+            "rehearsal_list_files", "rehearsal_search_source", "rehearsal_read_source", "StructuredOutput"},
+            "provider tool surface differs")
+        output = next(t["function"] for t in tools if t["function"]["name"] == "StructuredOutput")
+        require(output["parameters"] == protocol.FORMAT["schema"], "provider output schema differs")
+    before_answer = [m for m in requests[1]["messages"] if m["role"] == "tool"]
+    require(len(before_answer) == 1 and before_answer[0]["tool_call_id"] == "call_1_0", "source handoff differs")
+    require(rows and rows[0]["params"] == {"name": "read_source", "arguments": {
+        "path": "module.py", "offset": 0, "bytes": 128, "sha256": ""}}, "scripted read differs")
+    require(before_answer[0]["content"] == rows[0]["response"]["content"][0]["text"], "provider did not receive source result")
+    require(rows[0]["result"]["text"] == SOURCE.decode()
+            and rows[0]["result"]["sha256"] == hashlib.sha256(SOURCE).hexdigest(), "scripted source differs")
+    verdict, refusal = None, None
+    try:
+        verdict = protocol.audit(parsed["request.json"], parsed["terminal.json"], messages,
+            [mcp.decode(line) for line in data["events.jsonl"].splitlines()], rows)
+    except ValueError as error:
+        refusal = str(error)
+    expected = {"missing-answer": "error or removed evidence in event stream",
+                "duplicate-answer": "expected exactly one structured submission",
+                "adjacent-tool": "other calls alongside submission"}
+    if case == "one-answer":
+        require(verdict is not None, f"valid submission refused: {refusal}")
+        require(verdict["answer"] == ANSWER["answer"] and verdict["assistant_responses"] == 2,
+                "scripted answer or model call count differs")
+    else:
+        require(verdict is None and refusal == expected[case], f"unexpected {case} verdict: {refusal}")
+        if case == "missing-answer":
+            require(parsed["terminal.json"]["info"]["error"]["name"] == "StructuredOutputError",
+                    "missing answer failed for another reason")
+    return {"case": case, "accepted": verdict is not None, "refusal": refusal, "audit": verdict,
+            "evidence_sha256": {name: hashlib.sha256(raw).hexdigest() for name, raw in data.items()}}
 
 
 def response(turn, case):
@@ -109,12 +184,12 @@ def environment(root, endpoint):
                     "command": [sys.executable, "-B", str(Path(__file__).parents[1] / "check-native-submission.py"),
                                 "serve", str(root / "tools.jsonl")]}})
     # Empty XDG roots keep the scripted probe away from configured providers and credentials.
-    env = {k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "SYSTEMROOT"}}
+    env = {k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "SYSTEMROOT", "LD_LIBRARY_PATH"}}
     for name in ("CONFIG", "CACHE", "DATA", "STATE"):
         env[f"XDG_{name}_HOME"] = str(root / name.lower())
     env.update(OPENCODE_CONFIG_CONTENT=json.dumps(config), OPENCODE_CONFIG_DIR=str(root / "config"),
                OPENCODE_SERVER_PASSWORD=secrets.token_hex(24), OPENCODE_SERVER_USERNAME="probe")
-    for name in ("PROJECT_CONFIG", "AUTOUPDATE", "EXTERNAL_SKILLS", "CLAUDE_CODE", "MODELS_FETCH", "LSP_DOWNLOAD"):
+    for name in ("PROJECT_CONFIG", "AUTOUPDATE", "EXTERNAL_SKILLS", "CLAUDE_CODE", "MODELS_FETCH", "LSP_DOWNLOAD", "DEFAULT_PLUGINS"):
         env[f"OPENCODE_DISABLE_{name}"] = "1"
     return env
 
@@ -132,8 +207,8 @@ def capture(binary, root, case):
             port = reservation.getsockname()[1]
         auth = "Basic " + base64.b64encode(("probe:" + env["OPENCODE_SERVER_PASSWORD"]).encode()).decode()
         deadline = time.monotonic() + 100
-        def request(method, route, data=None):
-            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=max(0.1, deadline - time.monotonic()))
+        def request(method, route, data=None, timeout=None):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=min(timeout or 100, max(0.1, deadline - time.monotonic())))
             try:
                 connection.request(method, route, body=encode(data) if data is not None else None,
                                    headers={"Authorization": auth, "Content-Type": "application/json"})
@@ -144,16 +219,17 @@ def capture(binary, root, case):
             finally:
                 connection.close()
         with (root / "server.stdout").open("wb") as out, (root / "server.stderr").open("wb") as err:
-            child = subprocess.Popen([str(binary), "--pure", "serve", "--hostname", "127.0.0.1", "--port", str(port)],
+            child = subprocess.Popen([str(binary), "--pure", "--print-logs", "--log-level", "DEBUG", "serve", "--hostname", "127.0.0.1", "--port", str(port)],
                                      cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=err)
             stream = None
             try:
                 while True:
                     require(child.poll() is None and time.monotonic() < deadline, "server did not start")
                     try:
-                        health = request("GET", "/global/health")
+                        health = request("GET", "/global/health", timeout=2)
                         break
-                    except (ConnectionError, OSError):
+                    except (ConnectionError, OSError) as error:
+                        (root / "startup-error.json").write_bytes(encode({"error": str(error), "type": type(error).__name__}))
                         time.sleep(0.05)
                 require(health["version"] == protocol.VERSION, "OpenCode version differs")
                 session = request("POST", "/session", {"title": "Scripted submission control"})["id"]

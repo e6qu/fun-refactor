@@ -1,5 +1,46 @@
 # Test OpenCode with native source tools
 
+## Check terminal submissions with scripted responses
+
+The live review runner still requires one `submit_answer` call followed by a completed final turn.
+Historical attempts that omitted or repeated submission keep their original failed outcomes.
+The new check tests an alternative before any further live calls: OpenCode's terminal
+`StructuredOutput` tool ends the client loop after the answer response.
+
+On a GitHub runner, run:
+
+```sh
+python3 -B tools/check-native-submission.py check target/native-submission \
+  --opencode target/opencode/opencode
+```
+
+The workflow installs OpenCode 1.18.34 and verifies the archive digest. Only a scripted loopback
+provider is enabled, with empty configuration and data directories. No model credentials are used.
+The cases cover one answer, no answer, duplicate answers and a tool call alongside the answer.
+The positive case requires two provider requests: a source read and the answer. A third request fails.
+
+Each capture has a 120-second wall limit, 20 sampled CPU seconds, 768 MiB aggregate RSS,
+16 MiB disk growth and a 1 MiB process transcript limit. Local use requires the resource guard.
+Move real-client checks to GitHub if the local client approaches those limits.
+
+The HTTP message-list encoder in this client version rejects its persisted structured format.
+The check stops the server and uses the client's independent CLI export instead.
+It retains the terminal response and event stream without rewriting either one.
+Read-only replay compares both with the export, MCP records and provider requests:
+
+```sh
+python3 -B tools/check-native-submission.py report target/native-submission
+```
+
+Replay checks identities, prompts, source handoff, usage and unchanged resource limits.
+Every ordinary call must match a host record. Exactly one successful answer must end the session;
+other calls in its response are refused too. Negative cases must fail for their expected reason.
+The report includes hashes of the nine retained inputs for each case.
+
+This is a scripted client control. It does not show that Kimi or GLM will submit valid answers,
+that an answer is correct for an unfamiliar repository, or that fr improves agent efficiency.
+The next live adapter needs a new frozen design and the same evidence checks.
+
 The earlier [repository explanation trials](opencode-source-evidence.md) exposed an interaction
 problem: five of twelve attempts stopped because a model replied with prose instead of one JSON
 action. The native adapter lets OpenCode call tools during one session. It keeps the same frozen

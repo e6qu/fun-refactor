@@ -21,6 +21,19 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
+PR #436 merged as `50dc0c9f` after all 20 checks passed. Its post-merge workflows passed too.
+The next branch adds a scripted terminal-submission check for OpenCode 1.18.34.
+It captures the request, event stream, independent export, MCP calls and scripted provider requests.
+Offline tests reject duplicate answers, later calls, missing usage and mismatched source handoffs.
+GitHub runs the real client because local memory approached the existing 768-MiB capture limit.
+Do not raise the limits or rerun the stopped live collections.
+
+The live review runner still uses its historical submission protocol. After scripted checks pass,
+connect the terminal protocol to a new frozen adapter before more Kimi or GLM calls.
+This work establishes a client control, not live reliability or an efficiency advantage.
+
+## Completed recipe audit repair
+
 The user merged release PR #434 at `eae73262` (0.52.0). PR #435's 20 PR checks passed,
 but its post-merge full-workspace recipe replay timed out. The current branch removes
 unnecessary indexing for unchanged recipe steps and repairs single-file preview paths
@@ -29,7 +42,7 @@ Repository-delivery, recovery and index evidence has been refreshed and verified
 source bindings. The complete [deep run](https://github.com/e6qu/fun-refactor/actions/runs/37301872179)
 passed all 17 jobs. Its recipe test took 303.91 seconds and the whole job took 6m52s.
 The unmodified rerun took 777.19 seconds and 14m47s respectively. These are two runner samples
-with identical coverage and deadlines. Resume scripted native-submission work after CI passes.
+with identical coverage and deadlines. The repair is merged; submission controls are the active work.
 
 GitHub [37301881349](https://github.com/e6qu/fun-refactor/actions/runs/37301881349) completed
 both scripted repository tasks with 365 behavior cases on `c272d5fb`. The imported bundle

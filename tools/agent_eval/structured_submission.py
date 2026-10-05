@@ -6,7 +6,6 @@ from .study import encode, number, require
 
 SCHEMA = "fr-structured-submission-1"
 VERSION = "1.18.34"
-MODEL = "scripted/protocol"
 PROMPT = "Read module.py using read_source, then return its value with StructuredOutput."
 FORMAT = {"type": "json_schema", "retryCount": 0, "schema": {
     "type": "object", "properties": {"answer": {"type": "object"}},
@@ -15,14 +14,21 @@ FORMAT = {"type": "json_schema", "retryCount": 0, "schema": {
 
 def audit(request, terminal, messages, events, rows):
     """This format has no synthetic stop turn or synthetic MCP submission."""
-    require(request == {"model": {"providerID": "scripted", "modelID": "protocol"},
-                        "agent": "fr-submission", "format": FORMAT,
-                        "parts": [{"type": "text", "text": PROMPT}]}, "request differs")
+    require(set(request) == {"model", "agent", "format", "parts"}
+            and request["agent"] == "fr-submission" and request["format"] == FORMAT, "request differs")
+    require(set(request["model"]) == {"providerID", "modelID"}
+            and all(isinstance(v, str) and re.fullmatch(r"[\w./-]+", v) for v in request["model"].values()),
+            "invalid requested model")
+    require(len(request["parts"]) == 1 and set(request["parts"][0]) == {"type", "text"}
+            and request["parts"][0]["type"] == "text" and isinstance(request["parts"][0]["text"], str)
+            and 0 < len(request["parts"][0]["text"].encode()) <= 16384, "invalid requested prompt")
+    model = request["model"]["providerID"] + "/" + request["model"]["modelID"]
     require(2 <= len(messages) <= 13, "message budget exceeded")
     user, *assistants = messages
     session = user["info"]["sessionID"]
     require(re.fullmatch(r"ses_[A-Za-z0-9]+", session) is not None, "invalid session")
-    require(user["info"]["role"] == "user" and user["info"]["format"] == FORMAT,
+    require(user["info"]["role"] == "user" and user["info"]["format"] == FORMAT
+            and user["info"]["model"] == request["model"] and user["info"]["agent"] == request["agent"],
             "user format differs")
     require([{"type": p["type"], "text": p.get("text")} for p in user["parts"]]
             == request["parts"], "user prompt differs")
@@ -60,7 +66,7 @@ def audit(request, terminal, messages, events, rows):
         if index == 0:
             continue
         require(info["role"] == "assistant" and "error" not in info, "failed assistant response")
-        require(info["providerID"] + "/" + info["modelID"] == MODEL, "model differs")
+        require(info["providerID"] + "/" + info["modelID"] == model, "model differs")
         require(info["parentID"] == user["info"]["id"], "unexpected parent message")
         require(info["finish"] in {"stop", "tool-calls"} and info["time"].get("completed"),
                 "incomplete assistant response")
@@ -89,7 +95,8 @@ def audit(request, terminal, messages, events, rows):
     require(submitted_at == len(messages) - 1, "assistant continued after submission")
     require(sum(i == submitted_at for i, _ in tools) == 1, "other calls alongside submission")
     state = submission["state"]
-    require(state["status"] == "completed", "submission failed")
+    require(state["status"] == "completed" and state["output"] == "Structured output captured successfully.",
+            "submission failed")
     mcp.arguments(FORMAT["schema"], state["input"])
     require(len(encode(state["input"])) <= 16384, "answer exceeds budget")
     require(state["input"] == terminal["info"].get("structured"), "structured answer differs")

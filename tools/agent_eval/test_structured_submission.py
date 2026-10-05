@@ -4,10 +4,78 @@ import copy
 import io
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import native_mcp as mcp, structured_probe as probe, structured_submission as protocol
+from agent_eval.study import encode
+
+
+def capture_fixture(root):
+    request, terminal, messages, events, rows = fixture()
+    tools = [{"type": "function", "function": {"name": "rehearsal_" + t["name"],
+              "parameters": t["inputSchema"]}} for t in mcp.schemas("files") if t["name"] != "submit_answer"]
+    tools.append({"type": "function", "function": {"name": "StructuredOutput", "parameters": protocol.FORMAT["schema"]}})
+    provider = [{"model": "protocol", "tool_choice": "required", "tools": tools, "messages": []},
+                {"model": "protocol", "tool_choice": "required", "tools": tools, "messages": [
+                 {"role": "tool", "tool_call_id": "call_1_0", "content": rows[0]["response"]["content"][0]["text"]}]}]
+    process = {"exit_code": 0, "process_exit_code": 0, "stop_reason": None, "timed_out": False,
+               "launch_error": None, "monitor_error": None, "limits": {"wall_seconds": 120, "cpu_seconds": 20,
+               "rss_bytes": 768 * 1024**2, "disk_bytes": 16 * 1024**2, "transcript_bytes": 1024**2},
+               "elapsed_seconds": 1, "sampled_cpu_seconds": 1, "sampled_aggregate_rss_bytes": 100,
+               "sampled_disk_growth_bytes": 100, "transcript_bytes": 100}
+    data = {"request.json": request, "terminal.json": terminal, "messages.json": messages,
+            "export.json": {"info": {"id": "ses_control"}, "messages": messages}, "provider.json": provider,
+            "process.json": process, "identity.json": {"schema": protocol.SCHEMA,
+            "opencode_version": protocol.VERSION, "case": "one-answer", "provider_requests": 2}}
+    for name, value in data.items():
+        (root / name).write_bytes(encode(value))
+    for name, values in (("events.jsonl", events), ("tools.jsonl", rows)):
+        (root / name).write_bytes(b"".join(encode(row) + b"\n" for row in values))
+
+
+class Replay(unittest.TestCase):
+    def test_capture_replays_without_starting_a_client(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            capture_fixture(root)
+            result = probe.review(root, "one-answer")
+            self.assertTrue(result["accepted"])
+            self.assertEqual(len(result["evidence_sha256"]), 9)
+
+    def test_independent_export_provider_and_resource_changes_refuse(self):
+        mutations = [("export.json", lambda d: d["messages"].pop()),
+                     ("provider.json", lambda d: d.append(d[0])),
+                     ("provider.json", lambda d: d[1]["messages"][0].update(content="invented")),
+                     ("provider.json", lambda d: d[0]["tools"][-1]["function"].update(parameters={})),
+                     ("process.json", lambda d: d["limits"].update(rss_bytes=2**30)),
+                     ("process.json", lambda d: d.update(sampled_cpu_seconds=21)),
+                     ("process.json", lambda d: d.update(timed_out=True)),
+                     ("identity.json", lambda d: d.update(opencode_version="different"))]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, mutate in mutations:
+                capture_fixture(root)
+                path = root / name
+                data = mcp.decode(path.read_bytes())
+                mutate(data)
+                path.write_bytes(encode(data))
+                with self.subTest(name=name), self.assertRaises(ValueError):
+                    probe.review(root, "one-answer")
+
+    def test_oversized_and_symlinked_artifacts_refuse(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            capture_fixture(root)
+            path = root / "terminal.json"
+            path.write_bytes(b"x" * (probe.MAX_BYTES + 1))
+            with self.assertRaisesRegex(ValueError, "oversized"):
+                probe.review(root, "one-answer")
+            path.unlink()
+            path.symlink_to(root / "messages.json")
+            with self.assertRaisesRegex(ValueError, "missing or oversized"):
+                probe.review(root, "one-answer")
 
 
 def fixture():
@@ -20,7 +88,8 @@ def fixture():
     params = {"name": "read_source", "arguments": {"path": "module.py", "offset": 0, "bytes": 128, "sha256": ""}}
     response = server.call(params)
     rows = [mcp.decode(line) for line in log.getvalue().splitlines()]
-    messages = [{"info": {"id": "msg_user", "sessionID": session, "role": "user", "format": request["format"]},
+    messages = [{"info": {"id": "msg_user", "sessionID": session, "role": "user", "format": request["format"],
+                         "model": copy.deepcopy(request["model"]), "agent": request["agent"]},
                  "parts": [{"id": "prt_user", "sessionID": session, "messageID": "msg_user", **request["parts"][0]}]}]
     tokens = {"input": 100, "output": 10, "reasoning": 0, "cache": {"read": 0, "write": 0}}
     for index in (1, 2):

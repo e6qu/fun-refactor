@@ -6,20 +6,23 @@ from pathlib import Path
 import sys
 
 from agent_eval import structured_probe as probe, structured_submission as protocol
-from agent_eval import native_mcp as mcp
 from agent_eval.bounded_host import run
-from agent_eval.study import encode, load, require
+from agent_eval.study import encode, require
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("check", "capture", "serve"))
+    parser.add_argument("command", choices=("check", "capture", "serve", "report"))
     parser.add_argument("output", type=Path)
     parser.add_argument("--opencode", type=Path)
     parser.add_argument("--case", choices=probe.CASES)
     args = parser.parse_args()
     if args.command == "serve":
         probe.serve(args.output)
+        return
+    if args.command == "report":
+        results = [probe.review(args.output / case, case) for case in ((args.case,) if args.case else probe.CASES)]
+        print(encode({"schema": protocol.SCHEMA, "cases": results}).decode())
         return
     require(args.opencode is not None, "supply --opencode")
     if args.command == "capture":
@@ -40,20 +43,10 @@ def main():
         (folder / "process.json").write_bytes(encode(process))
         require(process["exit_code"] == 0 and process["stop_reason"] is None,
                 f"{case} capture failed: {process['stop_reason'] or process['exit_code']}; see {folder}")
-        verdict, refusal = None, None
-        try:
-            verdict = protocol.audit(load(folder / "request.json"), load(folder / "terminal.json"),
-                load(folder / "messages.json"), [mcp.decode(line) for line in (folder / "events.jsonl").read_bytes().splitlines()],
-                [mcp.decode(line) for line in (folder / "tools.jsonl").read_bytes().splitlines()])
-        except ValueError as error:
-            refusal = str(error)
-        require((verdict is not None) == (case == "one-answer"), f"unexpected {case} verdict: {refusal}")
-        if verdict:
-            require(verdict["answer"] == probe.ANSWER["answer"] and verdict["assistant_responses"] == 2,
-                    "scripted answer or model call count differs")
-        results.append({"case": case, "accepted": verdict is not None, "refusal": refusal, "audit": verdict})
+        result = probe.review(folder, case)
+        results.append(result)
         (args.output / "result.json").write_bytes(encode({"schema": protocol.SCHEMA, "cases": results}))
-        print(case + ": " + ("accepted" if verdict else refusal), flush=True)
+        print(case + ": " + ("accepted" if result["accepted"] else result["refusal"]), flush=True)
 
 
 if __name__ == "__main__":
