@@ -1,0 +1,239 @@
+{
+  "schema": "fr-review-source-reuse-1",
+  "plan_sha256": "5cab14b818e4deed5baef8f7c8c08fd7606cb686771de3404c29ac00f6fc5a8c",
+  "attempts": [
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "dotenv-reference-regressions-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "dotenv-reference-regressions"
+      },
+      "status": "failed",
+      "source_reuse": {
+        "schema": "fr-read-identity-reuse-1",
+        "observed": {
+          "source_bytes": 12688,
+          "same_path_reread_bytes": 0,
+          "identical_file_reread_bytes": 4096,
+          "additional_cross_path_reread_bytes": 4096
+        },
+        "reads": [
+          {
+            "sequence": 3,
+            "path": "baseline/src/dotenv/variables.py",
+            "sha256": "083d2a5cebefa41deae51a4140c0fda97eaf1d7ed2c96f92ba2c063054a5b74f",
+            "start": 0,
+            "end": 2348,
+            "source_bytes": 2348,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 4,
+            "path": "baseline/src/dotenv/main.py",
+            "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+            "start": 0,
+            "end": 4096,
+            "source_bytes": 4096,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 5,
+            "path": "src/dotenv/main.py",
+            "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+            "start": 0,
+            "end": 4096,
+            "source_bytes": 4096,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 4096,
+            "additional_cross_path_reread_bytes": 4096
+          },
+          {
+            "sequence": 6,
+            "path": "review/reference.json",
+            "sha256": "22f1a3729674f50942cf46290dd9a1e0fd9cac9c6bbd0c04558dcab8cda95843",
+            "start": 0,
+            "end": 1448,
+            "source_bytes": 1448,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 7,
+            "path": "review/cases.json",
+            "sha256": "a670e79cf51d8fbf5ff3bf36a4a33db146c11ad23f212db79a2c3c5b49572225",
+            "start": 0,
+            "end": 700,
+            "source_bytes": 700,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          }
+        ],
+        "all_host_results_native_confirmed": true,
+        "unparsed_host_tail_bytes": 0,
+        "complete_context_accounting": false,
+        "scope": "Replayed read-only host results, excluding initial packets. Equal whole-file hashes and overlapping byte ranges only; paths retain distinct meaning. No token or cost savings are inferred."
+      }
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "dotenv-reference-regressions-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "dotenv-reference-regressions"
+      },
+      "status": "failed",
+      "source_reuse": {
+        "schema": "fr-read-identity-reuse-1",
+        "observed": {
+          "source_bytes": 22424,
+          "same_path_reread_bytes": 22,
+          "identical_file_reread_bytes": 8236,
+          "additional_cross_path_reread_bytes": 8214
+        },
+        "reads": [
+          {
+            "sequence": 1,
+            "path": "src/dotenv/variables.py",
+            "sha256": "68d0905752c52fae363f6dff2dc50e26fd2790434b0bf994f3caf59c91524e43",
+            "start": 2603,
+            "end": 2603,
+            "source_bytes": 0,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 3,
+            "path": "baseline/src/dotenv/variables.py",
+            "sha256": "083d2a5cebefa41deae51a4140c0fda97eaf1d7ed2c96f92ba2c063054a5b74f",
+            "start": 0,
+            "end": 2348,
+            "source_bytes": 2348,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 4,
+            "path": "review/reference.json",
+            "sha256": "22f1a3729674f50942cf46290dd9a1e0fd9cac9c6bbd0c04558dcab8cda95843",
+            "start": 0,
+            "end": 1448,
+            "source_bytes": 1448,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 5,
+            "path": "src/dotenv/main.py",
+            "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+            "start": 0,
+            "end": 8192,
+            "source_bytes": 8192,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 6,
+            "path": "baseline/src/dotenv/main.py",
+            "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+            "start": 0,
+            "end": 8192,
+            "source_bytes": 8192,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 8192,
+            "additional_cross_path_reread_bytes": 8192
+          },
+          {
+            "sequence": 7,
+            "path": "baseline/src/dotenv/main.py",
+            "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+            "start": 10347,
+            "end": 10369,
+            "source_bytes": 22,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 0,
+            "additional_cross_path_reread_bytes": 0
+          },
+          {
+            "sequence": 7,
+            "path": "src/dotenv/main.py",
+            "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+            "start": 10347,
+            "end": 10369,
+            "source_bytes": 22,
+            "same_path_reread_bytes": 0,
+            "identical_file_reread_bytes": 22,
+            "additional_cross_path_reread_bytes": 22
+          },
+          {
+            "sequence": 9,
+            "path": "src/dotenv/main.py",
+            "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+            "start": 10347,
+            "end": 12547,
+            "source_bytes": 2200,
+            "same_path_reread_bytes": 22,
+            "identical_file_reread_bytes": 22,
+            "additional_cross_path_reread_bytes": 0
+          }
+        ],
+        "all_host_results_native_confirmed": true,
+        "unparsed_host_tail_bytes": 0,
+        "complete_context_accounting": false,
+        "scope": "Replayed read-only host results, excluding initial packets. Equal whole-file hashes and overlapping byte ranges only; paths retain distinct meaning. No token or cost savings are inferred."
+      }
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "packaging-reference-iterables-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "packaging-reference-iterables"
+      },
+      "status": "not_started",
+      "source_reuse": null
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "packaging-reference-iterables-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "packaging-reference-iterables"
+      },
+      "status": "not_started",
+      "source_reuse": null
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "platformdirs-reference-user-api-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "platformdirs-reference-user-api"
+      },
+      "status": "not_started",
+      "source_reuse": null
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "platformdirs-reference-user-api-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "platformdirs-reference-user-api"
+      },
+      "status": "not_started",
+      "source_reuse": null
+    }
+  ],
+  "complete_context_accounting": false,
+  "efficiency_comparison": false
+}

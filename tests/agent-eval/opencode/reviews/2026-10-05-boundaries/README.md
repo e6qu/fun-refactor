@@ -45,7 +45,45 @@ Timeouts retain observed work and unknown totals; a missing submission cannot be
 
 ## Results
 
-Not started. The committed allocation will retain every attempted call, including failures.
+Commit `2ef0d354` froze the allocation before calls. Both dotenv calls reached the wall deadline
+without a submission. The stop rule then prevented all four packaging and platformdirs calls.
+This collection is finished. Do not resume its unstarted cells or increase its limits.
+
+| Model | Outcome | Seconds | Tool calls | Tool-result bytes | Source-page bytes |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Kimi K3 | Timeout, no submission | 120.05 | 7 | 16,336 | 12,688 |
+| GLM 5.3 Flash | Timeout, no submission | 120.03 | 9 | 28,021 | 22,424 |
+
+Neither review completed, so none of the acceptance boundaries above closes. Initial packets are
+excluded from the tool totals. Complete context, unfinished-step usage and actual billing remain
+unknown. Both traces retain completed tool results; neither has an audited final session export.
+
+Kimi's only fr call used `baseline/dotenv/variables.py`, which is absent from the frozen files.
+It then read `baseline/src/dotenv/variables.py` with ordinary tools. This refusal did not concern a
+missing handle, so the schema-6 recovery hint was not exercised. GLM made no fr calls. It received
+one stale-hash refusal from an ordinary read and continued with another ordinary read. These are
+observed events, not evidence that either refusal caused the timeout or that recovery hints helped.
+
+## Identical source under different paths
+
+The existing source counters identify rereads by both path and full-file hash. They therefore miss
+identical bytes read once under `baseline/` and again under `src/`. `source-reuse.json` adds a separate
+audit using equal full-file hashes and overlapping byte ranges. It replays the retained host and native
+streams, preserves the original counters, and records each contributing source extent.
+
+| Model | Existing same-path reread bytes | Reread bytes across identical files | Additional cross-path bytes |
+| --- | ---: | ---: | ---: |
+| Kimi K3 | 0 | 4,096 | 4,096 |
+| GLM 5.3 Flash | 22 | 8,236 | 8,214 |
+
+All host results in these two prefixes have matching native stream results. Initial packets remain
+outside this audit. Shared snippets in otherwise different files do not count as identical files.
+Equal file contents do not make the paths interchangeable: module location can affect behavior.
+This measures repeated bytes, not wasted tokens, avoidable cost or an efficiency advantage.
+
+Before another collection, reduce the review to a single contract assertion and make unchanged
+before/after files apparent in the source packet. Freeze any new design separately; these results
+do not authorize retries. No new collection or live benefit from that change is claimed here.
 
 ```sh
 python3 tests/agent-eval/opencode/reviews/2026-10-05-boundaries/collect.py check

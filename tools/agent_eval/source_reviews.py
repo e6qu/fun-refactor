@@ -250,3 +250,25 @@ def report(frozen, snapshots, output):
             "failed": sum(r["status"] == "failed" for r in rows),
             "not_started": sum(r["status"] == "not_started" for r in rows),
             "claims_verified": False, "independent_task_selection": False, "efficiency_comparison": False}
+
+
+def source_reuse(frozen, snapshots, output):
+    """Derive a separate content-overlap report without rewriting retained costs."""
+    retained = report(frozen, snapshots, output)
+    plan = frozen["plan"]
+    attempts = []
+    for row in retained["attempts"]:
+        cell = row["cell"]
+        result = {"cell": cell, "status": row["status"], "source_reuse": None}
+        if row["status"] != "not_started":
+            directory = output / cell["id"]
+            stream, host = directory / "opencode.stdout", directory / "tools.jsonl"
+            task = {**next(t for t in plan["tasks"] if t["id"] == cell["task"]),
+                    "files": snapshots[cell["task"]]}
+            result["source_reuse"] = native_costs.read_identity_reuse(
+                stream.read_bytes() if stream.exists() else b"",
+                host.read_bytes() if host.exists() else b"", task, cell["arm"], plan["tools_schema_version"])
+        attempts.append(result)
+    return {"schema": "fr-review-source-reuse-1", "plan_sha256": frozen["sha256"],
+            "attempts": attempts, "complete_context_accounting": False,
+            "efficiency_comparison": False}

@@ -1,0 +1,182 @@
+{
+  "reference_repairs_disclosed": true,
+  "schema": "fr-source-review-report-2",
+  "plan_sha256": "5cab14b818e4deed5baef8f7c8c08fd7606cb686771de3404c29ac00f6fc5a8c",
+  "attempts": [
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "dotenv-reference-regressions-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "dotenv-reference-regressions"
+      },
+      "status": "failed",
+      "failure": "opencode failed: wall_seconds",
+      "wall_seconds": 120.05346387496684,
+      "review": null,
+      "costs": {
+        "session": "ses_ef54dbb81ffeh2JkHkKZsMHlJ1",
+        "observed": {
+          "host_calls": 7,
+          "native_confirmed_results": 7,
+          "fr_calls": 1,
+          "author_applies": 0,
+          "refused_calls": 1,
+          "produced_result_bytes": 16336,
+          "native_confirmed_result_bytes": 16336,
+          "edit_argument_bytes": 0,
+          "source_page_bytes": 12688,
+          "repeated_source_page_bytes": 0,
+          "native_confirmed_source_page_bytes": 12688,
+          "native_confirmed_repeated_source_page_bytes": 0,
+          "produced_only_results": 0,
+          "accepted_edits": 0,
+          "submission_observed": false
+        },
+        "usage": {
+          "finished_steps": 4,
+          "reported_tokens": {
+            "input": 10182,
+            "output": 593,
+            "reasoning": 2548,
+            "cache_read": 12544,
+            "cache_write": 0
+          },
+          "reported_cost": 0,
+          "actual_usd": null,
+          "provider_usage_verified": false,
+          "scope": "CLI-reported completed steps only. Fields retain provider semantics; do not add reasoning to output."
+        },
+        "coverage": {
+          "started_steps": 5,
+          "unfinished_steps": 1,
+          "unparsed_stream_tail_bytes": 0,
+          "unparsed_host_tail_bytes": 0,
+          "source_pages_exclude_author_diffs": false,
+          "complete_context_accounting": false,
+          "export_and_model_identity_verified": false,
+          "collection_complete": false,
+          "reported_step_usage_complete": false
+        },
+        "scope": "Retained host work and native stream confirmations. Incomplete streams provide observed lower bounds, never zero-cost failures."
+      },
+      "initial_packet": {
+        "bytes": 7724,
+        "source_bytes": 6357
+      },
+      "combined_source_before_answer": null,
+      "initial_packet_export_verified": false,
+      "actual_usd": null,
+      "claims_verified": false
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "dotenv-reference-regressions-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "dotenv-reference-regressions"
+      },
+      "status": "failed",
+      "failure": "opencode failed: wall_seconds",
+      "wall_seconds": 120.03296966699418,
+      "review": null,
+      "costs": {
+        "session": "ses_ef54b527effet2B75oZ2fFxNUK",
+        "observed": {
+          "host_calls": 9,
+          "native_confirmed_results": 9,
+          "fr_calls": 0,
+          "author_applies": 0,
+          "refused_calls": 1,
+          "produced_result_bytes": 28021,
+          "native_confirmed_result_bytes": 28021,
+          "edit_argument_bytes": 0,
+          "source_page_bytes": 22424,
+          "repeated_source_page_bytes": 22,
+          "native_confirmed_source_page_bytes": 22424,
+          "native_confirmed_repeated_source_page_bytes": 22,
+          "produced_only_results": 0,
+          "accepted_edits": 0,
+          "submission_observed": false
+        },
+        "usage": {
+          "finished_steps": 6,
+          "reported_tokens": {
+            "input": 14978,
+            "output": 473,
+            "reasoning": 3785,
+            "cache_read": 48128,
+            "cache_write": 0
+          },
+          "reported_cost": 0,
+          "actual_usd": null,
+          "provider_usage_verified": false,
+          "scope": "CLI-reported completed steps only. Fields retain provider semantics; do not add reasoning to output."
+        },
+        "coverage": {
+          "started_steps": 7,
+          "unfinished_steps": 1,
+          "unparsed_stream_tail_bytes": 0,
+          "unparsed_host_tail_bytes": 0,
+          "source_pages_exclude_author_diffs": false,
+          "complete_context_accounting": false,
+          "export_and_model_identity_verified": false,
+          "collection_complete": false,
+          "reported_step_usage_complete": false
+        },
+        "scope": "Retained host work and native stream confirmations. Incomplete streams provide observed lower bounds, never zero-cost failures."
+      },
+      "initial_packet": {
+        "bytes": 7724,
+        "source_bytes": 6357
+      },
+      "combined_source_before_answer": null,
+      "initial_packet_export_verified": false,
+      "actual_usd": null,
+      "claims_verified": false
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "packaging-reference-iterables-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "packaging-reference-iterables"
+      },
+      "status": "not_started"
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "packaging-reference-iterables-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "packaging-reference-iterables"
+      },
+      "status": "not_started"
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "platformdirs-reference-user-api-0",
+        "model": "kimi-code-plan-global/k3",
+        "task": "platformdirs-reference-user-api"
+      },
+      "status": "not_started"
+    },
+    {
+      "cell": {
+        "arm": "fr",
+        "id": "platformdirs-reference-user-api-1",
+        "model": "zai-coding-plan/glm-5.3-flash",
+        "task": "platformdirs-reference-user-api"
+      },
+      "status": "not_started"
+    }
+  ],
+  "planned": 6,
+  "completed": 0,
+  "failed": 2,
+  "not_started": 4,
+  "claims_verified": false,
+  "independent_task_selection": false,
+  "efficiency_comparison": false
+}

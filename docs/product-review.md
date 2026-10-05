@@ -149,6 +149,13 @@ handle and was refused before ordinary-file fallback. Native schema 6 now offers
 that refusal, with scripted recovery checks. Its live usefulness and full independent task review
 remain unmeasured.
 
+The [boundary collection](../tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md)
+then stopped after two more timeouts, leaving four cells unstarted. It completed no review. A separate
+audit of its retained reads finds 12,310 additional repeated bytes across paths with identical file
+contents. Same-path counters alone missed those reads. Equal contents do not make paths equivalent,
+and repeated bytes do not establish avoidable token cost. The next review design should expose
+unchanged-file context and ask about one contract assertion before allocating more calls.
+
 The [source-reading cost report](native-read-outcomes.md) now includes work from every attempt
 in the six-run source-reference pilot. Its four timeouts produced 33 tool calls and 100,968 result
 bytes. Neither ordinary-file attempt passed, so there is no successful ordinary/fr comparison pair.

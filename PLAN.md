@@ -36,7 +36,7 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: verify review claims and make fr refusals actionable
+## Current chunk: retain stopped reviews and count repeated file content
 
 PR #430 preserved eleven historical reports in lossless archives, saving 366.6 MiB per expanded
 checkout. Its 20 final checks passed. Current acceptance evidence remains unchanged.
@@ -55,6 +55,15 @@ used the old adapter. Earlier stopped review collections stay stopped, and their
 Full independent task and grader review remains open. The roadmap still has seven of eighteen
 demonstrated items, with all four milestones open. No general efficiency advantage is established.
 
+PR #431 merged after all 20 checks passed; its post-merge workflows also passed. The subsequent
+[boundary collection](tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md) used the
+recovery-capable adapter. Both dotenv reviews timed out, stopping four remaining calls. No review
+gap closed. The sole fr call used a nonexistent path, so it did not exercise missing-handle recovery.
+
+A separate source audit found repeated reads of identical files under different paths.
+It adds 4,096 bytes for Kimi and 8,214 bytes for GLM beyond the existing same-path counters. The original reports remain
+unchanged. These are observed source bytes, not measured token savings or a general efficiency claim.
+
 ## Evidence and remaining gaps
 
 | Evidence | What it establishes | What is still missing |
@@ -66,6 +75,7 @@ demonstrated items, with all four milestones open. No general efficiency advanta
 | [Narrow source-packet reviews](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) | One GitHub-verified counterexample, two timeouts and three stopped calls | Broader independent review remains open |
 | [Historical evidence archives](tests/agent-eval/EVIDENCE-ARCHIVES.md) | Eleven reports restore byte for byte; expanded checkout saves 366.6 MiB | Git history and agent-efficiency measurements remain unchanged |
 | [Reference-repair reviews](tests/agent-eval/opencode/reviews/2026-10-05-references/README.md) | Three completed narrow reviews, three timeouts, one incorrect finding rejected against execution | Full task review, valid packaging assessment and live recovery-hint usefulness remain open |
+| [Boundary reviews and source reuse](tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md) | Two timeouts, four stopped calls; exact-file overlap audit preserves repeated reads across paths | No completed review; smaller questions and clearer unchanged-file context need a new frozen design |
 | [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
 | [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 
@@ -79,6 +89,8 @@ Next steps, in order:
 1. Complete independent task and grader review with questions that fit the existing budget.
    The stopped review collections remain stopped. A different review requires a new frozen plan;
    do not increase limits or retry until a review happens to pass.
+   The latest questions still did not fit: next review one contract assertion and identify unchanged
+   before/after files before allocating more calls. Do not treat this as restarting stopped cells.
 2. Compare ordinary tools with the public fr read/edit routes and test feedback on those unfamiliar
    tasks. Freeze requirements, allowed tools, models, budgets and private checks before calls.
    Use the configured Kimi/GLM OpenCode profiles for bounded local rehearsals and GitHub for grading.

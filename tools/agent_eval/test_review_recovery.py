@@ -2,9 +2,12 @@
 import copy
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent_eval import source_reviews as reviews
 from agent_eval.study import digest, encode

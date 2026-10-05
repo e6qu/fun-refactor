@@ -424,6 +424,24 @@ exhaustion or a sampled overrun fail collection. The 120-second wall deadline an
 guard remain in force. Frozen historical runners retain their original behavior, and the report
 sums their recorded process samples without claiming the tighter rule governed those runs.
 
+### Count identical file content across paths
+
+The existing native counters key source reads by path and file hash. They preserve each path's
+meaning but miss duplicate contents read through different paths, such as unchanged before/after files.
+`agent_eval.native_costs.read_identity_reuse` adds a separate audit for read-only traces.
+It independently replays retained results, then measures overlapping byte ranges by full-file hash.
+The output retains both same-path and identical-file counts, plus each source extent.
+
+`agent_eval.source_reviews.source_reuse` applies that audit to a frozen review collection, including
+failed attempts and unstarted cells. The [boundary-review report](../tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md)
+retains one example. Its two timeouts contain 12,310 cross-path repeated bytes beyond the original
+same-path counters. Historical reports remain unchanged.
+
+Initial packets are outside these tool-read counts. Native stream matches confirm retained results;
+an incomplete stream still leaves total context and usage unknown. Equal file contents do not make
+module paths equivalent. Shared snippets in different files remain outside this conservative count.
+Repeated source bytes alone establish neither wasted tokens nor potential cost savings.
+
 ### Count unfinished source-reading work
 
 `tools/native-read-report.py` applies the shared accounting engine to read-only schemas 2, 3
