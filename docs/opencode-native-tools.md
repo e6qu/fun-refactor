@@ -1,5 +1,14 @@
 # Test OpenCode with native source tools
 
+The earlier [repository explanation trials](opencode-source-evidence.md) exposed an interaction
+problem: five of twelve attempts stopped because a model replied with prose instead of one JSON
+action. The native adapter lets OpenCode call tools during one session. It keeps the same frozen
+source snapshots and private factual rubrics. These reviewed projects are development tests;
+they are not an independent evaluation corpus.
+
+`tools/native-rehearsal.py` provides `freeze`, `run`, `report` and `review`. This adapter belongs to the
+evaluation tooling. The product remains the `fr` CLI.
+
 ## Check terminal submissions with scripted responses
 
 The live review runner still requires one `submit_answer` call followed by a completed final turn.
@@ -40,15 +49,6 @@ The report includes hashes of the nine retained inputs for each case.
 This is a scripted client control. It does not show that Kimi or GLM will submit valid answers,
 that an answer is correct for an unfamiliar repository, or that fr improves agent efficiency.
 The next live adapter needs a new frozen design and the same evidence checks.
-
-The earlier [repository explanation trials](opencode-source-evidence.md) exposed an interaction
-problem: five of twelve attempts stopped because a model replied with prose instead of one JSON
-action. The native adapter lets OpenCode call tools during one session. It keeps the same frozen
-source snapshots and private factual rubrics. These reviewed projects are development tests;
-they are not an independent evaluation corpus.
-
-`tools/native-rehearsal.py` provides `freeze`, `run`, `report` and `review`. This adapter belongs to the
-evaluation tooling. The product remains the `fr` CLI.
 
 ## Tools and limits
 

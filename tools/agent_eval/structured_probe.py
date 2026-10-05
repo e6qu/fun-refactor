@@ -72,8 +72,9 @@ def review(root, case):
         require(output["parameters"] == protocol.FORMAT["schema"], "provider output schema differs")
     before_answer = [m for m in requests[1]["messages"] if m["role"] == "tool"]
     require(len(before_answer) == 1 and before_answer[0]["tool_call_id"] == "call_1_0", "source handoff differs")
-    require(rows and rows[0]["params"] == {"name": "read_source", "arguments": {
-        "path": "module.py", "offset": 0, "bytes": 128, "sha256": ""}}, "scripted read differs")
+    require(rows and set(rows[0]["params"]) <= {"name", "arguments", "_meta"}
+            and rows[0]["params"]["name"] == "read_source" and rows[0]["params"]["arguments"] == {
+            "path": "module.py", "offset": 0, "bytes": 128, "sha256": ""}, "scripted read differs")
     require(before_answer[0]["content"] == rows[0]["response"]["content"][0]["text"], "provider did not receive source result")
     require(rows[0]["result"]["text"] == SOURCE.decode()
             and rows[0]["result"]["sha256"] == hashlib.sha256(SOURCE).hexdigest(), "scripted source differs")

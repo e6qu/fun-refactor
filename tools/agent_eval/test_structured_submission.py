@@ -85,7 +85,7 @@ def fixture():
     log = io.BytesIO()
     server = mcp.Server({"files": {"module.py": {"data": base64.b64encode(probe.SOURCE).decode(), "executable": False}},
                         "arm": "files", "binary": "unused", "workspace": "/unused", "tools_schema_version": 6}, log)
-    params = {"name": "read_source", "arguments": {"path": "module.py", "offset": 0, "bytes": 128, "sha256": ""}}
+    params = {"name": "read_source", "_meta": {"progressToken": 2}, "arguments": {"path": "module.py", "offset": 0, "bytes": 128, "sha256": ""}}
     response = server.call(params)
     rows = [mcp.decode(line) for line in log.getvalue().splitlines()]
     messages = [{"info": {"id": "msg_user", "sessionID": session, "role": "user", "format": request["format"],
