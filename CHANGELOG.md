@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.52.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.52.0...fun-refactor-v0.52.1) (2026-10-05)
+
+
+### Performance
+
+* avoid rebuilding recipe indexes for unchanged steps ([50dc0c9](https://github.com/e6qu/fun-refactor/commit/50dc0c9fd8678c7da3924f239a66f0d7cd0c6a0c))
+
 ## [0.52.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.51.0...fun-refactor-v0.52.0) (2026-10-05)
 
 
