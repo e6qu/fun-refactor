@@ -57,7 +57,8 @@
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-host-recovery/result.json",
       "changed_sources": [
-        "src/cli.rs"
+        "src/cli.rs",
+        "tests/host_recovery.rs"
       ],
       "freshness": "stale",
       "id": "host-recovery",
