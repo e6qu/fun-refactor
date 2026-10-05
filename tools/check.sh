@@ -50,6 +50,8 @@ if [ "$slice" = study ]; then
     python3 tools/agent_eval/test_source_reviews.py
     python3 tools/agent_eval/test_review_recovery.py
     python3 tools/agent_eval/test_source_identity_reuse.py
+    python3 tools/agent_eval/test_source_comparison.py
+    python3 tools/agent_eval/test_assertion_reviews.py
     python3 tools/agent_eval/test_native_read_outcomes.py
     python3 tools/agent_eval/test_external_environment.py
     python3 tools/test_fetch_verified_ranges.py

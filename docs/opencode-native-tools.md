@@ -442,6 +442,20 @@ an incomplete stream still leaves total context and usage unknown. Equal file co
 module paths equivalent. Shared snippets in different files remain outside this conservative count.
 Repeated source bytes alone establish neither wasted tokens nor potential cost savings.
 
+### Identify unchanged files before a review
+
+`agent_eval.source_packets.compare(files, pairs)` builds bounded identity context for selected
+before/after files. Each pair names both paths and records SHA-256, byte length and executable mode.
+Content equality and mode equality are separate flags. `check_comparison` recomputes the result
+from the frozen snapshot and rejects stale identities or substituted metadata types.
+
+The [single-assertion collection](../tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md)
+includes this context as a frozen source file in each initial packet. Its bytes count toward the
+existing source and packet limits. Unselected files remain unknown, and equal bytes at different
+paths do not establish equal behavior. This collection completed three reviews covering two assertions
+before two submission failures stopped the final cell. No attempt called fr; there is no matched
+comparison attributing fewer reads to this metadata.
+
 ### Count unfinished source-reading work
 
 `tools/native-read-report.py` applies the shared accounting engine to read-only schemas 2, 3

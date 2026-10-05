@@ -36,7 +36,7 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: retain stopped reviews and count repeated file content
+## Current chunk: review concrete assertions and expose the remaining gaps
 
 PR #430 preserved eleven historical reports in lossless archives, saving 366.6 MiB per expanded
 checkout. Its 20 final checks passed. Current acceptance evidence remains unchanged.
@@ -64,6 +64,19 @@ A separate source audit found repeated reads of identical files under different 
 It adds 4,096 bytes for Kimi and 8,214 bytes for GLM beyond the existing same-path counters. The original reports remain
 unchanged. These are observed source bytes, not measured token savings or a general efficiency claim.
 
+The [single-assertion collection](tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md)
+was frozen at `c938151b` before calls. Packets identify selected changed and unchanged files and
+include one scoped grader assertion. Kimi and GLM completed the two-object identity review; Kimi
+also completed the rejected-directory review. All three found no scoped contradiction.
+GLM then answered as text without submitting; Kimi's next attempt submitted four times.
+Those two protocol failures stopped the final cell. All five attempts finished within budget.
+There were no fr calls, so neither tool adoption nor an efficiency advantage is established.
+
+The [requirement review table](docs/candidate-review-status.md) names the completed review and gaps
+for each requirement family. Two assertions now have completed review; whole-task acceptance stays
+open. Before more live calls, address reliable native submission using scripted checks and a new
+frozen design. This collection and every earlier stopped collection remain stopped.
+
 ## Evidence and remaining gaps
 
 | Evidence | What it establishes | What is still missing |
@@ -76,6 +89,7 @@ unchanged. These are observed source bytes, not measured token savings or a gene
 | [Historical evidence archives](tests/agent-eval/EVIDENCE-ARCHIVES.md) | Eleven reports restore byte for byte; expanded checkout saves 366.6 MiB | Git history and agent-efficiency measurements remain unchanged |
 | [Reference-repair reviews](tests/agent-eval/opencode/reviews/2026-10-05-references/README.md) | Three completed narrow reviews, three timeouts, one incorrect finding rejected against execution | Full task review, valid packaging assessment and live recovery-hint usefulness remain open |
 | [Boundary reviews and source reuse](tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md) | Two timeouts, four stopped calls; exact-file overlap audit preserves repeated reads across paths | No completed review; smaller questions and clearer unchanged-file context need a new frozen design |
+| [Single-assertion reviews](tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md) | Three completed reviews cover two assertions; exact before/after identity context; two retained submission failures | Reliable native submission and the remaining requirement families; no fr adoption or efficiency evidence |
 | [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
 | [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
 
@@ -89,8 +103,9 @@ Next steps, in order:
 1. Complete independent task and grader review with questions that fit the existing budget.
    The stopped review collections remain stopped. A different review requires a new frozen plan;
    do not increase limits or retry until a review happens to pass.
-   The latest questions still did not fit: next review one contract assertion and identify unchanged
-   before/after files before allocating more calls. Do not treat this as restarting stopped cells.
+   Single-assertion packets with unchanged-file context produced three completed reviews, then two
+   submission failures. Check the [explicit gaps](docs/candidate-review-status.md); first address
+   native submission with scripted checks. Any new calls need a new frozen design, not restarted cells.
 2. Compare ordinary tools with the public fr read/edit routes and test feedback on those unfamiliar
    tasks. Freeze requirements, allowed tools, models, budgets and private checks before calls.
    Use the configured Kimi/GLM OpenCode profiles for bounded local rehearsals and GitHub for grading.
