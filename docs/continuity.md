@@ -58,7 +58,7 @@ hashes and original Git blob IDs. The latest acceptance report and its source-bo
 unchanged. The conversion preserves all samples and failures; no roadmap acceptance item closes.
 Release PR #429 merged at `ced10cb8`; its post-merge release workflow passed. Its earlier PR runs
 contained no jobs and supplied no test evidence. PR #430's post-merge release workflow passed;
-deep validation and Pages were still queued at the latest check.
+deep validation and Pages also passed.
 
 The current [reference reviews](../tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
 were frozen at `6d3b5c79` with proposed reference source explicitly disclosed. All six calls finished:
@@ -74,6 +74,23 @@ remain unchanged. Scripted recovery and replay pass; no live recovery benefit ha
 PR #431 also lets native/static jobs queue independently of the standalone Zig cache check.
 Each job retains its own pinned, checksum-verified toolchain installation and existing deadline.
 The [CI guide](ci.md) records the observed queue delay and cold-cache tradeoff; no test is removed.
+
+PR #431 merged at `0fd64365` after all 20 checks passed. Its post-merge deep validation, release and
+Pages workflows passed. The user merged release PR #432 at `3a66e140`; this branch incorporates it.
+Its original PR workflows had no jobs, so they provide no test evidence. Post-merge checks are tracked
+separately from that empty run.
+
+The [boundary reviews](../tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md) were frozen
+at `2ef0d354` with native schema 6. Both dotenv calls timed out without submissions, stopping the four
+remaining cells. Never resume this collection. There were 16 calls and 44,357 tool-result bytes;
+complete usage and billing remain unknown. The lone fr call used a nonexistent path; it did not
+exercise handle recovery. No independent task-review gap closes.
+
+`native_costs.read_identity_reuse` replays read-only traces and adds a separate exact-file overlap
+audit. `source_reviews.source_reuse` binds it to a frozen collection and retains unstarted cells.
+It detects 12,310 bytes repeated across paths beyond existing counters in the two failed attempts.
+Old reports and counters remain unchanged. File identities do not imply equivalent module behavior.
+Before further calls, narrow the question to one contract assertion and expose unchanged-file context.
 
 GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
 the location and repository evidence against `20688a31`. It checked 11 semantic links with zero

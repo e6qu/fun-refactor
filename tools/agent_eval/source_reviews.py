@@ -71,6 +71,14 @@ def freeze_reference(questions, models, binary, opencode, provenance):
     return frozen, snapshots
 
 
+def freeze_recovery_reference(questions, models, binary, opencode, provenance):
+    """Opt a new reference review into scoped discovery recovery hints."""
+    frozen, snapshots = freeze_reference(questions, models, binary, opencode, provenance)
+    frozen["plan"].update(tools_schema_version=6, tools={"fr": refs.recovery_schemas("fr")})
+    frozen["sha256"] = digest(frozen["plan"])
+    return frozen, snapshots
+
+
 def checked(frozen, snapshots, *, execution=False):
     plan = frozen["plan"]
     require(isinstance(plan["models"], list) and 1 <= len(plan["models"]) <= 4
@@ -86,7 +94,11 @@ def checked(frozen, snapshots, *, execution=False):
     require(plan["reference_repairs_disclosed"] is (plan["schema"] == REFERENCE_SCHEMA),
             "reference disclosure does not match the review protocol")
     require(plan["prompt"] == PROMPT and plan["limits"] == native.LIMITS, "review protocol changed")
-    require(plan["tools_schema_version"] == 4 and plan["tools"] == {"fr": refs.schemas("fr")}, "review tools changed")
+    version = plan["tools_schema_version"]
+    require(type(version) is int and version in (4, 6), "invalid review tool version")
+    require(version == 4 or plan["schema"] == REFERENCE_SCHEMA, "recovery requires reference review protocol")
+    expected_tools = refs.recovery_schemas("fr") if version == 6 else refs.schemas("fr")
+    require(plan["tools"] == {"fr": expected_tools}, "review tools changed")
     require(plan["stop_after_consecutive_failures"] == 2 and plan["retries"] == 0, "review stop rule changed")
     require(plan["cells"] == [{"id": t["id"] + "-" + str(i), "task": t["id"], "model": m, "arm": "fr"}
                              for t in plan["tasks"] for i, m in enumerate(plan["models"])], "review allocation changed")
@@ -151,7 +163,7 @@ def collect(frozen, snapshots, cell_id, output, binary, opencode):
         unpack(task["files"], workspace, legacy.MAX_WORKSPACE)
         config = Path(temporary) / "server.json"
         config.write_bytes(encode({"files": task["files"], "arm": cell["arm"], "binary": str(binary),
-                                  "workspace": str(workspace), "tools_schema_version": 4}))
+                                  "workspace": str(workspace), "tools_schema_version": plan["tools_schema_version"]}))
         env = native.environment(config, directory / "tools.jsonl", PROMPT)
 
         def execute(command, data, name):
@@ -212,7 +224,7 @@ def report(frozen, snapshots, output):
         task = {**next(t for t in plan["tasks"] if t["id"] == cell["task"]), "files": snapshots[cell["task"]]}
         stream, log = directory / "opencode.stdout", directory / "tools.jsonl"
         costs = native_costs.observed(stream.read_bytes() if stream.exists() else b"",
-            log.read_bytes() if log.exists() else b"", task, cell["arm"], 4, read_only=True)
+            log.read_bytes() if log.exists() else b"", task, cell["arm"], plan["tools_schema_version"], read_only=True)
         review, context = None, None
         if record["status"] == "completed":
             require(all(p["exit_code"] == 0 and p["stop_reason"] is None for p in record["processes"]), "completed review has a failed process")
@@ -238,3 +250,25 @@ def report(frozen, snapshots, output):
             "failed": sum(r["status"] == "failed" for r in rows),
             "not_started": sum(r["status"] == "not_started" for r in rows),
             "claims_verified": False, "independent_task_selection": False, "efficiency_comparison": False}
+
+
+def source_reuse(frozen, snapshots, output):
+    """Derive a separate content-overlap report without rewriting retained costs."""
+    retained = report(frozen, snapshots, output)
+    plan = frozen["plan"]
+    attempts = []
+    for row in retained["attempts"]:
+        cell = row["cell"]
+        result = {"cell": cell, "status": row["status"], "source_reuse": None}
+        if row["status"] != "not_started":
+            directory = output / cell["id"]
+            stream, host = directory / "opencode.stdout", directory / "tools.jsonl"
+            task = {**next(t for t in plan["tasks"] if t["id"] == cell["task"]),
+                    "files": snapshots[cell["task"]]}
+            result["source_reuse"] = native_costs.read_identity_reuse(
+                stream.read_bytes() if stream.exists() else b"",
+                host.read_bytes() if host.exists() else b"", task, cell["arm"], plan["tools_schema_version"])
+        attempts.append(result)
+    return {"schema": "fr-review-source-reuse-1", "plan_sha256": frozen["sha256"],
+            "attempts": attempts, "complete_context_accounting": False,
+            "efficiency_comparison": False}

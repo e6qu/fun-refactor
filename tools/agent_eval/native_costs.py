@@ -141,3 +141,36 @@ def observed(raw, host, task, arm, version, *, read_only=False):
                          "source_pages_exclude_author_diffs": not read_only, "complete_context_accounting": False,
                          "export_and_model_identity_verified": False},
             "scope": "Retained host work and native stream confirmations. Incomplete streams provide observed lower bounds, never zero-cost failures."}
+
+
+def read_identity_reuse(raw, host, task, arm, version):
+    """Count exact-file content rereads across paths without changing old metrics."""
+    audited = observed(raw, host, task, arm, version, read_only=True)
+    rows, tail = prefix(host, mcp.MAX_LOG)
+    paths, identities, reads = {}, {}, []
+    totals = {"source_bytes": 0, "same_path_reread_bytes": 0,
+              "identical_file_reread_bytes": 0, "additional_cross_path_reread_bytes": 0}
+    for row in rows:
+        params, result = row["params"], row["result"]
+        if "error" in result or params["name"] == "submit_answer":
+            continue
+        request = mcp.request(params["name"], params.get("arguments", {}))
+        for span in discovery.disclosed(task["files"], request, result):
+            path, sha, start, end = (span[k] for k in ("path", "sha256", "start", "end"))
+            same_path = overlap(paths.setdefault((path, sha), []), start, end)
+            identical = overlap(identities.setdefault(sha, []), start, end)
+            counts = {"source_bytes": end - start, "same_path_reread_bytes": same_path,
+                      "identical_file_reread_bytes": identical,
+                      "additional_cross_path_reread_bytes": identical - same_path}
+            require(identical >= same_path, "content overlap is smaller than path overlap")
+            for key, value in counts.items():
+                totals[key] += value
+            reads.append({"sequence": row["sequence"], "path": path, "sha256": sha,
+                          "start": start, "end": end, **counts})
+    require(totals["source_bytes"] == audited["observed"]["source_page_bytes"]
+            and totals["same_path_reread_bytes"] == audited["observed"]["repeated_source_page_bytes"],
+            "source identity accounting differs from original path counters")
+    return {"schema": "fr-read-identity-reuse-1", "observed": totals, "reads": reads,
+            "all_host_results_native_confirmed": audited["observed"]["produced_only_results"] == 0,
+            "unparsed_host_tail_bytes": tail, "complete_context_accounting": False,
+            "scope": "Replayed read-only host results, excluding initial packets. Equal whole-file hashes and overlapping byte ranges only; paths retain distinct meaning. No token or cost savings are inferred."}
