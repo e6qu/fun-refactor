@@ -41,7 +41,7 @@ def answer(packet):
 def transcript(plan, task, submitted, calls=None):
     log = io.BytesIO()
     server = mcp.Server({"files": task["files"], "arm": "fr", "binary": "fr", "workspace": "/unused",
-                         "tools_schema_version": 4}, log)
+                         "tools_schema_version": plan.get("tools_schema_version", 4)}, log)
     batches = calls or [[{"name": "submit_answer", "arguments": {"answer": submitted}}], []]
     events, messages = [], [{"info": {"role": "user"}, "parts": [{"type": "text",
         "text": plan["prompt"] + "\nTask:\n" + task["requirement"]}]}]
