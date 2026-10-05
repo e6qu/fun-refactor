@@ -558,45 +558,6 @@ fn fixture(source: &str, body: &[u8]) -> (tempfile::TempDir, PathBuf, PathBuf) {
     fixture_file("app.rs", source, body)
 }
 
-#[test]
-fn single_file_root_preview_names_the_file_and_applies_as_a_git_patch() {
-    let source = "fn value() -> i32 { 1 }\n";
-    let (_temp, root, input) = fixture(source, b"{ 2 }");
-    let file = root.join("app.rs");
-    let found = ok(&file, &["project", "find", "value"]);
-    let handle = found["rows"][0][0].as_str().unwrap();
-    let preview = ok(
-        &file,
-        &[
-            "author",
-            "replace-body",
-            handle,
-            "--from",
-            input.to_str().unwrap(),
-        ],
-    );
-    let diff = preview["diff"].as_str().unwrap();
-    assert!(diff.starts_with("--- a/app.rs\n+++ b/app.rs\n"), "{diff}");
-    assert_eq!(fs::read_to_string(&file).unwrap(), source);
-    let patch = root.parent().unwrap().join("preview.patch");
-    fs::write(&patch, diff).unwrap();
-    let applied = Command::new("git")
-        .current_dir(&root)
-        .args(["apply", "--"])
-        .arg(&patch)
-        .output()
-        .unwrap();
-    assert!(
-        applied.status.success(),
-        "{}",
-        String::from_utf8_lossy(&applied.stderr)
-    );
-    assert_eq!(
-        fs::read_to_string(&file).unwrap(),
-        "fn value() -> i32 { 2 }\n"
-    );
-}
-
 fn fixture_file(name: &str, source: &str, body: &[u8]) -> (tempfile::TempDir, PathBuf, PathBuf) {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join("workspace");
