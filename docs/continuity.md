@@ -51,12 +51,29 @@ accepted by the old dotenv grader. GitHub job `111408265330` verified the same w
 the old grader and fails only the new case. The reference passes. The collection retains both grades
 in `counterexample.json`; full task review and agent-efficiency comparisons remain open.
 
-The current change compresses eleven historical flow-cache reports, saving 366.6 MiB in an
+PR #430 merged at `db850bc3` after all 20 final checks passed. It compresses eleven historical
+flow-cache reports, saving 366.6 MiB in an
 expanded checkout. The [restoration guide](../tests/agent-eval/EVIDENCE-ARCHIVES.md) records exact
 hashes and original Git blob IDs. The latest acceptance report and its source-bound evaluator stay
 unchanged. The conversion preserves all samples and failures; no roadmap acceptance item closes.
 Release PR #429 merged at `ced10cb8`; its post-merge release workflow passed. Its earlier PR runs
-contained no jobs and supplied no test evidence. Current full checks must pass on this branch.
+contained no jobs and supplied no test evidence. PR #430's post-merge release workflow passed;
+deep validation and Pages were still queued at the latest check.
+
+The current [reference reviews](../tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
+were frozen at `6d3b5c79` with proposed reference source explicitly disclosed. All six calls finished:
+three completed Kimi reviews and three GLM timeouts. No retries or larger limits were used. Two
+reviews found no scoped issue. Kimi's packaging finding was wrong about exclusive post-release
+comparison; exact source and a retained GitHub control artifact refute it. Keep the original finding
+and separate rejection. The graders and references are unchanged; full task acceptance remains open.
+
+Kimi's only fr request was refused because behavior mode lacked a handle. New native schema 6,
+selected with `native-rehearsal.py freeze --recovery-hints`, returns a names query after that refusal.
+It preserves selectors and performs no automatic extra call. Schemas 1–5 and historical reports
+remain unchanged. Scripted recovery and replay pass; no live recovery benefit has been measured.
+PR #431 also lets native/static jobs queue independently of the standalone Zig cache check.
+Each job retains its own pinned, checksum-verified toolchain installation and existing deadline.
+The [CI guide](ci.md) records the observed queue delay and cold-cache tradeoff; no test is removed.
 
 GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
 the location and repository evidence against `20688a31`. It checked 11 semantic links with zero

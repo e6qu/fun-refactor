@@ -62,6 +62,13 @@ The follow-up [source-based reviews](../reviews/2026-10-04-native/README.md) als
 two timeouts. They retained 17 source-tool calls but no submitted findings. The later packet
 collection completed one narrow review before two more timeouts. Full independent review remains open.
 
+The [reference-repair collection](../reviews/2026-10-05-references/README.md) completed three narrow
+Kimi reviews and retained three GLM timeouts. Unlike earlier reviews, it disclosed the proposed
+reference code. Dotenv precedence and absolute XDG site-path reviews found no contradiction. A
+packaging finding was rejected against exact source, the specification and successful GitHub execution.
+The grader and reference remain unchanged. The collection lists the unreviewed requirements; it does
+not accept these tasks for live comparison.
+
 ## Validate on GitHub
 
 Each task has its own five-minute CI job. It compares the archive's file bytes and executable modes

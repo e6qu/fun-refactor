@@ -24,6 +24,8 @@ def main():
     freeze.add_argument("--source-references", action="store_true", help="Freeze direct source reads and citations by disclosed source ID")
     freeze.add_argument("--focused-pages", action="store_true",
                         help="Expose source-only and relationship-only fr pages; requires --source-references")
+    freeze.add_argument("--recovery-hints", action="store_true",
+                        help="Expose actionable handle refusals, source references and focused pages")
     run = commands.add_parser("run")
     run.add_argument("plan", type=Path)
     run.add_argument("cell")
@@ -42,7 +44,10 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "freeze":
-            result = opencode_native.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve(), args.guidance, source_references=args.source_references, focused_pages=args.focused_pages)
+            if args.recovery_hints:
+                result = opencode_native.freeze_recovery(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve(), args.guidance)
+            else:
+                result = opencode_native.freeze(load(args.manifest), args.manifest.resolve().parent, args.binary.resolve(), args.guidance, source_references=args.source_references, focused_pages=args.focused_pages)
         elif args.command in {"report", "review"}:
             if args.command == "review":
                 policy = source_coverage.POLICY if args.contiguous_source else None

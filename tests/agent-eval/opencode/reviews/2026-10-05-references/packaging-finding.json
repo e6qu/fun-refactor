@@ -1,0 +1,34 @@
+{
+  "schema": "fr-reference-finding-verdict-1",
+  "review_plan_sha256": "54afb4b382e9aab787d393ebaf1dc1ec050aa9042d3611cf99f4d8351d7a8cab",
+  "cell": "packaging-reference-policy-0",
+  "finding_index": 0,
+  "finding_sha256": "da0babca740121aec5a1a033dfe88c643f5b24834e086a796799ca94bb0162bc",
+  "decision": "rejected",
+  "reason": "Version ordering does not determine exclusive specifier membership. >1.0 excludes 1.0.post1; the proposed reference returns 1.1a1 on the disputed input, as the existing grader requires.",
+  "specification": {
+    "url": "https://packaging.python.org/en/latest/specifications/version-specifiers/#exclusive-ordered-comparison",
+    "checked_date": "2026-10-05",
+    "rule": "An exclusive lower bound excludes post-releases of its own base version unless the bound itself is a post-release."
+  },
+  "source": {
+    "path": "src/packaging/specifiers.py",
+    "sha256": "e8f5f3afc641d4ee6a1f4a095214b1dd8fc7dce7cd7e91051992849b368fd1ab",
+    "end": 18904,
+    "start": 17440,
+    "text": "def _compare_greater_than(self, prospective: Version, spec_str: str) -> bool:\n        # Convert our spec to a Version instance, since we'll want to work with\n        # it as a version.\n        spec = Version(spec_str)\n\n        # Check to see if the prospective version is greater than the spec\n        # version. If it's not we can short circuit and just return False now\n        # instead of doing extra unneeded work.\n        if not prospective > spec:\n            return False\n\n        # This special case is here so that, unless the specifier itself\n        # includes is a post-release version, that we do not accept\n        # post-release versions for the version mentioned in the specifier\n        # (e.g. >3.1 should not match 3.0.post0, but should match 3.2.post0).\n        if not spec.is_postrelease and prospective.is_postrelease:\n            if Version(prospective.base_version) == Version(spec.base_version):\n                return False\n\n        # Ensure that we do not allow a local version of the version mentioned\n        # in the specifier, which is technically greater than, to match.\n        if prospective.local is not None:\n            if Version(prospective.base_version) == Version(spec.base_version):\n                return False\n\n        # If we've gotten to here, it means that prospective version is both\n        # greater than the spec version *and* it's not a pre-release of the\n        # same version in the spec.\n        return True"
+  },
+  "evidence": {
+    "run_id": 37225639111,
+    "job_id": 111504601805,
+    "head_sha": "6bfd54073905bb59a66b97ef06efd1d00006f4a2",
+    "artifact_id": 11312073466,
+    "artifact_sha256": "85f5133439dfba82d747619cbc665703fb944ae61994f0855267ad511fa9c9af",
+    "artifact_path": "packaging-controls.zip",
+    "control": "packaging-prerelease/reference",
+    "case": "bounds-and-exclusions",
+    "submission_sha256": "94838f4c8209546f0aa8e5e3735b808fbed2db90a925148632a5a30c52194e3a",
+    "grader_sha256": "5ffa7f777f8c1bdd788984f53a2e5a40e1574b21110b3ce52a26b30473eccc78"
+  },
+  "scope": "Rejects this exact finding; does not accept all task requirements or establish general reference correctness."
+}
