@@ -12,7 +12,7 @@ def cohort(root):
     source = opencode_native.checked(frozen)
     plan = frozen["plan"]
     version = plan.get("tools_schema_version", 1)
-    require(version in (2, 3, 4, 5), "native cost replay needs an explicit supported tool schema")
+    require(version in (2, 3, 4, 5, 6), "native cost replay needs an explicit supported tool schema")
     rows = []
     for record in original["attempts"]:
         cell, status = record["cell"], record["status"]
