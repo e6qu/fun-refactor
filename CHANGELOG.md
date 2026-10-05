@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.52.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.51.0...fun-refactor-v0.52.0) (2026-10-05)
+
+
+### Features
+
+* audit duplicate source reads in bounded reviews ([61f0ec9](https://github.com/e6qu/fun-refactor/commit/61f0ec9ad64cf9554339bb8b1f8aea7fb3378e34))
+* review concrete assertions with file identity context ([5847a50](https://github.com/e6qu/fun-refactor/commit/5847a503dd549070c874160159505ac019cf43dc))
+
 ## [0.51.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.50.0...fun-refactor-v0.51.0) (2026-10-05)
 
 
