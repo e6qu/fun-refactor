@@ -35,7 +35,7 @@ class CandidateControls(unittest.TestCase):
         for task in tasks:
             original, rows, public = controls.definitions(PACK, task)
             before = copy.deepcopy(original)
-            self.assertEqual(len(rows), 8 if task["id"] == "dotenv-alternate" else 7)
+            self.assertEqual(len(rows), 7 if task["id"] == "platformdirs-xdg" else 8)
             self.assertTrue(all(row["expected_public"] == "passed" for row in rows[1:]))
             for row in rows:
                 with self.subTest(task=task["id"], control=row["id"]):

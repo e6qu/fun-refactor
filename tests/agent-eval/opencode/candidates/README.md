@@ -29,7 +29,7 @@ only the release's version metadata before importing the package. Directory beha
 from the submitted source. There is no package installation or dependency download inside a check.
 
 `public-checks.json` contains one visible example per task. The three private grader files contain
-23 cases in total, covering boundaries and preserved behavior. Private commands and expected results
+24 cases in total, covering boundaries and preserved behavior. Private commands and expected results
 remain outside the agent's source bundle and tool surface. Publishing this pack makes them inspectable
 by reviewers; they are not confidential once published.
 
@@ -39,7 +39,7 @@ the exact private cases each variant must fail. Every incomplete repair is expec
 public example and fail private cases. A syntax error or broken import cannot substitute for the
 declared pattern of failures.
 
-Seven controls target omissions in the original graders. Each must pass its unchanged
+Eight controls target omissions in the original graders. Each must pass its unchanged
 public example and the frozen private grader in `review-baseline/`, then fail exactly its named
 case in the strengthened grader. Both grades bind to the same submitted source and pinned image.
 
@@ -48,12 +48,14 @@ case in the strengthened grader. Both grades bind to the same submitted source a
 | dotenv | Erase ordinary substitutions | `ordinary-values` |
 | dotenv | Give process values precedence in `dotenv_values` | `values-precedence` |
 | dotenv | Recursively expand an alternate word | `flat-braces` |
+| packaging | Reuse the first object for equal duplicate values | `duplicate-final-identity` |
 | packaging | Accept every version in `SpecifierSet.contains` | `contains-policy` |
 | packaging | Return nothing from individual `Specifier.filter` | `individual-filter` |
 | platformdirs | Create directories before rejecting relative entries | `site-creation` |
 | platformdirs | Also reject relative runtime-directory values | `unrelated-directories` |
 
-Six are task-author counterexamples. The recursive-expansion control follows a completed Kimi
+Six are task-author counterexamples. A new duplicate-identity control follows the
+[configured-client review](../reviews/2026-10-06-configured/README.md); its hosted comparison is pending. The recursive-expansion control follows a completed Kimi
 [source-packet review](../reviews/2026-10-04-packets/README.md). GitHub verified that control against
 the old and new graders and retained both results with the passing reference repair. The bounded
 [OpenCode review attempts](../reviews/2026-10-03-candidates/README.md) retained two timeouts and
@@ -84,8 +86,8 @@ coverage and remaining gaps; these tasks remain unaccepted for the independent l
 
 Each task has its own five-minute CI job. It compares the archive's file bytes and executable modes
 against GitHub's pinned Git tree, then grades unchanged source, references and incomplete repairs.
-That is 22 code variants and 230 container case executions across the pack: 169 strengthened private
-cases, 22 public examples and 39 original private cases for the seven omission controls. Jobs retain
+That is 23 code variants and 253 container case executions across the pack: 184 strengthened private
+cases, 23 public examples and 46 original private cases for the eight omission controls. Jobs retain
 public, current and original private grades, source and upstream tree identities as artifacts, including
 when a control fails. Containers use the existing pinned image and isolated grader limits.
 

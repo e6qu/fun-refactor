@@ -24,6 +24,30 @@ def configured():
 
 
 class Configured(unittest.TestCase):
+    def test_retained_reviews_replay_and_resource_stop_stays_closed(self):
+        import hashlib
+        from agent_eval import source_reviews
+        root = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode/reviews/2026-10-06-configured"
+        frozen = json.loads((root / "frozen/plan.json").read_bytes())
+        result = review.report(frozen, source_reviews.read_inputs(root / "frozen"), root / "attempts")
+        self.assertEqual(result, json.loads((root / "report.json").read_bytes()))
+        self.assertEqual([result[k] for k in ("completed", "failed", "not_started")], [3, 1, 2])
+        stop = json.loads((root / "stop.json").read_bytes())
+        self.assertEqual(stop["plan_sha256"], frozen["sha256"])
+        self.assertEqual(stop["reason"], "local_resource_limit")
+        self.assertFalse(stop["resume_allowed"])
+        self.assertEqual(stop["unstarted_cells"], [row["cell"]["id"] for row in result["attempts"] if row["status"] == "not_started"])
+        failed = next(row for row in result["attempts"] if row["cell"]["id"] == stop["cell"])
+        self.assertEqual(failed["status"], "failed")
+        process = failed["process"]
+        self.assertEqual(process["stop_reason"], stop["stop_reason"])
+        self.assertEqual(process["stop_reason"], "rss_bytes")
+        self.assertEqual(process["exit_code"], 125)
+        raw = (root / "attempts" / stop["cell"] / "process.json").read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), stop["process_sha256"])
+        self.assertEqual(sum(row.get("observed", {}).get("fr_calls", 0) for row in result["attempts"]), 0)
+        self.assertFalse(result["efficiency_comparison"])
+
     def test_admission_uses_no_hosted_key_and_keeps_client_configuration(self):
         frozen, snapshots = configured()
         model = frozen["plan"]["models"][0]
