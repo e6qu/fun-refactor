@@ -18,14 +18,15 @@ def main():
     freeze.add_argument("output", type=Path)
     freeze.add_argument("--fr", type=Path, required=True)
     freeze.add_argument("--opencode", type=Path, required=True)
-    for name in ("collect", "capture"):
+    for name in ("collect", "capture", "preflight", "collect-all"):
         command = commands.add_parser(name)
         command.add_argument("inputs", type=Path)
-        command.add_argument("cell")
+        if name in ("collect", "capture"):
+            command.add_argument("cell")
         command.add_argument("output", type=Path)
         command.add_argument("--fr", type=Path, required=True)
         command.add_argument("--opencode", type=Path, required=True)
-        if name == "capture":
+        if name in ("capture", "collect-all"):
             command.add_argument("--plan-sha", required=True)
     report = commands.add_parser("report")
     report.add_argument("inputs", type=Path)
@@ -53,6 +54,11 @@ def main():
     snapshots = source_reviews.read_inputs(inputs)
     if args.command == "report":
         result = review.report(frozen, snapshots, args.output.resolve())
+    elif args.command in ("preflight", "collect-all"):
+        from agent_eval import terminal_review_collection as collection
+        params = (frozen, snapshots, args.output.resolve(), args.fr.resolve(), args.opencode.resolve())
+        result = (collection.preflight(*params) if args.command == "preflight" else
+                  collection.collect_all(*params, inputs, args.plan_sha))
     elif args.command == "collect":
         result = runner.collect(frozen, snapshots, args.cell, args.output.resolve(),
                                 args.fr.resolve(), args.opencode.resolve(), inputs)
