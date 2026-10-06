@@ -1,0 +1,145 @@
+{
+  "schema": "fr-terminal-review-design-1",
+  "source_archive": {
+    "path": "tests/agent-eval/opencode/reviews/2026-10-05-assertions/inputs.json.gz",
+    "sha256": "7a7c81cd1c4c7e4905764c81c25996b1f7f284ec6ac8303b2b4d6b09bd89a371"
+  },
+  "models": [
+    {
+      "providerID": "kimi-code-plan-global",
+      "modelID": "k3",
+      "context": 32768,
+      "output": 2048,
+      "configured": true
+    },
+    {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash",
+      "context": 32768,
+      "output": 2048,
+      "configured": true
+    }
+  ],
+  "questions": [
+    {
+      "id": "dotenv-disabled-interpolation",
+      "source_task": "dotenv-absent-alternate",
+      "question": "Source under src/ is the author's proposed reference, not a proven answer. Original source is under baseline/src/. The supplied file comparison records equal or changed bytes, not equivalent behavior. Review only the stated input and assertion. Check only dotenv_values(stream=StringIO('A=${BASE:+chosen}\\n'), interpolate=False): the grader expects the literal '${BASE:+chosen}'. Does that expectation contradict the requirement or does the reference interpolate this value anyway? Exclude enabled interpolation and all other APIs and inputs.",
+      "selections": [
+        {
+          "path": "review/requirement.txt",
+          "sha256": "7e11006c6993b31dcacbe9818bbb3c2c2c168dc1f0b81680c4f95b1e7f98e019",
+          "start": 0,
+          "end": 665
+        },
+        {
+          "path": "review/file-comparison.json",
+          "sha256": "e9440a4423214f20231a06501a8468d5b7ec7e9d9373e9b5427dbd889050c371",
+          "start": 0,
+          "end": 854
+        },
+        {
+          "path": "review/grader.py",
+          "sha256": "ac05aa7ba1563ba079da7a5d331c137a2f6e9145c28851a75bf98f21a2e736f8",
+          "start": 1671,
+          "end": 1803
+        },
+        {
+          "path": "src/dotenv/main.py",
+          "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+          "start": 15319,
+          "end": 16648
+        },
+        {
+          "path": "src/dotenv/main.py",
+          "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+          "start": 1160,
+          "end": 1974
+        },
+        {
+          "path": "src/dotenv/main.py",
+          "sha256": "fcb89122cd8756c43209f9052bb3c552dbe440d45493c762295c771f0d1ceaa8",
+          "start": 2531,
+          "end": 2957
+        }
+      ],
+      "comparison": "review/file-comparison.json"
+    },
+    {
+      "id": "packaging-one-shot-duplicates",
+      "source_task": "packaging-version-identity",
+      "question": "Source under src/ is the author's proposed reference, not a proven answer. Original source is under baseline/src/. The supplied file comparison records equal or changed bytes, not equivalent behavior. Review only the stated input and assertion. Check the first matching-finals case: >=1,<2 with ['1.5a1','1.4','2.1','1.6rc1','1.4'], supplied through the shown once() generator. Assume version comparisons are correct. Does the reference consume that generator once and return both original '1.4' items in order, as required? Check whether the selected grader would miss a violation for this input. Exclude other ranges, inputs and prerelease overrides.",
+      "selections": [
+        {
+          "path": "review/requirement.txt",
+          "sha256": "09dfe925e0374087988844a08ff790c218d2f7889dfb7e4e40472ca8ba1da749",
+          "start": 0,
+          "end": 606
+        },
+        {
+          "path": "review/file-comparison.json",
+          "sha256": "774562b974f954783a6cfaae6fcc74f1d3aa7671892ff7bc213b810ac1b94522",
+          "start": 0,
+          "end": 876
+        },
+        {
+          "path": "review/grader.py",
+          "sha256": "d6a9e2b7fb613610bb4852766d42d21edd94fa61b0c6198c47fdf5a34f258e73",
+          "start": 167,
+          "end": 943
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "sha256": "e8f5f3afc641d4ee6a1f4a095214b1dd8fc7dce7cd7e91051992849b368fd1ab",
+          "start": 36356,
+          "end": 39166
+        }
+      ],
+      "comparison": "review/file-comparison.json"
+    },
+    {
+      "id": "platformdirs-invalid-site-default",
+      "source_task": "platformdirs-rejected-directory",
+      "question": "Source under src/ is the author's proposed reference, not a proven answer. Original source is under baseline/src/. The supplied file comparison records equal or changed bytes, not equivalent behavior. Review only the stated input and assertion. Check only XDG_CONFIG_DIRS=':relative::' and Unix('demo', version='2', multipath=True), with ensure_exists at its default False. The grader expects site_config_dir == '/etc/xdg/demo/2'. Does that assertion contradict the requirement or does the reference return something else? Exclude XDG_DATA_DIRS, other inputs, wrappers and filesystem creation.",
+      "selections": [
+        {
+          "path": "review/requirement.txt",
+          "sha256": "b32398c27835ac65eb9bfe1e4b905ae63997d00f6451612e72d7a14cf09d6d76",
+          "start": 0,
+          "end": 587
+        },
+        {
+          "path": "review/file-comparison.json",
+          "sha256": "d2210f426a72b05548b6eafda83eaf4bedf631fd020a42f6449b9bf66adab0d1",
+          "start": 0,
+          "end": 866
+        },
+        {
+          "path": "review/grader.py",
+          "sha256": "3afad87377b32bb7675c8258f1e2c65f6abdc6e0c8a8676d2d0f69baeb715479",
+          "start": 1517,
+          "end": 1901
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "sha256": "7d6e9487e16e2924848266d79359af18f16f210ce929219ee77c19356b57dd20",
+          "start": 2926,
+          "end": 3239
+        },
+        {
+          "path": "src/platformdirs/unix.py",
+          "sha256": "7d6e9487e16e2924848266d79359af18f16f210ce929219ee77c19356b57dd20",
+          "start": 3254,
+          "end": 3823
+        },
+        {
+          "path": "src/platformdirs/api.py",
+          "sha256": "d9d7d40cd6c45de0e10ca6abaad479358ee852291467845986cde8cecb668414",
+          "start": 2574,
+          "end": 2937
+        }
+      ],
+      "comparison": "review/file-comparison.json"
+    }
+  ]
+}
