@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.54.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.53.0...fun-refactor-v0.54.0) (2026-10-06)
+
+
+### Features
+
+* collect bounded source reviews with provider-specific credentials ([#442](https://github.com/e6qu/fun-refactor/issues/442)) ([6975d8e](https://github.com/e6qu/fun-refactor/commit/6975d8e23c792c49f1b2d9d970871c98e5017ab9))
+* review configured clients and verify duplicate identity ([a505284](https://github.com/e6qu/fun-refactor/commit/a50528414f499ce59aad61014fbf7469c3a4dc38))
+
 ## [0.53.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.52.1...fun-refactor-v0.53.0) (2026-10-06)
 
 
