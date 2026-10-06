@@ -63,7 +63,71 @@ below 1.27 MiB per case. These are control measurements, not model-performance c
 
 This is a scripted client control. It does not show that Kimi or GLM will submit valid answers,
 that an answer is correct for an unfamiliar repository, or that fr improves agent efficiency.
-The next live adapter needs a new frozen design and the same evidence checks.
+The source-review adapter below uses a separate frozen design and these evidence checks.
+
+## Review source packets with terminal answers
+
+`tools/terminal-reviews.py` reviews one bounded question against frozen source. The answer can cite
+the initial packet or a source read completed in an earlier response. The auditor resolves those
+citations against exact bytes. Accepting a citation does not establish that the finding is correct.
+
+Questions are a JSON list with `id`, `question`, `files` and `selections`. Each file has base64 `data`
+and a Boolean `executable` flag. Each selection names `path`, the whole-file `sha256`, and byte
+offsets `start` and `end`. The packet permits eight slices and 8,192 source bytes; the question
+permits 1,536 bytes. The existing source-packet builder checks these bounds and identities.
+Freeze also checks replay limits before saving: 1 MiB for the plan and compressed inputs,
+and 8 MiB for expanded input JSON. Oversized input leaves no output directory.
+
+Models are a JSON list of explicit OpenAI-compatible profiles. For example:
+
+```json
+[{"providerID":"review-provider","modelID":"model-name",
+  "baseURL":"https://provider.example/v1","context":32768,"output":2048}]
+```
+
+Use the actual endpoint and limits of the chosen model. Other provider transports are unsupported.
+Provider profiles accept no credential fields. On GitHub, the collector uses `FR_REVIEW_API_KEY`
+from its environment through OpenCode's [environment substitution](https://opencode.ai/docs/config/#env-vars).
+The collector refuses non-loopback collection outside the remote runner. GitHub has no repository
+provider secret, and we have not called live models. Kimi and GLM compatibility with this new route
+remains unknown.
+
+Freeze a new design before collection; never reuse a stopped collection:
+
+```sh
+python3 -B tools/terminal-reviews.py freeze questions.json models.json target/review \
+  --fr target/review-fr/fr --opencode target/opencode/opencode
+python3 -B tools/terminal-reviews.py collect target/review question-id-0 target/review-attempts \
+  --fr target/review-fr/fr --opencode target/opencode/opencode
+python3 -B tools/terminal-reviews.py report target/review target/review-attempts
+```
+
+Cells run in the frozen question/model order. The collector refuses retries, skipped cells and
+continuation after two consecutive failures. Its child checks the parent's exact plan hash before
+starting the client. Each capture keeps the existing 120-second wall, 20-second sampled CPU,
+768-MiB RSS, 16-MiB disk-growth and 1-MiB process-transcript limits. There are at most twelve
+assistant responses and twenty-four tool calls. These sampled bounds are not an OS sandbox.
+
+The capture retains the request, terminal answer, events, independent export, host calls and process
+record. Reports rebuild source results and check all frozen identities. Failed attempts retain
+observed token counters and host work even when no export exists. Partial JSONL tails and truncated
+artifact prefixes remain explicit. A truncated artifact cannot support a completed review.
+Client counters are not verified provider bills; full context accounting remains unavailable.
+
+The hosted control uses OpenCode 1.18.34 and checksum-verified fr 0.52.1. It runs five scripted cases:
+an answer from the packet, an answer after a source read, a missing answer, duplicate answers, and
+a forced process exit after a read. It also checks fr authoring on a temporary copy of the extracted
+capture function. Run the controls on GitHub, then replay their small artifacts without a client:
+
+```sh
+python3 -B tools/check-terminal-reviews.py check target/terminal-reviews \
+  --fr target/review-fr/fr --opencode target/opencode/opencode
+python3 -B tools/check-terminal-reviews.py report target/terminal-reviews
+```
+
+These are transport and evidence controls. They do not demonstrate live model reliability, tool
+adoption or an efficiency improvement. The historical `source_reviews` collections keep their
+original protocol, failures and stop rules.
 
 ## Tools and limits
 

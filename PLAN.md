@@ -36,7 +36,28 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: make native submissions finish reliably
+## Current chunk: review source and finish with one checked answer
+
+PR #438 merged at `25da0e17` after all 21 checks passed. It established the scripted submission
+controls below. The next adapter connects that terminal answer to a frozen question and source packet.
+It checks that citations came from the supplied packet or an earlier source read. It also retains
+observed work when the client stops without exporting its session.
+
+`tools/terminal-reviews.py` freezes, collects and replays these reviews. The audit refuses changed
+plans, source, models, tool results and resource limits. Two consecutive failures stop the collection;
+existing cells cannot be retried. The historical runners and stopped collections are unchanged.
+
+Twenty-four offline controls pass. The new GitHub check exercises packet-only review, an additional
+source read, missing and duplicate answers, and process interruption. Its real-client result is
+pending. GitHub has no repository provider secret, so we have not called live models.
+The adapter implements only the OpenAI-compatible transport; configured model compatibility still needs
+checking before any live collection. See the [review commands](docs/opencode-native-tools.md#review-source-packets-with-terminal-answers).
+
+This advances the evaluation runner. It does not establish whole-task acceptance, model reliability,
+fr adoption, complete billing or a general efficiency advantage. The roadmap stays at 7 of 18
+demonstrated technical items, with all four milestones open.
+
+## Recent work: check native submissions with scripted responses
 
 The last live review collection stopped after a missing submission and repeated submissions.
 The new scripted check drives OpenCode 1.18.34 with a local fake provider. It exercises one terminal
@@ -48,7 +69,7 @@ The [scripted GitHub check](https://github.com/e6qu/fun-refactor/actions/runs/37
 passed all four cases in 43 seconds on `c35a99c2`. Independent replay passes with the current audit.
 Each case made two provider requests, including failures. Twelve offline tests check the audit.
 Existing native runners and stopped collections retain their original rules and outcomes.
-Next connect the validated protocol to a new frozen review design, then assess model reliability.
+The current chunk connects this protocol to source review; live model reliability remains open.
 Task acceptance, fr adoption, provider billing and general efficiency remain unproven.
 See [the scripted submission check](docs/opencode-native-tools.md#check-terminal-submissions-with-scripted-responses).
 
