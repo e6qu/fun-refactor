@@ -166,6 +166,15 @@ Every lower-memory sample must complete the source-delivery control below 640 Mi
 supports a guarded local check. This margin is an admission condition, not a higher resource cap.
 The source-review collection that hit its memory limit remains stopped.
 
+The [first retained experiment](../tests/agent-eval/opencode/memory/2026-10-06/README.md)
+rejected the proposed setting on both platforms. Linux completed above the admission
+target; macOS hit the capture cap. Local model work remains blocked.
+Use `check-client-memory.py measure OUTPUT --fr FR --opencode OPENCODE` on GitHub
+to retain validated measurements, including a rejected admission. `check` performs
+the same measurement and requires admission; `admit OUTPUT` requires admission from
+an existing report. Missing or invalid evidence fails every mode. CI publishes the
+admission decision separately; a passing measurement job does not authorize live calls.
+
 Bun documents [lower-memory execution](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/runtime/index.mdx)
 and [runtime flags for compiled binaries](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/bundler/executables.mdx).
 The pinned [OpenCode build](https://github.com/anomalyco/opencode/blob/v1.18.34/packages/opencode/script/build.ts)

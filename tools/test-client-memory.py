@@ -1,10 +1,14 @@
 """Offline checks of memory-control admission and retained failures."""
 import copy
+import base64
+import gzip
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -34,6 +38,66 @@ def fixture(root):
 
 
 class ClientMemory(unittest.TestCase):
+    def test_measurement_success_does_not_grant_admission(self):
+        for admitted in (False, True):
+            for command in ("measure", "check", "report", "admit"):
+                args = ["memory", command, "unused", "--fr", "fr", "--opencode", "opencode"]
+                with patch.object(sys, "argv", args), patch.object(memory, "check", return_value={"admitted": admitted}), \
+                        patch.object(memory, "report", return_value={"admitted": admitted}), patch("sys.stdout", new=io.StringIO()):
+                    if command in ("check", "admit") and not admitted:
+                        with self.assertRaisesRegex(ValueError, "required headroom"):
+                            memory.main()
+                    else:
+                        memory.main()
+
+    def test_measurement_refuses_broken_evidence_instead_of_ignoring_errors(self):
+        for command, function in (("measure", "check"), ("report", "report"), ("admit", "report")):
+            args = ["memory", command, "unused", "--fr", "fr", "--opencode", "opencode"]
+            with patch.object(sys, "argv", args), patch.object(memory, function, side_effect=ValueError("artifact changed")):
+                with self.assertRaisesRegex(ValueError, "artifact changed"):
+                    memory.main()
+
+    def test_retained_hosted_rejection_replays_without_relaxing_limits(self):
+        here = Path(__file__).resolve().parents[1] / "tests/agent-eval/opencode/memory/2026-10-06"
+        manifest = json.loads((here / "manifest.json").read_bytes())
+        checker = here / "check-client-memory.py"
+        self.assertEqual(memory.identity(checker), manifest["checker_sha256"])
+        spec = importlib.util.spec_from_file_location("retained_memory", checker)
+        retained = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(retained)
+        expected = json.loads((here / "report.json").read_bytes())
+        self.assertEqual(set(expected), {"ubuntu-latest", "macos-14"})
+        self.assertEqual(retained.LIMITS, memory.LIMITS)
+        self.assertEqual(retained.HEADROOM_RSS, memory.HEADROOM_RSS)
+        for platform, identity in manifest["platforms"].items():
+            archive = here / (platform + ".json.gz")
+            self.assertEqual(memory.identity(archive), identity["archive_sha256"])
+            with gzip.open(archive, "rb") as stream:
+                raw = stream.read(8 * 1024**2 + 1)
+            self.assertLessEqual(len(raw), 8 * 1024**2)
+            files = json.loads(raw)
+            self.assertEqual(len(files), identity["files"])
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                for name, data in files.items():
+                    relative = Path(name)
+                    self.assertFalse(relative.is_absolute() or ".." in relative.parts)
+                    path = root / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(base64.b64decode(data, validate=True))
+                report = retained.report(root)
+                self.assertEqual(report, expected[platform])
+                self.assertEqual(report["plan_sha256"], identity["plan_sha256"])
+                self.assertFalse(report["admitted"])
+                self.assertEqual(len(report["cases"]), 6)
+                for row in report["cases"]:
+                    if platform == "macos-14":
+                        self.assertFalse(row["completed"])
+                        self.assertEqual(row["process"]["stop_reason"], "rss_bytes")
+                    else:
+                        self.assertTrue(row["completed"])
+                        self.assertGreater(row["process"]["sampled_aggregate_rss_bytes"], memory.HEADROOM_RSS)
+
     def replay(self, root, audits):
         with patch.object(memory.source_reviews, "read_inputs", return_value={}), patch.object(
                 memory.terminal_reviews, "report", side_effect=lambda plan, files, path: audits[path.parent.parent.name]):

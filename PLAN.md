@@ -51,6 +51,18 @@ which process caused the peak. Use public pinned client source and model-free ho
 test a concrete remedy before considering another guarded local collection. No budget increases,
 credential extraction, resumed stopped cells or local builds are part of this work.
 
+The [hosted memory experiment](tests/agent-eval/opencode/memory/2026-10-06/README.md)
+rejected `BUN_OPTIONS=--smol`: Linux captures completed at 681–690 MiB, above the
+640-MiB admission target, and all macOS captures hit the 768-MiB cap. Local calls
+remain blocked. Next locate the peak by process and capture phase on GitHub before
+testing another remedy. Successful evidence validation is separate from memory admission.
+
+The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
+are prepared with all eight grader cases and a requirement coverage checklist.
+Both reviews remain unfrozen and unstarted. The four-attempt comparison will give
+both arms the same public test and baseline failure, with GitHub grading afterward.
+It will not provide tests during the agent attempt.
+
 GitHub uses the existing `gh` login; OpenCode resolves its own configured provider access.
 The packaging review must cover intersection fallback, explicit policies, bounds and exclusions,
 original objects and one-shot inputs, and unchanged comparison APIs. Record any review limitation

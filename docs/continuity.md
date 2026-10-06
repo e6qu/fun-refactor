@@ -23,12 +23,21 @@ an input outside its syntax, identity, confidence or effect contract.
 
 PR #444 merged as `a5052841` after all 21 checks passed; its longest job took 10m10s.
 PR #443 released v0.54.0 at `d8f25729`. Local main includes both. The current work branch is
-`eval/packaging-change-pilot`. Release post-merge deep validation was still running at kickoff.
+`eval/packaging-change-pilot`. Release post-merge deep validation passed.
 
 The approved chunk is a complete ordinary-tools/fr packaging change pilot, gated on resource
 stability and independent task review. See the current chunk in [PLAN.md](../PLAN.md). Diagnose
 the configured OpenCode memory failure from retained evidence and model-free GitHub controls.
 Do not read, copy or upload authentication files. GitHub operations use the existing `gh` login.
+
+PR #445's first memory experiment rejected `--smol` on both platforms. Linux completed
+but exceeded the 640-MiB admission target; all macOS captures hit the 768-MiB RSS cap.
+The [retained measurements](../tests/agent-eval/opencode/memory/2026-10-06/README.md)
+replay offline, including every failure. CI validates measurement integrity separately
+from admission; `check` and `admit` still refuse this result. No local model calls are
+authorized by a passing diagnostic job. Locate the peak by process and phase on GitHub
+before testing another remedy. The complete packaging review inputs are prepared, but
+neither review is frozen or started. No pilot attempt has run.
 
 The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.

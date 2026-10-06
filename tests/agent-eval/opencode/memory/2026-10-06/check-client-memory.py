@@ -79,26 +79,21 @@ def check(root, binary, opencode):
     result = report(root)
     (root / "result.json").write_bytes(encode(result))
     print(encode(result).decode())
-    return result
+    require(result["admitted"], "lower-memory controls did not establish the required headroom")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("measure", "check", "report", "admit"))
+    parser.add_argument("command", choices=("check", "report"))
     parser.add_argument("output", type=Path)
     parser.add_argument("--fr", type=Path)
     parser.add_argument("--opencode", type=Path)
     args = parser.parse_args()
-    if args.command in ("report", "admit"):
-        result = report(args.output.resolve())
-        print(encode(result).decode())
-        if args.command == "admit":
-            require(result["admitted"], "lower-memory controls did not establish the required headroom")
+    if args.command == "report":
+        print(encode(report(args.output.resolve())).decode())
         return
     require(args.fr is not None and args.opencode is not None, "supply both pinned binaries")
-    result = check(args.output.resolve(), args.fr.resolve(), args.opencode.resolve())
-    if args.command == "check":
-        require(result["admitted"], "lower-memory controls did not establish the required headroom")
+    check(args.output.resolve(), args.fr.resolve(), args.opencode.resolve())
 
 
 if __name__ == "__main__":

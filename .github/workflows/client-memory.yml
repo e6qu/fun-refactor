@@ -78,11 +78,25 @@ jobs:
           assert len(binaries) == 1
           binaries[0].rename(root / 'fr' / 'fr')
           PY
-      - name: Compare six serial model-free client runs
+      - name: Measure six serial model-free runs without granting admission
         run: >-
-          python3 -B tools/check-client-memory.py check target/client-memory
+          python3 -B tools/check-client-memory.py measure target/client-memory
           --fr target/client-memory-tools/fr/fr
           --opencode target/client-memory-tools/client/opencode
+      - name: Publish the separate memory admission decision
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = json.loads(Path('target/client-memory/result.json').read_bytes())
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('Memory admission: ' + ('PASSED' if result['admitted'] else 'BLOCKED') + '\n\n')
+              summary.write('Successful measurement does not authorize local model work.\n\n')
+              summary.write('| Mode | Completed | Peak MiB | Stop reason |\n| --- | --- | --- | --- |\n')
+              for row in result['cases']:
+                  process = row['process']
+                  summary.write(f"| {row['id']} | {row['completed']} | {process['sampled_aggregate_rss_bytes'] / 1024**2:.2f} | {process['stop_reason']} |\n")
+          PY
       - uses: actions/upload-artifact@v7
         if: always()
         with:
