@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.53.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.52.1...fun-refactor-v0.53.0) (2026-10-06)
+
+
+### Features
+
+* finish source reviews with checked terminal answers ([#440](https://github.com/e6qu/fun-refactor/issues/440)) ([8075e69](https://github.com/e6qu/fun-refactor/commit/8075e69e67ce55994e410ece105b5423eb3da3d9))
+
+
+### Tests
+
+* verify terminal native submissions with scripted OpenCode ([25da0e1](https://github.com/e6qu/fun-refactor/commit/25da0e173288233eeb3eab2b9b56832829b0b8a7))
+
 ## [0.52.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.52.0...fun-refactor-v0.52.1) (2026-10-05)
 
 
