@@ -21,8 +21,8 @@ Keep the cache enabled. Cold calls may report `indexing` on stderr.
 
 For behavior discovery, start with `project explore TERM [--contains]`. Names mode returns no source
 and at most twelve rows. Run a selected row's `next.arguments` for bounded source and relationships.
-Pages can contain fewer rows or source bytes to keep the complete serialized response within budget.
-Use the returned cursors and offsets; do not infer the next position from the profile's maximum size.
+Pages shrink to fit the serialized response budget. Follow returned cursors and offsets;
+profile sizes are maxima.
 Follow truncation continuations. Source continuations use `--view source`; relationship continuations
 use `--view relationships`. Each returns only the requested view, plus identity and coverage metadata.
 An omitted view is not evidence that no source or relationships exist.

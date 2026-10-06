@@ -346,7 +346,7 @@ impl Project<'_> {
     fn exploration_fits(&self, report: &Value, profile: AgentProfile) -> Result<bool> {
         let mut delivered = report.clone();
         self.response_context(None)?.apply(&mut delivered)?;
-        Ok(serde_json::to_vec(&delivered)?.len() + 1 <= profile.report_bytes())
+        Ok(serde_json::to_vec(&delivered)?.len() < profile.report_bytes())
     }
 
     fn explore_behavior_page(
