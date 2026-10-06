@@ -43,7 +43,13 @@ The roadmap again shows 7 of 18 current technical items; all four milestones rem
 Hosted evidence: [index and pagination](https://github.com/e6qu/fun-refactor/actions/runs/37424349654),
 [repository delivery](https://github.com/e6qu/fun-refactor/actions/runs/37424358148), and
 [exact locations](https://github.com/e6qu/fun-refactor/actions/runs/37425184269).
-Full PR CI remains the next gate. PR #440 release and Pages passed; its deep validation remains queued.
+PR #441 CI exposed a Clippy comparison warning and a 17-byte skill-guide overrun. Both are fixed
+without changing limits. The guide is 4,025 bytes. The focused hosted gate now checks Clippy and
+skill budgets before pagination and index replay; it passed in 9m18s on `4c09e07a`.
+Replacement evidence under `2026-10-06-explore-ci-*` passes independent audit with the same outcomes
+and current bindings. See [lint and index validation](https://github.com/e6qu/fun-refactor/actions/runs/37435891865)
+and [repository and location validation](https://github.com/e6qu/fun-refactor/actions/runs/37435904795).
+Full PR CI remains the next gate. PR #440 release, Pages and deep validation all passed.
 
 ## Completed recipe audit repair
 

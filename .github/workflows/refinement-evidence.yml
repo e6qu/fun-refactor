@@ -153,7 +153,7 @@ jobs:
           python3 tools/roadmap-status.py --check
           python3 tests/agent-eval/test_roadmap_status.py
           python3 tests/agent-eval/test_python_repository_acceptance.py
-          python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-budgets-python-repositories
+          python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-ci-python-repositories
       - uses: actions/upload-artifact@v7
         with:
           name: roadmap-report
