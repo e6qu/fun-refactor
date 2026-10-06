@@ -35,6 +35,8 @@ jobs:
         run: python3 -B tools/agent_eval/test_terminal_review_collection.py
       - name: Check configured-client authentication without reading credentials
         run: python3 -B tools/agent_eval/test_configured_terminal_reviews.py
+      - name: Check client memory admission and retained failures offline
+        run: python3 -B tools/test-client-memory.py
       - name: Check new review questions against retained source
         run: python3 -B tools/agent_eval/test_terminal_review_design.py
       - name: Exercise terminal answers with a scripted loopback provider

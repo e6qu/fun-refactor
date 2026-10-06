@@ -159,6 +159,19 @@ The highest sampled RSS among the five review cases was 689.5 MiB, below the unc
 
 ### Collect a frozen review in order
 
+The [memory diagnostic](../.github/workflows/client-memory.yml) runs only on GitHub and calls
+a scripted loopback provider. Three default and three `BUN_OPTIONS=--smol` runs execute serially
+on each platform. Existing 768-MiB, 20-CPU-second and 120-second limits stay unchanged.
+Every lower-memory sample must complete the source-delivery control below 640 MiB before it
+supports a guarded local check. This margin is an admission condition, not a higher resource cap.
+The source-review collection that hit its memory limit remains stopped.
+
+Bun documents [lower-memory execution](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/runtime/index.mdx)
+and [runtime flags for compiled binaries](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/bundler/executables.mdx).
+The pinned [OpenCode build](https://github.com/anomalyco/opencode/blob/v1.18.34/packages/opencode/script/build.ts)
+uses Bun; its root package pins Bun 1.3.14. These sources motivate a measurement, not a claim
+that live reviews will fit. The diagnostic does not read or upload configured provider credentials.
+
 For an existing OpenCode installation, freeze a configured-client profile such as:
 
 ```json

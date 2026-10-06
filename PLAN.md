@@ -36,24 +36,40 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: collect the next source reviews without losing failed work
+## Current chunk: compare a reviewed packaging change with and without fr
 
-Terminal answer controls now pass, but the collector accepted only one credential for a plan
-that could name several providers. The new collection path checks all required keys before
-creating an attempt. Each client receives only its selected provider's key. At most six cells
-run serially, preserving the frozen order, failed attempts and two-failure stop rule.
-Preflight checks source, runtime and binaries without calling a model. Collection requires the
-reviewed plan hash; it cannot retry or skip an incomplete attempt.
+The next deliverable is a paired code-change pilot on the packaging candidate: Kimi and GLM,
+each with ordinary tools and with fr additionally available. First finish independent review of
+the task, reference and grader. Then freeze all four attempts before any change calls. Keep public
+check feedback identical, grade exact submissions on GitHub, and retain every failure and fr fallback.
+Report correctness, actual fr use, calls, context, elapsed time and unknown usage separately.
 
-The [new review design](tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
-covers disabled dotenv interpolation, packaging's one-shot iterable with duplicate results,
-and platformdirs' config-site fallback. It reuses hash-checked historical source while preserving
-all stopped collections. Its three questions and two model profiles fit the existing budgets.
-It is a checked design, not a frozen executable collection or a completed review.
+Live execution is gated on the client resource diagnosis. The previous configured-client collection
+stopped when aggregate memory crossed its unchanged 768-MiB capture limit after 4.43 seconds.
+Two successful calls had already reached about 746–752 MiB. Retained measurements do not identify
+which process caused the peak. Use public pinned client source and model-free hosted controls to
+test a concrete remedy before considering another guarded local collection. No budget increases,
+credential extraction, resumed stopped cells or local builds are part of this work.
 
-Hosted controls must exercise both serial completion and stopping after two failures through real
-OpenCode. GitHub has no provider secret; live Kimi/GLM compatibility and independent review remain
-open. No acceptance item or efficiency claim follows from preparing this collection.
+GitHub uses the existing `gh` login; OpenCode resolves its own configured provider access.
+The packaging review must cover intersection fallback, explicit policies, bounds and exclusions,
+original objects and one-shot inputs, and unchanged comparison APIs. Record any review limitation
+before accepting the task. A pilot remains blocked if resource or review prerequisites fail.
+No fr call is required: an agent choosing ordinary tools is an outcome to measure.
+
+## Recent work: configured reviews and a verified duplicate-identity gap
+
+PR #444 merged as `a5052841` after all 21 checks passed. Three source reviews completed;
+one hit the memory limit and two cells remain unstarted. Both models found no contradiction
+for one disabled-interpolation input. Kimi flagged an identity assertion that checked each result
+against any input object, rather than its corresponding input object.
+
+GitHub verified a related counterexample using explicitly distinct equal `Version` objects.
+The incorrect repair passes all seven old cases and the public example but fails the new case.
+The unchanged reference passes all eight current cases. The model's string-literal premise remains
+unverified. The [retained comparison](tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
+keeps that distinction, the resource failure and incomplete usage accounting. None of the reviews
+used fr. Whole-task acceptance and an efficiency advantage remain open. PR #443 released v0.54.0.
 
 ## Recent work: return useful discovery pages within the response budget
 
@@ -90,9 +106,8 @@ All 21 PR checks passed. The [hosted client check](https://github.com/e6qu/fun-r
 passed in 68 seconds, including all 24 offline controls and fr authoring of the extracted function.
 Independent replay accepts packet-only review and an additional source read. It retains the expected
 missing-answer, duplicate-answer and interrupted outcomes as failures, including their observed work.
-GitHub has no repository provider secret, so we have not called live models.
-The adapter implements only the OpenAI-compatible transport; configured model compatibility still needs
-checking before any live collection. See the [review commands](docs/opencode-native-tools.md#review-source-packets-with-terminal-answers).
+At that stage, these were scripted checks only. PR #444 subsequently added configured-client access
+and retained live Kimi/GLM reviews. The original explicit-endpoint plans remain replayable. See the [review commands](docs/opencode-native-tools.md#review-source-packets-with-terminal-answers).
 
 This advances the evaluation runner. It does not establish whole-task acceptance, model reliability,
 fr adoption, complete billing or a general efficiency advantage. The roadmap stays at 7 of 18
@@ -203,8 +218,9 @@ Next steps, in order:
    do not increase limits or retry until a review happens to pass.
    Single-assertion packets with unchanged-file context produced three completed reviews, then two
    submission failures. Scripted terminal submission checks now pass. Check the
-   [explicit gaps](docs/candidate-review-status.md) and prepare the new collection with separate
-   provider credentials. Any new calls need a new frozen design, not restarted cells.
+   [explicit gaps](docs/candidate-review-status.md). Address the recorded client memory failure
+   before new local calls. Use existing OpenCode access and a new frozen design; stopped cells
+   remain stopped. Finish the packaging task review before freezing its four change attempts.
 2. Compare ordinary tools with the public fr read/edit routes and test feedback on those unfamiliar
    tasks. Freeze requirements, allowed tools, models, budgets and private checks before calls.
    Use the configured Kimi/GLM OpenCode profiles for bounded local rehearsals and GitHub for grading.
