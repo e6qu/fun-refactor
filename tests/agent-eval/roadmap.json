@@ -23,11 +23,11 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-06-explore-budgets-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json",
-      "sha256": "c44cabfd4faafba3b03162f89c52c49637d7a89d8506cb4d46edee9f00077a2c"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-budgets-flow-facts/result.json",
+      "sha256": "4bd9c17badcac92a5441696136c6919ee7c867d4673760c6edb0ca369b462d20"
     },
     {
       "id": "package-flow",

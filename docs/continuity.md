@@ -36,9 +36,14 @@ boundaries, and stale-cursor refusal. Full builds and evidence regeneration rema
 
 The index refresh passed in 7m11s, including all ten pagination tests. Its eight samples reproduce
 the pinned baseline and all 195 bindings match. Repository delivery passed in 1m54s; its imported
-bundle passes all 365 behavior cases and all 227 bindings match. The older active exact-location
-report also binds the changed file; its hosted refresh is pending. The generated roadmap temporarily
-shows 6 of 18 current items until that report passes again. All four milestones remain open.
+bundle passes all 365 behavior cases and all 227 bindings match. The exact-location refresh also
+passed: nine recorded cases, eleven semantic links, zero false claims and 33 matching bindings.
+The roadmap again shows 7 of 18 current technical items; all four milestones remain open.
+
+Hosted evidence: [index and pagination](https://github.com/e6qu/fun-refactor/actions/runs/37424349654),
+[repository delivery](https://github.com/e6qu/fun-refactor/actions/runs/37424358148), and
+[exact locations](https://github.com/e6qu/fun-refactor/actions/runs/37425184269).
+Full PR CI remains the next gate. PR #440 release and Pages passed; its deep validation remains queued.
 
 ## Completed recipe audit repair
 

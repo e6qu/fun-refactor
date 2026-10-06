@@ -50,8 +50,10 @@ check UTF-8 boundaries, and refuse stale continuations. A page with oversized ma
 still refuses rather than returning an incomplete row or a cursor that makes no progress.
 
 This addresses a concrete disclosure failure. It does not establish token savings or a general
-agent-efficiency advantage. The three source-bound evidence bundles need hosted refresh before the
-current acceptance checks can pass; roadmap outcomes remain unchanged.
+agent-efficiency advantage. All ten hosted pagination tests pass. The refreshed index comparison
+reproduces all eight baseline samples; repository delivery passes 365 behavior cases; exact source
+locations pass their nine recorded cases. Independent audits verify all three bundles against current
+source. The roadmap remains at seven demonstrated technical items, with all four milestones open.
 
 ## Recent work: review source and finish with one checked answer
 
