@@ -129,6 +129,11 @@ These are transport and evidence controls. They do not demonstrate live model re
 adoption or an efficiency improvement. The historical `source_reviews` collections keep their
 original protocol, failures and stop rules.
 
+The [PR #440 hosted check](https://github.com/e6qu/fun-refactor/actions/runs/37376273874) passed in
+68 seconds on `58b2953b`, including fr authoring, both control sets and 24 offline tests.
+Independent artifact replay accepts both valid reviews and preserves all three expected failures.
+The highest sampled RSS among the five review cases was 689.5 MiB, below the unchanged 768-MiB limit.
+
 ## Tools and limits
 
 Both arms can list files, search literal text and read source pages. The `fr` arm also has bounded
