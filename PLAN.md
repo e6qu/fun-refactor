@@ -50,7 +50,7 @@ check UTF-8 boundaries, and refuse stale continuations. A page with oversized ma
 still refuses rather than returning an incomplete row or a cursor that makes no progress.
 
 This addresses a concrete disclosure failure. It does not establish token savings or a general
-agent-efficiency advantage. The two source-bound evidence bundles need hosted refresh before the
+agent-efficiency advantage. The three source-bound evidence bundles need hosted refresh before the
 current acceptance checks can pass; roadmap outcomes remain unchanged.
 
 ## Recent work: review source and finish with one checked answer

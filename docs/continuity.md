@@ -34,9 +34,11 @@ within the existing limits. It counts final context metadata and preserves expli
 The new hosted tests check complete traversal, exact source and relationship reconstruction, UTF-8
 boundaries, and stale-cursor refusal. Full builds and evidence regeneration remain on GitHub.
 
-Hosted index and repository-delivery evidence refreshes are pending. Their old source bindings now
-differ, so the generated roadmap check correctly refuses; update it only from successful new evidence.
-The roadmap still has 7 of 18 demonstrated technical items and all four milestones open.
+The index refresh passed in 7m11s, including all ten pagination tests. Its eight samples reproduce
+the pinned baseline and all 195 bindings match. Repository delivery passed in 1m54s; its imported
+bundle passes all 365 behavior cases and all 227 bindings match. The older active exact-location
+report also binds the changed file; its hosted refresh is pending. The generated roadmap temporarily
+shows 6 of 18 current items until that report passes again. All four milestones remain open.
 
 ## Completed recipe audit repair
 

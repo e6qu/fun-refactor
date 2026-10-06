@@ -4,7 +4,7 @@
 
 `fr` is a CLI for AI agents to understand code, make changes and check or prove results. The goal is correct work with less total agent effort and context. Progressive disclosure means starting with a small overview and asking for details only when needed.
 
-**7/18 technical acceptance items are demonstrated in their recorded test cases; 11 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
+**6/18 technical acceptance items are demonstrated in their recorded test cases; 12 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
 
 The CLI already provides code navigation, bounded reads, reviewed edits, checks, undo/redo and patch delivery. Current tests cover useful cases of Python value tracing and restarting work after code changes. Support is limited to the language features stated in each test.
 
@@ -22,7 +22,7 @@ Implementation checkboxes say code was added. Demonstrated items say the specifi
 
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
-| A. Find relevant code and explain the evidence | 6/6 | 2/4 | open |
+| A. Find relevant code and explain the evidence | 6/6 | 1/4 | open |
 | B. Explain how values move through code | 4/5 | 1/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
 | D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
@@ -33,9 +33,9 @@ Each item states what must be checked and what happens next. IDs are stable refe
 
 ### A.exact: Point to the exact code behind an answer
 
-**State: demonstrated.** Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.
+**State: open.** Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.
 
-Evidence or missing work: exact-facts.
+Evidence or missing work: exact-facts: stale source binding.
 
 Next: Keep these location tests passing as discovery changes.
 
@@ -181,9 +181,9 @@ The entries below identify the stored test results. “Current” means their re
 
 | Result / test kind | Files verified | Input freshness | Scope and audit command |
 |---|---|---|---|
-| [exact-facts](../tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json) / deterministic | checked | current | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json` |
+| [exact-facts](../tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json) / deterministic | checked | stale (1 changed inputs) | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json` |
 | [package-flow](../tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json) / deterministic | checked | current | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json` |
-| [repository-tasks](../tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json) / deterministic | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json` |
+| [repository-tasks](../tests/agent-eval/results/2026-10-06-explore-budgets-python-repositories/result.json) / deterministic | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-budgets-python-repositories/result.json` |
 | [cache-measurements](../tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json) / measurement | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json) / fault-injection | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / deterministic | checked | historical | Rust rename/signature migration with 49 calls; frozen source bindings. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |

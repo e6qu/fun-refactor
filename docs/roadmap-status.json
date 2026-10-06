@@ -13,8 +13,10 @@
   "evidence": [
     {
       "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "src/project/explore.rs"
+      ],
+      "freshness": "stale",
       "id": "exact-facts",
       "integrity": "checked",
       "kind": "deterministic",
@@ -32,13 +34,13 @@
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-budgets-python-repositories/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-06-explore-budgets-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
@@ -104,13 +106,14 @@
   ],
   "milestones": {
     "A": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 6,
         "total": 6
       },
       "engineering_remaining": 0,
       "remaining": [
+        "A.exact",
         "A.live-repeat",
         "A.compiler-profile"
       ],
@@ -167,7 +170,9 @@
   "obligations": [
     {
       "acceptance": "Nine small Python tests check the reported source locations, including repeated calls and missing information; no unsupported fact may be reported as established.",
-      "blockers": [],
+      "blockers": [
+        "exact-facts: stale source binding"
+      ],
       "id": "A.exact",
       "kind": "deterministic",
       "next": "Keep these location tests passing as discovery changes.",
@@ -186,7 +191,7 @@
           "evidence": "exact-facts"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Point to the exact code behind an answer"
     },
     {
