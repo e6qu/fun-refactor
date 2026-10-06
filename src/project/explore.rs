@@ -177,8 +177,8 @@ impl Project<'_> {
             ))?[..32]
         );
         let limit = options.profile.row_limit();
-        let (start, end, page) = page(matches.len(), limit, options.cursor.as_deref(), &key)?;
-        let rows = matches[start..end]
+        let (start, end, _) = page(matches.len(), limit, options.cursor.as_deref(), &key)?;
+        let mut rows = matches[start..end]
             .iter()
             .map(|id| {
                 let node = &self.nodes[*id];
@@ -215,35 +215,66 @@ impl Project<'_> {
                 row
             })
             .collect::<Vec<_>>();
-        let mut continuations = Vec::new();
-        if let Some(next) = page["next"].as_str() {
-            let mut arguments = base_arguments(options, Mode::Names);
-            push_option(&mut arguments, "--cursor", next);
-            continuations.push(json!({"reason": "more-name-matches", "arguments": arguments}));
+        loop {
+            let (_, _, page) = page(
+                matches.len(),
+                rows.len().max(1),
+                options.cursor.as_deref(),
+                &key,
+            )?;
+            let mut continuations = Vec::new();
+            if let Some(next) = page["next"].as_str() {
+                let mut arguments = base_arguments(options, Mode::Names);
+                push_option(&mut arguments, "--cursor", next);
+                continuations.push(json!({"reason": "more-name-matches", "arguments": arguments}));
+            }
+            if options.profile == AgentProfile::Compact
+                && page["remaining"].as_u64().unwrap_or(0) > 0
+            {
+                let mut arguments = base_arguments(options, Mode::Names);
+                push_option(&mut arguments, "--profile", "expanded");
+                if start != 0 {
+                    let expanded_key = format!(
+                        "frpc1:{}",
+                        &hash((
+                            &self.revision,
+                            "explore-names",
+                            selected,
+                            &options.term,
+                            options.contains,
+                            AgentProfile::Expanded
+                        ))?[..32]
+                    );
+                    push_option(
+                        &mut arguments,
+                        "--cursor",
+                        format!("{expanded_key}:{start}"),
+                    );
+                }
+                continuations
+                    .push(json!({"reason": "explicit-profile-expansion", "arguments": arguments}));
+            }
+            let mut result = self.envelope("explore");
+            result["mode"] = json!(Mode::Names);
+            result["profile"] = self.exploration_profile(options.profile);
+            result["match"] = json!({
+                "term": options.term,
+                "mode": if options.contains { "literal-substring" } else { "exact" }
+            });
+            result["root"] = json!(self.handle(selected));
+            result["rows"] = json!(&rows);
+            result["page"] = page;
+            result["omitted"] = json!({"matching_locals": hidden_locals});
+            result["continuations"] = json!(continuations);
+            if self.exploration_fits(&result, options.profile)? {
+                return Ok(result);
+            }
+            ensure!(
+                rows.len() > 1,
+                "one discovery row exceeds the profile budget; use a shorter --in handle."
+            );
+            rows.pop();
         }
-        if options.profile == AgentProfile::Compact && matches.len() > limit {
-            let mut arguments = base_arguments(options, Mode::Names);
-            push_option(&mut arguments, "--profile", "expanded");
-            continuations
-                .push(json!({"reason": "explicit-profile-expansion", "arguments": arguments}));
-        }
-        let mut result = self.envelope("explore");
-        result["mode"] = json!(Mode::Names);
-        result["profile"] = self.exploration_profile(options.profile);
-        result["match"] = json!({
-            "term": options.term,
-            "mode": if options.contains { "literal-substring" } else { "exact" }
-        });
-        result["root"] = json!(self.handle(selected));
-        result["rows"] = json!(rows);
-        result["page"] = page;
-        result["omitted"] = json!({"matching_locals": hidden_locals});
-        result["continuations"] = json!(continuations);
-        ensure!(
-            serde_json::to_vec(&result)?.len() <= options.profile.report_bytes(),
-            "agent discovery report exceeded its enforced profile budget; narrow --in."
-        );
-        Ok(result)
     }
 
     fn explore_behavior(&self, options: &Options) -> Result<Value> {
@@ -285,14 +316,53 @@ impl Project<'_> {
             "selected behavior target does not match the discovery term."
         );
 
+        let mut source_bytes = options.profile.source_bytes();
+        let mut relationship_limit = options.profile.relationship_limit();
+        loop {
+            let result = self.explore_behavior_page(options, source_bytes, relationship_limit)?;
+            if self.exploration_fits(&result, options.profile)? {
+                return Ok(result);
+            }
+            let source = &result["declaration"]["source"];
+            let relationships = &result["relationships"];
+            let source_length = source["returned_bytes"].as_u64().unwrap_or(0) as usize;
+            let relation_count = relationships["items"].as_array().map_or(0, Vec::len);
+            let shrink_source = source_length > 4;
+            let shrink_relations = relation_count > 1;
+            ensure!(shrink_source || shrink_relations,
+                "discovery metadata exceeds the profile budget; select a focused --view or shorter --in handle.");
+            if shrink_source
+                && (!shrink_relations
+                    || serde_json::to_vec(source)?.len()
+                        >= serde_json::to_vec(relationships)?.len())
+            {
+                source_bytes = (source_length / 2).max(4);
+            } else {
+                relationship_limit = (relation_count / 2).max(1);
+            }
+        }
+    }
+
+    fn exploration_fits(&self, report: &Value, profile: AgentProfile) -> Result<bool> {
+        let mut delivered = report.clone();
+        self.response_context(None)?.apply(&mut delivered)?;
+        Ok(serde_json::to_vec(&delivered)?.len() < profile.report_bytes())
+    }
+
+    fn explore_behavior_page(
+        &self,
+        options: &Options,
+        source_bytes: usize,
+        relationship_limit: usize,
+    ) -> Result<Value> {
         let mut declaration = self.show(&ShowOptions {
-            handle: target.to_owned(),
+            handle: options.target.as_ref().unwrap().to_owned(),
             revision: None,
             source: options.view != View::Relationships,
             offset: options.offset,
-            bytes: options.profile.source_bytes(),
+            bytes: source_bytes,
             relations: options.view != View::Source,
-            limit: options.profile.relationship_limit(),
+            limit: relationship_limit,
             cursor: options.relations_cursor.clone(),
         })?;
         let source_next = declaration["source"]["next_offset"].as_u64();
@@ -307,13 +377,15 @@ impl Project<'_> {
 
         let mut continuations = Vec::new();
         if let Some(offset) = source_next {
-            let mut arguments = behavior_arguments(options, target.to_owned());
+            let mut arguments =
+                behavior_arguments(options, options.target.as_ref().unwrap().to_owned());
             push_option(&mut arguments, "--view", "source");
             push_option(&mut arguments, "--offset", offset);
             continuations.push(json!({"reason": "more-source", "arguments": arguments}));
         }
         if let Some(cursor) = relationships_next {
-            let mut arguments = behavior_arguments(options, target.to_owned());
+            let mut arguments =
+                behavior_arguments(options, options.target.as_ref().unwrap().to_owned());
             push_option(&mut arguments, "--view", "relationships");
             push_option(&mut arguments, "--relations-cursor", cursor);
             continuations.push(json!({"reason": "more-relationships", "arguments": arguments}));
@@ -324,7 +396,8 @@ impl Project<'_> {
                     + serde_json::to_vec(&relationships)?.len()
                     > options.profile.report_bytes() / 2)
         {
-            let mut arguments = behavior_arguments(options, target.to_owned());
+            let mut arguments =
+                behavior_arguments(options, options.target.as_ref().unwrap().to_owned());
             push_option(&mut arguments, "--view", options.view.as_str());
             push_option(&mut arguments, "--profile", "expanded");
             if options.offset != 0 {
@@ -350,10 +423,6 @@ impl Project<'_> {
             result["relationships"] = relationships;
         }
         result["continuations"] = json!(continuations);
-        ensure!(
-            serde_json::to_vec(&result)?.len() <= options.profile.report_bytes(),
-            "agent discovery report exceeded its enforced profile budget; use a smaller profile page."
-        );
         Ok(result)
     }
 

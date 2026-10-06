@@ -21,26 +21,35 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #438 merged as `25da0e17` after all 21 checks passed. Its longest PR job took 10m05s;
-GitHub queue delays made the overall wait much longer. The final scripted submission job passed
-in 40 seconds, and its four captures replayed independently. Monitoring of post-merge workflows continues.
+PR #440 merged as `8075e69e` after all 21 PR checks passed. Its hosted submission job took
+68 seconds, including both control sets, 24 offline tests and fr authoring of the extracted function.
+Independent artifact replay accepts both valid source reviews and preserves missing, duplicate and
+interrupted submissions as failures. The adapter remains OpenAI-compatible only. No live model calls
+or general efficiency claims follow from these controls. Historical stopped collections stay stopped.
 
-The current branch, `feat/terminal-source-reviews`, connects terminal submission to source review.
-`tools/terminal-reviews.py` freezes questions, source packets, model profiles, tool schemas and
-runtime identities. Its report replays source reads and citations and counts interrupted work
-without requiring a successful export. The shared transport keeps client stores and temporary
-files inside the measured directory. Oversized retained files mark an attempt failed and report
-exact prefix sizes; they cannot silently become complete evidence.
+The current branch, `fix/explore-response-budgets`, repairs a concrete CLI discovery failure.
+A generated fixture with a long file scope and matching declarations makes the released CLI exceed
+its response budget and return no rows. The change shrinks names, source and relationship pages
+within the existing limits. It counts final context metadata and preserves explicit expansion positions.
+The new hosted tests check complete traversal, exact source and relationship reconstruction, UTF-8
+boundaries, and stale-cursor refusal. Full builds and evidence regeneration remain on GitHub.
 
-Twenty-four offline controls pass. GitHub will run the pinned client on packet-only and source-read
-reviews, two submission failures, and an interruption before export. It will also use fr to restore
-the extracted function in a throwaway copy. The workload guard refused a local fr preview;
-we moved that validation to GitHub. Subsequent distinct fr edits passed under the guard.
+The index refresh passed in 7m11s, including all ten pagination tests. Its eight samples reproduce
+the pinned baseline and all 195 bindings match. Repository delivery passed in 1m54s; its imported
+bundle passes all 365 behavior cases and all 227 bindings match. The exact-location refresh also
+passed: nine recorded cases, eleven semantic links, zero false claims and 33 matching bindings.
+The roadmap again shows 7 of 18 current technical items; all four milestones remain open.
 
-GitHub has no repository provider secret, and we have not called live models. The adapter
-currently uses the OpenAI-compatible transport; do not assume configured Kimi or GLM compatibility.
-Finish hosted controls before freezing live questions. The old runners and every stopped collection
-remain unchanged. Do not raise limits or retry their cells. No roadmap acceptance item closes here.
+Hosted evidence: [index and pagination](https://github.com/e6qu/fun-refactor/actions/runs/37424349654),
+[repository delivery](https://github.com/e6qu/fun-refactor/actions/runs/37424358148), and
+[exact locations](https://github.com/e6qu/fun-refactor/actions/runs/37425184269).
+PR #441 CI exposed a Clippy comparison warning and a 17-byte skill-guide overrun. Both are fixed
+without changing limits. The guide is 4,025 bytes. The focused hosted gate now checks Clippy and
+skill budgets before pagination and index replay; it passed in 9m18s on `4c09e07a`.
+Replacement evidence under `2026-10-06-explore-ci-*` passes independent audit with the same outcomes
+and current bindings. See [lint and index validation](https://github.com/e6qu/fun-refactor/actions/runs/37435891865)
+and [repository and location validation](https://github.com/e6qu/fun-refactor/actions/runs/37435904795).
+Full PR CI remains the next gate. PR #440 release, Pages and deep validation all passed.
 
 ## Completed recipe audit repair
 

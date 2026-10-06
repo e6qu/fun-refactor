@@ -23,11 +23,11 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-04-focused-pages-flow-facts/result.json",
-      "sha256": "c44cabfd4faafba3b03162f89c52c49637d7a89d8506cb4d46edee9f00077a2c"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json",
+      "sha256": "877e99fc20b3dad096a60fe1177e27710947d6d0c333d731142d2720e4dc380f"
     },
     {
       "id": "package-flow",
@@ -39,11 +39,11 @@
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-06-explore-ci-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-python-repositories/result.json",
-      "sha256": "46cc1e20cee1ca4cd90b2116f4fba477530b3d3768db1793a5e8f25295e8b2db"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-ci-python-repositories/result.json",
+      "sha256": "586a7bf97934646d99ea64a6d99ee49f3c43e544bd14212079a5ff5ca98359bd"
     },
     {
       "id": "cache-measurements",

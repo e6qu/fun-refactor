@@ -36,10 +36,29 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: review source and finish with one checked answer
+## Current chunk: return useful discovery pages within the response budget
+
+`project explore` can refuse every result when a long scope and several matching declarations
+exceed its serialized response limit. Narrowing to one file does not always help. A small generated
+fixture reproduces this failure with the released CLI.
+
+The next change reduces page sizes to fit the existing compact or expanded budget. Names retain
+complete rows and a continuation; behavior pages retain exact source slices and relationship rows.
+The budget includes final context metadata and the output newline. Explicit expansion keeps the
+current names-page position. Hosted tests must reconstruct every match, source byte and relationship,
+check UTF-8 boundaries, and refuse stale continuations. A page with oversized mandatory metadata
+still refuses rather than returning an incomplete row or a cursor that makes no progress.
+
+This addresses a concrete disclosure failure. It does not establish token savings or a general
+agent-efficiency advantage. All ten hosted pagination tests pass. The refreshed index comparison
+reproduces all eight baseline samples; repository delivery passes 365 behavior cases; exact source
+locations pass their nine recorded cases. Independent audits verify all three bundles against current
+source. The roadmap remains at seven demonstrated technical items, with all four milestones open.
+
+## Recent work: review source and finish with one checked answer
 
 PR #438 merged at `25da0e17` after all 21 checks passed. It established the scripted submission
-controls below. The next adapter connects that terminal answer to a frozen question and source packet.
+controls below. PR #440 merged at `8075e69e` and connects that answer to a frozen question and source packet.
 It checks that citations came from the supplied packet or an earlier source read. It also retains
 observed work when the client stops without exporting its session.
 
@@ -47,9 +66,11 @@ observed work when the client stops without exporting its session.
 plans, source, models, tool results and resource limits. Two consecutive failures stop the collection;
 existing cells cannot be retried. The historical runners and stopped collections are unchanged.
 
-Twenty-four offline controls pass. The new GitHub check exercises packet-only review, an additional
-source read, missing and duplicate answers, and process interruption. Its real-client result is
-pending. GitHub has no repository provider secret, so we have not called live models.
+All 21 PR checks passed. The [hosted client check](https://github.com/e6qu/fun-refactor/actions/runs/37376273874)
+passed in 68 seconds, including all 24 offline controls and fr authoring of the extracted function.
+Independent replay accepts packet-only review and an additional source read. It retains the expected
+missing-answer, duplicate-answer and interrupted outcomes as failures, including their observed work.
+GitHub has no repository provider secret, so we have not called live models.
 The adapter implements only the OpenAI-compatible transport; configured model compatibility still needs
 checking before any live collection. See the [review commands](docs/opencode-native-tools.md#review-source-packets-with-terminal-answers).
 
