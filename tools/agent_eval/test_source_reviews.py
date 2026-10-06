@@ -234,7 +234,12 @@ class Collection(unittest.TestCase):
         self.assertEqual(evidence["review_plan_sha256"], reviews.load(directory / "plan.json")["sha256"])
         self.assertEqual(evidence["review_cell"], "dotenv-flat-grammar-0")
         for name, sha in evidence["candidate_inputs"].items():
-            self.assertEqual(hashlib.sha256((pack / name).read_bytes()).hexdigest(), sha)
+            path = pack / name
+            if name in {"controls.json", "control-failures.json"}:
+                path = pack / "review-baseline/2026-10-04-shared" / name
+                self.assertEqual(reviews.load(path)["dotenv-alternate"],
+                                 reviews.load(pack / name)["dotenv-alternate"])
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), sha)
         task = reviews.load(pack / "manifest.json")["tasks"][0]
         files, variants, public = controls.definitions(pack, task)
         rows = evidence["results"]

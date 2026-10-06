@@ -55,13 +55,17 @@
     "discard-order-and-duplicates": [
       "fallback",
       "matching-finals",
-      "explicit"
+      "explicit",
+      "duplicate-final-identity"
     ],
     "accept-every-contained-version": [
       "contains-policy"
     ],
     "break-individual-filter": [
       "individual-filter"
+    ],
+    "reuse-equal-output-object": [
+      "duplicate-final-identity"
     ]
   },
   "platformdirs-xdg": {

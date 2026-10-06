@@ -85,6 +85,24 @@ Models are a JSON list of explicit OpenAI-compatible profiles. For example:
   "baseURL":"https://provider.example/v1","context":32768,"output":2048}]
 ```
 
+New plans can instead select OpenCode's configured provider access:
+
+```json
+[{"providerID":"kimi-code-plan-global","modelID":"k3",
+  "configured":true,"context":32768,"output":2048}]
+```
+
+This uses the `fr-terminal-source-review-configured-1` schema. OpenCode resolves its own access;
+the evaluator never reads or copies auth files. Such profiles contain no endpoint or credential
+fields. Endpoint configuration is not frozen or independently verified. Requested model IDs,
+limits, executable identities, source and tools remain bound and audited. Configuration modes
+cannot be mixed in one plan or changed after freezing. Existing endpoint-based plans still replay.
+
+For local reviews, run one `collect` invocation at a time through `fr-local-guard.py`.
+Stop on a resource refusal. Full builds and scripted client gates remain on GitHub.
+The configured route reuses OpenCode's normal client data; retained capture-directory counters
+do not measure complete client cache growth. The outer local guard remains mandatory.
+
 Use the actual endpoint and limits no larger than the chosen model supports. Other transports are unsupported.
 Provider profiles accept no credential fields. On GitHub, configure `FR_REVIEW_API_KEYS` as a JSON
 object mapping each remote `providerID` to its key. The host selects one key per client through
@@ -93,9 +111,9 @@ Only that selected key reaches the isolated client environment. The full map doe
 The legacy `FR_REVIEW_API_KEY` works for a collection with one remote provider. Supplying both
 forms, omitting a provider key or using one provider identity for different endpoints refuses
 before an attempt starts. Secrets belong in the runner environment, never arguments or evidence.
-The collector refuses non-loopback collection outside the remote runner. GitHub has no repository
-provider secret, and we have not called live models. Kimi and GLM compatibility with this new route
-remains unknown.
+The explicit-endpoint route refuses non-loopback collection outside the remote runner.
+Configured-client plans use the client's existing access and require no GitHub provider secret.
+Live model compatibility still needs a recorded attempt; a passing scripted control cannot establish it.
 
 Freeze a new design before collection; never reuse a stopped collection:
 
@@ -141,6 +159,22 @@ The highest sampled RSS among the five review cases was 689.5 MiB, below the unc
 
 ### Collect a frozen review in order
 
+For an existing OpenCode installation, freeze a configured-client profile such as:
+
+```json
+{"providerID":"provider-name","modelID":"model-name","context":32768,"output":2048,"configured":true}
+```
+
+All profiles in one plan must use the same configuration mode. Configured-client plans omit
+endpoints and credentials: OpenCode resolves its normal provider configuration, and the evaluator
+does not inspect or copy authentication files. The plan binds the requested model and executable
+identities, but does not verify the resolved endpoint or billing. The original explicit-endpoint
+plans keep their existing schema and replay behavior.
+
+The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
+retains three completed reviews and a memory-limit failure. Its operator resource stop leaves the
+last two cells unstarted. Do not resume it, including through `collect-all`.
+
 `preflight` checks source, runtime, executable identities, retained attempts and required credentials.
 It creates no attempt and makes no model request. `collect-all` accepts at most six frozen cells,
 runs them serially and requires the reviewed plan SHA-256 explicitly:
@@ -153,7 +187,7 @@ python3 -B tools/terminal-reviews.py collect-all target/review target/review-att
   --fr target/review-fr/fr --opencode target/opencode/opencode --plan-sha REVIEWED_SHA256
 ```
 
-Run live collection only on the hosted runner. Six 120-second captures allow at most twelve minutes
+Run `collect-all` on the hosted runner. Six 120-second captures allow at most twelve minutes
 of capture time, plus preparation and replay overhead. Keep the enclosing job deadline at fifteen minutes.
 The collector resumes only unstarted cells after intact, audited records. It never retries a failure,
 skips an incomplete attempt or continues after two consecutive failures. Preserve the input and output

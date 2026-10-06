@@ -1,0 +1,97 @@
+{
+  "dotenv-alternate": {
+    "unchanged": [
+      "alternate",
+      "precedence",
+      "literal",
+      "disabled-and-unassigned",
+      "values-precedence",
+      "flat-braces"
+    ],
+    "reference": [],
+    "empty-is-present": [
+      "alternate",
+      "precedence",
+      "disabled-and-unassigned",
+      "values-precedence",
+      "flat-braces"
+    ],
+    "always-choose-word": [
+      "alternate",
+      "precedence",
+      "disabled-and-unassigned",
+      "values-precedence",
+      "flat-braces"
+    ],
+    "change-default-semantics": [
+      "legacy"
+    ],
+    "erase-plain-substitutions": [
+      "ordinary-values"
+    ],
+    "values-use-process-precedence": [
+      "values-precedence"
+    ],
+    "recursively-expand-alternate-word": [
+      "flat-braces"
+    ]
+  },
+  "packaging-prerelease": {
+    "unchanged": [
+      "fallback",
+      "bounds-and-exclusions",
+      "empty-and-objects"
+    ],
+    "reference": [],
+    "always-allow-prereleases": [
+      "matching-finals",
+      "explicit",
+      "empty-and-objects"
+    ],
+    "ignore-explicit-false": [
+      "explicit",
+      "empty-and-objects"
+    ],
+    "discard-order-and-duplicates": [
+      "fallback",
+      "matching-finals",
+      "explicit"
+    ],
+    "accept-every-contained-version": [
+      "contains-policy"
+    ],
+    "break-individual-filter": [
+      "individual-filter"
+    ]
+  },
+  "platformdirs-xdg": {
+    "unchanged": [
+      "user-homes",
+      "site-mixed",
+      "site-defaults",
+      "wrappers-and-iterators",
+      "creation-and-spaces",
+      "site-creation"
+    ],
+    "reference": [],
+    "config-home-only": [
+      "user-homes",
+      "site-mixed",
+      "site-defaults",
+      "wrappers-and-iterators",
+      "site-creation"
+    ],
+    "drop-duplicate-site-dirs": [
+      "site-mixed"
+    ],
+    "no-empty-site-fallback": [
+      "site-defaults"
+    ],
+    "create-before-filtering": [
+      "site-creation"
+    ],
+    "filter-runtime-directories-too": [
+      "unrelated-directories"
+    ]
+  }
+}

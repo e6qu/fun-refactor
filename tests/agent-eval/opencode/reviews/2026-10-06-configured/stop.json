@@ -1,0 +1,14 @@
+{
+  "schema": "fr-review-operator-stop-1",
+  "plan_sha256": "5ba0b9e9778e695af36df053d589bea00bda241c0c5478a7a7ee3f70438e55e8",
+  "reason": "local_resource_limit",
+  "cell": "packaging-one-shot-duplicates-1",
+  "process_sha256": "ed98fe30e7c456cb08ed38b89f9aa881631b3e36582c5832a804cb82cded66f8",
+  "stop_reason": "rss_bytes",
+  "resume_allowed": false,
+  "unstarted_cells": [
+    "platformdirs-invalid-site-default-0",
+    "platformdirs-invalid-site-default-1"
+  ],
+  "scope": "Operator stop at the first local resource limit; the frozen two-consecutive-failure rule was not triggered."
+}

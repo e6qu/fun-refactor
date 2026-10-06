@@ -21,26 +21,27 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #441 merged as `183887b5` after all 21 PR checks passed. Local main also includes release
-PR #439 at `6d943c7e`. Its post-merge validation is still queued; no failure has been reported.
+PR #442 merged as `6975d8e2` after all 21 PR checks passed. Its release, Pages and post-merge
+deep validation all passed. PR #444 is the current `eval/configured-source-reviews` branch.
 
-The active branch, `feat/terminal-review-collection`, adds provider-specific credentials and
-serial collection for at most six frozen source-review cells. Preflight refuses missing credentials
-before any attempt exists. Each client receives only its selected key. Collection requires the
-reviewed plan hash, preserves failures and cannot pass the two-consecutive-failure stop rule.
-Existing interrupted or stopped attempts cannot be retried.
+Configured-client source reviews use the existing OpenCode provider access without reading,
+copying or uploading authentication files. GitHub operations use only the existing `gh` login.
+The old explicit-endpoint schema remains replayable. The hosted scripted protocol passed in
+1m53s, including the new configured-provider control.
 
-The new candidate design covers three previously unreviewed assertions using the unchanged
-historical source archive. Preparation checks archive hashes, source slices and before/after
-file metadata. It does not execute candidate code. The design is not an executable frozen plan,
-and no live calls or independent review outcomes have been produced. GitHub has no provider secret.
-Cached OpenCode metadata identifies both configured models as OpenAI-compatible; live compatibility
-still needs verification. All builds and client execution remain on GitHub.
+The [live collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
+completed three reviews, retained one memory-limit failure and left two cells unstarted.
+Do not resume it: the operator stopped local model execution at the first resource limit.
+No limit was raised, no failed attempt was retried, and none of the completed reviews used fr.
+Both models found no contradiction for one disabled-interpolation input. Kimi identified a
+possible duplicate-identity grader gap, but its exact string-literal premise is not established.
+GitHub verified the candidate pack's distinct-object case: the incorrect repair passes the old
+grader and public example, but fails the new case. The reference passes all eight current cases.
 
-The new offline admission and design tests pass. Hosted controls for serial completion and the
-two-failure stop rule are queued. The roadmap remains at 7 of 18 demonstrated technical items,
-with all four milestones open. See the [design](../tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
-and [collection commands](opencode-native-tools.md#collect-a-frozen-review-in-order).
+The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones open.
+The [review table](candidate-review-status.md) lists remaining clauses and task-acceptance gaps.
+Full builds, full test gates and candidate execution stay on GitHub. Any future local work must
+use the workstation guard; local model execution for this collection is finished.
 
 ## Completed disclosure and terminal-answer work
 

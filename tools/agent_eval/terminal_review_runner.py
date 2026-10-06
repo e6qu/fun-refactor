@@ -12,6 +12,25 @@ from .study import encode, require
 from .workspace_bundle import unpack
 
 
+def configured_environment(root, model, config):
+    """Let OpenCode resolve its configured provider; never read or copy auth files."""
+    from . import opencode_rehearsal as legacy
+    env = legacy.environment()
+    template = structured_probe.environment(root, "http://127.0.0.1:1/v1")
+    settings = json.loads(template["OPENCODE_CONFIG_CONTENT"])
+    settings.update(enabled_providers=[model["providerID"]], provider={model["providerID"]: {
+        "models": {model["modelID"]: {"name": model["modelID"],
+            "limit": {"context": model["context"], "output": model["output"]}}}}})
+    settings["agent"]["fr-submission"]["prompt"] = "Answer the supplied source-review question using the permitted tools."
+    settings["mcp"]["rehearsal"]["command"] = [sys.executable, "-B",
+        str(Path(__file__).parents[1] / "terminal-reviews.py"), "serve", str(config), str(root / "tools.jsonl")]
+    env.update({key: value for key, value in template.items() if key.startswith("OPENCODE_DISABLE_")
+                or key in {"OPENCODE_SERVER_USERNAME", "OPENCODE_SERVER_PASSWORD"}})
+    env["OPENCODE_CONFIG_CONTENT"] = json.dumps(settings)
+    env["OPENCODE_PERMISSION"] = json.dumps(settings["permission"])
+    return env
+
+
 def cleanup(folder):
     for name in ("work", "config", "cache", "data", "state", "tmp"):
         path = folder / name
@@ -33,6 +52,8 @@ def retain_prefixes(root):
 
 
 def environment(root, model, config):
+    if model.get("configured") is True:
+        return configured_environment(root, model, config)
     env = structured_probe.environment(root, model["baseURL"])
     settings = json.loads(env["OPENCODE_CONFIG_CONTENT"])
     provider = settings["provider"]["scripted"]
@@ -65,7 +86,7 @@ def capture(frozen, snapshots, cell, root, binary, opencode):
             "workspace": str(work / "source"), "tools_schema_version": 6}))
         env = environment(root, plan["models"][cell["model"]], config)
         captured = terminal_transport.capture(opencode, root, env, review.request(plan, task, cell))
-        (root / "identity.json").write_bytes(encode({"schema": review.SCHEMA, "plan_sha256": frozen["sha256"],
+        (root / "identity.json").write_bytes(encode({"schema": plan["schema"], "plan_sha256": frozen["sha256"],
             "cell": cell, "opencode_version": captured["opencode_version"],
             "binary_sha256": plan["binary_sha256"], "opencode_sha256": plan["opencode_sha256"]}))
     finally:

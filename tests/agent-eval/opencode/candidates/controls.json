@@ -477,6 +477,33 @@
           "new": "        return iter(())\n"
         }
       ]
+    },
+    {
+      "id": "reuse-equal-output-object",
+      "expected": "failed",
+      "expected_public": "passed",
+      "edits": [
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        # Determine if we're forcing a prerelease or not, if we're not forcing\n        # one for this particular filter call, then we'll use whatever the\n        # SpecifierSet thinks for whether or not we should support prereleases.\n        if prereleases is None:\n            prereleases = self.prereleases\n\n        # If we have any specifiers, then we want to wrap our iterable in the\n        # filter method for each one, this will act as a logical AND amongst\n        # each specifier.\n        if self._specs:\n            for spec in self._specs:\n                iterable = spec.filter(iterable, prereleases=bool(prereleases))\n            return iter(iterable)\n        # If we do not have any specifiers, then we need to have a rough filter\n        # which will filter out any pre-releases, unless there are no final\n        # releases.\n        else:\n            filtered: list[UnparsedVersionVar] = []\n            found_prereleases: list[UnparsedVersionVar] = []\n\n            for item in iterable:\n                parsed_version = _coerce_version(item)\n\n                # Store any item which is a pre-release for later unless we've\n                # already found a final version or we are accepting prereleases\n                if parsed_version.is_prerelease and not prereleases:\n                    if not filtered:\n                        found_prereleases.append(item)\n                else:\n                    filtered.append(item)\n\n            # If we've found no items except for pre-releases, then we'll go\n            # ahead and use the pre-releases\n            if not filtered and found_prereleases and prereleases is None:\n                return iter(found_prereleases)\n\n            return iter(filtered)\n",
+          "new": "        if prereleases is None:\n            prereleases = self._prereleases\n            if prereleases is None and any(s.prereleases for s in self._specs):\n                prereleases = True\n\n        def selected():\n            pending = []\n            found_final = False\n            for item in iterable:\n                parsed = _coerce_version(item)\n                if not all(s.contains(parsed, prereleases=True) for s in self._specs):\n                    continue\n                if not parsed.is_prerelease or prereleases is True:\n                    found_final = True\n                    yield item\n                elif prereleases is None:\n                    pending.append(item)\n            if not found_final and prereleases is None:\n                yield from pending\n\n        return selected()\n"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        []",
+          "new": "        >>> list(SpecifierSet(\">=1.2.3\").filter([\"1.2\", \"1.5a1\"]))\n        ['1.5a1']"
+        },
+        {
+          "path": "src/packaging/specifiers.py",
+          "old": "        return selected()\n",
+          "new": "        def canonicalized():\n            seen = {}\n            for item in selected():\n                yield seen.setdefault(str(item), item)\n        return canonicalized()\n"
+        }
+      ],
+      "baseline": {
+        "grader": "review-baseline/packaging-duplicate-identity-grader.json",
+        "sha256": "5ffa7f777f8c1bdd788984f53a2e5a40e1574b21110b3ce52a26b30473eccc78",
+        "expected": "passed"
+      }
     }
   ],
   "platformdirs-xdg": [
