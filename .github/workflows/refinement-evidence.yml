@@ -230,7 +230,7 @@ jobs:
         with:
           key: default
       - name: Check independent source and relationship pagination
-        run: cargo test --locked --test project_explore_pages -- --test-threads 1
+        run: cargo test --locked --test project_explore_pages --test project_explore_budgets -- --test-threads 1
       - name: Compare complete index outputs with the pinned baseline
         run: python3 tools/refresh-refinement-evidence.py
       - uses: actions/upload-artifact@v7
