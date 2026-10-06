@@ -29,10 +29,16 @@ and [single-assertion reviews](../tests/agent-eval/opencode/reviews/2026-10-05-a
 ## What the next work must resolve
 
 The single-assertion collection completed three reviews covering two assertions, then stopped after
-two submission failures. It must stay stopped. The next design needs an explicit way to finish a
-native-tool interaction reliably before spending more calls on remaining requirements.
+two submission failures. It must stay stopped. Scripted OpenCode checks now verify terminal answers,
+including missing and duplicate submissions and interrupted work. Live model reliability remains open.
 Do not silently accept text answers, discard extra calls, raise limits or reinterpret old failures.
 Use scripted protocol checks first; any later live collection needs a new frozen design and scope.
+
+The [prepared terminal design](../tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
+asks three new scoped questions about disabled interpolation, a one-shot iterable with duplicates,
+and invalid site-path fallback. Source and packet checks pass, but no model calls have been made.
+It needs a frozen executable plan and separate hosted provider credentials. None of the gaps in
+the table closes merely because a question is ready.
 
 Finish the missing task-clarity, baseline, alternative-repair and grader-blind-spot review before
 freezing independent change trials. A reviewed assertion can be recorded without accepting its whole

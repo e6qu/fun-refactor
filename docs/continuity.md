@@ -21,13 +21,36 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
+PR #441 merged as `183887b5` after all 21 PR checks passed. Local main also includes release
+PR #439 at `6d943c7e`. Its post-merge validation is still queued; no failure has been reported.
+
+The active branch, `feat/terminal-review-collection`, adds provider-specific credentials and
+serial collection for at most six frozen source-review cells. Preflight refuses missing credentials
+before any attempt exists. Each client receives only its selected key. Collection requires the
+reviewed plan hash, preserves failures and cannot pass the two-consecutive-failure stop rule.
+Existing interrupted or stopped attempts cannot be retried.
+
+The new candidate design covers three previously unreviewed assertions using the unchanged
+historical source archive. Preparation checks archive hashes, source slices and before/after
+file metadata. It does not execute candidate code. The design is not an executable frozen plan,
+and no live calls or independent review outcomes have been produced. GitHub has no provider secret.
+Cached OpenCode metadata identifies both configured models as OpenAI-compatible; live compatibility
+still needs verification. All builds and client execution remain on GitHub.
+
+The new offline admission and design tests pass. Hosted controls for serial completion and the
+two-failure stop rule are queued. The roadmap remains at 7 of 18 demonstrated technical items,
+with all four milestones open. See the [design](../tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
+and [collection commands](opencode-native-tools.md#collect-a-frozen-review-in-order).
+
+## Completed disclosure and terminal-answer work
+
 PR #440 merged as `8075e69e` after all 21 PR checks passed. Its hosted submission job took
 68 seconds, including both control sets, 24 offline tests and fr authoring of the extracted function.
 Independent artifact replay accepts both valid source reviews and preserves missing, duplicate and
 interrupted submissions as failures. The adapter remains OpenAI-compatible only. No live model calls
 or general efficiency claims follow from these controls. Historical stopped collections stay stopped.
 
-The current branch, `fix/explore-response-budgets`, repairs a concrete CLI discovery failure.
+PR #441 repairs a concrete CLI discovery failure.
 A generated fixture with a long file scope and matching declarations makes the released CLI exceed
 its response budget and return no rows. The change shrinks names, source and relationship pages
 within the existing limits. It counts final context metadata and preserves explicit expansion positions.
@@ -49,7 +72,7 @@ skill budgets before pagination and index replay; it passed in 9m18s on `4c09e07
 Replacement evidence under `2026-10-06-explore-ci-*` passes independent audit with the same outcomes
 and current bindings. See [lint and index validation](https://github.com/e6qu/fun-refactor/actions/runs/37435891865)
 and [repository and location validation](https://github.com/e6qu/fun-refactor/actions/runs/37435904795).
-Full PR CI remains the next gate. PR #440 release, Pages and deep validation all passed.
+All 21 final PR checks passed. PR #440 release, Pages and deep validation all passed.
 
 ## Completed recipe audit repair
 
