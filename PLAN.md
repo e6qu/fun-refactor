@@ -36,13 +36,32 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: return useful discovery pages within the response budget
+## Current chunk: collect the next source reviews without losing failed work
 
-`project explore` can refuse every result when a long scope and several matching declarations
+Terminal answer controls now pass, but the collector accepted only one credential for a plan
+that could name several providers. The new collection path checks all required keys before
+creating an attempt. Each client receives only its selected provider's key. At most six cells
+run serially, preserving the frozen order, failed attempts and two-failure stop rule.
+Preflight checks source, runtime and binaries without calling a model. Collection requires the
+reviewed plan hash; it cannot retry or skip an incomplete attempt.
+
+The [new review design](tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
+covers disabled dotenv interpolation, packaging's one-shot iterable with duplicate results,
+and platformdirs' config-site fallback. It reuses hash-checked historical source while preserving
+all stopped collections. Its three questions and two model profiles fit the existing budgets.
+It is a checked design, not a frozen executable collection or a completed review.
+
+Hosted controls must exercise both serial completion and stopping after two failures through real
+OpenCode. GitHub has no provider secret; live Kimi/GLM compatibility and independent review remain
+open. No acceptance item or efficiency claim follows from preparing this collection.
+
+## Recent work: return useful discovery pages within the response budget
+
+Before PR #441, `project explore` could refuse every result when a long scope and matching declarations
 exceed its serialized response limit. Narrowing to one file does not always help. A small generated
 fixture reproduces this failure with the released CLI.
 
-The next change reduces page sizes to fit the existing compact or expanded budget. Names retain
+PR #441 reduces page sizes to fit the existing compact or expanded budget. Names retain
 complete rows and a continuation; behavior pages retain exact source slices and relationship rows.
 The budget includes final context metadata and the output newline. Explicit expansion keeps the
 current names-page position. Hosted tests must reconstruct every match, source byte and relationship,
@@ -54,6 +73,7 @@ agent-efficiency advantage. All ten hosted pagination tests pass. The refreshed 
 reproduces all eight baseline samples; repository delivery passes 365 behavior cases; exact source
 locations pass their nine recorded cases. Independent audits verify all three bundles against current
 source. The roadmap remains at seven demonstrated technical items, with all four milestones open.
+All 21 PR checks passed before merge at `183887b5`. Local main also includes release PR #439.
 
 ## Recent work: review source and finish with one checked answer
 
@@ -182,8 +202,9 @@ Next steps, in order:
    The stopped review collections remain stopped. A different review requires a new frozen plan;
    do not increase limits or retry until a review happens to pass.
    Single-assertion packets with unchanged-file context produced three completed reviews, then two
-   submission failures. Check the [explicit gaps](docs/candidate-review-status.md); first address
-   native submission with scripted checks. Any new calls need a new frozen design, not restarted cells.
+   submission failures. Scripted terminal submission checks now pass. Check the
+   [explicit gaps](docs/candidate-review-status.md) and prepare the new collection with separate
+   provider credentials. Any new calls need a new frozen design, not restarted cells.
 2. Compare ordinary tools with the public fr read/edit routes and test feedback on those unfamiliar
    tasks. Freeze requirements, allowed tools, models, budgets and private checks before calls.
    Use the configured Kimi/GLM OpenCode profiles for bounded local rehearsals and GitHub for grading.

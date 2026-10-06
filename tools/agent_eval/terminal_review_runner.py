@@ -1,7 +1,6 @@
 """Run a frozen terminal review under one process-group resource budget."""
 import io
 import json
-import os
 from pathlib import Path
 import shutil
 import sys
@@ -40,10 +39,9 @@ def environment(root, model, config):
     provider["models"] = {model["modelID"]: {"name": model["modelID"],
         "limit": {"context": model["context"], "output": model["output"]}}}
     if urlsplit(model["baseURL"]).hostname != "127.0.0.1":
-        require(os.environ.get("GITHUB_ACTIONS") == "true", "live reviews require the remote bounded runner")
-        require(os.environ.get("FR_REVIEW_API_KEY"), "remote provider credential is not configured")
+        from .terminal_review_collection import credentials
         provider["options"]["apiKey"] = "{env:FR_REVIEW_API_KEY}"
-        env["FR_REVIEW_API_KEY"] = os.environ["FR_REVIEW_API_KEY"]
+        env["FR_REVIEW_API_KEY"] = credentials([model])[model["providerID"]]
     settings.update(enabled_providers=[model["providerID"]], provider={model["providerID"]: provider})
     settings["agent"]["fr-submission"]["prompt"] = "Answer the supplied source-review question using the permitted tools."
     settings["mcp"]["rehearsal"]["command"] = [sys.executable, "-B",
@@ -100,6 +98,8 @@ def collect(frozen, snapshots, cell_id, output, binary, opencode, inputs):
             and source_reviews.identity(opencode) == plan["opencode_sha256"], "executable changed")
     review.report(frozen, snapshots, output)
     cell = source_reviews.eligible(plan, cell_id, output, frozen["sha256"])
+    from .terminal_review_collection import credentials
+    credentials(plan["models"])
     folder = output / cell_id
     folder.mkdir(parents=True, exist_ok=False)
     out, err = io.BytesIO(), io.BytesIO()

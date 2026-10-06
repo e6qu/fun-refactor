@@ -36,7 +36,8 @@ def retained_process(record, process, manifest, directory):
 
 def implementation():
     names = ("structured_submission.py", "structured_probe.py", "terminal_transport.py",
-             "terminal_reviews.py", "terminal_review_costs.py", "terminal_review_runner.py")
+             "terminal_reviews.py", "terminal_review_costs.py", "terminal_review_runner.py",
+             "terminal_review_collection.py")
     return {**source_reviews.implementation(), **{n: source_reviews.identity(Path(__file__).with_name(n)) for n in names},
             "terminal-reviews.py": source_reviews.identity(Path(__file__).parents[1] / "terminal-reviews.py")}
 

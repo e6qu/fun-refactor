@@ -85,9 +85,14 @@ Models are a JSON list of explicit OpenAI-compatible profiles. For example:
   "baseURL":"https://provider.example/v1","context":32768,"output":2048}]
 ```
 
-Use the actual endpoint and limits of the chosen model. Other provider transports are unsupported.
-Provider profiles accept no credential fields. On GitHub, the collector uses `FR_REVIEW_API_KEY`
-from its environment through OpenCode's [environment substitution](https://opencode.ai/docs/config/#env-vars).
+Use the actual endpoint and limits no larger than the chosen model supports. Other transports are unsupported.
+Provider profiles accept no credential fields. On GitHub, configure `FR_REVIEW_API_KEYS` as a JSON
+object mapping each remote `providerID` to its key. The host selects one key per client through
+OpenCode's [environment substitution](https://opencode.ai/docs/config/#env-vars).
+Only that selected key reaches the isolated client environment. The full map does not.
+The legacy `FR_REVIEW_API_KEY` works for a collection with one remote provider. Supplying both
+forms, omitting a provider key or using one provider identity for different endpoints refuses
+before an attempt starts. Secrets belong in the runner environment, never arguments or evidence.
 The collector refuses non-loopback collection outside the remote runner. GitHub has no repository
 provider secret, and we have not called live models. Kimi and GLM compatibility with this new route
 remains unknown.
@@ -133,6 +138,40 @@ The [PR #440 hosted check](https://github.com/e6qu/fun-refactor/actions/runs/373
 68 seconds on `58b2953b`, including fr authoring, both control sets and 24 offline tests.
 Independent artifact replay accepts both valid reviews and preserves all three expected failures.
 The highest sampled RSS among the five review cases was 689.5 MiB, below the unchanged 768-MiB limit.
+
+### Collect a frozen review in order
+
+`preflight` checks source, runtime, executable identities, retained attempts and required credentials.
+It creates no attempt and makes no model request. `collect-all` accepts at most six frozen cells,
+runs them serially and requires the reviewed plan SHA-256 explicitly:
+
+```sh
+python3 -B tools/terminal-reviews.py preflight target/review target/review-attempts \
+  --fr target/review-fr/fr --opencode target/opencode/opencode
+
+python3 -B tools/terminal-reviews.py collect-all target/review target/review-attempts \
+  --fr target/review-fr/fr --opencode target/opencode/opencode --plan-sha REVIEWED_SHA256
+```
+
+Run live collection only on the hosted runner. Six 120-second captures allow at most twelve minutes
+of capture time, plus preparation and replay overhead. Keep the enclosing job deadline at fifteen minutes.
+The collector resumes only unstarted cells after intact, audited records. It never retries a failure,
+skips an incomplete attempt or continues after two consecutive failures. Preserve the input and output
+directories across interruptions. A fresh workspace must not serve as a retry of attempted cells.
+The JSON result distinguishes `finished` from `stopped`; either can contain failed reviews.
+
+The [new candidate design](../tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
+prepares three questions from a hash-pinned source archive without duplicating historical inputs.
+Its preparation command checks selected source and before/after file identities before freezing.
+Neither successful preflight nor scripted controls establish live provider compatibility.
+
+The hosted collection control runs two provider identities through actual OpenCode and tests a
+three-cell collection that must stop after two missing answers. Replaying the result checks both
+the source delivered to the provider and work retained from failed attempts:
+
+```sh
+python3 -B tools/check-review-collection.py report target/review-collection
+```
 
 ## Tools and limits
 

@@ -31,6 +31,10 @@ jobs:
         run: python3 -B tools/agent_eval/test_structured_submission.py
       - name: Check frozen source reviews and interrupted accounting
         run: python3 -B tools/agent_eval/test_terminal_reviews.py
+      - name: Check serial admission and provider credential isolation
+        run: python3 -B tools/agent_eval/test_terminal_review_collection.py
+      - name: Check new review questions against retained source
+        run: python3 -B tools/agent_eval/test_terminal_review_design.py
       - name: Exercise terminal answers with a scripted loopback provider
         run: >-
           python3 -B tools/check-native-submission.py check target/native-submission
@@ -50,6 +54,10 @@ jobs:
       - name: Review source packets and retain failed client work
         run: >-
           python3 -B tools/check-terminal-reviews.py check target/terminal-reviews
+          --fr target/review-fr/fr --opencode target/opencode/opencode
+      - name: Collect serial reviews and enforce the stop rule with the real client
+        run: >-
+          python3 -B tools/check-review-collection.py check target/review-collection
           --fr target/review-fr/fr --opencode target/opencode/opencode
       - uses: actions/upload-artifact@v7
         if: always()
@@ -71,4 +79,10 @@ jobs:
             target/terminal-reviews/*/attempts/*/*.jsonl
             target/terminal-reviews/*/attempts/*/*.stdout
             target/terminal-reviews/*/attempts/*/*.stderr
+            target/review-collection/*/*.json
+            target/review-collection/*/*.json.gz
+            target/review-collection/*/attempts/*/*.json
+            target/review-collection/*/attempts/*/*.jsonl
+            target/review-collection/*/attempts/*/*.stdout
+            target/review-collection/*/attempts/*/*.stderr
           retention-days: 7
