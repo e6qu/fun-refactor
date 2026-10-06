@@ -24,6 +24,48 @@ def configured():
 
 
 class Configured(unittest.TestCase):
+    def test_hosted_identity_counterexample_matches_reviewed_source(self):
+        import base64
+        import hashlib
+        from agent_eval import change_controls, source_reviews
+        base = Path(__file__).resolve().parents[2] / "tests/agent-eval/opencode"
+        root = base / "reviews/2026-10-06-configured"
+        pack = base / "candidates"
+        evidence = json.loads((root / "counterexample.json").read_bytes())
+        frozen = json.loads((root / "frozen/plan.json").read_bytes())
+        self.assertEqual(evidence["review_plan_sha256"], frozen["sha256"])
+        self.assertEqual(evidence["review_cell"], "packaging-one-shot-duplicates-0")
+        self.assertEqual(evidence["run"]["job_conclusion"], "success")
+        for name, sha in evidence["candidate_inputs"].items():
+            self.assertEqual(hashlib.sha256((pack / name).read_bytes()).hexdigest(), sha)
+        task = next(t for t in json.loads((pack / "manifest.json").read_bytes())["tasks"]
+                    if t["id"] == "packaging-prerelease")
+        files, variants, public = change_controls.definitions(pack, task)
+        rows = evidence["results"]
+        self.assertEqual({r["id"] for r in rows}, {"packaging-prerelease/reference",
+                         "packaging-prerelease/reuse-equal-output-object"})
+        change_controls.verify(rows)
+        current = json.loads((pack / task["grader"]).read_bytes())
+        for row in rows:
+            variant = next(v for v in variants if row["id"] == task["id"] + "/" + v["id"])
+            self.assertEqual(row["submission_sha256"], digest(change_controls.apply(files, variant)))
+            self.assertEqual(row["grade"]["grader_sha256"], evidence["candidate_inputs"][task["grader"]])
+            self.assertEqual(row["grade"]["image"], current["image"])
+            self.assertEqual(row["public_grade"]["candidate"], row["grade"]["candidate"])
+            self.assertEqual(row["public_grade"]["grader_sha256"], digest(public))
+            self.assertEqual([c["id"] for c in row["grade"]["cases"]], [c["id"] for c in current["cases"]])
+            if "baseline_grade" in row:
+                baseline = json.loads((pack / variant["baseline"]["grader"]).read_bytes())
+                self.assertEqual(row["baseline_grade"]["image"], current["image"])
+                self.assertEqual([c["id"] for c in row["baseline_grade"]["cases"]], [c["id"] for c in baseline["cases"]])
+                self.assertEqual(row["expected_failed_cases"], ["duplicate-final-identity"])
+                snapshots = source_reviews.read_inputs(root / "frozen")
+                reviewed = base64.b64decode(snapshots["packaging-one-shot-duplicates"]["review/grader.py"]["data"])
+                self.assertEqual(baseline["command"][-1].encode(), reviewed)
+        report = json.loads((root / "report.json").read_bytes())
+        finding = report["attempts"][2]["audit"]["review"]["findings"][0]
+        self.assertFalse(finding["verified_counterexample"])
+
     def test_retained_reviews_replay_and_resource_stop_stays_closed(self):
         import hashlib
         from agent_eval import source_reviews

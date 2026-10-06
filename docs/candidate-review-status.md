@@ -14,7 +14,7 @@ The [candidate pack](../tests/agent-eval/opencode/candidates/README.md) owns sou
 | dotenv environment/file precedence | Kimi found no scoped contradiction in the disclosed reference review | Other reviewers and behavior outside that question |
 | dotenv absent, empty and present variables | No accepted review from the single absent-variable collection; Kimi submitted repeatedly and the final GLM cell stopped | All three states through both public APIs; do not treat readable failed answers as completion |
 | dotenv existing interpolation and disabled interpolation | Kimi and GLM found no contradiction for one literal value with `interpolate=False` | Other disabled-interpolation inputs, existing syntax and unassigned keys |
-| packaging exact `Version` object identity | Kimi and GLM found no contradiction for two in-range prerelease objects, in order | Kimi flagged an identity-check gap for duplicate values; the distinct-object counterexample awaits GitHub verification. Broader iterator behavior and empty sets remain open |
+| packaging exact `Version` object identity | Kimi and GLM found no contradiction for two in-range prerelease objects, in order | Kimi flagged an identity-check gap for duplicate values; GitHub verified a related distinct-object counterexample. Broader iterator behavior and empty sets remain open |
 | packaging intersection and explicit prerelease policies | The earlier Kimi finding about `>1.0` and `1.0.post1` was rejected against source, specification and execution | Valid review of fallback, matching finals, constructor/call overrides, bounds and exclusions |
 | packaging unchanged comparison APIs | No completed review establishes preservation | `contains` and individual `Specifier` behavior |
 | platformdirs absolute site-path lists | Kimi found no scoped contradiction in the disclosed reference review | Invalid-entry/default handling and remaining site-path API behavior |
@@ -40,7 +40,7 @@ That collection completed three reviews, then stopped when GLM exceeded the unch
 memory limit. Its two site-path cells remain unstarted. This operator resource stop is stricter than
 the two-failure rule; do not resume the collection. It used the existing local OpenCode provider
 access and no uploaded credentials. GitHub operations use only the existing `gh` login.
-The distinct-object grader counterexample must pass hosted behavior checks before it is accepted.
+GitHub verified the distinct-object counterexample against old and new graders on the same repair.
 None of these reviews used fr; this is task preparation, not the matched agent comparison.
 
 Finish the missing task-clarity, baseline, alternative-repair and grader-blind-spot review before

@@ -47,9 +47,11 @@ position-by-position identity. Its concrete example assumes duplicate string lit
 objects; that premise is not established. The new `duplicate-final-identity` grader case instead
 constructs two equal, explicitly distinct `Version` objects and also checks legitimate repeated
 references to the same object. The `reuse-equal-output-object` control reuses the first equal object.
-GitHub must verify that this same incorrect repair passes the frozen seven-case grader and public
-example but fails the new case, while the reference continues to pass. Until that execution is
-retained, the broader counterexample remains unverified; the original model finding stays unchanged.
+GitHub verified that this same incorrect repair passes the frozen seven-case grader and public
+example but fails exactly the new case. The unchanged reference passes all eight current cases.
+The [retained comparison](counterexample.json) binds both grades to the same submitted source,
+pinned image and exact grader inputs. It verifies this broader distinct-object counterexample;
+it does not establish the model's string-literal premise. The original finding stays unchanged.
 
 The [hosted protocol check](https://github.com/e6qu/fun-refactor/actions/runs/37473198454)
 passed in 1m53s, including the real OpenCode client with a scripted configured provider. It requires

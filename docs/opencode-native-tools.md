@@ -159,6 +159,22 @@ The highest sampled RSS among the five review cases was 689.5 MiB, below the unc
 
 ### Collect a frozen review in order
 
+For an existing OpenCode installation, freeze a configured-client profile such as:
+
+```json
+{"providerID":"provider-name","modelID":"model-name","context":32768,"output":2048,"configured":true}
+```
+
+All profiles in one plan must use the same configuration mode. Configured-client plans omit
+endpoints and credentials: OpenCode resolves its normal provider configuration, and the evaluator
+does not inspect or copy authentication files. The plan binds the requested model and executable
+identities, but does not verify the resolved endpoint or billing. The original explicit-endpoint
+plans keep their existing schema and replay behavior.
+
+The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
+retains three completed reviews and a memory-limit failure. Its operator resource stop leaves the
+last two cells unstarted. Do not resume it, including through `collect-all`.
+
 `preflight` checks source, runtime, executable identities, retained attempts and required credentials.
 It creates no attempt and makes no model request. `collect-all` accepts at most six frozen cells,
 runs them serially and requires the reviewed plan SHA-256 explicitly:

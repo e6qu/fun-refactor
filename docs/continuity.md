@@ -21,8 +21,8 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #442 merged as `6975d8e2` after all 21 PR checks passed. Its release and Pages runs passed;
-post-merge deep validation remains queued. The current branch is `eval/configured-source-reviews`.
+PR #442 merged as `6975d8e2` after all 21 PR checks passed. Its release, Pages and post-merge
+deep validation all passed. PR #444 is the current `eval/configured-source-reviews` branch.
 
 Configured-client source reviews use the existing OpenCode provider access without reading,
 copying or uploading authentication files. GitHub operations use only the existing `gh` login.
@@ -35,8 +35,8 @@ Do not resume it: the operator stopped local model execution at the first resour
 No limit was raised, no failed attempt was retried, and none of the completed reviews used fr.
 Both models found no contradiction for one disabled-interpolation input. Kimi identified a
 possible duplicate-identity grader gap, but its exact string-literal premise is not established.
-The candidate pack now proposes an explicitly distinct-object case and an incorrect repair;
-their same-candidate old/new grader comparison is pending on GitHub.
+GitHub verified the candidate pack's distinct-object case: the incorrect repair passes the old
+grader and public example, but fails the new case. The reference passes all eight current cases.
 
 The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones open.
 The [review table](candidate-review-status.md) lists remaining clauses and task-acceptance gaps.

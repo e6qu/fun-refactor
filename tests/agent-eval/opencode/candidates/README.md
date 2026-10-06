@@ -55,7 +55,7 @@ case in the strengthened grader. Both grades bind to the same submitted source a
 | platformdirs | Also reject relative runtime-directory values | `unrelated-directories` |
 
 Six are task-author counterexamples. A new duplicate-identity control follows the
-[configured-client review](../reviews/2026-10-06-configured/README.md); its hosted comparison is pending. The recursive-expansion control follows a completed Kimi
+[configured-client review](../reviews/2026-10-06-configured/README.md); GitHub verified its old/new grader comparison. The recursive-expansion control follows a completed Kimi
 [source-packet review](../reviews/2026-10-04-packets/README.md). GitHub verified that control against
 the old and new graders and retained both results with the passing reference repair. The bounded
 [OpenCode review attempts](../reviews/2026-10-03-candidates/README.md) retained two timeouts and
