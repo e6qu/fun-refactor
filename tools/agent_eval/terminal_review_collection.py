@@ -14,6 +14,8 @@ def credentials(models):
     endpoints = {}
     for model in models:
         review.profile(model)
+        if model.get("configured") is True:
+            continue
         provider, endpoint = model["providerID"], model["baseURL"]
         require(provider not in endpoints or endpoints[provider] == endpoint,
                 "one provider identity must use one endpoint")

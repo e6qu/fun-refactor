@@ -3,6 +3,7 @@
 import argparse
 import ast
 import base64
+from contextlib import nullcontext
 import gzip
 import hashlib
 import io
@@ -19,7 +20,7 @@ from agent_eval import bounded_host, native_costs, native_mcp as mcp, source_pac
 from agent_eval import structured_probe as probe, terminal_reviews as review, terminal_review_runner as runner
 from agent_eval.study import encode, require
 
-CASES = ("packet", "read", "missing", "duplicate", "interrupt")
+CASES = ("packet", "read", "missing", "duplicate", "interrupt", "configured")
 
 
 def author_control(binary, root):
@@ -91,6 +92,16 @@ def capture(root, case, binary, opencode):
         try:
             models = [{"providerID": "scripted", "modelID": "protocol",
                        "baseURL": f"http://127.0.0.1:{server.server_port}/v1", "context": 8192, "output": 1024}]
+            client_context = nullcontext()
+            if case == "configured":
+                env = probe.environment(root / "attempts" / "value-review-0", models[0]["baseURL"])
+                fixture = root / "fixture"
+                fixture.mkdir()
+                config = fixture / "opencode.json"
+                config.write_bytes(encode({"provider": mcp.decode(env["OPENCODE_CONFIG_CONTENT"].encode())["provider"]}))
+                env["OPENCODE_CONFIG"] = str(config)
+                client_context = patch.dict(os.environ, env)
+                models = [{k: v for k, v in models[0].items() if k != "baseURL"} | {"configured": True}]
             frozen, snapshots = review.freeze(questions(case), models, binary, opencode,
                 {"kind": "scripted control", "case": case, "script_sha256": source_reviews.identity(Path(__file__))})
             (root / "plan.json").write_bytes(encode(frozen))
@@ -104,7 +115,7 @@ def capture(root, case, binary, opencode):
             answer = {"answer": {"findings": [{"gap": "The implementation returns 42", "wrong_repair": "Leave value unchanged",
                 "input": "value()", "expected": "43", "citations": [{"source": packet["source_refs"][0]["source"]}]}],
                 "limitations": "Scripted source-citation control, not an independent model judgment."}}
-            with patch.object(probe, "response", lambda turn, _: response(original, case, turn, answer, folder)):
+            with client_context, patch.object(probe, "response", lambda turn, _: response(original, case, turn, answer, folder)):
                 runner.capture(frozen, snapshots, cell, folder, binary, opencode)
             require(not server.errors and len(server.requests) == (1 if case == "packet" else 2), "unexpected provider work")
         finally:
@@ -130,7 +141,7 @@ def report(root, case):
         delivered = [m for m in requests[1]["messages"] if m["role"] == "tool"]
         require(len(rows) == len(delivered) == 1 and delivered[0]["content"]
                 == rows[0]["response"]["content"][0]["text"], "source did not reach the provider")
-    if case in {"packet", "read"}:
+    if case in {"packet", "read", "configured"}:
         require(row["status"] == "completed", f"valid review failed: {row['failure']}")
         require(row["audit"]["assistant_responses"] == len(requests), "response accounting differs")
         require(row["audit"]["fr_calls"] == 0 and row["audit"]["review"]["findings"][0]["citations"]

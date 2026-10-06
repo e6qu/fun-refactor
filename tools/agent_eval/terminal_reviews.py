@@ -12,6 +12,7 @@ from .study import digest, encode, number, require
 from .workspace_bundle import validate
 
 SCHEMA = "fr-terminal-source-review-1"
+CONFIGURED_SCHEMA = "fr-terminal-source-review-configured-1"
 PROMPT = source_reviews.PROMPT.replace("Call submit_answer once", "Call StructuredOutput once")
 MAX_BYTES = 1024**2
 ARTIFACTS = {"request.json", "terminal.json", "messages.json", "export.json", "events.jsonl",
@@ -43,6 +44,10 @@ def implementation():
 
 
 def profile(value):
+    if isinstance(value, dict) and value.get("configured") is True:
+        require(set(value) == {"providerID", "modelID", "context", "output", "configured"}, "invalid configured provider profile")
+        profile({k: v for k, v in value.items() if k != "configured"} | {"baseURL": "https://configured.invalid"})
+        return value
     require(isinstance(value, dict) and set(value) == {"providerID", "modelID", "baseURL", "context", "output"},
             "invalid provider profile")
     require(all(isinstance(value[k], str) and len(value[k].encode()) <= 256 and re.fullmatch(r"[\w./-]+", value[k]) for k in ("providerID", "modelID")),
@@ -62,6 +67,8 @@ def design(questions, models, identities, provenance):
     require(isinstance(models, list) and 1 <= len(models) <= 4, "choose one to four model profiles")
     for model in models:
         profile(model)
+    configured = all(model.get("configured") is True for model in models)
+    require(configured or not any(model.get("configured") for model in models), "mixed provider configuration modes")
     require(len({(m["providerID"], m["modelID"]) for m in models}) == len(models), "duplicate model identity")
     require(isinstance(questions, list) and 1 <= len(questions) <= 8, "choose one to eight questions")
     tasks, snapshots = [], {}
@@ -79,8 +86,8 @@ def design(questions, models, identities, provenance):
     require(isinstance(identities, dict) and set(identities) == {"runtime", "binary_sha256", "opencode_sha256"}, "invalid runtime identities")
     require(all(isinstance(v, str) and re.fullmatch(r"[0-9a-f]{64}", v)
                 for v in [identities["binary_sha256"], identities["opencode_sha256"], *identities["runtime"].values()]), "invalid executable identity")
-    plan = {"schema": SCHEMA, "tasks": tasks, "models": models, "prompt": PROMPT, "format": protocol.FORMAT,
-            "opencode_version": protocol.VERSION, "provider_transport": "openai-compatible",
+    plan = {"schema": CONFIGURED_SCHEMA if configured else SCHEMA, "tasks": tasks, "models": models, "prompt": PROMPT, "format": protocol.FORMAT,
+            "opencode_version": protocol.VERSION, "provider_transport": "opencode-configured" if configured else "openai-compatible",
             "cells": [{"id": t["id"] + "-" + str(i), "task": t["id"], "model": i, "arm": "fr"}
                       for t in tasks for i in range(len(models))], "limits": native.LIMITS,
             "tools_schema_version": 6, "tools": tools, "stop_after_consecutive_failures": 2, "retries": 0,
@@ -98,7 +105,7 @@ def freeze(questions, models, binary, opencode, provenance):
 
 def checked(frozen, snapshots, *, execution=False):
     plan = frozen["plan"]
-    require(plan["schema"] == SCHEMA and digest(plan) == frozen["sha256"], "terminal review plan changed")
+    require(plan["schema"] in (SCHEMA, CONFIGURED_SCHEMA) and digest(plan) == frozen["sha256"], "terminal review plan changed")
     require(set(snapshots) == {t["id"] for t in plan["tasks"]}, "snapshot tasks differ")
     questions = [{"id": t["id"], "question": t["question"], "files": snapshots[t["id"]],
                   "selections": [{k: s[k] for k in ("path", "sha256", "start", "end")} for s in t["packet"]["spans"]]}
@@ -128,7 +135,7 @@ def audit(plan, task, cell, directory):
     data = {n: mcp.decode(read(directory / n)) for n in
             ("request.json", "terminal.json", "export.json", "messages.json", "identity.json")}
     require(data["request.json"] == request(plan, task, cell), "frozen request differs")
-    require(data["identity.json"] == {"schema": SCHEMA, "plan_sha256": digest(plan), "cell": cell,
+    require(data["identity.json"] == {"schema": plan["schema"], "plan_sha256": digest(plan), "cell": cell,
             "opencode_version": plan["opencode_version"], "binary_sha256": plan["binary_sha256"],
             "opencode_sha256": plan["opencode_sha256"]}, "capture identity differs")
     messages = data["messages.json"]
@@ -182,7 +189,7 @@ def report(frozen, snapshots, output):
         attempts.append({"cell": cell, "status": record["status"], "failure": record["failure"],
                          "audit": reviewed, "observed": observed, "process": process,
                          "truncated_artifacts": record["truncated_artifacts"]})
-    return {"schema": SCHEMA, "plan_sha256": frozen["sha256"], "attempts": attempts,
+    return {"schema": plan["schema"], "plan_sha256": frozen["sha256"], "attempts": attempts,
             "completed": sum(a["status"] == "completed" for a in attempts),
             "failed": sum(a["status"] == "failed" for a in attempts),
             "not_started": sum(a["status"] == "not_started" for a in attempts),
