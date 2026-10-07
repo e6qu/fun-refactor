@@ -64,9 +64,22 @@ and configured-client checks resolved the endpoints and adapters correctly.
 The [new frozen reviews](tests/agent-eval/opencode/reviews/2026-10-07-packaging-providers/README.md)
 reached both providers at 433–453 MiB. Both exhausted their 2,048-token output
 allowance on reasoning without a structured submission. Neither called a tool.
-The resource problem has a measured remedy; the next prerequisite is explicit
-reasoning effort that permits a complete answer within the same allowance.
-Verify that setting before a new frozen collection. No stopped collection resumes.
+The resource problem has a measured remedy. Explicit reasoning effort now binds
+the plan, request and saved session. The [retained transport controls](tests/agent-eval/opencode/reasoning/2026-10-07-low/README.md)
+verify both models at `low` and `max` on Linux and macOS. All eight passed below
+640 MiB, as did one fresh workstation control at 545 MiB. Output caps did not change.
+
+The [fresh low-effort reviews](tests/agent-eval/opencode/reviews/2026-10-07-packaging-low/README.md)
+still exhausted the 2,048-token allowance without completed submissions. They stayed
+within resource limits at 504 and 528 MiB. Both partial answers made the same incorrect
+postrelease-matching claim, rejected against the exact reference and grader on GitHub.
+Neither used fr. This collection is permanently stopped; no failed cell resumes.
+
+Next divide the requirement checklist into bounded review questions with explicit
+coverage accounting. Require examination of the relevant matching code before accepting
+a comparison claim. Freeze the questions, source packets and model settings before calls;
+retain failures and unknown costs. Complete the whole checklist before accepting the task.
+The four code-change pilot attempts remain unstarted, with all resource caps unchanged.
 
 The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
 are prepared with all eight grader cases and a requirement coverage checklist.

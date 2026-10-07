@@ -36,6 +36,13 @@ def capture_fixture(root):
 
 
 class Replay(unittest.TestCase):
+    def test_malformed_saved_model_is_a_controlled_refusal(self):
+        for model in (None, [], "protocol", 1):
+            request, terminal, messages, events, rows = fixture()
+            messages[0]["info"]["model"] = model
+            with self.subTest(model=model), self.assertRaisesRegex(ValueError, "invalid saved model"):
+                protocol.audit(request, terminal, messages, events, rows)
+
     def test_missing_answer_keeps_both_responses_in_observed_work(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -144,6 +151,29 @@ def events_for(messages):
 
 
 class Submission(unittest.TestCase):
+    def test_variant_must_match_saved_user_and_events(self):
+        request, terminal, messages, _, rows = fixture()
+        request["variant"] = "low"
+        with self.assertRaisesRegex(ValueError, "user variant differs"):
+            protocol.audit(request, terminal, messages, events_for(messages), rows)
+        messages[0]["info"]["model"]["variant"] = "low"
+        protocol.audit(request, terminal, messages, events_for(messages), rows)
+        for value in ("max", None):
+            messages[0]["info"]["model"]["variant"] = value
+            with self.assertRaisesRegex(ValueError, "user variant differs"):
+                protocol.audit(request, terminal, messages, events_for(messages), rows)
+
+    def test_invalid_or_unrequested_variants_refuse(self):
+        for value in (None, {}, "", "x" * 65, "low\n", "{env:SECRET}"):
+            args = list(fixture())
+            args[0]["variant"] = value
+            with self.assertRaisesRegex(ValueError, "invalid model variant"):
+                protocol.audit(*args)
+        request, terminal, messages, _, rows = fixture()
+        messages[0]["info"]["model"]["variant"] = "low"
+        with self.assertRaisesRegex(ValueError, "user variant differs"):
+            protocol.audit(request, terminal, messages, events_for(messages), rows)
+
     def test_model_identity_uses_separate_provider_and_model_fields(self):
         request, _, messages, _, rows = fixture()
         request["model"] = {"providerID": "vendor", "modelID": "family/model"}

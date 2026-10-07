@@ -60,6 +60,29 @@ def write_capture(root, plan, snapshots, cell, *, packet=False, mutate=None):
 
 
 class TerminalReview(unittest.TestCase):
+    def test_variant_is_frozen_and_changes_the_request_without_raising_limits(self):
+        f, snapshots = frozen()
+        plan = f["plan"]
+        model = plan["models"][0]
+        for configured in (False, True):
+            value = {**model, "variant": "low"}
+            if configured:
+                value.pop("baseURL")
+                value["configured"] = True
+            self.assertEqual(review.profile(value), value)
+        plan["models"][0]["variant"] = "low"
+        f["sha256"] = digest(plan)
+        checked = review.checked(f, snapshots)
+        body = review.request(checked, checked["tasks"][0], checked["cells"][0])
+        self.assertEqual(body["variant"], "low")
+        self.assertEqual(checked["limits"], frozen()[0]["plan"]["limits"])
+        plan["models"][0]["variant"] = "max"
+        with self.assertRaisesRegex(ValueError, "plan changed"):
+            review.checked(f, snapshots)
+        for value in (None, {}, "", "low high", "x" * 65):
+            with self.assertRaisesRegex(ValueError, "invalid model variant"):
+                review.profile({**model, "variant": value})
+
     def test_freeze_rejects_inputs_that_cannot_be_replayed(self):
         f, _ = frozen()
         for field, value in (("providerID", "x" * 257), ("modelID", "x" * 257),

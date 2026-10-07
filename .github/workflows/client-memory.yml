@@ -8,6 +8,10 @@ on:
       - .github/workflows/client-memory.yml
       - tools/check-client-memory.py
       - tools/check-client-catalog.py
+      - tools/check-review-reasoning.py
+      - tools/test-review-reasoning.py
+      - tools/agent_eval/structured_submission.py
+      - tools/agent_eval/terminal_reviews.py
       - tools/check-terminal-reviews.py
       - tools/test-client-memory.py
       - tools/profile-client-memory.py
@@ -56,6 +60,9 @@ jobs:
           python3 -B tools/test-client-memory.py
           python3 -B tools/test-client-memory-profile.py
           python3 -B tools/test-catalog-review.py
+          python3 -B tools/agent_eval/test_structured_submission.py
+          python3 -B tools/agent_eval/test_terminal_reviews.py
+          python3 -B tools/test-review-reasoning.py
           python3 -B tests/agent-eval/opencode/catalog/prepare.py check
       - name: Download pinned released tools through gh
         env:
@@ -118,6 +125,11 @@ jobs:
                   for process in sorted(peak['processes'], key=lambda p: -p['rss_bytes']):
                       summary.write(f"- {process['executable']}: {process['rss_bytes'] / 1024**2:.2f} MiB\n")
           PY
+      - name: Verify frozen reasoning variants at the loopback provider
+        run: >-
+          python3 -B tools/check-review-reasoning.py check target/review-reasoning
+          --fr target/client-memory-tools/fr/fr
+          --opencode target/client-memory-tools/client/opencode
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -125,4 +137,5 @@ jobs:
           path: |
             target/client-memory
             target/client-catalog
+            target/review-reasoning
           retention-days: 7

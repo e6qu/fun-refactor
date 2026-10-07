@@ -24,6 +24,58 @@ def load(name, path):
 
 
 class CatalogReview(unittest.TestCase):
+    def test_low_effort_failures_and_rejected_partial_claim_replay(self):
+        from agent_eval import change_controls
+        from agent_eval.study import digest
+        here = COLLECTION.with_name("2026-10-07-packaging-low")
+        collector = load("low_collector", here / "collect.py")
+        frozen = json.loads((here / "plan.json").read_bytes())
+        snapshots = source_reviews.read_inputs(here)
+        result = terminal_reviews.report(frozen, snapshots, here / "attempts")
+        self.assertEqual(result, json.loads((here / "report.json").read_bytes()))
+        self.assertEqual(frozen["plan"]["provenance"]["bindings"], collector.bindings())
+        self.assertEqual((result["completed"], result["failed"], result["not_started"]), (0, 2, 0))
+        self.assertFalse(json.loads((here / "stop.json").read_bytes())["resume_allowed"])
+        with self.assertRaisesRegex(ValueError, "permanently stopped"):
+            collector.collect("unused", Path("unused"), Path("unused"))
+        design = json.loads((here / "design.json").read_bytes())
+        previous = json.loads((COLLECTION.with_name("2026-10-06-packaging-inputs") / "design.json").read_bytes())
+        self.assertEqual(design, {**previous, "models": [{**m, "variant": "low"} for m in previous["models"]]})
+        for attempt in result["attempts"]:
+            folder = here / "attempts" / attempt["cell"]["id"]
+            terminal = json.loads((folder / "terminal.json").read_bytes())["info"]
+            self.assertEqual(terminal["error"]["name"], "StructuredOutputError")
+            self.assertEqual(terminal["finish"], "length")
+            self.assertEqual(terminal["tokens"]["output"] + terminal["tokens"]["reasoning"], 2048)
+            self.assertEqual(json.loads((folder / "request.json").read_bytes())["variant"], "low")
+            self.assertIsNone(attempt["process"]["stop_reason"])
+            self.assertEqual(attempt["observed"]["fr_calls"], 0)
+            self.assertFalse(result["claims_verified"])
+        verification = json.loads((here / "claim-verification.json").read_bytes())
+        self.assertEqual(verification["review_plan_sha256"], frozen["sha256"])
+        self.assertEqual(verification["decision"], "rejected")
+        archive = here / "github-controls.json.gz"
+        self.assertEqual(source_reviews.identity(archive), verification["archive_sha256"])
+        with gzip.open(archive, "rb") as stream:
+            raw = stream.read(1024**2 + 1)
+        self.assertLessEqual(len(raw), 1024**2)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), verification["controls_sha256"])
+        controls = json.loads(raw)
+        change_controls.verify(controls["results"])
+        reference = next(r for r in controls["results"] if r["id"] == "packaging-prerelease/reference")
+        pack = REPO / "tests/agent-eval/opencode/candidates"
+        task = next(t for t in json.loads((pack / "manifest.json").read_bytes())["tasks"] if t["id"] == "packaging-prerelease")
+        files, definitions, _ = change_controls.definitions(pack, task)
+        candidate = change_controls.apply(files, next(c for c in definitions if c["id"] == "reference"))
+        self.assertEqual(digest(candidate), reference["submission_sha256"])
+        reviewed = snapshots["packaging-whole-task"]
+        self.assertEqual(candidate, {p: reviewed[p] for p in candidate})
+        grader = json.loads((pack / task["grader"]).read_bytes())
+        self.assertEqual(source_reviews.identity(pack / task["grader"]), reference["grade"]["grader_sha256"])
+        self.assertEqual(base64.b64decode(reviewed["review/grader.py"]["data"]).decode(), grader["command"][-1])
+        self.assertIn("check('>1.0,<2', ['1.0.post1', '1.1a1'], ['1.1a1'])", grader["command"][-1])
+        self.assertTrue(next(c for c in reference["grade"]["cases"] if c["id"] == "bounds-and-exclusions")["passed"])
+
     def test_public_catalog_reconstructs_without_config_or_network(self):
         prepare = load("catalog_prepare", REPO / "tests/agent-eval/opencode/catalog/prepare.py")
         path = prepare.HERE / "catalog.json"

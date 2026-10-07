@@ -44,6 +44,10 @@ def implementation():
 
 
 def profile(value):
+    if isinstance(value, dict) and "variant" in value:
+        protocol.variant(value["variant"])
+        profile({k: v for k, v in value.items() if k != "variant"})
+        return value
     if isinstance(value, dict) and value.get("configured") is True:
         require(set(value) == {"providerID", "modelID", "context", "output", "configured"}, "invalid configured provider profile")
         profile({k: v for k, v in value.items() if k != "configured"} | {"baseURL": "https://configured.invalid"})
@@ -121,7 +125,8 @@ def checked(frozen, snapshots, *, execution=False):
 def request(plan, task, cell):
     model = plan["models"][cell["model"]]
     return {"model": {k: model[k] for k in ("providerID", "modelID")}, "agent": "fr-submission",
-            "format": plan["format"], "parts": [{"type": "text", "text": plan["prompt"] + "\nTask:\n" + task["requirement"]}]}
+            "format": plan["format"], "parts": [{"type": "text", "text": plan["prompt"] + "\nTask:\n" + task["requirement"]}],
+            **({"variant": model["variant"]} if "variant" in model else {})}
 
 
 def read(path, *, optional=False):
