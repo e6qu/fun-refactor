@@ -175,6 +175,27 @@ the same measurement and requires admission; `admit OUTPUT` requires admission f
 an existing report. Missing or invalid evidence fails every mode. CI publishes the
 admission decision separately; a passing measurement job does not authorize live calls.
 
+Add `--profile` to a hosted measurement to retain per-process RSS and CPU samples.
+The profiler uses the same samples that enforce the process-group cap; replay must
+reproduce the recorded aggregate peak and cumulative CPU. It stores executable
+basenames, never process arguments or environment values. The trace is limited to
+512 KiB and each sample to 64 processes. A profiling error stops the capture through
+the existing monitor-failure path.
+
+The report also labels capture startup, server startup, an in-flight message,
+answer receipt and export using artifact creation. These are inferred stages.
+Samples spanning a stage transition remain ambiguous. This is not heap profiling
+and cannot attribute allocations, missed peaks or shared pages to their causes.
+The optional profiler and launcher are hash-bound in the measurement plan; earlier
+unprofiled evidence retains its original checker and interpretation.
+
+`--experiment catalog` compares three default captures with three captures using a
+hash-bound empty model catalog through `OPENCODE_MODELS_PATH`. Both use the same
+explicit scripted model, tools and source-delivery assertions. Default captures
+clear the override; no global configuration is written. This experiment tests catalog
+initialization, not real-provider compatibility. `--experiment smol` retains the
+earlier default-versus-`--smol` design. Old frozen results keep their original meaning.
+
 Bun documents [lower-memory execution](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/runtime/index.mdx)
 and [runtime flags for compiled binaries](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/bundler/executables.mdx).
 The pinned [OpenCode build](https://github.com/anomalyco/opencode/blob/v1.18.34/packages/opencode/script/build.ts)

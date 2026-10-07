@@ -23,7 +23,7 @@ an input outside its syntax, identity, confidence or effect contract.
 
 PR #444 merged as `a5052841` after all 21 checks passed; its longest job took 10m10s.
 PR #443 released v0.54.0 at `d8f25729`. Local main includes both. The current work branch is
-`eval/packaging-change-pilot`. Release post-merge deep validation passed.
+`eval/client-memory-profile`. Release post-merge deep validation passed.
 
 The approved chunk is a complete ordinary-tools/fr packaging change pilot, gated on resource
 stability and independent task review. See the current chunk in [PLAN.md](../PLAN.md). Diagnose
@@ -38,6 +38,21 @@ from admission; `check` and `admit` still refuse this result. No local model cal
 authorized by a passing diagnostic job. Locate the peak by process and phase on GitHub
 before testing another remedy. The complete packaging review inputs are prepared, but
 neither review is frozen or started. No pilot attempt has run.
+
+PR #445 merged at `948e11ca` after its final checks passed. The next change adds
+optional process profiling to the hosted scripted controls. It leaves the capture
+protocol and resource limits unchanged. Its trace must reproduce the guard's RSS
+peak and cumulative CPU; a broken or oversized profile stops the guarded process.
+Capture stages come from artifact creation and are explicitly approximate.
+Retain the hosted results before selecting another memory remedy. Post-merge deep,
+release and Pages workflows were pending at the start of this branch.
+
+The first profiler run passed on both platforms, and its retained data replays offline.
+OpenCode dominates all twelve aggregate peaks; its macOS RSS alone exceeds 640 MiB.
+The release and Pages runs have passed; deep validation remains pending.
+The next hosted comparison tests `OPENCODE_MODELS_PATH` with an empty catalog for
+the explicitly configured scripted model. It changes no global config. Do not infer
+Kimi/GLM compatibility or local admission from this control alone.
 
 The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.

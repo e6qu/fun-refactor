@@ -9,6 +9,9 @@ on:
       - tools/check-client-memory.py
       - tools/check-terminal-reviews.py
       - tools/test-client-memory.py
+      - tools/profile-client-memory.py
+      - tools/test-client-memory-profile.py
+      - tools/agent_eval/client_memory_profile.py
       - tools/agent_eval/bounded_host.py
       - tools/agent_eval/opencode_rehearsal.py
       - tools/agent_eval/structured_probe.py
@@ -47,7 +50,9 @@ jobs:
         with:
           python-version: '3.14'
       - name: Check admission and failure accounting offline
-        run: python3 -B tools/test-client-memory.py
+        run: |
+          python3 -B tools/test-client-memory.py
+          python3 -B tools/test-client-memory-profile.py
       - name: Download pinned released tools through gh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -80,7 +85,7 @@ jobs:
           PY
       - name: Measure six serial model-free runs without granting admission
         run: >-
-          python3 -B tools/check-client-memory.py measure target/client-memory
+          python3 -B tools/check-client-memory.py measure target/client-memory --profile --experiment catalog
           --fr target/client-memory-tools/fr/fr
           --opencode target/client-memory-tools/client/opencode
       - name: Publish the separate memory admission decision
@@ -96,6 +101,12 @@ jobs:
               for row in result['cases']:
                   process = row['process']
                   summary.write(f"| {row['id']} | {row['completed']} | {process['sampled_aggregate_rss_bytes'] / 1024**2:.2f} | {process['stop_reason']} |\n")
+              summary.write('\nProcess attribution at each aggregate peak:\n\n')
+              for row in result['cases']:
+                  peak = row['profile']['peak']['sample']
+                  summary.write(f"\n{row['id']}: {peak['phase_before']} to {peak['phase_after']}\n\n")
+                  for process in sorted(peak['processes'], key=lambda p: -p['rss_bytes']):
+                      summary.write(f"- {process['executable']}: {process['rss_bytes'] / 1024**2:.2f} MiB\n")
           PY
       - uses: actions/upload-artifact@v7
         if: always()
