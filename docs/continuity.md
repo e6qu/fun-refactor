@@ -21,10 +21,11 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #451 merged as `f14f8e6f`. All 23 current PR checks passed; executing jobs stayed
-under ten minutes, while runner queues delayed completion. Local main is refreshed.
-Release and Pages passed for the merge; deep validation `37607221053` is pending.
-The current branch is `eval/scoped-review-coverage`.
+PR #453 merged as `410482ce` after all final checks passed. Two SDK jobs needed a
+retry because GitHub could not acquire runners; neither failed job had executed a
+step. The earlier guide-size and excerpt-anchor failures are fixed. Local main is
+refreshed, including release v0.55.0. The branch is `eval/configured-change-pilot`.
+The previous merge's deep validation `37607221053` passed.
 
 The approved deliverable is the four-attempt packaging change pilot described in
 [PLAN.md](../PLAN.md). Resource admission is established with the small per-process
@@ -50,11 +51,18 @@ no rows; two ordinary searches and two ordinary reads followed. No useful fr sou
 was delivered. The public exploration guide now explains bare declaration names.
 This is observed attempted use, without an efficiency claim.
 
-Hosted workflow `37609277041` is checking the protocol and an independent policy
-probe: 324 constructor/setter/call combinations, plus byte identity outside the
-changed filter. Candidate code runs only inside the pinned GitHub grader. Retain
-that result and resolve the recorded limitations before explicit pilot admission.
-The four code-change attempts remain unstarted.
+Hosted workflow `37609277041` passed the protocol and all 324 policy combinations.
+`policy-verification/` retains its grader, result and artifact provenance; the raw
+archive matched GitHub's SHA-256 digest. `admission.json` assesses all eleven areas
+and admits the task for one bounded pilot. The failed review remains failed.
+
+The next runner uses terminal structured summaries, frozen configured profiles and
+the existing edit machine. Offline tests cover exact submissions, forged evidence,
+stale edits, resource stops and settings. `terminal-changes.yml` will exercise both
+models and both arms through the pinned real client on Linux and macOS without paid
+model calls. Retain those results and run one guarded workstation control before
+freezing the four live attempts. Candidate execution stays on GitHub; all four live
+attempts remain unstarted.
 
 Historical memory and review failures stay stopped. The catalog and low/max
 transport evidence replay offline in `memory/2026-10-07-providers` and

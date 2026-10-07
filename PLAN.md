@@ -69,10 +69,21 @@ Kimi used fr once: a qualified-name lookup returned no rows, followed by ordinar
 search and reads. The public guide now states the bare-name contract. No useful fr
 source delivery or efficiency advantage follows from that call.
 
-An isolated GitHub check now tests 324 constructor/setter/call policy combinations
-and verifies byte identity outside the changed filter. Its result will support an
-explicit pilot-admission decision. No further model retry is needed to obtain that
-deterministic evidence. The four change attempts remain unstarted.
+The isolated GitHub check passed all 324 constructor/setter/call policy combinations
+and verified byte identity outside the changed filter. The retained
+[admission decision](tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/admission.json)
+assesses all eleven areas and accepts the task for one bounded four-attempt pilot.
+GLM's failed review stays failed; this decision does not establish exhaustive correctness.
+
+The new change runner freezes configured model profiles, reasoning variants, the
+small catalog, executable identities and identical public feedback. Ordinary edits
+and optional fr previews share the existing edit implementation. A terminal structured
+summary closes the attempt; replay reconstructs the exact submitted files. Candidate
+code never runs during collection. A completed submission still needs GitHub grading.
+
+Before live calls, pass the scripted real-client controls on Linux and macOS, retain
+their results, and run one guarded workstation control with the intended executables.
+Then freeze and commit the four-attempt plan. The live attempts remain unstarted.
 
 GitHub operations use the existing `gh` login; OpenCode resolves its configured
 provider access. Local calls use the resource guard, and full builds, candidate

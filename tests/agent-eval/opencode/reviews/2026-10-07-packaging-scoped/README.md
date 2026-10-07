@@ -56,5 +56,17 @@ only `SpecifierSet.filter` changed and all source outside that method remains
 byte-identical. This check addresses recorded policy and unchanged-API limitations;
 its result is separate from model submission status and task acceptance.
 
+GitHub run [37609277041](https://github.com/e6qu/fun-refactor/actions/runs/37609277041)
+passed all 324 policy combinations. `policy-verification/` retains the grader, raw
+result and run provenance. The downloaded archive matched GitHub's artifact digest.
+`tools/test-packaging-admission.py` checks the program, source, grader and result
+identities offline without executing candidate code.
+
+`admission.json` records a later explicit assessment of all eleven requirements.
+It accepts this task for one bounded four-attempt pilot, with adapter controls and
+frozen inputs still required before calls. The original `assessment.json`, failed
+GLM review and automatic coverage report remain unchanged. This decision does not
+establish exhaustive grader coverage or an efficiency advantage.
+
 All usage figures are client counters. Subscription metadata reports zero cost;
 actual billing and complete context accounting remain unknown.
