@@ -38,6 +38,38 @@ def fixture(root):
 
 
 class ClientMemory(unittest.TestCase):
+    def test_provided_catalog_is_bound_and_replays_without_assuming_empty(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with patch.object(memory, "CELLS", memory.CATALOG_CELLS):
+                audits = fixture(root)
+            source = Path(__file__).resolve().parents[1] / "tests/agent-eval/opencode/catalog/2026-10-07/catalog.json"
+            catalog = root / "catalog.json"
+            catalog.write_bytes(source.read_bytes())
+            plan = json.loads((root / "plan.json").read_bytes())
+            plan.update(experiment="catalog", catalog_sha256=memory.identity(catalog), catalog_source_sha256=memory.identity(source))
+            (root / "plan.json").write_text(json.dumps(plan))
+            self.assertTrue(self.replay(root, audits)["admitted"])
+            catalog.write_bytes(memory.CATALOG_DATA)
+            with self.assertRaisesRegex(ValueError, "catalog changed"):
+                self.replay(root, audits)
+            plan["catalog_sha256"] = memory.identity(catalog)
+            (root / "plan.json").write_text(json.dumps(plan))
+            with self.assertRaisesRegex(ValueError, "catalog source changed"):
+                self.replay(root, audits)
+
+    def test_bad_catalog_refuses_before_workload_or_output_directory(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}):
+            root = Path(temporary)
+            catalog = root / "catalog.json"
+            for data in (b"", b"[]", b"{}" + b" " * 65536):
+                catalog.write_bytes(data)
+                with self.assertRaisesRegex(ValueError, "invalid catalog"):
+                    memory.check(root / "unstarted", Path("unused"), Path("unused"), experiment="catalog", catalog=catalog)
+                self.assertFalse((root / "unstarted").exists())
+            with self.assertRaisesRegex(ValueError, "requires the catalog experiment"):
+                memory.check(root / "unstarted", Path("unused"), Path("unused"), catalog=catalog)
+
     def test_catalog_experiment_requires_all_candidates_and_exact_catalog(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

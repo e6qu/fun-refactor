@@ -17,6 +17,7 @@ on:
       - tools/agent_eval/structured_probe.py
       - tools/agent_eval/terminal_review_runner.py
       - tools/agent_eval/terminal_transport.py
+      - tests/agent-eval/opencode/catalog/**
 
 concurrency:
   group: client-memory-${{ github.ref }}
@@ -53,6 +54,7 @@ jobs:
         run: |
           python3 -B tools/test-client-memory.py
           python3 -B tools/test-client-memory-profile.py
+          python3 -B tests/agent-eval/opencode/catalog/prepare.py check
       - name: Download pinned released tools through gh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,6 +88,7 @@ jobs:
       - name: Measure six serial model-free runs without granting admission
         run: >-
           python3 -B tools/check-client-memory.py measure target/client-memory --profile --experiment catalog
+          --catalog tests/agent-eval/opencode/catalog/2026-10-07/catalog.json
           --fr target/client-memory-tools/fr/fr
           --opencode target/client-memory-tools/client/opencode
       - name: Publish the separate memory admission decision

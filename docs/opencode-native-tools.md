@@ -189,6 +189,14 @@ and cannot attribute allocations, missed peaks or shared pages to their causes.
 The optional profiler and launcher are hash-bound in the measurement plan; earlier
 unprofiled evidence retains its original checker and interpretation.
 
+`--catalog FILE` supplies an alternative JSON catalog of at most 64 KiB for the
+catalog experiment. The plan records its hash before any capture, and replay
+checks the retained bytes against that source identity. The default remains an
+empty catalog. The current workflow uses the two-provider fixture in
+`tests/agent-eval/opencode/catalog/2026-10-07` because the empty catalog removed
+the endpoint needed by a configured Kimi review. Model listing alone did not
+detect that failure. No catalog setting changes global client configuration.
+
 `--experiment catalog` compares three default captures with three captures using a
 hash-bound empty model catalog through `OPENCODE_MODELS_PATH`. Both use the same
 explicit scripted model, tools and source-delivery assertions. Default captures

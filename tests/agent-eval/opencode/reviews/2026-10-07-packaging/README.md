@@ -16,3 +16,10 @@ read through ordinary tools or `fr`; they cannot edit or execute candidate code.
 
 Review findings require independent verification. Empty findings do not accept
 the task. This collection does not run the four code-change pilot attempts.
+
+The first capture failed before a model response: OpenCode constructed
+`undefined/chat/completions` because the empty catalog omitted provider endpoint
+metadata. It used 455 MiB sampled aggregate RSS and 1.93 CPU seconds. Listing a
+configured model did not establish that its endpoint was usable. This collection
+is permanently stopped, with GLM unstarted. A replacement must retain the public
+metadata needed by both providers and establish compatibility before acceptance.
