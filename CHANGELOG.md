@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.55.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.3...fun-refactor-v0.55.0) (2026-10-07)
+
+
+### Features
+
+* freeze reasoning effort and verify bounded OpenCode reviews ([#451](https://github.com/e6qu/fun-refactor/issues/451)) ([f14f8e6](https://github.com/e6qu/fun-refactor/commit/f14f8e6f0e0ce4f01ba10a4af6f0a9aa7d608b06))
+
 ## [0.54.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.2...fun-refactor-v0.54.3) (2026-10-07)
 
 
