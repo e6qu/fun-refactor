@@ -24,7 +24,8 @@ an input outside its syntax, identity, confidence or effect contract.
 PR #449 merged as `23631d46` with all final checks passing. Its longest executing
 job took under ten minutes; runner queues delayed the overall result. Local main
 is refreshed, and the current branch is `eval/bounded-review-reasoning`. Release
-and Pages passed for the merged commit; deep validation remains queued.
+and Pages passed for the merged commit. All sixteen deep-validation jobs passed;
+the final aggregate job remains queued. PR #451 contains the current work.
 
 The approved chunk is a complete ordinary-tools/fr packaging change pilot, gated on resource
 stability and independent task review. See the current chunk in [PLAN.md](../PLAN.md). Diagnose
@@ -53,17 +54,31 @@ calls. Both reviews failed with `StructuredOutputError` and finish reason `lengt
 Kimi used 2,048 reasoning tokens; GLM used 2,047 plus one other output token.
 They peaked at 453 and 433 MiB, with no resource stop and no tool calls. Neither
 completed a whole-task review. `stop.json` closes this collection permanently.
-Next verify an explicit lower reasoning effort within the same output allowance,
-then freeze a new collection. Keep failures and unknown actual costs visible.
+Explicit lower reasoning effort has now been tested within the same output allowance.
+Keep failures and unknown actual costs visible.
 
 The new implementation freezes an optional model variant, forwards it in the
 request and checks the saved user message during replay. The first hosted run,
 `37589101603`, was cancelled while queued after a single model-free workstation
 case exposed the client's nested `user.info.model.variant` representation.
 That failed control and its original validator are retained. Corrected replay
-checks the same raw evidence without changing its failed record. The hosted
-matrix must verify provider-visible effort, unchanged output caps, source delivery
-and submission before a fresh live plan. No earlier collection resumes.
+checks the same raw evidence without changing its failed record. Hosted run
+`37591473150` passed all eight reasoning controls on Linux and macOS, with separate
+memory admission also passing. Peaks were 468–479 MiB on Linux and 549–580 MiB on
+macOS. One fresh guarded workstation control passed at 545 MiB. Complete evidence
+in `reasoning/2026-10-07-low` replays offline. No earlier collection resumes.
+
+The low-effort collection in `reviews/2026-10-07-packaging-low` was frozen at
+`c3a2b3d4` before calls. Both attempts exhausted output with incomplete submissions,
+at 504 and 528 MiB, without resource stops. Kimi made two ordinary source searches;
+neither model used fr. Their shared partial postrelease claim is rejected: the exact
+reference passes the disputed assertion and all eight cases in GitHub job
+`112694404489`. The frozen comparison code excludes postreleases of the bound itself.
+Both failed reviews remain failed, and `stop.json` permanently closes collection.
+
+The next review needs bounded questions and explicit requirement coverage, with
+matching-code inspection before accepting comparison claims. The four code-change
+pilot attempts remain unstarted. No task acceptance or efficiency benefit is claimed.
 
 The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.
