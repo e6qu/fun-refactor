@@ -44,36 +44,34 @@ the task, reference and grader. Then freeze all four attempts before any change 
 check feedback identical, grade exact submissions on GitHub, and retain every failure and fr fallback.
 Report correctness, actual fr use, calls, context, elapsed time and unknown usage separately.
 
-Live execution is gated on the client resource diagnosis. The previous configured-client collection
-stopped when aggregate memory crossed its unchanged 768-MiB capture limit after 4.43 seconds.
-Two successful calls had already reached about 746–752 MiB. Retained measurements do not identify
-which process caused the peak. Use public pinned client source and model-free hosted controls to
-test a concrete remedy before considering another guarded local collection. No budget increases,
-credential extraction, resumed stopped cells or local builds are part of this work.
+The memory investigation now identifies OpenCode as the largest process at every
+[profiled peak](tests/agent-eval/opencode/memory/2026-10-07-profile/README.md).
+`BUN_OPTIONS=--smol` did not establish headroom. An
+[empty catalog](tests/agent-eval/opencode/memory/2026-10-07-catalog/README.md)
+did: all six hosted candidates completed below 640 MiB, followed by one guarded
+workstation control at 535 MiB. The capture limit remains 768 MiB.
 
-The [hosted memory experiment](tests/agent-eval/opencode/memory/2026-10-06/README.md)
-rejected `BUN_OPTIONS=--smol`: Linux captures completed at 681–690 MiB, above the
-640-MiB admission target, and all macOS captures hit the 768-MiB cap. Local calls
-remain blocked. Next locate the peak by process and capture phase on GitHub before
-testing another remedy. Successful evidence validation is separate from memory admission.
+The fresh [whole-task review](tests/agent-eval/opencode/reviews/2026-10-07-packaging/README.md)
+then exposed a separate problem. The catalog omitted Kimi's endpoint, so the first
+capture failed before receiving a model response. GLM remains unstarted, and that
+collection is permanently stopped. Model listing alone did not prove compatibility.
 
-PR #445 merged at `948e11ca` with all final checks passing. The next branch adds
-process RSS and capture-stage attribution to the hosted diagnostic. The same samples
-must reproduce the guard's peak RSS and cumulative CPU, including exited workers.
-Stages are inferred from artifact creation; samples spanning stages stay ambiguous.
-No new remedy or live collection is admitted by this instrumentation alone.
+The [1,309-byte catalog](tests/agent-eval/opencode/catalog/README.md) preserves both
+providers' public metadata. Its [retained controls](tests/agent-eval/opencode/memory/2026-10-07-providers/README.md)
+passed admission on both platforms and on the workstation at 550 MiB. Isolated
+and configured-client checks resolved the endpoints and adapters correctly.
 
-The [first profiles](tests/agent-eval/opencode/memory/2026-10-07-profile/README.md)
-identify OpenCode as the largest process at all twelve peaks. On macOS, the client
-alone uses 658–673 MiB, above the entire admission target. The next hosted experiment
-tests a per-process catalog override with the explicitly configured scripted model.
-It must preserve source delivery and terminal answers. Real-provider compatibility
-and local headroom remain separate prerequisites, even if the scripted experiment passes.
+The [new frozen reviews](tests/agent-eval/opencode/reviews/2026-10-07-packaging-providers/README.md)
+reached both providers at 433–453 MiB. Both exhausted their 2,048-token output
+allowance on reasoning without a structured submission. Neither called a tool.
+The resource problem has a measured remedy; the next prerequisite is explicit
+reasoning effort that permits a complete answer within the same allowance.
+Verify that setting before a new frozen collection. No stopped collection resumes.
 
 The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
 are prepared with all eight grader cases and a requirement coverage checklist.
-Both reviews remain unfrozen and unstarted. The four-attempt comparison will give
-both arms the same public test and baseline failure, with GitHub grading afterward.
+Neither model has completed this whole-task review. The four-attempt comparison will
+give both arms the same public test and baseline failure, with GitHub grading afterward.
 It will not provide tests during the agent attempt.
 
 GitHub uses the existing `gh` login; OpenCode resolves its own configured provider access.

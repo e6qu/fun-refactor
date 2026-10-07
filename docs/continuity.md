@@ -21,38 +21,39 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #444 merged as `a5052841` after all 21 checks passed; its longest job took 10m10s.
-PR #443 released v0.54.0 at `d8f25729`. Local main includes both. The current work branch is
-`eval/client-memory-profile`. Release post-merge deep validation passed.
+PR #447 merged as `f3dac2c4` after all final checks passed. Local main is refreshed,
+and the current branch is `eval/packaging-catalog-review`. Earlier main deep validation
+passed; the latest post-merge workflows are being monitored.
 
 The approved chunk is a complete ordinary-tools/fr packaging change pilot, gated on resource
 stability and independent task review. See the current chunk in [PLAN.md](../PLAN.md). Diagnose
 the configured OpenCode memory failure from retained evidence and model-free GitHub controls.
 Do not read, copy or upload authentication files. GitHub operations use the existing `gh` login.
 
-PR #445's first memory experiment rejected `--smol` on both platforms. Linux completed
-but exceeded the 640-MiB admission target; all macOS captures hit the 768-MiB RSS cap.
-The [retained measurements](../tests/agent-eval/opencode/memory/2026-10-06/README.md)
-replay offline, including every failure. CI validates measurement integrity separately
-from admission; `check` and `admit` still refuse this result. No local model calls are
-authorized by a passing diagnostic job. Locate the peak by process and phase on GitHub
-before testing another remedy. The complete packaging review inputs are prepared, but
-neither review is frozen or started. No pilot attempt has run.
+`--smol` failed admission. Process profiles identified OpenCode as the largest process
+at all twelve peaks. An empty per-process catalog then passed on both hosted platforms
+and in one guarded workstation control at 535 MiB. Complete
+[catalog evidence](../tests/agent-eval/opencode/memory/2026-10-07-catalog/README.md)
+replays offline with unchanged limits.
 
-PR #445 merged at `948e11ca` after its final checks passed. The next change adds
-optional process profiling to the hosted scripted controls. It leaves the capture
-protocol and resource limits unchanged. Its trace must reproduce the guard's RSS
-peak and cumulative CPU; a broken or oversized profile stops the guarded process.
-Capture stages come from artifact creation and are explicitly approximate.
-Retain the hosted results before selecting another memory remedy. Post-merge deep,
-release and Pages workflows were pending at the start of this branch.
+The [fresh whole-task review](../tests/agent-eval/opencode/reviews/2026-10-07-packaging/README.md)
+was frozen and committed before its first capture. Kimi failed before a model response:
+the empty catalog removed its endpoint metadata. Its 455 MiB peak stayed within limits.
+GLM remains unstarted; `stop.json` permanently closes this collection. No pilot attempt ran.
 
-The first profiler run passed on both platforms, and its retained data replays offline.
-OpenCode dominates all twelve aggregate peaks; its macOS RSS alone exceeds 640 MiB.
-The release and Pages runs have passed; deep validation remains pending.
-The next hosted comparison tests `OPENCODE_MODELS_PATH` with an empty catalog for
-the explicitly configured scripted model. It changes no global config. Do not infer
-Kimi/GLM compatibility or local admission from this control alone.
+The [two-provider catalog](../tests/agent-eval/opencode/catalog/README.md) passed
+hosted admission: Linux 475–483 MiB and macOS 548–571 MiB. One guarded workstation
+control passed at 550 MiB. The hosted endpoint regression and configured local
+endpoint check both passed. Complete evidence is retained in
+`tests/agent-eval/opencode/memory/2026-10-07-providers`.
+
+The new collection in `reviews/2026-10-07-packaging-providers` was committed before
+calls. Both reviews failed with `StructuredOutputError` and finish reason `length`:
+Kimi used 2,048 reasoning tokens; GLM used 2,047 plus one other output token.
+They peaked at 453 and 433 MiB, with no resource stop and no tool calls. Neither
+completed a whole-task review. `stop.json` closes this collection permanently.
+Next verify an explicit lower reasoning effort within the same output allowance,
+then freeze a new collection. Keep failures and unknown actual costs visible.
 
 The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.
@@ -63,8 +64,8 @@ The original model string-literal premise remains unverified. None of these revi
 
 Use one new frozen plan for any accepted packaging comparison: two configured models, ordinary
 tools and ordinary tools plus fr, identical public checks, independent GitHub grading, no retries.
-Keep failed attempts and missing costs visible. Local execution stays blocked until the resource
-diagnosis supports it within existing caps. Full builds and full gates remain on GitHub.
+Keep failed attempts and missing costs visible. Use the admitted per-process catalog
+within existing caps. Full builds and full gates remain on GitHub.
 The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones open.
 
 ## Completed disclosure and terminal-answer work

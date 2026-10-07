@@ -27,13 +27,6 @@ def identity(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def read_catalog(path):
-    with path.open("rb") as source:
-        data = source.read(65537)
-    require(0 < len(data) <= 65536 and isinstance(json.loads(data), dict), "invalid catalog")
-    return data
-
-
 def report(root):
     plan = json.loads((root / "plan.json").read_bytes())
     require(plan["script_sha256"] == identity(Path(__file__)), "control implementation changed")
@@ -41,12 +34,8 @@ def report(root):
     require(experiment in ("smol", "catalog"), "unknown memory experiment")
     cells = CATALOG_CELLS if experiment == "catalog" else CELLS
     if experiment == "catalog":
-        data = read_catalog(root / "catalog.json")
-        require(plan["catalog_sha256"] == identity(root / "catalog.json"), "scripted catalog changed")
-        if "catalog_source_sha256" in plan:
-            require(plan["catalog_source_sha256"] == plan["catalog_sha256"], "catalog source changed")
-        else:
-            require(data == CATALOG_DATA, "scripted catalog changed")
+        require((root / "catalog.json").read_bytes() == CATALOG_DATA
+                and plan["catalog_sha256"] == identity(root / "catalog.json"), "scripted catalog changed")
     require(plan["schema"] == SCHEMA and plan["cells"] == cells and plan["limits"] == LIMITS,
             "memory control design changed")
     require(plan["admission_rss_bytes"] == HEADROOM_RSS, "memory admission margin changed")
@@ -87,11 +76,9 @@ def report(root):
             "scope": "Scripted client controls only; live-provider memory and workstation peaks remain unverified."}
 
 
-def check(root, binary, opencode, *, profile=False, experiment="smol", catalog=None):
+def check(root, binary, opencode, *, profile=False, experiment="smol"):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run the complete memory gate on GitHub")
     require(experiment in ("smol", "catalog"), "unknown memory experiment")
-    require(catalog is None or experiment == "catalog", "a catalog requires the catalog experiment")
-    data = CATALOG_DATA if catalog is None else read_catalog(catalog)
     root.mkdir(parents=True, exist_ok=False)
     cells = CATALOG_CELLS if experiment == "catalog" else CELLS
     plan = {"schema": SCHEMA, "experiment": experiment, "cells": cells, "limits": LIMITS, "admission_rss_bytes": HEADROOM_RSS,
@@ -99,10 +86,8 @@ def check(root, binary, opencode, *, profile=False, experiment="smol", catalog=N
             "commit": os.environ["GITHUB_SHA"], "script_sha256": identity(Path(__file__)),
             "fr_sha256": identity(binary), "opencode_sha256": identity(opencode)}
     if experiment == "catalog":
-        (root / "catalog.json").write_bytes(data)
+        (root / "catalog.json").write_bytes(CATALOG_DATA)
         plan["catalog_sha256"] = identity(root / "catalog.json")
-        if catalog is not None:
-            plan["catalog_source_sha256"] = hashlib.sha256(data).hexdigest()
     if profile:
         plan["profile_implementation"] = {
             "module": identity(Path(client_memory_profile.__file__)),
@@ -135,7 +120,6 @@ def main():
     parser.add_argument("--opencode", type=Path)
     parser.add_argument("--profile", action="store_true", help="Retain process samples and inferred capture stages")
     parser.add_argument("--experiment", choices=("smol", "catalog"), default="smol")
-    parser.add_argument("--catalog", type=Path, help="Use a bounded, hash-bound model catalog in catalog candidates")
     args = parser.parse_args()
     if args.command in ("report", "admit"):
         result = report(args.output.resolve())
@@ -144,7 +128,7 @@ def main():
             require(result["admitted"], "lower-memory controls did not establish the required headroom")
         return
     require(args.fr is not None and args.opencode is not None, "supply both pinned binaries")
-    result = check(args.output.resolve(), args.fr.resolve(), args.opencode.resolve(), profile=args.profile, experiment=args.experiment, catalog=args.catalog)
+    result = check(args.output.resolve(), args.fr.resolve(), args.opencode.resolve(), profile=args.profile, experiment=args.experiment)
     if args.command == "check":
         require(result["admitted"], "lower-memory controls did not establish the required headroom")
 
