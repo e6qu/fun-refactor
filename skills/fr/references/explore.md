@@ -19,17 +19,14 @@ fr project gaps --limit 8
 Combine reads with [Batch](batch.md); select edits and checks with [Task](task.md).
 Keep the cache enabled. Cold calls may report `indexing` on stderr.
 
-Name queries match bare declaration names, such as `read`. Scope methods with `--in`
-using a file or enclosing declaration handle, then select a returned method handle.
-An empty result for a dotted or qualified spelling does not establish absence.
+Names match bare declarations, such as `read`. Scope methods with `--in FILE_OR_HANDLE`.
+Empty results for qualified names do not establish absence.
 
-For behavior discovery, start with `project explore TERM [--contains]`. Names mode returns no source
-and at most twelve rows. Run a selected row's `next.arguments` for bounded source and relationships.
-Pages shrink to fit the serialized response budget. Follow returned cursors and offsets;
-profile sizes are maxima.
-Follow truncation continuations. Source continuations use `--view source`; relationship continuations
-use `--view relationships`. Each returns only the requested view, plus identity and coverage metadata.
-An omitted view is not evidence that no source or relationships exist.
+Start behavior discovery with `project explore TERM [--contains]`: at most twelve names, no source.
+Run a row's `next.arguments` for source and relationships. Pages shrink to fit the response budget;
+profile sizes are maxima. Follow cursors and offsets.
+Source continuations use `--view source`; relationships use `--view relationships`.
+Each returns its view, identity and coverage. An omitted view does not establish absence.
 Use `--profile expanded` only through its reported action; it keeps the current view and page position.
 
 Batch known reads with `project batch --profile compact`, referencing prior handles through
