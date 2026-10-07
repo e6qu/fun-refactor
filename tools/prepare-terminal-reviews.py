@@ -6,11 +6,12 @@ import gzip
 from pathlib import Path
 
 from agent_eval import native_mcp as mcp, source_packets, source_reviews, terminal_reviews as review
+from agent_eval import review_coverage
 from agent_eval.study import digest, encode, require
 
 
 def prepare(design, repository):
-    require(set(design) == {"schema", "source_archive", "models", "questions"}
+    require(set(design) - {"coverage"} == {"schema", "source_archive", "models", "questions"}
             and design["schema"] == "fr-terminal-review-design-1", "invalid review design")
     archive = design["source_archive"]
     require(set(archive) == {"path", "sha256"}, "invalid source archive identity")
@@ -34,6 +35,8 @@ def prepare(design, repository):
     require(len(questions) * len(design["models"]) <= 6, "design exceeds six-cell collection limit")
     provenance = {"design_sha256": digest(design), "source_archive_sha256": archive["sha256"],
                   "scope": "New questions and terminal protocol; no earlier attempt is resumed."}
+    if "coverage" in design:
+        provenance["coverage"] = review_coverage.checked(design["coverage"], [q["id"] for q in questions])
     return questions, provenance
 
 

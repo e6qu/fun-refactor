@@ -38,60 +38,46 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Current chunk: compare a reviewed packaging change with and without fr
 
-The next deliverable is a paired code-change pilot on the packaging candidate: Kimi and GLM,
-each with ordinary tools and with fr additionally available. First finish independent review of
-the task, reference and grader. Then freeze all four attempts before any change calls. Keep public
-check feedback identical, grade exact submissions on GitHub, and retain every failure and fr fallback.
-Report correctness, actual fr use, calls, context, elapsed time and unknown usage separately.
+The deliverable is a four-attempt code-change pilot: Kimi and GLM, each with ordinary
+tools and with fr additionally available. First settle task, reference and grader review.
+Freeze all four attempts before calls, give both arms identical public feedback, and grade
+their exact submissions on GitHub. Report correctness, actual fr use, calls, context,
+elapsed time, failures and unknown usage separately.
 
-The memory investigation now identifies OpenCode as the largest process at every
-[profiled peak](tests/agent-eval/opencode/memory/2026-10-07-profile/README.md).
-`BUN_OPTIONS=--smol` did not establish headroom. An
-[empty catalog](tests/agent-eval/opencode/memory/2026-10-07-catalog/README.md)
-did: all six hosted candidates completed below 640 MiB, followed by one guarded
-workstation control at 535 MiB. The capture limit remains 768 MiB.
+The [small provider catalog](tests/agent-eval/opencode/catalog/README.md) and
+[reasoning controls](tests/agent-eval/opencode/reasoning/2026-10-07-low/README.md)
+passed hosted and workstation admission. Earlier whole-task reviews exhausted output;
+their stopped collections remain intact. Resource and output caps have not increased.
 
-The fresh [whole-task review](tests/agent-eval/opencode/reviews/2026-10-07-packaging/README.md)
-then exposed a separate problem. The catalog omitted Kimi's endpoint, so the first
-capture failed before receiving a model response. GLM remains unstarted, and that
-collection is permanently stopped. Model listing alone did not prove compatibility.
+The [scoped collection](tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/README.md)
+assigns eleven requirement areas to three questions. Five of six reviews completed.
+All six stayed within resource limits, at 442–576 MiB peak RSS.
 
-The [1,309-byte catalog](tests/agent-eval/opencode/catalog/README.md) preserves both
-providers' public metadata. Its [retained controls](tests/agent-eval/opencode/memory/2026-10-07-providers/README.md)
-passed admission on both platforms and on the workstation at 550 MiB. Isolated
-and configured-client checks resolved the endpoints and adapters correctly.
+| Assigned question | Kimi | GLM | Remaining assessment |
+| --- | --- | --- | --- |
+| Fallback, matching finals, bounds and exclusions | Completed | Completed | Preserve stated review limits |
+| Constructor/call policy, inference and empty sets | Completed | Output exhausted | Independently check recorded policy limitations |
+| Objects, order, duplicates, one-shot inputs and unchanged APIs | Completed | Completed | Reject Kimi's repeated incorrect postrelease claim |
 
-The [new frozen reviews](tests/agent-eval/opencode/reviews/2026-10-07-packaging-providers/README.md)
-reached both providers at 433–453 MiB. Both exhausted their 2,048-token output
-allowance on reasoning without a structured submission. Neither called a tool.
-The resource problem has a measured remedy. Explicit reasoning effort now binds
-the plan, request and saved session. The [retained transport controls](tests/agent-eval/opencode/reasoning/2026-10-07-low/README.md)
-verify both models at `low` and `max` on Linux and macOS. All eight passed below
-640 MiB, as did one fresh workstation control at 545 MiB. Output caps did not change.
+Seven of eleven areas have submissions from both models. All eleven have at least
+one submission, but submission counts are not acceptance. The generic coverage
+report exposes each answer's findings and limitations and never approves a task.
+The assessment rejects the repeated postrelease claim against an identical source
+snapshot and the prior GitHub grading. The failed policy attempt remains failed.
 
-The [fresh low-effort reviews](tests/agent-eval/opencode/reviews/2026-10-07-packaging-low/README.md)
-still exhausted the 2,048-token allowance without completed submissions. They stayed
-within resource limits at 504 and 528 MiB. Both partial answers made the same incorrect
-postrelease-matching claim, rejected against the exact reference and grader on GitHub.
-Neither used fr. This collection is permanently stopped; no failed cell resumes.
+Kimi used fr once: a qualified-name lookup returned no rows, followed by ordinary
+search and reads. The public guide now states the bare-name contract. No useful fr
+source delivery or efficiency advantage follows from that call.
 
-Next divide the requirement checklist into bounded review questions with explicit
-coverage accounting. Require examination of the relevant matching code before accepting
-a comparison claim. Freeze the questions, source packets and model settings before calls;
-retain failures and unknown costs. Complete the whole checklist before accepting the task.
-The four code-change pilot attempts remain unstarted, with all resource caps unchanged.
+An isolated GitHub check now tests 324 constructor/setter/call policy combinations
+and verifies byte identity outside the changed filter. Its result will support an
+explicit pilot-admission decision. No further model retry is needed to obtain that
+deterministic evidence. The four change attempts remain unstarted.
 
-The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
-are prepared with all eight grader cases and a requirement coverage checklist.
-Neither model has completed this whole-task review. The four-attempt comparison will
-give both arms the same public test and baseline failure, with GitHub grading afterward.
-It will not provide tests during the agent attempt.
-
-GitHub uses the existing `gh` login; OpenCode resolves its own configured provider access.
-The packaging review must cover intersection fallback, explicit policies, bounds and exclusions,
-original objects and one-shot inputs, and unchanged comparison APIs. Record any review limitation
-before accepting the task. A pilot remains blocked if resource or review prerequisites fail.
-No fr call is required: an agent choosing ordinary tools is an outcome to measure.
+GitHub operations use the existing `gh` login; OpenCode resolves its configured
+provider access. Local calls use the resource guard, and full builds, candidate
+execution and full test gates stay on GitHub. No fr call is required in the pilot:
+choosing ordinary tools is an outcome to measure.
 
 ## Recent work: configured reviews and a verified duplicate-identity gap
 

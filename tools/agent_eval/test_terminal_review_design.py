@@ -18,6 +18,18 @@ DESIGN = ROOT / "tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/de
 
 
 class Design(unittest.TestCase):
+    def test_optional_coverage_is_validated_and_frozen_without_changing_questions(self):
+        original, _ = self.cli["prepare"](self.design, ROOT)
+        rows = [{"id": "area-" + str(i), "description": "Requirement family " + str(i), "question": q["id"]}
+                for i, q in enumerate(self.design["questions"])]
+        design = {**self.design, "coverage": rows}
+        questions, provenance = self.cli["prepare"](design, ROOT)
+        self.assertEqual(questions, original)
+        self.assertEqual(provenance["coverage"], rows)
+        rows[0]["question"] = "missing"
+        with self.assertRaisesRegex(ValueError, "unknown coverage question"):
+            self.cli["prepare"](design, ROOT)
+
     def setUp(self):
         self.cli = runpy.run_path(str(SCRIPT))
         self.design = mcp.decode(review.read(DESIGN))
