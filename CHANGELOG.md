@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.2...fun-refactor-v0.54.3) (2026-10-07)
+
+
+### Fixes
+
+* preserve provider metadata in bounded OpenCode reviews ([#449](https://github.com/e6qu/fun-refactor/issues/449)) ([23631d4](https://github.com/e6qu/fun-refactor/commit/23631d4698f1d96ff328019dcc525385e4ed8732))
+
 ## [0.54.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.1...fun-refactor-v0.54.2) (2026-10-07)
 
 
