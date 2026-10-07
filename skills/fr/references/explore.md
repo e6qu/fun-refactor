@@ -19,6 +19,10 @@ fr project gaps --limit 8
 Combine reads with [Batch](batch.md); select edits and checks with [Task](task.md).
 Keep the cache enabled. Cold calls may report `indexing` on stderr.
 
+Name queries match bare declaration names, such as `read`. Scope methods with `--in`
+using a file or enclosing declaration handle, then select a returned method handle.
+An empty result for a dotted or qualified spelling does not establish absence.
+
 For behavior discovery, start with `project explore TERM [--contains]`. Names mode returns no source
 and at most twelve rows. Run a selected row's `next.arguments` for bounded source and relationships.
 Pages shrink to fit the serialized response budget. Follow returned cursors and offsets;

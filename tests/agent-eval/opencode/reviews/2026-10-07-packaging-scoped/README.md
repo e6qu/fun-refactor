@@ -27,3 +27,34 @@ stopped. No candidate code runs during review.
 model's submission status, findings and limitations. It never marks the task
 accepted, even when every submission is complete and all finding lists are empty.
 Acceptance requires inspecting the limitations and independently checking claims.
+
+All six cells ran once after commit `8b42548e`. Five submitted valid answers; GLM's
+policy review exhausted its output allowance with 2,046 reasoning tokens and two
+other output tokens. No attempt hit a resource limit. The collection is closed.
+
+| Question | Kimi K3 | GLM 5.3 Flash |
+| --- | --- | --- |
+| Fallback and bounds | Completed, 24.00 s, 536.52 MiB | Completed, 35.96 s, 552.95 MiB |
+| Explicit policies | Completed, 62.80 s, 575.55 MiB | Failed, 56.11 s, 552.62 MiB |
+| Objects and APIs | Completed, 38.16 s, 562.00 MiB | Completed, 45.82 s, 441.75 MiB |
+
+Seven of eleven assigned areas have submissions from both models. Four policy
+areas have only Kimi submissions. Empty finding lists do not establish acceptance.
+Kimi's object/API answer repeated the earlier incorrect postrelease claim outside
+its assigned scope. `assessment.json` rejects that finding against the unchanged,
+previously verified snapshot and preserves both the answer and the policy failure.
+
+Kimi used fr once during the policy review. An exact `Specifier.contains` lookup
+returned no names, then ordinary search and reads supplied the additional context.
+The CLI matches bare declaration names; the public exploration guide now makes
+that contract explicit. This call demonstrates attempted use, with no useful fr
+source delivery or measured efficiency benefit.
+
+`verify-policy.py` independently checks constructor/setter/call combinations on
+GitHub using the existing pinned grading image and limits. It also verifies that
+only `SpecifierSet.filter` changed and all source outside that method remains
+byte-identical. This check addresses recorded policy and unchanged-API limitations;
+its result is separate from model submission status and task acceptance.
+
+All usage figures are client counters. Subscription metadata reports zero cost;
+actual billing and complete context accounting remain unknown.

@@ -6,6 +6,7 @@ from pathlib import Path
 import runpy
 import sys
 import unittest
+from unittest.mock import patch
 
 from agent_eval import review_coverage, source_reviews, terminal_reviews
 
@@ -14,6 +15,55 @@ HERE = REPO / "tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped"
 
 
 class ScopedReviews(unittest.TestCase):
+    def test_policy_verification_refuses_local_execution_and_checks_source_identity(self):
+        import tempfile
+        from agent_eval import isolated_grade
+        check = runpy.run_path(str(HERE / "verify-policy.py"))
+        frozen, candidate, unchanged = check["inputs"]()
+        self.assertEqual(frozen["sha256"], json.loads((HERE / "plan.json").read_bytes())["sha256"])
+        self.assertEqual(unchanged["unchanged_files"], len(candidate) - 1)
+        with tempfile.TemporaryDirectory() as temporary, patch.dict("os.environ", {}, clear=True), \
+                patch.object(isolated_grade, "invoke") as invoke:
+            output = Path(temporary) / "unstarted"
+            with self.assertRaisesRegex(ValueError, "on GitHub"):
+                check["check"](output)
+            self.assertFalse(output.exists())
+            invoke.assert_not_called()
+
+    def test_repeated_postrelease_claim_uses_identical_verified_source(self):
+        from agent_eval.study import digest
+        assessment = json.loads((HERE / "assessment.json").read_bytes())
+        frozen = json.loads((HERE / "plan.json").read_bytes())
+        snapshots = source_reviews.read_inputs(HERE)
+        report = terminal_reviews.report(frozen, snapshots, HERE / "attempts")
+        self.assertEqual(assessment["plan_sha256"], frozen["sha256"])
+        self.assertFalse(assessment["task_accepted"] or assessment["pilot_started"])
+        self.assertEqual((report["completed"], report["failed"], report["not_started"]), (5, 1, 0))
+        decision, = assessment["finding_decisions"]
+        attempt = next(a for a in report["attempts"] if a["cell"]["id"] == decision["cell"])
+        finding, = attempt["audit"]["review"]["findings"]
+        self.assertEqual(digest(finding), decision["finding_sha256"])
+        self.assertEqual(decision["decision"], "rejected")
+        path = REPO / decision["verification"]
+        self.assertEqual(source_reviews.identity(path), decision["verification_sha256"])
+        previous = json.loads(path.read_bytes())
+        self.assertEqual(previous["decision"], "rejected")
+        self.assertEqual(previous["controls_sha256"], decision["controls_sha256"])
+        self.assertEqual(snapshots[attempt["cell"]["task"]], source_reviews.read_inputs(path.parent)["packaging-whole-task"])
+        observed = assessment["fr_observation"]
+        folder = HERE / "attempts" / observed["cell"]
+        rows = [json.loads(line) for line in (folder / "tools.jsonl").read_bytes().splitlines()]
+        query, = [r for r in rows if r["params"]["name"] == "fr_explore"]
+        self.assertEqual(query["params"]["arguments"]["term"], observed["term"])
+        self.assertEqual(query["result"]["rows"], [])
+        self.assertEqual(query["result"]["page"]["total"], observed["returned_names"])
+        self.assertTrue(any(r["params"]["name"] == "read_source" for r in rows[1:]))
+        failed, = [a for a in report["attempts"] if a["status"] == "failed"]
+        terminal = json.loads((HERE / "attempts" / failed["cell"]["id"] / "terminal.json").read_bytes())["info"]
+        self.assertEqual(terminal["finish"], "length")
+        self.assertEqual(terminal["tokens"]["reasoning"] + terminal["tokens"]["output"], 2048)
+        self.assertIsNone(failed["process"]["stop_reason"])
+
     def test_frozen_questions_preserve_sources_limits_and_assign_all_requirements(self):
         prepare = runpy.run_path(str(HERE / "prepare.py"))
         design = json.loads((HERE / "design.json").read_bytes())

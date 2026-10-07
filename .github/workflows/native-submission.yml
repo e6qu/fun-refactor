@@ -52,6 +52,10 @@ jobs:
           python3 -B tools/prepare-terminal-reviews.py check tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/design.json
           python3 -B tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/prepare.py check
           python3 -B tools/prepare-terminal-reviews.py check tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/design.json
+      - name: Verify remaining policy combinations in isolation
+        run: >-
+          python3 -B tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/verify-policy.py
+          target/policy-review
       - name: Exercise terminal answers with a scripted loopback provider
         run: >-
           python3 -B tools/check-native-submission.py check target/native-submission
@@ -81,6 +85,7 @@ jobs:
         with:
           name: native-submission-protocol
           path: |
+            target/policy-review/*.json
             target/native-submission/result.json
             target/native-submission/*/*.json
             target/native-submission/*/*.jsonl
