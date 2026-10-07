@@ -144,6 +144,18 @@ the request sends it, and replay requires the saved user message to agree. Missi
 changed or unrequested variants refuse. Profiles without a variant retain their
 existing request shape. This field does not change context, output or resource caps.
 
+A review design may also include `coverage`: a list of objects with `id`,
+`description` and `question`. Each requirement ID must be unique, every assignment
+must name an existing question, and every question needs an assignment. Preparation
+validates the mapping and freezes it in plan provenance. Existing designs remain valid.
+
+Run `python3 tools/review-coverage.py COLLECTION` to replay the retained evidence
+and see each question's assigned requirements, per-model submission status,
+findings and limitations. A failed answer retains a failed status; unstarted work
+is explicit. `requirements_with_complete_submissions` counts only assignments whose
+models all submitted. Even a complete set of empty findings leaves `task_accepted`
+false. Independent claim verification and an explicit scope assessment remain necessary.
+
 `tools/check-review-reasoning.py` exercises both selected providers with `low` and
 `max` against a scripted loopback server on GitHub. It checks the actual request's
 `reasoning_effort` and 2,048-token limit, source delivery and terminal submission.

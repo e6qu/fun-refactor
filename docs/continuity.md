@@ -21,77 +21,52 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #449 merged as `23631d46` with all final checks passing. Its longest executing
-job took under ten minutes; runner queues delayed the overall result. Local main
-is refreshed, and the current branch is `eval/bounded-review-reasoning`. Release
-and Pages passed for the merged commit. All sixteen deep-validation jobs passed;
-the final aggregate job remains queued. PR #451 contains the current work.
+PR #451 merged as `f14f8e6f`. All 23 current PR checks passed; executing jobs stayed
+under ten minutes, while runner queues delayed completion. Local main is refreshed.
+Release and Pages passed for the merge; deep validation `37607221053` is pending.
+The current branch is `eval/scoped-review-coverage`.
 
-The approved chunk is a complete ordinary-tools/fr packaging change pilot, gated on resource
-stability and independent task review. See the current chunk in [PLAN.md](../PLAN.md). Diagnose
-the configured OpenCode memory failure from retained evidence and model-free GitHub controls.
-Do not read, copy or upload authentication files. GitHub operations use the existing `gh` login.
+The approved deliverable is the four-attempt packaging change pilot described in
+[PLAN.md](../PLAN.md). Resource admission is established with the small per-process
+catalog and pinned OpenCode client. Authentication remains with OpenCode and the
+existing `gh` login; do not inspect, copy or upload credential files.
 
-`--smol` failed admission. Process profiles identified OpenCode as the largest process
-at all twelve peaks. An empty per-process catalog then passed on both hosted platforms
-and in one guarded workstation control at 535 MiB. Complete
-[catalog evidence](../tests/agent-eval/opencode/memory/2026-10-07-catalog/README.md)
-replays offline with unchanged limits.
+The scoped collection in `reviews/2026-10-07-packaging-scoped` was frozen at
+`8b42548e` before calls. It assigns eleven areas to three questions and two models.
+Five reviews completed, one failed, and no cell hit a resource limit. Peaks were
+442–576 MiB. GLM's policy answer used 2,046 reasoning tokens and two other output
+tokens, exhausting the unchanged 2,048-token allowance. All six cells are retained,
+and `stop.json` permanently closes the collection.
 
-The [fresh whole-task review](../tests/agent-eval/opencode/reviews/2026-10-07-packaging/README.md)
-was frozen and committed before its first capture. Kimi failed before a model response:
-the empty catalog removed its endpoint metadata. Its 455 MiB peak stayed within limits.
-GLM remains unstarted; `stop.json` permanently closes this collection. No pilot attempt ran.
+The generic coverage reporter shows seven areas with both model submissions.
+All eleven have at least one submission. Findings, limitations, failures and missing
+submissions remain visible; the report never infers task acceptance.
+Kimi's object/API review repeated the incorrect postrelease claim outside its scope.
+`assessment.json` rejects it against identical source and previously retained GitHub
+grading, while preserving the original completed answer and the failed policy review.
 
-The [two-provider catalog](../tests/agent-eval/opencode/catalog/README.md) passed
-hosted admission: Linux 475–483 MiB and macOS 548–571 MiB. One guarded workstation
-control passed at 550 MiB. The hosted endpoint regression and configured local
-endpoint check both passed. Complete evidence is retained in
-`tests/agent-eval/opencode/memory/2026-10-07-providers`.
+Kimi made one fr call during policy review. Exact `Specifier.contains` returned
+no rows; two ordinary searches and two ordinary reads followed. No useful fr source
+was delivered. The public exploration guide now explains bare declaration names.
+This is observed attempted use, without an efficiency claim.
 
-The new collection in `reviews/2026-10-07-packaging-providers` was committed before
-calls. Both reviews failed with `StructuredOutputError` and finish reason `length`:
-Kimi used 2,048 reasoning tokens; GLM used 2,047 plus one other output token.
-They peaked at 453 and 433 MiB, with no resource stop and no tool calls. Neither
-completed a whole-task review. `stop.json` closes this collection permanently.
-Explicit lower reasoning effort has now been tested within the same output allowance.
-Keep failures and unknown actual costs visible.
+Hosted workflow `37609277041` is checking the protocol and an independent policy
+probe: 324 constructor/setter/call combinations, plus byte identity outside the
+changed filter. Candidate code runs only inside the pinned GitHub grader. Retain
+that result and resolve the recorded limitations before explicit pilot admission.
+The four code-change attempts remain unstarted.
 
-The new implementation freezes an optional model variant, forwards it in the
-request and checks the saved user message during replay. The first hosted run,
-`37589101603`, was cancelled while queued after a single model-free workstation
-case exposed the client's nested `user.info.model.variant` representation.
-That failed control and its original validator are retained. Corrected replay
-checks the same raw evidence without changing its failed record. Hosted run
-`37591473150` passed all eight reasoning controls on Linux and macOS, with separate
-memory admission also passing. Peaks were 468–479 MiB on Linux and 549–580 MiB on
-macOS. One fresh guarded workstation control passed at 545 MiB. Complete evidence
-in `reasoning/2026-10-07-low` replays offline. No earlier collection resumes.
+Historical memory and review failures stay stopped. The catalog and low/max
+transport evidence replay offline in `memory/2026-10-07-providers` and
+`reasoning/2026-10-07-low`. The whole-task output failures and rejected partial
+postrelease claims remain in `reviews/2026-10-07-packaging-low`. The earlier
+distinct-object grader repair is retained in `reviews/2026-10-06-configured`.
 
-The low-effort collection in `reviews/2026-10-07-packaging-low` was frozen at
-`c3a2b3d4` before calls. Both attempts exhausted output with incomplete submissions,
-at 504 and 528 MiB, without resource stops. Kimi made two ordinary source searches;
-neither model used fr. Their shared partial postrelease claim is rejected: the exact
-reference passes the disputed assertion and all eight cases in GitHub job
-`112694404489`. The frozen comparison code excludes postreleases of the bound itself.
-Both failed reviews remain failed, and `stop.json` permanently closes collection.
-
-The next review needs bounded questions and explicit requirement coverage, with
-matching-code inspection before accepting comparison claims. The four code-change
-pilot attempts remain unstarted. No task acceptance or efficiency benefit is claimed.
-
-The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
-completed three reviews, retained one memory-limit failure and left two cells unstarted.
-Do not resume it. The operator stopped local model execution at the first resource limit.
-Both models checked one disabled-interpolation input. GitHub verified the packaging grader's
-distinct-object counterexample against the old and new cases; the reference passes all eight.
-The original model string-literal premise remains unverified. None of these reviews used fr.
-
-Use one new frozen plan for any accepted packaging comparison: two configured models, ordinary
-tools and ordinary tools plus fr, identical public checks, independent GitHub grading, no retries.
-Keep failed attempts and missing costs visible. Use the admitted per-process catalog
-within existing caps. Full builds and full gates remain on GitHub.
-The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones open.
+Use one new frozen plan for an admitted packaging comparison: two configured
+models, ordinary tools and optional fr, identical public feedback, independent
+GitHub grading, no retries. Preserve failed attempts and unknown costs. Full builds
+and gates remain on GitHub. The roadmap stays at 7 of 18 demonstrated technical
+items, with all four milestones open.
 
 ## Completed disclosure and terminal-answer work
 
