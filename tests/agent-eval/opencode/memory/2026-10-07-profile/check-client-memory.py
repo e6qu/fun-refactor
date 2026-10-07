@@ -15,9 +15,6 @@ from agent_eval.study import encode, require
 SCHEMA = "fr-client-memory-check-1"
 CELLS = [{"id": f"{mode}-{index}", "mode": mode, "bun_options": option}
          for index in range(3) for mode, option in (("default", ""), ("smol", "--smol"))]
-CATALOG_CELLS = [{"id": f"{mode}-{index}", "mode": mode, "bun_options": ""}
-                 for index in range(3) for mode in ("default", "catalog")]
-CATALOG_DATA = b"{}\n"
 HEADROOM_RSS = 640 * 1024**2
 LIMITS = {"wall_seconds": 120, "cpu_seconds": 20, "rss_bytes": 768 * 1024**2,
           "disk_bytes": 16 * 1024**2, "transcript_bytes": 1024**2}
@@ -30,13 +27,7 @@ def identity(path):
 def report(root):
     plan = json.loads((root / "plan.json").read_bytes())
     require(plan["script_sha256"] == identity(Path(__file__)), "control implementation changed")
-    experiment = plan.get("experiment", "smol")
-    require(experiment in ("smol", "catalog"), "unknown memory experiment")
-    cells = CATALOG_CELLS if experiment == "catalog" else CELLS
-    if experiment == "catalog":
-        require((root / "catalog.json").read_bytes() == CATALOG_DATA
-                and plan["catalog_sha256"] == identity(root / "catalog.json"), "scripted catalog changed")
-    require(plan["schema"] == SCHEMA and plan["cells"] == cells and plan["limits"] == LIMITS,
+    require(plan["schema"] == SCHEMA and plan["cells"] == CELLS and plan["limits"] == LIMITS,
             "memory control design changed")
     require(plan["admission_rss_bytes"] == HEADROOM_RSS, "memory admission margin changed")
     if "profile_implementation" in plan:
@@ -45,7 +36,7 @@ def report(root):
             "launcher": identity(Path(__file__).with_name("profile-client-memory.py"))},
             "profile implementation changed")
     rows = []
-    for cell in cells:
+    for cell in CELLS:
         folder = root / cell["id"] / "configured"
         frozen = json.loads((folder / "plan.json").read_bytes())
         require(frozen["plan"]["binary_sha256"] == plan["fr_sha256"]
@@ -69,35 +60,27 @@ def report(root):
             profile = client_memory_profile.audit(folder, attempt["process"])
             require(profile == json.loads((folder / "profile.json").read_bytes()), "profile report differs")
             rows[-1]["profile"] = profile
-    candidate = [row for row in rows if row["mode"] == experiment]
-    return {"schema": SCHEMA, "experiment": experiment, "plan_sha256": identity(root / "plan.json"), "cases": rows,
+    smol = [row for row in rows if row["mode"] == "smol"]
+    return {"schema": SCHEMA, "plan_sha256": identity(root / "plan.json"), "cases": rows,
             "admitted": all(row["completed"] and row["process"]["sampled_aggregate_rss_bytes"] <= HEADROOM_RSS
-                            for row in candidate),
+                            for row in smol),
             "scope": "Scripted client controls only; live-provider memory and workstation peaks remain unverified."}
 
 
-def check(root, binary, opencode, *, profile=False, experiment="smol"):
+def check(root, binary, opencode, *, profile=False):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run the complete memory gate on GitHub")
-    require(experiment in ("smol", "catalog"), "unknown memory experiment")
     root.mkdir(parents=True, exist_ok=False)
-    cells = CATALOG_CELLS if experiment == "catalog" else CELLS
-    plan = {"schema": SCHEMA, "experiment": experiment, "cells": cells, "limits": LIMITS, "admission_rss_bytes": HEADROOM_RSS,
+    plan = {"schema": SCHEMA, "cells": CELLS, "limits": LIMITS, "admission_rss_bytes": HEADROOM_RSS,
             "platform": sys.platform, "machine": platform.machine(), "os_release": platform.release(),
             "commit": os.environ["GITHUB_SHA"], "script_sha256": identity(Path(__file__)),
             "fr_sha256": identity(binary), "opencode_sha256": identity(opencode)}
-    if experiment == "catalog":
-        (root / "catalog.json").write_bytes(CATALOG_DATA)
-        plan["catalog_sha256"] = identity(root / "catalog.json")
     if profile:
         plan["profile_implementation"] = {
             "module": identity(Path(client_memory_profile.__file__)),
             "launcher": identity(Path(__file__).with_name("profile-client-memory.py"))}
     (root / "plan.json").write_bytes(encode(plan))
-    for cell in cells:
+    for cell in CELLS:
         env = {**os.environ, "BUN_OPTIONS": cell["bun_options"], "RAYON_NUM_THREADS": "1"}
-        env.pop("OPENCODE_MODELS_PATH", None)
-        if cell["mode"] == "catalog":
-            env["OPENCODE_MODELS_PATH"] = str(root / "catalog.json")
         destination = root / cell["id"]
         log = root / (cell["id"] + ".log")
         with log.open("xb") as output:
@@ -119,7 +102,6 @@ def main():
     parser.add_argument("--fr", type=Path)
     parser.add_argument("--opencode", type=Path)
     parser.add_argument("--profile", action="store_true", help="Retain process samples and inferred capture stages")
-    parser.add_argument("--experiment", choices=("smol", "catalog"), default="smol")
     args = parser.parse_args()
     if args.command in ("report", "admit"):
         result = report(args.output.resolve())
@@ -128,7 +110,7 @@ def main():
             require(result["admitted"], "lower-memory controls did not establish the required headroom")
         return
     require(args.fr is not None and args.opencode is not None, "supply both pinned binaries")
-    result = check(args.output.resolve(), args.fr.resolve(), args.opencode.resolve(), profile=args.profile, experiment=args.experiment)
+    result = check(args.output.resolve(), args.fr.resolve(), args.opencode.resolve(), profile=args.profile)
     if args.command == "check":
         require(result["admitted"], "lower-memory controls did not establish the required headroom")
 

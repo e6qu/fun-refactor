@@ -47,6 +47,13 @@ Capture stages come from artifact creation and are explicitly approximate.
 Retain the hosted results before selecting another memory remedy. Post-merge deep,
 release and Pages workflows were pending at the start of this branch.
 
+The first profiler run passed on both platforms, and its retained data replays offline.
+OpenCode dominates all twelve aggregate peaks; its macOS RSS alone exceeds 640 MiB.
+The release and Pages runs have passed; deep validation remains pending.
+The next hosted comparison tests `OPENCODE_MODELS_PATH` with an empty catalog for
+the explicitly configured scripted model. It changes no global config. Do not infer
+Kimi/GLM compatibility or local admission from this control alone.
+
 The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.
 Do not resume it. The operator stopped local model execution at the first resource limit.

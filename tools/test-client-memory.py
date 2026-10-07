@@ -38,6 +38,48 @@ def fixture(root):
 
 
 class ClientMemory(unittest.TestCase):
+    def test_catalog_experiment_requires_all_candidates_and_exact_catalog(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with patch.object(memory, "CELLS", memory.CATALOG_CELLS):
+                audits = fixture(root)
+            catalog = root / "catalog.json"
+            catalog.write_bytes(memory.CATALOG_DATA)
+            plan = json.loads((root / "plan.json").read_bytes())
+            plan.update(experiment="catalog", catalog_sha256=memory.identity(catalog))
+            (root / "plan.json").write_text(json.dumps(plan))
+            self.assertTrue(self.replay(root, audits)["admitted"])
+            current = audits["catalog-2"]
+            current["attempts"][0]["process"]["sampled_aggregate_rss_bytes"] = memory.HEADROOM_RSS + 1
+            (root / "catalog-2/result.json").write_text(json.dumps([{
+                "case": "configured", "provider_requests": 2, "report": current}]))
+            self.assertFalse(self.replay(root, audits)["admitted"])
+            catalog.write_bytes(b'{"changed":{}}\n')
+            with self.assertRaisesRegex(ValueError, "catalog changed"):
+                self.replay(root, audits)
+
+    def test_catalog_setting_is_per_process_and_default_controls_clear_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            binary = base / "binary"
+            binary.write_bytes(b"not executed")
+            root = base / "measurement"
+            observed = []
+            def launch(command, **kwargs):
+                self.assertTrue((root / "plan.json").is_file())
+                destination = Path(command[4])
+                destination.mkdir()
+                observed.append((destination.name, kwargs["env"].get("OPENCODE_MODELS_PATH")))
+                return type("Process", (), {"returncode": 0})()
+            with patch.dict(os.environ, {"GITHUB_ACTIONS": "true", "GITHUB_SHA": "a" * 40,
+                                         "OPENCODE_MODELS_PATH": "/unrelated-catalog"}), \
+                    patch.object(memory.subprocess, "run", side_effect=launch), \
+                    patch.object(memory, "report", return_value={"admitted": False}), patch("sys.stdout", new=io.StringIO()):
+                memory.check(root, binary, binary, experiment="catalog")
+                self.assertEqual(os.environ["OPENCODE_MODELS_PATH"], "/unrelated-catalog")
+            self.assertEqual(observed, [(cell["id"], str(root / "catalog.json") if cell["mode"] == "catalog" else None)
+                                        for cell in memory.CATALOG_CELLS])
+
     def test_requested_profile_requires_bound_implementation_and_replay(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

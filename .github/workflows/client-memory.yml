@@ -85,7 +85,7 @@ jobs:
           PY
       - name: Measure six serial model-free runs without granting admission
         run: >-
-          python3 -B tools/check-client-memory.py measure target/client-memory --profile
+          python3 -B tools/check-client-memory.py measure target/client-memory --profile --experiment catalog
           --fr target/client-memory-tools/fr/fr
           --opencode target/client-memory-tools/client/opencode
       - name: Publish the separate memory admission decision

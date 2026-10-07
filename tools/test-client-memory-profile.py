@@ -1,5 +1,8 @@
 """Offline checks of process attribution, bounds and unchanged guard accounting."""
 import importlib.util
+import base64
+import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -13,6 +16,54 @@ from agent_eval.study import encode
 
 
 class ClientMemoryProfile(unittest.TestCase):
+    def test_retained_profiles_reproduce_guard_peaks_and_client_attribution(self):
+        here = Path(__file__).resolve().parents[1] / "tests/agent-eval/opencode/memory/2026-10-07-profile"
+        manifest = json.loads((here / "manifest.json").read_bytes())
+        for name, expected in manifest["sources"].items():
+            self.assertEqual(hashlib.sha256((here / name).read_bytes()).hexdigest(), expected)
+        def load(name, path):
+            spec = importlib.util.spec_from_file_location(name, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        checker = load("retained_profile_checker", here / "check-client-memory.py")
+        checker.client_memory_profile = load("agent_eval.retained_profile", here / "client_memory_profile.py")
+        expected = json.loads((here / "report.json").read_bytes())
+        self.assertEqual(set(expected), {"macos-14", "ubuntu-latest"})
+        for name, identity in manifest["platforms"].items():
+            archive = here / (name + ".json.gz")
+            self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), identity["archive_sha256"])
+            with gzip.open(archive, "rb") as stream:
+                raw = stream.read(8 * 1024**2 + 1)
+            self.assertLessEqual(len(raw), 8 * 1024**2)
+            files = json.loads(raw)
+            self.assertEqual(len(files), identity["files"])
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                for path, data in files.items():
+                    relative = Path(path)
+                    self.assertFalse(relative.is_absolute() or ".." in relative.parts)
+                    destination = root / relative
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.write_bytes(base64.b64decode(data, validate=True))
+                result = checker.report(root)
+                self.assertEqual(result, expected[name])
+                self.assertEqual(result["plan_sha256"], identity["plan_sha256"])
+                self.assertFalse(result["admitted"])
+                for cell in result["cases"]:
+                    sample = cell["profile"]["peak"]["sample"]
+                    self.assertEqual(sample["phase_before"], "message-in-flight")
+                    self.assertEqual(sample["phase_after"], "message-in-flight")
+                    rows = sample["processes"]
+                    self.assertEqual(max(rows, key=lambda row: row["rss_bytes"])["executable"], "opencode")
+                    self.assertNotIn("fr", [row["executable"] for row in rows])
+                    if name == "macos-14":
+                        client = next(row for row in rows if row["executable"] == "opencode")
+                        self.assertGreater(client["rss_bytes"], checker.HEADROOM_RSS)
+                        self.assertEqual(cell["process"]["stop_reason"], "rss_bytes")
+                    else:
+                        self.assertTrue(cell["completed"])
+
     def test_sampler_uses_only_target_group_and_preserves_exited_process_cpu(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -63,6 +63,13 @@ must reproduce the guard's peak RSS and cumulative CPU, including exited workers
 Stages are inferred from artifact creation; samples spanning stages stay ambiguous.
 No new remedy or live collection is admitted by this instrumentation alone.
 
+The [first profiles](tests/agent-eval/opencode/memory/2026-10-07-profile/README.md)
+identify OpenCode as the largest process at all twelve peaks. On macOS, the client
+alone uses 658–673 MiB, above the entire admission target. The next hosted experiment
+tests a per-process catalog override with the explicitly configured scripted model.
+It must preserve source delivery and terminal answers. Real-provider compatibility
+and local headroom remain separate prerequisites, even if the scripted experiment passes.
+
 The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
 are prepared with all eight grader cases and a requirement coverage checklist.
 Both reviews remain unfrozen and unstarted. The four-attempt comparison will give

@@ -189,6 +189,13 @@ and cannot attribute allocations, missed peaks or shared pages to their causes.
 The optional profiler and launcher are hash-bound in the measurement plan; earlier
 unprofiled evidence retains its original checker and interpretation.
 
+`--experiment catalog` compares three default captures with three captures using a
+hash-bound empty model catalog through `OPENCODE_MODELS_PATH`. Both use the same
+explicit scripted model, tools and source-delivery assertions. Default captures
+clear the override; no global configuration is written. This experiment tests catalog
+initialization, not real-provider compatibility. `--experiment smol` retains the
+earlier default-versus-`--smol` design. Old frozen results keep their original meaning.
+
 Bun documents [lower-memory execution](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/runtime/index.mdx)
 and [runtime flags for compiled binaries](https://github.com/oven-sh/bun/blob/bun-v1.3.14/docs/bundler/executables.mdx).
 The pinned [OpenCode build](https://github.com/anomalyco/opencode/blob/v1.18.34/packages/opencode/script/build.ts)
