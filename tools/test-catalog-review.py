@@ -53,6 +53,13 @@ class CatalogReview(unittest.TestCase):
                 probe.models(raw)
 
     def test_complete_admission_evidence_replays(self):
+        self.replay_admission_evidence(EVIDENCE)
+
+    def test_provider_preserving_admission_evidence_replays(self):
+        self.replay_admission_evidence(EVIDENCE.with_name("2026-10-07-providers"))
+
+    def replay_admission_evidence(self, evidence):
+        EVIDENCE = evidence
         manifest = json.loads((EVIDENCE / "manifest.json").read_bytes())
         expected = json.loads((EVIDENCE / "report.json").read_bytes())
         for name, digest in manifest["sources"].items():
@@ -91,8 +98,11 @@ class CatalogReview(unittest.TestCase):
                     self.assertEqual(listing["models"], {"kimi-code-plan-global/k3": True, "zai-coding-plan/glm-5.3-flash": True})
                     self.assertFalse(listing["live_compatibility_verified"])
                 else:
-                    result = checker.report(root)
-                    self.assertEqual(result, expected[name])
+                    measurement = root / "client-memory" if (root / "client-memory").exists() else root
+                    result = checker.report(measurement)
+                    self.assertEqual(result, {k: v for k, v in expected[name].items() if k != "resolution"})
+                    if "resolution" in expected[name]:
+                        self.replay_resolution(root / "client-catalog", expected[name]["resolution"], EVIDENCE)
                     self.assertTrue(result["admitted"])
                     self.assertEqual(result["experiment"], "catalog")
                     for cell in result["cases"]:
@@ -101,6 +111,51 @@ class CatalogReview(unittest.TestCase):
                             self.assertLessEqual(cell["process"]["sampled_aggregate_rss_bytes"], checker.HEADROOM_RSS)
                         elif name == "macos-14":
                             self.assertEqual(cell["process"]["stop_reason"], "rss_bytes")
+
+    def replay_resolution(self, root, expected, evidence):
+        from agent_eval import structured_probe
+        probe = load("retained_resolution", evidence / "check-client-catalog.py")
+        result = json.loads((root / "result.json").read_bytes())
+        self.assertEqual(result, expected)
+        public = json.loads((root / "providers/catalog.json").read_bytes())
+        self.assertEqual([row["mode"] for row in result["cases"]], ["empty", "providers"])
+        for row in result["cases"]:
+            folder = root / row["mode"]
+            self.assertEqual(row["catalog_sha256"], source_reviews.identity(folder / "catalog.json"))
+            self.assertEqual(row["models_sha256"], source_reviews.identity(folder / "models.stdout"))
+            self.assertEqual(row["process"], json.loads((folder / "process.json").read_bytes()))
+            structured_probe.checked_process(row["process"])
+            models = probe.models((folder / "models.stdout").read_bytes())
+            for provider, metadata in public.items():
+                for model_id in metadata["models"]:
+                    model = models[provider + "/" + model_id]
+                    if row["mode"] == "empty":
+                        self.assertFalse(model["api"].get("url"))
+                    else:
+                        self.assertEqual(model["api"], {"id": model_id, "url": metadata["api"], "npm": metadata["npm"]})
+                        self.assertTrue(model["capabilities"]["reasoning"] and model["capabilities"]["toolcall"])
+                        self.assertEqual(model["capabilities"]["interleaved"], {"field": "reasoning_content"})
+                    self.assertEqual((model["limit"]["context"], model["limit"]["output"]), (32768, 2048))
+
+    def test_provider_reviews_preserve_output_exhaustion_without_acceptance(self):
+        here = COLLECTION.with_name("2026-10-07-packaging-providers")
+        collector = load("provider_collector", here / "collect.py")
+        frozen = json.loads((here / "plan.json").read_bytes())
+        result = terminal_reviews.report(frozen, source_reviews.read_inputs(here), here / "attempts")
+        self.assertEqual(frozen["plan"]["provenance"]["bindings"], collector.bindings())
+        self.assertEqual(result, json.loads((here / "report.json").read_bytes()))
+        self.assertEqual((result["completed"], result["failed"], result["not_started"]), (0, 2, 0))
+        self.assertFalse(result["claims_verified"])
+        self.assertFalse(json.loads((here / "stop.json").read_bytes())["resume_allowed"])
+        for attempt in result["attempts"]:
+            folder = here / "attempts" / attempt["cell"]["id"]
+            terminal = json.loads((folder / "terminal.json").read_bytes())
+            info = terminal["info"]
+            self.assertEqual(info["error"]["name"], "StructuredOutputError")
+            self.assertEqual(info["finish"], "length")
+            self.assertEqual(info["tokens"]["reasoning"] + info["tokens"]["output"], 2048)
+            self.assertEqual((folder / "tools.jsonl").read_bytes(), b"")
+            self.assertIsNone(attempt["process"]["stop_reason"])
 
     def test_review_freeze_binds_catalog_evidence_and_full_task(self):
         collector = load("catalog_collector", COLLECTION / "collect.py")

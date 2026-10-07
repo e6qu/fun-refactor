@@ -197,6 +197,13 @@ empty catalog. The current workflow uses the two-provider fixture in
 the endpoint needed by a configured Kimi review. Model listing alone did not
 detect that failure. No catalog setting changes global client configuration.
 
+The provider-preserving catalog passed hosted and workstation controls. Both
+configured models then responded within resource limits, but exhausted their
+2,048-token output allowances without a structured answer. The
+[retained reviews](../tests/agent-eval/opencode/reviews/2026-10-07-packaging-providers/README.md)
+are failures, not whole-task acceptance. The next collection must bind an explicit
+reasoning setting before calls; prior attempts cannot resume.
+
 `--experiment catalog` compares three default captures with three captures using a
 hash-bound empty model catalog through `OPENCODE_MODELS_PATH`. Both use the same
 explicit scripted model, tools and source-delivery assertions. Default captures

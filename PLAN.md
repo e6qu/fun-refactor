@@ -56,11 +56,17 @@ then exposed a separate problem. The catalog omitted Kimi's endpoint, so the fir
 capture failed before receiving a model response. GLM remains unstarted, and that
 collection is permanently stopped. Model listing alone did not prove compatibility.
 
-The next experiment uses a [1,309-byte catalog](tests/agent-eval/opencode/catalog/README.md)
-that retains the public metadata for both selected providers and models. Test its
-exact bytes on GitHub, then run one guarded workstation control if admitted. Only
-then freeze a new review. No limits increase, and no stopped collection resumes.
-Passing diagnostic CI means the measurement is valid; admission is a separate result.
+The [1,309-byte catalog](tests/agent-eval/opencode/catalog/README.md) preserves both
+providers' public metadata. Its [retained controls](tests/agent-eval/opencode/memory/2026-10-07-providers/README.md)
+passed admission on both platforms and on the workstation at 550 MiB. Isolated
+and configured-client checks resolved the endpoints and adapters correctly.
+
+The [new frozen reviews](tests/agent-eval/opencode/reviews/2026-10-07-packaging-providers/README.md)
+reached both providers at 433–453 MiB. Both exhausted their 2,048-token output
+allowance on reasoning without a structured submission. Neither called a tool.
+The resource problem has a measured remedy; the next prerequisite is explicit
+reasoning effort that permits a complete answer within the same allowance.
+Verify that setting before a new frozen collection. No stopped collection resumes.
 
 The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
 are prepared with all eight grader cases and a requirement coverage checklist.

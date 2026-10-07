@@ -41,11 +41,19 @@ was frozen and committed before its first capture. Kimi failed before a model re
 the empty catalog removed its endpoint metadata. Its 455 MiB peak stayed within limits.
 GLM remains unstarted; `stop.json` permanently closes this collection. No pilot attempt ran.
 
-The next hosted experiment uses the exact
-[two-provider catalog](../tests/agent-eval/opencode/catalog/README.md), reconstructed
-from six pinned public metadata files. It preserves endpoints, adapters and reasoning
-capabilities. Require all three samples below 640 MiB on both platforms, then one guarded
-workstation control before a new frozen live review. Model listing alone is insufficient.
+The [two-provider catalog](../tests/agent-eval/opencode/catalog/README.md) passed
+hosted admission: Linux 475–483 MiB and macOS 548–571 MiB. One guarded workstation
+control passed at 550 MiB. The hosted endpoint regression and configured local
+endpoint check both passed. Complete evidence is retained in
+`tests/agent-eval/opencode/memory/2026-10-07-providers`.
+
+The new collection in `reviews/2026-10-07-packaging-providers` was committed before
+calls. Both reviews failed with `StructuredOutputError` and finish reason `length`:
+Kimi used 2,048 reasoning tokens; GLM used 2,047 plus one other output token.
+They peaked at 453 and 433 MiB, with no resource stop and no tool calls. Neither
+completed a whole-task review. `stop.json` closes this collection permanently.
+Next verify an explicit lower reasoning effort within the same output allowance,
+then freeze a new collection. Keep failures and unknown actual costs visible.
 
 The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.
@@ -56,8 +64,8 @@ The original model string-literal premise remains unverified. None of these revi
 
 Use one new frozen plan for any accepted packaging comparison: two configured models, ordinary
 tools and ordinary tools plus fr, identical public checks, independent GitHub grading, no retries.
-Keep failed attempts and missing costs visible. Local execution stays blocked until the resource
-diagnosis supports it within existing caps. Full builds and full gates remain on GitHub.
+Keep failed attempts and missing costs visible. Use the admitted per-process catalog
+within existing caps. Full builds and full gates remain on GitHub.
 The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones open.
 
 ## Completed disclosure and terminal-answer work
