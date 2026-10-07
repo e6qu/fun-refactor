@@ -21,27 +21,36 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #442 merged as `6975d8e2` after all 21 PR checks passed. Its release, Pages and post-merge
-deep validation all passed. PR #444 is the current `eval/configured-source-reviews` branch.
+PR #444 merged as `a5052841` after all 21 checks passed; its longest job took 10m10s.
+PR #443 released v0.54.0 at `d8f25729`. Local main includes both. The current work branch is
+`eval/packaging-change-pilot`. Release post-merge deep validation passed.
 
-Configured-client source reviews use the existing OpenCode provider access without reading,
-copying or uploading authentication files. GitHub operations use only the existing `gh` login.
-The old explicit-endpoint schema remains replayable. The hosted scripted protocol passed in
-1m53s, including the new configured-provider control.
+The approved chunk is a complete ordinary-tools/fr packaging change pilot, gated on resource
+stability and independent task review. See the current chunk in [PLAN.md](../PLAN.md). Diagnose
+the configured OpenCode memory failure from retained evidence and model-free GitHub controls.
+Do not read, copy or upload authentication files. GitHub operations use the existing `gh` login.
 
-The [live collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
+PR #445's first memory experiment rejected `--smol` on both platforms. Linux completed
+but exceeded the 640-MiB admission target; all macOS captures hit the 768-MiB RSS cap.
+The [retained measurements](../tests/agent-eval/opencode/memory/2026-10-06/README.md)
+replay offline, including every failure. CI validates measurement integrity separately
+from admission; `check` and `admit` still refuse this result. No local model calls are
+authorized by a passing diagnostic job. Locate the peak by process and phase on GitHub
+before testing another remedy. The complete packaging review inputs are prepared, but
+neither review is frozen or started. No pilot attempt has run.
+
+The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.
-Do not resume it: the operator stopped local model execution at the first resource limit.
-No limit was raised, no failed attempt was retried, and none of the completed reviews used fr.
-Both models found no contradiction for one disabled-interpolation input. Kimi identified a
-possible duplicate-identity grader gap, but its exact string-literal premise is not established.
-GitHub verified the candidate pack's distinct-object case: the incorrect repair passes the old
-grader and public example, but fails the new case. The reference passes all eight current cases.
+Do not resume it. The operator stopped local model execution at the first resource limit.
+Both models checked one disabled-interpolation input. GitHub verified the packaging grader's
+distinct-object counterexample against the old and new cases; the reference passes all eight.
+The original model string-literal premise remains unverified. None of these reviews used fr.
 
+Use one new frozen plan for any accepted packaging comparison: two configured models, ordinary
+tools and ordinary tools plus fr, identical public checks, independent GitHub grading, no retries.
+Keep failed attempts and missing costs visible. Local execution stays blocked until the resource
+diagnosis supports it within existing caps. Full builds and full gates remain on GitHub.
 The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones open.
-The [review table](candidate-review-status.md) lists remaining clauses and task-acceptance gaps.
-Full builds, full test gates and candidate execution stay on GitHub. Any future local work must
-use the workstation guard; local model execution for this collection is finished.
 
 ## Completed disclosure and terminal-answer work
 
