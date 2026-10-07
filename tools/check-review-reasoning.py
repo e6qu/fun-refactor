@@ -72,7 +72,8 @@ def report(root):
     case = frozen["plan"]["provenance"]["case"]
     require(case in CASES, "unknown reasoning control")
     model = frozen["plan"]["models"][0]
-    require(model["variant"] == case["variant"] and model["context"] == 32768 and model["output"] == 2048,
+    require(model["providerID"] == case["provider"] and model["modelID"] == case["model"]
+            and model["variant"] == case["variant"] and model["context"] == 32768 and model["output"] == 2048,
             "frozen reasoning settings differ")
     requests = json.loads((root / "provider.json").read_bytes())
     require(len(requests) == 2, "provider request count differs")

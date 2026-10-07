@@ -21,9 +21,10 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #447 merged as `f3dac2c4` after all final checks passed. Local main is refreshed,
-and the current branch is `eval/packaging-catalog-review`. Earlier main deep validation
-passed; the latest post-merge workflows are being monitored.
+PR #449 merged as `23631d46` with all final checks passing. Its longest executing
+job took under ten minutes; runner queues delayed the overall result. Local main
+is refreshed, and the current branch is `eval/bounded-review-reasoning`. Release
+and Pages passed for the merged commit; deep validation remains queued.
 
 The approved chunk is a complete ordinary-tools/fr packaging change pilot, gated on resource
 stability and independent task review. See the current chunk in [PLAN.md](../PLAN.md). Diagnose
@@ -54,6 +55,15 @@ They peaked at 453 and 433 MiB, with no resource stop and no tool calls. Neither
 completed a whole-task review. `stop.json` closes this collection permanently.
 Next verify an explicit lower reasoning effort within the same output allowance,
 then freeze a new collection. Keep failures and unknown actual costs visible.
+
+The new implementation freezes an optional model variant, forwards it in the
+request and checks the saved user message during replay. The first hosted run,
+`37589101603`, was cancelled while queued after a single model-free workstation
+case exposed the client's nested `user.info.model.variant` representation.
+That failed control and its original validator are retained. Corrected replay
+checks the same raw evidence without changing its failed record. The hosted
+matrix must verify provider-visible effort, unchanged output caps, source delivery
+and submission before a fresh live plan. No earlier collection resumes.
 
 The [configured review collection](../tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
 completed three reviews, retained one memory-limit failure and left two cells unstarted.

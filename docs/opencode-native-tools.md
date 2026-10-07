@@ -137,6 +137,20 @@ observed token counters and host work even when no export exists. Partial JSONL 
 artifact prefixes remain explicit. A truncated artifact cannot support a completed review.
 Client counters are not verified provider bills; full context accounting remains unavailable.
 
+Model profiles may include an explicit `variant`, such as `low`, when the client
+advertises that preset. Its name is limited to 64 letters, digits, underscores or
+hyphens and starts with a letter or digit. The frozen plan includes the variant,
+the request sends it, and replay requires the saved user message to agree. Missing,
+changed or unrequested variants refuse. Profiles without a variant retain their
+existing request shape. This field does not change context, output or resource caps.
+
+`tools/check-review-reasoning.py` exercises both selected providers with `low` and
+`max` against a scripted loopback server on GitHub. It checks the actual request's
+`reasoning_effort` and 2,048-token limit, source delivery and terminal submission.
+The tests use public model metadata and fixture authentication. A successful
+control establishes transport behavior; it cannot prove that a live model will
+finish its review within the output allowance.
+
 The hosted control uses OpenCode 1.18.34 and checksum-verified fr 0.52.1. It runs five scripted cases:
 an answer from the packet, an answer after a source read, a missing answer, duplicate answers, and
 a forced process exit after a read. It also checks fr authoring on a temporary copy of the extracted

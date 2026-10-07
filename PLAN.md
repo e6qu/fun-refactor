@@ -68,6 +68,12 @@ The resource problem has a measured remedy; the next prerequisite is explicit
 reasoning effort that permits a complete answer within the same allowance.
 Verify that setting before a new frozen collection. No stopped collection resumes.
 
+The next branch adds an optional frozen model variant and rejects disagreement
+between the plan, request and saved session. A hosted control compares explicit
+`low` and `max` settings at a loopback provider for both selected models. Retain
+those results and run one guarded workstation control before new live reviews.
+The four code-change pilot attempts remain unstarted.
+
 The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
 are prepared with all eight grader cases and a requirement coverage checklist.
 Neither model has completed this whole-task review. The four-attempt comparison will

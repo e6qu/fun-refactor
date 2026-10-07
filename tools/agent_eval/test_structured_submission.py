@@ -149,10 +149,10 @@ class Submission(unittest.TestCase):
         request["variant"] = "low"
         with self.assertRaisesRegex(ValueError, "user variant differs"):
             protocol.audit(request, terminal, messages, events_for(messages), rows)
-        messages[0]["info"]["variant"] = "low"
+        messages[0]["info"]["model"]["variant"] = "low"
         protocol.audit(request, terminal, messages, events_for(messages), rows)
         for value in ("max", None):
-            messages[0]["info"]["variant"] = value
+            messages[0]["info"]["model"]["variant"] = value
             with self.assertRaisesRegex(ValueError, "user variant differs"):
                 protocol.audit(request, terminal, messages, events_for(messages), rows)
 
@@ -163,7 +163,7 @@ class Submission(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "invalid model variant"):
                 protocol.audit(*args)
         request, terminal, messages, _, rows = fixture()
-        messages[0]["info"]["variant"] = "low"
+        messages[0]["info"]["model"]["variant"] = "low"
         with self.assertRaisesRegex(ValueError, "user variant differs"):
             protocol.audit(request, terminal, messages, events_for(messages), rows)
 
