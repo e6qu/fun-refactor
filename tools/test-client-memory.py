@@ -38,6 +38,31 @@ def fixture(root):
 
 
 class ClientMemory(unittest.TestCase):
+    def test_requested_profile_requires_bound_implementation_and_replay(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            audits = fixture(root)
+            path = root / "plan.json"
+            plan = json.loads(path.read_bytes())
+            plan["profile_implementation"] = {
+                "module": memory.identity(Path(memory.client_memory_profile.__file__)),
+                "launcher": memory.identity(Path(memory.__file__).with_name("profile-client-memory.py"))}
+            path.write_text(json.dumps(plan))
+            with self.assertRaisesRegex(ValueError, "invalid process profile"):
+                self.replay(root, audits)
+            with patch.object(memory.client_memory_profile, "audit", return_value={"profile": "checked"}):
+                for cell in memory.CELLS:
+                    (root / cell["id"] / "configured/profile.json").write_text('{"profile":"checked"}')
+                report = self.replay(root, audits)
+                self.assertTrue(all(row["profile"] == {"profile": "checked"} for row in report["cases"]))
+                (root / "default-0/configured/profile.json").write_text('{}')
+                with self.assertRaisesRegex(ValueError, "profile report differs"):
+                    self.replay(root, audits)
+            plan["profile_implementation"]["module"] = "0" * 64
+            path.write_text(json.dumps(plan))
+            with self.assertRaisesRegex(ValueError, "profile implementation changed"):
+                self.replay(root, audits)
+
     def test_measurement_success_does_not_grant_admission(self):
         for admitted in (False, True):
             for command in ("measure", "check", "report", "admit"):

@@ -57,6 +57,12 @@ rejected `BUN_OPTIONS=--smol`: Linux captures completed at 681–690 MiB, above 
 remain blocked. Next locate the peak by process and capture phase on GitHub before
 testing another remedy. Successful evidence validation is separate from memory admission.
 
+PR #445 merged at `948e11ca` with all final checks passing. The next branch adds
+process RSS and capture-stage attribution to the hosted diagnostic. The same samples
+must reproduce the guard's peak RSS and cumulative CPU, including exited workers.
+Stages are inferred from artifact creation; samples spanning stages stay ambiguous.
+No new remedy or live collection is admitted by this instrumentation alone.
+
 The [complete review inputs](tests/agent-eval/opencode/reviews/2026-10-06-packaging-inputs/README.md)
 are prepared with all eight grader cases and a requirement coverage checklist.
 Both reviews remain unfrozen and unstarted. The four-attempt comparison will give
