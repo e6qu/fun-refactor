@@ -54,6 +54,56 @@ def fixture(root):
 
 
 class Reasoning(unittest.TestCase):
+    def test_hosted_and_workstation_transport_evidence_replays(self):
+        from agent_eval import source_reviews
+        repo = Path(__file__).resolve().parents[1]
+        here = repo / "tests/agent-eval/opencode/reasoning/2026-10-07-low"
+        manifest = json.loads((here / "manifest.json").read_bytes())
+        expected = json.loads((here / "report.json").read_bytes())
+        for name, digest in manifest["sources"].items():
+            self.assertEqual(source_reviews.identity(here / name), digest)
+        spec = importlib.util.spec_from_file_location("retained_reasoning", here / "check-review-reasoning.py")
+        control = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(control)
+        memory_spec = importlib.util.spec_from_file_location("memory", repo / "tools/check-client-memory.py")
+        memory = importlib.util.module_from_spec(memory_spec)
+        memory_spec.loader.exec_module(memory)
+        self.assertEqual(set(manifest["platforms"]), {"macos-14", "ubuntu-latest", "workstation"})
+        for name, identity in manifest["platforms"].items():
+            archive = here / (name + ".json.gz")
+            self.assertEqual(source_reviews.identity(archive), identity["archive_sha256"])
+            with gzip.open(archive, "rb") as stream:
+                raw = stream.read(8 * 1024**2 + 1)
+            self.assertLessEqual(len(raw), 8 * 1024**2)
+            files = json.loads(raw)
+            self.assertEqual(len(files), identity["files"])
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                for path, data in files.items():
+                    relative = Path(path)
+                    self.assertFalse(relative.is_absolute() or ".." in relative.parts)
+                    destination = root / relative
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.write_bytes(base64.b64decode(data, validate=True))
+                folders = [root] if name == "workstation" else [root / "review-reasoning" / str(i) for i in range(4)]
+                results = [control.report(folder) for folder in folders]
+                self.assertEqual(results, expected[name]["controls"])
+                self.assertEqual([r["case"] for r in results], control.CASES[:1] if name == "workstation" else control.CASES)
+                for folder, result in zip(folders, results):
+                    frozen = json.loads((folder / "plan.json").read_bytes())
+                    self.assertEqual(frozen["plan"]["provenance"]["script_sha256"], manifest["sources"]["check-review-reasoning.py"])
+                    process = result["report"]["attempts"][0]["process"]
+                    self.assertLessEqual(process["sampled_aggregate_rss_bytes"], 640 * 1024**2)
+                    self.assertIsNone(process["stop_reason"])
+                if name == "workstation":
+                    invocation = json.loads((root / "invocation.json").read_bytes())
+                    self.assertEqual(invocation["helper_sha256"], manifest["sources"]["fr-local-reasoning-control-fixed.py"])
+                    self.assertEqual(invocation["script_sha256"], manifest["sources"]["check-review-reasoning.py"])
+                else:
+                    measured = memory.report(root / "client-memory")
+                    self.assertEqual(measured, expected[name]["memory"])
+                    self.assertTrue(measured["admitted"])
+
     def test_saved_client_variant_regression_keeps_original_failure(self):
         from agent_eval import structured_submission as protocol
         here = Path(__file__).resolve().parents[1] / "tests/agent-eval/opencode/reasoning/2026-10-07-variant-shape"
