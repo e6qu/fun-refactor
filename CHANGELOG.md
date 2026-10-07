@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.1...fun-refactor-v0.54.2) (2026-10-07)
+
+
+### Tests
+
+* diagnose client memory peaks and isolate catalog loading ([#447](https://github.com/e6qu/fun-refactor/issues/447)) ([f3dac2c](https://github.com/e6qu/fun-refactor/commit/f3dac2c4502faf941760582223e2a6cde9188fcc))
+
 ## [0.54.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.0...fun-refactor-v0.54.1) (2026-10-07)
 
 
