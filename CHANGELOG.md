@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.0...fun-refactor-v0.54.1) (2026-10-07)
+
+
+### Tests
+
+* prepare packaging changes within client resource limits ([#445](https://github.com/e6qu/fun-refactor/issues/445)) ([948e11c](https://github.com/e6qu/fun-refactor/commit/948e11ca36c51ccb3e41dc39b2aac01a0d99be87))
+
 ## [0.54.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.53.0...fun-refactor-v0.54.0) (2026-10-06)
 
 
