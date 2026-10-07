@@ -137,7 +137,7 @@ def response(turn, case):
             "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110}}
 
 
-def provider(root, case):
+def provider(root, case, *, model="protocol"):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
             pass
@@ -152,12 +152,13 @@ def provider(root, case):
                 raw = encode(self.server.requests)
                 require(len(raw) <= MAX_BYTES, "provider transcript exceeds budget")
                 (root / "provider.json").write_bytes(raw)
-                require(request["model"] == "protocol", "unexpected provider model")
+                require(request["model"] == model, "unexpected provider model")
                 require(request.get("tool_choice") == "required", "structured tool choice missing")
                 names = {t["function"]["name"] for t in request["tools"]}
                 require("StructuredOutput" in names and "rehearsal_submit_answer" not in names,
                         "submission tool surface differs")
                 reply = response(len(self.server.requests), case)
+                reply["model"] = model
                 if request.get("stream"):
                     choice = reply["choices"][0]
                     delta = dict(choice["message"])

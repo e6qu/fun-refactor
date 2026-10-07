@@ -12,10 +12,18 @@ FORMAT = {"type": "json_schema", "retryCount": 0, "schema": {
     "required": ["answer"], "additionalProperties": False}}
 
 
+def variant(value):
+    require(isinstance(value, str) and re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}", value),
+            "invalid model variant")
+    return value
+
+
 def audit(request, terminal, messages, events, rows):
     """This format has no synthetic stop turn or synthetic MCP submission."""
-    require(set(request) == {"model", "agent", "format", "parts"}
+    require(set(request) - {"variant"} == {"model", "agent", "format", "parts"}
             and request["agent"] == "fr-submission" and request["format"] == FORMAT, "request differs")
+    if "variant" in request:
+        variant(request["variant"])
     require(set(request["model"]) == {"providerID", "modelID"}
             and all(isinstance(v, str) and re.fullmatch(r"[\w./-]+", v) for v in request["model"].values()),
             "invalid requested model")
@@ -31,6 +39,7 @@ def audit(request, terminal, messages, events, rows):
             "user format differs")
     require([{"type": p["type"], "text": p.get("text")} for p in user["parts"]]
             == request["parts"], "user prompt differs")
+    require(user["info"].get("variant") == request.get("variant"), "user variant differs")
     require(terminal == assistants[-1], "terminal response and messages differ")
     observed_parts, observed_info, idle = {}, {}, False
     for event in events:

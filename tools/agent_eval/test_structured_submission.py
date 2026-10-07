@@ -144,6 +144,29 @@ def events_for(messages):
 
 
 class Submission(unittest.TestCase):
+    def test_variant_must_match_saved_user_and_events(self):
+        request, terminal, messages, _, rows = fixture()
+        request["variant"] = "low"
+        with self.assertRaisesRegex(ValueError, "user variant differs"):
+            protocol.audit(request, terminal, messages, events_for(messages), rows)
+        messages[0]["info"]["variant"] = "low"
+        protocol.audit(request, terminal, messages, events_for(messages), rows)
+        for value in ("max", None):
+            messages[0]["info"]["variant"] = value
+            with self.assertRaisesRegex(ValueError, "user variant differs"):
+                protocol.audit(request, terminal, messages, events_for(messages), rows)
+
+    def test_invalid_or_unrequested_variants_refuse(self):
+        for value in (None, {}, "", "x" * 65, "low\n", "{env:SECRET}"):
+            args = list(fixture())
+            args[0]["variant"] = value
+            with self.assertRaisesRegex(ValueError, "invalid model variant"):
+                protocol.audit(*args)
+        request, terminal, messages, _, rows = fixture()
+        messages[0]["info"]["variant"] = "low"
+        with self.assertRaisesRegex(ValueError, "user variant differs"):
+            protocol.audit(request, terminal, messages, events_for(messages), rows)
+
     def test_model_identity_uses_separate_provider_and_model_fields(self):
         request, _, messages, _, rows = fixture()
         request["model"] = {"providerID": "vendor", "modelID": "family/model"}
