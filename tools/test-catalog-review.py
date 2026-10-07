@@ -24,6 +24,34 @@ def load(name, path):
 
 
 class CatalogReview(unittest.TestCase):
+    def test_public_catalog_reconstructs_without_config_or_network(self):
+        prepare = load("catalog_prepare", REPO / "tests/agent-eval/opencode/catalog/prepare.py")
+        path = prepare.HERE / "catalog.json"
+        self.assertEqual(path.read_bytes(), prepare.prepare())
+        catalog = json.loads(path.read_bytes())
+        for provider, model_id in prepare.PAIRS.items():
+            model = catalog[provider]["models"][model_id]
+            self.assertTrue(catalog[provider]["api"].startswith("https://"))
+            self.assertEqual(catalog[provider]["npm"], "@ai-sdk/openai-compatible")
+            self.assertEqual(model["interleaved"], {"field": "reasoning_content"})
+            self.assertTrue(model["tool_call"] and model["reasoning"])
+
+    def test_model_resolution_probe_refuses_local_execution(self):
+        probe = load("catalog_resolution", REPO / "tools/check-client-catalog.py")
+        with tempfile.TemporaryDirectory() as temporary, patch.dict("os.environ", {}, clear=True):
+            root = Path(temporary) / "unstarted"
+            with self.assertRaisesRegex(ValueError, "on GitHub"):
+                probe.check(root, Path("unused"), Path("unused"))
+            self.assertFalse(root.exists())
+
+    def test_verbose_models_require_unique_complete_metadata(self):
+        probe = load("catalog_resolution_parser", REPO / "tools/check-client-catalog.py")
+        self.assertEqual(probe.models(b'one/model\n{\n"api": {}\n}\ntwo/model\n{"api":{}}\n'),
+                         {"one/model": {"api": {}}, "two/model": {"api": {}}})
+        for raw in (b'one/model\n{}\none/model\n{}', b'one/model\n{', b'one/model'):
+            with self.assertRaises(ValueError):
+                probe.models(raw)
+
     def test_complete_admission_evidence_replays(self):
         manifest = json.loads((EVIDENCE / "manifest.json").read_bytes())
         expected = json.loads((EVIDENCE / "report.json").read_bytes())
