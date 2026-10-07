@@ -35,6 +35,7 @@ def audit(request, terminal, messages, events, rows):
     session = user["info"]["sessionID"]
     require(re.fullmatch(r"ses_[A-Za-z0-9]+", session) is not None, "invalid session")
     expected_model = {**request["model"], **({"variant": request["variant"]} if "variant" in request else {})}
+    require(isinstance(user["info"]["model"], dict), "invalid saved model")
     require(user["info"]["model"].get("variant") == request.get("variant"), "user variant differs")
     require(user["info"]["role"] == "user" and user["info"]["format"] == FORMAT
             and user["info"]["model"] == expected_model and user["info"]["agent"] == request["agent"],

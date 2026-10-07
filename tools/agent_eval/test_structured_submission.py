@@ -36,6 +36,13 @@ def capture_fixture(root):
 
 
 class Replay(unittest.TestCase):
+    def test_malformed_saved_model_is_a_controlled_refusal(self):
+        for model in (None, [], "protocol", 1):
+            request, terminal, messages, events, rows = fixture()
+            messages[0]["info"]["model"] = model
+            with self.subTest(model=model), self.assertRaisesRegex(ValueError, "invalid saved model"):
+                protocol.audit(request, terminal, messages, events, rows)
+
     def test_missing_answer_keeps_both_responses_in_observed_work(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
