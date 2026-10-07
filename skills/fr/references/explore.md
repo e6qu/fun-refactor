@@ -22,7 +22,7 @@ Keep the cache enabled. Cold calls may report `indexing` on stderr.
 Names match bare declarations, such as `read`. Scope methods with `--in FILE_OR_HANDLE`.
 Empty results for qualified names do not establish absence.
 
-Start behavior discovery with `project explore TERM [--contains]`: at most twelve names, no source.
+For behavior discovery, use `project explore TERM [--contains]`: at most twelve names, no source.
 Run a row's `next.arguments` for source and relationships. Pages shrink to fit the response budget;
 profile sizes are maxima. Follow cursors and offsets.
 Source continuations use `--view source`; relationships use `--view relationships`.
