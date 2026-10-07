@@ -36,7 +36,7 @@ def response(original, turn, case, attempt):
         call = ("fr_explore", {"term": "value", "path": "module.py"})
     elif case["arm"] == "fr" and turn in (3, 4):
         result = rows[1]["result"]
-        handle = dict(zip(result["columns"], result["rows"][0]))["handle"]
+        handle = result["rows"][0]["handle"]
         call = (("fr_explore", {"term": "value", "path": "module.py", "mode": "behavior", "target": handle})
                 if turn == 3 else ("fr_preview_body", {"path": "module.py", "handle": handle, "body": "return 43\n"}))
     elif case["arm"] == "fr" and turn == 5:

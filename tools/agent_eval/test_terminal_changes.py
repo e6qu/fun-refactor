@@ -63,6 +63,46 @@ def capture(root, plan, snapshots):
 
 
 class Changes(unittest.TestCase):
+    def test_two_failed_captures_block_later_work_and_keep_observed_usage(self):
+        first, _ = frozen()
+        models = copy.deepcopy(first["plan"]["models"])
+        models.append({**models[0], "modelID": "second"})
+        plan, snapshots = changes.freeze([task()], models, Path(__file__), Path(__file__), {}, {})
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            for cell in plan["plan"]["cells"][:2]:
+                root = output / cell["id"]
+                root.mkdir()
+                process = capture(root, plan, snapshots)
+                process.update(exit_code=1, process_exit_code=1)
+                runner.seal(plan, snapshots, cell, root, process)
+            result = changes.report(plan, snapshots, output)
+            self.assertEqual((result["failed"], result["not_started"]), (2, 2))
+            self.assertEqual(result["attempts"][0]["observed"]["assistant_messages"], 2)
+            self.assertEqual(result["attempts"][0]["observed"]["host_calls"], 1)
+            with patch.object(runner.bounded_host, "run") as execute:
+                with self.assertRaisesRegex(ValueError, "consecutive-failure"):
+                    runner.collect(plan, snapshots, plan["plan"]["cells"][2]["id"], output,
+                                   output, Path(__file__), Path(__file__))
+                execute.assert_not_called()
+
+    def test_retry_and_out_of_order_collection_refuse_before_launch(self):
+        plan, snapshots = frozen()
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            first, second = plan["plan"]["cells"]
+            with patch.object(runner.bounded_host, "run") as execute:
+                with self.assertRaises((OSError, ValueError)):
+                    runner.collect(plan, snapshots, second["id"], output, output, Path(__file__), Path(__file__))
+                self.assertFalse((output / second["id"]).exists())
+                root = output / first["id"]
+                root.mkdir()
+                process = capture(root, plan, snapshots)
+                runner.seal(plan, snapshots, first, root, process)
+                with self.assertRaisesRegex(ValueError, "already attempted"):
+                    runner.collect(plan, snapshots, first["id"], output, output, Path(__file__), Path(__file__))
+                execute.assert_not_called()
+
     def test_frozen_profiles_feedback_tools_and_source_refuse_drift(self):
         plan, snapshots = frozen()
         self.assertEqual(changes.checked(plan, snapshots)["limits"], terminal_reviews.native.LIMITS)
