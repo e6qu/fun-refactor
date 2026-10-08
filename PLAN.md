@@ -13,7 +13,7 @@ repeating the first agent's entire investigation.
 Success means correct work with less total agent effort, context and cost. A shorter tool response,
 more supported commands, or more passing fixtures does not by itself demonstrate that success.
 The [product review](docs/product-review.md) assesses what to keep, what to challenge and how to
-measure it. It is the starting point for the next substantial implementation change.
+measure it. Use those criteria when expanding or removing features.
 
 ## Where we are
 
@@ -36,244 +36,63 @@ The recent boltons and more-itertools tests exercise known, scripted edits, reco
 interruption, behavior checks and patch replay. They are useful regression tests. They do not
 show that an agent can independently diagnose arbitrary projects or that `fr` saves tokens.
 
-## Current chunk: compare a reviewed packaging change with and without fr
+## Latest measured result
 
-The four-attempt code-change pilot was frozen for Kimi and GLM, each with ordinary
-tools and with fr additionally available. It stopped after the first Kimi attempt
-hit the unchanged 20-CPU-second limit. That attempt made five tool calls and one
-source replacement, but no terminal submission. The remaining three cells were not
-started. There is no completed comparison or behavior grade.
+The [configured packaging pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
+stopped on its first attempt. Kimi made five ordinary tool calls and one source replacement,
+then hit the unchanged 20-CPU-second limit before submitting. Three planned attempts remain
+unstarted. Peak sampled RSS was 417.23 MiB; elapsed time was 63.11 seconds.
 
-The [retained results](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
-record 63.11 seconds elapsed, 417.23 MiB peak sampled RSS and 8,645 tool-result bytes.
-Short scripted controls passed hosted and workstation admission but did not predict
-this live CPU demand. Next, attribute CPU use with a representative scripted workload
-on GitHub. Keep the limits unchanged and this collection permanently stopped.
+Short scripted controls had passed on GitHub and the workstation. They did not predict the
+live CPU demand. The frozen runner and hosted report preserve the failure and unknown costs.
+There is no graded repair, observed fr use or completed comparison from this pilot.
 
-The [small provider catalog](tests/agent-eval/opencode/catalog/README.md) and
-[reasoning controls](tests/agent-eval/opencode/reasoning/2026-10-07-low/README.md)
-passed hosted and workstation admission. Earlier whole-task reviews exhausted output;
-their stopped collections remain intact. Resource and output caps have not increased.
+Packaging was admitted for this bounded pilot after scoped review and a separate policy check.
+Five of six reviews completed; GLM's failed policy review remains failed. See the
+[candidate review status](docs/candidate-review-status.md) for the admission limits and other tasks.
 
-The [scoped collection](tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/README.md)
-assigns eleven requirement areas to three questions. Five of six reviews completed.
-All six stayed within resource limits, at 442–576 MiB peak RSS.
+## Next large chunk
 
-| Assigned question | Kimi | GLM | Remaining assessment |
-| --- | --- | --- | --- |
-| Fallback, matching finals, bounds and exclusions | Completed | Completed | Preserve stated review limits |
-| Constructor/call policy, inference and empty sets | Completed | Output exhausted | Independently check recorded policy limitations |
-| Objects, order, duplicates, one-shot inputs and unchanged APIs | Completed | Completed | Reject Kimi's repeated incorrect postrelease claim |
+Attribute configured-client CPU use with a representative scripted workload on GitHub.
+The retained live trace contains 851 streamed text deltas; the passing workstation control
+contains none. That is a testable difference, not an established cause of the failure.
 
-Seven of eleven areas have submissions from both models. All eleven have at least
-one submission, but submission counts are not acceptance. The generic coverage
-report exposes each answer's findings and limitations and never approves a task.
-The assessment rejects the repeated postrelease claim against an identical source
-snapshot and the prior GitHub grading. The failed policy attempt remains failed.
+1. Compare identical scripted replies delivered whole and in many chunks. Include realistic
+   source reads and edits, and retain per-process CPU, RSS and exact result identities.
+2. Fix only overhead supported by those measurements. Keep existing resource limits and
+   require fresh hosted admission before any guarded workstation control.
+3. Consider a new, committed comparison design only after admission. The stopped packaging
+   collection cannot resume; failed cells cannot be retried under a new directory name.
 
-Kimi used fr once: a qualified-name lookup returned no rows, followed by ordinary
-search and reads. The public guide now states the bare-name contract. No useful fr
-source delivery or efficiency advantage follows from that call.
+## Remaining product gaps
 
-The isolated GitHub check passed all 324 constructor/setter/call policy combinations
-and verified byte identity outside the changed filter. The retained
-[admission decision](tests/agent-eval/opencode/reviews/2026-10-07-packaging-scoped/admission.json)
-assesses all eleven areas and accepts the task for one bounded four-attempt pilot.
-GLM's failed review stays failed; this decision does not establish exhaustive correctness.
+| Gap | What must be demonstrated |
+| --- | --- |
+| Agent efficiency | Correct changes on unfamiliar tasks with complete context, time and provider-cost accounting |
+| Actual fr adoption | Measure tool use separately from availability; ordinary-only success in an fr-enabled arm is not evidence of benefit |
+| Delegation | Count parent/child usage, failed children, repeated reads, handoffs and integration effort |
+| Useful analysis | General value tracing through assignments, branches and helpers, with explicit unsupported cases |
+| Simpler workflows | Measure guide, intent and task routes separately; consolidate overhead without losing correctness or recovery |
+| Source-connected proofs | Check a useful property against the implementation, including stale-proof rejection after changes |
 
-The new change runner freezes configured model profiles, reasoning variants, the
-small catalog, executable identities and identical public feedback. Ordinary edits
-and optional fr previews share the existing edit implementation. A terminal structured
-summary closes the attempt; replay reconstructs the exact submitted files. Candidate
-code never runs during collection. A completed submission still needs GitHub grading.
-
-PR #454 passed the scripted real-client controls on Linux and macOS 15 with the
-unchanged resource caps. The next checkpoint adds exact-submission grading, explicit
-unknown costs and frozen Python runners for replay. Fresh hosted controls and the
-workstation control passed before the plan was committed at `c0980440`. The resource
-stop is preserved as a failed capture; its partial edit cannot become a graded repair.
-
-GitHub operations use the existing `gh` login; OpenCode resolves its configured
-provider access. Local calls use the resource guard, and full builds, candidate
-execution and full test gates stay on GitHub. No fr call is required in the pilot:
-choosing ordinary tools is an outcome to measure.
-
-## Recent work: configured reviews and a verified duplicate-identity gap
-
-PR #444 merged as `a5052841` after all 21 checks passed. Three source reviews completed;
-one hit the memory limit and two cells remain unstarted. Both models found no contradiction
-for one disabled-interpolation input. Kimi flagged an identity assertion that checked each result
-against any input object, rather than its corresponding input object.
-
-GitHub verified a related counterexample using explicitly distinct equal `Version` objects.
-The incorrect repair passes all seven old cases and the public example but fails the new case.
-The unchanged reference passes all eight current cases. The model's string-literal premise remains
-unverified. The [retained comparison](tests/agent-eval/opencode/reviews/2026-10-06-configured/README.md)
-keeps that distinction, the resource failure and incomplete usage accounting. None of the reviews
-used fr. Whole-task acceptance and an efficiency advantage remain open. PR #443 released v0.54.0.
-
-## Recent work: return useful discovery pages within the response budget
-
-Before PR #441, `project explore` could refuse every result when a long scope and matching declarations
-exceed its serialized response limit. Narrowing to one file does not always help. A small generated
-fixture reproduces this failure with the released CLI.
-
-PR #441 reduces page sizes to fit the existing compact or expanded budget. Names retain
-complete rows and a continuation; behavior pages retain exact source slices and relationship rows.
-The budget includes final context metadata and the output newline. Explicit expansion keeps the
-current names-page position. Hosted tests must reconstruct every match, source byte and relationship,
-check UTF-8 boundaries, and refuse stale continuations. A page with oversized mandatory metadata
-still refuses rather than returning an incomplete row or a cursor that makes no progress.
-
-This addresses a concrete disclosure failure. It does not establish token savings or a general
-agent-efficiency advantage. All ten hosted pagination tests pass. The refreshed index comparison
-reproduces all eight baseline samples; repository delivery passes 365 behavior cases; exact source
-locations pass their nine recorded cases. Independent audits verify all three bundles against current
-source. The roadmap remains at seven demonstrated technical items, with all four milestones open.
-All 21 PR checks passed before merge at `183887b5`. Local main also includes release PR #439.
-
-## Recent work: review source and finish with one checked answer
-
-PR #438 merged at `25da0e17` after all 21 checks passed. It established the scripted submission
-controls below. PR #440 merged at `8075e69e` and connects that answer to a frozen question and source packet.
-It checks that citations came from the supplied packet or an earlier source read. It also retains
-observed work when the client stops without exporting its session.
-
-`tools/terminal-reviews.py` freezes, collects and replays these reviews. The audit refuses changed
-plans, source, models, tool results and resource limits. Two consecutive failures stop the collection;
-existing cells cannot be retried. The historical runners and stopped collections are unchanged.
-
-All 21 PR checks passed. The [hosted client check](https://github.com/e6qu/fun-refactor/actions/runs/37376273874)
-passed in 68 seconds, including all 24 offline controls and fr authoring of the extracted function.
-Independent replay accepts packet-only review and an additional source read. It retains the expected
-missing-answer, duplicate-answer and interrupted outcomes as failures, including their observed work.
-At that stage, these were scripted checks only. PR #444 subsequently added configured-client access
-and retained live Kimi/GLM reviews. The original explicit-endpoint plans remain replayable. See the [review commands](docs/opencode-native-tools.md#review-source-packets-with-terminal-answers).
-
-This advances the evaluation runner. It does not establish whole-task acceptance, model reliability,
-fr adoption, complete billing or a general efficiency advantage. The roadmap stays at 7 of 18
-demonstrated technical items, with all four milestones open.
-
-## Recent work: check native submissions with scripted responses
-
-The last live review collection stopped after a missing submission and repeated submissions.
-The new scripted check drives OpenCode 1.18.34 with a local fake provider. It exercises one terminal
-answer, an omitted answer, two answers, and another tool call alongside an answer.
-The audit compares the request, events, independent session export, MCP log and provider requests.
-It counts every response and rejects mismatched evidence. No live model calls are part of this check.
-
-The [scripted GitHub check](https://github.com/e6qu/fun-refactor/actions/runs/37338076823)
-passed all four cases in 43 seconds on `c35a99c2`. Independent replay passes with the current audit.
-Each case made two provider requests, including failures. Twelve offline tests check the audit.
-Existing native runners and stopped collections retain their original rules and outcomes.
-The current chunk connects this protocol to source review; live model reliability remains open.
-Task acceptance, fr adoption, provider billing and general efficiency remain unproven.
-See [the scripted submission check](docs/opencode-native-tools.md#check-terminal-submissions-with-scripted-responses).
-
-## Recent work: finish the repository audit within its deadline
-
-PR #435 passed its 20 PR checks, but its post-merge recipe replay exceeded the
-15-minute deep-audit job deadline. The replay covers the entire workspace. Each
-unchanged recipe step rebuilt the index twice, and the test built another unused index.
-
-This change skips speculative indexing for empty selections and retains the current
-index after an unchanged step. Real edits still refresh it. Regression cases cover
-zero limits, renamed callers, changed-file selectors and permitted refusals. Dogfooding
-with a single-file root also exposed blank patch filenames; previews now name that file.
-
-GitHub refreshed repository delivery against `c272d5fb`: both tasks pass 365 behavior cases.
-Recovery against `ededba2a` passes 430 handled-failure and 430 process-exit boundaries,
-plus 224 model cases. Eight refreshed index samples reproduce the pinned baseline's complete
-symbol/reference answers. Their retained source bindings match the current tree. The complete
-deep run passed all 17 jobs. The recipe test fell from 12m57s to 5m04s in these two runner samples.
-Its whole job fell from 14m47s to 6m52s, with coverage and the deadline unchanged. This is not a
-general performance benchmark. PR #436 merged after all 20 final checks passed; its post-merge
-workflows passed too. Stopped model collections remain stopped.
-
-## Recent work: review concrete assertions and expose the remaining gaps
-
-PR #430 preserved eleven historical reports in lossless archives, saving 366.6 MiB per expanded
-checkout. Its 20 final checks passed. Current acceptance evidence remains unchanged.
-
-The [reference-repair reviews](tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
-finished three narrow Kimi reviews and retained three GLM timeouts. Two reviews found no scoped
-contradiction. The packaging finding was incorrect: it confused version ordering with specifier
-membership. A separate rejection binds that finding to exact source and successful GitHub behavior
-evidence. The grader and reference remain unchanged. The linked table names each remaining review gap.
-
-One attempted fr call omitted the handle required by behavior mode, then fell back to ordinary reads.
-The new opt-in native adapter returns a ready names query after this refusal. Scripted tests check
-scope preservation, replay and source accounting; no live benefit is claimed. The six recorded calls
-used the old adapter. Earlier stopped review collections stay stopped, and their limits stay fixed.
-
-Full independent task and grader review remains open. The roadmap still has seven of eighteen
-demonstrated items, with all four milestones open. No general efficiency advantage is established.
-
-PR #431 merged after all 20 checks passed; its post-merge workflows also passed. The subsequent
-[boundary collection](tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md) used the
-recovery-capable adapter. Both dotenv reviews timed out, stopping four remaining calls. No review
-gap closed. The sole fr call used a nonexistent path, so it did not exercise missing-handle recovery.
-
-A separate source audit found repeated reads of identical files under different paths.
-It adds 4,096 bytes for Kimi and 8,214 bytes for GLM beyond the existing same-path counters. The original reports remain
-unchanged. These are observed source bytes, not measured token savings or a general efficiency claim.
-
-The [single-assertion collection](tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md)
-was frozen at `c938151b` before calls. Packets identify selected changed and unchanged files and
-include one scoped grader assertion. Kimi and GLM completed the two-object identity review; Kimi
-also completed the rejected-directory review. All three found no scoped contradiction.
-GLM then answered as text without submitting; Kimi's next attempt submitted four times.
-Those two protocol failures stopped the final cell. All five attempts finished within budget.
-There were no fr calls, so neither tool adoption nor an efficiency advantage is established.
-
-The [requirement review table](docs/candidate-review-status.md) names the completed review and gaps
-for each requirement family. Two assertions now have completed review; whole-task acceptance stays
-open. Before more live calls, address reliable native submission using scripted checks and a new
-frozen design. This collection and every earlier stopped collection remain stopped.
+The proposed Sonnet/Luna study still needs independent tasks and complete cost accounting.
+The [product review](docs/product-review.md) owns evaluation and removal criteria. Production
+analysis must not recognize benchmark repositories or encode their expected repairs.
 
 ## Evidence and remaining gaps
 
-| Evidence | What it establishes | What is still missing |
-|---|---|---|
-| [Native source-reading pilot](docs/native-read-outcomes.md) | Two passes and four timeouts across six attempts; records observed work from timeouts | No successful ordinary/fr comparison pair; complete provider context and billing unknown |
-| [Native code-change trials](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts across twelve attempts; GitHub graded exact submissions | No attempt called fr; no evidence that its edit route helped |
-| [Candidate task controls](tests/agent-eval/opencode/candidates/README.md) | Three new projects, with unchanged, reference and incomplete-repair controls checked on GitHub | Independent grader review and live comparisons remain open |
-| [Source-based review attempts](tests/agent-eval/opencode/reviews/2026-10-04-native/README.md) | Two timeouts, 17 tool calls, no completed findings or fr use | Review scope did not fit the budget; the frozen stop rule prevented four remaining calls |
-| [Narrow source-packet reviews](tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md) | One GitHub-verified counterexample, two timeouts and three stopped calls | Broader independent review remains open |
-| [Historical evidence archives](tests/agent-eval/EVIDENCE-ARCHIVES.md) | Eleven reports restore byte for byte; expanded checkout saves 366.6 MiB | Git history and agent-efficiency measurements remain unchanged |
-| [Reference-repair reviews](tests/agent-eval/opencode/reviews/2026-10-05-references/README.md) | Three completed narrow reviews, three timeouts, one incorrect finding rejected against execution | Full task review, valid packaging assessment and live recovery-hint usefulness remain open |
-| [Boundary reviews and source reuse](tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md) | Two timeouts, four stopped calls; exact-file overlap audit preserves repeated reads across paths | No completed review; smaller questions and clearer unchanged-file context need a new frozen design |
-| [Single-assertion reviews](tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md) | Three completed reviews cover two assertions; exact before/after identity context; two retained submission failures | Reliable native submission and the remaining requirement families; no fr adoption or efficiency evidence |
-| [Public test feedback](docs/opencode-native-tools.md#run-public-checks-before-submitting) | Scripted repair, stale-result and container-boundary checks | No live-agent adoption or efficiency benefit established |
-| [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated; GitHub refreshed the source-bound location and repository evidence | Eleven items and all four milestones remain open |
+| Evidence | Established result | Limit |
+| --- | --- | --- |
+| [Configured change pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) | Resource stop retained and independently replayed | One failed capture, three unstarted cells; no behavior or efficiency comparison |
+| [Native source-reading report](docs/native-read-outcomes.md) | Two passes and four timeouts, including observed failed work | No successful ordinary/fr pair; billing and complete context remain unknown |
+| [Native code-change report](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts; exact submissions graded on GitHub | No attempt used fr |
+| [Candidate review status](docs/candidate-review-status.md) | Scoped reviews, verified grader counterexamples and explicit packaging admission | Finite review, failed submissions and incomplete independent task selection |
+| [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated in their stated cases | Eleven items and all four milestones remain open |
 
-Earlier native discovery and citation experiments remain in the
-[native evaluation guide](docs/opencode-native-tools.md). Keep their failures and the
-[older Rust comparison](docs/evaluations.md#unknown-target-investigations), where fr increased
-calls, context and time. Smaller source pages alone do not demonstrate lower total agent cost.
-
-Next steps, in order:
-
-1. Attribute the configured client's CPU use on GitHub with representative scripted streaming and
-   edit workloads. The packaging pilot stopped on its first CPU-limit failure; short controls had
-   passed. Keep limits unchanged and preserve that failed attempt and three unstarted cells.
-   A new live comparison requires a new frozen design and fresh resource admission. The
-   [review gaps](docs/candidate-review-status.md) remain visible.
-2. Admit unfamiliar tasks and compare ordinary tools with the public fr read/edit routes and test
-   feedback. Freeze requirements, allowed tools, models, budgets and private checks before calls.
-   Use the configured Kimi/GLM OpenCode profiles for bounded local rehearsals and GitHub for grading.
-   The planned Sonnet/Luna study still needs independent tasks and complete cost accounting.
-3. Compare a single agent with narrowly delegated investigation and review. Count parent and child
-   usage, failed children, repeated reads, handoff context and integration effort.
-4. Measure guide, intent and task layers individually. Consolidate routes that add instructions or
-   round trips without improving outcomes. Follow the
-   [removal review](docs/product-review.md#removal-decisions) for UI, migration and evidence storage.
-5. Use observed task failures to choose reusable analysis improvements. The next candidate is
-   Python value tracing through assignments, branches and helpers, with explicit uncertainty.
-
-Keep ordinary tools available in every arm and retain failed attempts. Measure all tool output,
-including fr metadata and delegation, alongside correctness. Production must not recognize a
-benchmark repository or encode its expected repair.
+Detailed run history belongs in the linked reports, retained fixtures and Git history.
+Keep failures visible. Smaller source pages or scripted successes alone do not establish lower
+total agent cost. The [restoration guide](tests/agent-eval/EVIDENCE-ARCHIVES.md)
+indexes historical storage archives.
 
 ## Generalization requirements
 
@@ -384,35 +203,19 @@ between source implementations and proofs. Passing a theorem about a separate mo
 
 ## Working rules
 
-The [study planner and auditor](docs/agent-study.md) now freeze independent tasks and compare retained
-parent/child accounting. The host gateway now reserves and settles provider requests; a container
-grader compares submitted code with private cases. A serial agent loop now connects those steps for
-fix and feature tasks, with pinned source exports and bounded child investigations.
-Both study arms now have bounded source pages with content hashes and continuation offsets. The
-auditor counts overlapping reads across agents and checks delivered-byte counters against the trace.
-Reads inside arbitrary commands remain unknown; partial page counts do not establish total savings.
-An optional frozen cgroup budget now covers all agent and grader containers in an attempt, including
-child investigations. It records kernel CPU and memory counters and fails the attempt on a resource
-stop. Host/daemon resources, disk/cache growth and integration context still need measurement.
-These tests use fake providers and do not count as live agent trials.
-Select independent tasks, review graders and complete resource/context measurements before the pilot.
-The [local OpenCode rehearsal](docs/opencode-rehearsal.md) uses configured Kimi K3 and GLM 5.3 Flash
-profiles for small protocol and task checks under the workstation guard. Its synthetic tasks,
-restricted discovery actions and CLI usage records do not close independent-study acceptance items.
-The [explanation adapter](docs/opencode-source-evidence.md) checks finite factual claims and retrieved
-source citations on three pinned upstream Python repositories. It measures repeated source bytes
-across ordinary and fr reads. Full context, source-connected proofs and general efficiency remain open.
+Use small reports with explicit follow-up reads, exact source references and stale-result rejection.
+Check behavior independently of the proposed patch. Preview edits, preserve unrelated work and
+retain undo and recovery. Dogfood `fr` where its public operations fit, and record concrete gaps.
 
-Keep reports small and allow explicit follow-up reads. Preserve uncertainty, exact source references
-and stale-result rejection. Check behavior independently of the proposed patch. Review edits before
-applying them, preserve unrelated work, and retain undo and recovery. Use `fr` itself when its public
-operations fit the change, recording limitations when they do not.
+Keep agent scheduling and model access in evaluation hosts. The [study guide](docs/agent-study.md)
+defines independent task plans and parent/child accounting; the
+[OpenCode guide](docs/opencode-native-tools.md) defines configured-client collection and replay.
+Fake-provider controls are protocol tests, not live efficiency evidence.
 
-Do full builds, test gates and large evidence regeneration on GitHub runners. Local checks and `fr`
-invocations on this workstation use the resource guard described in the [development guide](docs/development.md).
-Keep CI jobs within 15 minutes by dividing work without dropping test coverage.
+Full builds, test gates and large evidence regeneration run on GitHub. Local checks and `fr`
+use the [workstation guard](docs/development.md#working-on-a-shared-desktop).
+Keep CI jobs within 15 minutes without dropping coverage; queue time is separate from execution.
 
-The [catalog](tests/agent-eval/roadmap.json) holds the detailed acceptance conditions and evidence links.
-`tools/roadmap-status.py --check` checks that the generated report matches it. It checks recorded
-identities and assertions; the independent behavior tests must also pass. Update a milestone only
-when its implementation and demonstrated outcomes are both complete.
+The [acceptance catalog](tests/agent-eval/roadmap.json) owns detailed conditions and evidence links.
+`tools/roadmap-status.py --check` verifies the generated report. Independent behavior tests must
+also pass. Close a milestone only when both implementation and demonstrated outcomes are complete.

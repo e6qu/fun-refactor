@@ -1,7 +1,7 @@
 # Does fr help an agent do useful work more efficiently?
 
-Review baseline: PR #394, commit `05fb612ae7974f70025e1d6208d54e5ef1e7efb8`, September 30, 2026.
-This is a repository review and an evaluation plan. It contains no new live-agent measurements.
+This page owns product scope, evaluation criteria and removal decisions.
+Read the [plan](../PLAN.md) for current work and [retained reports](evaluations.md) for measurements.
 
 The product is a CLI that lets an AI agent understand code, make needed changes and fixes, and
 develop and check proofs. It should reduce the effort and context needed to complete those tasks
@@ -34,29 +34,19 @@ items. Its counts measure the stated test obligations. They do not measure agent
 
 ## Models to evaluate
 
-Official documentation checked September 30, 2026:
+The broader study targets Claude Sonnet and OpenAI Luna. Local protocol and task rehearsals use
+the configured Kimi K3 and GLM 5.3 Flash profiles. A rehearsal does not substitute for that study.
 
-| Family | Current documented model ID | Standard input / output price per million tokens | Evaluation implication |
-|---|---|---|---|
-| Claude Sonnet | `claude-sonnet-5-5` | $2 / $10 | Record adaptive thinking settings and provider usage, including cache reads and writes |
-| OpenAI Luna | `gpt-6-luna` | $0.10 / $0.50 | Record reasoning effort and usage; separate uncached input, cached input, cache writes and output |
-
-Sources: [Anthropic model IDs](https://platform.claude.com/docs/en/models/overview),
-[Sonnet pricing](https://www.anthropic.com/claude-sonnet-5-5),
-[Luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna).
-These are dated API prices, not subscription billing or a forecast of cost per completed task.
-Record the actual model response identity, provider, harness version and price schedule for every
-run; an alias may change. Do not silently replace the chosen model mid-comparison.
-
-Compare tools within each model first. Sonnet and Luna have different tokenizers, prices and
-reasoning controls; the same text or nominal effort label does not make their costs comparable.
-Neither provider's advertised coding performance establishes a benefit from `fr`.
+Freeze exact provider/model identities, reasoning settings, harness version and applicable pricing
+in each run manifest. Resolve versions and prices when planning that run; an alias may change.
+Compare tool conditions within each model first. Tokenizers, reasoning controls and cache accounting
+differ, so the same text or effort label does not imply comparable cost. Keep unverified billing
+unknown. Advertised model performance cannot establish a benefit from fr.
 
 ## What deserves scrutiny
 
-These are initial judgments based on code, existing results and dependency boundaries. They are
-not claims that a subsystem is unused. File sizes below count tracked working-tree bytes at the
-review baseline; they exclude Git history, caches, binaries and installed dependencies.
+These are candidates for measurement, not claims that a subsystem is unused.
+Review consumers and unique behavior before changing public contracts.
 
 | Area and concrete code | Initial disposition | Evidence needed before removing or expanding it |
 |---|---|---|
@@ -68,114 +58,36 @@ review baseline; they exclude Git history, caches, binaries and installed depend
 | Proof authoring and verification: `src/spec.rs`, `src/spec/`, `kernels/` | Keep proof work in scope; challenge unrelated proof machinery | Require a user-requested property, a checked connection to actual code, useful counterexamples or a concrete safety invariant. Kernel theorem counts are not proof-task success |
 | Framework translation and application models: `src/application_ir.rs`, `src/transpile/`, `src/translate.rs` | Candidate for isolation or reduced scope | Compare maintained user tasks with authoring overhead and runtime CI costs. Shared analysis or writer code may still be core; inspect imports before moving it |
 | Browser playground and WASM: `web/`, `src/wasm.rs`, `crates/wasm-libc/` | Candidate for optional distribution or removal from the CLI critical path | Establish consumers and inspect feature/CI coupling. A demonstration UI is not required for the CLI objective, but existing shared virtual-workspace tests may be |
-| Bundled grammars: `grammars/`, language features in `Cargo.toml` | Measure before trimming language coverage | Lean grammar sources account for 83.5 MiB of tracked files; that is not the binary contribution. Measure release size and build/runtime costs per feature on runners. Proof tasks still need Lean support |
-| Evaluation artifacts: `tests/agent-eval/results/` | Prioritize storage review | 5,603 tracked files occupy 624.0 MiB. Identify current test dependencies, unique historical failures and duplicate snapshots. Archive only with reproducible retrieval and integrity checks |
+| Bundled grammars: `grammars/`, language features in `Cargo.toml` | Measure before trimming language coverage | Measure release size and build/runtime costs per feature on runners. Proof tasks still need Lean support |
+| Evaluation artifacts: `tests/agent-eval/results/` | Prioritize storage review | Identify current test dependencies, unique historical failures and duplicate snapshots. Archive only with reproducible retrieval and integrity checks |
 | Documentation and evaluation scripts: `docs/`, `tools/` | Consolidate repeated instructions and obsolete entry points | Keep one current guide and immutable historical results; verify consumers and links before deleting a script |
-
-The largest storage candidate is retained evidence, not the 278 KiB browser source directory.
-Deleting a small UI may simplify maintenance while barely changing checkout size. Removing files
-from the working tree also does not shrink existing Git history. Treat storage, build time,
-runtime resources and agent context as separate measurements.
-
-The storage counts can be reproduced from `git ls-tree -r -l 05fb612a --
-tests/agent-eval/results grammars/lean web` by summing blob sizes within each directory. A working-tree
-inventory counted the same tracked files; no build caches were traversed.
 
 ## Measured evidence storage cleanup
 
-At commit `ced10cb8`, the retained-results tree contains 6,609 files totaling 656,952,323 bytes.
-Exact duplicate files account for only 4,673,353 bytes. The largest storage cost comes from twelve
-flow-cache JSON reports, each about 37 MB, rather than duplicate source files.
-
-The [archive conversion](../tests/agent-eval/EVIDENCE-ARCHIVES.md) compresses eleven historical
-reports from 409,344,894 bytes to 24,891,122 bytes. The latest acceptance report remains expanded
-for its current audit. The resulting tree occupies 272,498,551 bytes. Every archived report must
-restore its original bytes, SHA-256 and Git blob ID; the catalog records the source revision.
-CI checks all archives and restoration failure cases. Unique historical failures remain available.
-
-This saves 366.6 MiB in an expanded checkout. Existing Git history, analysis behavior and measured
-agent costs do not change. Future pruning still requires a consumer review and preserved evidence.
+The [archive conversion](../tests/agent-eval/EVIDENCE-ARCHIVES.md) saved 366.6 MiB in an expanded
+checkout by compressing eleven historical flow reports. Each must restore its original bytes,
+SHA-256 and Git blob ID. Current acceptance evidence and unique failures remain available.
+This does not shrink Git history or establish lower agent cost. Further pruning requires a
+consumer review and reproducible retrieval; measure storage, build time and runtime separately.
 
 ## Pilot before expanding or deleting subsystems
 
-The [study planner and evidence auditor](agent-study.md) now accept independent task manifests and
-account for declared parent and child invocations. They retain missing cells, failures and unknown costs.
-The provider gateway now reserves and settles requests, and an isolated serial loop connects agent
-tools and private grading for fix/feature tasks. Container resource accounting is implemented;
-whole-worker resources, complete context measurements and proof grading remain open.
-The [OpenCode rehearsal](opencode-rehearsal.md) adds a separate local Kimi/GLM protocol check. Its
-synthetic tasks and CLI-reported usage do not satisfy the independent pilot requirements.
-The [explanation adapter](opencode-source-evidence.md) now checks finite factual answers against
-source actually retrieved from three pinned Python projects. This does not establish general
-understanding, efficient delegation or token savings.
-The [native OpenCode adapter](opencode-native-tools.md) addresses the observed JSON-action
-failures. Tool availability and actual use are reported separately: an agent that uses only
-ordinary reads in the `fr` arm supplies no evidence of a benefit from `fr`.
-The native trials have eight reviewed passes out of twelve; only one of six `fr` arms used the CLI.
-The later compact exploration comparison originally had three passes, nine citation failures and six timeouts
-across eighteen attempts. A separate coverage correction recovers three answers whose exact quotations
-crossed adjacent retrieved pages. The reviewed total is six passes; original records remain unchanged. Both observed `fr` calls came from guided attempts and stopped at names.
-All completed factual values were correct; source citation checks still failed in nine attempts.
-The public excerpt added prompt bytes without an established benefit. The next source-reference
-pilot retained two passes and four timeouts on one reviewed task. Both passes used source IDs;
-guided Kimi followed fr behavior and source continuation. The other passing attempt used ordinary
-tools. The guided run delivered 6,784 source bytes but 19,736 total tool-result bytes; the other
-pass delivered 9,119 source bytes and 14,644 total tool-result bytes. Source bytes alone cannot
-establish context efficiency. Required factual anchors and historical records remain unchanged.
-Native change collection now retains exact submissions for separate GitHub behavior grading.
-The first eight attempts produced seven behavior passes and one timeout across two reviewed tasks.
-Separate GitHub containers checked each submitted patch against the frozen cases, with baseline,
-reference and wrong-fix controls validated. None called fr, including the partial timeout log.
-These bounded cases do not establish general correctness; tool availability alone cannot establish
-a benefit. A subsequent four-attempt pilot added optional public body previews, reviewed history
-application and usage guidance on the reused signal-name task. GitHub containers verified all three
-submissions against nine frozen cases each; one attempt timed out. Again, no attempt used fr. Added instructions and
-tool schemas have a measured cost; these tasks still provide no evidence that the edit route helps.
-The [combined cost report](native-change-outcomes.md) includes observed timeout work and keeps
-unknown totals explicit. The earlier GLM fr-arm timeout accounts for 8 calls and 19,095 result bytes;
-including it gives 227.4 collection seconds per behavior pass in that model/arm group. This is
-collection time on two reviewed tasks, not complete task cost or an estimate of general performance.
-The next optional protocol adds public check feedback before submission in both arms. It retains
-snapshot identity, stale-result status and shared container resource evidence. Scripted controls
-test failure, repair and isolation; no new agent cohort or efficiency advantage is claimed.
-Next independently review tasks and
-graders, and measure total costs, including metadata and handoffs.
+The [current plan](../PLAN.md#next-large-chunk) addresses CPU admission after the configured
+packaging pilot stopped. Short scripted controls passed but the first live call hit its CPU cap.
+Keep that failure and the three unstarted cells. No efficiency comparison follows from it.
 
-The [reference reviews](../tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
-completed three narrow Kimi calls and retained three GLM timeouts. Two reviews found no scoped
-contradiction; the packaging finding was refuted by the pinned source and an existing GitHub control.
-Completed, source-cited reviews are not automatically correct. One fr behavior request lacked a
-handle and was refused before ordinary-file fallback. Native schema 6 now offers a names query after
-that refusal, with scripted recovery checks. Its live usefulness and full independent task review
-remain unmeasured.
+The [source-reading report](native-read-outcomes.md) has no successful ordinary/fr pair.
+The [code-change report](native-change-outcomes.md) has ten behavior passes, two timeouts and no
+fr use. Tool availability is not adoption. The [candidate review table](candidate-review-status.md)
+records packaging's limited admission and the other tasks' gaps. These reports own detailed run
+history; superseded collection instructions do not belong in the active product plan.
 
-The [boundary collection](../tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md)
-then stopped after two more timeouts, leaving four cells unstarted. It completed no review. A separate
-audit of its retained reads finds 12,310 additional repeated bytes across paths with identical file
-contents. Same-path counters alone missed those reads. Equal contents do not make paths equivalent,
-and repeated bytes do not establish avoidable token cost. The next review design should expose
-unchanged-file context and ask about one contract assertion before allocating more calls.
+The [manifest-driven study host](agent-study.md) retains declared parent/child calls and private
+grading. Its scripted controls are not live trials, and complete worker/context costs remain open.
+Keep orchestration in the evaluation host and fr focused on code operations.
 
-The [single-assertion collection](../tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md)
-then supplied that context. Three reviews completed, covering two assertions; two submission failures
-stopped the last cell. All five attempts finished within budget and none called fr. There is no
-matched control attributing the result to narrower scope or file metadata. The
-[requirement review table](candidate-review-status.md) names what remains unreviewed. Native
-submission reliability now needs scripted checks before more model calls; old failures stay failed.
-
-The [source-reading cost report](native-read-outcomes.md) now includes work from every attempt
-in the six-run source-reference pilot. Its four timeouts produced 33 tool calls and 100,968 result
-bytes. Neither ordinary-file attempt passed, so there is no successful ordinary/fr comparison pair.
-The later [source-based grader reviews](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
-both timed out after 17 total tool calls, with no completed findings or fr use. Four remaining
-calls were stopped by the frozen rule. Native tools exposed the source, but this review scope
-did not finish within the existing budget. Independent review remains open; complete usage and
-provider billing are still unknown.
-
-The older `tools/agent_eval/investigation_run.py` path invokes Codex and names two Rust tasks.
-The current manifest-driven host is `tools/agent-eval-host.py`; it retains parent and child calls.
-Neither path supplies new matched Sonnet results. Keep orchestration in the evaluation host and
-keep `fr` focused on code operations; do not build a general agent platform inside the product.
+The following broader study is a proposal, not a running collection or authorization to spend.
+Independent task selection, full accounting and resource admission must be ready first.
 
 Freeze four task instances across at least three independent repositories: explain a behavior,
 fix a bug, add a feature, and prove a stated property about a bounded function. Choose tasks by
@@ -184,7 +96,7 @@ Pin revisions, requirements, hidden graders, model settings, resource budgets an
 For understanding, grade factual accuracy and source references; for changes, use independent
 behavior and regression checks; for proofs, check the theorem and its connection to the source.
 
-The initial pilot is 48 attempts:
+The proposed study contains 48 attempts:
 
 - **32 single-agent attempts:** four tasks, two model families, two repetitions and two tool arms.
 - **16 delegated attempts:** two of those tasks, both model families, two repetitions and both arms,

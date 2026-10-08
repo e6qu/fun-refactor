@@ -1,310 +1,43 @@
-# Development continuity
+# Contributor handoff
 
-This is the short contributor handoff. The [roadmap](../PLAN.md) owns unfinished outcomes; the
-[changelog](../CHANGELOG.md), [defect ledger](../BUGS.md), retained evaluator manifests and Git
-history preserve completed detail.
+Read [PLAN.md](../PLAN.md) for the objective, next chunk and remaining milestones.
+The [generated status](roadmap-status.md) owns acceptance counts. This page contains only the
+current handoff; completed PR history belongs in Git, the changelog and retained evidence.
 
-## Baseline
+## Current work
 
-The current system provides:
+[PR #456](https://github.com/e6qu/fun-refactor/pull/456) adds exact-submission grading,
+failure-preserving reports and frozen Python runners for future replay. It also retains the
+[configured packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md).
 
-- Bounded project, semantic, application and evidence models for 19 parser identities.
-- Merkle-addressed progressive disclosure and a Python object-store protocol.
-- Structured goals, deterministic guide routes and one uniform writable `GuideReview` lifecycle.
-- Built-in refactors, recipes, semantic and surface edits, application migration and proof work.
-- Checks, history, apply, undo, redo, recovery, patches and reviewed Git operations.
-- Lean admission and transition kernels with strict source anchors and shared executable cases.
-- A portable agent skill and zero-dependency typed Python runtime.
+That collection is permanently stopped: Kimi's first ordinary-tool attempt hit the 20-CPU-second
+limit before submitting, and three cells remain unstarted. No partial edit was graded. Hosted
+replay verifies every outcome. The report records admission, executable and source identities,
+resource measurements, failed work and unknown usage; do not duplicate those records here.
 
-Use `fr audit` and `fr capabilities` for live counts and support. A supported route can still refuse
-an input outside its syntax, identity, confidence or effect contract.
+## Next work
 
-## Active outcome
+Run representative scripted streaming and editing workloads on GitHub to attribute CPU use.
+The live trace has 851 streamed text deltas, while the passing workstation control has none.
+This difference is a hypothesis to test. Keep resource limits unchanged and do not resume the
+stopped collection. Any later live comparison needs a new design and fresh admission.
 
-PR #454 merged as `3b633a9c` after all final checks passed. Its final configured
-controls passed on Linux and macOS 15; macOS peaked at 458.59 MiB. Disabling client
-JIT preserved the existing limits and reproduced the required memory headroom.
-The loopback server also avoids a reverse-DNS stall. Historical failed memory
-profiles remain in `changes/2026-10-08-memory`. Main's deep validation is green.
+The [candidate review table](candidate-review-status.md) owns task admission and review gaps.
+The [product review](product-review.md) owns evaluation and removal criteria. There is no general
+efficiency advantage established, and all four product milestones remain open.
 
-PR #456, branch `eval/configured-change-results`, adds separate grading of exact
-submissions, a four-attempt report and frozen Python runners for future replay.
-It distinguishes failed collection, unstarted work and behavior results. Failed
-work remains in observed costs; missing cost and dollar cost remain unknown.
+## Before editing or merging
 
-The packaging pilot is permanently stopped. Hosted run `37768485645` passed both
-platforms. One guarded workstation control passed at 298.58 MiB peak RSS, 9.78 CPU
-seconds and 23.95 seconds elapsed. Plan `6444b05e4c7546a0d4876760a79e525b637d35bbf8f9f32cd79696a3e530095a`
-was committed at `c0980440` before the live call. It binds the exact source,
-runtime, binaries, catalog, public feedback and admission evidence.
+- Follow the [development guide](development.md#working-on-a-shared-desktop): guarded, serial local
+  work; full builds, candidate execution and evidence regeneration on GitHub.
+- Use `fr` for supported inspection and reviewed edits. Treat incorrect or impractical behavior
+  as product evidence; direct edits are appropriate where no suitable operation exists.
+- Use configured OpenCode access and the existing `gh` login. Do not inspect or copy credentials.
+- Keep every commit message to one line of at most 80 characters, with no body, trailers or
+  attribution lines. When authorized, wait for passing CI and squash-merge with an explicit
+  subject and empty body.
+- Retain failed and unstarted evaluation cells. Do not promote partial output to a submission,
+  rewrite old results, raise limits or retry a stopped collection.
 
-The first Kimi ordinary-tool attempt hit the unchanged 20-CPU-second limit at
-63.11 seconds elapsed, with 417.23 MiB peak sampled RSS and 5.18 MiB disk growth.
-Five host calls returned 8,645 bytes, including one accepted source replacement.
-There was no terminal submission, no fr call and no eligible repair to grade.
-The remaining Kimi/fr and both GLM cells are unstarted. `stop.json` forbids resuming.
-See `changes/configured-2026-10-08/README.md` for retained accounting and provenance.
-Hosted run `37770872493` verified the frozen runner and all four outcomes. Its raw
-artifact, grades and reports are retained; offline replay reproduces them exactly.
-
-The next substantial task is to attribute CPU use with representative scripted
-streaming and editing workloads on GitHub. Short controls did not predict live
-CPU demand. Do not raise limits or retry this collection. Any later live comparison
-needs a new frozen design and fresh admission. No efficiency advantage is established.
-
-The task remains admitted with explicit review limitations. The scoped review
-collection at `reviews/2026-10-07-packaging-scoped` completed five of six reviews;
-GLM's policy review exhausted output. The failed review remains failed. The operator
-assessment rejects Kimi's repeated incorrect postrelease claim and uses an independent
-GitHub check of all 324 constructor/setter/call policy combinations. It does not
-establish exhaustive correctness or supply a missing independent model review.
-
-Authentication stays with configured OpenCode and the existing `gh` login. Do not
-inspect, copy or upload credential files. Local work stays serial beneath the guard;
-full builds, candidate execution, larger profiling and full gates stay on GitHub.
-The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones
-open. Production analysis must not recognize this benchmark or encode its repair.
-
-## Completed disclosure and terminal-answer work
-
-PR #440 merged as `8075e69e` after all 21 PR checks passed. Its hosted submission job took
-68 seconds, including both control sets, 24 offline tests and fr authoring of the extracted function.
-Independent artifact replay accepts both valid source reviews and preserves missing, duplicate and
-interrupted submissions as failures. The adapter remains OpenAI-compatible only. No live model calls
-or general efficiency claims follow from these controls. Historical stopped collections stay stopped.
-
-PR #441 repairs a concrete CLI discovery failure.
-A generated fixture with a long file scope and matching declarations makes the released CLI exceed
-its response budget and return no rows. The change shrinks names, source and relationship pages
-within the existing limits. It counts final context metadata and preserves explicit expansion positions.
-The new hosted tests check complete traversal, exact source and relationship reconstruction, UTF-8
-boundaries, and stale-cursor refusal. Full builds and evidence regeneration remain on GitHub.
-
-The index refresh passed in 7m11s, including all ten pagination tests. Its eight samples reproduce
-the pinned baseline and all 195 bindings match. Repository delivery passed in 1m54s; its imported
-bundle passes all 365 behavior cases and all 227 bindings match. The exact-location refresh also
-passed: nine recorded cases, eleven semantic links, zero false claims and 33 matching bindings.
-The roadmap again shows 7 of 18 current technical items; all four milestones remain open.
-
-Hosted evidence: [index and pagination](https://github.com/e6qu/fun-refactor/actions/runs/37424349654),
-[repository delivery](https://github.com/e6qu/fun-refactor/actions/runs/37424358148), and
-[exact locations](https://github.com/e6qu/fun-refactor/actions/runs/37425184269).
-PR #441 CI exposed a Clippy comparison warning and a 17-byte skill-guide overrun. Both are fixed
-without changing limits. The guide is 4,025 bytes. The focused hosted gate now checks Clippy and
-skill budgets before pagination and index replay; it passed in 9m18s on `4c09e07a`.
-Replacement evidence under `2026-10-06-explore-ci-*` passes independent audit with the same outcomes
-and current bindings. See [lint and index validation](https://github.com/e6qu/fun-refactor/actions/runs/37435891865)
-and [repository and location validation](https://github.com/e6qu/fun-refactor/actions/runs/37435904795).
-All 21 final PR checks passed. PR #440 release, Pages and deep validation all passed.
-
-## Completed recipe audit repair
-
-The user merged release PR #434 at `eae73262` (0.52.0). PR #435's 20 PR checks passed,
-but its post-merge full-workspace recipe replay timed out. The current branch removes
-unnecessary indexing for unchanged recipe steps and repairs single-file preview paths
-found while dogfooding. Full builds, Rust tests and evidence refreshes run on GitHub.
-Repository-delivery, recovery and index evidence has been refreshed and verified against current
-source bindings. The complete [deep run](https://github.com/e6qu/fun-refactor/actions/runs/37301872179)
-passed all 17 jobs. Its recipe test took 303.91 seconds and the whole job took 6m52s.
-The unmodified rerun took 777.19 seconds and 14m47s respectively. These are two runner samples
-with identical coverage and deadlines. The repair is merged; submission controls are the active work.
-
-GitHub [37301881349](https://github.com/e6qu/fun-refactor/actions/runs/37301881349) completed
-both scripted repository tasks with 365 behavior cases on `c272d5fb`. The imported bundle
-matches 227 source bindings. Recovery run
-[37304200800](https://github.com/e6qu/fun-refactor/actions/runs/37304200800) passed on
-`ededba2a`, after updating its source-bound runner reference. Its 18 bindings match,
-with 430 handled-failure and 430 process-exit boundaries and 224 model cases.
-The roadmap retains seven demonstrated items; no broader claim follows from this refresh.
-Index run [37303849906](https://github.com/e6qu/fun-refactor/actions/runs/37303849906) passed
-in 8 minutes 23 seconds. Its eight samples reproduce the pinned baseline's complete symbol
-and reference answers; all 195 source bindings match the current tree.
-
-Four other active reports also bound `src/cli.rs`. GitHub refreshed
-[guided edit accounting](https://github.com/e6qu/fun-refactor/actions/runs/37310459036),
-[intent edit accounting](https://github.com/e6qu/fun-refactor/actions/runs/37310483336),
-[seven completion workflows](https://github.com/e6qu/fun-refactor/actions/runs/37310763209), and
-[retained proof delivery](https://github.com/e6qu/fun-refactor/actions/runs/37310785657)
-against `1acf1294`. All passed, and their 54 recorded source bindings match the current tree.
-Active tests now select the new reports; historical reports remain unchanged. These scripted
-checks do not establish a live-agent efficiency advantage. The [CI guide](ci.md) lists all seven
-refresh groups and explains the recovery runner's own source binding.
-
-The first PR gate also exposed a race in the fake-provider budget test. It now holds
-the winning reservation until the competing admission is refused. All 14 gateway tests
-and 20 repeated contention cases passed locally under the guard. The single-file patch
-regression has its own target so the historical author runner stays byte-identical.
-
-The goal is a general CLI that helps agents understand unfamiliar code, make changes and fixes,
-and write and check useful proofs with less total effort and context. Start with the
-[product review](product-review.md) and the plain-language [plan](../PLAN.md).
-
-PR #425 retained source-based candidate reviews and added failed-attempt accounting for native
-source reads. Its 20 current CI checks passed before squash merge at `b1525faf`.
-The [source-reading report](native-read-outcomes.md) has two passes and four timeouts, with no
-successful ordinary/fr pair. The [code-change report](native-change-outcomes.md) has ten behavior
-passes and two timeouts; none used fr. Complete context and billing remain unknown.
-Two [source-based review attempts](../tests/agent-eval/opencode/reviews/2026-10-04-native/README.md)
-timed out after 17 tool calls without findings. Do not restart their four stopped cells or raise limits.
-
-PR #427 merged at `3c1d2008` after all 20 CI checks passed. It removes repeated output during
-`project explore` pagination. Source follow-ups omit relationships; relationship follow-ups omit
-source. Native schema 5 exposes these views; older schemas retain their original behavior.
-Its post-merge deep validation passed.
-Release creation initially failed after main advanced past the release commit. A temporary branch
-at `38413ce6` restored an existing ref for that commit. Retrying run `37190700691` created the
-`fun-refactor-v0.49.2` tag at that exact revision; cleanup then removed the recovery branch.
-All release artifact builds passed as well.
-
-PR #428 merged at `feadf1cb` after all 20 checks passed. Its post-merge deep audit also passed.
-It added [narrow source-packet reviews](../tests/agent-eval/opencode/reviews/2026-10-04-packets/README.md).
-One Kimi review completed; two following calls timed out and the remaining three were stopped.
-Do not resume this collection or raise its limits. GLM submitted before timing out, but its session
-audit did not finish, so it remains failed. The completed finding targets recursive interpolation
-accepted by the old dotenv grader. GitHub job `111408265330` verified the same wrong repair passes
-the old grader and fails only the new case. The reference passes. The collection retains both grades
-in `counterexample.json`; full task review and agent-efficiency comparisons remain open.
-
-PR #430 merged at `db850bc3` after all 20 final checks passed. It compresses eleven historical
-flow-cache reports, saving 366.6 MiB in an
-expanded checkout. The [restoration guide](../tests/agent-eval/EVIDENCE-ARCHIVES.md) records exact
-hashes and original Git blob IDs. The latest acceptance report and its source-bound evaluator stay
-unchanged. The conversion preserves all samples and failures; no roadmap acceptance item closes.
-Release PR #429 merged at `ced10cb8`; its post-merge release workflow passed. Its earlier PR runs
-contained no jobs and supplied no test evidence. PR #430's post-merge release workflow passed;
-deep validation and Pages also passed.
-
-The current [reference reviews](../tests/agent-eval/opencode/reviews/2026-10-05-references/README.md)
-were frozen at `6d3b5c79` with proposed reference source explicitly disclosed. All six calls finished:
-three completed Kimi reviews and three GLM timeouts. No retries or larger limits were used. Two
-reviews found no scoped issue. Kimi's packaging finding was wrong about exclusive post-release
-comparison; exact source and a retained GitHub control artifact refute it. Keep the original finding
-and separate rejection. The graders and references are unchanged; full task acceptance remains open.
-
-Kimi's only fr request was refused because behavior mode lacked a handle. New native schema 6,
-selected with `native-rehearsal.py freeze --recovery-hints`, returns a names query after that refusal.
-It preserves selectors and performs no automatic extra call. Schemas 1–5 and historical reports
-remain unchanged. Scripted recovery and replay pass; no live recovery benefit has been measured.
-PR #431 also lets native/static jobs queue independently of the standalone Zig cache check.
-Each job retains its own pinned, checksum-verified toolchain installation and existing deadline.
-The [CI guide](ci.md) records the observed queue delay and cold-cache tradeoff; no test is removed.
-
-PR #431 merged at `0fd64365` after all 20 checks passed. Its post-merge deep validation, release and
-Pages workflows passed. The user merged release PR #432 at `3a66e140`; this branch incorporates it.
-Its original PR workflows had no jobs, so they provide no test evidence. Post-merge checks are tracked
-separately from that empty run.
-
-The [boundary reviews](../tests/agent-eval/opencode/reviews/2026-10-05-boundaries/README.md) were frozen
-at `2ef0d354` with native schema 6. Both dotenv calls timed out without submissions, stopping the four
-remaining cells. Never resume this collection. There were 16 calls and 44,357 tool-result bytes;
-complete usage and billing remain unknown. The lone fr call used a nonexistent path; it did not
-exercise handle recovery. No independent task-review gap closes.
-
-`native_costs.read_identity_reuse` replays read-only traces and adds a separate exact-file overlap
-audit. `source_reviews.source_reuse` binds it to a frozen collection and retains unstarted cells.
-It detects 12,310 bytes repeated across paths beyond existing counters in the two failed attempts.
-Old reports and counters remain unchanged. File identities do not imply equivalent module behavior.
-PR #433 merged at `61f0ec9a` after all 20 checks passed. PR #432's post-merge workflows also passed.
-
-The [single-assertion reviews](../tests/agent-eval/opencode/reviews/2026-10-05-assertions/README.md)
-were frozen at `c938151b` before calls. Three reviews completed: both models reviewed two-object
-identity and Kimi reviewed one rejected directory. All found no scoped contradiction. GLM's next
-response omitted the submission tool; Kimi's following attempt submitted four times. Those two
-failures stopped the final GLM cell. Never resume this collection or promote its readable failed
-responses to completion. All attempts finished within budget; none called fr.
-
-`source_packets.compare` records selected before/after file hashes, lengths and executable flags.
-`check_comparison` recomputes them from frozen bytes, rejecting forged or stale metadata. This adds
-context to new packets without changing historical reports or asserting equivalent path behavior.
-The [requirement review table](candidate-review-status.md) names the remaining gaps. Next address
-reliable native submission with scripted checks before allocating further frozen model calls.
-
-GitHub run [37163442730](https://github.com/e6qu/fun-refactor/actions/runs/37163442730) refreshed
-the location and repository evidence against `20688a31`. It checked 11 semantic links with zero
-false claims and 365 repository behavior cases. The imported bundles match 259 current source
-bindings; the roadmap again has seven demonstrated items, with all four milestones open.
-Run [37166142952](https://github.com/e6qu/fun-refactor/actions/runs/37166142952) passed all seven
-pagination tests and refreshed index evidence against `7517d5d6`. Its eight symbol/reference
-comparisons match the pinned baseline, and the imported result matches 194 current source bindings.
-
-Next finish independent task and grader review, then compare public edits
-and test feedback on unfamiliar tasks. Keep GitHub container grading separate from local OpenCode
-rehearsals. Retain every failure and complete parent/child costs before claiming an efficiency gain.
-The [study host](agent-study.md) supports constrained commands, provider reservations, private
-grading and bounded child work. Full worker/context costs and source-connected proof grading remain
-open. Its fake-provider tests do not count as live trials; the older Codex CLI cannot enforce the
-pilot dollar cap. The [product review](product-review.md) records the evidence and removal criteria.
-
-The representative guided delivery milestone is complete for its pinned acceptance corpus.
-Accepted live trials cover upstream read/trace, multi-file Rust rename and body edits, frontend
-changes, application migration and Lean proof authoring. Two matched cohorts repeat one scalar
-source-writing task. The [evaluation guide](evaluations.md) records each result and its limits.
-
-The active direction is agent analysis and task planning. The [architecture review](agent-analysis-review.md)
-assesses the baseline at `c22ba827`. The [roadmap](../PLAN.md) defines pending outcomes and acceptance:
-
-1. Exact occurrence locations, analysis explanations and task investigation.
-2. Control flow, interprocedural value summaries and rule-based sources/sinks.
-3. Dependency-aware reuse and resumable task plans.
-4. Task-complete changes, translation and explicit proof obligations.
-
-Exact declaration, relationship and flow occurrences now share typed source locations.
-Python scalar summaries cover recursion, ordered expressions, explicit call binding,
-literal defaults, regular packages, re-exports, module aliases and single-root namespaces.
-Dependency-bound plans support interruption, invalidation, fresh target correspondence
-and reviewed checked delivery. The roadmap retains the remaining milestone gates.
-
-Use concrete tasks to expose missing reusable language behavior. Validate that behavior through
-independent examples, explicit unsupported cases and unfamiliar projects. Preserve bounded reads,
-verified saved data and edit review. Agent hypotheses remain distinct from tested outcomes.
-
-Application IR expansion follows concrete task requirements. The four HTTP adapters read and write
-their documented validation subsets. Selected FastAPI middleware/providers/service calls and
-React/Next state/events have explicit contracts. Configured middleware, external effects and
-broader validation behavior still need models and independent oracles.
-
-## Recent completion
-
-PR #392 added single-root namespace dependencies and partitioned the complete PR test
-gate across native and SDK runners. Every successful shard retains its inventory and
-capability log; the final gate checks complete assignment and combined coverage.
-PR #393 completed ordered scalar assignments and exact target origins, with all 276 native
-targets and 916 SDK cases assigned exactly once and 311/311 capabilities covered at that baseline.
-
-PR #394 added the [roadmap status](roadmap-status.md) and fixed regression scenarios for boltons
-and more-itertools. Those scripts exercise prescribed changes, interruption recovery, checks and
-patch replay; they do not measure independent diagnosis or token savings. At that baseline, CI
-covered 277 native targets, 916 SDK cases and 311 capabilities. Seven of 18 technical acceptance
-items are demonstrated for their stated cases; eleven items and all four milestones remain open.
-Keep the generated report current with `tools/roadmap-status.py --check`.
-
-## Validation
-
-The complete gate definitions are below. Run these workloads on GitHub for this workstation:
-
-```sh
-PATH="$PWD/sdk/python/.venv/bin:$PATH" tools/check.sh default
-tools/check.sh wasm
-tools/check.sh deep
-```
-
-Rust test and Lean worker defaults are one. On the shared workstation, run local `fr`
-commands and lightweight checks through `/Users/zardoz/.codex/tools/fr-local-guard.py`.
-Keep full builds, complete gates and evidence regeneration on GitHub. The guard preserves
-64 GiB free disk, limits target data to 2 GiB and sampled workload RSS to 1 GiB, and
-stops work after 180 seconds. Move refused workloads to CI without raising these limits.
-See [CI latency and coverage](ci.md) and the [development guide](development.md).
-
-For repository changes, dogfood `fr`, recipes and reviewed history whenever an admitted operation
-exists. Treat an incorrect preview, refusal or impractical flow as product evidence and fix its root
-cause in the same outcome. Record direct editing only when no suitable `fr` operation exists.
-
-## Durable boundaries
-
-- Generated formalization covers admitted typed pure declarations and structural snapshots.
-- Parsing, extraction, lowering, hashing, Git, filesystems and runtime behavior remain trusted or
-  separately tested unless a proof record states a narrower correspondence claim.
-- Application migration covers the documented reader/writer subsets. Static facts alone cannot
-  establish arbitrary middleware, external service behavior or runtime effects.
-- Accepted live trials establish their pinned outcomes. General bug diagnosis, feature discovery,
-  security analysis and task resumption still need dedicated acceptance cases.
+Use `fr audit` and `fr capabilities` for live support boundaries. Parsing does not establish
+arbitrary behavior; model theorems do not prove the host filesystem or unrelated runtime effects.

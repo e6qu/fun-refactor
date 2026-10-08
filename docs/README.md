@@ -4,6 +4,10 @@ Start with the [project README](../README.md) to install `fr` and run a first co
 to choose one authoritative guide for the task; detailed contracts link to related material instead
 of repeating it.
 
+For ongoing repository work, read the [plan](../PLAN.md) for priorities, the
+[handoff](continuity.md) for the active collection, and the
+[development guide](development.md#working-on-a-shared-desktop) for workstation limits.
+
 ## Use `fr`
 
 - [Tutorial](../TUTORIAL.md): complete a first inspected, reviewed and reversible change.
@@ -78,6 +82,8 @@ stages.
 - [Development](development.md): build, test, add languages and release.
 - [CI latency and coverage](ci.md): test shards, complete coverage and runner time limits.
 - [Roadmap](../PLAN.md): unfinished product outcomes and acceptance gates.
+- [Technical status](roadmap-status.md): what the recorded acceptance tests establish and what remains.
+- [Product review](product-review.md): efficiency criteria, scope and removal decisions.
 - [Agent analysis review](agent-analysis-review.md): baseline evidence, analysis gaps and planning architecture.
 - [Known defects](../BUGS.md): actionable defects and durable analysis boundaries.
 - [Continuity](continuity.md): current contributor handoff.
@@ -90,11 +96,13 @@ describe the current product contract.
 [Investigation evidence and resumable plans](agent-investigations.md) describes exact occurrences,
 Python scalar flow, dependency invalidation and checked investigation delivery.
 
-Start with the [product review](product-review.md) for the original goal, existing agent-cost
-results, candidates for simplification and the next evaluation. The [plan](../PLAN.md) gives the
-work sequence. The [roadmap status](roadmap-status.md) explains what each recorded test establishes
-and what remains; its [JSON report](roadmap-status.json) supports automated checks.
-The [independent agent study guide](agent-study.md) explains frozen task plans, parent/child accounting
-and failure-preserving cost reports. It also lists the execution integrations still needed.
-The [OpenCode rehearsal](opencode-rehearsal.md) covers small guarded Kimi/GLM comparisons,
-retained CLI accounting and the limits of those local results.
+## Evaluate agent use
+
+- [OpenCode tools](opencode-native-tools.md): configured collection, resource admission and frozen replay.
+- [Candidate review status](candidate-review-status.md): admitted tasks, failed reviews and remaining gaps.
+- [Independent study](agent-study.md): task plans, parent/child accounting and failure-preserving reports.
+- [Evaluation evidence](evaluations.md): measured outcomes and historical limits.
+- [Evidence restoration](../tests/agent-eval/EVIDENCE-ARCHIVES.md): recover archived results exactly.
+
+Current priorities belong in the plan. Commands belong in the relevant guide. Detailed run histories
+and immutable results belong with their evidence; do not copy them into the contributor handoff.
