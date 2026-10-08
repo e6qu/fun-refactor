@@ -21,10 +21,11 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #451 merged as `f14f8e6f`. All 23 current PR checks passed; executing jobs stayed
-under ten minutes, while runner queues delayed completion. Local main is refreshed.
-Release and Pages passed for the merge; deep validation `37607221053` is pending.
-The current branch is `eval/scoped-review-coverage`.
+PR #453 merged as `410482ce` after all final checks passed. Two SDK jobs needed a
+retry because GitHub could not acquire runners; neither failed job had executed a
+step. The earlier guide-size and excerpt-anchor failures are fixed. Local main is
+refreshed, including release v0.55.0. The branch is `eval/configured-change-pilot`.
+The previous merge's deep validation `37607221053` passed.
 
 The approved deliverable is the four-attempt packaging change pilot described in
 [PLAN.md](../PLAN.md). Resource admission is established with the small per-process
@@ -50,11 +51,41 @@ no rows; two ordinary searches and two ordinary reads followed. No useful fr sou
 was delivered. The public exploration guide now explains bare declaration names.
 This is observed attempted use, without an efficiency claim.
 
-Hosted workflow `37609277041` is checking the protocol and an independent policy
-probe: 324 constructor/setter/call combinations, plus byte identity outside the
-changed filter. Candidate code runs only inside the pinned GitHub grader. Retain
-that result and resolve the recorded limitations before explicit pilot admission.
-The four code-change attempts remain unstarted.
+Hosted workflow `37609277041` passed the protocol and all 324 policy combinations.
+`policy-verification/` retains its grader, result and artifact provenance; the raw
+archive matched GitHub's SHA-256 digest. `admission.json` assesses all eleven areas
+and admits the task for one bounded pilot. The failed review remains failed.
+
+The next runner uses terminal structured summaries, frozen configured profiles and
+the existing edit machine. Offline tests cover exact submissions, forged evidence,
+stale edits, resource stops and settings. `terminal-changes.yml` will exercise both
+models and both arms through the pinned real client on Linux and macOS without paid
+model calls. Retain those results and run one guarded workstation control before
+freezing the four live attempts. Candidate execution stays on GitHub; all four live
+attempts remain unstarted.
+
+The first adapter controls passed all five Linux cases, but macOS admission failed:
+the ordinary control peaked at 571.14 MiB and the fr control at 739.92 MiB. Both
+completed below the 768 MiB cap, but the fr case exceeded the unchanged 640 MiB
+admission threshold. Three macOS cases remain unstarted. Original artifacts and
+offline replay live in `changes/2026-10-08-memory`. Hosted run `37744454024` adds
+process attribution; its Linux controls passed and macOS stayed queued. New plans
+freeze Bun's low-memory option; historical plans keep their original settings.
+Linux run `37745425901` passed with this option, without establishing a reduction.
+GitHub is retiring macOS 14, so active workflows now use macOS 15. Hosted run
+`37746127031` failed that combination: 762.27 MiB aggregate, with OpenCode using
+646.28 MiB at the peak. Its archive and matching process profile replay offline.
+Run `37747359011` passed all ten controls with a frozen 256 MiB GC sizing hint in
+addition to the option. Peak aggregate RSS was 600.47 MiB on macOS 15 and 488.15
+MiB on Linux; sampled CPU stayed below 20 seconds. Its artifacts and profiles
+replay offline. No limits increased. One guarded workstation control remains
+required before freezing any live pilot; the four attempts are still unstarted.
+The final PR repeat `37748183684` failed at 686.27 MiB, so GC-only admission did
+not reproduce. Its raw archive remains retained. Run `37748637086` additionally
+disables client JIT compilation and passed all ten hosted controls: macOS peaked
+at 477.61 MiB and Linux at 410.68 MiB. CPU stayed within the unchanged 20-second
+cap. Its artifacts replay offline; final-head CI must repeat the result before
+merge. Workstation admission and all four live attempts remain pending.
 
 Historical memory and review failures stay stopped. The catalog and low/max
 transport evidence replay offline in `memory/2026-10-07-providers` and

@@ -543,6 +543,38 @@ never as retrieved source. No live-agent improvement has been measured for schem
 
 ## Make changes and grade the submitted code separately
 
+`tools/terminal-changes.py` adds configured-client trials with explicit reasoning
+variants, at most 2,048 output tokens and 32,768 context tokens, a frozen small
+provider catalog, and exact client/fr executable identities. It uses the existing
+ordinary and optional fr editing tools, then ends through `StructuredOutput` with
+`{"answer":{"summary":"changes and uncertainties"}}`. It exposes no legacy
+submission tool or during-attempt test execution. OpenCode resolves its credentials.
+
+A design lists `tasks`, `models`, `catalog` and `provenance`. Each task has `id`,
+`requirement`, `public_feedback`, a `source` directory and a `grader` JSON path;
+paths resolve relative to the design file. Both arms receive identical public
+feedback. The first model tries ordinary tools first; the second tries fr first.
+This fixed counterbalance is a pilot allocation, not randomized task selection.
+
+```sh
+python3 tools/terminal-changes.py freeze design.json frozen --fr /path/to/fr --opencode /path/to/opencode
+python3 tools/terminal-changes.py collect frozen CELL attempts --fr /path/to/fr --opencode /path/to/opencode --confirm-agent-spend
+python3 tools/terminal-changes.py report frozen attempts
+```
+
+Use the local resource guard for workstation calls. Capture keeps the existing
+120-second, 20-CPU-second, 768-MiB RSS and 16-MiB disk-growth limits. Collection
+refuses retries, gaps, work after a resource stop, and a third attempt after two
+consecutive failures. Replay validates every tool result and reconstructs submitted
+files; failures retain their raw evidence and observed client usage. Reported usage
+does not establish actual billing or complete context accounting.
+
+`tools/check-terminal-changes.py` exercises both configured provider profiles and
+both arms with the pinned client and a scripted loopback provider on GitHub. The fr
+controls preview and apply a body edit; a missing terminal answer remains failed
+even after an edit. These controls make no paid model calls and execute no candidate
+code. Live pilot collection still requires hosted and workstation resource admission.
+
 `tools/native-changes.py` collects native OpenCode edits without executing candidate code locally.
 Both arms have list, search, bounded reads and exact replacements. The `fr` arm also has compact
 public discovery. An edit must name an existing UTF-8 file, supply its current whole-file hash,

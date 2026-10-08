@@ -1,0 +1,25 @@
+{
+  "run": "https://github.com/e6qu/fun-refactor/actions/runs/37747359011",
+  "head_sha": "5b72d3ccadde3d1d24adf977e8a374ff487aa30a",
+  "artifacts": [
+    {
+      "platform": "macos-15",
+      "artifact_id": 11536776221,
+      "archive": "gc-macos-15.zip",
+      "sha256": "01546949ad7f01d7e165d0e8ac6d2b54ade5cb85515fbbe790ccbd8b4366eb6f"
+    },
+    {
+      "platform": "ubuntu-latest",
+      "artifact_id": 11537035221,
+      "archive": "gc-ubuntu-latest.zip",
+      "sha256": "8ae96256ef1c87ecb6687cba297eb347518dbfe3a891eec26ac04b42066ac897"
+    }
+  ],
+  "client_environment": {
+    "BUN_OPTIONS": "--smol",
+    "BUN_JSC_forceRAMSize": "268435456"
+  },
+  "hosted_controls_admitted": true,
+  "workstation_admitted": false,
+  "scope": "Five scripted controls per platform; no live model calls or candidate execution."
+}
