@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.56.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.55.0...fun-refactor-v0.56.0) (2026-10-08)
+
+
+### Features
+
+* add configured code-change trials with bounded client resources ([3b633a9](https://github.com/e6qu/fun-refactor/commit/3b633a9c00e505d0578faf35f95168cf1abfabac))
+* track scoped review coverage and verify packaging policies ([#453](https://github.com/e6qu/fun-refactor/issues/453)) ([410482c](https://github.com/e6qu/fun-refactor/commit/410482ce4702093061968f8578af81b6ff83210f))
+
 ## [0.55.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.54.3...fun-refactor-v0.55.0) (2026-10-07)
 
 
