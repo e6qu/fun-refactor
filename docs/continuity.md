@@ -64,6 +64,13 @@ model calls. Retain those results and run one guarded workstation control before
 freezing the four live attempts. Candidate execution stays on GitHub; all four live
 attempts remain unstarted.
 
+The first adapter controls passed all five Linux cases, but macOS admission failed:
+the ordinary control peaked at 571.14 MiB and the fr control at 739.92 MiB. Both
+completed below the 768 MiB cap, but the fr case exceeded the unchanged 640 MiB
+admission threshold. Three macOS cases remain unstarted. Original artifacts and
+offline replay live in `changes/2026-10-08-memory`. Hosted run `37744454024` adds
+process attribution; local pilot calls remain blocked pending a measured remedy.
+
 Historical memory and review failures stay stopped. The catalog and low/max
 transport evidence replay offline in `memory/2026-10-07-providers` and
 `reasoning/2026-10-07-low`. The whole-task output failures and rejected partial

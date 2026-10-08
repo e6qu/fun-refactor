@@ -32,7 +32,7 @@ def implementation():
             "terminal-changes.py": source_reviews.identity(Path(__file__).parents[1] / "terminal-changes.py")}
 
 
-def design(tasks, models, identities, catalog, provenance):
+def design(tasks, models, identities, catalog, provenance, *, client_environment=None):
     require(isinstance(models, list) and 1 <= len(models) <= 4, "invalid model count")
     for model in models:
         review.profile(model)
@@ -67,6 +67,9 @@ def design(tasks, models, identities, catalog, provenance):
                       for t in tasks for i in range(len(models)) for arm in (ARMS if i % 2 == 0 else ARMS[::-1])],
             "retries": 0, "stop_after_consecutive_failures": 2, "candidate_execution": False,
             "provenance": provenance, **identities}
+    if client_environment is not None:
+        require(client_environment == {"BUN_OPTIONS": "--smol"}, "unsupported client environment")
+        plan["client_environment"] = copy.deepcopy(client_environment)
     require(len(encode(plan)) <= review.MAX_BYTES and len(encode(snapshots)) <= 8 * review.MAX_BYTES,
             "frozen change inputs exceed budget")
     return {"plan": copy.deepcopy(plan), "sha256": digest(plan)}, copy.deepcopy(snapshots)
@@ -74,7 +77,8 @@ def design(tasks, models, identities, catalog, provenance):
 
 def freeze(tasks, models, binary, opencode, catalog, provenance):
     return design(tasks, models, {"runtime": implementation(), "binary_sha256": source_reviews.identity(binary),
-        "opencode_sha256": source_reviews.identity(opencode)}, catalog, provenance)
+        "opencode_sha256": source_reviews.identity(opencode)}, catalog, provenance,
+        client_environment={"BUN_OPTIONS": "--smol"})
 
 
 def checked(frozen, snapshots, *, execution=False):
@@ -83,7 +87,7 @@ def checked(frozen, snapshots, *, execution=False):
     require(set(snapshots) == {t["id"] for t in plan["tasks"]}, "snapshot tasks differ")
     tasks = [{k: v for k, v in t.items() if k != "files_sha256"} | {"files": snapshots[t["id"]]} for t in plan["tasks"]]
     expected, _ = design(tasks, plan["models"], {k: plan[k] for k in ("runtime", "binary_sha256", "opencode_sha256")},
-                         plan["catalog"], plan["provenance"])
+                         plan["catalog"], plan["provenance"], client_environment=plan.get("client_environment"))
     require(expected == frozen, "change protocol or source differs")
     if execution:
         require(plan["runtime"] == implementation(), "change runtime differs; freeze again")

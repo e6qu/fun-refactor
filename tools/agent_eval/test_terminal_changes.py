@@ -63,6 +63,26 @@ def capture(root, plan, snapshots):
 
 
 class Changes(unittest.TestCase):
+    def test_low_memory_option_is_frozen_and_cannot_be_replaced(self):
+        plan, snapshots = frozen()
+        self.assertEqual(plan["plan"]["client_environment"], {"BUN_OPTIONS": "--smol"})
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env = runner.environment(root, plan["plan"]["models"][0], root / "config.json", {},
+                                     plan["plan"]["client_environment"])
+            self.assertEqual(env["BUN_OPTIONS"], "--smol")
+            self.assertEqual(env["RAYON_NUM_THREADS"], "1")
+        for options in ({"BUN_OPTIONS": ""}, {"BUN_OPTIONS": "--smol", "EXTRA": "unplanned"}):
+            altered = copy.deepcopy(plan)
+            altered["plan"]["client_environment"] = options
+            altered["sha256"] = digest(altered["plan"])
+            with self.assertRaisesRegex(ValueError, "unsupported client environment"):
+                changes.checked(altered, snapshots)
+        legacy = copy.deepcopy(plan)
+        legacy["plan"].pop("client_environment")
+        legacy["sha256"] = digest(legacy["plan"])
+        self.assertNotIn("client_environment", changes.checked(legacy, snapshots))
+
     def test_two_failed_captures_block_later_work_and_keep_observed_usage(self):
         first, _ = frozen()
         models = copy.deepcopy(first["plan"]["models"])

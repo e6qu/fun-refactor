@@ -11,7 +11,7 @@ from . import terminal_reviews, terminal_transport
 from .study import encode, require
 
 
-def environment(root, model, config, catalog):
+def environment(root, model, config, catalog, client_environment=None):
     env = reviews.configured_environment(root, model, config)
     settings = json.loads(env["OPENCODE_CONFIG_CONTENT"])
     settings["agent"]["fr-submission"]["prompt"] = "Make the requested code change using the permitted tools, then submit a structured summary."
@@ -20,6 +20,9 @@ def environment(root, model, config, catalog):
     path.write_bytes(encode(catalog))
     env.update(OPENCODE_CONFIG_CONTENT=json.dumps(settings), OPENCODE_MODELS_PATH=str(path),
                BUN_OPTIONS="", RAYON_NUM_THREADS="1")
+    if client_environment is not None:
+        require(client_environment == {"BUN_OPTIONS": "--smol"}, "unsupported client environment")
+        env.update(client_environment)
     return env
 
 
@@ -35,7 +38,7 @@ def capture(frozen, snapshots, cell, root, binary, client):
         config = work / "server.json"
         config.write_bytes(encode({"files": snapshots[cell["task"]], "arm": cell["arm"],
                                   "binary": str(binary), "tools_schema_version": 2}))
-        env = environment(root, plan["models"][cell["model"]], config, plan["catalog"])
+        env = environment(root, plan["models"][cell["model"]], config, plan["catalog"], plan.get("client_environment"))
         captured = terminal_transport.capture(client, root, env, changes.request(plan, task, cell))
         (root / "identity.json").write_bytes(encode({"schema": changes.SCHEMA, "plan_sha256": frozen["sha256"],
             "cell": cell, "opencode_version": captured["opencode_version"],

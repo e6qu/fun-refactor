@@ -47,6 +47,7 @@ jobs:
       - name: Check task admission and change replay offline
         run: |
           python3 -B tools/test-packaging-admission.py
+          python3 -B tools/test-change-memory.py
           python3 -B tools/test-scoped-reviews.py
           python3 -B tools/agent_eval/test_terminal_changes.py
           python3 -B tools/agent_eval/test_native_changes.py
