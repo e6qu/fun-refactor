@@ -9,6 +9,7 @@ on:
       - tools/agent_eval/**
       - tools/terminal-change-results.py
       - tools/terminal-change-snapshot.py
+      - tools/test-configured-changes.py
       - tests/agent-eval/opencode/changes/configured-*/**
       - tests/agent-eval/opencode/candidates/**
 
@@ -30,7 +31,9 @@ jobs:
         with:
           python-version: '3.14'
       - name: Check independent replay and grade rejection
-        run: python3 -B tools/agent_eval/test_terminal_change_results.py
+        run: |
+          python3 -B tools/agent_eval/test_terminal_change_results.py
+          python3 -B tools/test-configured-changes.py
       - name: Verify original source and grader controls
         env:
           GH_TOKEN: ${{ github.token }}

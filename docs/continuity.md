@@ -25,89 +25,43 @@ PR #454 merged as `3b633a9c` after all final checks passed. Its final configured
 controls passed on Linux and macOS 15; macOS peaked at 458.59 MiB. Disabling client
 JIT preserved the existing limits and reproduced the required memory headroom.
 The loopback server also avoids a reverse-DNS stall. Historical failed memory
-profiles remain in `changes/2026-10-08-memory`.
+profiles remain in `changes/2026-10-08-memory`. Main's deep validation is green.
 
-PR #456, branch `eval/configured-change-results`, implements separate grading of
-exact submissions and a four-attempt report. The report keeps failed work and unknown
-costs visible. Frozen Python runners preserve replay after future implementation
-changes. Workstation admission checks both hosted platforms, runtime hashes and
-exact executable identities before allowing one scripted local control.
+PR #456, branch `eval/configured-change-results`, adds separate grading of exact
+submissions, a four-attempt report and frozen Python runners for future replay.
+It distinguishes failed collection, unstarted work and behavior results. Failed
+work remains in observed costs; missing cost and dollar cost remain unknown.
 
-Current hosted controls are queued. No live pilot call has started. The collection
-driver and public baseline are in `changes/configured-2026-10-08`; the driver requires
-committed frozen inputs and refuses retries or continuation after its stop rule.
+The packaging pilot is permanently stopped. Hosted run `37768485645` passed both
+platforms. One guarded workstation control passed at 298.58 MiB peak RSS, 9.78 CPU
+seconds and 23.95 seconds elapsed. Plan `6444b05e4c7546a0d4876760a79e525b637d35bbf8f9f32cd79696a3e530095a`
+was committed at `c0980440` before the live call. It binds the exact source,
+runtime, binaries, catalog, public feedback and admission evidence.
 
-The approved deliverable is the four-attempt packaging change pilot described in
-[PLAN.md](../PLAN.md). Resource admission is established with the small per-process
-catalog and pinned OpenCode client. Authentication remains with OpenCode and the
-existing `gh` login; do not inspect, copy or upload credential files.
+The first Kimi ordinary-tool attempt hit the unchanged 20-CPU-second limit at
+63.11 seconds elapsed, with 417.23 MiB peak sampled RSS and 5.18 MiB disk growth.
+Five host calls returned 8,645 bytes, including one accepted source replacement.
+There was no terminal submission, no fr call and no eligible repair to grade.
+The remaining Kimi/fr and both GLM cells are unstarted. `stop.json` forbids resuming.
+See `changes/configured-2026-10-08/README.md` for retained accounting and provenance.
 
-The scoped collection in `reviews/2026-10-07-packaging-scoped` was frozen at
-`8b42548e` before calls. It assigns eleven areas to three questions and two models.
-Five reviews completed, one failed, and no cell hit a resource limit. Peaks were
-442–576 MiB. GLM's policy answer used 2,046 reasoning tokens and two other output
-tokens, exhausting the unchanged 2,048-token allowance. All six cells are retained,
-and `stop.json` permanently closes the collection.
+The next substantial task is to attribute CPU use with representative scripted
+streaming and editing workloads on GitHub. Short controls did not predict live
+CPU demand. Do not raise limits or retry this collection. Any later live comparison
+needs a new frozen design and fresh admission. No efficiency advantage is established.
 
-The generic coverage reporter shows seven areas with both model submissions.
-All eleven have at least one submission. Findings, limitations, failures and missing
-submissions remain visible; the report never infers task acceptance.
-Kimi's object/API review repeated the incorrect postrelease claim outside its scope.
-`assessment.json` rejects it against identical source and previously retained GitHub
-grading, while preserving the original completed answer and the failed policy review.
+The task remains admitted with explicit review limitations. The scoped review
+collection at `reviews/2026-10-07-packaging-scoped` completed five of six reviews;
+GLM's policy review exhausted output. The failed review remains failed. The operator
+assessment rejects Kimi's repeated incorrect postrelease claim and uses an independent
+GitHub check of all 324 constructor/setter/call policy combinations. It does not
+establish exhaustive correctness or supply a missing independent model review.
 
-Kimi made one fr call during policy review. Exact `Specifier.contains` returned
-no rows; two ordinary searches and two ordinary reads followed. No useful fr source
-was delivered. The public exploration guide now explains bare declaration names.
-This is observed attempted use, without an efficiency claim.
-
-Hosted workflow `37609277041` passed the protocol and all 324 policy combinations.
-`policy-verification/` retains its grader, result and artifact provenance; the raw
-archive matched GitHub's SHA-256 digest. `admission.json` assesses all eleven areas
-and admits the task for one bounded pilot. The failed review remains failed.
-
-The next runner uses terminal structured summaries, frozen configured profiles and
-the existing edit machine. Offline tests cover exact submissions, forged evidence,
-stale edits, resource stops and settings. `terminal-changes.yml` will exercise both
-models and both arms through the pinned real client on Linux and macOS without paid
-model calls. Retain those results and run one guarded workstation control before
-freezing the four live attempts. Candidate execution stays on GitHub; all four live
-attempts remain unstarted.
-
-The first adapter controls passed all five Linux cases, but macOS admission failed:
-the ordinary control peaked at 571.14 MiB and the fr control at 739.92 MiB. Both
-completed below the 768 MiB cap, but the fr case exceeded the unchanged 640 MiB
-admission threshold. Three macOS cases remain unstarted. Original artifacts and
-offline replay live in `changes/2026-10-08-memory`. Hosted run `37744454024` adds
-process attribution; its Linux controls passed and macOS stayed queued. New plans
-freeze Bun's low-memory option; historical plans keep their original settings.
-Linux run `37745425901` passed with this option, without establishing a reduction.
-GitHub is retiring macOS 14, so active workflows now use macOS 15. Hosted run
-`37746127031` failed that combination: 762.27 MiB aggregate, with OpenCode using
-646.28 MiB at the peak. Its archive and matching process profile replay offline.
-Run `37747359011` passed all ten controls with a frozen 256 MiB GC sizing hint in
-addition to the option. Peak aggregate RSS was 600.47 MiB on macOS 15 and 488.15
-MiB on Linux; sampled CPU stayed below 20 seconds. Its artifacts and profiles
-replay offline. No limits increased. One guarded workstation control remains
-required before freezing any live pilot; the four attempts are still unstarted.
-The final PR repeat `37748183684` failed at 686.27 MiB, so GC-only admission did
-not reproduce. Its raw archive remains retained. Run `37748637086` additionally
-disables client JIT compilation and passed all ten hosted controls: macOS peaked
-at 477.61 MiB and Linux at 410.68 MiB. CPU stayed within the unchanged 20-second
-cap. Its artifacts replay offline; final-head CI must repeat the result before
-merge. Workstation admission and all four live attempts remain pending.
-
-Historical memory and review failures stay stopped. The catalog and low/max
-transport evidence replay offline in `memory/2026-10-07-providers` and
-`reasoning/2026-10-07-low`. The whole-task output failures and rejected partial
-postrelease claims remain in `reviews/2026-10-07-packaging-low`. The earlier
-distinct-object grader repair is retained in `reviews/2026-10-06-configured`.
-
-Use one new frozen plan for an admitted packaging comparison: two configured
-models, ordinary tools and optional fr, identical public feedback, independent
-GitHub grading, no retries. Preserve failed attempts and unknown costs. Full builds
-and gates remain on GitHub. The roadmap stays at 7 of 18 demonstrated technical
-items, with all four milestones open.
+Authentication stays with configured OpenCode and the existing `gh` login. Do not
+inspect, copy or upload credential files. Local work stays serial beneath the guard;
+full builds, candidate execution, larger profiling and full gates stay on GitHub.
+The roadmap remains at 7 of 18 demonstrated technical items, with all four milestones
+open. Production analysis must not recognize this benchmark or encode its repair.
 
 ## Completed disclosure and terminal-answer work
 

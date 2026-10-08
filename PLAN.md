@@ -38,11 +38,17 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Current chunk: compare a reviewed packaging change with and without fr
 
-The deliverable is a four-attempt code-change pilot: Kimi and GLM, each with ordinary
-tools and with fr additionally available. The task is admitted with the review limits below.
-Freeze all four attempts before calls, give both arms identical public feedback, and grade
-their exact submissions on GitHub. Report correctness, actual fr use, calls, context,
-elapsed time, failures and unknown usage separately.
+The four-attempt code-change pilot was frozen for Kimi and GLM, each with ordinary
+tools and with fr additionally available. It stopped after the first Kimi attempt
+hit the unchanged 20-CPU-second limit. That attempt made five tool calls and one
+source replacement, but no terminal submission. The remaining three cells were not
+started. There is no completed comparison or behavior grade.
+
+The [retained results](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
+record 63.11 seconds elapsed, 417.23 MiB peak sampled RSS and 8,645 tool-result bytes.
+Short scripted controls passed hosted and workstation admission but did not predict
+this live CPU demand. Next, attribute CPU use with a representative scripted workload
+on GitHub. Keep the limits unchanged and this collection permanently stopped.
 
 The [small provider catalog](tests/agent-eval/opencode/catalog/README.md) and
 [reasoning controls](tests/agent-eval/opencode/reasoning/2026-10-07-low/README.md)
@@ -83,10 +89,9 @@ code never runs during collection. A completed submission still needs GitHub gra
 
 PR #454 passed the scripted real-client controls on Linux and macOS 15 with the
 unchanged resource caps. The next checkpoint adds exact-submission grading, explicit
-unknown costs and frozen Python runners for replay. Its hosted controls must pass
-before one guarded workstation control with matching executable and runtime hashes.
-Then freeze and commit the [four-attempt plan](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md).
-The live attempts remain unstarted; no correctness or efficiency result is claimed yet.
+unknown costs and frozen Python runners for replay. Fresh hosted controls and the
+workstation control passed before the plan was committed at `c0980440`. The resource
+stop is preserved as a failed capture; its partial edit cannot become a graded repair.
 
 GitHub operations use the existing `gh` login; OpenCode resolves its configured
 provider access. Local calls use the resource guard, and full builds, candidate
@@ -249,10 +254,10 @@ calls, context and time. Smaller source pages alone do not demonstrate lower tot
 
 Next steps, in order:
 
-1. Finish the admitted packaging pilot: current hosted and workstation controls, committed frozen
-   inputs, four bounded attempts and separate GitHub grading. Preserve the failed reviews and
-   stopped collections. Do not raise limits or retry failed cells. This familiar task tests the
-   collection path; it cannot establish general efficiency. The
+1. Attribute the configured client's CPU use on GitHub with representative scripted streaming and
+   edit workloads. The packaging pilot stopped on its first CPU-limit failure; short controls had
+   passed. Keep limits unchanged and preserve that failed attempt and three unstarted cells.
+   A new live comparison requires a new frozen design and fresh resource admission. The
    [review gaps](docs/candidate-review-status.md) remain visible.
 2. Admit unfamiliar tasks and compare ordinary tools with the public fr read/edit routes and test
    feedback. Freeze requirements, allowed tools, models, budgets and private checks before calls.
