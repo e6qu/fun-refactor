@@ -1,4 +1,4 @@
-# Hosted change controls pass with bounded GC sizing
+# Change-adapter memory measurements
 
 GitHub run [37680442901](https://github.com/e6qu/fun-refactor/actions/runs/37680442901)
 tested the configured change adapter at commit `57f63836`. Linux completed all five
@@ -54,4 +54,17 @@ controls and independently check that their process profiles match the guard.
 The GC change trades CPU for lower memory; this sample does not establish model
 performance or workstation admission. macOS 15 failed with `--smol` alone before
 passing with the added hint, but the original macOS 14 failure is a different
-platform measurement. Run one guarded workstation control before any live pilot.
+platform measurement.
+
+The final PR repeat, run `37748183684`, failed at 686.27 MiB on the macOS fr case.
+OpenCode used 569.55 MiB at the aggregate peak. `gc-repeat-provenance.json` binds
+the failed repeat archive. GC sizing alone therefore does not establish repeatable
+admission; the earlier passing run stays recorded as one measurement.
+Run [37748637086](https://github.com/e6qu/fun-refactor/actions/runs/37748637086)
+additionally freezes `BUN_JSC_useJIT=0`. All ten interpreter-mode controls passed
+with unchanged caps. macOS peaked at 477.61 MiB and 10.89 CPU seconds; Linux peaked
+at 410.68 MiB and 16 CPU seconds. `jit-provenance.json` binds both passing artifacts,
+and the same offline replay checks their submissions and process profiles.
+This provides more memory headroom at a CPU cost. Final-head CI must reproduce
+the result before merging. Local client admission still requires a guarded
+workstation control; no live model calls have run.

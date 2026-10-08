@@ -80,6 +80,12 @@ addition to the option. Peak aggregate RSS was 600.47 MiB on macOS 15 and 488.15
 MiB on Linux; sampled CPU stayed below 20 seconds. Its artifacts and profiles
 replay offline. No limits increased. One guarded workstation control remains
 required before freezing any live pilot; the four attempts are still unstarted.
+The final PR repeat `37748183684` failed at 686.27 MiB, so GC-only admission did
+not reproduce. Its raw archive remains retained. Run `37748637086` additionally
+disables client JIT compilation and passed all ten hosted controls: macOS peaked
+at 477.61 MiB and Linux at 410.68 MiB. CPU stayed within the unchanged 20-second
+cap. Its artifacts replay offline; final-head CI must repeat the result before
+merge. Workstation admission and all four live attempts remain pending.
 
 Historical memory and review failures stay stopped. The catalog and low/max
 transport evidence replay offline in `memory/2026-10-07-providers` and

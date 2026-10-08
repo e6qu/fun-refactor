@@ -13,10 +13,39 @@ HERE = ROOT / "tests/agent-eval/opencode/changes/2026-10-08-memory"
 
 
 class Memory(unittest.TestCase):
-    def test_gc_sizing_passes_hosted_controls_without_workstation_admission(self):
+    def test_gc_only_admission_does_not_reproduce(self):
         checker = runpy.run_path(str(ROOT / "tools/check-terminal-changes.py"))
         from agent_eval import client_memory_profile
-        provenance = json.loads((HERE / "gc-provenance.json").read_bytes())
+        provenance = json.loads((HERE / "gc-repeat-provenance.json").read_bytes())
+        path = HERE / provenance["archive"]
+        self.assertFalse(provenance["admitted"])
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), provenance["sha256"])
+        with tempfile.TemporaryDirectory() as temporary, zipfile.ZipFile(path) as archive:
+            root = Path(temporary).resolve()
+            self.assertLess(sum(i.file_size for i in archive.infolist()), 8 * 1024**2)
+            self.assertTrue(all((root / n).resolve().is_relative_to(root) for n in archive.namelist()))
+            archive.extractall(root)
+            saved = json.loads((root / "result.json").read_bytes())
+            self.assertEqual([r["headroom_admitted"] for r in saved], [True, False])
+            with patch.object(checker["runner"], "capture", side_effect=AssertionError("offline only")):
+                for index, expected in enumerate(saved):
+                    folder = root / str(index)
+                    self.assertEqual(checker["report"](folder), expected)
+                    self.assertEqual(client_memory_profile.audit(folder, expected["process"]),
+                                     json.loads((folder / "profile.json").read_bytes()))
+                    plan = json.loads((folder / "plan.json").read_bytes())["plan"]
+                    self.assertEqual(plan["client_environment"], provenance["client_environment"])
+
+    def test_gc_sizing_passes_hosted_controls_without_workstation_admission(self):
+        self.check_completed_controls("gc-provenance.json")
+
+    def test_interpreter_mode_passes_hosted_controls_without_workstation_admission(self):
+        self.check_completed_controls("jit-provenance.json")
+
+    def check_completed_controls(self, filename):
+        checker = runpy.run_path(str(ROOT / "tools/check-terminal-changes.py"))
+        from agent_eval import client_memory_profile
+        provenance = json.loads((HERE / filename).read_bytes())
         self.assertTrue(provenance["hosted_controls_admitted"])
         self.assertFalse(provenance["workstation_admitted"])
         for artifact in provenance["artifacts"]:

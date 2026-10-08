@@ -1,0 +1,26 @@
+{
+  "run": "https://github.com/e6qu/fun-refactor/actions/runs/37748637086",
+  "head_sha": "b14d5f8f7c518d7246543680129fe2650366ba24",
+  "artifacts": [
+    {
+      "platform": "macos-15",
+      "artifact_id": 11537440681,
+      "archive": "jit-macos-15.zip",
+      "sha256": "c8db012ead7918e58218380f11e0e4a577e57c96681b7345c53a186352f04e40"
+    },
+    {
+      "platform": "ubuntu-latest",
+      "artifact_id": 11536214474,
+      "archive": "jit-ubuntu-latest.zip",
+      "sha256": "a20f899731abc707c6627aa37a07236493f2f4695e3bf2c0bd10855d96fe6b11"
+    }
+  ],
+  "client_environment": {
+    "BUN_OPTIONS": "--smol",
+    "BUN_JSC_forceRAMSize": "268435456",
+    "BUN_JSC_useJIT": "0"
+  },
+  "hosted_controls_admitted": true,
+  "workstation_admitted": false,
+  "scope": "Five scripted controls per platform; requires final-head replication before merge."
+}
