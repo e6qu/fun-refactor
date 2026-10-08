@@ -53,5 +53,10 @@ unverified. Reported cost zero does not establish zero dollar cost.
 The report distinguishes collection success from behavior success and retains
 failed work in observed costs. Tool-result bytes are not complete model context.
 There is no completed comparison, no observed fr use and no efficiency result.
+[GitHub replay and grading](https://github.com/e6qu/fun-refactor/actions/runs/37770872493)
+verified the frozen runner and preserved all four outcomes. `grading.zip` retains
+the original artifact; its digest and source commit are in `grading-provenance.json`.
+The [machine-readable result](results.json) and [generated table](results.md) are
+exact copies of that artifact and reproduce offline. No partial edit was graded.
 Next, attribute CPU use with a representative scripted workload on GitHub before
 considering a new collection. Keep the limits and this stopped collection unchanged.

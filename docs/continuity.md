@@ -44,6 +44,8 @@ Five host calls returned 8,645 bytes, including one accepted source replacement.
 There was no terminal submission, no fr call and no eligible repair to grade.
 The remaining Kimi/fr and both GLM cells are unstarted. `stop.json` forbids resuming.
 See `changes/configured-2026-10-08/README.md` for retained accounting and provenance.
+Hosted run `37770872493` verified the frozen runner and all four outcomes. Its raw
+artifact, grades and reports are retained; offline replay reproduces them exactly.
 
 The next substantial task is to attribute CPU use with representative scripted
 streaming and editing workloads on GitHub. Short controls did not predict live

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Replay retained configured attempts with their exact runner, without model calls."""
 from pathlib import Path
+import hashlib
 import runpy
 import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 from agent_eval.study import load
 
@@ -14,6 +16,15 @@ COHORT = ROOT / 'tests/agent-eval/opencode/changes/configured-2026-10-08'
 
 
 class RetainedPilot(unittest.TestCase):
+    def test_retained_hosted_artifact_matches_report_and_grades(self):
+        provenance = load(COHORT / 'grading-provenance.json')
+        archive = COHORT / provenance['archive']
+        self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), provenance['sha256'])
+        with zipfile.ZipFile(archive) as source:
+            for name in ('grades.json', 'results.json', 'results.md'):
+                self.assertEqual(source.read(COHORT.name + '/' + name), (COHORT / name).read_bytes())
+        self.assertEqual(load(COHORT / 'grades.json')['passed'], 0)
+
     def test_cpu_stop_preserves_partial_work_and_three_unstarted_cells(self):
         frozen = load(COHORT / 'plan.json')
         runpy.run_path(str(ROOT / 'tools/terminal-change-snapshot.py'))['verify'](frozen, COHORT / 'runner')
