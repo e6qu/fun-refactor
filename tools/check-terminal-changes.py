@@ -126,6 +126,19 @@ def report(root):
             "headroom_admitted": process["sampled_aggregate_rss_bytes"] <= 640 * 1024**2}
 
 
+def profiled_run(command, out, err, folder):
+    from agent_eval import client_memory_profile
+    sampler = client_memory_profile.Sampler(folder)
+    sampler.attempt = folder / "attempt"
+    with patch.object(bounded_host, "sample", sampler):
+        process = bounded_host.run(command, b"", out, err, folder,
+            wall_seconds=120, cpu_limit_seconds=20, rss_bytes=768 * 1024**2,
+            disk_bytes=16 * 1024**2, transcript_bytes=1024**2)
+    profile = client_memory_profile.audit(folder, process)
+    (folder / "profile.json").write_bytes(encode(profile))
+    return process
+
+
 def check(root, binary, client):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run change transport controls on GitHub")
     root.mkdir(parents=True, exist_ok=False)
@@ -134,9 +147,8 @@ def check(root, binary, client):
         folder = root / str(index)
         folder.mkdir()
         out, err = io.BytesIO(), io.BytesIO()
-        process = bounded_host.run([sys.executable, "-B", str(Path(__file__).resolve()), "capture", str(folder),
-            "--case", str(index), "--fr", str(binary), "--opencode", str(client)], b"", out, err, folder,
-            wall_seconds=120, cpu_limit_seconds=20, rss_bytes=768 * 1024**2, disk_bytes=16 * 1024**2, transcript_bytes=1024**2)
+        process = profiled_run([sys.executable, "-B", str(Path(__file__).resolve()), "capture", str(folder),
+            "--case", str(index), "--fr", str(binary), "--opencode", str(client)], out, err, folder)
         (folder / "host.stdout").write_bytes(out.getvalue())
         (folder / "host.stderr").write_bytes(err.getvalue())
         (folder / "process.json").write_bytes(encode(process))
