@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+from socketserver import TCPServer
 import sys
 import threading
 
@@ -20,6 +21,13 @@ ANSWER = {"answer": {"value": {"value": 42, "citations": [{
     "path": "module.py", "quote": SOURCE.decode()}]}}}
 CASES = ("one-answer", "missing-answer", "duplicate-answer", "adjacent-tool")
 MAX_BYTES = 1024**2
+
+
+class LoopbackServer(ThreadingHTTPServer):
+    def server_bind(self):
+        # The provider uses a numeric loopback endpoint and needs no reverse DNS.
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
 
 def observed_work(messages, requests):
@@ -181,7 +189,7 @@ def provider(root, case, *, model="protocol"):
             except (ValueError, KeyError, TypeError) as error:
                 self.server.errors.append(str(error))
                 self.send_error(400, "scripted provider refused request")
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server = LoopbackServer(("127.0.0.1", 0), Handler)
     server.requests, server.errors = [], []
     return server
 

@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from agent_eval import native_mcp as mcp, structured_probe as probe, structured_submission as protocol
@@ -36,6 +37,14 @@ def capture_fixture(root):
 
 
 class Replay(unittest.TestCase):
+    def test_loopback_provider_startup_does_not_resolve_hostnames(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch("socket.getfqdn", side_effect=AssertionError("unexpected DNS lookup")):
+                with probe.provider(Path(temporary), "one-answer") as server:
+                    self.assertEqual(server.server_name, "127.0.0.1")
+                    self.assertGreater(server.server_port, 0)
+                    self.assertEqual(server.server_address, ("127.0.0.1", server.server_port))
+
     def test_malformed_saved_model_is_a_controlled_refusal(self):
         for model in (None, [], "protocol", 1):
             request, terminal, messages, events, rows = fixture()
