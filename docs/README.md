@@ -99,6 +99,8 @@ Python scalar flow, dependency invalidation and checked investigation delivery.
 ## Evaluate agent use
 
 - [OpenCode tools](opencode-native-tools.md): configured collection, resource admission and frozen replay.
+- [OpenCode rehearsals](opencode-rehearsal.md): earlier small-task comparison protocol and retained results.
+- [Source-grounded explanations](opencode-source-evidence.md): check answers against source the agent actually read.
 - [Candidate review status](candidate-review-status.md): admitted tasks, failed reviews and remaining gaps.
 - [Independent study](agent-study.md): task plans, parent/child accounting and failure-preserving reports.
 - [Evaluation evidence](evaluations.md): measured outcomes and historical limits.
