@@ -65,12 +65,14 @@ def capture(root, plan, snapshots):
 class Changes(unittest.TestCase):
     def test_low_memory_option_is_frozen_and_cannot_be_replaced(self):
         plan, snapshots = frozen()
-        self.assertEqual(plan["plan"]["client_environment"], {"BUN_OPTIONS": "--smol"})
+        self.assertEqual(plan["plan"]["client_environment"],
+                         {"BUN_OPTIONS": "--smol", "BUN_JSC_forceRAMSize": "268435456"})
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             env = runner.environment(root, plan["plan"]["models"][0], root / "config.json", {},
                                      plan["plan"]["client_environment"])
             self.assertEqual(env["BUN_OPTIONS"], "--smol")
+            self.assertEqual(env["BUN_JSC_forceRAMSize"], "268435456")
             self.assertEqual(env["RAYON_NUM_THREADS"], "1")
         for options in ({"BUN_OPTIONS": ""}, {"BUN_OPTIONS": "--smol", "EXTRA": "unplanned"}):
             altered = copy.deepcopy(plan)
@@ -78,6 +80,10 @@ class Changes(unittest.TestCase):
             altered["sha256"] = digest(altered["plan"])
             with self.assertRaisesRegex(ValueError, "unsupported client environment"):
                 changes.checked(altered, snapshots)
+        smol = copy.deepcopy(plan)
+        smol["plan"]["client_environment"] = {"BUN_OPTIONS": "--smol"}
+        smol["sha256"] = digest(smol["plan"])
+        self.assertEqual(changes.checked(smol, snapshots)["client_environment"], {"BUN_OPTIONS": "--smol"})
         legacy = copy.deepcopy(plan)
         legacy["plan"].pop("client_environment")
         legacy["sha256"] = digest(legacy["plan"])

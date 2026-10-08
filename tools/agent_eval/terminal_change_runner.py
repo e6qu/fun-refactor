@@ -21,7 +21,7 @@ def environment(root, model, config, catalog, client_environment=None):
     env.update(OPENCODE_CONFIG_CONTENT=json.dumps(settings), OPENCODE_MODELS_PATH=str(path),
                BUN_OPTIONS="", RAYON_NUM_THREADS="1")
     if client_environment is not None:
-        require(client_environment == {"BUN_OPTIONS": "--smol"}, "unsupported client environment")
+        require(client_environment in changes.CLIENT_ENVIRONMENTS, "unsupported client environment")
         env.update(client_environment)
     return env
 

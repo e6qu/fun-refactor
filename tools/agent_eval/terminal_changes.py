@@ -13,6 +13,9 @@ from .workspace_bundle import validate
 SCHEMA = "fr-terminal-code-changes-1"
 ARMS = ("files", "fr")
 ARTIFACTS = review.ARTIFACTS | {"submission.json"}
+# A GC sizing hint, not an RSS cap. The process guard still enforces every limit.
+CLIENT_ENVIRONMENTS = ({"BUN_OPTIONS": "--smol"},
+                       {"BUN_OPTIONS": "--smol", "BUN_JSC_forceRAMSize": "268435456"})
 
 
 def prompt(arm):
@@ -68,7 +71,7 @@ def design(tasks, models, identities, catalog, provenance, *, client_environment
             "retries": 0, "stop_after_consecutive_failures": 2, "candidate_execution": False,
             "provenance": provenance, **identities}
     if client_environment is not None:
-        require(client_environment == {"BUN_OPTIONS": "--smol"}, "unsupported client environment")
+        require(client_environment in CLIENT_ENVIRONMENTS, "unsupported client environment")
         plan["client_environment"] = copy.deepcopy(client_environment)
     require(len(encode(plan)) <= review.MAX_BYTES and len(encode(snapshots)) <= 8 * review.MAX_BYTES,
             "frozen change inputs exceed budget")
@@ -78,7 +81,7 @@ def design(tasks, models, identities, catalog, provenance, *, client_environment
 def freeze(tasks, models, binary, opencode, catalog, provenance):
     return design(tasks, models, {"runtime": implementation(), "binary_sha256": source_reviews.identity(binary),
         "opencode_sha256": source_reviews.identity(opencode)}, catalog, provenance,
-        client_environment={"BUN_OPTIONS": "--smol"})
+        client_environment=CLIENT_ENVIRONMENTS[-1])
 
 
 def checked(frozen, snapshots, *, execution=False):
