@@ -21,11 +21,21 @@ an input outside its syntax, identity, confidence or effect contract.
 
 ## Active outcome
 
-PR #453 merged as `410482ce` after all final checks passed. Two SDK jobs needed a
-retry because GitHub could not acquire runners; neither failed job had executed a
-step. The earlier guide-size and excerpt-anchor failures are fixed. Local main is
-refreshed, including release v0.55.0. The branch is `eval/configured-change-pilot`.
-The previous merge's deep validation `37607221053` passed.
+PR #454 merged as `3b633a9c` after all final checks passed. Its final configured
+controls passed on Linux and macOS 15; macOS peaked at 458.59 MiB. Disabling client
+JIT preserved the existing limits and reproduced the required memory headroom.
+The loopback server also avoids a reverse-DNS stall. Historical failed memory
+profiles remain in `changes/2026-10-08-memory`.
+
+PR #456, branch `eval/configured-change-results`, implements separate grading of
+exact submissions and a four-attempt report. The report keeps failed work and unknown
+costs visible. Frozen Python runners preserve replay after future implementation
+changes. Workstation admission checks both hosted platforms, runtime hashes and
+exact executable identities before allowing one scripted local control.
+
+Current hosted controls are queued. No live pilot call has started. The collection
+driver and public baseline are in `changes/configured-2026-10-08`; the driver requires
+committed frozen inputs and refuses retries or continuation after its stop rule.
 
 The approved deliverable is the four-attempt packaging change pilot described in
 [PLAN.md](../PLAN.md). Resource admission is established with the small per-process

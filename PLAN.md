@@ -39,7 +39,7 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 ## Current chunk: compare a reviewed packaging change with and without fr
 
 The deliverable is a four-attempt code-change pilot: Kimi and GLM, each with ordinary
-tools and with fr additionally available. First settle task, reference and grader review.
+tools and with fr additionally available. The task is admitted with the review limits below.
 Freeze all four attempts before calls, give both arms identical public feedback, and grade
 their exact submissions on GitHub. Report correctness, actual fr use, calls, context,
 elapsed time, failures and unknown usage separately.
@@ -81,9 +81,12 @@ and optional fr previews share the existing edit implementation. A terminal stru
 summary closes the attempt; replay reconstructs the exact submitted files. Candidate
 code never runs during collection. A completed submission still needs GitHub grading.
 
-Before live calls, pass the scripted real-client controls on Linux and macOS, retain
-their results, and run one guarded workstation control with the intended executables.
-Then freeze and commit the four-attempt plan. The live attempts remain unstarted.
+PR #454 passed the scripted real-client controls on Linux and macOS 15 with the
+unchanged resource caps. The next checkpoint adds exact-submission grading, explicit
+unknown costs and frozen Python runners for replay. Its hosted controls must pass
+before one guarded workstation control with matching executable and runtime hashes.
+Then freeze and commit the [four-attempt plan](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md).
+The live attempts remain unstarted; no correctness or efficiency result is claimed yet.
 
 GitHub operations use the existing `gh` login; OpenCode resolves its configured
 provider access. Local calls use the resource guard, and full builds, candidate
@@ -246,16 +249,13 @@ calls, context and time. Smaller source pages alone do not demonstrate lower tot
 
 Next steps, in order:
 
-1. Complete independent task and grader review with questions that fit the existing budget.
-   The stopped review collections remain stopped. A different review requires a new frozen plan;
-   do not increase limits or retry until a review happens to pass.
-   Single-assertion packets with unchanged-file context produced three completed reviews, then two
-   submission failures. Scripted terminal submission checks now pass. Check the
-   [explicit gaps](docs/candidate-review-status.md). Address the recorded client memory failure
-   before new local calls. Use existing OpenCode access and a new frozen design; stopped cells
-   remain stopped. Finish the packaging task review before freezing its four change attempts.
-2. Compare ordinary tools with the public fr read/edit routes and test feedback on those unfamiliar
-   tasks. Freeze requirements, allowed tools, models, budgets and private checks before calls.
+1. Finish the admitted packaging pilot: current hosted and workstation controls, committed frozen
+   inputs, four bounded attempts and separate GitHub grading. Preserve the failed reviews and
+   stopped collections. Do not raise limits or retry failed cells. This familiar task tests the
+   collection path; it cannot establish general efficiency. The
+   [review gaps](docs/candidate-review-status.md) remain visible.
+2. Admit unfamiliar tasks and compare ordinary tools with the public fr read/edit routes and test
+   feedback. Freeze requirements, allowed tools, models, budgets and private checks before calls.
    Use the configured Kimi/GLM OpenCode profiles for bounded local rehearsals and GitHub for grading.
    The planned Sonnet/Luna study still needs independent tasks and complete cost accounting.
 3. Compare a single agent with narrowly delegated investigation and review. Count parent and child
