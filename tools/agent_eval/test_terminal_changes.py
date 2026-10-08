@@ -66,13 +66,14 @@ class Changes(unittest.TestCase):
     def test_low_memory_option_is_frozen_and_cannot_be_replaced(self):
         plan, snapshots = frozen()
         self.assertEqual(plan["plan"]["client_environment"],
-                         {"BUN_OPTIONS": "--smol", "BUN_JSC_forceRAMSize": "268435456"})
+                         {"BUN_OPTIONS": "--smol", "BUN_JSC_forceRAMSize": "268435456", "BUN_JSC_useJIT": "0"})
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             env = runner.environment(root, plan["plan"]["models"][0], root / "config.json", {},
                                      plan["plan"]["client_environment"])
             self.assertEqual(env["BUN_OPTIONS"], "--smol")
             self.assertEqual(env["BUN_JSC_forceRAMSize"], "268435456")
+            self.assertEqual(env["BUN_JSC_useJIT"], "0")
             self.assertEqual(env["RAYON_NUM_THREADS"], "1")
         for options in ({"BUN_OPTIONS": ""}, {"BUN_OPTIONS": "--smol", "EXTRA": "unplanned"}):
             altered = copy.deepcopy(plan)

@@ -15,7 +15,8 @@ ARMS = ("files", "fr")
 ARTIFACTS = review.ARTIFACTS | {"submission.json"}
 # A GC sizing hint, not an RSS cap. The process guard still enforces every limit.
 CLIENT_ENVIRONMENTS = ({"BUN_OPTIONS": "--smol"},
-                       {"BUN_OPTIONS": "--smol", "BUN_JSC_forceRAMSize": "268435456"})
+                       {"BUN_OPTIONS": "--smol", "BUN_JSC_forceRAMSize": "268435456"},
+                       {"BUN_OPTIONS": "--smol", "BUN_JSC_forceRAMSize": "268435456", "BUN_JSC_useJIT": "0"})
 
 
 def prompt(arm):
