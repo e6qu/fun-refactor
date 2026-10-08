@@ -22,3 +22,12 @@ the small catalog. Bun documents this as a lower-memory mode with more frequent
 did not pass admission with this flag; the bounded change adapter needs its own
 hosted measurement. Old plans retain their original empty option. This is a
 hypothesis until both platform controls pass; no resource limit increases.
+
+The Linux controls passed with and without the option in hosted runs
+`37744454024` and `37745425901`. The latter peaked at 505.21 MiB; this does not
+establish a memory reduction. Both macOS 14 jobs remained queued. GitHub's
+[retirement notice](https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/)
+warns of reduced capacity before the November 2 removal. Active workflows now use
+macOS 15. Run `37746127031` measures the proposed settings on that image; its Linux
+controls passed and its macOS control is pending. The platform change must remain
+visible when comparing measurements. Local client admission remains blocked.

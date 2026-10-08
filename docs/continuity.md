@@ -69,7 +69,12 @@ the ordinary control peaked at 571.14 MiB and the fr control at 739.92 MiB. Both
 completed below the 768 MiB cap, but the fr case exceeded the unchanged 640 MiB
 admission threshold. Three macOS cases remain unstarted. Original artifacts and
 offline replay live in `changes/2026-10-08-memory`. Hosted run `37744454024` adds
-process attribution; local pilot calls remain blocked pending a measured remedy.
+process attribution; its Linux controls passed and macOS stayed queued. New plans
+freeze Bun's low-memory option; historical plans keep their original settings.
+Linux run `37745425901` passed with this option, without establishing a reduction.
+GitHub is retiring macOS 14, so active workflows now use macOS 15. Hosted run
+`37746127031` tests that combination. Local pilot calls remain blocked pending
+macOS admission; no resource limits increased.
 
 Historical memory and review failures stay stopped. The catalog and low/max
 transport evidence replay offline in `memory/2026-10-07-providers` and
