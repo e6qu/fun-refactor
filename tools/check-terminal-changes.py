@@ -139,24 +139,28 @@ def profiled_run(command, out, err, folder):
     return process
 
 
+def single(folder, index, binary, client):
+    folder.mkdir(parents=True, exist_ok=False)
+    case = CASES[index]
+    out, err = io.BytesIO(), io.BytesIO()
+    process = profiled_run([sys.executable, "-B", str(Path(__file__).resolve()), "capture", str(folder),
+        "--case", str(index), "--fr", str(binary), "--opencode", str(client)], out, err, folder)
+    (folder / "host.stdout").write_bytes(out.getvalue())
+    (folder / "host.stderr").write_bytes(err.getvalue())
+    (folder / "process.json").write_bytes(encode(process))
+    frozen = json.loads((folder / "plan.json").read_bytes())
+    snapshots = source_reviews.read_inputs(folder)
+    cell = next(c for c in frozen["plan"]["cells"] if c["arm"] == case["arm"])
+    runner.seal(frozen, snapshots, cell, folder / "attempt", process)
+    return report(folder)
+
+
 def check(root, binary, client):
     require(os.environ.get("GITHUB_ACTIONS") == "true", "run change transport controls on GitHub")
     root.mkdir(parents=True, exist_ok=False)
     results = []
     for index, case in enumerate(CASES):
-        folder = root / str(index)
-        folder.mkdir()
-        out, err = io.BytesIO(), io.BytesIO()
-        process = profiled_run([sys.executable, "-B", str(Path(__file__).resolve()), "capture", str(folder),
-            "--case", str(index), "--fr", str(binary), "--opencode", str(client)], out, err, folder)
-        (folder / "host.stdout").write_bytes(out.getvalue())
-        (folder / "host.stderr").write_bytes(err.getvalue())
-        (folder / "process.json").write_bytes(encode(process))
-        frozen = json.loads((folder / "plan.json").read_bytes())
-        snapshots = source_reviews.read_inputs(folder)
-        cell = next(c for c in frozen["plan"]["cells"] if c["arm"] == case["arm"])
-        runner.seal(frozen, snapshots, cell, folder / "attempt", process)
-        results.append(report(folder))
+        results.append(single(root / str(index), index, binary, client))
         (root / "result.json").write_bytes(encode(results))
         require(results[-1]["headroom_admitted"], "change adapter lacks admitted memory headroom")
         print(f"{case['provider']}/{case['arm']}/missing={case['missing']}: verified", flush=True)

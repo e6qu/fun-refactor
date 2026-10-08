@@ -8,6 +8,9 @@ on:
       - .github/workflows/terminal-changes.yml
       - tools/agent_eval/**
       - tools/terminal-changes.py
+      - tools/terminal-change-results.py
+      - tools/check-change-workstation.py
+      - tools/test-change-workstation.py
       - tools/check-terminal-changes.py
       - tools/test-packaging-admission.py
       - tools/test-change-memory.py
@@ -50,8 +53,10 @@ jobs:
         run: |
           python3 -B tools/test-packaging-admission.py
           python3 -B tools/test-change-memory.py
+          python3 -B tools/test-change-workstation.py
           python3 -B tools/test-scoped-reviews.py
           python3 -B tools/agent_eval/test_terminal_changes.py
+          python3 -B tools/agent_eval/test_terminal_change_results.py
           python3 -B tools/agent_eval/test_native_changes.py
           python3 -B tools/agent_eval/test_structured_submission.py
       - name: Download pinned released tools through gh

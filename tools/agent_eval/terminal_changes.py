@@ -30,10 +30,11 @@ def schemas(arm):
 
 
 def implementation():
-    names = ("terminal_changes.py", "terminal_change_runner.py")
+    names = ("terminal_changes.py", "terminal_change_runner.py", "terminal_change_results.py")
     return {**review.implementation(), **opencode_changes.implementation(),
             **{n: source_reviews.identity(Path(__file__).with_name(n)) for n in names},
-            "terminal-changes.py": source_reviews.identity(Path(__file__).parents[1] / "terminal-changes.py")}
+            "terminal-changes.py": source_reviews.identity(Path(__file__).parents[1] / "terminal-changes.py"),
+            "terminal-change-results.py": source_reviews.identity(Path(__file__).parents[1] / "terminal-change-results.py")}
 
 
 def design(tasks, models, identities, catalog, provenance, *, client_environment=None):
