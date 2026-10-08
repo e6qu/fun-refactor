@@ -66,10 +66,10 @@ jobs:
             runs-on: ubuntu-24.04-arm
             libc: musl
           - target: x86_64-apple-darwin
-            runs-on: macos-14
+            runs-on: macos-15
             cross: true
           - target: aarch64-apple-darwin
-            runs-on: macos-14
+            runs-on: macos-15
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 45
     steps:
