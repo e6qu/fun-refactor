@@ -73,8 +73,13 @@ process attribution; its Linux controls passed and macOS stayed queued. New plan
 freeze Bun's low-memory option; historical plans keep their original settings.
 Linux run `37745425901` passed with this option, without establishing a reduction.
 GitHub is retiring macOS 14, so active workflows now use macOS 15. Hosted run
-`37746127031` tests that combination. Local pilot calls remain blocked pending
-macOS admission; no resource limits increased.
+`37746127031` failed that combination: 762.27 MiB aggregate, with OpenCode using
+646.28 MiB at the peak. Its archive and matching process profile replay offline.
+Run `37747359011` passed all ten controls with a frozen 256 MiB GC sizing hint in
+addition to the option. Peak aggregate RSS was 600.47 MiB on macOS 15 and 488.15
+MiB on Linux; sampled CPU stayed below 20 seconds. Its artifacts and profiles
+replay offline. No limits increased. One guarded workstation control remains
+required before freezing any live pilot; the four attempts are still unstarted.
 
 Historical memory and review failures stay stopped. The catalog and low/max
 transport evidence replay offline in `memory/2026-10-07-providers` and

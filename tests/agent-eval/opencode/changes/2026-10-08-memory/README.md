@@ -1,4 +1,4 @@
-# Change-adapter memory admission remains blocked
+# Hosted change controls pass with bounded GC sizing
 
 GitHub run [37680442901](https://github.com/e6qu/fun-refactor/actions/runs/37680442901)
 tested the configured change adapter at commit `57f63836`. Linux completed all five
@@ -28,6 +28,30 @@ The Linux controls passed with and without the option in hosted runs
 establish a memory reduction. Both macOS 14 jobs remained queued. GitHub's
 [retirement notice](https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/)
 warns of reduced capacity before the November 2 removal. Active workflows now use
-macOS 15. Run `37746127031` measures the proposed settings on that image; its Linux
-controls passed and its macOS control is pending. The platform change must remain
-visible when comparing measurements. Local client admission remains blocked.
+macOS 15. Run `37746127031` measured the proposed settings on that image. Linux
+passed, but macOS failed again: the fr control peaked at 762.27 MiB. OpenCode alone
+used 646.28 MiB in the peak sample; no fr process was present in that sample.
+`smol-macos-15.zip` and `smol-provenance.json` retain the failure and same-sample
+process attribution. Offline tests replay both the control and the profile.
+
+The passing experiment adds `BUN_JSC_forceRAMSize=268435456` to new frozen plans.
+This tells the garbage collector to size itself for 256 MiB of available RAM;
+it does not enforce a memory cap. Run
+[37747359011](https://github.com/e6qu/fun-refactor/actions/runs/37747359011)
+passed all five controls on each platform with unchanged process limits.
+
+| Platform | Highest aggregate RSS | Highest sampled CPU | Highest elapsed time |
+| --- | --- | --- | --- |
+| macOS 15 | 600.47 MiB | 9.17 seconds | 42.75 seconds |
+| Linux | 488.15 MiB | 12 seconds | 8.58 seconds |
+
+Both arms and both configured profiles produced the expected edits. The fifth
+control deliberately omitted a terminal answer and remained failed without a
+submission. `gc-provenance.json` binds both `gc-*.zip` artifacts to the measured
+commit, frozen environment and GitHub archive digests. Offline tests replay all ten
+controls and independently check that their process profiles match the guard.
+
+The GC change trades CPU for lower memory; this sample does not establish model
+performance or workstation admission. macOS 15 failed with `--smol` alone before
+passing with the added hint, but the original macOS 14 failure is a different
+platform measurement. Run one guarded workstation control before any live pilot.
