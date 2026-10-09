@@ -64,17 +64,20 @@ Five of six reviews completed; GLM's failed policy review remains failed. See th
 
 ## Next large chunk
 
-Return to the CLI's agent-facing workflow. The authoring-manifest clarification exposed two
-concrete costs: missing input examples caused rejected commands, and adding one example exceeded
-two skill-route budgets. The guide now fits again, but overlapping routes still need review.
+The [workflow comparison](docs/workflow-routes.md) now inventories guide, intent, task and
+direct-author routes. Fifteen prescribed edits and 23 refusal controls pass. Removing the SDK's
+duplicate guide read saves one process and 5,057–5,949 internal bytes per guided edit in those
+fixtures. The agent-visible program size is unchanged. Every public route still has a distinct use.
 
-1. Inventory guide, intent, task and direct-author routes: their callers, instructions, unique
-   checks and recovery behavior. Identify duplication without assuming a public API is unused.
-2. Measure equivalent discovery/edit/check/delivery tasks through those routes on GitHub. Retain
-   exact outcomes, calls and disclosed bytes, including refusals. These scripted comparisons
-   measure workflow overhead; they cannot establish that autonomous agents work better.
-3. Consolidate a measured duplication while preserving stale-input rejection, checks, recovery
-   and consumer compatibility. Keep the entry guide small and disclose operation detail as needed.
+1. Measure source-body input preparation. Guides already retain exact targets, checks and
+   delivery, but callers repeat those fields to construct an operation. Compare complete authored
+   programs before adding a typed builder that reuses the guide's retained values.
+2. Preserve agent-authored bodies and explicit ambiguity, clipping and stale-input refusals.
+   Test single and coordinated bodies across supported languages; do not add repository-specific
+   selection rules or another overlapping command route.
+3. Extend the comparison to a check that fails after application, then exercise documented
+   recovery from the retained transaction. Keep changed source and withheld patches explicit;
+   the current original-check refusal does not establish applied-state recovery behavior.
 4. Keep the independent live study open. It needs fresh representative resource admission,
    actual fr-use accounting and complete parent/child costs. The stopped packaging collection
    cannot resume, and failed cells cannot be retried under a new directory name.
@@ -98,6 +101,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 
 | Evidence | Established result | Limit |
 | --- | --- | --- |
+| [Editing routes](docs/workflow-routes.md) | Equal patches/lifecycles across three edit shapes; guided writes remove one redundant process; 23 refusal controls pass | Prescribed tasks; no reduction in complete-program bytes or autonomous efficiency result |
 | [Delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) | 31 captures completed; one repetition stayed unstarted after failed memory headroom | Inconsistent CPU differences; no targeted client fix or workstation admission |
 | [Streaming CPU comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md) | Client dominates sampled CPU; short controls cannot admit representative streaming | Six CPU stops; no macOS admission or general agent-efficiency result |
 | [Configured change pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) | Resource stop retained and independently replayed | One failed capture, three unstarted cells; no behavior or efficiency comparison |

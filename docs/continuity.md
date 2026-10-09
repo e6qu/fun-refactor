@@ -11,9 +11,11 @@ guide, intent, task and direct-author routes. Guided writes now validate the ret
 in the SDK and revalidate the guide inside native intent execution. The separate SDK guide read
 before writing is removed; the read/preview refresh remains.
 
-Hosted measurements and their regression gate must pass before merging this consolidation.
-They cover three prescribed edit shapes, all eight delivery stages and explicit refusal cases.
-These are workflow-overhead measurements, not autonomous agent-efficiency results.
+The hosted comparison passed 15 successful edits and 23 refusal controls. Guided writes use
+three processes instead of four and carry 5,057–5,949 fewer internal bytes in these fixtures.
+Exact source, patches and all eight lifecycle stages agree; seven offline audit tests pass.
+These are workflow-overhead measurements, not autonomous agent-efficiency results. Full PR CI
+must still pass before merge.
 
 [PR #459](https://github.com/e6qu/fun-refactor/pull/459) closed the bounded client-delivery
 investigation. Its [retained results](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
