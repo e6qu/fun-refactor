@@ -30,10 +30,3 @@ runs:
         sudo systemctl restart docker
         docker info --format '{{json .RegistryConfig.Mirrors}}' | python3 -c \
           'import json,sys; assert any(v.rstrip("/") == "https://mirror.gcr.io" for v in json.load(sys.stdin))'
-    - name: Diagnose availability of the unchanged image
-      shell: bash
-      run: |
-        digest=sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8
-        docker --context default info --format '{{json .RegistryConfig.Mirrors}}'
-        timeout 90 docker --context default pull "mirror.gcr.io/library/python@$digest"
-        timeout 90 docker --context default pull "python@$digest"
