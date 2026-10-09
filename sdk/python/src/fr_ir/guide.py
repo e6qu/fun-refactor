@@ -497,6 +497,7 @@ class GuideReview:
 
     def _digest(self) -> str:
         return hashlib.sha256(_canonical({
+            "goal": self.guide.goal.to_data(),
             "guide": self.guide.to_data(),
             "compiled": self.compiled.to_data(),
         })).hexdigest()
@@ -640,10 +641,9 @@ def review_guide(client: FrClient, guide: AgentGuide, action: TaggedIntentAction
 
 
 def execute_guide(client: FrClient, review: GuideReview):
-    """Execute only an unchanged native review whose guide is still current."""
+    """Execute an unchanged review; native intent revalidates its guide before writing."""
     if not isinstance(review, GuideReview) or review._digest() != review.review_sha256:
         raise FrRuntimeError("guide review changed before execution")
-    current = guide_goal(client, review.guide.goal)
-    if current.at("/basis") != review.guide.at("/basis"):
-        raise FrRuntimeError("guide basis changed before execution")
+    # The compiled action carries the original goal and guide basis. Native intent
+    # recomputes both in the same project snapshot as the edit, before history.
     return client.execute_intent(review.compiled)

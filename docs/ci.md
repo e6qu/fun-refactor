@@ -72,6 +72,7 @@ A change to `src/cli.rs` can affect all the groups below in the
 | Refresh group | What its report checks |
 |---|---|
 | `agent-guide-context` | Command and byte accounting for a checked scalar edit |
+| `workflow-routes` | Four editing routes, before/after guided execution and refusal controls; 15-minute hosted job |
 | `intent-action-context` | The same reviewed edit through composed calls and an intent action |
 | `completion-workflows` | Seven workflow families reach executable actions from a guide |
 | `retained-proofs` | Proof records invalidate after relevant changes and replay delivery |

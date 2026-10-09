@@ -2,6 +2,16 @@ use std::process::Command;
 
 #[test]
 fn roadmap_reports_and_evidence_classification_stay_honest() {
+    let catalog: serde_json::Value =
+        serde_json::from_str(include_str!("agent-eval/roadmap.json")).unwrap();
+    let repository_evidence = catalog["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["id"] == "repository-tasks")
+        .unwrap()["path"]
+        .as_str()
+        .unwrap();
     for args in [
         vec!["tools/roadmap-status.py", "--check"],
         vec!["tests/agent-eval/test_roadmap_status.py"],
@@ -9,7 +19,7 @@ fn roadmap_reports_and_evidence_classification_stay_honest() {
         vec![
             "tools/python-repository-acceptance.py",
             "--audit",
-            "tests/agent-eval/results/2026-10-06-explore-ci-python-repositories",
+            repository_evidence,
         ],
     ] {
         let output = Command::new("python3").args(&args).output().unwrap();

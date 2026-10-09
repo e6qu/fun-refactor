@@ -165,7 +165,7 @@ def measure(executable: str) -> dict:
 def audit(value: dict) -> None:
     if value.get("schema") != "fr-agent-guide-context-1" or value.get("bindings") != bindings():
         raise RuntimeError("guide comparison schema or source bindings are stale")
-    for name, program, count in (("manual", MANUAL, 3), ("inline_manual", INLINE_MANUAL, 2), ("guided", GUIDED, 4)):
+    for name, program, count in (("manual", MANUAL, 3), ("inline_manual", INLINE_MANUAL, 2), ("guided", GUIDED, 3)):
         row = value[name]
         if row["program"] != program or row["program_sha256"] != digest(program.encode()):
             raise RuntimeError("retained agent program is changed")

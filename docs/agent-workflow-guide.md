@@ -131,7 +131,9 @@ still authors every required value and reviews the returned reports; a `GuideRun
 execution request. For writes, `review_guide` accepts the retained guide and exactly one typed
 operation admitted by its route. Its `GuideReview` binds the normalized goal, guide basis, authored
 input digest, target set, revision, checks, delivery policy and complete native preview.
-`execute_guide` refreshes the guide and accepts only that unchanged review.
+`execute_guide` checks the retained goal and review for mutation, then submits the exact reviewed
+intent. Native execution recomputes the guide in the edit snapshot before recording history.
+There is no separate SDK guide read before writing. Read/preview actions still refresh their guide.
 
 The guide contains no source, semantic body, complete vocabulary or unrelated route. Exact source
 requires `constraints.allow_source: true` and a separate bounded reveal. Reveal limits range from
@@ -158,22 +160,15 @@ parsing, serialization, SHA-256, target construction, planners, writers, subproc
 proof completeness and general implementation correspondence remain separate tested/trusted
 boundaries.
 
-The retained compatibility [complete-program comparison](../tests/agent-eval/agent-guide-context.json) changes a
-generic Rust scalar, runs compiler and finite behavioral checks, emits an identical patch and
-completes all eight lifecycle stages in both arms. The manual program and final packet occupy
-1,155 bytes; the guided program and packet occupy 1,140 bytes. Manual discovery/review/write uses
-three processes. Guide/review/freshness/write uses four and carries 14,117 additional internal
-request/response bytes. This fixture measures protocol bytes and process counts; it runs no model
-and establishes no token, quota or population result.
+The [complete-program comparison](../tests/agent-eval/agent-guide-context.json) changes a generic
+Rust scalar, runs compiler and finite behavioral checks, emits an identical patch and completes
+all eight lifecycle stages. It compares guided delivery with separate discovery/task review and
+with the stronger inline-discovery task baseline. Counts retain complete prescribed programs and
+canonical request/response sizes. They establish neither autonomous agent efficiency nor billing.
 
-The existing inline-discovery task route supplies a stronger process baseline: its complete program
-and packet occupy 1,217 bytes and use two processes. Guided delivery saves 77 exposed bytes while
-adding two processes and 14,602 internal bytes. All three arms pass the same compiler, behavioral,
-source, patch and lifecycle oracles. Counts use canonical JSON and retain every complete agent
-program, environment-binding form, internal request, response and final packet size.
-
-The freshness read and following preview use separate subprocesses. Execution still requires
-review of the complete authoritative preview and its unchanged basis.
+The [workflow inventory and comparison](workflow-routes.md) explains which routes add distinct
+checks, where their instructions overlap, and the broader before/after consolidation measurement.
+Execution always requires the complete authoritative preview and its unchanged basis.
 
 Workspace source-dependent recipes first return a bounded structure map, then ask for an exact
 file or declaration handle for source disclosure. NUL-containing scalar values require complete

@@ -417,6 +417,39 @@ def test_common_guide_review_refuses_mutated_review_content():
         FrClient.execute_guide(client, review)
 
 
+def test_guide_execution_reuses_native_binding_without_an_extra_guide_read():
+    client = ApplicationGuideClient()
+    goal = AgentGoal(
+        "migrate", selector=GoalSelector(path="api.ts"),
+        operation=GoalOperation("framework-migration", {"to": "go-net-http"}),
+        checks=("syntax",), delivery=TaskDelivery(),
+    )
+    review = review_guide(client, guide_goal(client, goal), TaggedIntentAction(
+        ApplicationMigrationOperation("go-net-http", "generated", ("syntax",)),
+    ))
+    calls = list(client.calls)
+    result = FrClient.execute_guide(client, review)
+    assert result.compiled is review.compiled
+    assert client.calls == calls
+
+
+def test_guide_execution_refuses_mutation_of_the_retained_goal_before_native_work():
+    client = ApplicationGuideClient()
+    goal = AgentGoal(
+        "migrate", selector=GoalSelector(path="api.ts"),
+        operation=GoalOperation("framework-migration", {"to": "go-net-http"}),
+        checks=("syntax",), delivery=TaskDelivery(),
+    )
+    review = review_guide(client, guide_goal(client, goal), TaggedIntentAction(
+        ApplicationMigrationOperation("go-net-http", "generated", ("syntax",)),
+    ))
+    calls = list(client.calls)
+    goal.operation.fields["to"] = "rust-axum"
+    with pytest.raises(FrRuntimeError, match="guide review changed"):
+        FrClient.execute_guide(client, review)
+    assert client.calls == calls
+
+
 def test_uniform_delivery_refuses_route_specific_runs_and_missing_task_previews():
     client = DeliveryClient()
     run = complete_guide(client, AgentGoal("change"))

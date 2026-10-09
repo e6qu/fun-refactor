@@ -6,12 +6,26 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 
 ## Current work
 
-[PR #459](https://github.com/e6qu/fun-refactor/pull/459) implements the committed delivery diagnostic.
-The single [collection run 37952719938](https://github.com/e6qu/fun-refactor/actions/runs/37952719938)
-used commit `8f00d13f203ad9a1274cfa2fb98f9d4f8e359d9c`: 31 captures completed and one repetition
-stayed unstarted after failed memory headroom. CPU differences were inconsistent. The original
-artifacts and exact runner are retained; no targeted client fix is justified by these samples.
-The bounded investigation is closed. Do not dispatch another collection.
+The [workflow inventory](workflow-routes.md) records the separate purposes and consumers of
+guide, intent, task and direct-author routes. Guided writes now validate the retained goal/review
+in the SDK and revalidate the guide inside native intent execution. The separate SDK guide read
+before writing is removed; the read/preview refresh remains.
+
+The hosted comparison passed 15 successful edits and 23 refusal controls. Guided writes use
+three processes instead of four and carry 5,057–5,949 fewer internal bytes in these fixtures.
+Exact source, patches and all eight lifecycle stages agree; seven offline audit tests pass.
+These are workflow-overhead measurements, not autonomous agent-efficiency results. The full PR
+gate is required before merge.
+
+The SDK edit also required fresh full-repository delivery evidence. Hosted run 37978664543 passed
+the existing boltons and more-itertools tasks, all 365 independent behavior cases, interruption,
+stale-review rejection and patch replay. The catalog and generated roadmap use that report;
+the count remains 7/18 demonstrated items and 0/4 completed milestones.
+
+[PR #459](https://github.com/e6qu/fun-refactor/pull/459) closed the bounded client-delivery
+investigation. Its [retained results](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
+show inconsistent CPU differences; no targeted client fix is justified. Do not dispatch another
+collection.
 
 The [earlier streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
 failed admission on macOS, with OpenCode dominating sampled CPU. Short controls alone cannot
@@ -22,11 +36,14 @@ remains permanently stopped. No new workstation capture or live model call is ad
 
 ## Next work
 
-Inventory guide/intent/task/direct-author overlap, measure equivalent scripted workflows and
-consolidate a demonstrated duplication while preserving checks, recovery and compatibility.
-The [plan](../PLAN.md#next-large-chunk) distinguishes this workflow-overhead work from autonomous
-agent efficiency. Any later live comparison needs fresh resource admission, actual fr use and
-complete costs; it cannot resume a stopped collection.
+Measure body-input preparation and recovery after an applied-state check fails. A guide already
+knows its targets, checks and delivery policy, but source-body callers still repeat those fields
+when constructing a task operation. Assess a typed builder using those exact retained values,
+with agent-authored bodies and explicit ambiguity/staleness refusals. Keep every public route
+until evidence supports removing it. The [plan](../PLAN.md#next-large-chunk) tracks this work.
+
+Any later live comparison needs fresh resource admission, actual fr use and complete costs;
+it cannot resume a stopped collection.
 
 The [candidate review table](candidate-review-status.md) owns task admission and review gaps.
 The [product review](product-review.md) owns evaluation and removal criteria. There is no general
