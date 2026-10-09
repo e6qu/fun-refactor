@@ -38,6 +38,15 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
+The [hosted streaming comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
+finished with 10 completed captures, six CPU-limit stops and 16 unstarted captures. Linux ordinary-tool
+pairs used 4.0–4.5 more mean sampled CPU seconds with chunked replies. All macOS streaming cases
+hit the CPU cap, with OpenCode consuming most of the sampled CPU. None qualified for workstation admission.
+
+The admission gate now requires this representative workload as well as the short controls.
+The results justify blocking local client collection; they do not justify an optimization to fr's
+code analysis or explain the client's internal cost. Frozen reports replay offline in CI.
+
 The [configured packaging pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
 stopped on its first attempt. Kimi made five ordinary tool calls and one source replacement,
 then hit the unchanged 20-CPU-second limit before submitting. Three planned attempts remain
@@ -53,16 +62,18 @@ Five of six reviews completed; GLM's failed policy review remains failed. See th
 
 ## Next large chunk
 
-Attribute configured-client CPU use with a representative scripted workload on GitHub.
-The retained live trace contains 851 streamed text deltas; the passing workstation control
-contains none. That is a testable difference, not an established cause of the failure.
+Determine whether the configured client can handle representative streaming within the existing
+limits. The first comparison attributes most sampled CPU to OpenCode, including without fr tools.
+Keep this investigation bounded; it supports evaluating the CLI and is not a new product subsystem.
 
-1. Compare identical scripted replies delivered whole and in many chunks. Include realistic
-   source reads and edits, and retain per-process CPU, RSS and exact result identities.
-2. Fix only overhead supported by those measurements. Keep existing resource limits and
-   require fresh hosted admission before any guarded workstation control.
-3. Consider a new, committed comparison design only after admission. The stopped packaging
-   collection cannot resume; failed cells cannot be retried under a new directory name.
+1. Improve Linux CPU sampling precision and isolate delivery pacing from fragmentation in a
+   predeclared hosted diagnostic. Do not reinterpret rounded historical counters as exact measurements.
+2. Test a supported client configuration or targeted change only against a measured cause.
+   Require unchanged replies, exact edits and passing CPU/memory admission on both platforms.
+   If no bounded option works, keep workstation collection blocked and record that outcome.
+3. After fresh admission, design a small comparison that measures actual fr use and complete cost.
+   Use it to simplify overlapping guide/intent/task routes and oversized responses. The stopped
+   packaging collection cannot resume; failed cells cannot be retried under a new directory name.
 
 ## Remaining product gaps
 
@@ -83,6 +94,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 
 | Evidence | Established result | Limit |
 | --- | --- | --- |
+| [Streaming CPU comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md) | Client dominates sampled CPU; short controls cannot admit representative streaming | Six CPU stops; no macOS admission or general agent-efficiency result |
 | [Configured change pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) | Resource stop retained and independently replayed | One failed capture, three unstarted cells; no behavior or efficiency comparison |
 | [Native source-reading report](docs/native-read-outcomes.md) | Two passes and four timeouts, including observed failed work | No successful ordinary/fr pair; billing and complete context remain unknown |
 | [Native code-change report](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts; exact submissions graded on GitHub | No attempt used fr |

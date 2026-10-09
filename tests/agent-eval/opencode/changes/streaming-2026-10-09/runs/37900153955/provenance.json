@@ -1,0 +1,107 @@
+{
+  "artifacts": [
+    {
+      "bytes": 87237,
+      "id": 11602941143,
+      "name": "streaming-macos-15-0",
+      "sha256": "08dd1c0546e6583070eff2e0dfe6788b448f2e25cc82cc669f03ae105d0ca701"
+    },
+    {
+      "bytes": 55521,
+      "id": 11601932594,
+      "name": "streaming-macos-15-1",
+      "sha256": "783a5bfdcdc2059b9efc3f0e20ebd75a0c610872f2f039e28c71502dc2f89b58"
+    },
+    {
+      "bytes": 78229,
+      "id": 11602647035,
+      "name": "streaming-macos-15-2",
+      "sha256": "882ffba587024e9bcad8495959794d3e7fa872a2f3c0775da22375ea9c2b5603"
+    },
+    {
+      "bytes": 44085,
+      "id": 11601867981,
+      "name": "streaming-macos-15-3",
+      "sha256": "a12ff1824433e335e1209f422a4d2214272343474214a88eabdc1a2fe47653eb"
+    },
+    {
+      "bytes": 191613,
+      "id": 11602418663,
+      "name": "streaming-ubuntu-latest-0",
+      "sha256": "5546d0b977beac567a30d6ba8f74bec8cb9184182dfeb429bc7691a57507785b"
+    },
+    {
+      "bytes": 75396,
+      "id": 11602499906,
+      "name": "streaming-ubuntu-latest-1",
+      "sha256": "96919d16cb861d88d7eea9a9411ad4e09662cb9e09345df56a133df30123d04c"
+    },
+    {
+      "bytes": 192547,
+      "id": 11602622904,
+      "name": "streaming-ubuntu-latest-2",
+      "sha256": "394da6c3633aea7b578136f82e59e5a06a00998e8edc73f53d6b19266421b0d5"
+    },
+    {
+      "bytes": 72653,
+      "id": 11602409137,
+      "name": "streaming-ubuntu-latest-3",
+      "sha256": "6234e682a7cd78121eec2d3b3f53901eb34746760ab02258a914cc8be87f4cd7"
+    }
+  ],
+  "conclusion": "success",
+  "head_sha": "d63ddaf2261ab43f0546860cab949e6893db2ed9",
+  "run_id": 37900153955,
+  "runner_sha256": "11139ba01f21fb3ec14bcd06044f05ccb076b6624591e25f8abf5d53196760fb",
+  "sources": {
+    "tools/agent_eval/bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+    "tools/agent_eval/client_memory_profile.py": "5e70370e6653279312e90229183b3fc016d60904f7f9186e7b608655b244d7d7",
+    "tools/agent_eval/container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+    "tools/agent_eval/docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+    "tools/agent_eval/explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+    "tools/agent_eval/isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+    "tools/agent_eval/native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+    "tools/agent_eval/native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+    "tools/agent_eval/native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+    "tools/agent_eval/native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+    "tools/agent_eval/native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+    "tools/agent_eval/native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+    "tools/agent_eval/native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+    "tools/agent_eval/native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+    "tools/agent_eval/opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+    "tools/agent_eval/opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+    "tools/agent_eval/opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+    "tools/agent_eval/opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+    "tools/agent_eval/provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+    "tools/agent_eval/rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+    "tools/agent_eval/request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+    "tools/agent_eval/scripted_stream.py": "f4c133718c4580d22bebe6eb5a76361c4e4e37a600e860152379c21e10f5bcd0",
+    "tools/agent_eval/source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+    "tools/agent_eval/source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+    "tools/agent_eval/source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+    "tools/agent_eval/source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+    "tools/agent_eval/structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+    "tools/agent_eval/structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+    "tools/agent_eval/study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+    "tools/agent_eval/terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+    "tools/agent_eval/terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+    "tools/agent_eval/terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+    "tools/agent_eval/terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+    "tools/agent_eval/terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+    "tools/agent_eval/terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+    "tools/agent_eval/terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+    "tools/agent_eval/terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+    "tools/agent_eval/test_native_changes.py": "efb2fe7808bf0023d388c0a021b29b53926c1ad0942341920bea5524aba7a352",
+    "tools/agent_eval/test_structured_submission.py": "421f26bc1b1651fa30269a68e3841e8f40491010286de7ea9235135c9138d154",
+    "tools/agent_eval/test_terminal_changes.py": "b6f9196c300eb395a85b5abcf2b4515f96d144c34601663814770c0a516067cc",
+    "tools/agent_eval/workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc",
+    "tools/check-change-streaming.py": "a8dd7ade4ff2dee42cbdd3fd61871b37babf93e31e2befc9bb07d6e61a903f64",
+    "tools/check-terminal-changes.py": "39a3ecd2232fc014c578712a233d61ee8436b2f04dcc71bd3ad29f74952b570d",
+    "tools/native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+    "tools/native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+    "tools/terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+    "tools/terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+    "tools/terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff"
+  },
+  "url": "https://github.com/e6qu/fun-refactor/actions/runs/37900153955"
+}

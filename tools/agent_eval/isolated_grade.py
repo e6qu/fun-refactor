@@ -102,6 +102,19 @@ def invoke(command, data, directory, timeout, cap):
     return result, stdout.getvalue(), stderr.getvalue()
 
 
+def failure_details(process, output, error):
+    details = {key: process.get(key) for key in (
+        "exit_code", "process_exit_code", "stop_reason", "elapsed_seconds", "launch_error", "monitor_error")}
+    for key, value in details.items():
+        if isinstance(value, str):
+            details[key] = value[:512]
+    for name, data in (("stdout", output), ("stderr", error)):
+        details[name] = data[:1024].decode("utf-8", errors="replace")
+        details[name + "_bytes"] = len(data)
+        details[name + "_truncated"] = len(data) > 1024
+    return details
+
+
 def grade(candidate, grader_path, expected_sha256, *, execute=invoke, temporary_parent=None):
     raw = Path(grader_path).read_bytes()
     require(len(raw) <= 1024**2, "grader exceeds size limit")
@@ -124,8 +137,9 @@ def grade(candidate, grader_path, expected_sha256, *, execute=invoke, temporary_
             name = "fr-grade-" + uuid.uuid4().hex
             verdict = {"id": case["id"], "passed": False, "failure": None}
             try:
-                created, _, _ = execute(create_command(grader, staged, name), b"", root, 10, 65536)
-                require(created["exit_code"] == 0 and not created["stop_reason"], "container creation failed")
+                created, creation_output, creation_error = execute(create_command(grader, staged, name), b"", root, 10, 65536)
+                require(created["exit_code"] == 0 and not created["stop_reason"],
+                        "container creation failed: " + json.dumps(failure_details(created, creation_output, creation_error)))
                 execution, output, error = execute(DOCKER + ["start", "--attach", "--interactive", name],
                                                    case["stdin"].encode(), root, limits["wall_seconds"], limits["output_bytes"])
                 inspected, state, _ = execute(DOCKER + ["inspect", "--format", "{{json .State}}", name], b"", root, 5, 65536)
@@ -143,8 +157,12 @@ def grade(candidate, grader_path, expected_sha256, *, execute=invoke, temporary_
             except (OSError, ValueError, KeyError) as error:
                 verdict["failure"] = str(error)
             finally:
-                removed, _, _ = execute(DOCKER + ["rm", "--force", name], b"", root, 5, 65536)
-                require(removed["exit_code"] == 0 and not removed["stop_reason"], "grader container cleanup failed; stop the worker")
+                removed, cleanup_output, cleanup_error = execute(DOCKER + ["rm", "--force", name], b"", root, 5, 65536)
+                require(removed["exit_code"] == 0 and not removed["stop_reason"],
+                        "grader container cleanup failed; stop the worker: " + json.dumps({
+                            "case": case["id"][:128], "container": name,
+                            "prior_failure": verdict["failure"][:1024] if verdict["failure"] else None,
+                            "cleanup": failure_details(removed, cleanup_output, cleanup_error)}))
             results.append(verdict)
     return {"schema": "fr-isolated-grade-1", "grader_sha256": expected_sha256, "candidate": retained,
             "image": grader["image"], "outcome": "passed" if all(case["passed"] for case in results) else "failed",

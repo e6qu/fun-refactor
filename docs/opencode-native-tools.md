@@ -17,6 +17,17 @@ controls and one guarded workstation control must match the intended runtime and
 The [retained pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
 shows the admission evidence and permanent resource stop; it cannot be resumed.
 
+Short whole-reply controls are insufficient for workstation admission. The
+[streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
+also exercises incremental text and tool arguments. `tools/check-change-workstation.py` requires
+both `--hosted SHORT-CONTROLS` and `--streaming STREAMING-RUN`, with matching runtime and macOS
+executables. Every streaming case must complete and pass memory headroom before the tool can
+launch a local client. A green measurement workflow alone does not satisfy this requirement.
+
+Collect scripted streaming measurements only through an explicit GitHub workflow dispatch.
+Routine PR checks replay retained artifacts with `tools/check-streaming-evidence.py` and run
+offline invariants. They do not repeat failed client captures.
+
 Replay retained captures without model calls:
 
 ```sh

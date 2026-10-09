@@ -95,6 +95,47 @@ class Grading(unittest.TestCase):
             grade(self.candidate, visible, self.sha, execute=self.execute)
         self.assertEqual(self.calls, [])
 
+    def test_cleanup_timeout_retains_bounded_diagnostics_and_stops_cases(self):
+        value = rubric()
+        value["cases"].append({**value["cases"][0], "id": "must-not-run"})
+        self.grader.write_text(json.dumps(value))
+        self.sha = hashlib.sha256(self.grader.read_bytes()).hexdigest()
+        cleanups = []
+        def fail(command, data, directory, timeout, cap):
+            if command[3] == "rm":
+                cleanups.append(command)
+                self.assertEqual((timeout, cap), (5, 65536))
+                return {"exit_code": 124, "process_exit_code": -9, "stop_reason": "wall_seconds",
+                        "elapsed_seconds": 5.1}, b"partial removal", b"daemon busy\n" + b"x" * 4096
+            return self.execute(command, data, directory, timeout, cap)
+        with self.assertRaisesRegex(ValueError, "cleanup failed; stop the worker") as caught:
+            grade(self.candidate, self.grader, self.sha, execute=fail)
+        details = json.loads(str(caught.exception).split("stop the worker: ", 1)[1])
+        self.assertEqual(details["case"], "hidden")
+        self.assertEqual(details["container"], cleanups[0][-1])
+        self.assertIsNone(details["prior_failure"])
+        self.assertEqual(details["cleanup"]["stop_reason"], "wall_seconds")
+        self.assertEqual(details["cleanup"]["process_exit_code"], -9)
+        self.assertEqual(details["cleanup"]["stdout"], "partial removal")
+        self.assertEqual(len(details["cleanup"]["stderr"]), 1024)
+        self.assertTrue(details["cleanup"]["stderr_truncated"])
+        self.assertEqual(details["cleanup"]["stderr_bytes"], 4108)
+        self.assertEqual(len(cleanups), 1)
+        self.assertEqual(sum(command[3] == "create" for command, _ in self.calls), 1)
+
+    def test_cleanup_error_keeps_the_original_creation_failure(self):
+        def fail(command, *args):
+            if command[3] == "create":
+                return {"exit_code": 1, "stop_reason": None}, b"", b"daemon unavailable"
+            if command[3] == "rm":
+                return {"exit_code": 1, "stop_reason": None}, b"", b"no such container"
+            return self.execute(command, *args)
+        with self.assertRaisesRegex(ValueError, "cleanup failed") as caught:
+            grade(self.candidate, self.grader, self.sha, execute=fail)
+        details = json.loads(str(caught.exception).split("stop the worker: ", 1)[1])
+        self.assertIn("daemon unavailable", details["prior_failure"])
+        self.assertEqual(details["cleanup"]["stderr"], "no such container")
+
     def test_snapshot_binds_content_and_empty_directories(self):
         first = snapshot(self.candidate, self.root / "first", 1024)
         (self.candidate / "empty").mkdir()

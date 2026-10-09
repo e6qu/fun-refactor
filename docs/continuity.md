@@ -6,21 +6,21 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 
 ## Current work
 
-[PR #456](https://github.com/e6qu/fun-refactor/pull/456) adds exact-submission grading,
-failure-preserving reports and frozen Python runners for future replay. It also retains the
-[configured packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md).
+[PR #458](https://github.com/e6qu/fun-refactor/pull/458) retains the
+[hosted streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
+and prevents short scripted controls from admitting local client work on their own. Representative
+streaming failed admission on macOS; OpenCode dominated sampled CPU. Full results and limitations
+belong in that report. Routine PR checks replay frozen evidence without launching clients.
 
-That collection is permanently stopped: Kimi's first ordinary-tool attempt hit the 20-CPU-second
-limit before submitting, and three cells remain unstarted. No partial edit was graded. Hosted
-replay verifies every outcome. The report records admission, executable and source identities,
-resource measurements, failed work and unknown usage; do not duplicate those records here.
+The earlier [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
+remains permanently stopped. No new workstation capture or live model call is admitted.
 
 ## Next work
 
-Run representative scripted streaming and editing workloads on GitHub to attribute CPU use.
-The live trace has 851 streamed text deltas, while the passing workstation control has none.
-This difference is a hypothesis to test. Keep resource limits unchanged and do not resume the
-stopped collection. Any later live comparison needs a new design and fresh admission.
+Use finer Linux CPU sampling and matched pacing to isolate client streaming overhead on GitHub.
+Test only a supported configuration or targeted fix, under unchanged limits and a new committed
+design. Keep this client investigation bounded. Any later live comparison needs fresh admission,
+actual fr-use accounting and complete costs; it cannot resume a stopped collection.
 
 The [candidate review table](candidate-review-status.md) owns task admission and review gaps.
 The [product review](product-review.md) owns evaluation and removal criteria. There is no general
