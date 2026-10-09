@@ -66,8 +66,10 @@ Determine whether the configured client can handle representative streaming with
 limits. The first comparison attributes most sampled CPU to OpenCode, including without fr tools.
 Keep this investigation bounded; it supports evaluating the CLI and is not a new product subsystem.
 
-1. Improve Linux CPU sampling precision and isolate delivery pacing from fragmentation in a
-   predeclared hosted diagnostic. Do not reinterpret rounded historical counters as exact measurements.
+1. Run the [committed delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md):
+   finer Linux CPU counters and four combinations of fragmentation and delivery duration. The
+   sixteen cells allow at most 32 ordinary-tool captures, with no retries or adaptive extension.
+   Do not reinterpret rounded historical counters as exact measurements.
 2. Test a supported client configuration or targeted change only against a measured cause.
    Require unchanged replies, exact edits and passing CPU/memory admission on both platforms.
    If no bounded option works, keep workstation collection blocked and record that outcome.

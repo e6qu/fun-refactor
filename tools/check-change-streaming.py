@@ -122,11 +122,14 @@ def capture(folder, case, mode, binary, client):
     case = {**case, "streaming": binding(mode)}
     def provider(root, name, **kwargs):
         server = ORIGINAL_PROVIDER(root, name, **kwargs)
-        replies = []
+        replies, deliveries = [], []
         def writer(handler, value):
             replies.append(value)
             (folder / "replies.json").write_bytes(encode(replies))
-            scripted_stream.write(handler, value, mode)
+            delivery = scripted_stream.write(handler, value, mode)
+            if delivery is not None:
+                deliveries.append(delivery)
+                (folder / "delivery.json").write_bytes(encode(deliveries))
         server.stream_writer = writer
         return server
     with patch.object(control, "task", task), patch.object(control, "response", lambda original, turn, c, attempt: reply(turn, c, attempt)), patch.object(control.probe, "provider", provider):
@@ -134,7 +137,10 @@ def capture(folder, case, mode, binary, client):
 
 
 def binding(mode):
-    return {"mode": mode, "script_sha256": source_reviews.identity(Path(__file__)),
+    extra = ({"diagnostic_sha256": source_reviews.identity(Path(__file__).with_name("check-streaming-delivery.py"))}
+             if mode in scripted_stream.DELIVERY_MODES else {})
+    return {**extra, "mode": mode, "script_sha256": source_reviews.identity(Path(__file__)),
+            "profiler_sha256": source_reviews.identity(Path(client_memory_profile.__file__)),
             "codec_sha256": source_reviews.identity(Path(scripted_stream.__file__))}
 
 
@@ -200,11 +206,11 @@ def report(folder):
     return result
 
 
-def single(folder, case, mode, binary, client):
+def single(folder, case, mode, binary, client, *, entrypoint=None):
     folder.mkdir(parents=True, exist_ok=False)
     (folder / "case.json").write_bytes(encode({"case": control.CASES[case], "mode": mode}))
     out, err = io.BytesIO(), io.BytesIO()
-    process = control.profiled_run([sys.executable, "-B", str(Path(__file__).resolve()), "capture", str(folder),
+    process = control.profiled_run([sys.executable, "-B", str(entrypoint or Path(__file__).resolve()), "capture", str(folder),
         "--case", str(case), "--mode", mode, "--fr", str(binary), "--opencode", str(client)], out, err, folder)
     (folder / "process.json").write_bytes(encode(process))
     (folder / "host.stdout").write_bytes(out.getvalue())

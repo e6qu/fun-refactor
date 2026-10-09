@@ -18,8 +18,10 @@ remains permanently stopped. No new workstation capture or live model call is ad
 ## Next work
 
 Use finer Linux CPU sampling and matched pacing to isolate client streaming overhead on GitHub.
-Test only a supported configuration or targeted fix, under unchanged limits and a new committed
-design. Keep this client investigation bounded. Any later live comparison needs fresh admission,
+The [committed delivery design](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
+sets sixteen independent cells and at most 32 captures, with no retries or adaptive extension.
+Test only a supported configuration or targeted fix against an observed cause, under unchanged
+limits and a new committed design. Any later live comparison needs fresh admission,
 actual fr-use accounting and complete costs; it cannot resume a stopped collection.
 
 The [candidate review table](candidate-review-status.md) owns task admission and review gaps.

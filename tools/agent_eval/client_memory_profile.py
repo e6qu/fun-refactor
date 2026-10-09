@@ -1,7 +1,9 @@
 """Bounded process attribution for hosted, scripted client captures."""
 import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 
 from . import bounded_host
@@ -10,6 +12,35 @@ from .study import digest, encode, number, require
 MAX_TRACE = 512 * 1024
 MAX_PROCESSES = 64
 PHASES = ("capture-startup", "server-startup", "message-in-flight", "answer-received", "export")
+
+
+def linux_cpu(raw, group, ticks):
+    """Read utime + stime, excluding waited-for children, from /proc/PID/stat."""
+    require(")" in raw, "invalid Linux process stat")
+    fields = raw.rsplit(")", 1)[1].split()  # comm may contain spaces and parentheses.
+    require(len(fields) >= 22 and int(fields[2]) == group, "process group changed during CPU sample")
+    user, system = int(fields[11]), int(fields[12])
+    require(user >= 0 and system >= 0 and ticks > 0, "invalid Linux CPU counters")
+    return (user + system) / ticks
+
+
+def measured_processes(raw, group, *, platform=None, proc=Path("/proc"), ticks=None):
+    platform = sys.platform if platform is None else platform
+    rows = processes(raw, group)
+    if platform != "linux":
+        require(platform == "darwin", "unsupported CPU counter platform")
+        return rows, {"source": "darwin-ps-time", "quantum_seconds": 0.01}
+    ticks = os.sysconf("SC_CLK_TCK") if ticks is None else ticks
+    require(type(ticks) is int and ticks > 0, "invalid clock tick rate")
+    retained = []
+    for row in rows:
+        try:
+            stat = (proc / str(row["pid"]) / "stat").read_text()
+        except (FileNotFoundError, ProcessLookupError):
+            continue  # Exited between ps and stat; never substitute a rounded counter.
+        row["cpu_seconds"] = linux_cpu(stat, group, ticks)
+        retained.append(row)
+    return retained, {"source": "linux-proc-stat", "quantum_seconds": 1 / ticks}
 
 
 def phase(attempt):
@@ -49,10 +80,10 @@ class Sampler:
         before, started = phase(self.attempt), time.monotonic() - self.started
         raw = subprocess.run(["ps", "-axo", "pid=,pgid=,rss=,time=,comm="],
                              capture_output=True, text=True, timeout=2, check=True).stdout
-        rows = processes(raw, group)
+        rows, counter = measured_processes(raw, group)
         record = {"group": group, "started_seconds": started,
                   "finished_seconds": time.monotonic() - self.started,
-                  "phase_before": before, "phase_after": phase(self.attempt), "processes": rows}
+                  "cpu_counter": counter, "phase_before": before, "phase_after": phase(self.attempt), "processes": rows}
         data = encode(record) + b"\n"
         require(self.written + len(data) <= MAX_TRACE, "profile trace exceeds budget")
         with self.path.open("ab") as stream:
@@ -71,8 +102,14 @@ def audit(root, process):
     require(samples, "missing process samples")
     peak, cpu, previous, group = None, {}, 0, samples[0]["group"]
     phases = {}
+    counter = samples[0].get("cpu_counter")
+    if counter is not None:
+        require(set(counter) == {"source", "quantum_seconds"}, "invalid CPU counter metadata")
+        require(counter["source"] in {"linux-proc-stat", "darwin-ps-time"}, "unknown CPU counter")
+        number(counter["quantum_seconds"], "CPU quantum", positive=True)
     for sample in samples:
-        require(set(sample) == {"group", "started_seconds", "finished_seconds", "phase_before", "phase_after", "processes"},
+        require(sample.get("cpu_counter") == counter, "CPU counter changed during capture")
+        require(set(sample) == ({"group", "started_seconds", "finished_seconds", "phase_before", "phase_after", "processes"} | ({"cpu_counter"} if counter is not None else set())),
                 "unexpected profile fields")
         require(type(group) is int and group > 0 and sample["group"] == group, "profile group changed")
         for key in ("started_seconds", "finished_seconds"):

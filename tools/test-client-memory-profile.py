@@ -16,6 +16,12 @@ from agent_eval.study import encode
 
 
 class ClientMemoryProfile(unittest.TestCase):
+    def setUp(self):
+        # Existing fixtures exercise ps/macOS parsing; Linux stat has separate tests.
+        mocked = patch.object(profile.sys, "platform", "darwin")
+        mocked.start()
+        self.addCleanup(mocked.stop)
+
     def test_retained_profiles_reproduce_guard_peaks_and_client_attribution(self):
         here = Path(__file__).resolve().parents[1] / "tests/agent-eval/opencode/memory/2026-10-07-profile"
         manifest = json.loads((here / "manifest.json").read_bytes())
