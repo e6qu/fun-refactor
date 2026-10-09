@@ -35,6 +35,7 @@ jobs:
       FR_STUDY_CGROUP_TESTS: "1"
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -70,6 +71,7 @@ jobs:
         task: [dotenv-alternate, packaging-prerelease, platformdirs-xdg]
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/grading-registry
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'

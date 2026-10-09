@@ -164,8 +164,12 @@ jobs:
       - run: cargo build --locked --bin fr
       - name: Check guided review integrity
         run: |
-          python3 -m pip install 'pytest==9.1.1'
-          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_guide.py
+          python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
+          ty check sdk/python/src
+          PYTHONPATH=sdk/python/src python3 -B -m pytest -q sdk/python/tests/test_guide.py sdk/python/tests/test_guide_bodies.py
+          python3 -B tools/test-guide-body-native.py
+      - name: Compare body preparation and applied-state recovery
+        run: python3 -B tools/guide-body-context.py --output target/workflow-routes/guide-body-context.json
       - name: Compare editing routes and refusals
         run: python3 -B tools/workflow-route-context.py --output target/workflow-routes/result.json
       - name: Refresh the scalar guide comparison

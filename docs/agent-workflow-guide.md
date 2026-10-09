@@ -69,6 +69,31 @@ resolve to a distinct declaration admitted by `replace-body`. The guide reveals 
 under the same source limit and previews one `author batch` manifest. Native review checks that
 the authored target set equals the guide's complete target set before one checked delivery.
 
+In the Python SDK, `guide.source_body_action({handle: body_text})` builds that task from the
+retained targets, named checks and delivery policy. Supply every guided handle exactly once;
+names and list positions are not substitutes for handles. Python bodies are relative suites;
+braced languages include the outer braces. The helper copies the supplied text, derives exact
+file/edit postconditions and makes no subprocess call. For example, after reading a single
+Python target and authoring its replacement:
+
+```python
+action = guide.source_body_action({guide.target.handle: "return value.strip().upper()\n"})
+review = client.review_guide(guide, action)
+print(review.at("/diff"))  # Inspect the complete review before executing it.
+```
+
+Execute an accepted review with `client.execute_guide(review)`. A prepared action is not an
+approved write: native review still rejects stale source, invalid bodies and incomplete diffs.
+The helper refuses changed guide/goal receipts, incomplete target sets and unadmitted routes.
+It does not infer replacement bodies or choose among ambiguous declarations.
+
+If a declared check fails after application, the transaction can remain applied and no patch is
+delivered. Keep the failed execution report (including `FrRuntimeError.report` on a nonzero exit),
+inspect its `transaction` and `workflow.stages`, then reopen the project and preview
+`fr history undo TX`. After reviewing that reversal, use `fr history undo TX --write --no-diff`
+and rerun the declared checks. Undo refuses if later edits conflict; preserve those edits and
+resolve them deliberately. Do not report a failed checked edit as a delivered change.
+
 Exact scalar goals with declared checks produce one complete `fr-task-change-1` preview input.
 Integer/float scalars follow the live unsigned-decimal contract; negatives use explicit unary IR
 nodes. Option-like string values use equals-form arguments so the CLI preserves their data role.

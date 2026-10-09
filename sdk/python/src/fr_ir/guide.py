@@ -404,6 +404,54 @@ class AgentGuide:
         """Return the typed target selected by this guide."""
         return AgentTarget.from_data(self.at("/target"))
 
+    def source_body_action(self, bodies: Mapping[str, str]) -> TaggedIntentAction:
+        """Build a checked task from caller-authored bodies keyed by exact guided handles.
+
+        This prepares input only. Review it with ``client.review_guide`` before execution;
+        native review still checks source freshness, body syntax and diff completeness.
+        """
+        data = self.to_data()
+        if (hashlib.sha256(_canonical(data)).hexdigest() != self.report_sha256
+                or hashlib.sha256(_canonical(self.goal.to_data())).hexdigest() != data["goal_sha256"]):
+            raise FrRuntimeError("guide or goal changed after receipt")
+        route = data.get("route")
+        kind = self.goal.operation.kind
+        if (kind not in ("source-body", "source-bodies") or self.goal.purpose != "change"
+                or not isinstance(route, Mapping) or route.get("id") != kind
+                or route.get("admitted") is not True or data.get("state") != "ready"
+                or data.get("refusals") or not self.goal.constraints.allow_source
+                or not self.goal.checks or self.goal.delivery is None):
+            raise FrRuntimeError("guide does not contain a complete admitted source-body route")
+        rows = data.get("targets") if kind == "source-bodies" else [data.get("target")]
+        count = 1 + (len(self.goal.operation.fields["additional"]) if kind == "source-bodies" else 0)
+        if not isinstance(rows, list) or len(rows) != count:
+            raise FrRuntimeError("body guide needs complete distinct declaration targets")
+        targets: list[tuple[str, str]] = []
+        for row in rows:
+            if not isinstance(row, Mapping):
+                raise FrRuntimeError("body guide needs complete distinct declaration targets")
+            handle, path = row.get("handle"), row.get("path")
+            if (not isinstance(handle, str) or not handle.startswith("frp1:")
+                    or not isinstance(path, str) or not path):
+                raise FrRuntimeError("body guide needs complete distinct declaration targets")
+            targets.append((handle, path))
+        if len({handle for handle, _ in targets}) != count or rows[0] != data.get("target"):
+            raise FrRuntimeError("body guide needs complete distinct declaration targets")
+        if (not isinstance(bodies, Mapping) or set(bodies) != {handle for handle, _ in targets}
+                or any(not isinstance(body, str) for body in bodies.values())):
+            raise FrRuntimeError("bodies must map every exact guided handle to source text")
+        paths = sorted({path for _, path in targets})
+        change = TaskChange(
+            (), tuple(TaskTarget(f"body-{i}", handle, "replace-body",
+                                 fragment=bodies[handle]) for i, (handle, _) in enumerate(targets)),
+            {"files-changed": len(paths), "edits": count, "changed-operations": count,
+             "paths-changed": paths}, self.goal.checks, self.goal.delivery,
+        )
+        return TaggedIntentAction(
+            TaskChangeOperation(change), diff_bytes=self.goal.context.token_limit,
+            report_bytes=self.goal.context.packet_limit, proof_expectation=self.goal.proof,
+        )
+
     def semantic_scalar_action(self) -> TaggedIntentAction:
         """Return the exact typed task action already committed by a complete scalar guide."""
         if hashlib.sha256(_canonical(self.to_data())).hexdigest() != self.report_sha256:

@@ -6,21 +6,21 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 
 ## Current work
 
-The [workflow inventory](workflow-routes.md) records the separate purposes and consumers of
-guide, intent, task and direct-author routes. Guided writes now validate the retained goal/review
-in the SDK and revalidate the guide inside native intent execution. The separate SDK guide read
-before writing is removed; the read/preview refresh remains.
+The [body-input comparison](workflow-routes.md#preparing-body-edits-and-recovering-failed-checks)
+passed all 40 cells in hosted run 37995201079. `AgentGuide.source_body_action` reuses exact retained
+targets, checks and delivery for caller-authored bodies. Complete caller/submission size falls by
+595 bytes in each of four fixtures; both arms retain three processes and the same internal bytes.
+All successful patches and lifecycle stages agree. Failed applied checks retain changed source
+without delivery; reopened undo restores checked source and refuses later conflicting edits.
 
-The hosted comparison passed 15 successful edits and 23 refusal controls. Guided writes use
-three processes instead of four and carry 5,057–5,949 fewer internal bytes in these fixtures.
-Exact source, patches and all eight lifecycle stages agree; seven offline audit tests pass.
-These are workflow-overhead measurements, not autonomous agent-efficiency results. The full PR
-gate is required before merge.
+Eight body-report integrity tests, seven refreshed route-report tests and three native boundary
+tests cover the result. The existing 38-cell route and scalar comparisons were refreshed against
+the new SDK source. These are prescribed workflow measurements, not autonomous agent-efficiency
+results. The full PR gate is required before merge.
 
-The SDK edit also required fresh full-repository delivery evidence. Hosted run 37978664543 passed
-the existing boltons and more-itertools tasks, all 365 independent behavior cases, interruption,
-stale-review rejection and patch replay. The catalog and generated roadmap use that report;
-the count remains 7/18 demonstrated items and 0/4 completed milestones.
+Hosted run 37995212729 refreshed both existing Python repository tasks after the SDK change.
+All 365 behavior cases, interruption, stale-review rejection and patch replay passed. The catalog
+selects that report; roadmap status remains 7/18 demonstrated items and 0/4 completed milestones.
 
 [PR #459](https://github.com/e6qu/fun-refactor/pull/459) closed the bounded client-delivery
 investigation. Its [retained results](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
@@ -36,11 +36,11 @@ remains permanently stopped. No new workstation capture or live model call is ad
 
 ## Next work
 
-Measure body-input preparation and recovery after an applied-state check fails. A guide already
-knows its targets, checks and delivery policy, but source-body callers still repeat those fields
-when constructing a task operation. Assess a typed builder using those exact retained values,
-with agent-authored bodies and explicit ambiguity/staleness refusals. Keep every public route
-until evidence supports removing it. The [plan](../PLAN.md#next-large-chunk) tracks this work.
+Measure repair-and-resume versus undo-and-retry through checked patch delivery after applied-state
+failure. Current evidence stops at restored source. Also review current caller policies before
+adopting the helper: the multi-body runner requests a larger diff and different postconditions.
+Preserve those semantics and frozen historical snapshots. The [plan](../PLAN.md#next-large-chunk)
+tracks exact delivery, check-receipt and receiver-replay requirements.
 
 Any later live comparison needs fresh resource admission, actual fr use and complete costs;
 it cannot resume a stopped collection.
