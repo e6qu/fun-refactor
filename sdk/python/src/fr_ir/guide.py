@@ -424,20 +424,26 @@ class AgentGuide:
             raise FrRuntimeError("guide does not contain a complete admitted source-body route")
         rows = data.get("targets") if kind == "source-bodies" else [data.get("target")]
         count = 1 + (len(self.goal.operation.fields["additional"]) if kind == "source-bodies" else 0)
-        if (not isinstance(rows, list) or len(rows) != count
-                or any(not isinstance(row, Mapping) or not isinstance(row.get("handle"), str)
-                       or not row["handle"].startswith("frp1:")
-                       or not isinstance(row.get("path"), str) or not row["path"] for row in rows)
-                or len({row["handle"] for row in rows}) != count
-                or rows[0] != data.get("target")):
+        if not isinstance(rows, list) or len(rows) != count:
             raise FrRuntimeError("body guide needs complete distinct declaration targets")
-        if (not isinstance(bodies, Mapping) or set(bodies) != {row["handle"] for row in rows}
+        targets: list[tuple[str, str]] = []
+        for row in rows:
+            if not isinstance(row, Mapping):
+                raise FrRuntimeError("body guide needs complete distinct declaration targets")
+            handle, path = row.get("handle"), row.get("path")
+            if (not isinstance(handle, str) or not handle.startswith("frp1:")
+                    or not isinstance(path, str) or not path):
+                raise FrRuntimeError("body guide needs complete distinct declaration targets")
+            targets.append((handle, path))
+        if len({handle for handle, _ in targets}) != count or rows[0] != data.get("target"):
+            raise FrRuntimeError("body guide needs complete distinct declaration targets")
+        if (not isinstance(bodies, Mapping) or set(bodies) != {handle for handle, _ in targets}
                 or any(not isinstance(body, str) for body in bodies.values())):
             raise FrRuntimeError("bodies must map every exact guided handle to source text")
-        paths = sorted({row["path"] for row in rows})
+        paths = sorted({path for _, path in targets})
         change = TaskChange(
-            (), tuple(TaskTarget(f"body-{i}", row["handle"], "replace-body",
-                                 fragment=bodies[row["handle"]]) for i, row in enumerate(rows)),
+            (), tuple(TaskTarget(f"body-{i}", handle, "replace-body",
+                                 fragment=bodies[handle]) for i, (handle, _) in enumerate(targets)),
             {"files-changed": len(paths), "edits": count, "changed-operations": count,
              "paths-changed": paths}, self.goal.checks, self.goal.delivery,
         )
