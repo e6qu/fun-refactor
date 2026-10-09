@@ -6,11 +6,15 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 
 ## Current work
 
-[PR #458](https://github.com/e6qu/fun-refactor/pull/458) retains the
-[hosted streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
-and prevents short scripted controls from admitting local client work on their own. Representative
-streaming failed admission on macOS; OpenCode dominated sampled CPU. Full results and limitations
-belong in that report. Routine PR checks replay frozen evidence without launching clients.
+[PR #459](https://github.com/e6qu/fun-refactor/pull/459) implements the committed delivery diagnostic.
+The single [collection run 37952719938](https://github.com/e6qu/fun-refactor/actions/runs/37952719938)
+uses commit `8f00d13f203ad9a1274cfa2fb98f9d4f8e359d9c`; results and the decision are pending.
+Do not dispatch another collection. Retain the original artifacts and exact runner sources,
+then replay them on GitHub before completing this PR.
+
+The [earlier streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
+failed admission on macOS, with OpenCode dominating sampled CPU. Short controls alone cannot
+admit local client work. Routine PR checks replay frozen evidence without launching clients.
 
 The earlier [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
 remains permanently stopped. No new workstation capture or live model call is admitted.

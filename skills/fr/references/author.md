@@ -34,7 +34,12 @@ For source-free body replacement and smaller checked changes, use [Semantic](sem
 pub fn increment_twice(value: u32) -> u32 { increment(increment(value)) }
 ```
 
-Use the lookup's file-scoped `root` as `<FILE_HANDLE>`:
+For a body replacement, save this manifest with the selected declaration's full handle and
+the path to a fragment containing the new body:
+```json
+{"operations":[{"op":"replace-body","handle":"<DECLARATION_HANDLE>","from":"<BODY_FILE>"}]}
+```
+
 ```sh
 fr project find increment --in src/lib.rs --source --bytes 512
 fr author batch --from '<MANIFEST>'
