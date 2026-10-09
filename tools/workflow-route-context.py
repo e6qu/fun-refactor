@@ -334,7 +334,7 @@ def measure(executable):
     return {"schema": "fr-workflow-route-context-1", "bindings": bindings(),
             "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT).decode().strip(),
             "binary_sha256": digest(Path(executable).read_bytes()), "baseline": baseline,
-            "fixtures": SOURCES, "runs": runs,
+            "fixtures": list(SOURCES), "runs": runs,
             "limits": "Prescribed edits, canonical SDK request/response bytes and finite behavior checks. "
                       "No model, hidden context, billing, token, time or population comparison. "
                       "Common fixture setup and external oracle calls are excluded from fr traffic. "
@@ -362,6 +362,18 @@ def audit(value):
     for key, row in rows.items():
         if row["metrics"] != metrics(row["events"]):
             raise ValueError("route traffic accounting changed")
+        events = row["events"]
+        if not 0 < row["execution_start"] <= len(events):
+            raise ValueError("route execution boundary is absent")
+        if any(e["response"]["exit_code"] != 0 for e in events[:row["execution_start"]]):
+            raise ValueError("route preview failed before execution")
+        if row["result"] is not None and events[-1]["response"] != {
+                "exit_code": 0, "report": row["result"]}:
+            raise ValueError("route result differs from its recorded native response")
+        if row["error"] and row["error"]["exit_code"] is not None:
+            if events[-1]["response"] != {"exit_code": row["error"]["exit_code"],
+                    "error": row["error"]["message"], "report": row["error"]["report"]}:
+                raise ValueError("route refusal differs from its recorded native response")
         if row["fault"]:
             workflow = (row["result"].get("workflow", row["result"]) if row["result"] else None)
             if (row["before_execution"] != row["source"] or row["patch"] is not None
@@ -381,9 +393,13 @@ def audit(value):
         if (row["error"] or row["source"] != expected or not row["patch"]
                 or workflow.get("passed") is not True or row["oracle"]["exit_code"] != 0
                 or row["oracle"]["program"] != checker(case, final=True)
+                or any(e["response"]["exit_code"] != 0 for e in events)
                 or stages != [{"stage": s, "status": "passed"} for s in STAGES]
                 or row["required_checks_bound"] is not (row["arm"] != "author")):
             raise ValueError("route outcome, behavior, check binding or lifecycle changed")
+        receipt = workflow["stages"][-1]["result"]
+        if receipt["sha256"] != digest(row["patch"].encode()) or receipt["bytes"] != len(row["patch"].encode()):
+            raise ValueError("route patch differs from its delivery receipt")
     differences = {}
     for case in SOURCES:
         peers = [rows[(case["id"], a, None)] for a in ARMS]
@@ -408,14 +424,13 @@ def main():
         args.output.parent.mkdir(parents=True, exist_ok=True)
     try:
         value = json.loads(args.audit.read_text()) if args.audit else measure(str(args.fr.resolve()))
+        if args.output:
+            args.output.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+        summary = audit(value)
     except Exception as error:
         if args.output:
             args.output.with_suffix(".failed.txt").write_text(str(error) + "\n")
         raise
-    summary = audit(value)
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps(summary, indent=2))
 
 

@@ -59,6 +59,18 @@ class RouteEvidence(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "outcome, behavior"):
                 routes.audit(report)
 
+    def test_result_must_match_the_recorded_native_response(self):
+        report = copy.deepcopy(self.report)
+        report["runs"][0]["result"]["passed"] = False
+        with self.assertRaisesRegex(ValueError, "recorded native response"):
+            routes.audit(report)
+
+    def test_patch_must_match_the_delivery_receipt(self):
+        report = copy.deepcopy(self.report)
+        report["runs"][0]["patch"] += "unreported bytes"
+        with self.assertRaisesRegex(ValueError, "delivery receipt"):
+            routes.audit(report)
+
 
 if __name__ == "__main__":
     unittest.main()
