@@ -6,21 +6,27 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 
 ## Current work
 
-[PR #458](https://github.com/e6qu/fun-refactor/pull/458) retains the
-[hosted streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
-and prevents short scripted controls from admitting local client work on their own. Representative
-streaming failed admission on macOS; OpenCode dominated sampled CPU. Full results and limitations
-belong in that report. Routine PR checks replay frozen evidence without launching clients.
+[PR #459](https://github.com/e6qu/fun-refactor/pull/459) implements the committed delivery diagnostic.
+The single [collection run 37952719938](https://github.com/e6qu/fun-refactor/actions/runs/37952719938)
+used commit `8f00d13f203ad9a1274cfa2fb98f9d4f8e359d9c`: 31 captures completed and one repetition
+stayed unstarted after failed memory headroom. CPU differences were inconsistent. The original
+artifacts and exact runner are retained; no targeted client fix is justified by these samples.
+The bounded investigation is closed. Do not dispatch another collection.
+
+The [earlier streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
+failed admission on macOS, with OpenCode dominating sampled CPU. Short controls alone cannot
+admit local client work. Routine PR checks replay frozen evidence without launching clients.
 
 The earlier [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
 remains permanently stopped. No new workstation capture or live model call is admitted.
 
 ## Next work
 
-Use finer Linux CPU sampling and matched pacing to isolate client streaming overhead on GitHub.
-Test only a supported configuration or targeted fix, under unchanged limits and a new committed
-design. Keep this client investigation bounded. Any later live comparison needs fresh admission,
-actual fr-use accounting and complete costs; it cannot resume a stopped collection.
+Inventory guide/intent/task/direct-author overlap, measure equivalent scripted workflows and
+consolidate a demonstrated duplication while preserving checks, recovery and compatibility.
+The [plan](../PLAN.md#next-large-chunk) distinguishes this workflow-overhead work from autonomous
+agent efficiency. Any later live comparison needs fresh resource admission, actual fr use and
+complete costs; it cannot resume a stopped collection.
 
 The [candidate review table](candidate-review-status.md) owns task admission and review gaps.
 The [product review](product-review.md) owns evaluation and removal criteria. There is no general

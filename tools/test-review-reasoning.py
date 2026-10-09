@@ -68,6 +68,12 @@ class Reasoning(unittest.TestCase):
         memory_spec = importlib.util.spec_from_file_location("memory", repo / "tools/check-client-memory.py")
         memory = importlib.util.module_from_spec(memory_spec)
         memory_spec.loader.exec_module(memory)
+        current_profile = memory.client_memory_profile
+        profile_path = repo / "tests/agent-eval/opencode/memory/2026-10-07-profile/client_memory_profile.py"
+        profile_spec = importlib.util.spec_from_file_location("agent_eval.retained_reasoning_profile", profile_path)
+        retained_profile = importlib.util.module_from_spec(profile_spec)
+        profile_spec.loader.exec_module(retained_profile)
+        memory.client_memory_profile = retained_profile
         self.assertEqual(set(manifest["platforms"]), {"macos-14", "ubuntu-latest", "workstation"})
         for name, identity in manifest["platforms"].items():
             archive = here / (name + ".json.gz")
@@ -100,6 +106,9 @@ class Reasoning(unittest.TestCase):
                     self.assertEqual(invocation["helper_sha256"], manifest["sources"]["fr-local-reasoning-control-fixed.py"])
                     self.assertEqual(invocation["script_sha256"], manifest["sources"]["check-review-reasoning.py"])
                 else:
+                    with patch.object(memory, "client_memory_profile", current_profile):
+                        with self.assertRaisesRegex(ValueError, "profile implementation changed"):
+                            memory.report(root / "client-memory")
                     measured = memory.report(root / "client-memory")
                     self.assertEqual(measured, expected[name]["memory"])
                     self.assertTrue(measured["admitted"])

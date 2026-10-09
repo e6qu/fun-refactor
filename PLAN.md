@@ -38,14 +38,16 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
-The [hosted streaming comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
-finished with 10 completed captures, six CPU-limit stops and 16 unstarted captures. Linux ordinary-tool
-pairs used 4.0–4.5 more mean sampled CPU seconds with chunked replies. All macOS streaming cases
-hit the CPU cap, with OpenCode consuming most of the sampled CPU. None qualified for workstation admission.
+The [delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
+finished with 31 completed captures and one unstarted repetition. One macOS capture exceeded the
+memory-headroom target. Separating fragmentation from scheduled duration produced inconsistent CPU
+differences across conditions and platforms. These small samples do not identify a client cause
+that justifies changing its configuration. The bounded client investigation is now closed.
 
-The admission gate now requires this representative workload as well as the short controls.
-The results justify blocking local client collection; they do not justify an optimization to fr's
-code analysis or explain the client's internal cost. Frozen reports replay offline in CI.
+The earlier [streaming comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
+retains its six CPU-limit stops and failed macOS admission. The newer ordinary-tool diagnostic
+does not replace the required ordinary/fr admission matrix. Local client collection remains
+blocked; there was no new live model call. Frozen reports replay offline in CI.
 
 The [configured packaging pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
 stopped on its first attempt. Kimi made five ordinary tool calls and one source replacement,
@@ -62,18 +64,20 @@ Five of six reviews completed; GLM's failed policy review remains failed. See th
 
 ## Next large chunk
 
-Determine whether the configured client can handle representative streaming within the existing
-limits. The first comparison attributes most sampled CPU to OpenCode, including without fr tools.
-Keep this investigation bounded; it supports evaluating the CLI and is not a new product subsystem.
+Return to the CLI's agent-facing workflow. The authoring-manifest clarification exposed two
+concrete costs: missing input examples caused rejected commands, and adding one example exceeded
+two skill-route budgets. The guide now fits again, but overlapping routes still need review.
 
-1. Improve Linux CPU sampling precision and isolate delivery pacing from fragmentation in a
-   predeclared hosted diagnostic. Do not reinterpret rounded historical counters as exact measurements.
-2. Test a supported client configuration or targeted change only against a measured cause.
-   Require unchanged replies, exact edits and passing CPU/memory admission on both platforms.
-   If no bounded option works, keep workstation collection blocked and record that outcome.
-3. After fresh admission, design a small comparison that measures actual fr use and complete cost.
-   Use it to simplify overlapping guide/intent/task routes and oversized responses. The stopped
-   packaging collection cannot resume; failed cells cannot be retried under a new directory name.
+1. Inventory guide, intent, task and direct-author routes: their callers, instructions, unique
+   checks and recovery behavior. Identify duplication without assuming a public API is unused.
+2. Measure equivalent discovery/edit/check/delivery tasks through those routes on GitHub. Retain
+   exact outcomes, calls and disclosed bytes, including refusals. These scripted comparisons
+   measure workflow overhead; they cannot establish that autonomous agents work better.
+3. Consolidate a measured duplication while preserving stale-input rejection, checks, recovery
+   and consumer compatibility. Keep the entry guide small and disclose operation detail as needed.
+4. Keep the independent live study open. It needs fresh representative resource admission,
+   actual fr-use accounting and complete parent/child costs. The stopped packaging collection
+   cannot resume, and failed cells cannot be retried under a new directory name.
 
 ## Remaining product gaps
 
@@ -94,6 +98,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 
 | Evidence | Established result | Limit |
 | --- | --- | --- |
+| [Delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) | 31 captures completed; one repetition stayed unstarted after failed memory headroom | Inconsistent CPU differences; no targeted client fix or workstation admission |
 | [Streaming CPU comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md) | Client dominates sampled CPU; short controls cannot admit representative streaming | Six CPU stops; no macOS admission or general agent-efficiency result |
 | [Configured change pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) | Resource stop retained and independently replayed | One failed capture, three unstarted cells; no behavior or efficiency comparison |
 | [Native source-reading report](docs/native-read-outcomes.md) | Two passes and four timeouts, including observed failed work | No successful ordinary/fr pair; billing and complete context remain unknown |

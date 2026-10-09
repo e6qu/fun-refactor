@@ -42,6 +42,7 @@ on:
           - python-repositories
           - discovery-pages
           - roadmap-report
+          - context-projection
 permissions:
   contents: read
 concurrency:
@@ -49,7 +50,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -136,6 +137,34 @@ jobs:
           path: |
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-evidence
             ${{ runner.temp }}/fr-refinement-${{ github.run_id }}-${{ github.run_attempt }}/refinement-refresh-logs
+          retention-days: 7
+
+  context-projection:
+    if: inputs.group == 'context-projection'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Prepare the pinned offline tokenizer
+        run: |
+          python3 -m pip install --only-binary=:all: -r tools/agent_eval/requirements.txt
+          mkdir -p target/agent-eval-tokenizer
+          curl -fsSL --connect-timeout 20 --max-time 120 \
+            -o target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790 \
+            https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
+          echo '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d  target/agent-eval-tokenizer/fb374d419588a4632f3f557e76b4b70aebbca790' | sha256sum -c -
+      - name: Refresh and verify current-document projection
+        run: |
+          python3 -B tools/agent-context-protocol-v3.py --tokens > tests/agent-eval/context-protocol-v3.json
+          python3 -B tools/agent_eval/test_harness.py ContextProtocolV3Evidence
+      - uses: actions/upload-artifact@v7
+        with:
+          name: context-projection
+          path: tests/agent-eval/context-protocol-v3.json
+          if-no-files-found: error
           retention-days: 7
 
   roadmap-report:
