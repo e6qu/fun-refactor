@@ -1,0 +1,74 @@
+name: Configured change results
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/terminal-change-results.yml
+      - tools/agent_eval/**
+      - tools/terminal-change-results.py
+      - tools/terminal-change-snapshot.py
+      - tools/test-configured-changes.py
+      - tests/agent-eval/opencode/changes/configured-*/**
+      - tests/agent-eval/opencode/candidates/**
+
+concurrency:
+  group: terminal-change-results-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  results:
+    name: Configured change grading
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Check independent replay and grade rejection
+        run: |
+          python3 -B tools/agent_eval/test_terminal_change_results.py
+          python3 -B tools/test-configured-changes.py
+      - name: Verify original source and grader controls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B tools/check-code-change-trials.py
+          --task-pack tests/agent-eval/opencode/candidates
+          --task packaging-prerelease --controls-only --verify-upstream
+          --output target/configured-change-results/controls
+      - name: Grade exact submissions and build comparisons
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess, sys
+          sys.path.insert(0, 'tools')
+          from agent_eval.study import load, require
+          image = load(Path('tests/agent-eval/opencode/candidates/packaging-prerelease-grader.json'))['image']
+          for cohort in sorted(Path('tests/agent-eval/opencode/changes').glob('configured-*')):
+              if not (cohort / 'plan.json').exists():
+                  continue
+              plan = load(cohort / 'plan.json')['plan']
+              require(all(t['grader']['image'] == image for t in plan['tasks']), 'unexpected grading image')
+              subprocess.run([sys.executable, '-B', 'tools/terminal-change-snapshot.py', 'verify',
+                  str(cohort), str(cohort / 'runner')], check=True)
+              cli = str(cohort / 'runner/terminal-change-results.py')
+              destination = Path('target/configured-change-results') / cohort.name
+              grade = destination / 'grades.json'
+              subprocess.run([sys.executable, '-B', cli, 'grade', str(cohort),
+                  str(cohort / 'attempts'), '--output', str(grade)], check=True)
+              subprocess.run([sys.executable, '-B', cli, 'report', str(cohort),
+                  str(cohort / 'attempts'), '--grades', str(grade), '--output', str(destination / 'results.json'),
+                  '--markdown', str(destination / 'results.md')], check=True)
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: configured-change-results
+          path: target/configured-change-results
+          retention-days: 7

@@ -1,20 +1,53 @@
 # Test OpenCode with native source tools
 
-The earlier [repository explanation trials](opencode-source-evidence.md) exposed an interaction
-problem: five of twelve attempts stopped because a model replied with prose instead of one JSON
-action. The native adapter lets OpenCode call tools during one session. It keeps the same frozen
-source snapshots and private factual rubrics. These reviewed projects are development tests;
-they are not an independent evaluation corpus.
+These evaluation tools let configured OpenCode sessions use ordinary source tools and optional fr
+tools against frozen inputs. They retain failures, exact submissions and incomplete accounting.
+The product remains the `fr` CLI; these familiar tasks are not an independent efficiency corpus.
 
-`tools/native-rehearsal.py` provides `freeze`, `run`, `report` and `review`. This adapter belongs to the
-evaluation tooling. The product remains the `fr` CLI.
+Read the [plan](../PLAN.md#next-large-chunk) for current admission and work priorities.
+Historical protocols below remain available for their frozen cohorts; an old command example
+does not authorize resuming a stopped collection.
+
+## Configured code-change trials
+
+`tools/terminal-changes.py` freezes, collects and replays code changes using terminal structured
+summaries. Before live calls, bind the source, grader, models, catalog, public feedback, runtime
+and executable identities. Commit those inputs and retain their Python runner. Fresh hosted
+controls and one guarded workstation control must match the intended runtime and binaries.
+The [retained pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
+shows the admission evidence and permanent resource stop; it cannot be resumed.
+
+Replay retained captures without model calls:
+
+```sh
+python3 -B tools/terminal-changes.py report INPUTS ATTEMPTS
+python3 -B tools/terminal-change-snapshot.py verify INPUTS INPUTS/runner
+python3 -B INPUTS/runner/terminal-change-results.py report INPUTS ATTEMPTS \
+  --grades GRADES.json --output NEW-RESULTS.json --markdown NEW-RESULTS.md
+```
+
+Run local commands through the [workstation guard](development.md#working-on-a-shared-desktop).
+Use the retained runner for historical plans. Reports distinguish capture failure, unstarted work,
+pending grading and verified behavior results. Failed work stays in observed totals; unknown
+provider usage or dollar cost does not become zero.
+
+Candidate execution belongs on GitHub:
+
+```sh
+python3 -B INPUTS/runner/terminal-change-results.py grade INPUTS ATTEMPTS \
+  --output NEW-GRADES.json
+```
+
+The grader checks only completed submissions, binding exact files and frozen cases. Partial edits
+from failed captures are not eligible. The [grading workflow](../.github/workflows/terminal-change-results.yml)
+verifies original/reference controls, the retained runner and each cohort before publishing reports.
 
 ## Check terminal submissions with scripted responses
 
-The live review runner still requires one `submit_answer` call followed by a completed final turn.
+The historical native review runner requires one `submit_answer` call followed by a completed final turn.
 Historical attempts that omitted or repeated submission keep their original failed outcomes.
-The new check tests an alternative before any further live calls: OpenCode's terminal
-`StructuredOutput` tool ends the client loop after the answer response.
+The terminal review and change runners instead use OpenCode's `StructuredOutput` tool to end
+the client loop after the answer response. Scripted checks exercise that contract.
 
 On a GitHub runner, run:
 
@@ -192,9 +225,9 @@ Every lower-memory sample must complete the source-delivery control below 640 Mi
 supports a guarded local check. This margin is an admission condition, not a higher resource cap.
 The source-review collection that hit its memory limit remains stopped.
 
-The [first retained experiment](../tests/agent-eval/opencode/memory/2026-10-06/README.md)
-rejected the proposed setting on both platforms. Linux completed above the admission
-target; macOS hit the capture cap. Local model work remains blocked.
+The [first experiment](../tests/agent-eval/opencode/memory/2026-10-06/README.md)
+rejected its proposed setting on both platforms. That historical result does not describe
+admission for a different runtime. Follow the current plan and exact matching control evidence.
 Use `check-client-memory.py measure OUTPUT --fr FR --opencode OPENCODE` on GitHub
 to retain validated measurements, including a rejected admission. `check` performs
 the same measurement and requires admission; `admit OUTPUT` requires admission from
@@ -223,12 +256,9 @@ empty catalog. The current workflow uses the two-provider fixture in
 the endpoint needed by a configured Kimi review. Model listing alone did not
 detect that failure. No catalog setting changes global client configuration.
 
-The provider-preserving catalog passed hosted and workstation controls. Both
-configured models then responded within resource limits, but exhausted their
-2,048-token output allowances without a structured answer. The
-[retained reviews](../tests/agent-eval/opencode/reviews/2026-10-07-packaging-providers/README.md)
-are failures, not whole-task acceptance. The next collection must bind an explicit
-reasoning setting before calls; prior attempts cannot resume.
+Freeze the reasoning variant as part of each configured profile. Earlier
+[reviews without an explicit variant](../tests/agent-eval/opencode/reviews/2026-10-07-packaging-providers/README.md)
+exhausted output and remain failed. Current low-variant controls do not change those outcomes.
 
 `--experiment catalog` compares three default captures with three captures using a
 hash-bound empty model catalog through `OPENCODE_MODELS_PATH`. Both use the same
@@ -246,7 +276,7 @@ that live reviews will fit. The diagnostic does not read or upload configured pr
 For an existing OpenCode installation, freeze a configured-client profile such as:
 
 ```json
-{"providerID":"provider-name","modelID":"model-name","context":32768,"output":2048,"configured":true}
+{"providerID":"provider-name","modelID":"model-name","context":32768,"output":2048,"variant":"low","configured":true}
 ```
 
 All profiles in one plan must use the same configuration mode. Configured-client plans omit
@@ -278,7 +308,7 @@ skips an incomplete attempt or continues after two consecutive failures. Preserv
 directories across interruptions. A fresh workspace must not serve as a retry of attempted cells.
 The JSON result distinguishes `finished` from `stopped`; either can contain failed reviews.
 
-The [new candidate design](../tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
+The [retained candidate design](../tests/agent-eval/opencode/reviews/2026-10-06-terminal-design/README.md)
 prepares three questions from a hash-pinned source archive without duplicating historical inputs.
 Its preparation command checks selected source and before/after file identities before freezing.
 Neither successful preflight nor scripted controls establish live provider compatibility.
@@ -357,35 +387,10 @@ Live model services are not called by CI.
 
 ## October 2 results
 
-The [retained records](../tests/agent-eval/opencode/results/2026-10-02-native/README.md) contain
-twelve repository attempts and two separate tool-access controls. The installed tools were
-OpenCode 1.18.34 and `fr` 0.35.0; the plans record the binary hash. No local build ran.
-
-| Task | Model | Ordinary tools | fr available |
-|---|---|---|---|
-| Cache expiration | Kimi K3 | Pass, 41.6 s | Pass, 50.4 s; no fr calls |
-| Cache expiration | GLM 5.3 Flash | Pass, 100.0 s | Pass, 114.8 s; no fr calls |
-| Key rotation | Kimi K3 | Citation failure, 53.9 s | Citation failure, 30.8 s; no fr calls |
-| Key rotation | GLM 5.3 Flash | Citation failure, 72.4 s | Pass, 51.0 s; no fr calls |
-| Retry callbacks | Kimi K3 | Pass on corrected audit, 82.8 s | Pass on corrected audit, 71.3 s; one fr map |
-| Retry callbacks | GLM 5.3 Flash | Pass, 116.3 s | 120-second timeout; no recorded fr calls |
-
-The original total was six passes. The first auditor mishandled native tool errors in both Kimi
-retry attempts, even though the model recovered. Offline review verifies their answers and source,
-bringing the reviewed total to eight of twelve. Original failed records remain unchanged.
-
-All three citation failures have correct factual values. They omit the required call connecting
-signing to key derivation. The timeout remains failed. These distinctions matter when choosing a fix.
-
-The separate Kimi access controls both passed. When explicitly requested, the model called native
-`fr find` and `fr show`, and the returned source passed the audit. That confirms tool access;
-it does not explain the low voluntary use of `fr` in the repository trials.
-
-Across all fourteen attempts, peak sampled process-group RSS was 678.3 MiB. The tests remained
-serial under the workstation guard. Retained evidence occupies about 3.3 MiB after removing disposable workspaces.
-The earlier JSON-action trials remain separate. Changed interaction budgets, reviewed tasks and
-small sample sizes prevent an efficiency claim or a general success-rate estimate.
-
+The [retained cohort](../tests/agent-eval/opencode/results/2026-10-02-native/README.md)
+owns its twelve outcomes, tool-access controls and separate audit correction. The reviewed total
+is eight passes; original failures remain intact. Only one fr-enabled attempt used the CLI.
+Different protocols and small samples prevent a general efficiency claim.
 
 ## Compare compact exploration with public guidance
 
@@ -415,36 +420,11 @@ billing. Versions 1 and 2 keep their original prompts, schemas, records and repl
 
 ## Compact exploration results
 
-The [three-arm comparison](../tests/agent-eval/opencode/results/2026-10-02-guided/README.md)
-retains eighteen attempts with `fr` 0.46.0 and OpenCode 1.18.34. It used the same reviewed repository
-tasks and fixed 120-second budget. The original records show three passes, nine citation failures and six
-timeouts. All twelve completed answers had correct factual values. This does not erase missing
-or altered citations: the original rubric and outcomes remain unchanged.
-
-| Task | Model | Ordinary tools | Compact fr | Compact fr + guide |
-|---|---|---|---|---|
-| cache-expiration | Kimi K3 | Pass, 78.7 s | Pass, 46.2 s | Citation failure, 69.5 s; 1 fr call |
-| cache-expiration | GLM 5.3 Flash | Timeout, 120.1 s | Timeout, 120.0 s | Timeout, 120.0 s |
-| key-rotation | Kimi K3 | Pass, 46.0 s | Citation failure, 48.3 s | Citation failure, 56.4 s; 1 fr call |
-| key-rotation | GLM 5.3 Flash | Citation failure, 75.2 s | Citation failure, 96.1 s | Citation failure, 112.0 s |
-| retry-callbacks | Kimi K3 | Citation failure, 75.3 s | Citation failure, 69.4 s | Citation failure, 70.3 s |
-| retry-callbacks | GLM 5.3 Flash | Timeout, 120.1 s | Timeout, 120.1 s | Timeout, 120.1 s |
-
-Two of twelve attempts with `fr` available called it, both with guidance. They used names only;
-neither followed the behavior continuation. Both failed the original single-page evidence rule. This sample does
-not show that public guidance improves success or efficiency. The earlier 0.35.0 cohort used a
-different prompt and tool surface; its eight reviewed passes out of twelve remain a separate result.
-
-The optional guidance adds 273 bytes to each configured prompt, including its heading. The tool
-schema adds 635 bytes over ordinary tools. The guided cache attempt found the class through `fr`,
-then hit the ordinary read tool's hash requirement for a nonzero first offset. It recovered with
-reads from the beginning. That cost belongs to the evaluator's read interface, not to program analysis.
-
-Next remove avoidable source-copying and read restrictions in the evaluation interface while
-preserving frozen source identities, required evidence and unchanged historical results. Then test
-actual changes on independent tasks. Do not expand analysis or force tool use based on these results.
-The technical status remains seven of eighteen items demonstrated and no completed milestone.
-
+The [three-arm cohort](../tests/agent-eval/opencode/results/2026-10-02-guided/README.md)
+owns its eighteen attempts, per-task table and separate citation-coverage correction. The original
+records show three passes, nine citation failures and six timeouts. Two guided attempts called fr;
+both stopped at names. These results do not establish a benefit from the public guidance.
+Use the linked evidence for exact prompt and tool-schema costs; current priorities belong in the plan.
 
 ## Correct citations across source pages
 

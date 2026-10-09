@@ -2,9 +2,27 @@
 
 `fr` requires stable Rust, Python 3 and the toolchains used by the language fixtures. Lean tests
 use the repository's pinned Lake project. Zig and Go tests keep their caches under `target` by
-default.
+default. For the shared workstation, read the resource rules below before running commands.
 
-## Build and test
+## Working on a shared desktop
+
+Full builds, complete gates, candidate execution and large evidence regeneration run on GitHub.
+Local commands, including `fr` and lightweight checks, run serially through:
+
+```sh
+python3 /Users/zardoz/.codex/tools/fr-local-guard.py COMMAND...
+```
+
+The guard lowers priority, throttles sampled CPU toward half of one core and enforces a
+180-second deadline. It stops at 1 GiB sampled aggregate RSS, 2 GiB of generated `target` data,
+or less than 64 GiB free disk. If it refuses, move the workload to CI; do not bypass or raise limits.
+One compiler worker alone does not control memory or disk growth. Sampling can miss brief peaks.
+
+Preserve source and the working executable during cache cleanup. Rebuild only when needed, on
+a suitable runner. Use configured OpenCode access and the existing `gh` login; do not inspect,
+copy or upload credential files. Follow frozen evaluation admission and stop rules separately.
+
+## Build and test on a dedicated runner
 
 Build the native CLI with the locked dependency graph:
 
@@ -28,8 +46,8 @@ tools/check.sh deep
 ```
 
 Rust test fan-out in the default, deep and Lean-kernel gates defaults to one. Lean processes use the
-same worker bound. Override either value with a positive integer when the machine has suitable
-capacity.
+same worker bound. Keep those defaults unless the runner configuration explicitly specifies more
+capacity. They do not authorize a local full gate.
 
 ```sh
 FR_LEAN_JOBS=1 LEAN_NUM_THREADS=1 tools/check.sh default
@@ -55,14 +73,13 @@ cargo test --test agent_skill
 python3 tools/check-agent-skill.py --fr target/debug/fr
 ```
 
-## Working on a shared desktop
+## Refresh retained evidence
 
-Use remote runners for full builds, complete gates and evidence regeneration when local capacity
-is constrained. `tools/refresh-refinement-evidence.py` refuses local execution and regenerates
-source-bound reports on GitHub runners.
+`tools/refresh-refinement-evidence.py` refuses local execution and regenerates source-bound reports
+on GitHub runners. The [CI guide](ci.md) owns refresh groups and coverage requirements.
 The manual `Refresh refinement evidence` workflow uploads results from a directory unique to each
 run and attempt under the runner's temporary directory. Reports stay outside the compiler cache.
-Supply a dated `prefix` such as `2026-09-28-virtual` to retain new report directories.
+Supply a new dated `prefix` to retain new report directories.
 The default `all` group checks virtual workspace boundaries before measuring seven evidence groups.
 The `flow` group runs scalar, package and SDK boundary tests, then refreshes ten flow reports and index measurements.
 The `dependency` group refreshes compiler, correspondence, semantic, index-consumer, proof and host
@@ -74,14 +91,6 @@ host-recovery evidence includes its audit test's source identity.
 Retain downloaded evidence before requesting the final CI run; never substitute rewritten hashes
 for fresh measurements.
 
-One compiler worker does not bound total memory, CPU or accumulated build output. For this project,
-local workloads must run serially at low priority, with monitored CPU throttling and aggregate RSS.
-Stop at 1 GiB sampled workload RSS, 2 GiB under `target`, or less than 64 GiB free disk.
-Use short command deadlines and check descendant processes on interruption. Sampling can miss brief
-peaks or short-lived children; it is a guard for bounded local work, not an operating-system quota.
-Keep broad indexing and compiler-heavy checks on runners. Preserve source and the working executable
-when removing rebuildable caches, and never rebuild automatically after cleanup.
-
 ## Repeated consumer queries
 
 `Index::references_to` retains extraction order and expands the current definition group.
@@ -90,7 +99,7 @@ The first target lookup builds an in-memory reverse index; later queries reuse i
 Name matching builds a separate lookup only when needed. These caches add memory proportional to the reference count.
 They do not persist to disk or change resolution confidence, missing consumers or analysis coverage.
 
-`Index::references` now uses `index::References`, which dereferences to the reference vector.
+`Index::references` uses `index::References`, which dereferences to the reference vector.
 Every mutable borrow discards both derived lookups before exposing data. Rust borrowing prevents
 mutation while query results remain borrowed. Cloning or deserializing starts without derived lookups.
 Element access, vector methods and borrowed iteration retain their syntax. Replace a whole vector
@@ -135,7 +144,7 @@ Release Please prepares the version and changelog pull request. A version tag st
 workflow, which builds native archives and the WASM package, attaches checksums and verifies the
 published shapes. Keep installation instructions independent of a specific version number.
 
-Before release, run the default, WASM and deep lanes and inspect the generated archive locally.
+Before release, require passing default, WASM and deep lanes and archive-shape checks on GitHub.
 
 ```sh
 cargo test --test release
