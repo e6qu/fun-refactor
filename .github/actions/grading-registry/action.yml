@@ -23,3 +23,12 @@ runs:
         sudo systemctl restart docker
         docker info --format '{{json .RegistryConfig.Mirrors}}' | python3 -c \
           'import json,sys; assert any(v.rstrip("/") == "https://mirror.gcr.io" for v in json.load(sys.stdin))'
+    - name: Diagnose availability of the unchanged image
+      shell: bash
+      run: |
+        digest=sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8
+        for repository in python mirror.gcr.io/library/python public.ecr.aws/docker/library/python; do
+          echo "Inspecting $repository@$digest"
+          timeout 45 docker manifest inspect "$repository@$digest" >/dev/null && echo available || echo unavailable
+        done
+        timeout 90 docker --context default pull "python@$digest"
