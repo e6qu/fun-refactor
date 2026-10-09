@@ -8,9 +8,10 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 
 [PR #459](https://github.com/e6qu/fun-refactor/pull/459) implements the committed delivery diagnostic.
 The single [collection run 37952719938](https://github.com/e6qu/fun-refactor/actions/runs/37952719938)
-uses commit `8f00d13f203ad9a1274cfa2fb98f9d4f8e359d9c`; results and the decision are pending.
-Do not dispatch another collection. Retain the original artifacts and exact runner sources,
-then replay them on GitHub before completing this PR.
+used commit `8f00d13f203ad9a1274cfa2fb98f9d4f8e359d9c`: 31 captures completed and one repetition
+stayed unstarted after failed memory headroom. CPU differences were inconsistent. The original
+artifacts and exact runner are retained; no targeted client fix is justified by these samples.
+The bounded investigation is closed. Do not dispatch another collection.
 
 The [earlier streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
 failed admission on macOS, with OpenCode dominating sampled CPU. Short controls alone cannot
@@ -21,12 +22,11 @@ remains permanently stopped. No new workstation capture or live model call is ad
 
 ## Next work
 
-Use finer Linux CPU sampling and matched pacing to isolate client streaming overhead on GitHub.
-The [committed delivery design](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
-sets sixteen independent cells and at most 32 captures, with no retries or adaptive extension.
-Test only a supported configuration or targeted fix against an observed cause, under unchanged
-limits and a new committed design. Any later live comparison needs fresh admission,
-actual fr-use accounting and complete costs; it cannot resume a stopped collection.
+Inventory guide/intent/task/direct-author overlap, measure equivalent scripted workflows and
+consolidate a demonstrated duplication while preserving checks, recovery and compatibility.
+The [plan](../PLAN.md#next-large-chunk) distinguishes this workflow-overhead work from autonomous
+agent efficiency. Any later live comparison needs fresh resource admission, actual fr use and
+complete costs; it cannot resume a stopped collection.
 
 The [candidate review table](candidate-review-status.md) owns task admission and review gaps.
 The [product review](product-review.md) owns evaluation and removal criteria. There is no general

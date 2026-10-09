@@ -1,5 +1,44 @@
 # Separate reply fragmentation from delivery duration
 
+## Result: stop this investigation; local collection stays blocked
+
+[Run 37952719938](https://github.com/e6qu/fun-refactor/actions/runs/37952719938) completed the
+declared matrix at `8f00d13f`. There were 31 completed captures, no hard resource-limit stops,
+and one unstarted repetition. Fifteen of sixteen cells met the diagnostic resource target.
+The macOS/Kimi whole-paced capture reached 652.91 MiB sampled RSS, exceeding the unchanged
+640 MiB headroom target; its second repetition did not run.
+
+CPU values below are sampled process-group seconds. Each entry lists the two repetitions.
+
+| Platform / adapter | Whole burst | Whole paced | Chunked burst | Chunked paced |
+| --- | --- | --- | --- | --- |
+| Linux / Kimi | 14.63, 14.65 | 18.35, 17.68 | 12.02, 10.93 | 18.32, 18.18 |
+| Linux / GLM | 11.34, 12.58 | 17.01, 17.91 | 14.90, 14.47 | 15.75, 16.02 |
+| macOS / Kimi | 10.23, 15.23 | 13.73; unstarted | 15.64, 15.50 | 11.78, 12.62 |
+| macOS / GLM | 15.48, 13.31 | 10.99, 12.52 | 7.34, 9.88 | 13.32, 12.43 |
+
+On Linux, pacing was associated with 1.20–6.78 more mean CPU seconds across the four complete
+comparisons. Fragmentation changed sign across conditions. macOS results also changed sign:
+pacing chunked replies reduced mean sampled CPU by 3.37 seconds for Kimi and increased it by
+4.27 seconds for GLM. The incomplete Kimi whole-paced pair has no mean comparison. Even the
+two macOS/Kimi whole-burst repetitions differ by five CPU seconds.
+
+These small samples on separate workers do not isolate a consistent client cause or justify
+a configuration change. Maximum recorded delivery lateness was 0.146 seconds; matching scheduled
+duration does not eliminate arrival-time or worker differences. The earlier relative-delay
+streaming experiment remains unchanged and failed admission; this absolute-deadline diagnostic
+cannot be described as a fix for that result or for the stopped live pilot.
+
+The bounded investigation ends here. No client setting changed, no stopped cell was retried,
+and no local OpenCode execution or live model call followed. This ordinary-tool diagnostic
+always reports admission as false. A future live comparison still needs fresh, complete
+ordinary/fr admission and full cost accounting.
+
+The [provenance](runs/37952719938/provenance.json) binds all seventeen GitHub artifacts and
+the exact frozen Python runner. The [results](runs/37952719938/results.json) preserve every
+capture and difference. The retained set occupies about 2.02 MiB. Full frozen replay runs in
+CI through `tools/check-streaming-evidence.py`, without launching OpenCode or fr.
+
 ## Design committed before collection
 
 The earlier [streaming comparison](../streaming-2026-10-09/README.md) found that OpenCode
