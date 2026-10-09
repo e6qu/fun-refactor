@@ -91,3 +91,11 @@ an in-memory tuple with a JSON list during auditing. Both remain visible in GitH
 [37973025301](https://github.com/e6qu/fun-refactor/actions/runs/37973025301)). The final run's first
 attempt never acquired a runner; it was cancelled after an 18-minute queue and requeued unchanged.
 Queue delay is outside the job's 15-minute execution ceiling. There is no runtime-speed claim.
+
+The SDK source change invalidated the earlier repository-task report. The first full PR gate
+caught that stale roadmap state. [Run 37978664543](https://github.com/e6qu/fun-refactor/actions/runs/37978664543)
+revalidated the two existing full-repository tasks and their 365 behavior cases, delivery,
+interruption and patch replay. The catalog now selects the
+[new report](../tests/agent-eval/results/2026-10-09-workflow-routes-python-repositories/result.json).
+The generated roadmap again shows 7/18 demonstrated items, with no new milestone claimed.
+Tests and the report-refresh workflow read that path from the catalog instead of duplicating a date.

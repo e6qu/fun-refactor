@@ -14,8 +14,13 @@ before writing is removed; the read/preview refresh remains.
 The hosted comparison passed 15 successful edits and 23 refusal controls. Guided writes use
 three processes instead of four and carry 5,057–5,949 fewer internal bytes in these fixtures.
 Exact source, patches and all eight lifecycle stages agree; seven offline audit tests pass.
-These are workflow-overhead measurements, not autonomous agent-efficiency results. Full PR CI
-must still pass before merge.
+These are workflow-overhead measurements, not autonomous agent-efficiency results. The full PR
+gate is required before merge.
+
+The SDK edit also required fresh full-repository delivery evidence. Hosted run 37978664543 passed
+the existing boltons and more-itertools tasks, all 365 independent behavior cases, interruption,
+stale-review rejection and patch replay. The catalog and generated roadmap use that report;
+the count remains 7/18 demonstrated items and 0/4 completed milestones.
 
 [PR #459](https://github.com/e6qu/fun-refactor/pull/459) closed the bounded client-delivery
 investigation. Its [retained results](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
