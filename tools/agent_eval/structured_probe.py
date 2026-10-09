@@ -168,6 +168,10 @@ def provider(root, case, *, model="protocol"):
                 reply = response(len(self.server.requests), case)
                 reply["model"] = model
                 if request.get("stream"):
+                    writer = getattr(self.server, "stream_writer", None)
+                    if writer is not None:
+                        writer(self, reply)
+                        return
                     choice = reply["choices"][0]
                     delta = dict(choice["message"])
                     if "tool_calls" in delta:
