@@ -3,6 +3,13 @@ description: Avoid shared Docker Hub pull limits while retaining original image 
 runs:
   using: composite
   steps:
+    - name: Use an empty Docker client configuration
+      shell: bash
+      run: |
+        config="$RUNNER_TEMP/fr-docker-public"
+        mkdir -m 700 -p "$config"
+        echo '{"auths":{}}' > "$config/config.json"
+        echo "DOCKER_CONFIG=$config" >> "$GITHUB_ENV"
     - name: Configure the hosted Docker registry mirror
       shell: bash
       run: |
@@ -27,8 +34,6 @@ runs:
       shell: bash
       run: |
         digest=sha256:2e740b2c28a426e74f11396c05e38afb3191acced75045b8d62df573c1dc8ce8
-        for repository in python mirror.gcr.io/library/python public.ecr.aws/docker/library/python; do
-          echo "Inspecting $repository@$digest"
-          timeout 45 docker manifest inspect "$repository@$digest" >/dev/null && echo available || echo unavailable
-        done
+        docker --context default info --format '{{json .RegistryConfig.Mirrors}}'
+        timeout 90 docker --context default pull "mirror.gcr.io/library/python@$digest"
         timeout 90 docker --context default pull "python@$digest"
