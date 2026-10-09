@@ -4,6 +4,11 @@ PR checks have a 15-minute job deadline. Native tests run on six GitHub runners;
 the Python SDK runs on four more. Each runner executes tests serially with one
 Lean worker. Local builds and resource limits do not change.
 
+Grading jobs use the public Docker registry mirror with an empty, job-local Docker
+client configuration. This avoids the shared Hub pull limit and inherited login
+path observed in failed runs. Original image digests and isolation checks remain
+required. The setup needs no new credentials and changes only the GitHub runner.
+
 The last measured serial baseline, [run 36592893805](https://github.com/e6qu/fun-refactor/actions/runs/36592893805),
 spent 54 minutes in `cargo test --all-targets`. Python accounted for 18 minutes,
 formal kernels for 6.4 minutes, author commands for 5 minutes, and project commands

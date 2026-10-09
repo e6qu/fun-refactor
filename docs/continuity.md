@@ -7,7 +7,7 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 ## Current work
 
 The [body-input comparison](workflow-routes.md#preparing-body-edits-and-recovering-failed-checks)
-passed all 40 cells in hosted run 37990418031. `AgentGuide.source_body_action` reuses exact retained
+passed all 40 cells in hosted run 37995201079. `AgentGuide.source_body_action` reuses exact retained
 targets, checks and delivery for caller-authored bodies. Complete caller/submission size falls by
 595 bytes in each of four fixtures; both arms retain three processes and the same internal bytes.
 All successful patches and lifecycle stages agree. Failed applied checks retain changed source
@@ -18,7 +18,7 @@ tests cover the result. The existing 38-cell route and scalar comparisons were r
 the new SDK source. These are prescribed workflow measurements, not autonomous agent-efficiency
 results. The full PR gate is required before merge.
 
-Hosted run 37990846166 refreshed both existing Python repository tasks after the SDK change.
+Hosted run 37995212729 refreshed both existing Python repository tasks after the SDK change.
 All 365 behavior cases, interruption, stale-review rejection and patch replay passed. The catalog
 selects that report; roadmap status remains 7/18 demonstrated items and 0/4 completed milestones.
 

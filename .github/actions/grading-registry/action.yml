@@ -3,6 +3,13 @@ description: Avoid shared Docker Hub pull limits while retaining original image 
 runs:
   using: composite
   steps:
+    - name: Use an empty Docker client configuration
+      shell: bash
+      run: |
+        config="$RUNNER_TEMP/fr-docker-public"
+        mkdir -m 700 -p "$config"
+        echo '{"auths":{}}' > "$config/config.json"
+        echo "DOCKER_CONFIG=$config" >> "$GITHUB_ENV"
     - name: Configure the hosted Docker registry mirror
       shell: bash
       run: |

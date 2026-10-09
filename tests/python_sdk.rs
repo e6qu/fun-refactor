@@ -60,7 +60,7 @@ fn python_package_keeps_explicit_module_boundaries() {
 #[test]
 fn checked_agent_guide_context_comparison_is_reproducible() {
     let evidence = root()
-        .join("tests/agent-eval/results/2026-10-09-guided-body-inputs/agent-guide-context.json");
+        .join("tests/agent-eval/results/2026-10-10-guided-body-inputs/agent-guide-context.json");
     let output = python()
         .arg(root().join("tools/agent-guide-context.py"))
         .arg("--audit")

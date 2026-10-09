@@ -106,13 +106,13 @@ It copies the bodies into the existing typed task operation and reuses retained 
 and targets. It derives exact file/edit postconditions. It performs no discovery or subprocess work;
 the existing guide, review and execution calls remain. Names and positions cannot substitute for handles.
 
-[Run 37990418031](https://github.com/e6qu/fun-refactor/actions/runs/37990418031) passed the focused
-SDK tests and all 40 comparison cells. The [report](../tests/agent-eval/results/2026-10-09-guided-body-inputs/guide-body-context.json)
+[Run 37995201079](https://github.com/e6qu/fun-refactor/actions/runs/37995201079) passed the SDK type
+check, focused tests and all 40 comparison cells. The [report](../tests/agent-eval/results/2026-10-10-guided-body-inputs/guide-body-context.json)
 retains the complete executed caller programs, responses, source states and recovery receipts.
 The same artifact refreshes the earlier 38-cell route comparison and scalar program evidence.
-[Run 37990846166](https://github.com/e6qu/fun-refactor/actions/runs/37990846166) also refreshed the
+[Run 37995212729](https://github.com/e6qu/fun-refactor/actions/runs/37995212729) also refreshed the
 two Python repository tasks and all 365 behavior cases. The catalog now selects its
-[report](../tests/agent-eval/results/2026-10-10-guided-body-inputs-python-repositories/result.json);
+[report](../tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/result.json);
 the roadmap remains at 7/18 demonstrated items and 0/4 completed milestones.
 
 | Prescribed edit | Explicit task construction | Guide body helper | Internal bytes, either arm |
