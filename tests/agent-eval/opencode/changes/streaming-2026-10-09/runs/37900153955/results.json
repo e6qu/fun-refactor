@@ -1,0 +1,2834 @@
+[
+  {
+    "artifact": "streaming-macos-15-0",
+    "result": {
+      "admitted": false,
+      "attempts": [
+        {
+          "admitted": true,
+          "audit_sha256": "0dca9c06799bfc8e424615554349fe0e3044ac9fcff940603a5a40f55c1a0901",
+          "binary_sha256": "5f60df130770fdae3a8dd801b4080e529090e549914ccebb714c6aca15bad601",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "whole",
+          "opencode_sha256": "7b63b34fafabded7d9231f6a9032755d0cdeaf8b9d2b70df8e25535471469eea",
+          "process": {
+            "elapsed_seconds": 6.807997582999974,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 461815808,
+            "sampled_cpu_seconds": 9.31,
+            "sampled_disk_growth_bytes": 6737851,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 461815808,
+                "sample": {
+                  "finished_seconds": 4.8417105420000155,
+                  "group": 2983,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.51,
+                      "executable": "Python",
+                      "pid": 2983,
+                      "rss_bytes": 90914816
+                    },
+                    {
+                      "cpu_seconds": 7.05,
+                      "executable": "opencode",
+                      "pid": 2989,
+                      "rss_bytes": 339312640
+                    },
+                    {
+                      "cpu_seconds": 0.12,
+                      "executable": "Python",
+                      "pid": 3020,
+                      "rss_bytes": 31588352
+                    }
+                  ],
+                  "started_seconds": 4.783885083000001
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 234897408,
+                "export": 290521088,
+                "message-in-flight": 461815808,
+                "server-startup": 357531648
+              },
+              "samples": 52,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "302f44180e259eb798ed57b6f1e76a09c0d88ef4b37812dcaf131f1508280225"
+            },
+            "cpu_seconds_by_executable": {
+              "(Python)+Python": 0.53,
+              "<defunct>+opencode": 1.61,
+              "Python": 0.12,
+              "opencode": 7.05
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee05d17d8ffeiDduRosF4uwC4V",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "cfa551eef31cea6a4b0ae4c8d23e7c889c2a7038136d9807fff8fb873e0f348d",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "991ca37ee35ba7e232215de63a2a885e17e7b039c26aca439ea1cadb8d1fff1f",
+            "8ff7d0965533f924c681a6c128ade0f5d0f498d872021d4292b089adca2786a4"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 3,
+          "wire_frames": 9
+        },
+        {
+          "admitted": false,
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "chunked",
+          "process": {
+            "elapsed_seconds": 13.384542167000006,
+            "exit_code": 125,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": -9,
+            "sampled_aggregate_rss_bytes": 679002112,
+            "sampled_cpu_seconds": 20.040000000000003,
+            "sampled_disk_growth_bytes": 6877265,
+            "stop_reason": "cpu_seconds",
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 679002112,
+                "sample": {
+                  "finished_seconds": 12.903257083,
+                  "group": 3074,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.56,
+                      "executable": "Python",
+                      "pid": 3074,
+                      "rss_bytes": 89636864
+                    },
+                    {
+                      "cpu_seconds": 18.9,
+                      "executable": "opencode",
+                      "pid": 3079,
+                      "rss_bytes": 557793280
+                    },
+                    {
+                      "cpu_seconds": 0.16,
+                      "executable": "Python",
+                      "pid": 3268,
+                      "rss_bytes": 31571968
+                    }
+                  ],
+                  "started_seconds": 12.859589
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 233160704,
+                "export": 171294720,
+                "message-in-flight": 679002112,
+                "phase-transition": 353992704,
+                "server-startup": 352927744
+              },
+              "samples": 106,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "75c020487f3c1ae9c03cd5b293a461a95926baf6c1ae0de63ad43e92a356f1fb"
+            },
+            "cpu_seconds_by_executable": {
+              "Python": 0.7200000000000001,
+              "opencode": 19.32
+            }
+          },
+          "record": {
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": "capture process did not complete",
+            "plan_sha256": "087f269f55220954a0a74acdc865c2689fbf76d847b3e99dcf660ba1ccb59d69",
+            "status": "failed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "991ca37ee35ba7e232215de63a2a885e17e7b039c26aca439ea1cadb8d1fff1f",
+            "8ff7d0965533f924c681a6c128ade0f5d0f498d872021d4292b089adca2786a4"
+          ],
+          "status": "failed",
+          "text_delta_events": 759,
+          "wire_frames": 804
+        },
+        {
+          "mode": "chunked",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": null,
+      "complete_comparison": false,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  },
+  {
+    "artifact": "streaming-macos-15-1",
+    "result": {
+      "admitted": false,
+      "attempts": [
+        {
+          "admitted": false,
+          "case": {
+            "arm": "fr",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "chunked",
+          "process": {
+            "elapsed_seconds": 13.029791125000003,
+            "exit_code": 125,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": -9,
+            "sampled_aggregate_rss_bytes": 682115072,
+            "sampled_cpu_seconds": 20.029999999999998,
+            "sampled_disk_growth_bytes": 7074008,
+            "stop_reason": "cpu_seconds",
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 682115072,
+                "sample": {
+                  "finished_seconds": 12.521127416999988,
+                  "group": 1143,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.65,
+                      "executable": "Python",
+                      "pid": 1143,
+                      "rss_bytes": 91455488
+                    },
+                    {
+                      "cpu_seconds": 18.51,
+                      "executable": "opencode",
+                      "pid": 1149,
+                      "rss_bytes": 558727168
+                    },
+                    {
+                      "cpu_seconds": 0.16,
+                      "executable": "Python",
+                      "pid": 1218,
+                      "rss_bytes": 31932416
+                    }
+                  ],
+                  "started_seconds": 12.43816104199999
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 234995712,
+                "message-in-flight": 682115072,
+                "phase-transition": 355368960,
+                "server-startup": 354893824
+              },
+              "samples": 104,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "40b5a57befc745fbe3c5f78555069f3b80c95a4bd20f22ddc0dec47e6f2f7179"
+            },
+            "cpu_seconds_by_executable": {
+              "<defunct>+fr": 0.01,
+              "Python": 0.8200000000000001,
+              "opencode": 19.2
+            }
+          },
+          "record": {
+            "cell": {
+              "arm": "fr",
+              "id": "invoice-0-fr",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": "capture process did not complete",
+            "plan_sha256": "1d9a371adde2bc0bf995744c670f222de8322e7c373295c713c69994bf272229",
+            "status": "failed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "cc9c2df7e1f4d119205f5617e230b7e95713cac4e0da5d92f690dd0f749449c6",
+            "18c56ece8583f41680dff10607be06fad2e7bae041a91c43da0754cf51c73012",
+            "3fc29198248b26f749a6e9428d108a2411c3f89f6bd74c103252a1a0880271b5"
+          ],
+          "status": "failed",
+          "text_delta_events": 860,
+          "wire_frames": 1065
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "chunked",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": null,
+      "complete_comparison": false,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  },
+  {
+    "artifact": "streaming-macos-15-2",
+    "result": {
+      "admitted": false,
+      "attempts": [
+        {
+          "admitted": true,
+          "audit_sha256": "8e097e1c58fbf97af9902f413d5a8f590a75a8873dd0eeae9b1a3bfb74fc0b60",
+          "binary_sha256": "5f60df130770fdae3a8dd801b4080e529090e549914ccebb714c6aca15bad601",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "whole",
+          "opencode_sha256": "7b63b34fafabded7d9231f6a9032755d0cdeaf8b9d2b70df8e25535471469eea",
+          "process": {
+            "elapsed_seconds": 11.640750541999978,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 466223104,
+            "sampled_cpu_seconds": 13.84,
+            "sampled_disk_growth_bytes": 6750192,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 466223104,
+                "sample": {
+                  "finished_seconds": 9.134364083000037,
+                  "group": 7678,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.63,
+                      "executable": "Python",
+                      "pid": 7678,
+                      "rss_bytes": 90701824
+                    },
+                    {
+                      "cpu_seconds": 10.62,
+                      "executable": "opencode",
+                      "pid": 7687,
+                      "rss_bytes": 343834624
+                    },
+                    {
+                      "cpu_seconds": 0.2,
+                      "executable": "Python",
+                      "pid": 8038,
+                      "rss_bytes": 31686656
+                    }
+                  ],
+                  "started_seconds": 9.090720833000034
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 234438656,
+                "export": 295796736,
+                "message-in-flight": 466223104,
+                "server-startup": 355303424
+              },
+              "samples": 91,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "9325d5d51b97db9dd4436103d4ce665bf73111c8bce4c0569fd126ab96603bbb"
+            },
+            "cpu_seconds_by_executable": {
+              "<defunct>+Python": 0.65,
+              "<defunct>+opencode": 2.37,
+              "Python": 0.2,
+              "opencode": 10.62
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee05e218fffeMdWqea54tlYFGD",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "2d17ddf804e8c0821e1322947314edeb731952486ad5768b7d5792699ccc16ca",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "59a904dcc1bdb58e5108cd49de6300edcf2cccfdc2cd11e1b0198726d8da6d44",
+            "47e44cf60f4859ccd0ccfd19650b963fc3fcae650a3c7ea712e04818318118e7"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 3,
+          "wire_frames": 9
+        },
+        {
+          "admitted": false,
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "chunked",
+          "process": {
+            "elapsed_seconds": 12.928120333000038,
+            "exit_code": 125,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": -9,
+            "sampled_aggregate_rss_bytes": 688046080,
+            "sampled_cpu_seconds": 20.07,
+            "sampled_disk_growth_bytes": 6081208,
+            "stop_reason": "cpu_seconds",
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 688046080,
+                "sample": {
+                  "finished_seconds": 12.818196666999995,
+                  "group": 8111,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.76,
+                      "executable": "Python",
+                      "pid": 8111,
+                      "rss_bytes": 90423296
+                    },
+                    {
+                      "cpu_seconds": 18.93,
+                      "executable": "opencode",
+                      "pid": 8118,
+                      "rss_bytes": 565837824
+                    },
+                    {
+                      "cpu_seconds": 0.18,
+                      "executable": "Python",
+                      "pid": 8168,
+                      "rss_bytes": 31784960
+                    }
+                  ],
+                  "started_seconds": 12.772778083999981
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 234160128,
+                "message-in-flight": 688046080,
+                "server-startup": 356253696
+              },
+              "samples": 101,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "37b6ffde54dfd362e3fbca6919588fecb40e1d074fae7fc10d25d81af73f2eea"
+            },
+            "cpu_seconds_by_executable": {
+              "Python": 0.94,
+              "opencode": 19.13
+            }
+          },
+          "record": {
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": "capture process did not complete",
+            "plan_sha256": "f19106cae934dfac362c8b010e8e1cfbea4ffc6db46c2457fc4f80b5b51e2054",
+            "status": "failed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "59a904dcc1bdb58e5108cd49de6300edcf2cccfdc2cd11e1b0198726d8da6d44"
+          ],
+          "status": "failed",
+          "text_delta_events": 481,
+          "wire_frames": 541
+        },
+        {
+          "mode": "chunked",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": null,
+      "complete_comparison": false,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  },
+  {
+    "artifact": "streaming-macos-15-3",
+    "result": {
+      "admitted": false,
+      "attempts": [
+        {
+          "admitted": false,
+          "case": {
+            "arm": "fr",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "chunked",
+          "process": {
+            "elapsed_seconds": 13.211924999999837,
+            "exit_code": 125,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": -9,
+            "sampled_aggregate_rss_bytes": 681869312,
+            "sampled_cpu_seconds": 20.069999999999997,
+            "sampled_disk_growth_bytes": 6536244,
+            "stop_reason": "cpu_seconds",
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 681869312,
+                "sample": {
+                  "finished_seconds": 12.445640542000092,
+                  "group": 20061,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.77,
+                      "executable": "Python",
+                      "pid": 20061,
+                      "rss_bytes": 40402944
+                    },
+                    {
+                      "cpu_seconds": 17.91,
+                      "executable": "opencode",
+                      "pid": 20069,
+                      "rss_bytes": 609681408
+                    },
+                    {
+                      "cpu_seconds": 0.18,
+                      "executable": "Python",
+                      "pid": 20184,
+                      "rss_bytes": 31784960
+                    }
+                  ],
+                  "started_seconds": 12.400945583000066
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 233766912,
+                "message-in-flight": 681869312,
+                "phase-transition": 357416960,
+                "server-startup": 356990976
+              },
+              "samples": 107,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "7ad05703e95169f810b48b0a15c18a1f6d28531ceb0bd3343e6be47493491d30"
+            },
+            "cpu_seconds_by_executable": {
+              "<defunct>+fr": 0.02,
+              "Python": 0.97,
+              "opencode": 19.08
+            }
+          },
+          "record": {
+            "cell": {
+              "arm": "fr",
+              "id": "invoice-0-fr",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": "capture process did not complete",
+            "plan_sha256": "693eb344f5f4e0c65d5b077d8a1afa0cb7080def8e3f93186e9f4d9ad40e9963",
+            "status": "failed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "a6141380c8263f408fcccdb3d68249c7c0a486d53f0777d7f7b4460d27e2ce12",
+            "c05d86450319335090d4dad2e93de35a5b7c2c11d75d0cd1b464bdbf76b65a3b"
+          ],
+          "status": "failed",
+          "text_delta_events": 526,
+          "wire_frames": 788
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "chunked",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": null,
+      "complete_comparison": false,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  },
+  {
+    "artifact": "streaming-ubuntu-latest-0",
+    "result": {
+      "admitted": true,
+      "attempts": [
+        {
+          "admitted": true,
+          "audit_sha256": "3db622df08c0dda0e624e770818b5dc50ad7b10623e3a6c4935733cf51adb67a",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "whole",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 8.621695039000002,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 416079872,
+            "sampled_cpu_seconds": 10.0,
+            "sampled_disk_growth_bytes": 7538501,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 416079872,
+                "sample": {
+                  "finished_seconds": 6.099489239999997,
+                  "group": 2124,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2124,
+                      "rss_bytes": 34078720
+                    },
+                    {
+                      "cpu_seconds": 8.0,
+                      "executable": "opencode",
+                      "pid": 2133,
+                      "rss_bytes": 355160064
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2193,
+                      "rss_bytes": 26841088
+                    }
+                  ],
+                  "started_seconds": 6.084158002999999
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "answer-received": 61009920,
+                "capture-startup": 219217920,
+                "export": 262598656,
+                "message-in-flight": 416079872,
+                "phase-transition": 323149824,
+                "server-startup": 318791680
+              },
+              "samples": 79,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "73b8fea09709c55ff443b1976cdee81249f01d65669ed9af17f69de1ffed76ab"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 10.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee04fdceeffesbhyv4M36AmWtl",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "ce5f91cbf058e8ef5505e298c6339baadadce3d21d8123b0d4c037646c38245d",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "991ca37ee35ba7e232215de63a2a885e17e7b039c26aca439ea1cadb8d1fff1f",
+            "8ff7d0965533f924c681a6c128ade0f5d0f498d872021d4292b089adca2786a4"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 3,
+          "wire_frames": 9
+        },
+        {
+          "admitted": true,
+          "audit_sha256": "2f79784dba3653b1204debb55768b62c0eed2ec7bd4fd7bb90f89a3b9fa62c03",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "chunked",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 9.192400718000002,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 549048320,
+            "sampled_cpu_seconds": 14.0,
+            "sampled_disk_growth_bytes": 7723336,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 549048320,
+                "sample": {
+                  "finished_seconds": 6.931189331999995,
+                  "group": 2271,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2271,
+                      "rss_bytes": 34435072
+                    },
+                    {
+                      "cpu_seconds": 11.0,
+                      "executable": "opencode",
+                      "pid": 2280,
+                      "rss_bytes": 487776256
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2335,
+                      "rss_bytes": 26836992
+                    }
+                  ],
+                  "started_seconds": 6.924457875999998
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 219283456,
+                "export": 259293184,
+                "message-in-flight": 549048320,
+                "server-startup": 319950848
+              },
+              "samples": 84,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "f3a79368f6596d19472ddcad9516ff026a66531d6dcef4000e2807accc858d01"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 14.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee04fbbd9ffeMaYG0gbYExp5dh",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "8e91d2cb37e29e8a47e0aeb38dfe38917b4213129f47abc3df05a9989c18abce",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "991ca37ee35ba7e232215de63a2a885e17e7b039c26aca439ea1cadb8d1fff1f",
+            "8ff7d0965533f924c681a6c128ade0f5d0f498d872021d4292b089adca2786a4"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 759,
+          "wire_frames": 804
+        },
+        {
+          "admitted": true,
+          "audit_sha256": "d0d1de80ae44d5ca9b4ad4cbfd66cca1b778c9642a6ff692d1bb59224c211bbc",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "chunked",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 9.467536737000003,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 502464512,
+            "sampled_cpu_seconds": 15.0,
+            "sampled_disk_growth_bytes": 7724039,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 502464512,
+                "sample": {
+                  "finished_seconds": 5.156448792999996,
+                  "group": 2419,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2419,
+                      "rss_bytes": 33902592
+                    },
+                    {
+                      "cpu_seconds": 6.0,
+                      "executable": "opencode",
+                      "pid": 2428,
+                      "rss_bytes": 441720832
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2485,
+                      "rss_bytes": 26841088
+                    }
+                  ],
+                  "started_seconds": 5.139676656999995
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 219254784,
+                "export": 257146880,
+                "message-in-flight": 502464512,
+                "server-startup": 323624960
+              },
+              "samples": 86,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "ffd821febf00ce55fad0b742c2e2b6554e49ff1cf01a3757d4fc2d32d59febce"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 15.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee04f97fbffeG6bOGbN4fKJCzK",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "238eb3d76f6f32d894a6551f0196f7cf7d22613c8a1de7bd6bc38bdb8b7bf505",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "991ca37ee35ba7e232215de63a2a885e17e7b039c26aca439ea1cadb8d1fff1f",
+            "8ff7d0965533f924c681a6c128ade0f5d0f498d872021d4292b089adca2786a4"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 759,
+          "wire_frames": 804
+        },
+        {
+          "admitted": true,
+          "audit_sha256": "2743b90c23c26d8137a2933a0017bf1e47817e2e33c1b00cad4c53ce16065007",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "whole",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 8.169886207000005,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 518500352,
+            "sampled_cpu_seconds": 11.0,
+            "sampled_disk_growth_bytes": 7537479,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 518500352,
+                "sample": {
+                  "finished_seconds": 5.134843355000001,
+                  "group": 2568,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2568,
+                      "rss_bytes": 33947648
+                    },
+                    {
+                      "cpu_seconds": 6.0,
+                      "executable": "opencode",
+                      "pid": 2578,
+                      "rss_bytes": 457711616
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2634,
+                      "rss_bytes": 26841088
+                    }
+                  ],
+                  "started_seconds": 5.122588097000005
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "answer-received": 410947584,
+                "capture-startup": 219299840,
+                "export": 261103616,
+                "message-in-flight": 518500352,
+                "server-startup": 318685184
+              },
+              "samples": 75,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "2d9e62a7dcbef0fe7cd8927ac1c6995804459f72c23deddb089095ae2ba9bd72"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 11.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee04f7238ffe6Pxc7Qc7yOGSve",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "e7267846f0635bc63aed1109fa35ff6cc8f76a843bcdb28a03488bbe353d9c33",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "991ca37ee35ba7e232215de63a2a885e17e7b039c26aca439ea1cadb8d1fff1f",
+            "8ff7d0965533f924c681a6c128ade0f5d0f498d872021d4292b089adca2786a4"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 3,
+          "wire_frames": 9
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": 4.0,
+      "complete_comparison": true,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  },
+  {
+    "artifact": "streaming-ubuntu-latest-1",
+    "result": {
+      "admitted": false,
+      "attempts": [
+        {
+          "admitted": false,
+          "case": {
+            "arm": "fr",
+            "missing": false,
+            "model": "k3",
+            "provider": "kimi-code-plan-global"
+          },
+          "mode": "chunked",
+          "process": {
+            "elapsed_seconds": 11.024117931,
+            "exit_code": 125,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": -9,
+            "sampled_aggregate_rss_bytes": 549838848,
+            "sampled_cpu_seconds": 21.0,
+            "sampled_disk_growth_bytes": 8866822,
+            "stop_reason": "cpu_seconds",
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 549838848,
+                "sample": {
+                  "finished_seconds": 9.453906279999998,
+                  "group": 2346,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2346,
+                      "rss_bytes": 34713600
+                    },
+                    {
+                      "cpu_seconds": 16.0,
+                      "executable": "opencode",
+                      "pid": 2356,
+                      "rss_bytes": 488235008
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2415,
+                      "rss_bytes": 26890240
+                    }
+                  ],
+                  "started_seconds": 9.443210573000002
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 219365376,
+                "message-in-flight": 549838848,
+                "server-startup": 324116480
+              },
+              "samples": 93,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "2018fc7bd0663c653efb4fc48536b2725e2e4193a0810e166ad26fb52fd4fdff"
+            },
+            "cpu_seconds_by_executable": {
+              "fr": 0,
+              "opencode": 20.0,
+              "python3": 1.0
+            }
+          },
+          "record": {
+            "cell": {
+              "arm": "fr",
+              "id": "invoice-0-fr",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": "capture process did not complete",
+            "plan_sha256": "5e78821261c58120f43af88d45bf14ef77a84aafeed7f40367490946077b5d6d",
+            "status": "failed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "9b7617ddb7ba38b849b1065afd2ed736d1e95b77908bf5e7aad42338f612ee85",
+            "cc9c2df7e1f4d119205f5617e230b7e95713cac4e0da5d92f690dd0f749449c6",
+            "18c56ece8583f41680dff10607be06fad2e7bae041a91c43da0754cf51c73012",
+            "3fc29198248b26f749a6e9428d108a2411c3f89f6bd74c103252a1a0880271b5",
+            "060b8a609a7b6d53b613272b648479544bdc36dcfa61b5aa28056d801febe981",
+            "0118516e903f9c20c28a0f946d535cfb5a63a28e3ab14cf71af2fc5062d922f3"
+          ],
+          "status": "failed",
+          "text_delta_events": 1425,
+          "wire_frames": 1592
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "chunked",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": null,
+      "complete_comparison": false,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  },
+  {
+    "artifact": "streaming-ubuntu-latest-2",
+    "result": {
+      "admitted": true,
+      "attempts": [
+        {
+          "admitted": true,
+          "audit_sha256": "d3408e98d3b622b3dff41985808816c8cdc0151ee70d472cfc46384fea23a7f3",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "whole",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 9.167377583000004,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 427741184,
+            "sampled_cpu_seconds": 12.0,
+            "sampled_disk_growth_bytes": 7538626,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 427741184,
+                "sample": {
+                  "finished_seconds": 6.21447551,
+                  "group": 2334,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2334,
+                      "rss_bytes": 34029568
+                    },
+                    {
+                      "cpu_seconds": 8.0,
+                      "executable": "opencode",
+                      "pid": 2343,
+                      "rss_bytes": 366415872
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2401,
+                      "rss_bytes": 27295744
+                    }
+                  ],
+                  "started_seconds": 6.201336703999999
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 219365376,
+                "export": 260034560,
+                "message-in-flight": 427741184,
+                "server-startup": 322596864
+              },
+              "samples": 78,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "07ce6fe10eae29c8ea835a2ce8a5ad74a818c6578204e917de347293d1e4f859"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 12.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee059cedeffefHGKbg6kTUZR7A",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "f1bdacb8b9bd91cc08bd930dc704edf28a65d29044970ce850c8ab9e75af32f2",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "59a904dcc1bdb58e5108cd49de6300edcf2cccfdc2cd11e1b0198726d8da6d44",
+            "47e44cf60f4859ccd0ccfd19650b963fc3fcae650a3c7ea712e04818318118e7"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 3,
+          "wire_frames": 9
+        },
+        {
+          "admitted": true,
+          "audit_sha256": "c465f5e58a355a33e6119eead0d8715c9d4b58ee2b450d9864d8ed27178c6470",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "chunked",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 10.582500759999995,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 438509568,
+            "sampled_cpu_seconds": 17.0,
+            "sampled_disk_growth_bytes": 7725942,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 438509568,
+                "sample": {
+                  "finished_seconds": 8.114545019000005,
+                  "group": 2478,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2478,
+                      "rss_bytes": 34344960
+                    },
+                    {
+                      "cpu_seconds": 14.0,
+                      "executable": "opencode",
+                      "pid": 2488,
+                      "rss_bytes": 376913920
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2545,
+                      "rss_bytes": 27250688
+                    }
+                  ],
+                  "started_seconds": 8.099171822999999
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "answer-received": 61599744,
+                "capture-startup": 219185152,
+                "export": 259485696,
+                "message-in-flight": 438509568,
+                "phase-transition": 33783808,
+                "server-startup": 321957888
+              },
+              "samples": 91,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "965517c23dcd74929870bf097736e8c57ca75daae17988b5378c44f3bea5428f"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 17.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee059ab7dffeVjSJVj8v2suA0q",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "33742a81038ac5cb00644c6bba088d42fe26454ff71d3204042da3b287f8b101",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "59a904dcc1bdb58e5108cd49de6300edcf2cccfdc2cd11e1b0198726d8da6d44",
+            "47e44cf60f4859ccd0ccfd19650b963fc3fcae650a3c7ea712e04818318118e7"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 759,
+          "wire_frames": 804
+        },
+        {
+          "admitted": true,
+          "audit_sha256": "52edd55e38be2ac67fffad20f0c2d289375c65796bbe71154d918f31f91386d5",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "chunked",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 10.356041975999993,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 442507264,
+            "sampled_cpu_seconds": 16.0,
+            "sampled_disk_growth_bytes": 7725564,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 442507264,
+                "sample": {
+                  "finished_seconds": 7.721237885000001,
+                  "group": 2634,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2634,
+                      "rss_bytes": 34430976
+                    },
+                    {
+                      "cpu_seconds": 13.0,
+                      "executable": "opencode",
+                      "pid": 2643,
+                      "rss_bytes": 380841984
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2699,
+                      "rss_bytes": 27234304
+                    }
+                  ],
+                  "started_seconds": 7.704336164000004
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 219267072,
+                "export": 258953216,
+                "message-in-flight": 442507264,
+                "server-startup": 324870144
+              },
+              "samples": 90,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "fa2e84f7b102baf203dd0238b18dfe2b925e44e121b75efd02a2fda691061c3b"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 16.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee05982a5ffe5O88VNxMOOGHrh",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "3889b1c62010ece94c8af06334ade999f4f13583200d0167b880baaed934ff8c",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "59a904dcc1bdb58e5108cd49de6300edcf2cccfdc2cd11e1b0198726d8da6d44",
+            "47e44cf60f4859ccd0ccfd19650b963fc3fcae650a3c7ea712e04818318118e7"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 759,
+          "wire_frames": 804
+        },
+        {
+          "admitted": true,
+          "audit_sha256": "0a5b0d9beac33839f3bf2d2e8e6101be679d492159ede25d9fc0cd8944f8fa2e",
+          "binary_sha256": "7223cb12250d8307a6c7500357f55138470785e92442f9a185684d61da55dc06",
+          "case": {
+            "arm": "files",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "whole",
+          "opencode_sha256": "9ca0b9953d49997601655e54f846a3efa464f237e47c6f1b04716d0f2e64c4c2",
+          "process": {
+            "elapsed_seconds": 8.806979283999993,
+            "exit_code": 0,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": 0,
+            "sampled_aggregate_rss_bytes": 427421696,
+            "sampled_cpu_seconds": 12.0,
+            "sampled_disk_growth_bytes": 7537355,
+            "stop_reason": null,
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 427421696,
+                "sample": {
+                  "finished_seconds": 5.816099636000004,
+                  "group": 2788,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2788,
+                      "rss_bytes": 34033664
+                    },
+                    {
+                      "cpu_seconds": 8.0,
+                      "executable": "opencode",
+                      "pid": 2797,
+                      "rss_bytes": 366137344
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2855,
+                      "rss_bytes": 27250688
+                    }
+                  ],
+                  "started_seconds": 5.799506762999997
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 219369472,
+                "export": 259571712,
+                "message-in-flight": 427421696,
+                "server-startup": 318947328
+              },
+              "samples": 77,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "1de858ed3cd08354c053d8bcbc89b1a7b829f9d4f30daf067857d87214c0aa76"
+            },
+            "cpu_seconds_by_executable": {
+              "opencode": 12.0,
+              "python3": 0
+            }
+          },
+          "record": {
+            "audit": {
+              "accepted_edits": 1,
+              "actual_usd": null,
+              "answer": {
+                "summary": "Excluded voided records; tests not run."
+              },
+              "assistant_responses": 3,
+              "behavior_verified": false,
+              "changed_paths": [
+                "module.py"
+              ],
+              "complete_context_accounting": false,
+              "metrics": {
+                "edit_argument_bytes": 255,
+                "fr_calls": 0,
+                "refused_calls": 0,
+                "tool_result_bytes": 1989
+              },
+              "prompt_bytes": 1039,
+              "provider_usage_verified": false,
+              "reported_cost": 0,
+              "schema": "fr-structured-submission-1",
+              "session": "ses_ee0595992ffetTBgyrFq6VZlf1",
+              "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+              "summary": "Excluded voided records; tests not run.",
+              "tokens": [
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                },
+                {
+                  "cache": {
+                    "read": 0,
+                    "write": 0
+                  },
+                  "input": 100,
+                  "output": 10,
+                  "reasoning": 0,
+                  "total": 110
+                }
+              ],
+              "tool_calls": 3,
+              "tool_schema_bytes": 1459
+            },
+            "cell": {
+              "arm": "files",
+              "id": "invoice-0-files",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": null,
+            "plan_sha256": "8341a0c68914c38267f3b5e4fbee6aeb115f9fd044caa4f1900e4b80959b9276",
+            "status": "completed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "59a904dcc1bdb58e5108cd49de6300edcf2cccfdc2cd11e1b0198726d8da6d44",
+            "47e44cf60f4859ccd0ccfd19650b963fc3fcae650a3c7ea712e04818318118e7"
+          ],
+          "runtime": {
+            "bounded_host.py": "990434eede47d536ab23e9e6da89ad05beaa3f651ff125d2dc909136f89de21d",
+            "container_resources.py": "8b40f33b7593e62514e057f9926eeb4006d0cf71235a42a3ff94e43507edc114",
+            "docker_info.py": "6590dd3a4352b0d83a8962d4a8a765bb4810d623f8ed75df55fa38ecbc4e4f49",
+            "explanation_grade.py": "a8ce7ac4946359e6c98b7151bee58908da909fe69be9e32b1f1e4a4655ad4c4e",
+            "isolated_grade.py": "605c7002452fa28a3db3045021c5999ba2259246643d35e436355a785ef13974",
+            "native-changes.py": "b8f6e7d431d9e94066cb287d145ff5b2101f6d7d647951bc7bb1d81f7c3a236d",
+            "native-rehearsal.py": "a5c243f4adcfce7d9be99c84bf23d1346f337b36770a3c6c9071e702143a2bc3",
+            "native_author.py": "a0ad4f624e7c3e09f78533003023dfc9ee86518743c3c49d75e3059e4d47bb4c",
+            "native_changes.py": "319a939ee8112fd7913d5dc86ca958bfd96cc6b732e5bb787ce38464f04e7762",
+            "native_checks.py": "2b134da559bd2785eb750d3d1a0db649bcf2ca8370c84dd1c82630596b20f09d",
+            "native_costs.py": "9e14111476f666b51ac3320b5cc613a55ba6f03985745dc8a4dfcba4b104377b",
+            "native_discovery.py": "10f90a096b8cd1cfe82a05e75dbfb4c1fd315a7f9d9157d4e1860721bd54e703",
+            "native_mcp.py": "2587d2095e43d29520180b5016854905bd3bfe165ad82157331c0d58242d4130",
+            "native_references.py": "3f8c29fd0ac1cbc632c7b80193f9753c09eff9961d633ce0302c98de153723aa",
+            "native_session.py": "8fef0c129ca8fcbecbb8cb281ff8c9870683c06cb696c986db0d380a4d7ddb86",
+            "opencode_changes.py": "6753b250cf32ad2b86b34f03baae573ff6531546c5909c9f4234e861c1f41875",
+            "opencode_export.py": "98f5a25368f69e05f234b191ae441d658a94c6db763c730261a792d5700f030d",
+            "opencode_native.py": "83d649f935537a93b31252009a04c56744adc45673d396974ecae91ecb37b362",
+            "opencode_rehearsal.py": "2043a8aac376ca37576f2afeee5f92957493c83950a2bb1a8e680571ea2d7959",
+            "provider_usage.py": "168188eab6200c061e103f783b11a0b9c34fb28a40dabb82fb07df546094eb35",
+            "rehearsal_evidence.py": "78adfc1f29749eda72855477190a2012a6521e141888005de16fa1c644147c33",
+            "request_gateway.py": "eb07a1174b4e9759ec9ef8ff94149e8346a30c1f0c3f6a748eedca58bf192e59",
+            "source_coverage.py": "e0d64130c43b59fc827c92568559fe5ef17f9286fa230dfc30ee65030f8343ab",
+            "source_disclosure.py": "2ea01f7a490ca70ba95de4a9a10c4bdf55441bc6705eaa697d17315557be4e3f",
+            "source_packets.py": "76eee545bdbf3a74fc56d4e7103ecd20bbfbc6ae91de7adcfca369429a6d8f31",
+            "source_reviews.py": "880720ea91d4d89d076cfefabc58f80c6c6b800e5614e505ee4083fac5330e11",
+            "structured_probe.py": "80410a3f5871f1e03e3f497a4adc95b68d1c88c7fbc5c25be19662637cc6b4fe",
+            "structured_submission.py": "909bc65b72423a35c3942531edf6c6ecdc8a26a82149453ad002fe447798853f",
+            "study.py": "34369aced7ea432b8804ce0eeef6f8c7a652907c7546d7bee880b89c52f71e32",
+            "terminal-change-results.py": "78b78123decc757f59c01fa86616b5284f1e3822adba04bb1e0fa16ebbaa9a01",
+            "terminal-changes.py": "d3ab807a32724fc776e43d963124ed0e080ea05573623100d43e11c210e6e60c",
+            "terminal-reviews.py": "15f046a4b8ef0f9c10607b24ab3248ef7bd312b7d99cea55997efd8316da84ff",
+            "terminal_change_results.py": "0590b26a41e2cc23a1d63d9d25f44f2c4318af472575b5fbde360fcf3d591a4a",
+            "terminal_change_runner.py": "ab0b65fdab146f05a07668b7524d47e9c253a2c13d447aeed308b0492fbbe6fa",
+            "terminal_changes.py": "e79bb62db3256a1df5e1ac79ff0c5d35d982f874c03aa9fcc36b64894f60ac71",
+            "terminal_review_collection.py": "8f23a192289e7c5f3dfb37ccd796c81f96fb6c1b8656183cd959eb5970451c6e",
+            "terminal_review_costs.py": "edb64b120513e95c7ccb1eaeb489eefe46e957cbf21ee6933d2c48c104384f63",
+            "terminal_review_runner.py": "cad2ebd05a6eb57180344c90c2a80dfd135d25b779f67d64a30fa4cda8d05833",
+            "terminal_reviews.py": "f0fa72e7eebbe377208de5f0c300c8f468f632df13806fe96e4cc846f49c43c3",
+            "terminal_transport.py": "7d4dc7c1b28ff6efd95d3562ceac35ce9d565782c142f797785787b5aeeb8a82",
+            "workspace_bundle.py": "483d7a7f667f1ae21128eacacd4f66bb02ff14a0f974fb5c85df00539f6c23cc"
+          },
+          "status": "completed",
+          "submission_sha256": "05ad137f0b9f4a8e6047be8848bf3f6b240181da281153353d76a449278c58d5",
+          "text_delta_events": 3,
+          "wire_frames": 9
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": 4.5,
+      "complete_comparison": true,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  },
+  {
+    "artifact": "streaming-ubuntu-latest-3",
+    "result": {
+      "admitted": false,
+      "attempts": [
+        {
+          "admitted": false,
+          "case": {
+            "arm": "fr",
+            "missing": false,
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan"
+          },
+          "mode": "chunked",
+          "process": {
+            "elapsed_seconds": 10.251889706000043,
+            "exit_code": 125,
+            "launch_error": null,
+            "limits": {
+              "cpu_seconds": 20,
+              "disk_bytes": 16777216,
+              "rss_bytes": 805306368,
+              "transcript_bytes": 1048576,
+              "wall_seconds": 120
+            },
+            "monitor_error": null,
+            "process_exit_code": -9,
+            "sampled_aggregate_rss_bytes": 630849536,
+            "sampled_cpu_seconds": 21.0,
+            "sampled_disk_growth_bytes": 8830661,
+            "stop_reason": "cpu_seconds",
+            "timed_out": false,
+            "transcript_bytes": 0
+          },
+          "profile": {
+            "audit": {
+              "peak": {
+                "rss_bytes": 630849536,
+                "sample": {
+                  "finished_seconds": 9.011203101999968,
+                  "group": 2367,
+                  "phase_after": "message-in-flight",
+                  "phase_before": "message-in-flight",
+                  "processes": [
+                    {
+                      "cpu_seconds": 1.0,
+                      "executable": "python3",
+                      "pid": 2367,
+                      "rss_bytes": 34598912
+                    },
+                    {
+                      "cpu_seconds": 17.0,
+                      "executable": "opencode",
+                      "pid": 2377,
+                      "rss_bytes": 569008128
+                    },
+                    {
+                      "cpu_seconds": 0.0,
+                      "executable": "python3",
+                      "pid": 2432,
+                      "rss_bytes": 27242496
+                    }
+                  ],
+                  "started_seconds": 8.997838760999969
+                }
+              },
+              "phase_peak_rss_bytes": {
+                "capture-startup": 219238400,
+                "message-in-flight": 630849536,
+                "phase-transition": 33607680,
+                "server-startup": 323227648
+              },
+              "samples": 87,
+              "schema": "fr-client-process-profile-1",
+              "scope": "Same samples as the guard; phases inferred from artifact creation, not heap attribution. Brief peaks, escaped process groups and shared-page double counting remain possible.",
+              "trace_sha256": "dba2946fcbc6f0c4c6868ca633ff8e201cabcad115936e34ab62b4b62452bbfb"
+            },
+            "cpu_seconds_by_executable": {
+              "fr": 0,
+              "opencode": 20.0,
+              "python3": 1.0
+            }
+          },
+          "record": {
+            "cell": {
+              "arm": "fr",
+              "id": "invoice-0-fr",
+              "model": 0,
+              "task": "invoice"
+            },
+            "failure": "capture process did not complete",
+            "plan_sha256": "b59fe985369165290e57b94f915fb219afea237ff6b3ee71c991516164fe1876",
+            "status": "failed",
+            "truncated_artifacts": {}
+          },
+          "reply_identities": [
+            "82d8a68a8cc2e4faf9821b896f302e928199b6e8751f40fbb10e094cd40f2574",
+            "a6141380c8263f408fcccdb3d68249c7c0a486d53f0777d7f7b4460d27e2ce12",
+            "c05d86450319335090d4dad2e93de35a5b7c2c11d75d0cd1b464bdbf76b65a3b",
+            "c279efff695ee0cbca9214dd1ec08900499d82199d9c76f6a884e7d6a555b9c5",
+            "38249d48a5562fa1bdb9c6a7ce972e5146819c74e0db12dac19cfd40ac08d8f2",
+            "e806cc32147ca7a50e2bdce5b9c29e3d58528aeb029ea0065118d454ba7948c9"
+          ],
+          "status": "failed",
+          "text_delta_events": 1288,
+          "wire_frames": 1592
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "whole",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        },
+        {
+          "mode": "chunked",
+          "reason": "earlier capture failed",
+          "status": "not_started"
+        }
+      ],
+      "chunked_minus_whole_mean_cpu_seconds": null,
+      "complete_comparison": false,
+      "schema": "fr-streaming-cpu-1",
+      "scope": "Scripted client transport, not agent efficiency or the live pilot's CPU cause. Two runs per mode; pacing adds wall time. CPU and RSS are sampled process-group totals."
+    }
+  }
+]

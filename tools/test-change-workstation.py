@@ -137,6 +137,11 @@ class StreamingAdmission(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'archive differs'):
             self.admit()
 
+    def test_retained_cpu_failures_do_not_admit_workstation_work(self):
+        directory = Path(__file__).resolve().parents[1] / 'tests/agent-eval/opencode/changes/streaming-2026-10-09/runs/37900153955'
+        with self.assertRaisesRegex(ValueError, 'streaming admission failed'):
+            CHECKER['representative'](directory, self.binary, self.binary)
+
 
 if __name__ == '__main__':
     unittest.main()

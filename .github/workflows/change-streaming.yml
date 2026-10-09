@@ -8,6 +8,8 @@ on:
       - .github/workflows/change-streaming.yml
       - tools/check-change-streaming.py
       - tools/test-change-streaming.py
+      - tools/check-streaming-evidence.py
+      - tests/agent-eval/opencode/changes/streaming-2026-10-09/**
       - tools/check-terminal-changes.py
       - tools/agent_eval/**
 
@@ -19,7 +21,20 @@ permissions:
   contents: read
 
 jobs:
+  replay:
+    name: Streaming evidence replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - run: python3 -B tools/test-change-streaming.py
+      - run: python3 -B tools/check-streaming-evidence.py
+
   streaming:
+    if: github.event_name == 'workflow_dispatch'
     name: Streaming CPU (${{ matrix.runner }}, case ${{ matrix.case }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 10
