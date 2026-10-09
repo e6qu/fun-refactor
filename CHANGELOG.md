@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.57.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.56.0...fun-refactor-v0.57.0) (2026-10-09)
+
+
+### Features
+
+* grade configured changes and retain the CPU-limited pilot ([#456](https://github.com/e6qu/fun-refactor/issues/456)) ([aa6d7df](https://github.com/e6qu/fun-refactor/commit/aa6d7df5b6c2524ac77579f6ee36aeb53d00069e))
+
 ## [0.56.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.55.0...fun-refactor-v0.56.0) (2026-10-08)
 
 
