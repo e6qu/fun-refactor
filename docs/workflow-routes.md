@@ -8,7 +8,7 @@ programs; they do not establish autonomous agent efficiency or billed token savi
 
 | Route | Use it when | Checks and recovery | Existing consumers |
 | --- | --- | --- | --- |
-| `guide` → reviewed intent | The agent has a structured goal and needs an admitted operation | Binds the goal, target, allowed operation, source permission and check/delivery policy; native intent revalidates them before writing | `FrClient.review_guide`, `tests/fixtures/tagged_intent_sdk.py`, source-writing runners |
+| `guide` → reviewed intent | The agent has a structured goal and needs an admitted operation | Binds the goal, target, allowed operation, source permission and check/delivery policy; native intent revalidates them before writing | `FrClient.review_guide`, `tests/fixtures/tagged_intent_sdk.py`, `tools/upstream-multibody-agent.py`, `tools/proof-authoring-agent.py` |
 | `intent` | The operation is known and needs a bounded evidence packet | Binds selected evidence and the complete operation review; writes use the same checked lifecycle | `FrClient.compile`, `tests/agent_intent_cli.rs`, capability/recipe/migration/proof clients |
 | `task-change` | Exact structural edits and named checks are known | Resolves request references, binds fragments and postconditions, checks original/applied/restored states, retains history and patch | `FrClient.review`, configured change runners, `tools/task-change-context.py` |
 | `author batch` → `workflow` | The caller needs a separately saved plan or explicit transaction composition | Author validates disjoint edits and source freshness; workflow binds checks and delivery to the saved transaction | CLI authoring, `tools/author-batch-context.py`, task template consumers |
@@ -45,5 +45,11 @@ execution. Native intent already recomputes the guide in the edit snapshot. Remo
 only while preserving local review integrity, including the retained goal, and demonstrating the
 native refusals. Keep the separate refresh for read/preview guide actions, which have no native
 guide binding.
+
+The former execution function uses the current review objects and native binary. This isolates
+the extra guide call; it is not a replay of the entire former SDK. Every arm uses the same
+temporary path and a fresh project/history. External fragment bytes are retained separately;
+request counts include file-backed manifest contents. Common fixture setup and independent
+oracle processes are outside the fr traffic count.
 
 Results are pending. Existing measurements remain historical evidence, not results of this run.

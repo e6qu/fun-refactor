@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Audit retained route outcomes and reject corrupt comparison evidence offline."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -16,7 +17,15 @@ REPORT = ROOT / "tests/agent-eval/results/2026-10-09-workflow-routes/result.json
 class RouteEvidence(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        manifest = json.loads((REPORT.parent / "manifest.json").read_text())
+        for name, digest in manifest["files"].items():
+            path = (REPORT.parent / name).resolve()
+            if not path.is_relative_to(REPORT.parent.resolve()) or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                raise ValueError("retained route artifact digest changed")
         cls.report = json.loads(REPORT.read_text())
+        if (manifest["collection"]["source_commit"] != cls.report["source_commit"]
+                or manifest["binary_sha256"] != cls.report["binary_sha256"]):
+            raise ValueError("retained route collection identity changed")
 
     def test_all_planned_cells_and_guide_reduction_replay(self):
         summary = routes.audit(self.report)
