@@ -19,6 +19,9 @@ the complete review, then call `client.execute_guide(review)`. Native intent rev
 before writing. Keep reports local and expose selected fields with `at`.
 For a complete semantic scalar goal, pass `guide.semantic_scalar_action()` to `review_guide`; it
 returns the exact task operation committed by the guide.
+For bodies, use `guide.source_body_action({handle: text})` with every exact guided handle.
+Review before execution. Failed applied checks can leave changed source without a patch;
+inspect the report and preview [History](history.md) undo. Preserve later conflicting edits.
 
 For non-ready actions, pass `GuideInputs({"field-name": value})`; wrap recipe, property, plan or
 tactics text in `GuideFile("plain-name", text)`. `client.complete_guide(goal, {action_index:
@@ -31,8 +34,5 @@ reveal. Keep the six verification levels separate. An agent writes every propert
 generated Rust model theorems do not establish implementation correspondence. Full wire contracts:
 `docs/agent-workflow-guide.md`.
 
-Read `intent_action` for admitted operation kinds and review/basis pointers. For delivery, use
-`client.review_guide(guide, TaggedIntentAction(OPERATION))`. Read [Intents](intents.md) for the
-operation mirrors. Native
-compilation revalidates the original goal and basis in the same snapshot as its evidence; do not
-reconstruct a different target from a name or a position.
+Read `intent_action` for admitted operations and review/basis pointers, and [Intents](intents.md)
+for typed operations. Native compilation revalidates the original goal, target and basis.

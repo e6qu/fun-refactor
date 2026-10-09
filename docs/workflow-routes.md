@@ -40,11 +40,10 @@ Collected on GitHub, with a 15-minute job ceiling and no OpenCode or provider ca
   check and mutation of a retained guide goal/review. A refused execution must not modify source
   or deliver a patch. Keep any prepared history plan visible in the result.
 
-The first consolidation candidate is the SDK's separate guide read immediately before intent
-execution. Native intent already recomputes the guide in the edit snapshot. Remove the extra read
-only while preserving local review integrity, including the retained goal, and demonstrating the
-native refusals. Keep the separate refresh for read/preview guide actions, which have no native
-guide binding.
+Guided writes no longer reread the guide in a separate process immediately before intent
+execution. Native intent recomputes it in the edit snapshot. SDK review integrity includes the
+retained goal, and the comparison exercises native refusals. Read/preview guide actions still
+refresh separately because they have no native guide binding.
 
 The former execution function uses the current review objects and native binary. This isolates
 the extra guide call; it is not a replay of the entire former SDK. Every arm uses the same
@@ -82,8 +81,8 @@ processes and 11,315 internal bytes, versus three and 21,030 for guided delivery
 The two harnesses count different request envelopes; compare arms within each harness.
 
 Keep all public routes. Use task change when concrete targets, changes and checks are already
-known; use the guide when selecting an admitted operation. The next candidate is repeated body-input
-preparation, with recovery after an applied-state check failure still needing a direct comparison.
+known; use the guide when selecting an admitted operation. The body-input comparison below removes
+repeated caller fields within the guide route.
 
 Two development runs failed: the first expected the wrong scalar formatting; the second compared
 an in-memory tuple with a JSON list during auditing. Both remain visible in GitHub
@@ -95,7 +94,48 @@ Queue delay is outside the job's 15-minute execution ceiling. There is no runtim
 The SDK source change invalidated the earlier repository-task report. The first full PR gate
 caught that stale roadmap state. [Run 37978664543](https://github.com/e6qu/fun-refactor/actions/runs/37978664543)
 revalidated the two existing full-repository tasks and their 365 behavior cases, delivery,
-interruption and patch replay. The catalog now selects the
-[new report](../tests/agent-eval/results/2026-10-09-workflow-routes-python-repositories/result.json).
-The generated roadmap again shows 7/18 demonstrated items, with no new milestone claimed.
+interruption and patch replay. That
+[report](../tests/agent-eval/results/2026-10-09-workflow-routes-python-repositories/result.json)
+restored the same 7/18 demonstrated items, with no new milestone claimed.
 Tests and the report-refresh workflow read that path from the catalog instead of duplicating a date.
+
+## Preparing body edits and recovering failed checks
+
+`AgentGuide.source_body_action` accepts caller-authored source keyed by every exact guided handle.
+It copies the bodies into the existing typed task operation and reuses retained checks, delivery
+and targets. It derives exact file/edit postconditions. It performs no discovery or subprocess work;
+the existing guide, review and execution calls remain. Names and positions cannot substitute for handles.
+
+[Run 37990418031](https://github.com/e6qu/fun-refactor/actions/runs/37990418031) passed the focused
+SDK tests and all 40 comparison cells. The [report](../tests/agent-eval/results/2026-10-09-guided-body-inputs/guide-body-context.json)
+retains the complete executed caller programs, responses, source states and recovery receipts.
+The same artifact refreshes the earlier 38-cell route comparison and scalar program evidence.
+[Run 37990846166](https://github.com/e6qu/fun-refactor/actions/runs/37990846166) also refreshed the
+two Python repository tasks and all 365 behavior cases. The catalog now selects its
+[report](../tests/agent-eval/results/2026-10-10-guided-body-inputs-python-repositories/result.json);
+the roadmap remains at 7/18 demonstrated items and 0/4 completed milestones.
+
+| Prescribed edit | Explicit task construction | Guide body helper | Internal bytes, either arm |
+| --- | ---: | ---: | ---: |
+| One Python body | 1,677 | 1,082 | 19,089 |
+| One Rust body | 1,676 | 1,081 | 18,753 |
+| Two Rust bodies | 1,766 | 1,171 | 22,156 |
+| Two Python files, same function name | 1,782 | 1,187 | 23,003 |
+
+The middle columns count complete program UTF-8 bytes plus the canonical submission. The helper
+removes 595 bytes in each fixture. Both arms make three fr calls with equal internal byte counts,
+produce identical patches and pass all eight lifecycle stages and independent behavior checks.
+These are prescribed edits with known replacement bodies. No tokenizer, model, billing, time or
+general autonomous-efficiency comparison ran.
+
+The remaining 32 cells cover changed source/check declarations, a failed applied-state check and
+a later conflicting edit. Applied failures return a nonzero exit with the structured transaction
+report: source stays changed, later lifecycle stages remain pending and no patch is delivered.
+A reopened client inspects and previews undo of that transaction. Undo restores the exact original
+source and the declared check passes; a conflicting later edit instead makes undo refuse without
+overwriting it. This establishes undo recovery, not repaired delivery or automatic rollback.
+
+Eight offline integrity tests reject omitted cells, incorrect byte totals, concealed applied source,
+unearned patches, incorrect transaction recovery and overwritten conflicts. Native regression tests
+also cover a clipped diff, ambiguous selection and missing source permission before history is saved.
+We kept every public route and left frozen runner snapshots unchanged.

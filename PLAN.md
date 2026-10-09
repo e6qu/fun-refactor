@@ -38,47 +38,37 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
-The [delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
-finished with 31 completed captures and one unstarted repetition. One macOS capture exceeded the
-memory-headroom target. Separating fragmentation from scheduled duration produced inconsistent CPU
-differences across conditions and platforms. These small samples do not identify a client cause
-that justifies changing its configuration. The bounded client investigation is now closed.
+The [guided body comparison](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks)
+passed 40 prescribed cells across single and coordinated Python/Rust edits. A typed helper reuses
+the guide's exact targets, checks and delivery while the caller supplies every body. Complete caller
+programs and their submissions are 595 bytes shorter in each fixture. The three fr calls, internal
+traffic, patches and successful lifecycle stay the same. No model or token-efficiency comparison ran.
 
-The earlier [streaming comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
-retains its six CPU-limit stops and failed macOS admission. The newer ordinary-tool diagnostic
-does not replace the required ordinary/fr admission matrix. Local client collection remains
-blocked; there was no new live model call. Frozen reports replay offline in CI.
+After an applied-state check fails, source remains changed and no patch is delivered. A reopened
+client can inspect and undo that transaction, restore the exact original source and pass its check.
+Later conflicting edits make undo refuse. Repairing the applied change and completing delivery is
+still outside this comparison.
 
-The [configured packaging pilot](tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
-stopped on its first attempt. Kimi made five ordinary tool calls and one source replacement,
-then hit the unchanged 20-CPU-second limit before submitting. Three planned attempts remain
-unstarted. Peak sampled RSS was 417.23 MiB; elapsed time was 63.11 seconds.
-
-Short scripted controls had passed on GitHub and the workstation. They did not predict the
-live CPU demand. The frozen runner and hosted report preserve the failure and unknown costs.
-There is no graded repair, observed fr use or completed comparison from this pilot.
-
-Packaging was admitted for this bounded pilot after scoped review and a separate policy check.
-Five of six reviews completed; GLM's failed policy review remains failed. See the
-[candidate review status](docs/candidate-review-status.md) for the admission limits and other tasks.
+The client-resource investigation is closed. Its [delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
+did not identify a cause that justifies a client configuration change. The stopped packaging pilot
+and failed workstation admission remain failures; do not resume them or infer admission from short
+controls. Their reports and the [candidate review status](docs/candidate-review-status.md) retain
+the details. Routine CI replays frozen evidence without launching clients.
 
 ## Next large chunk
 
-The [workflow comparison](docs/workflow-routes.md) now inventories guide, intent, task and
-direct-author routes. Fifteen prescribed edits and 23 refusal controls pass. Removing the SDK's
-duplicate guide read saves one process and 5,057–5,949 internal bytes per guided edit in those
-fixtures. The agent-visible program size is unchanged. Every public route still has a distinct use.
+The [workflow inventory](docs/workflow-routes.md) preserves each public route's distinct purpose.
+Measurements now support removing the duplicate guide read and simplifying body-input construction.
+Next, make the remaining delivery and adoption gaps concrete:
 
-1. Measure source-body input preparation. Guides already retain exact targets, checks and
-   delivery, but callers repeat those fields to construct an operation. Compare complete authored
-   programs before adding a typed builder that reuses the guide's retained values.
-2. Preserve agent-authored bodies and explicit ambiguity, clipping and stale-input refusals.
-   Test single and coordinated bodies across supported languages; do not add repository-specific
-   selection rules or another overlapping command route.
-3. Extend the comparison to a check that fails after application, then exercise documented
-   recovery from the retained transaction. Keep changed source and withheld patches explicit;
-   the current original-check refusal does not establish applied-state recovery behavior.
-4. Keep the independent live study open. It needs fresh representative resource admission,
+1. Compare repair-and-resume with undo-and-retry after an applied-state check fails. Demonstrate
+   correct delivered source, required check receipts and receiver patch replay without applying
+   the same edit twice. Retain conflicts and failures; the current result proves undo recovery only.
+2. Review current body-edit callers before migrating them to the helper. Preserve their custom
+   postconditions, acceptance checks and review limits. The multi-body runner currently requests
+   a larger diff than the helper's default; replacing it mechanically would change admission.
+   Keep frozen historical runner snapshots unchanged and measure any revised caller completely.
+3. Keep the independent live study open. It needs fresh representative resource admission,
    actual fr-use accounting and complete parent/child costs. The stopped packaging collection
    cannot resume, and failed cells cannot be retried under a new directory name.
 
@@ -101,6 +91,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 
 | Evidence | Established result | Limit |
 | --- | --- | --- |
+| [Guided body preparation](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks) | 595 fewer caller/submission bytes in four fixtures; 40 cells cover checked delivery, stale inputs, reopened undo and conflicts | Prescribed bodies; no model/token comparison or repaired-delivery result |
 | [Editing routes](docs/workflow-routes.md) | Equal patches/lifecycles across three edit shapes; guided writes remove one redundant process; 23 refusal controls pass | Prescribed tasks; no reduction in complete-program bytes or autonomous efficiency result |
 | [Delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) | 31 captures completed; one repetition stayed unstarted after failed memory headroom | Inconsistent CPU differences; no targeted client fix or workstation admission |
 | [Streaming CPU comparison](tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md) | Client dominates sampled CPU; short controls cannot admit representative streaming | Six CPU stops; no macOS admission or general agent-efficiency result |

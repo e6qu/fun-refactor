@@ -59,9 +59,8 @@ fn python_package_keeps_explicit_module_boundaries() {
 
 #[test]
 fn checked_agent_guide_context_comparison_is_reproducible() {
-    let evidence = root().join(
-        "tests/agent-eval/results/2026-10-09-workflow-routes-agent-guide-context/result.json",
-    );
+    let evidence = root()
+        .join("tests/agent-eval/results/2026-10-09-guided-body-inputs/agent-guide-context.json");
     let output = python()
         .arg(root().join("tools/agent-guide-context.py"))
         .arg("--audit")
@@ -139,16 +138,23 @@ print(json.dumps({'passed':result.passed,'stages':len(result.at('/workflow/stage
 
 #[test]
 fn checked_workflow_route_comparison_retains_outcomes_and_refusals() {
-    let output = python()
-        .arg(root().join("tools/test-workflow-route-context.py"))
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}\n{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
+    for script in [
+        "tools/test-workflow-route-context.py",
+        "tools/test-guide-body-context.py",
+        "tools/test-guide-body-native.py",
+    ] {
+        let output = python()
+            .arg(root().join(script))
+            .env("FR_TEST_BINARY", env!("CARGO_BIN_EXE_fr"))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{script}\n{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }
 
 #[test]
