@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -22,13 +23,15 @@ from fr_ir.ir import ScalarRequest, TaskChange, TaskDelivery, TaskTarget  # noqa
 from fr_ir.runtime import FrClient, FrRuntimeError  # noqa: E402
 
 BASELINE = "cbc7ad31ba878c58963b84da41d518178bd50abd"
+BASELINE_FILE_SHA256 = "efb76e603a7eb2f410395bf68d066f381fc3cbf056319c5af4350a6aacc2b4e5"
+BASELINE_FUNCTION_SHA256 = "9d6c5ae88c14ec9cfacb72c47120dc97b5d5cfff6314353fc96ed505e930ac5f"
 ARMS = ("author", "task", "intent", "guide", "guide-before")
 FAULTS = ("source", "checks", "fragment", "original-check")
 STAGES = ("check-original", "apply", "check-applied", "undo", "check-restored",
           "redo", "check-applied", "deliver-patch")
 SOURCES = (
     {"id": "rust-scalar", "files": {"src/lib.rs":
-        "pub fn adjust(value: i64) -> i64 { value + 7 }\n"},
+        "pub fn adjust(value: i64) -> i64 {\n    return value + 7;\n}\n"},
      "edits": [{"name": "adjust", "path": "src/lib.rs", "scalar": True,
                 "old": "value + 7", "new": "value + 9"}]},
     {"id": "python-body", "files": {"text.py":
@@ -74,6 +77,8 @@ def baseline_function():
     function = next(node for node in ast.parse(source).body
                     if isinstance(node, ast.FunctionDef) and node.name == "execute_guide")
     text = ast.get_source_segment(source, function)
+    if digest(source.encode()) != BASELINE_FILE_SHA256 or digest(text.encode()) != BASELINE_FUNCTION_SHA256:
+        raise ValueError("before execution source changed")
     scope = dict(vars(guide_module))
     exec(compile(text, "<retained-before-execute-guide>", "exec"), scope)
     return scope["execute_guide"], {"commit": BASELINE, "file": "sdk/python/src/fr_ir/guide.py",
@@ -238,6 +243,8 @@ def metrics(events):
 
 
 def run_arm(root, case, arm, executable, before, fault=None):
+    if root.parent.exists():
+        shutil.rmtree(root.parent)
     prepare(root, case)
     client = RecordedClient(root, executable=executable, timeout=60)
     review = start(client, case, arm)
@@ -279,7 +286,9 @@ def run_arm(root, case, arm, executable, before, fault=None):
         oracle = None
     else:
         if error or not workflow or workflow.get("passed") is not True or after != expected or not patch.exists():
-            raise RuntimeError(f"{arm}/{case['id']}: unsuccessful lifecycle: {error or result}")
+            raise RuntimeError(json.dumps({"case": case["id"], "arm": arm,
+                "error": error, "result": result, "expected": expected, "source": after,
+                "patch_exists": patch.exists(), "events": client.events}))
         stages = [{"stage": row["stage"], "status": row["status"]} for row in workflow["stages"]]
         if stages != [{"stage": stage, "status": "passed"} for stage in STAGES]:
             raise RuntimeError("incomplete checked lifecycle")
@@ -310,7 +319,7 @@ def measure(executable):
         base = Path(directory)
         for case in SOURCES:
             for arm in ARMS:
-                runs.append(run_arm(base / case["id"] / arm / "project", case, arm, executable, before))
+                runs.append(run_arm(base / "cell" / "project", case, arm, executable, before))
         case = SOURCES[1]
         for fault in FAULTS:
             for arm in ARMS:
@@ -318,10 +327,10 @@ def measure(executable):
                 # original fragment file no longer change that plan; report this distinction.
                 if fault == "fragment" and arm == "author":
                     continue
-                runs.append(run_arm(base / fault / arm / "project", case, arm, executable, before, fault))
+                runs.append(run_arm(base / "cell" / "project", case, arm, executable, before, fault))
         for fault in ("goal", "review"):
             for arm in ("guide", "guide-before"):
-                runs.append(run_arm(base / fault / arm / "project", case, arm, executable, before, fault))
+                runs.append(run_arm(base / "cell" / "project", case, arm, executable, before, fault))
     return {"schema": "fr-workflow-route-context-1", "bindings": bindings(),
             "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT).decode().strip(),
             "binary_sha256": digest(Path(executable).read_bytes()), "baseline": baseline,
@@ -337,8 +346,11 @@ def audit(value):
         raise ValueError("route comparison schema or source bindings changed")
     if value["fixtures"] != json.loads(json.dumps(SOURCES)):
         raise ValueError("route comparison fixtures changed")
-    _, baseline = baseline_function()
-    if value["baseline"] != baseline:
+    baseline = value["baseline"]
+    if (set(baseline) != {"commit", "file", "file_sha256", "function"}
+            or baseline["commit"] != BASELINE or baseline["file"] != "sdk/python/src/fr_ir/guide.py"
+            or baseline["file_sha256"] != BASELINE_FILE_SHA256
+            or digest(baseline["function"].encode()) != BASELINE_FUNCTION_SHA256):
         raise ValueError("before execution function changed")
     expected_keys = {(c["id"], a, None) for c in SOURCES for a in ARMS}
     expected_keys |= {(SOURCES[1]["id"], a, f) for f in FAULTS for a in ARMS
@@ -392,7 +404,14 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--audit", type=Path)
     args = parser.parse_args()
-    value = json.loads(args.audit.read_text()) if args.audit else measure(str(args.fr.resolve()))
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        value = json.loads(args.audit.read_text()) if args.audit else measure(str(args.fr.resolve()))
+    except Exception as error:
+        if args.output:
+            args.output.with_suffix(".failed.txt").write_text(str(error) + "\n")
+        raise
     summary = audit(value)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

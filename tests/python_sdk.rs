@@ -60,7 +60,7 @@ fn python_package_keeps_explicit_module_boundaries() {
 #[test]
 fn checked_agent_guide_context_comparison_is_reproducible() {
     let evidence = root()
-        .join("tests/agent-eval/results/2026-10-05-recipe-index-agent-guide-context/result.json");
+        .join("tests/agent-eval/results/2026-10-09-workflow-routes-agent-guide-context/result.json");
     let output = python()
         .arg(root().join("tools/agent-guide-context.py"))
         .arg("--audit")
@@ -73,7 +73,7 @@ fn checked_agent_guide_context_comparison_is_reproducible() {
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_slice(&fs::read(evidence).unwrap()).unwrap();
-    assert_eq!(report["guided"]["process_calls"], 4);
+    assert_eq!(report["guided"]["process_calls"], 3);
     assert_eq!(report["manual"]["process_calls"], 3);
     assert!(report["equality"]
         .as_object()
@@ -134,6 +134,20 @@ print(json.dumps({'passed':result.passed,'stages':len(result.at('/workflow/stage
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["passed"], true);
     assert_eq!(report["stages"], 8);
+}
+
+#[test]
+fn checked_workflow_route_comparison_retains_outcomes_and_refusals() {
+    let output = python()
+        .arg(root().join("tools/test-workflow-route-context.py"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]

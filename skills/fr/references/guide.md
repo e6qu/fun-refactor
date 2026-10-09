@@ -15,8 +15,8 @@ basis before execution.
 Python imports `AgentGoal`, `GoalSelector`, `GoalOperation`, `GoalConstraints` and `GoalLimits` from
 `fr_ir.guide`. Use `client.complete_guide` only to follow read and preview actions. For writes,
 author one typed `TaggedIntentAction`, call `review = client.review_guide(guide, action)`, inspect
-the complete review, then call `client.execute_guide(review)`. The executor refreshes the guide and
-accepts only its unchanged native review. Keep reports local and expose selected fields with `at`.
+the complete review, then call `client.execute_guide(review)`. Native intent revalidates the guide
+before writing. Keep reports local and expose selected fields with `at`.
 For a complete semantic scalar goal, pass `guide.semantic_scalar_action()` to `review_guide`; it
 returns the exact task operation committed by the guide.
 
