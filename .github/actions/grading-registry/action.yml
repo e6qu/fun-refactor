@@ -1,0 +1,25 @@
+name: Prepare the public grading-image mirror
+description: Avoid shared Docker Hub pull limits while retaining original image digests
+runs:
+  using: composite
+  steps:
+    - name: Configure the hosted Docker registry mirror
+      shell: bash
+      run: |
+        test "$GITHUB_ACTIONS" = true
+        sudo mkdir -p /etc/docker
+        sudo python3 - <<'PY'
+        import json
+        from pathlib import Path
+        path = Path('/etc/docker/daemon.json')
+        config = json.loads(path.read_text()) if path.exists() else {}
+        mirror = 'https://mirror.gcr.io'
+        previous = config.get('registry-mirrors', [])
+        if not isinstance(previous, list) or any(not isinstance(v, str) for v in previous):
+            raise ValueError('Docker registry mirrors must be a list of URLs')
+        config['registry-mirrors'] = [mirror, *(v for v in previous if v != mirror)]
+        path.write_text(json.dumps(config) + '\n')
+        PY
+        sudo systemctl restart docker
+        docker info --format '{{json .RegistryConfig.Mirrors}}' | python3 -c \
+          'import json,sys; assert any(v.rstrip("/") == "https://mirror.gcr.io" for v in json.load(sys.stdin))'
