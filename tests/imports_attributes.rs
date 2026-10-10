@@ -1,5 +1,3 @@
-//! What an attribute above an import belongs to.
-
 use fun_refactor::index::Index;
 use fun_refactor::refactor::imports;
 use fun_refactor::scan::{scan, ScanOptions};
@@ -33,7 +31,6 @@ fn an_attribute_moves_with_the_import_it_guards() {
         after.contains("#[cfg(feature = \"cli\")]\nuse crate::scan::S;"),
         "the attribute lost its import:\n{after}"
     );
-    // And the sort still happened.
     let anyhow_at = after.find("use anyhow::Result;").expect("anyhow kept");
     let a_at = after.find("use crate::a::A;").expect("a kept");
     assert!(anyhow_at < a_at, "the block was not sorted:\n{after}");

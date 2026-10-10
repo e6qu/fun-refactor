@@ -133,7 +133,6 @@ fn semantic_selection_refuses_ambiguous_declarations_before_queries_or_edits() {
                     assert_eq!(fs::read_to_string(&file).unwrap(), source);
                 }
             }
-            // File-level inspection remains available without pretending to select one body.
             let result = report(dir.path(), &["project", "semantic", path, "--body"]);
             assert_eq!(result["selection"]["kind"], "file");
         }
