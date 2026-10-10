@@ -232,16 +232,19 @@ jobs:
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
-      - run: rustup toolchain install stable --profile minimal
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
+      - run: cargo fmt --all --check
       - run: cargo build --locked --bin fr
       - name: Check ambiguous semantic selection and authoring refusals
         run: cargo test --locked --test semantic_evidence semantic_selection -- --test-threads 1
+      - name: Preserve supported source and semantic authoring
+        run: cargo test --locked --test author_cli -- --test-threads 1
       - name: Compare declared Rust and Python explanation features
         run: python3 -B tools/compiler-profile.py --output target/compiler-profile/result.json
       - name: Reject corrupted compiler and source observations
