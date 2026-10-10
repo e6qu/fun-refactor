@@ -39,7 +39,16 @@ functions returned the first body's model with absent origins. Absent origins di
 selection correct. Semantic queries and semantic edit preparation now require uniqueness in both
 the source index and the lowered model, including containing declarations. Regression tests cover
 duplicates, decorated definitions, methods and classes; distinct qualified methods remain usable.
+Static methods without receiver metadata require one callable of that name in the file.
 When selection refuses, inspect the file or request bounded source instead.
+
+## Retained result
+
+The [retained report](../tests/agent-eval/results/2026-10-10-compiler-profile/README.md) passes all
+eleven declared features, eighteen cases and 26 corruption tests. Nine cases rename and relocate
+the original source. One Rust configuration deliberately compiles unsuccessfully despite parsing.
+These results close A.compiler-profile only for the declared features and outcomes.
+The hosted job, including lint and all 88 authoring tests, completed in 13 minutes 55 seconds.
 
 ## Reproduction and review
 
