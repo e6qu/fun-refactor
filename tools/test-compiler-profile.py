@@ -70,6 +70,12 @@ class CompilerProfile(unittest.TestCase):
         value['source_bindings']['src/span.rs'] = 'stale'
         self.reject(value)
 
+    def test_parser_build_inputs_cannot_drift(self):
+        for path in ('grammars/python/src/parser.c', 'grammars/python/build.rs', 'Cargo.toml'):
+            value, _ = self.changed()
+            value['source_bindings'][path] = 'stale'
+            self.reject(value)
+
     def test_source_and_configuration_cannot_change(self):
         value, row = self.changed('python-positive')
         row['case']['rules']['sources'] = []
@@ -121,6 +127,23 @@ class CompilerProfile(unittest.TestCase):
     def test_overwrite_cannot_invent_a_witness(self):
         value, row = self.changed('python-overwrite')
         self.change_report(row, 'flow', lambda r: r.update(witnesses=[{'invented': True}]))
+        self.reject(value)
+
+    def test_flow_trace_cannot_invent_coordinates(self):
+        value, row = self.changed('python-positive')
+        def change(report):
+            report['witnesses'][0]['trace']['occurrences'][0]['location']['span']['start'] += 1
+        self.change_report(row, 'flow', change)
+        self.reject(value)
+
+    def test_possible_flow_cannot_be_promoted_to_a_proof(self):
+        value, row = self.changed('python-positive')
+        self.change_report(row, 'flow', lambda r: r['witnesses'][0].update(claim='proven-path'))
+        self.reject(value)
+
+    def test_queries_cannot_mix_source_revisions(self):
+        value, row = self.changed()
+        self.change_report(row, 'origins', lambda r: r.update(revision='stale'))
         self.reject(value)
 
     def test_python_runtime_cannot_change(self):

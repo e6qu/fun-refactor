@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,12 +47,29 @@ PROFILE['python-checked-origins'] = {'basis': 'executed checks', 'feature': 'AST
                                      'existing_test': 'tests/semantic_evidence.rs'}
 
 
+def binding_digest(path):
+    if path.name != 'Cargo.toml':
+        return file_digest(path)
+    manifest = tomllib.loads(path.read_text())
+    version = manifest['package']['version']
+    manifest['package']['version'] = '<workspace>'
+    for container in [manifest, manifest.get('workspace', {}), *manifest.get('target', {}).values()]:
+        for kind in ('dependencies', 'dev-dependencies', 'build-dependencies'):
+            for dependency in container.get(kind, {}).values():
+                if isinstance(dependency, dict) and 'path' in dependency and dependency.get('version') == version:
+                    dependency['version'] = '<workspace>'
+    return compiler.digest(manifest)
+
+
 def bindings():
     paths = set(compiler.BINDINGS + semantic.BINDINGS)
     paths.update(str(path.relative_to(ROOT)) for path in (ROOT / 'src').rglob('*.rs'))
+    paths.update(str(path.relative_to(ROOT)) for path in (ROOT / 'grammars/python').rglob('*')
+                 if path.suffix in ('.rs', '.c', '.h'))
+    paths.update(('Cargo.toml', 'grammars/python/Cargo.toml', 'grammars/python/PROVENANCE.toml'))
     paths.update(row['existing_test'] for row in PROFILE.values())
     paths.add('tools/compiler-profile.py')
-    return {path: file_digest(ROOT / path) for path in sorted(paths)}
+    return {path: binding_digest(ROOT / path) for path in sorted(paths)}
 
 
 def cases():
@@ -108,12 +126,24 @@ def python_oracle(case):
     tree = ast.parse(case['source'], filename=case['path'])
     lines = case['source'].encode().splitlines(keepends=True)
     starts = [sum(map(len, lines[:i])) for i in range(len(lines))]
-    spans = []
+    def span(node):
+        return [starts[node.lineno - 1] + node.col_offset, starts[node.end_lineno - 1] + node.end_col_offset]
+    spans, flow_nodes = [], []
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == case['callee']:
-            def span(n):
-                return [starts[n.lineno - 1] + n.col_offset, starts[n.end_lineno - 1] + n.end_col_offset]
             spans.append({'name': span(node.func), 'expression': span(node)})
+        role = None
+        if isinstance(node, ast.Name):
+            role = 'definition' if isinstance(node.ctx, ast.Store) else 'use'
+        elif isinstance(node, ast.arg):
+            role = 'parameter'
+        elif isinstance(node, ast.Return):
+            role = 'return'
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            role = ('source' if node.func.id in case['rules']['sources'] else
+                    'sink' if node.func.id in case['rules']['sinks'] else 'call-result')
+        if role:
+            flow_nodes.append({'role': role, 'span': span(node)})
     sinks = []
     scope = {case['rules']['sources'][0]: lambda: 37, case['rules']['sinks'][0]: sinks.append}
     exec(compile(tree, case['path'], 'exec'), scope)
@@ -125,7 +155,7 @@ def python_oracle(case):
             observed = {'value': function(), 'sinks': sinks}
         except Exception as error:
             observed = {'error': type(error).__name__, 'sinks': sinks}
-    return {'accepted': True, 'runtime': observed, 'calls': sorted(spans, key=lambda s: s['name'])}
+    return {'accepted': True, 'runtime': observed, 'calls': sorted(spans, key=lambda s: s['name']), 'flow_nodes': flow_nodes}
 
 
 def location(source, start, end):
@@ -203,8 +233,10 @@ def audit_case(row, case):
         expected_commands['flow'] = ['project', 'dataflow', handle, '--rules', '.fr/rules.json', '--steps', '1024', '--bytes', '65536']
     require(set(events) == set(expected_commands), 'missing or extra profile commands')
     for name, args in expected_commands.items():
-        require(events[name]['argv'][1:3] == ['--json', '-C'] and events[name]['argv'][4:] == args,
+        require(events[name]['argv'][1:4] == ['--json', '-C', events['find']['argv'][3]] and events[name]['argv'][4:] == args,
                 'profile command identity changed')
+        if events[name]['exit_code'] == 0:
+            require(report(events[name])['revision'] == found['revision'], 'profile source revision changed between queries')
     oracle = row['oracle']
     if case['language'] == 'python':
         require(oracle == python_oracle(case) and oracle['runtime'] == case['expected_runtime'], 'Python AST or runtime disagreement')
@@ -253,6 +285,21 @@ def audit_case(row, case):
         require(not flow['cutoffs'] if supported else bool(flow['cutoffs']), 'flow omissions changed')
         if case['feature'] == 'python-local':
             require('ambiguous-call:' + case['rules']['sources'][0] in json.dumps(flow['cutoffs']), 'local shadowing cutoff missing')
+        if case['feature'] == 'python-positive':
+            witness, = flow['witnesses']
+            trace = witness['trace']['occurrences']
+            require(witness['sink'] == case['rules']['sinks'][0] and witness['rules'] == case['rules']['version']
+                    and witness['claim'] == 'possible-value-propagation; path feasibility unchecked.'
+                    and trace[0]['role'] == 'source' and trace[-1] == witness['site']
+                    and trace[-1]['role'] == 'sink' and any(o['role'] == 'parameter' for o in trace),
+                    'flow witness claim or helper path changed')
+            for occurrence in trace:
+                loc = occurrence['location']
+                start, end = loc['span']['start'], loc['span']['end']
+                require({'role': occurrence['role'], 'span': [start, end]} in oracle['flow_nodes']
+                        and loc == location(case['source'], start, end)
+                        and occurrence['path'] == case['path'] and occurrence['revision'] == flow['revision'],
+                        'flow witness lacks an exact independent AST location')
 
 
 def audit_compiler(value):
