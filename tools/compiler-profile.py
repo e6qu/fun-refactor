@@ -236,7 +236,7 @@ def audit_case(row, case):
         require(events[name]['argv'][1:4] == ['--json', '-C', events['find']['argv'][3]] and events[name]['argv'][4:] == args,
                 'profile command identity changed')
         if events[name]['exit_code'] == 0:
-            require(report(events[name])['revision'] == found['revision'], 'profile source revision changed between queries')
+            require(report(events[name]).get('revision') == found['revision'], 'profile source revision changed between queries')
     oracle = row['oracle']
     if case['language'] == 'python':
         require(oracle == python_oracle(case) and oracle['runtime'] == case['expected_runtime'], 'Python AST or runtime disagreement')

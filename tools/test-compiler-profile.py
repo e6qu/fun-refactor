@@ -110,6 +110,9 @@ class CompilerProfile(unittest.TestCase):
     def test_rust_flow_cannot_pass(self):
         value, row = self.changed('rust-repeated')
         row['events']['flow']['exit_code'] = 0
+        row['events']['flow']['stdout'] = json.dumps({
+            'revision': json.loads(row['events']['find']['stdout'])['revision'],
+            'complete': True, 'witnesses': []})
         self.reject(value)
 
     def test_absent_origins_cannot_become_exact(self):
