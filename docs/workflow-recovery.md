@@ -8,9 +8,9 @@ Choose recovery from the actual source state:
 
 - If an external check prerequisite failed and the recorded edited source is still correct,
   repair that prerequisite, review an applied-state workflow, and resume delivery.
-- If the source needs repair, preview undo and restore the original source before preparing a
-  corrected edit. A source repair on top of the applied transaction needs a new reviewed
-  transaction; resuming the old one cannot deliver a combined patch.
+- If the source needs repair, prepare a new reviewed transaction. Either undo first or repair
+  the applied source and deliver the ordered transaction patches. See [source repair](source-repair.md)
+  for the full check, reversal and receiver procedure.
 - If another edit conflicts with the transaction, preserve it and resolve the conflict explicitly.
   Neither resume nor undo grants permission to overwrite it.
 

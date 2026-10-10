@@ -143,6 +143,7 @@ fn checked_workflow_route_comparison_retains_outcomes_and_refusals() {
         "tools/test-guide-body-context.py",
         "tools/test-guide-body-native.py",
         "tools/test-recovery-delivery-context.py",
+        "tools/test-source-repair-context.py",
     ] {
         let output = python()
             .arg(root().join(script))
