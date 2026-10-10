@@ -29,8 +29,9 @@ outside it. An evaluated unsupported expression or exhausted budget reports inco
 An expression skipped by a known selector needs no execution contract. Lexical binding checks and
 module-closure checks still apply independently, including to source containing skipped expressions.
 
-Expression control was introduced in `python-scalar-summaries-2`; current reports use version 3
-with [required call binding](call-binding.md). They include `fr-expression-control-1` in both the public
+Expression control was introduced in `python-scalar-summaries-2`; current reports use version 5
+with [call binding](call-binding.md) and [ordered assignments](scalar-assignments.md).
+They include `fr-expression-control-1` in both the public
 report and canonical inputs. Analyzer identities include the expression implementation. Native reuse
 rejects changed contracts even with a recomputed retained-report digest. The Python SDK exposes
 `FunctionSummaries.expression_control` and rejects malformed or inconsistent contracts. It still

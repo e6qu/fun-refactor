@@ -44,7 +44,7 @@ The finite runtime corpus compares independent CPython observations with origin 
 argument effects, parameter kinds and invalid binding. It does not prove source correspondence or
 general path feasibility.
 
-Current reports use `python-scalar-summaries-4` and retain `fr-call-binding-2` in both canonical inputs and
+Current reports use `python-scalar-summaries-5` and retain `fr-call-binding-2` in both canonical inputs and
 the public report. Native reuse validates both identities, even if a modified report has a freshly
 computed digest. Analyzer identities include the binding implementation.
 The response budget includes both contract copies. If even metadata cannot fit, the command refuses;

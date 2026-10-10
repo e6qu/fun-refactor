@@ -6,32 +6,28 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
-The [source-repair comparison](source-repair.md) passed 40 cells and 16 corruption tests in
-hosted run 38055066754. Both routes start with an incorrect body and failed applied check.
-They preserve required checks and reverse the complete delivery chain. They check original
-and restored final source, then replay the patch in an independent receiver.
+The [Rust/Python explanation profile](compiler-profile.md) covers eleven declared features and
+eighteen original or renamed/relocated cases, together with compiler and checked-origin evidence.
+Its 26 corruption tests reject missing coverage, invented facts and mismatched inputs.
 
-Undo-and-correct used 17 total fr calls versus 20 for repairing applied source. Protocol bytes
-were lower for undo-and-correct in all four Python/Rust fixtures. Both totals include initial
-failed work. Existing ordered transaction patches sufficed; no new public operation was added.
-Those patches retain intermediate incorrect source. The caller sequence is not atomic.
+Profile review caught a wrong-body selection for duplicate Python functions. Semantic queries
+and edit preparation now require unique source and lowered declarations, including containing
+classes. Decorated duplicates refuse; methods in distinct classes remain available. File-level
+inspection and bounded source remain the fallback when a declaration cannot be matched.
 
-The [body-caller review](source-repair.md#body-helper-adoption-review) preserves custom diff
-limits, postconditions and acceptance checks. Historical runner snapshots remain unchanged.
-The earlier [applied-state resume](workflow-recovery.md) remains for unchanged edited source
-after repairing an external check prerequisite. It cannot repair source within the old transaction.
+Current source-bound repository, indexing and workflow evidence was collected again after that
+fix. Historical reports stay unchanged. The [source-repair](source-repair.md) and
+[resume](workflow-recovery.md) comparisons remain finite workflow evidence, without live models.
 
-These are prescribed workflows without a live model or agent-efficiency result. Roadmap status
-remains 7/18 demonstrated items and 0/4 completed milestones. Existing repository, host recovery
-and proof reports remain regression evidence with their stated limits.
+Roadmap status is 8/18 demonstrated acceptance items and 0/4 completed milestones. This does
+not establish a general agent-efficiency advantage or complete Rust/Python semantics.
 
 ## Next work
 
-Build the consolidated Rust/Python explanation profile described in
-[A.compiler-profile](roadmap-status.md#acompiler-profile-relate-explanations-to-compiler-and-runtime-checks).
-Inventory existing compiler and source-location tests before adding machinery. Retain versions,
-build inputs, repeated calls, shadowing, Unicode positions, disagreements and unsupported cases.
-Explain which facts come from syntax, references, analysis, compiler checks or runtime execution.
+Implement [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior): explicit
+language rules for evaluation order, assignments, calls, exceptions and source positions.
+Compare supported rules with independently authored executable examples and renamed/relocated
+variants. Preserve unsupported cases; fix defects through general rules, never repository names.
 The [plan](../PLAN.md#next-large-chunk) defines the next deliverable.
 
 ## Client-study boundary

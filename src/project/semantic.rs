@@ -89,7 +89,32 @@ pub fn semantic_section_fits(required: usize, budget: usize) -> bool {
     required <= budget
 }
 
-pub(super) fn selected_function(module: &Module, symbol: &Symbol) -> Option<Function> {
+fn unique_declaration(index: &crate::index::Index, symbol: &Symbol) -> bool {
+    let matches = index.symbols_written(&symbol.name, Some(&symbol.file));
+    let unique = matches
+        .iter()
+        .filter(|candidate| {
+            candidate.kind == symbol.kind
+                && (symbol.kind != SymbolKind::Method || candidate.qualifier == symbol.qualifier)
+        })
+        .count()
+        == 1;
+    unique
+        && symbol.container.is_none_or(|id| {
+            index
+                .symbol(id)
+                .is_some_and(|container| unique_declaration(index, container))
+        })
+}
+
+pub(super) fn selected_function(
+    module: &Module,
+    symbol: &Symbol,
+    index: &crate::index::Index,
+) -> Option<Function> {
+    if !unique_declaration(index, symbol) {
+        return None;
+    }
     let record_matches = |name: &str| {
         symbol.qualifier.as_deref().is_none_or(|qualifier| {
             qualifier == name
@@ -97,59 +122,75 @@ pub(super) fn selected_function(module: &Module, symbol: &Symbol) -> Option<Func
                 || qualifier.rsplit('.').next() == Some(name)
         })
     };
+    // Lowered functions have no declaration span. A name match is only usable
+    // when unique; choosing the first match can return or edit another body.
+    let mut matches = module.items.iter().filter_map(|item| match item {
+        Item::Function(function)
+            if function.name == symbol.name
+                && (symbol.kind != SymbolKind::Method
+                    || function.receiver.as_deref().is_none_or(record_matches)) =>
+        {
+            Some(function)
+        }
+        _ => None,
+    });
     match symbol.kind {
-        SymbolKind::Function => module.items.iter().find_map(|item| match item {
-            Item::Function(function) if function.name == symbol.name => Some(function.clone()),
-            _ => None,
-        }),
-        SymbolKind::Method => module
-            .items
-            .iter()
-            .find_map(|item| match item {
-                Item::Record(record) if record_matches(&record.name) => record
-                    .methods
-                    .iter()
-                    .find(|method| method.name == symbol.name)
-                    .cloned(),
+        SymbolKind::Function => {
+            let only = matches.next()?;
+            matches.next().is_none().then(|| only.clone())
+        }
+        SymbolKind::Method => {
+            let mut records = module.items.iter().filter_map(|item| match item {
+                Item::Record(record) if record_matches(&record.name) => Some(record),
                 _ => None,
-            })
-            .or_else(|| {
-                let mut matches = module.items.iter().filter_map(|item| match item {
-                    Item::Function(function) if function.name == symbol.name => Some(function),
-                    _ => None,
-                });
-                let only = matches.next()?.clone();
-                matches.next().is_none().then_some(only)
-            }),
+            });
+            let record = records.next();
+            if records.next().is_some() {
+                return None;
+            }
+            let mut methods = record
+                .into_iter()
+                .flat_map(|record| &record.methods)
+                .filter(|method| method.name == symbol.name);
+            if let Some(only) = methods.next() {
+                return methods.next().is_none().then(|| only.clone());
+            }
+            let only = matches.next()?;
+            let exact_receiver = only.receiver.is_some()
+                || index
+                    .symbols_written(&symbol.name, Some(&symbol.file))
+                    .iter()
+                    .filter(|candidate| candidate.kind.is_callable())
+                    .count()
+                    == 1;
+            (matches.next().is_none() && exact_receiver).then(|| only.clone())
+        }
         _ => None,
     }
 }
 
-fn selected_item(module: &Module, symbol: &Symbol) -> Option<Item> {
-    match symbol.kind {
-        SymbolKind::Function | SymbolKind::Method => {
-            selected_function(module, symbol).map(Item::Function)
-        }
-        SymbolKind::Class | SymbolKind::Struct | SymbolKind::Trait | SymbolKind::Interface => {
-            module.items.iter().find_map(|item| match item {
-                Item::Record(record) if record.name == symbol.name => Some(item.clone()),
-                _ => None,
-            })
-        }
-        SymbolKind::Enum => module.items.iter().find_map(|item| match item {
-            Item::Sum(sum) if sum.name == symbol.name => Some(item.clone()),
-            _ => None,
-        }),
-        SymbolKind::TypeAlias => module.items.iter().find_map(|item| match item {
-            Item::Newtype(newtype) if newtype.name == symbol.name => Some(item.clone()),
-            _ => None,
-        }),
-        SymbolKind::Constant => module.items.iter().find_map(|item| match item {
-            Item::Constant(constant) if constant.name == symbol.name => Some(item.clone()),
-            _ => None,
-        }),
-        _ => None,
+fn selected_item(module: &Module, symbol: &Symbol, index: &crate::index::Index) -> Option<Item> {
+    if !unique_declaration(index, symbol) {
+        return None;
     }
+    if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
+        return selected_function(module, symbol, index).map(Item::Function);
+    }
+    let mut matches = module
+        .items
+        .iter()
+        .filter(|item| match (symbol.kind, item) {
+            (
+                SymbolKind::Class | SymbolKind::Struct | SymbolKind::Trait | SymbolKind::Interface,
+                Item::Record(record),
+            ) => record.name == symbol.name,
+            (SymbolKind::Enum, Item::Sum(sum)) => sum.name == symbol.name,
+            (SymbolKind::TypeAlias, Item::Newtype(newtype)) => newtype.name == symbol.name,
+            (SymbolKind::Constant, Item::Constant(constant)) => constant.name == symbol.name,
+            _ => false,
+        });
+    let only = matches.next()?;
+    matches.next().is_none().then(|| only.clone())
 }
 
 fn omit_bodies(module: &mut Module) -> (usize, usize) {
@@ -409,7 +450,7 @@ impl Project<'_> {
         let mut body_identity = None;
         let mut authorable_body = None;
         let selected = if let Some(symbol) = node.symbol.and_then(|id| self.index.symbol(id)) {
-            let item = selected_item(&module, symbol).with_context(|| {
+            let item = selected_item(&module, symbol, self.index).with_context(|| {
                 format!(
                     "the {} '{}' has no exact semantic IR item; select its file or request bounded source.",
                     symbol.kind.as_str(), symbol.name

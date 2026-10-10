@@ -23,8 +23,8 @@ task records and Lean proof support for declared subsets. Analysis and editing s
 language; parsing a file does not mean `fr` understands every possible behavior in it.
 Run `fr --json audit` and `fr capabilities` for the installed tool's current support and limits.
 
-The [generated status](docs/roadmap-status.md) records **7 of 18 technical acceptance items
-demonstrated in their stated test cases**. Eleven remain open, and none of the four milestones
+The [generated status](docs/roadmap-status.md) records **8 of 18 technical acceptance items
+demonstrated in their stated test cases**. Ten remain open, and none of the four milestones
 below is complete. These counts are not a percentage of product readiness or effort remaining.
 
 We have not established a general efficiency advantage. In the retained two-task Rust comparison,
@@ -38,49 +38,39 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
-The [source-repair comparison](docs/source-repair.md) starts with an incorrect body and a real
-failed behavior check. It compares repairing the applied source with undo-and-correct across four
-Python/Rust edit shapes. All 40 cells passed, including full reversal, required check receipts,
-independent receiver replay, incomplete patch rejection and later-edit preservation.
+The [Rust/Python explanation profile](docs/compiler-profile.md) checks eleven declared features
+with eighteen original and renamed/relocated cases, plus the existing compiler and checked-origin
+collectors. It retains exact source locations, build inputs, toolchain identities, runtime outcomes
+and explicit unsupported results. Its 26 corruption tests reject missing cases and false claims.
 
-Undo-and-correct used 17 total fr calls versus 20 for repair on applied source. Its serialized
-protocol traffic was also lower in every fixture. Both counts include the initial failed edit.
-Existing ordered transaction patches covered combined delivery; another public API is not justified
-by these cases. The intermediate bad edit remains in that patch, and reversal is not atomic.
+The review exposed a real selection bug: choosing the second same-named Python function returned
+the first body's model. Semantic queries and edit preparation now refuse ambiguous declarations
+in the source index or lowered model, including duplicate containing classes. Tests also preserve
+valid selections of same-named methods in distinct classes. This is a general matching rule.
 
-The [body-caller review](docs/source-repair.md#body-helper-adoption-review) keeps custom callers
-explicit. Their larger diff limits and separate acceptance checks do not match helper defaults.
-The helper remains useful where its policy matches, including both measured recovery callers.
-
-The earlier [resume comparison](docs/workflow-recovery.md) covers a different case: correct edited
-source after an external check prerequisite fails. Its 32 cells passed, using seven calls for
-resume versus nine for undo/retry. Neither comparison measures live-agent or token efficiency.
-
-The client-resource investigation is closed. Its [delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
-did not identify a cause that justifies a client configuration change. The stopped packaging pilot
-and failed workstation admission remain failures; do not resume them or infer admission from short
-controls. Their reports and the [candidate review status](docs/candidate-review-status.md) retain
-the details. Streaming CI replays frozen evidence. Separate path-selected transport controls use
-hosted clients with scripted replies, without a live model.
+The profile demonstrates A.compiler-profile for its listed features. It does not establish complete
+language semantics, runtime dispatch, agent efficiency or source-connected proofs.
+The [source-repair](docs/source-repair.md) and [resume](docs/workflow-recovery.md) comparisons
+remain workflow regression gates with their stated limits.
 
 ## Next large chunk
 
-Build the missing Rust/Python explanation profile, acceptance item
-[A.compiler-profile](docs/roadmap-status.md#acompiler-profile-relate-explanations-to-compiler-and-runtime-checks).
-Show whether each reported fact comes from syntax, indexed references, value-flow rules,
-compiler diagnostics or executed behavior checks.
+Specify reusable Python behavior, acceptance item
+[B.contract](docs/roadmap-status.md#bcontract-specify-reusable-python-behavior).
+An agent needs to know which language rules justify an answer and when to stop trusting it.
 
-1. Inventory the existing compiler and source-location tests into one declared feature table.
-   Include repeated calls on one line, shadowed names, Unicode positions and explicit unsupported cases.
-2. Produce one reproducible hosted report with compiler/runtime versions, build inputs, exact
-   source locations and disagreements. Reuse existing tests and identify missing cases clearly.
-3. Fix any exposed defect as a reusable language rule, with independent examples and renamed
-   or relocated equivalents. Repository names and expected repairs must not select behavior.
+1. Document evaluation order, assignments, calls, exceptions and source locations as language
+   rules. Distinguish supported behavior from normalization and unsupported constructs.
+2. Compare each supported rule with independently authored executable examples and renamed
+   or relocated equivalents. Include positive, negative and explicit unsupported outcomes.
+3. Fix exposed defects through reusable rules and regressions. Repository identities, fixture
+   names and expected answers must never select semantics.
 
-Keep the current workflow and recovery comparisons as regression gates. The independent live
-study remains open and needs fresh representative resource admission, actual fr-use accounting
-and complete parent/child costs. The stopped packaging collection cannot resume; failed cells
-cannot be retried under a new directory name.
+Keep repository and recovery gates passing. The independent live study still needs representative
+resource admission, actual fr-use accounting and complete parent/child costs. The
+[closed client investigation](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
+did not justify a configuration fix. Preserve the stopped packaging collection and failed
+workstation admission; neither may be resumed or replaced by a short control.
 
 ## Remaining product gaps
 
@@ -111,7 +101,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 | [Native source-reading report](docs/native-read-outcomes.md) | Two passes and four timeouts, including observed failed work | No successful ordinary/fr pair; billing and complete context remain unknown |
 | [Native code-change report](docs/native-change-outcomes.md) | Ten behavior passes and two timeouts; exact submissions graded on GitHub | No attempt used fr |
 | [Candidate review status](docs/candidate-review-status.md) | Scoped reviews, verified grader counterexamples and explicit packaging admission | Finite review, failed submissions and incomplete independent task selection |
-| [Technical acceptance](docs/roadmap-status.md) | Seven of 18 items demonstrated in their stated cases | Eleven items and all four milestones remain open |
+| [Technical acceptance](docs/roadmap-status.md) | Eight of 18 items demonstrated in their stated cases | Ten items and all four milestones remain open |
 
 Detailed run history belongs in the linked reports, retained fixtures and Git history.
 Keep failures visible. Smaller source pages or scripted successes alone do not establish lower
@@ -138,7 +128,7 @@ indexes historical storage archives.
 Checkboxes track implementation only. The [status report](docs/roadmap-status.md) lists the behavior
 each milestone must demonstrate, its supporting tests and what is missing. The catalog is now
 `agent-analysis-v2`: open requirements include unfamiliar projects and complete agent-cost accounting;
-the seven existing demonstrated items retain their original, limited scope.
+demonstrated items retain their original, limited scope.
 
 ### A. Find relevant code and explain the evidence
 

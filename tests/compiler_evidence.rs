@@ -175,4 +175,13 @@ fn retained_compiler_acceptance_matches_its_inputs_and_oracles() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
+    let profile = Command::new("python3")
+        .arg("tools/test-compiler-profile.py")
+        .output()
+        .unwrap();
+    assert!(
+        profile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&profile.stderr)
+    );
 }
