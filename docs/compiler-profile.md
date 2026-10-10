@@ -21,7 +21,7 @@ declared answers and limitations must remain the same.
 | Rust repeated calls | Two calls on one line retain distinct locations, including Unicode before the second call | Indexed relationships are candidates for runtime dispatch |
 | Rust shadowing | A local closure shadows a same-named function; execution returns the closure's value | The call stays unresolved; Rust value flow is refused |
 | Python repeated calls | CPython AST positions agree with call-name and full-expression locations; runtime checks use three inputs | Expression origins do not authorize source mutation |
-| Python duplicate declarations | Both declarations have exact name locations; runtime uses the last definition | Lowered expression origins remain absent |
+| Python duplicate declarations | Both declarations have exact name locations; runtime uses the last definition | Selecting one ambiguous lowered body explicitly refuses |
 | Python modulo lowering | Runtime agrees on zero, positive and negative inputs | Normalized expressions retain absent source correspondence |
 | Python local shadowing | A later local assignment causes `UnboundLocalError` before the configured source can run | Analysis remains incomplete and produces no source-to-sink witness |
 | Python exception handler | Runtime catches division by zero and returns seven | The analyzer reports an incomplete result |
@@ -33,6 +33,13 @@ Offsets are half-open UTF-8 byte spans. Line and column positions are one-based 
 characters. The independent Python oracle uses CPython's byte-based AST positions and converts
 them to that convention. Rust fixture call positions use separately counted source tokens;
 `rustc` supplies compiler diagnostic positions and executes the runtime drivers.
+
+Reviewing the first collection exposed a bug: selecting the second of two same-named Python
+functions returned the first body's model with absent origins. Absent origins did not make that
+selection correct. Semantic queries and semantic edit preparation now require uniqueness in both
+the source index and the lowered model, including containing declarations. Regression tests cover
+duplicates, decorated definitions, methods and classes; distinct qualified methods remain usable.
+When selection refuses, inspect the file or request bounded source instead.
 
 ## Reproduction and review
 

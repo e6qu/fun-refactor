@@ -32,7 +32,7 @@ FEATURES = {
     'rust-repeated': ('indexed references', 'Repeated calls, Unicode columns and Rust flow refusal', 'tests/investigation.rs'),
     'rust-shadow': ('indexed references', 'A local closure must not resolve to the shadowed function', 'tests/investigation.rs'),
     'python-repeated': ('source correspondence', 'Repeated expression origins and exact call locations', 'tests/semantic_evidence.rs'),
-    'python-shadow': ('unsupported correspondence', 'Duplicate declarations retain absent origins', 'tests/semantic_evidence.rs'),
+    'python-shadow': ('unsupported selection', 'Duplicate declarations refuse a guessed semantic body', 'tests/semantic_evidence.rs'),
     'python-normalized': ('unsupported correspondence', 'Lowered modulo expressions retain absent origins', 'tests/semantic_evidence.rs'),
     'python-local': ('incomplete value flow', 'A later local assignment blocks an external source claim', 'tests/flow_fixed_point.rs'),
     'python-handler': ('incomplete value flow', 'Exception handlers remain an explicit analysis boundary', 'tests/flow_fixed_point.rs'),
@@ -265,7 +265,11 @@ def audit_case(row, case):
                 require(item['callee'] is None and item['status'] == 'unresolved', 'shadowed Rust call invented a callee')
             else:
                 require(item['callee']['name'] == case['callee'], 'named call resolution changed')
-    if 'origins' in events:
+    if case['feature'] == 'python-shadow':
+        event = events['origins']
+        require(event['exit_code'] != 0 and 'no exact semantic IR item' in event['stderr'],
+                'ambiguous declaration returned a guessed semantic body')
+    elif 'origins' in events:
         origins = report(events['origins'])['origins']
         require(origins['complete'] is True and origins['mutation_authority'] is False and origins['items'], 'origin coverage changed')
         if case['feature'] == 'python-repeated':

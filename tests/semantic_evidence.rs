@@ -68,31 +68,104 @@ fn origin_pages_retain_distinct_calls_combined_and_absent_origins() {
 }
 
 #[test]
-fn normalized_and_shadowed_bodies_never_invent_source_correspondence() {
+fn semantic_selection_refuses_ambiguous_declarations_before_queries_or_edits() {
+    let cases = [
+        ("def repeated(x):\n    return 1\ndef repeated(y):\n    return 2\n", "repeated", true),
+        ("def repeated(x):\n    return 1\n@decorator\ndef repeated(y):\n    return 2\n", "repeated", true),
+        ("class Group:\n    def repeated(self):\n        return 1\n    def repeated(self):\n        return 2\n", "repeated", true),
+        ("class Group:\n    def repeated(self):\n        return 1\nclass Group:\n    def other(self):\n        return 2\n", "repeated", true),
+        ("class Group:\n    value = 1\nclass Group:\n    value = 2\n", "Group", false),
+    ];
+    for (source, original_name, callable) in cases {
+        for moved in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = if moved {
+                "nested/subject.py"
+            } else {
+                "subject.py"
+            };
+            let name = if moved { "renamed" } else { original_name };
+            let source = if moved {
+                format!("# moved π\n\n{}", source.replace(original_name, name))
+            } else {
+                source.to_owned()
+            };
+            let file = dir.path().join(path);
+            fs::create_dir_all(file.parent().unwrap()).unwrap();
+            fs::write(&file, &source).unwrap();
+            fs::write(
+                dir.path().join("body.json"),
+                r#"{"schema":"fr-semantic-body-1","body":[]}"#,
+            )
+            .unwrap();
+            let found = report(dir.path(), &["project", "find", name]);
+            let rows = found["rows"].as_array().unwrap();
+            assert!(!rows.is_empty(), "{source}");
+            for row in rows {
+                let handle = row[0].as_str().unwrap();
+                for flags in [
+                    vec!["--body", "--origins"],
+                    vec!["--body", "--pointers"],
+                    vec!["--body", "--locators"],
+                ] {
+                    let mut args = vec!["project", "semantic", handle];
+                    args.extend(flags);
+                    let result = output(dir.path(), &args);
+                    assert!(!result.status.success(), "{source}");
+                    assert!(String::from_utf8_lossy(&result.stderr)
+                        .contains("no exact semantic IR item"));
+                }
+                if callable {
+                    let result = output(
+                        dir.path(),
+                        &[
+                            "author",
+                            "replace-body-semantic",
+                            handle,
+                            "--from",
+                            "body.json",
+                            "--write",
+                        ],
+                    );
+                    assert!(!result.status.success(), "{source}");
+                    assert!(String::from_utf8_lossy(&result.stderr)
+                        .contains("no exact semantic function model"));
+                    assert_eq!(fs::read_to_string(&file).unwrap(), source);
+                }
+            }
+            // File-level inspection remains available without pretending to select one body.
+            let result = report(dir.path(), &["project", "semantic", path, "--body"]);
+            assert_eq!(result["selection"]["kind"], "file");
+        }
+    }
+}
+
+#[test]
+fn semantic_selection_keeps_distinct_qualified_methods_available() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(
         dir.path().join("subject.py"),
-        "def repeated(x):\n    return 1\ndef repeated(y):\n    return 2\n",
+        "class First:\n    def repeated(self):\n        return 1\nclass Second:\n    def repeated(self):\n        return 2\n",
     )
     .unwrap();
     let found = report(dir.path(), &["project", "find", "repeated"]);
     let handles = found["rows"].as_array().unwrap();
     assert_eq!(handles.len(), 2);
-    let result = report(
-        dir.path(),
-        &[
-            "project",
-            "semantic",
-            handles[1][0].as_str().unwrap(),
-            "--body",
-            "--origins",
-        ],
-    );
-    assert!(result["origins"]["items"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|row| row["origins"]["status"] == "absent"));
+    for (i, row) in handles.iter().enumerate() {
+        let result = report(
+            dir.path(),
+            &["project", "semantic", row[0].as_str().unwrap(), "--body"],
+        );
+        assert_eq!(
+            result["model"]["items"][0]["value"]["body"][0]["value"]["value"],
+            (i + 1).to_string()
+        );
+    }
+}
+
+#[test]
+fn normalized_bodies_never_invent_source_correspondence() {
+    let dir = tempfile::tempdir().unwrap();
     fs::write(
         dir.path().join("subject.py"),
         "def total(x):\n    return x % 3\n",

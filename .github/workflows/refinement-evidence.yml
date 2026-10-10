@@ -228,6 +228,7 @@ jobs:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
@@ -239,6 +240,8 @@ jobs:
         with:
           key: default
       - run: cargo build --locked --bin fr
+      - name: Check ambiguous semantic selection and authoring refusals
+        run: cargo test --locked --test semantic_evidence semantic_selection -- --test-threads 1
       - name: Compare declared Rust and Python explanation features
         run: python3 -B tools/compiler-profile.py --output target/compiler-profile/result.json
       - name: Reject corrupted compiler and source observations

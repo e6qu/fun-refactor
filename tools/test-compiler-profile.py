@@ -113,10 +113,26 @@ class CompilerProfile(unittest.TestCase):
         self.reject(value)
 
     def test_absent_origins_cannot_become_exact(self):
-        for feature in ('python-shadow', 'python-normalized'):
+        for feature in ('python-normalized',):
             value, row = self.changed(feature)
             self.change_report(row, 'origins', lambda r: r['origins']['items'][0]['origins'].update(status='exact'))
             self.reject(value)
+
+    def test_shadowed_body_cannot_pass_with_absent_origins(self):
+        value, row = self.changed('python-shadow')
+        row['events']['origins']['exit_code'] = 0
+        found = json.loads(row['events']['find']['stdout'])
+        row['events']['origins']['stdout'] = json.dumps({
+            'revision': found['revision'], 'model': {'items': [{'kind': 'function', 'value': {
+                'name': row['case']['target'], 'body': [{'kind': 'return', 'value': {'kind': 'int', 'value': '1'}}]}}]},
+            'origins': {'complete': True, 'mutation_authority': False,
+                        'items': [{'origins': {'status': 'absent'}}]}})
+        self.reject(value)
+
+    def test_shadow_refusal_requires_a_selection_reason(self):
+        value, row = self.changed('python-shadow')
+        row['events']['origins']['stderr'] = 'unrelated command failure'
+        self.reject(value)
 
     def test_incomplete_flow_cannot_become_complete(self):
         for feature in ('python-local', 'python-handler'):
