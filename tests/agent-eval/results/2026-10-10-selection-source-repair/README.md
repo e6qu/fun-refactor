@@ -1,6 +1,6 @@
 # Source repair and checked delivery
 
-Collected in [run 38074819647](https://github.com/e6qu/fun-refactor/actions/runs/38074819647) at `f64a9ea24813bf5bf8f2ce209112cb77a04bc1ce`.
+Collected in [run 38077470583](https://github.com/e6qu/fun-refactor/actions/runs/38077470583) at `10f6b4712c8b96c31e018885350c398f4f7a0427`.
 The manifest binds the downloaded archive, executable and exact report bytes.
 The report binds its collector, fixtures, SDK and native implementation files.
 

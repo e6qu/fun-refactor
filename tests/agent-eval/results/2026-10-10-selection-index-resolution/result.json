@@ -2,7 +2,7 @@
   "schema": "fr-index-resolution-result-1",
   "repository_revision": "3fdba43036f4fac2a6e73a659c5dbf7e907c48cf",
   "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
-  "binary_sha256": "bd6210660ef2a187f38d8f49534ffdc6f364223b776cda89e782410e36009ce4",
+  "binary_sha256": "3324cbc6817843c75901e266d7c08be92610f153dcc85fb3dddcd76d78dc5b54",
   "profile": "unoptimized test, debug information and incremental compilation disabled",
   "bindings": {
     "src/analysis/call_graph.rs": "ded29ca9cc26f3a45061d4805a9ff3389b52fc890efea5d57be5a97902ea9a10",
@@ -138,7 +138,7 @@
     "src/project/relationships.rs": "af19c0256a4c269d9bded817f3803ac032e9b9eab1354f5f08a0ee2049976d25",
     "src/project/routes.rs": "87601ab21322193b94ca2a966558c99c3359f9a3fd6300248720ff00e4fd7822",
     "src/project/schemas.rs": "cf18b0ff294133d81e162bc6ebef349c6a4cbcb6c1726e3354f5b879a2a110ab",
-    "src/project/semantic.rs": "71c13e403e2cc96fb32b92f05056eb9be4b2de94148a7d0190a19c7bb40e5fab",
+    "src/project/semantic.rs": "e188645dbc03a39451a74c15b7b312a3bc5f8ea78c87a6ddbc73d927cf5a47f0",
     "src/project/semantic_change.rs": "e8bd3f2d720cb658e0c512d6385d082b4bf45709c40cc86ce225ef5e3f69c834",
     "src/project/semantic_intent.rs": "18b1aaa8c914067f1b6fdef84aa15a6b13019c44f406f2d6e37ec1957f648efd",
     "src/project/semantic_ir.rs": "eb904b923b03e90259e70deb55d387c6b24a9357e6797ac3310b66f380295b47",
@@ -205,82 +205,82 @@
     {
       "answer_bytes": 272875,
       "answer_sha256": "e62b4fd0103976c432785d281a56cc18a725b61e07dbd5ac88ebf1dee15d2333",
-      "build_seconds": 0.171508162,
+      "build_seconds": 0.151895968,
       "references": 768,
       "symbols": 512,
       "workload": "members-128",
-      "process_seconds": 0.20023120100000824,
-      "peak_rss_bytes": 10948608
+      "process_seconds": 0.17867422599999827,
+      "peak_rss_bytes": 10797056
     },
     {
       "answer_bytes": 272875,
       "answer_sha256": "e62b4fd0103976c432785d281a56cc18a725b61e07dbd5ac88ebf1dee15d2333",
-      "build_seconds": 0.172626449,
+      "build_seconds": 0.151889679,
       "references": 768,
       "symbols": 512,
       "workload": "members-128",
-      "process_seconds": 0.1898548519999963,
-      "peak_rss_bytes": 11223040
+      "process_seconds": 0.17051746000001344,
+      "peak_rss_bytes": 11051008
     },
     {
       "answer_bytes": 550743,
       "answer_sha256": "f8a82580281889ff56c2d8ffc653ccf421f23f89ad1bfe64b38402a8c6ac1bea",
-      "build_seconds": 0.344376148,
+      "build_seconds": 0.31485772,
       "references": 1536,
       "symbols": 1024,
       "workload": "members-256",
-      "process_seconds": 0.3755588009999826,
-      "peak_rss_bytes": 12222464
+      "process_seconds": 0.3480851360000088,
+      "peak_rss_bytes": 12050432
     },
     {
       "answer_bytes": 550743,
       "answer_sha256": "f8a82580281889ff56c2d8ffc653ccf421f23f89ad1bfe64b38402a8c6ac1bea",
-      "build_seconds": 0.342562545,
+      "build_seconds": 0.315689395,
       "references": 1536,
       "symbols": 1024,
       "workload": "members-256",
-      "process_seconds": 0.3736378709999997,
-      "peak_rss_bytes": 12058624
+      "process_seconds": 0.348913035999999,
+      "peak_rss_bytes": 12050432
     },
     {
       "answer_bytes": 54509,
       "answer_sha256": "6505db5c858970228ed9b087fec79657ff0df1a05141826f306d22a9ce353325",
-      "build_seconds": 0.198571618,
+      "build_seconds": 0.165213889,
       "references": 129,
       "symbols": 130,
       "workload": "assignments-128",
-      "process_seconds": 0.20442787999999723,
-      "peak_rss_bytes": 10690560
+      "process_seconds": 0.17151616699999295,
+      "peak_rss_bytes": 10686464
     },
     {
       "answer_bytes": 54509,
       "answer_sha256": "6505db5c858970228ed9b087fec79657ff0df1a05141826f306d22a9ce353325",
-      "build_seconds": 0.198778267,
+      "build_seconds": 0.16447848,
       "references": 129,
       "symbols": 130,
       "workload": "assignments-128",
-      "process_seconds": 0.20483057800001347,
-      "peak_rss_bytes": 10719232
+      "process_seconds": 0.170787378,
+      "peak_rss_bytes": 10584064
     },
     {
       "answer_bytes": 160776946,
       "answer_sha256": "604f9f1838424cb30784f87bc81469f6e11235040e4d92920e83ccb1d55b5607",
-      "build_seconds": 152.707051524,
+      "build_seconds": 138.614302354,
       "references": 594288,
       "symbols": 98355,
       "workload": "repository",
-      "process_seconds": 160.918687031,
-      "peak_rss_bytes": 884764672
+      "process_seconds": 147.445482578,
+      "peak_rss_bytes": 882884608
     },
     {
       "answer_bytes": 160776946,
       "answer_sha256": "604f9f1838424cb30784f87bc81469f6e11235040e4d92920e83ccb1d55b5607",
-      "build_seconds": 152.989264446,
+      "build_seconds": 138.961985019,
       "references": 594288,
       "symbols": 98355,
       "workload": "repository",
-      "process_seconds": 161.22854832300004,
-      "peak_rss_bytes": 875470848
+      "process_seconds": 147.79795505200002,
+      "peak_rss_bytes": 882745344
     }
   ],
   "baseline_sha256": "611612af913d7782f6005e818879fb19db7384d419763085bf46d6aa449d357d",

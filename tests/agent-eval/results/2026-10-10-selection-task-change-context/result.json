@@ -1,0 +1,333 @@
+{
+  "schema": "fr-task-change-context-2",
+  "passed": true,
+  "binary_sha256": "a9883762a75da828650f1a7eec96661e2b452fec7f7c81eaf72c888d83f65b9e",
+  "source_commit": "10f6b4712c8b96c31e018885350c398f4f7a0427",
+  "repetitions": 3,
+  "runtime": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.14.8",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "measurement_files": {
+    "tools/task-change-context.py": "898133c484653dedaa989b15179eac8ad5118d0c7bd2697f4433e4b4e1d46d2e",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
+    "src/project/task_change.rs": "228f37e0df863d61d99dd11ee54ded9b0add4fb4dcef760d8202470f8717ff02",
+    "src/project/task.rs": "17818231129d0127889f4d2285d488c5f87c6b77eeb651c75ea9984e4affdb35",
+    "src/project/author.rs": "b239365e5ec05df16548f877bd48819ab7b48e46afd12497b4e10eebfb7ae5e8",
+    "src/workflow.rs": "c82050b9b6ffc50dd72cb13ce11163a9b3cac8238b7a1252456e30d113443957",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
+    "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c"
+  },
+  "fixture": {
+    "src/lib.rs": "pub fn render(value: &str) -> String { value.trim().to_owned() }\n\npub fn display(value: &str) -> String { render(value) }\n",
+    ".fr/checks.json": {
+      "schema": 1,
+      "checks": [
+        {
+          "name": "syntax",
+          "argv": [
+            "rustc",
+            "--crate-type",
+            "lib",
+            "src/lib.rs",
+            "--emit",
+            "metadata",
+            "-o",
+            "artifacts/check.rmeta"
+          ],
+          "cwd": ".",
+          "timeout_seconds": 30,
+          "covers": [
+            "Rust syntax and types"
+          ]
+        }
+      ]
+    },
+    "render.fragment": "{ value.trim().to_uppercase() }\n"
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "token_normalization": {
+    "pattern": "temporary roots, elapsed milliseconds and isolated lowercase hexadecimal identities",
+    "representatives": {
+      "32": "2cfc391bb0937f8d66100798e6c8b0c2",
+      "64": "6d2641a18147c5a5619cb67ba9b1fad20a6bfd16b79c036a1a2432ae4a3a15dd"
+    }
+  },
+  "summary": {
+    "composed": {
+      "samples": 3,
+      "calls": 5,
+      "median_context_bytes": 15761,
+      "median_context_tokens": 5459,
+      "median_seconds": 0.4500434509999991
+    },
+    "task_change": {
+      "samples": 3,
+      "calls": 2,
+      "median_context_bytes": 12501,
+      "median_context_tokens": 4206,
+      "median_seconds": 0.3439125680000359
+    },
+    "change_session": {
+      "samples": 3,
+      "calls": 2,
+      "median_context_bytes": 12216,
+      "median_context_tokens": 4178,
+      "median_seconds": 0.38529062000000636
+    }
+  },
+  "runs": [
+    {
+      "repetition": 1,
+      "arm": "composed",
+      "calls": 5,
+      "stdout": {
+        "bytes": 14109,
+        "tokens": 4918
+      },
+      "requests": {
+        "bytes": 494,
+        "tokens": 159
+      },
+      "artifact": {
+        "bytes": 1158,
+        "tokens": 382
+      },
+      "context": {
+        "bytes": 15761,
+        "tokens": 5459
+      },
+      "seconds": 0.4483963719999906,
+      "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": false
+    },
+    {
+      "repetition": 1,
+      "arm": "task_change",
+      "calls": 2,
+      "stdout": {
+        "bytes": 11629,
+        "tokens": 3976
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 690,
+        "tokens": 174
+      },
+      "context": {
+        "bytes": 12501,
+        "tokens": 4206
+      },
+      "seconds": 0.34274721800002794,
+      "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    },
+    {
+      "repetition": 1,
+      "arm": "change_session",
+      "calls": 2,
+      "stdout": {
+        "bytes": 11371,
+        "tokens": 3943
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 663,
+        "tokens": 179
+      },
+      "context": {
+        "bytes": 12216,
+        "tokens": 4178
+      },
+      "seconds": 0.38529062000000636,
+      "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    },
+    {
+      "repetition": 2,
+      "arm": "change_session",
+      "calls": 2,
+      "stdout": {
+        "bytes": 11371,
+        "tokens": 3943
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 663,
+        "tokens": 179
+      },
+      "context": {
+        "bytes": 12216,
+        "tokens": 4178
+      },
+      "seconds": 0.39274684700001217,
+      "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    },
+    {
+      "repetition": 2,
+      "arm": "task_change",
+      "calls": 2,
+      "stdout": {
+        "bytes": 11629,
+        "tokens": 3976
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 690,
+        "tokens": 174
+      },
+      "context": {
+        "bytes": 12501,
+        "tokens": 4206
+      },
+      "seconds": 0.3451204520000033,
+      "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    },
+    {
+      "repetition": 2,
+      "arm": "composed",
+      "calls": 5,
+      "stdout": {
+        "bytes": 14109,
+        "tokens": 4918
+      },
+      "requests": {
+        "bytes": 494,
+        "tokens": 159
+      },
+      "artifact": {
+        "bytes": 1158,
+        "tokens": 382
+      },
+      "context": {
+        "bytes": 15761,
+        "tokens": 5459
+      },
+      "seconds": 0.4500434509999991,
+      "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": false
+    },
+    {
+      "repetition": 3,
+      "arm": "composed",
+      "calls": 5,
+      "stdout": {
+        "bytes": 14109,
+        "tokens": 4918
+      },
+      "requests": {
+        "bytes": 494,
+        "tokens": 159
+      },
+      "artifact": {
+        "bytes": 1158,
+        "tokens": 382
+      },
+      "context": {
+        "bytes": 15761,
+        "tokens": 5459
+      },
+      "seconds": 0.468326621999978,
+      "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": false
+    },
+    {
+      "repetition": 3,
+      "arm": "task_change",
+      "calls": 2,
+      "stdout": {
+        "bytes": 11629,
+        "tokens": 3976
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 690,
+        "tokens": 174
+      },
+      "context": {
+        "bytes": 12501,
+        "tokens": 4206
+      },
+      "seconds": 0.3439125680000359,
+      "stage_identity": "79898bfb651c141fb4500c0236cd37dfdad136bcf53bd7b5a67c366c6795ab8e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    },
+    {
+      "repetition": 3,
+      "arm": "change_session",
+      "calls": 2,
+      "stdout": {
+        "bytes": 11371,
+        "tokens": 3943
+      },
+      "requests": {
+        "bytes": 182,
+        "tokens": 56
+      },
+      "artifact": {
+        "bytes": 663,
+        "tokens": 179
+      },
+      "context": {
+        "bytes": 12216,
+        "tokens": 4178
+      },
+      "seconds": 0.38305185499999084,
+      "stage_identity": "0ed2c129145b5739b6307c283ceac8b29fb27ac06a622371f031a458226d9b0e",
+      "state_identity": "4cc7960c9d4e1861d8f144d37254b665aa209fddbeaa105dde637005e130610e",
+      "source_sha256": "f4de9e86e605add04436f845609897e9cae4773fc5793e923f76d95db23face0",
+      "patch_sha256": "8d56246a5cf22155d8d03d3f22b97bb2f1da5036757601a089eec7a6714ad35f",
+      "required_checks_bound": true
+    }
+  ],
+  "scope": "Prescribed generic Rust change. The composed arm counts task, author and workflow manifests plus five calls. The task-change and change-session arms each count one manifest and two calls. The session embeds its fragment, checks the original before apply and compacts successful evidence. All arms resolve the same task, author the same fragment, enforce the same postconditions, reverse and redo, and produce equal source, patch and normalized history. Both direct task-change arms bind required checks to their transaction. Counts exclude system context, hidden reasoning and billed usage. This is deterministic workflow evidence without an agent or population claim."
+}

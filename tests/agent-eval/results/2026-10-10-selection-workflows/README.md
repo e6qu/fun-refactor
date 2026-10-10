@@ -1,6 +1,6 @@
 # Workflow evidence after the semantic selection fix
 
-Collected in [run 38074812558](https://github.com/e6qu/fun-refactor/actions/runs/38074812558).
+Collected in [run 38077468825](https://github.com/e6qu/fun-refactor/actions/runs/38077468825).
 The manifest binds the archive, source commit, executable and four report files.
 The reports bind their implementation inputs; historical collections remain unchanged.
 
