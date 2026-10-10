@@ -38,21 +38,23 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
-The [recovery comparison](docs/workflow-recovery.md) follows failed applied checks through checked
-delivery and independent receiver replay. It compares an explicitly reviewed resume with
-undo-and-retry across four Python/Rust edit shapes. Both paths preserve stale source and check
-refusals, required check receipts and receiver conflicts. The report includes the initial failed
-attempt and recovery traffic. All 32 cells passed; resume used seven total fr calls versus nine
-for undo-and-retry. No model or token-efficiency comparison ran.
+The [source-repair comparison](docs/source-repair.md) starts with an incorrect body and a real
+failed behavior check. It compares repairing the applied source with undo-and-correct across four
+Python/Rust edit shapes. All 40 cells passed, including full reversal, required check receipts,
+independent receiver replay, incomplete patch rejection and later-edit preservation.
 
-Resume starts with fresh applied-state checks, without a second initial apply. Its admission
-requires the latest applied transaction, unchanged recorded source and a fresh workflow basis.
-This covers repair of an external check prerequisite. Repairing source on top of the applied
-transaction and delivering a combined patch remains open.
+Undo-and-correct used 17 total fr calls versus 20 for repair on applied source. Its serialized
+protocol traffic was also lower in every fixture. Both counts include the initial failed edit.
+Existing ordered transaction patches covered combined delivery; another public API is not justified
+by these cases. The intermediate bad edit remains in that patch, and reversal is not atomic.
 
-The earlier [guided body comparison](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks)
-removed 595 caller/submission bytes in four fixtures while retaining three fr calls. That helper
-still uses caller-authored bodies and the guide's exact targets, checks and delivery.
+The [body-caller review](docs/source-repair.md#body-helper-adoption-review) keeps custom callers
+explicit. Their larger diff limits and separate acceptance checks do not match helper defaults.
+The helper remains useful where its policy matches, including both measured recovery callers.
+
+The earlier [resume comparison](docs/workflow-recovery.md) covers a different case: correct edited
+source after an external check prerequisite fails. Its 32 cells passed, using seven calls for
+resume versus nine for undo/retry. Neither comparison measures live-agent or token efficiency.
 
 The client-resource investigation is closed. Its [delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
 did not identify a cause that justifies a client configuration change. The stopped packaging pilot
@@ -63,22 +65,22 @@ hosted clients with scripted replies, without a live model.
 
 ## Next large chunk
 
-The [workflow inventory](docs/workflow-routes.md) preserves each public route's distinct purpose.
-Measurements now support removing the duplicate guide read and simplifying body-input construction.
-Next, make the remaining source-repair and adoption gaps concrete:
+Build the missing Rust/Python explanation profile, acceptance item
+[A.compiler-profile](docs/roadmap-status.md#acompiler-profile-relate-explanations-to-compiler-and-runtime-checks).
+Show whether each reported fact comes from syntax, indexed references, value-flow rules,
+compiler diagnostics or executed behavior checks.
 
-1. Test a body that is wrong, rather than an external check prerequisite that fails. Compare a
-   new reviewed repair on the applied source with undo followed by a corrected edit. Determine
-   whether combined patch delivery needs another public operation or existing routes suffice.
-   Preserve checks, exact original-to-final source, receiver replay and later edits. Current
-   resume admission intentionally refuses source changes to the old transaction.
-2. Review current body-edit callers before migrating them to the helper. Preserve their custom
-   postconditions, acceptance checks and review limits. The multi-body runner currently requests
-   a larger diff than the helper's default; replacing it mechanically would change admission.
-   Keep frozen historical runner snapshots unchanged and measure any revised caller completely.
-3. Keep the independent live study open. It needs fresh representative resource admission,
-   actual fr-use accounting and complete parent/child costs. The stopped packaging collection
-   cannot resume, and failed cells cannot be retried under a new directory name.
+1. Inventory the existing compiler and source-location tests into one declared feature table.
+   Include repeated calls on one line, shadowed names, Unicode positions and explicit unsupported cases.
+2. Produce one reproducible hosted report with compiler/runtime versions, build inputs, exact
+   source locations and disagreements. Reuse existing tests and identify missing cases clearly.
+3. Fix any exposed defect as a reusable language rule, with independent examples and renamed
+   or relocated equivalents. Repository names and expected repairs must not select behavior.
+
+Keep the current workflow and recovery comparisons as regression gates. The independent live
+study remains open and needs fresh representative resource admission, actual fr-use accounting
+and complete parent/child costs. The stopped packaging collection cannot resume; failed cells
+cannot be retried under a new directory name.
 
 ## Remaining product gaps
 
@@ -99,6 +101,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 
 | Evidence | Established result | Limit |
 | --- | --- | --- |
+| [Source repair and ordered patches](docs/source-repair.md) | Forty cells cover actual wrong bodies, whole-chain reversal and original-to-final receiver replay; undo/correct uses fewer calls | Prescribed edits; ordered patches retain intermediate source; no atomic composition or live-agent comparison |
 | [Checked recovery delivery](docs/workflow-recovery.md) | Reviewed resume and undo-and-retry through checks, delivery and receiver replay | External prerequisite repair; no combined source-repair patch or live-agent comparison |
 | [Guided body preparation](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks) | 595 fewer caller/submission bytes in four fixtures; 40 cells cover checked delivery, stale inputs, reopened undo and conflicts | Prescribed bodies; no model/token comparison or repaired-delivery result |
 | [Editing routes](docs/workflow-routes.md) | Equal patches/lifecycles across three edit shapes; guided writes remove one redundant process; 23 refusal controls pass | Prescribed tasks; no reduction in complete-program bytes or autonomous efficiency result |

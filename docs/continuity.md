@@ -1,69 +1,62 @@
 # Contributor handoff
 
 Read [PLAN.md](../PLAN.md) for the objective, next chunk and remaining milestones.
-The [generated status](roadmap-status.md) owns acceptance counts. This page contains only the
-current handoff; completed PR history belongs in Git, the changelog and retained evidence.
+The [generated status](roadmap-status.md) owns acceptance counts. Keep completed PR history
+in Git and retained reports; this page describes the current handoff.
 
-## Current work
+## Current result
 
-The [recovery comparison](workflow-recovery.md#retained-results) passed 32 cells in hosted run
-38043857792. Explicit `resume-applied` workflows recheck an unchanged applied transaction and
-finish delivery without another initial apply. Both resume and undo/retry deliver identical
-patches that pass independent receiver replay, behavior and conflict checks.
+The [source-repair comparison](source-repair.md) passed 40 cells and 16 corruption tests in
+hosted run 38055066754. Both routes start with an incorrect body and failed applied check.
+They preserve required checks and reverse the complete delivery chain. They check original
+and restored final source, then replay the patch in an independent receiver.
 
-Resume uses seven total fr calls versus nine for undo/retry, including the initial failed attempt.
-Twelve offline corruption tests bind caller accounting, requests, required check receipts and
-receiver outcomes. Native tests cover missing/stale reviews, changed source/check declarations,
-repeated check failures and wrong history states. The run also refreshed the earlier 40-cell
-body, 38-cell route and scalar comparisons. These are prescribed workflows, without a live model.
+Undo-and-correct used 17 total fr calls versus 20 for repairing applied source. Protocol bytes
+were lower for undo-and-correct in all four Python/Rust fixtures. Both totals include initial
+failed work. Existing ordered transaction patches sufficed; no new public operation was added.
+Those patches retain intermediate incorrect source. The caller sequence is not atomic.
 
-Hosted run 38043863822 refreshed both Python repository tasks against the native change.
-All 365 behavior cases, interruption and patch replay passed. The catalog selects that report;
-roadmap status remains 7/18 demonstrated items and 0/4 completed milestones.
-Host-recovery run 38044842471 also refreshed the CLI binding: 430 handled-failure boundaries,
-430 process-exit boundaries and 224 model cases passed within the 15-minute hosted job limit.
+The [body-caller review](source-repair.md#body-helper-adoption-review) preserves custom diff
+limits, postconditions and acceptance checks. Historical runner snapshots remain unchanged.
+The earlier [applied-state resume](workflow-recovery.md) remains for unchanged edited source
+after repairing an external check prerequisite. It cannot repair source within the old transaction.
 
-[PR #459](https://github.com/e6qu/fun-refactor/pull/459) closed the bounded client-delivery
-investigation. Its [retained results](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
-show inconsistent CPU differences; no targeted client fix is justified. Do not dispatch another
-collection.
-
-The [earlier streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
-failed admission on macOS, with OpenCode dominating sampled CPU. Short controls alone cannot
-admit local client work. Streaming CI replays frozen evidence. Separate path-selected transport
-controls use hosted clients with scripted replies; they do not call a live model.
-
-The earlier [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
-remains permanently stopped. No new workstation capture or live model call is admitted.
+These are prescribed workflows without a live model or agent-efficiency result. Roadmap status
+remains 7/18 demonstrated items and 0/4 completed milestones. Existing repository, host recovery
+and proof reports remain regression evidence with their stated limits.
 
 ## Next work
 
-Test a genuinely wrong body and a corrected edit. Current recovery repairs an external check
-prerequisite; source changes invalidate resume of the old transaction. Compare a new repair on
-applied source with undo-and-correct, including an exact original-to-final receiver patch, before
-adding a combined-delivery API. Also review caller policies before adopting the body helper:
-the multi-body runner requests a larger diff and different postconditions. Preserve those
-semantics and frozen snapshots. The [plan](../PLAN.md#next-large-chunk) tracks these boundaries.
+Build the consolidated Rust/Python explanation profile described in
+[A.compiler-profile](roadmap-status.md#acompiler-profile-relate-explanations-to-compiler-and-runtime-checks).
+Inventory existing compiler and source-location tests before adding machinery. Retain versions,
+build inputs, repeated calls, shadowing, Unicode positions, disagreements and unsupported cases.
+Explain which facts come from syntax, references, analysis, compiler checks or runtime execution.
+The [plan](../PLAN.md#next-large-chunk) defines the next deliverable.
 
-Any later live comparison needs fresh resource admission, actual fr use and complete costs;
-it cannot resume a stopped collection.
+## Client-study boundary
 
+The [delivery investigation](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
+is closed. It found no justified client configuration fix. The
+[packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md) remains
+permanently stopped; preserve its failed and unstarted cells. No local live client call is admitted.
+
+Streaming CI replays frozen evidence. Separate path-selected transport controls use hosted clients
+with scripted replies. Their success does not establish workstation or representative-task admission.
+A later live study needs fresh resource admission, actual fr-use accounting and complete agent costs.
 The [candidate review table](candidate-review-status.md) owns task admission and review gaps.
-The [product review](product-review.md) owns evaluation and removal criteria. There is no general
-efficiency advantage established, and all four product milestones remain open.
 
 ## Before editing or merging
 
 - Follow the [development guide](development.md#working-on-a-shared-desktop): guarded, serial local
   work; full builds, candidate execution and evidence regeneration on GitHub.
 - Use `fr` for supported inspection and reviewed edits. Treat incorrect or impractical behavior
-  as product evidence; direct edits are appropriate where no suitable operation exists.
+  as product evidence; use direct edits where no suitable operation exists.
 - Use configured OpenCode access and the existing `gh` login. Do not inspect or copy credentials.
-- Keep every commit message to one line of at most 80 characters, with no body, trailers or
-  attribution lines. When authorized, wait for passing CI and squash-merge with an explicit
-  subject and empty body.
+- Keep every commit message to one line of at most 80 characters, without a body or trailers.
+  When authorized, wait for passing CI and squash-merge with an explicit subject and empty body.
 - Retain failed and unstarted evaluation cells. Do not promote partial output to a submission,
   rewrite old results, raise limits or retry a stopped collection.
 
-Use `fr audit` and `fr capabilities` for live support boundaries. Parsing does not establish
+Use `fr audit` and `fr capabilities` for current support boundaries. Parsing does not establish
 arbitrary behavior; model theorems do not prove the host filesystem or unrelated runtime effects.

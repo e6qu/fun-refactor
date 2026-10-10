@@ -18,6 +18,10 @@ There are two existing routes:
 Neither route resumes the old transaction. [Applied-state resume](workflow-recovery.md) requires
 unchanged recorded source. A corrected body needs fresh handles, a fresh review, and a new transaction.
 
+Prefer undo-and-correct when the original source can be restored safely. In this comparison,
+it used fewer calls and fewer serialized protocol bytes. Existing exports also supported the
+ordered-patch route; these results do not justify another public operation.
+
 ## Keep the verification policy explicit
 
 The incorrect intermediate source should fail its behavior check. A repair workflow therefore
@@ -85,3 +89,33 @@ whose maximum is 4,096 bytes; the field name does not make this a token measurem
 Changing review budgets or adding a changed-operation requirement changes admission, even if a
 current fixture still passes. Replacing these callers would need a measured policy-preserving
 comparison. Frozen historical runner snapshots remain unchanged.
+
+## Retained results
+
+[Run 38055066754](https://github.com/e6qu/fun-refactor/actions/runs/38055066754) built the CLI and
+passed all 40 comparison cells and 16 corruption tests. Execution took 2 minutes 25 seconds;
+runner queue time was separate. The [retained report](../tests/agent-eval/results/2026-10-10-source-repair/result.json)
+contains both complete programs, every recorded fr request and response, and the receiver checks.
+Its adjacent manifest verifies the archive, executable, source commit and report digest.
+
+Eight successful deliveries passed original and final checks, complete reversal, receiver replay,
+independent behavior and actual conflicting-apply controls. The other 32 cells retained wrong
+repairs, stale source or check declarations, and later conflicting edits without delivering a patch.
+The ordered-patch route also rejected repair-only and reversed-order patches on original receivers.
+
+| Edit shape | Repair total caller bytes | Undo/correct total caller bytes | Repair total protocol bytes | Undo/correct total protocol bytes |
+| --- | ---: | ---: | ---: | ---: |
+| One Python body | 4,514 | 4,645 | 43,677 | 42,356 |
+| One Rust body | 4,523 | 4,654 | 43,543 | 42,131 |
+| Two Rust bodies | 4,695 | 4,826 | 51,262 | 49,615 |
+| Two Python files, same function name | 4,705 | 4,836 | 53,607 | 51,679 |
+
+Repair used 20 total fr calls; undo-and-correct used 17. Both totals include three calls from
+the initial failed edit. Caller bytes include both programs, transaction input and canonical
+submission. Protocol bytes count serialized recorded requests and responses across both attempts.
+Common fixture setup, recording machinery and receiver oracles are outside these byte counts.
+
+The repair caller is 131 bytes shorter, but uses more calls and protocol bytes in every fixture.
+That is a tradeoff, not an established agent-efficiency improvement. Bodies are prescribed;
+no model, token, elapsed-task-time or provider-cost comparison ran. These results do not establish
+arbitrary transaction composition, atomic multi-transaction recovery or workstation client admission.
