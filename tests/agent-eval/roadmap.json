@@ -23,11 +23,11 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json",
-      "sha256": "877e99fc20b3dad096a60fe1177e27710947d6d0c333d731142d2720e4dc380f"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json",
+      "sha256": "c3088084b9ea7f0e744a920ab7cfcae324cf8f4445a366b62c4ce3d7fbea29fd"
     },
     {
       "id": "package-flow",
@@ -39,11 +39,11 @@
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json",
-      "sha256": "3d8c5eb223260e018e54cdb3f3ed1b730f7b3e44546c55f7e48e05c1e5e1f0a0"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json",
+      "sha256": "e4ed14bffb4ab2a81e3a89a2c4cab78d31ae443bca73e806ba3b473e676c165a"
     },
     {
       "id": "cache-measurements",
@@ -86,12 +86,12 @@
       "sha256": "f39f3ccd240dc70fb8db958e05e3edd70a9d262693c008337bb222f5eac3262c"
     },
     {
-      "id": "compiler-evidence",
-      "path": "tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json",
+      "id": "compiler-profile",
+      "path": "tests/agent-eval/results/2026-10-10-compiler-profile/result.json",
       "kind": "compiler",
-      "scope": "Pinned rustc/Cargo diagnostics, toolchain drift, disagreement and exact occurrence tests; consolidated task profile still open.",
-      "audit": "python3 tools/compiler-evidence-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json",
-      "sha256": "6f3f9f619b0791483cda7294b90a20bd9fd6552630ff6979e5df3e8c09fe931d"
+      "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-10-compiler-profile/result.json",
+      "sha256": "40ae2d47eabac2050bfc4d43b8cf737575f1c65fd877d317e7280164791274ad"
     }
   ],
   "obligations": [
@@ -151,8 +151,38 @@
       "id": "A.compiler-profile",
       "kind": "compiler",
       "acceptance": "For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.",
-      "next": "Collect the existing compiler and source-location tests into one reproducible report with an explicit list of supported features.",
-      "requires": [],
+      "next": "Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.",
+      "requires": [
+        {
+          "evidence": "compiler-profile",
+          "assertions": [
+            {
+              "pointer": "/summary/features",
+              "equals": 11
+            },
+            {
+              "pointer": "/summary/cases",
+              "equals": 18
+            },
+            {
+              "pointer": "/summary/renamed_relocated_cases",
+              "equals": 9
+            },
+            {
+              "pointer": "/summary/false_claims",
+              "equals": 0
+            },
+            {
+              "pointer": "/summary/syntax_compiler_disagreements",
+              "equals": 1
+            },
+            {
+              "pointer": "/summary/profile_complete",
+              "equals": true
+            }
+          ]
+        }
+      ],
       "title": "Relate explanations to compiler and runtime checks"
     },
     {
@@ -345,7 +375,7 @@
   "boundaries": [
     "The goal is a general CLI that helps agents understand, change and prove things about code with less total effort and context. Passing the recorded examples does not establish that product goal.",
     "The analyzer and SDK must not branch on benchmark repository names, paths, revisions or expected patches. Explicit user rules may select sources and uses; they cannot bypass language semantics or unsupported effects.",
-    "Version 2 strengthens the open evaluation requirements with unfamiliar projects and full agent-cost accounting. The seven previously demonstrated items keep their original narrow scope and evidence; no new experiment is claimed.",
+    "Demonstrated items retain their finite scope. Broader requirements need unfamiliar projects, independent language examples and complete agent-cost accounting.",
     "The existing agent comparison used an older Luna model on two Rust tasks. The fr runs consumed more calls, context and time. There is no established general token or cost advantage, and no matched Sonnet or delegated-agent result here.",
     "Current evidence means the recorded input hashes still match. It does not establish that every dependency was recorded; the independent behavior checks must also run.",
     "Parsing a language does not imply full analysis or editing support. Dynamic imports, package initialization effects, runtime dispatch, merging namespace packages from multiple roots and wildcard export insertion remain limits of the current Python analysis or writer.",
