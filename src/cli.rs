@@ -3058,6 +3058,7 @@ fn run_tagged_intent(
         schema: 1,
         transaction: recorded.id,
         transaction_context_basis: crate::history::record_context_basis(root, recorded.id)?,
+        resume_applied: false,
         checks: crate::workflow::CheckRequest {
             basis: checks.configuration_basis,
             names: checks.checks,
@@ -3450,6 +3451,7 @@ fn run_task_change(
         schema: 1,
         transaction: recorded.id,
         transaction_context_basis,
+        resume_applied: false,
         checks: crate::workflow::CheckRequest {
             basis: prepared.checks.configuration_basis,
             names: prepared.checks.checks,

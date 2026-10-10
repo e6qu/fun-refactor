@@ -416,3 +416,199 @@ fn patch_collision_created_by_a_check_is_reported_after_apply() {
         "check output"
     );
 }
+
+fn failed_applied_fixture(reversal: bool) -> (tempfile::TempDir, Value) {
+    let (root, plan, basis) = fixture();
+    fs::write(root.path().join(".fail-workflow"), "fail\n").unwrap();
+    write_manifest(
+        root.path(),
+        &plan,
+        &basis,
+        reversal,
+        Some("recovered.patch"),
+    );
+    let failed = report(
+        fr(
+            root.path(),
+            &["workflow", "--from", ".fr-workflow", "--write"],
+        ),
+        1,
+    );
+    assert_eq!(failed["transaction_status"], "applied");
+    assert_eq!(failed["stages"][1]["status"], "failed");
+    assert!(!root.path().join("recovered.patch").exists());
+    let shown = report(fr(root.path(), &["history", "show", "1"]), 0);
+    let mut value = manifest(&plan, &basis);
+    value["transaction-context-basis"] = shown["records"][0]["context_basis"].clone();
+    value["resume-applied"] = json!(true);
+    value["exercise-reversal"] = json!(reversal);
+    value["patch"] = json!({"output": "recovered.patch"});
+    write_manifest_value(root.path(), &value);
+    (root, value)
+}
+
+#[test]
+fn reviewed_resume_rechecks_and_delivers_without_applying_twice() {
+    for reversal in [false, true] {
+        let (root, _) = failed_applied_fixture(reversal);
+        let preview = report(fr(root.path(), &["workflow", "--from", ".fr-workflow"]), 0);
+        assert_eq!(preview["resume_applied"], true);
+        assert_eq!(preview["stages"][0]["stage"], "check-applied");
+        assert!(preview["stages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|s| s["stage"] != "apply"));
+        let basis = preview["workflow_basis"].as_str().unwrap();
+        let failed = report(
+            fr(
+                root.path(),
+                &[
+                    "workflow",
+                    "--from",
+                    ".fr-workflow",
+                    "--write",
+                    "--basis",
+                    basis,
+                ],
+            ),
+            1,
+        );
+        assert_eq!(failed["stages"][0]["status"], "failed");
+        assert!(!root.path().join("recovered.patch").exists());
+        fs::remove_file(root.path().join(".fail-workflow")).unwrap();
+        let done = report(
+            fr(
+                root.path(),
+                &[
+                    "workflow",
+                    "--from",
+                    ".fr-workflow",
+                    "--write",
+                    "--basis",
+                    basis,
+                ],
+            ),
+            0,
+        );
+        assert_eq!(done["passed"], true);
+        assert_eq!(done["transaction_status"], "applied");
+        assert!(done["stages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|s| s["status"] == "passed"));
+        assert_eq!(
+            done["stages"].as_array().unwrap().len(),
+            if reversal { 6 } else { 2 }
+        );
+        assert!(done["stages"][0]["result"]["recorded_evidence"]["receipt"].is_string());
+        let shown = report(fr(root.path(), &["history", "show", "1"]), 0);
+        assert!(!shown["records"][0]["check_evidence"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+        let receiver = tempfile::tempdir().unwrap();
+        fs::write(
+            receiver.path().join("app.py"),
+            "def before():\n    return 1\n",
+        )
+        .unwrap();
+        let patch = root.path().join("recovered.patch");
+        for args in [vec!["apply", "--check"], vec!["apply"]] {
+            let output = Command::new("git")
+                .args(args)
+                .arg(&patch)
+                .current_dir(receiver.path())
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        assert_eq!(
+            fs::read(receiver.path().join("app.py")).unwrap(),
+            fs::read(root.path().join("app.py")).unwrap()
+        );
+    }
+}
+
+#[test]
+fn resume_requires_review_and_rejects_changed_source_or_check_declarations() {
+    for fault in [
+        "missing-basis",
+        "stale-basis",
+        "target",
+        "unrelated-source",
+        "checks",
+        "original",
+    ] {
+        let (root, mut value) = failed_applied_fixture(false);
+        fs::remove_file(root.path().join(".fail-workflow")).unwrap();
+        let preview = report(fr(root.path(), &["workflow", "--from", ".fr-workflow"]), 0);
+        let basis = preview["workflow_basis"].as_str().unwrap();
+        match fault {
+            "target" => {
+                fs::write(root.path().join("app.py"), "def later():\n    return 2\n").unwrap()
+            }
+            "unrelated-source" => fs::write(root.path().join("other.py"), "value = 3\n").unwrap(),
+            "checks" => {
+                let path = root.path().join(".fr/checks.json");
+                let mut checks: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                checks["checks"][0]["covers"] = json!(["changed declaration"]);
+                fs::write(path, serde_json::to_vec(&checks).unwrap()).unwrap();
+            }
+            "original" => {
+                value["check-original"] = json!(true);
+                write_manifest_value(root.path(), &value);
+            }
+            _ => {}
+        }
+        let before = fs::read(root.path().join("app.py")).unwrap();
+        let mut args = vec!["workflow", "--from", ".fr-workflow", "--write"];
+        if fault != "missing-basis" {
+            args.extend([
+                "--basis",
+                if fault == "stale-basis" {
+                    "frwb1:stale"
+                } else {
+                    basis
+                },
+            ]);
+        }
+        let failed = report(fr(root.path(), &args), 1);
+        assert!(failed["error"]["message"].is_string(), "{fault}: {failed}");
+        assert_eq!(
+            fs::read(root.path().join("app.py")).unwrap(),
+            before,
+            "{fault}"
+        );
+        assert!(!root.path().join("recovered.patch").exists(), "{fault}");
+    }
+}
+
+#[test]
+fn resume_refuses_planned_undone_and_non_latest_transactions() {
+    let (root, plan, basis) = fixture();
+    let mut value = manifest(&plan, &basis);
+    value["resume-applied"] = json!(true);
+    write_manifest_value(root.path(), &value);
+    let failed = report(fr(root.path(), &["workflow", "--from", ".fr-workflow"]), 1);
+    assert!(failed["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("applied transaction"));
+    for newer in [false, true] {
+        let (root, _) = failed_applied_fixture(false);
+        if newer {
+            fs::write(root.path().join("other.py"), "def extra():\n    return 3\n").unwrap();
+            report(fr(root.path(), &["rename", "extra", "newer", "--write"]), 0);
+        } else {
+            report(fr(root.path(), &["history", "undo", "1", "--write"]), 0);
+        }
+        report(fr(root.path(), &["workflow", "--from", ".fr-workflow"]), 1);
+        assert!(!root.path().join("recovered.patch").exists());
+    }
+}

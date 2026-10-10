@@ -161,7 +161,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: default
-      - run: cargo build --locked --bin fr
+      - name: Check workflow recovery and build the CLI
+        run: cargo test --locked --test workflow_cli -- --test-threads 1
       - name: Check guided review integrity
         run: |
           python3 -m pip install 'pytest==9.1.1' 'ty==0.0.80'
@@ -170,6 +171,8 @@ jobs:
           python3 -B tools/test-guide-body-native.py
       - name: Compare body preparation and applied-state recovery
         run: python3 -B tools/guide-body-context.py --output target/workflow-routes/guide-body-context.json
+      - name: Compare checked recovery and receiver delivery
+        run: python3 -B tools/recovery-delivery-context.py --output target/workflow-routes/recovery-delivery-context.json
       - name: Compare editing routes and refusals
         run: python3 -B tools/workflow-route-context.py --output target/workflow-routes/result.json
       - name: Refresh the scalar guide comparison
