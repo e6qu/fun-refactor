@@ -53,7 +53,7 @@ jobs:
   refresh:
     if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.group == 'host-recovery' && 15 || 60 }}
+    timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'

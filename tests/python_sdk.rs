@@ -237,7 +237,7 @@ fn intent_action_context_evidence_is_source_bound_and_arithmetically_valid() {
         .arg(root().join("tools/intent-action-context.py"))
         .arg("--audit")
         .arg(root().join(
-            "tests/agent-eval/results/2026-10-05-recipe-index-intent-action-context/result.json",
+            "tests/agent-eval/results/2026-10-10-recovery-bindings-intent-action-context/result.json",
         ))
         .output()
         .unwrap();
