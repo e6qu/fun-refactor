@@ -128,7 +128,7 @@ pub(super) fn selected_function(
         Item::Function(function)
             if function.name == symbol.name
                 && (symbol.kind != SymbolKind::Method
-                    || function.receiver.as_deref().is_some_and(record_matches)) =>
+                    || function.receiver.as_deref().is_none_or(record_matches)) =>
         {
             Some(function)
         }
@@ -156,7 +156,14 @@ pub(super) fn selected_function(
                 return methods.next().is_none().then(|| only.clone());
             }
             let only = matches.next()?;
-            matches.next().is_none().then(|| only.clone())
+            let exact_receiver = only.receiver.is_some()
+                || index
+                    .symbols_written(&symbol.name, Some(&symbol.file))
+                    .iter()
+                    .filter(|candidate| candidate.kind.is_callable())
+                    .count()
+                    == 1;
+            (matches.next().is_none() && exact_receiver).then(|| only.clone())
         }
         _ => None,
     }

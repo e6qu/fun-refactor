@@ -232,7 +232,7 @@ jobs:
       RUSTFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v7
-      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
@@ -240,6 +240,7 @@ jobs:
         with:
           key: default
       - run: cargo fmt --all --check
+      - run: cargo clippy --locked --tests -- -D warnings
       - run: cargo build --locked --bin fr
       - name: Check ambiguous semantic selection and authoring refusals
         run: cargo test --locked --test semantic_evidence semantic_selection -- --test-threads 1

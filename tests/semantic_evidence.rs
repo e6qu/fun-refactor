@@ -140,6 +140,32 @@ fn semantic_selection_refuses_ambiguous_declarations_before_queries_or_edits() {
 }
 
 #[test]
+fn semantic_selection_never_substitutes_a_free_function_for_an_unsupported_method() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("subject.py"),
+        "def repeated():\n    return 1\nclass Group:\n    @decorator\n    def repeated(self):\n        return 2\n",
+    )
+    .unwrap();
+    let found = report(dir.path(), &["project", "find", "repeated"]);
+    let kind = found["columns"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|column| column == "kind")
+        .unwrap();
+    let rows = found["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    let method = rows.iter().find(|row| row[kind] == "method").unwrap();
+    let result = output(
+        dir.path(),
+        &["project", "semantic", method[0].as_str().unwrap(), "--body"],
+    );
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("no exact semantic IR item"));
+}
+
+#[test]
 fn semantic_selection_keeps_distinct_qualified_methods_available() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(
