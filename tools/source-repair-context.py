@@ -70,6 +70,7 @@ for current in reversed(chain):
     transitions.append({'action': 'undo', 'transaction': current, 'review': review, 'result': changed})
 restored = client.call('checks', '--run', 'behavior', '--basis', required['configuration_basis']).to_data()
 assert restored['passed'] is True
+assert restored['source_revision'] == failed_record['source_revision']
 for current in chain:
     review = client.call('history', 'redo', str(current)).to_data()
     changed = client.call('history', 'redo', str(current), '--write').to_data()
@@ -77,6 +78,7 @@ for current in chain:
 rechecked = client.call('checks', '--run', 'behavior', '--basis', required['configuration_basis'],
     '--record-for', str(result['transaction'])).to_data()
 assert rechecked['passed'] is True
+assert rechecked['source_revision'] == result['workflow']['stages'][1]['result']['source_revision']
 delivered = client.call('history', 'show', str(result['transaction'])).to_data()
 assert delivered['records'][0]['required_checks'] == required
 parts = [client.call('history', 'patch', str(current)).to_data() for current in chain]
