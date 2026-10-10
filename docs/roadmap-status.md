@@ -4,7 +4,7 @@
 
 `fr` is a CLI for AI agents to understand code, make changes and check or prove results. The goal is correct work with less total agent effort and context. Progressive disclosure means starting with a small overview and asking for details only when needed.
 
-**7/18 technical acceptance items are demonstrated in their recorded test cases; 11 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
+**6/18 technical acceptance items are demonstrated in their recorded test cases; 12 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
 
 The CLI already provides code navigation, bounded reads, reviewed edits, checks, undo/redo and patch delivery. Current tests cover useful cases of Python value tracing and restarting work after code changes. Support is limited to the language features stated in each test.
 
@@ -25,7 +25,7 @@ Implementation checkboxes say code was added. Demonstrated items say the specifi
 | A. Find relevant code and explain the evidence | 6/6 | 2/4 | open |
 | B. Explain how values move through code | 4/5 | 1/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
-| D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
+| D. Make checked changes and useful proofs | 1/6 | 1/6 | open |
 
 ## Finite acceptance obligations
 
@@ -169,9 +169,9 @@ Next: Choose a useful function and exact property before writing it; reuse the g
 
 ### D.host: Recover safely when an edit process is interrupted
 
-**State: demonstrated.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
+**State: open.** The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.
 
-Evidence or missing work: host-recovery.
+Evidence or missing work: host-recovery: stale source binding.
 
 Next: Keep the process-interruption tests passing and preserve the limit on what they establish.
 
@@ -183,9 +183,9 @@ The entries below identify the stored test results. “Current” means their re
 |---|---|---|---|
 | [exact-facts](../tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json) / deterministic | checked | current | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json` |
 | [package-flow](../tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json) / deterministic | checked | current | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json` |
-| [repository-tasks](../tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/result.json) / deterministic | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/result.json` |
+| [repository-tasks](../tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json) / deterministic | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json` |
 | [cache-measurements](../tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json) / measurement | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json` |
-| [host-recovery](../tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json) / fault-injection | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json` |
+| [host-recovery](../tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json) / fault-injection | checked | stale (1 changed inputs) | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / deterministic | checked | historical | Rust rename/signature migration with 49 calls; frozen source bindings. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |
 | [model-relations](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) / model-proof | checked | historical | Three Boolean model relations; no source implementation correspondence. Audit: `python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / live-agent | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |

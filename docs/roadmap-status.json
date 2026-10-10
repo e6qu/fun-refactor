@@ -32,13 +32,13 @@
       "scope": "Finite package fixtures, clean agreement, repair and feature replay."
     },
     {
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/result.json",
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "repository-tasks",
       "integrity": "checked",
       "kind": "deterministic",
-      "path": "tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption."
     },
     {
@@ -53,8 +53,10 @@
     },
     {
       "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json",
-      "changed_sources": [],
-      "freshness": "current",
+      "changed_sources": [
+        "src/cli.rs"
+      ],
+      "freshness": "stale",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
@@ -147,7 +149,7 @@
       "total": 4
     },
     "D": {
-      "demonstrated": 2,
+      "demonstrated": 1,
       "engineering": {
         "done": 1,
         "total": 6
@@ -157,7 +159,8 @@
         "D.structural",
         "D.translation",
         "D.existing-proof",
-        "D.new-proof"
+        "D.new-proof",
+        "D.host"
       ],
       "state": "open",
       "total": 6
@@ -451,7 +454,9 @@
     },
     {
       "acceptance": "The native recovery tests interrupt the edit process at the declared journal checkpoints and exercise all 224 small decision-model cases. This does not establish recovery after power loss.",
-      "blockers": [],
+      "blockers": [
+        "host-recovery: stale source binding"
+      ],
       "id": "D.host",
       "kind": "fault-injection",
       "next": "Keep the process-interruption tests passing and preserve the limit on what they establish.",
@@ -466,7 +471,7 @@
           "evidence": "host-recovery"
         }
       ],
-      "state": "demonstrated",
+      "state": "open",
       "title": "Recover safely when an edit process is interrupted"
     }
   ],

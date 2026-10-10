@@ -76,3 +76,29 @@ receiver replay. Successful receiver patches also face an independent behavior c
 conflicting receiver checkout. These are workflow regressions, with no live model or general
 token-efficiency claim. Source repair and combined delivery across multiple transactions remain
 outside this comparison.
+
+## Retained results
+
+[Run 38043857792](https://github.com/e6qu/fun-refactor/actions/runs/38043857792) passed the native
+workflow tests, SDK type checks and all 32 comparison cells. Eight successful deliveries passed
+receiver application, behavior and conflict controls. The other 24 cells retained renewed check
+failures and stale source/check refusals without delivery. Twelve offline corruption tests audit
+the [retained report](../tests/agent-eval/results/2026-10-10-recovery-delivery/recovery-delivery-context.json).
+
+| Edit shape | Resume caller bytes | Undo/retry caller bytes | Resume total protocol bytes | Undo/retry total protocol bytes |
+| --- | ---: | ---: | ---: | ---: |
+| One Python body | 1,203 | 1,565 | 26,270 | 39,048 |
+| One Rust body | 1,203 | 1,564 | 26,008 | 38,441 |
+| Two Rust bodies | 1,203 | 1,654 | 29,680 | 45,516 |
+| Two Python files, same function name | 1,203 | 1,670 | 30,868 | 47,389 |
+
+Caller bytes count the complete recovery program, transaction input and canonical submission.
+Protocol bytes count every serialized request and response, including the initial failed attempt.
+Resume uses four recovery calls and seven total calls; undo/retry uses six and nine. Both paths
+deliver identical patch bytes for each fixture. These counts do not measure model tokens or
+general agent efficiency.
+
+The same run refreshed the earlier 40-cell body and 38-cell route comparisons. Repository
+[run 38043863822](https://github.com/e6qu/fun-refactor/actions/runs/38043863822) refreshed the two
+existing Python tasks, including 365 behavior cases, interruption and patch replay. These remain
+known scripted tasks. The roadmap stays at 7/18 demonstrated items and 0/4 completed milestones.

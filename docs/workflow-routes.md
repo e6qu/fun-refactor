@@ -139,3 +139,8 @@ Eight offline integrity tests reject omitted cells, incorrect byte totals, conce
 unearned patches, incorrect transaction recovery and overwritten conflicts. Native regression tests
 also cover a clipped diff, ambiguous selection and missing source permission before history is saved.
 We kept every public route and left frozen runner snapshots unchanged.
+
+The later [recovery comparison](workflow-recovery.md#retained-results) extends applied-state
+failure through checked delivery and receiver replay. It compares explicit resume with
+undo-and-retry after repairing an external check prerequisite. Source changes still require
+a new reviewed transaction; the comparison does not establish combined source-repair delivery.

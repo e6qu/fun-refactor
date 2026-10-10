@@ -6,21 +6,20 @@ current handoff; completed PR history belongs in Git, the changelog and retained
 
 ## Current work
 
-The [body-input comparison](workflow-routes.md#preparing-body-edits-and-recovering-failed-checks)
-passed all 40 cells in hosted run 37995201079. `AgentGuide.source_body_action` reuses exact retained
-targets, checks and delivery for caller-authored bodies. Complete caller/submission size falls by
-595 bytes in each of four fixtures; both arms retain three processes and the same internal bytes.
-All successful patches and lifecycle stages agree. Failed applied checks retain changed source
-without delivery; reopened undo restores checked source and refuses later conflicting edits.
+The [recovery comparison](workflow-recovery.md#retained-results) passed 32 cells in hosted run
+38043857792. Explicit `resume-applied` workflows recheck an unchanged applied transaction and
+finish delivery without another initial apply. Both resume and undo/retry deliver identical
+patches that pass independent receiver replay, behavior and conflict checks.
 
-Eight body-report integrity tests, seven refreshed route-report tests and three native boundary
-tests cover the result. The existing 38-cell route and scalar comparisons were refreshed against
-the new SDK source. These are prescribed workflow measurements, not autonomous agent-efficiency
-results. The full PR gate is required before merge.
+Resume uses seven total fr calls versus nine for undo/retry, including the initial failed attempt.
+Twelve offline corruption tests bind caller accounting, requests, required check receipts and
+receiver outcomes. Native tests cover missing/stale reviews, changed source/check declarations,
+repeated check failures and wrong history states. The run also refreshed the earlier 40-cell
+body, 38-cell route and scalar comparisons. These are prescribed workflows, without a live model.
 
-Hosted run 37995212729 refreshed both existing Python repository tasks after the SDK change.
-All 365 behavior cases, interruption, stale-review rejection and patch replay passed. The catalog
-selects that report; roadmap status remains 7/18 demonstrated items and 0/4 completed milestones.
+Hosted run 38043863822 refreshed both Python repository tasks against the native change.
+All 365 behavior cases, interruption and patch replay passed. The catalog selects that report;
+roadmap status remains 7/18 demonstrated items and 0/4 completed milestones.
 
 [PR #459](https://github.com/e6qu/fun-refactor/pull/459) closed the bounded client-delivery
 investigation. Its [retained results](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
@@ -36,11 +35,12 @@ remains permanently stopped. No new workstation capture or live model call is ad
 
 ## Next work
 
-Measure repair-and-resume versus undo-and-retry through checked patch delivery after applied-state
-failure. Current evidence stops at restored source. Also review current caller policies before
-adopting the helper: the multi-body runner requests a larger diff and different postconditions.
-Preserve those semantics and frozen historical snapshots. The [plan](../PLAN.md#next-large-chunk)
-tracks exact delivery, check-receipt and receiver-replay requirements.
+Test a genuinely wrong body and a corrected edit. Current recovery repairs an external check
+prerequisite; source changes invalidate resume of the old transaction. Compare a new repair on
+applied source with undo-and-correct, including an exact original-to-final receiver patch, before
+adding a combined-delivery API. Also review caller policies before adopting the body helper:
+the multi-body runner requests a larger diff and different postconditions. Preserve those
+semantics and frozen snapshots. The [plan](../PLAN.md#next-large-chunk) tracks these boundaries.
 
 Any later live comparison needs fresh resource admission, actual fr use and complete costs;
 it cannot resume a stopped collection.

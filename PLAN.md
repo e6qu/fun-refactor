@@ -38,16 +38,21 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
-The [guided body comparison](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks)
-passed 40 prescribed cells across single and coordinated Python/Rust edits. A typed helper reuses
-the guide's exact targets, checks and delivery while the caller supplies every body. Complete caller
-programs and their submissions are 595 bytes shorter in each fixture. The three fr calls, internal
-traffic, patches and successful lifecycle stay the same. No model or token-efficiency comparison ran.
+The [recovery comparison](docs/workflow-recovery.md) follows failed applied checks through checked
+delivery and independent receiver replay. It compares an explicitly reviewed resume with
+undo-and-retry across four Python/Rust edit shapes. Both paths preserve stale source and check
+refusals, required check receipts and receiver conflicts. The report includes the initial failed
+attempt and recovery traffic. All 32 cells passed; resume used seven total fr calls versus nine
+for undo-and-retry. No model or token-efficiency comparison ran.
 
-After an applied-state check fails, source remains changed and no patch is delivered. A reopened
-client can inspect and undo that transaction, restore the exact original source and pass its check.
-Later conflicting edits make undo refuse. Repairing the applied change and completing delivery is
-still outside this comparison.
+Resume starts with fresh applied-state checks, without a second initial apply. Its admission
+requires the latest applied transaction, unchanged recorded source and a fresh workflow basis.
+This covers repair of an external check prerequisite. Repairing source on top of the applied
+transaction and delivering a combined patch remains open.
+
+The earlier [guided body comparison](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks)
+removed 595 caller/submission bytes in four fixtures while retaining three fr calls. That helper
+still uses caller-authored bodies and the guide's exact targets, checks and delivery.
 
 The client-resource investigation is closed. Its [delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)
 did not identify a cause that justifies a client configuration change. The stopped packaging pilot
@@ -59,11 +64,13 @@ the details. Routine CI replays frozen evidence without launching clients.
 
 The [workflow inventory](docs/workflow-routes.md) preserves each public route's distinct purpose.
 Measurements now support removing the duplicate guide read and simplifying body-input construction.
-Next, make the remaining delivery and adoption gaps concrete:
+Next, make the remaining source-repair and adoption gaps concrete:
 
-1. Compare repair-and-resume with undo-and-retry after an applied-state check fails. Demonstrate
-   correct delivered source, required check receipts and receiver patch replay without applying
-   the same edit twice. Retain conflicts and failures; the current result proves undo recovery only.
+1. Test a body that is wrong, rather than an external check prerequisite that fails. Compare a
+   new reviewed repair on the applied source with undo followed by a corrected edit. Determine
+   whether combined patch delivery needs another public operation or existing routes suffice.
+   Preserve checks, exact original-to-final source, receiver replay and later edits. Current
+   resume admission intentionally refuses source changes to the old transaction.
 2. Review current body-edit callers before migrating them to the helper. Preserve their custom
    postconditions, acceptance checks and review limits. The multi-body runner currently requests
    a larger diff than the helper's default; replacing it mechanically would change admission.
@@ -91,6 +98,7 @@ analysis must not recognize benchmark repositories or encode their expected repa
 
 | Evidence | Established result | Limit |
 | --- | --- | --- |
+| [Checked recovery delivery](docs/workflow-recovery.md) | Reviewed resume and undo-and-retry through checks, delivery and receiver replay | External prerequisite repair; no combined source-repair patch or live-agent comparison |
 | [Guided body preparation](docs/workflow-routes.md#preparing-body-edits-and-recovering-failed-checks) | 595 fewer caller/submission bytes in four fixtures; 40 cells cover checked delivery, stale inputs, reopened undo and conflicts | Prescribed bodies; no model/token comparison or repaired-delivery result |
 | [Editing routes](docs/workflow-routes.md) | Equal patches/lifecycles across three edit shapes; guided writes remove one redundant process; 23 refusal controls pass | Prescribed tasks; no reduction in complete-program bytes or autonomous efficiency result |
 | [Delivery diagnostic](tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md) | 31 captures completed; one repetition stayed unstarted after failed memory headroom | Inconsistent CPU differences; no targeted client fix or workstation admission |
