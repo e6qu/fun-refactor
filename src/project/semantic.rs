@@ -443,7 +443,7 @@ impl Project<'_> {
         let mut body_identity = None;
         let mut authorable_body = None;
         let selected = if let Some(symbol) = node.symbol.and_then(|id| self.index.symbol(id)) {
-            let item = selected_item(&module, symbol, &self.index).with_context(|| {
+            let item = selected_item(&module, symbol, self.index).with_context(|| {
                 format!(
                     "the {} '{}' has no exact semantic IR item; select its file or request bounded source.",
                     symbol.kind.as_str(), symbol.name

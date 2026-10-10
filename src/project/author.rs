@@ -1691,7 +1691,7 @@ impl Project<'_> {
             "semantic body replacement requires a file without parser errors."
         );
         let context = crate::transpile::read_module(language, source, parsed.root())?;
-        let mut function = super::semantic::selected_function(&context, symbol, &self.index)
+        let mut function = super::semantic::selected_function(&context, symbol, self.index)
             .with_context(|| {
                 format!(
                     "the {} '{}' has no exact semantic function model.",
@@ -1780,7 +1780,7 @@ impl Project<'_> {
             "semantic body editing requires a file without parser errors."
         );
         let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
-        let function = super::semantic::selected_function(&context, symbol, &self.index)
+        let function = super::semantic::selected_function(&context, symbol, self.index)
             .with_context(|| {
                 format!(
                     "the {} '{}' has no exact semantic function model.",
@@ -1843,7 +1843,7 @@ impl Project<'_> {
             "semantic intent editing requires a file without parser errors."
         );
         let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
-        let function = super::semantic::selected_function(&context, symbol, &self.index)
+        let function = super::semantic::selected_function(&context, symbol, self.index)
             .with_context(|| {
                 format!(
                     "the {} '{}' has no exact semantic function model.",
@@ -1908,7 +1908,7 @@ impl Project<'_> {
             "scalar semantic editing requires a file without parser errors."
         );
         let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
-        let function = super::semantic::selected_function(&context, symbol, &self.index)
+        let function = super::semantic::selected_function(&context, symbol, self.index)
             .with_context(|| {
                 format!(
                     "the {} '{}' has no exact semantic function model.",
