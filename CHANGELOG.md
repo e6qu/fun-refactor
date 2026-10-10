@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.58.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.57.0...fun-refactor-v0.58.0) (2026-10-10)
+
+
+### Features
+
+* resume checked delivery after applied-state failures ([11dd352](https://github.com/e6qu/fun-refactor/commit/11dd352881f2c64ddf72b6cc86a9bc7782708fa8))
+* simplify guided body edits and verify failure recovery ([13b2cf9](https://github.com/e6qu/fun-refactor/commit/13b2cf905154ad05427d1882df55cdcef70e82e8))
+
+
+### Refactoring
+
+* remove redundant guide refresh from checked writes ([5712f37](https://github.com/e6qu/fun-refactor/commit/5712f376586c47b02e53c6e7ca69c7a30c6d42d0))
+
+
+### Tests
+
+* separate streaming fragmentation from delivery duration ([cbc7ad3](https://github.com/e6qu/fun-refactor/commit/cbc7ad31ba878c58963b84da41d518178bd50abd))
+* verify source repair and ordered patch delivery ([b16e3d0](https://github.com/e6qu/fun-refactor/commit/b16e3d0880959ec1eb17f0e3587f09ae2ac0eeee))
+
 ## [0.57.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.56.0...fun-refactor-v0.57.0) (2026-10-09)
 
 
