@@ -1,0 +1,231 @@
+{
+  "schema": "fr-workflow-context-1",
+  "passed": true,
+  "binary_sha256": "70b53760e36fd4bd80ab62e51f6911a319b733a636bb882d4a5fb5ac8de3637c",
+  "source_commit": "3cdc23bd629eed1583a4f95e319414cc2533b63c",
+  "repetitions": 3,
+  "runtime": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.14.8",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "measurement_files": {
+    "tools/workflow-context.py": "32e152499ee4f887562034bba1d53e90e197359700a6d9c87a9d7f692585efda",
+    "tools/evidence_basis.py": "4a8fc33a94d33b753119b779b9e3e898557b5bf30664ea5d923da1f9a124ef7d",
+    "tools/agent-eval.py": "945da0845efc1c3363f1d3d21c77370e6a483b6b2bb6d4ad8c4972d903a06386",
+    "src/workflow.rs": "c82050b9b6ffc50dd72cb13ce11163a9b3cac8238b7a1252456e30d113443957",
+    "src/history.rs": "917eea720d20014f7323a7770ef37b93e70d5f8d10be8de310a3b04d1ad4f480",
+    "src/checks.rs": "b778bda8f7904dc7aa43d22c9f509419b1528f7a82fdbcf20f5a02ed6f9da4db",
+    "Cargo.lock": "8901f0e71aa6d2a69826b3691579f5eeaaff61e13dd6110f41993eb93e298f4c"
+  },
+  "fixture": {
+    "app.py": "def before(value: int) -> int:\n    return value + 1\n",
+    ".fr/checks.json": {
+      "schema": 1,
+      "checks": [
+        {
+          "name": "syntax",
+          "argv": [
+            "python3",
+            "-c",
+            "compile(open('app.py').read(), 'app.py', 'exec')"
+          ],
+          "cwd": ".",
+          "timeout_seconds": 10,
+          "covers": [
+            "Python syntax"
+          ]
+        }
+      ]
+    }
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "token_normalization": {
+    "pattern": "temporary roots, elapsed milliseconds and isolated lowercase hexadecimal identities",
+    "representatives": {
+      "32": "4e9a730bf31715935b3ab0205167dcfd",
+      "64": "f61c659869d80ef3a378c56d7fb4a865c4ff46f655b7efabf0dbb16889d94247"
+    },
+    "scope": "token counts only; byte counts and semantic identities use original output"
+  },
+  "summary": {
+    "manual": {
+      "samples": 3,
+      "calls": 7,
+      "median_context_bytes": 6326,
+      "median_context_tokens": 2059,
+      "median_seconds": 0.12810372500001677
+    },
+    "workflow": {
+      "samples": 3,
+      "calls": 2,
+      "median_context_bytes": 5638,
+      "median_context_tokens": 1896,
+      "median_seconds": 0.09156160500000965
+    }
+  },
+  "runs": [
+    {
+      "repetition": 1,
+      "arm": "manual",
+      "calls": 7,
+      "stdout": {
+        "bytes": 5282,
+        "tokens": 1648
+      },
+      "requests": {
+        "bytes": 1044,
+        "tokens": 411
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 6326,
+        "tokens": 2059
+      },
+      "seconds": 0.12649846700000467,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 1,
+      "arm": "workflow",
+      "calls": 2,
+      "stdout": {
+        "bytes": 5167,
+        "tokens": 1723
+      },
+      "requests": {
+        "bytes": 153,
+        "tokens": 48
+      },
+      "artifact": {
+        "bytes": 318,
+        "tokens": 125
+      },
+      "context": {
+        "bytes": 5638,
+        "tokens": 1896
+      },
+      "seconds": 0.09156160500000965,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 2,
+      "arm": "workflow",
+      "calls": 2,
+      "stdout": {
+        "bytes": 5167,
+        "tokens": 1723
+      },
+      "requests": {
+        "bytes": 153,
+        "tokens": 48
+      },
+      "artifact": {
+        "bytes": 318,
+        "tokens": 125
+      },
+      "context": {
+        "bytes": 5638,
+        "tokens": 1896
+      },
+      "seconds": 0.09119828999999413,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 2,
+      "arm": "manual",
+      "calls": 7,
+      "stdout": {
+        "bytes": 5282,
+        "tokens": 1648
+      },
+      "requests": {
+        "bytes": 1044,
+        "tokens": 411
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 6326,
+        "tokens": 2059
+      },
+      "seconds": 0.135616065999983,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 3,
+      "arm": "manual",
+      "calls": 7,
+      "stdout": {
+        "bytes": 5282,
+        "tokens": 1648
+      },
+      "requests": {
+        "bytes": 1044,
+        "tokens": 411
+      },
+      "artifact": {
+        "bytes": 0,
+        "tokens": 0
+      },
+      "context": {
+        "bytes": 6326,
+        "tokens": 2059
+      },
+      "seconds": 0.12810372500001677,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    },
+    {
+      "repetition": 3,
+      "arm": "workflow",
+      "calls": 2,
+      "stdout": {
+        "bytes": 5167,
+        "tokens": 1723
+      },
+      "requests": {
+        "bytes": 153,
+        "tokens": 48
+      },
+      "artifact": {
+        "bytes": 318,
+        "tokens": 125
+      },
+      "context": {
+        "bytes": 5638,
+        "tokens": 1896
+      },
+      "seconds": 0.09203793799997584,
+      "stage_identity": "7bd0819052b927329cae6926701d7ad45e67aa88b415ea2fd705c08db4a99761",
+      "state_identity": "0889c6958314cec219b18dd1a57eebc56eefc1cff16c21d0015549f83fb848f2",
+      "source_sha256": "5b8852de41b0cf8be7ece06465bd9a34fa0a29cce5b9970da41cd656bd3a0b45",
+      "patch_sha256": "a3e5b492458ce0defb3c193b4f5f115ee393c4027b0adc659d61f16e9c4b5481"
+    }
+  ],
+  "scope": "Prescribed post-review delivery on a generic Python fixture. Preparation, plan review and check listing are common setup and excluded. The manual arm makes seven calls. The workflow arm counts its manifest, preview and write calls. Both apply, check, undo, check, redo, check and export the same transaction. Normalized stage reports, final history, source and patch must match. Timings are local subprocess wall time. No agent, skill read, independent behavior oracle or population claim."
+}

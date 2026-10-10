@@ -52,13 +52,13 @@
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only."
     },
     {
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-delivery-host-recovery/result.json",
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
       "changed_sources": [],
       "freshness": "current",
       "id": "host-recovery",
       "integrity": "checked",
       "kind": "fault-injection",
-      "path": "tests/agent-eval/results/2026-10-10-recovery-delivery-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
       "scope": "224 model cases and native process interruption boundaries; not power loss."
     },
     {
