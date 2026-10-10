@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("workflow_route_context", ROOT / "tools/workflow-route-context.py")
 routes = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(routes)
-REPORT = ROOT / "tests/agent-eval/results/2026-10-10-guided-body-inputs/result.json"
+REPORT = ROOT / "tests/agent-eval/results/2026-10-10-recovery-delivery/result.json"
 
 
 class RouteEvidence(unittest.TestCase):

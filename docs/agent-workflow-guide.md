@@ -93,6 +93,9 @@ inspect its `transaction` and `workflow.stages`, then reopen the project and pre
 `fr history undo TX`. After reviewing that reversal, use `fr history undo TX --write --no-diff`
 and rerun the declared checks. Undo refuses if later edits conflict; preserve those edits and
 resolve them deliberately. Do not report a failed checked edit as a delivered change.
+If the source is still correct after fixing an external check prerequisite, a reviewed
+[applied-state workflow](workflow-recovery.md) can recheck and finish delivery without applying
+the edit again. Source changes require a new review and transaction.
 
 Exact scalar goals with declared checks produce one complete `fr-task-change-1` preview input.
 Integer/float scalars follow the live unsigned-decimal contract; negatives use explicit unary IR

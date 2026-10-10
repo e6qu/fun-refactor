@@ -93,6 +93,8 @@ def replay(root, case, patch):
     source = routes.source_state(receiver, case)
     oracle = bodies.checker(case, final=True)
     behavior = run_command([sys.executable, "-B", "-c", oracle], receiver)
+    for name, text in case['files'].items():
+        (receiver / name).write_text(text)
     conflict = receiver / next(iter(case['files']))
     conflict.write_text("# receiver-owned edit\n" if conflict.suffix == '.py' else "// receiver-owned edit\n")
     conflict_before = routes.source_state(receiver, case)
@@ -182,6 +184,7 @@ def audit(value):
         failed = row['initial_error']['report']
         initial_error = row['initial_error']
         if (failed['passed'] is not False or failed['workflow']['transaction_status'] != 'applied'
+                or failed['workflow']['stages'][2]['result']['passed'] is not False
                 or len(row['initial_events']) != 3
                 or row['initial_events'][-1]['response'] != {
                     'exit_code': initial_error['exit_code'], 'error': initial_error['message'], 'report': failed}
@@ -196,6 +199,25 @@ def audit(value):
         if row['execution_start'] != boundary or len(events) != boundary + (2 if fault is None else 1):
             raise ValueError('recovery call sequence changed')
         execution = events[boundary]['response']
+        transaction = str(failed['transaction'])
+        if arm == 'resume':
+            manifest = json.loads(events[1]['request']['file_input'])
+            shown = events[0]['response']['report']['records'][0]
+            if (events[0]['request']['arguments'] != ['history', 'show', transaction]
+                    or shown['id'] != failed['transaction']
+                    or manifest['transaction'] != shown['id'] or manifest['resume-applied'] is not True
+                    or manifest['transaction-context-basis'] != shown['context_basis']
+                    or manifest['checks'] != {'basis': shown['required_checks']['configuration_basis'],
+                                              'names': shown['required_checks']['checks']}
+                    or events[1]['request']['arguments'] != ['workflow', '--from', '.fr-resume']
+                    or events[boundary]['request'] != {
+                        'arguments': ['workflow', '--from', '.fr-resume', '--write', '--basis',
+                                      events[1]['response']['report']['workflow_basis']],
+                        'stdin': None, 'file_input': events[1]['request']['file_input']}):
+                raise ValueError('resume did not retain the reviewed transaction and checks')
+        elif (events[0]['request']['arguments'] != ['history', 'undo', transaction]
+              or events[1]['request']['arguments'] != ['history', 'undo', transaction, '--write', '--no-diff']):
+            raise ValueError('retry did not review and undo the failed transaction')
         if row['error']:
             error = row['error']
             if execution != {'exit_code': error['exit_code'], 'error': error['message'], 'report': error['report']}:
@@ -231,7 +253,10 @@ def audit(value):
         evidence = record['check_evidence']
         required = record['required_checks']
         if (not evidence or any(e['configuration_basis'] != required['configuration_basis']
-                                or e['checks'] != required['checks'] for e in evidence)
+                                or e['checks'] != required['checks']
+                                or e['configuration_basis'] != failed['workflow']['stages'][2]['result']['basis']
+                                or e['source_revision'] != failed['workflow']['stages'][2]['result']['source_revision']
+                                for e in evidence)
                 or row['submission'] != {'passed': True, 'transaction': result['transaction'],
                                         'check_receipts': [e['receipt'] for e in evidence]}
                 or events[-1]['response'] != {'exit_code': 0, 'report': row['history']}):

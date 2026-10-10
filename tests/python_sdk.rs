@@ -60,7 +60,7 @@ fn python_package_keeps_explicit_module_boundaries() {
 #[test]
 fn checked_agent_guide_context_comparison_is_reproducible() {
     let evidence = root()
-        .join("tests/agent-eval/results/2026-10-10-guided-body-inputs/agent-guide-context.json");
+        .join("tests/agent-eval/results/2026-10-10-recovery-delivery/agent-guide-context.json");
     let output = python()
         .arg(root().join("tools/agent-guide-context.py"))
         .arg("--audit")
@@ -142,6 +142,7 @@ fn checked_workflow_route_comparison_retains_outcomes_and_refusals() {
         "tools/test-workflow-route-context.py",
         "tools/test-guide-body-context.py",
         "tools/test-guide-body-native.py",
+        "tools/test-recovery-delivery-context.py",
     ] {
         let output = python()
             .arg(root().join(script))
