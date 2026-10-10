@@ -39,11 +39,11 @@
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-guided-body-types-python-repositories/result.json",
-      "sha256": "1fd695555faea541415f2c4d7409e28524e4d05e3ce32c75a8d7caeb3df724ff"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json",
+      "sha256": "3d8c5eb223260e018e54cdb3f3ed1b730f7b3e44546c55f7e48e05c1e5e1f0a0"
     },
     {
       "id": "cache-measurements",
@@ -55,11 +55,11 @@
     },
     {
       "id": "host-recovery",
-      "path": "tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json",
+      "path": "tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
       "kind": "fault-injection",
       "scope": "224 model cases and native process interruption boundaries; not power loss.",
-      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-05-recipe-index-host-recovery/result.json",
-      "sha256": "3a31d663f3d267a525430ca3458e6f9cbb392124fcbad37f08bb95ea971a1506"
+      "audit": "python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json",
+      "sha256": "48adf59847a358c395ec29c54797e28871c6580e03fcfc2e5159673aba9ac9bc"
     },
     {
       "id": "structural",

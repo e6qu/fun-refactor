@@ -89,13 +89,14 @@ jobs:
           assert len(binaries) == 1
           binaries[0].rename(root / 'fr' / 'fr')
           PY
+      # Keep OpenCode project discovery outside the repository under test.
       - name: Exercise ordinary and fr edits with both configured provider profiles
         run: >-
-          python3 -B tools/check-terminal-changes.py check target/terminal-changes
+          python3 -B tools/check-terminal-changes.py check "$RUNNER_TEMP/terminal-changes"
           --fr target/change-tools/fr/fr --opencode target/change-tools/client/opencode
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: terminal-changes-${{ matrix.runner }}
-          path: target/terminal-changes
+          path: ${{ runner.temp }}/terminal-changes
           retention-days: 7

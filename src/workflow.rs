@@ -40,6 +40,8 @@ pub(crate) struct Manifest {
     pub schema: u32,
     pub transaction: u64,
     pub transaction_context_basis: String,
+    #[serde(default)]
+    pub resume_applied: bool,
     pub checks: CheckRequest,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub acceptance_checks: Option<AcceptanceRequest>,
@@ -145,6 +147,19 @@ fn stages(
         stages.push(Stage::DeliverPatch);
     }
     stages
+}
+
+fn manifest_stages(manifest: &Manifest) -> Vec<Stage> {
+    let mut result = stages(
+        manifest.check_original,
+        manifest.exercise_reversal,
+        manifest.patch.is_some(),
+        manifest.acceptance_checks.is_some(),
+    );
+    if manifest.resume_applied {
+        result.retain(|stage| !matches!(stage, Stage::Apply));
+    }
+    result
 }
 
 pub(crate) fn planned_stage_names(
@@ -293,10 +308,21 @@ fn preflight_manifest(
     let history = History::read(&root)?;
     history.ensure_ready()?;
     let record = history.record(manifest.transaction)?;
-    ensure!(
-        record.status == Status::Planned,
-        "workflow requires a planned transaction"
-    );
+    if manifest.resume_applied {
+        ensure!(
+            record.status == Status::Applied,
+            "resume requires an applied transaction"
+        );
+        ensure!(
+            !manifest.check_original,
+            "resume cannot check original source before application; use exercise-reversal"
+        );
+    } else {
+        ensure!(
+            record.status == Status::Planned,
+            "workflow requires a planned transaction"
+        );
+    }
     let complete_context = history::transaction_context_basis(record);
     ensure!(
         manifest.transaction_context_basis == complete_context,
@@ -304,11 +330,15 @@ fn preflight_manifest(
     );
     history::act_with_context(
         &root,
-        Action::Apply,
+        if manifest.resume_applied {
+            Action::Undo
+        } else {
+            Action::Apply
+        },
         manifest.transaction,
         false,
         true,
-        Some(&complete_context),
+        (!manifest.resume_applied).then_some(complete_context.as_str()),
     )?;
 
     let selection = checks::select(&root, &manifest.checks.names)?
@@ -359,6 +389,10 @@ fn preflight_manifest(
     }
 
     let manifest_digest = hex::encode(Sha256::digest(&manifest_bytes));
+    let resumed_revision = manifest
+        .resume_applied
+        .then(|| history::source_revision(&root))
+        .transpose()?;
     let workflow_basis = format!(
         "frwb1:{}",
         digest_parts(&[
@@ -368,14 +402,10 @@ fn preflight_manifest(
             complete_context.as_bytes(),
             selection.configuration_basis.as_bytes(),
             patch_digest.as_bytes(),
+            resumed_revision.as_deref().unwrap_or("").as_bytes(),
         ])
     );
-    let planned_stages = stages(
-        manifest.check_original,
-        manifest.exercise_reversal,
-        manifest.patch.is_some(),
-        manifest.acceptance_checks.is_some(),
-    );
+    let planned_stages = manifest_stages(&manifest);
     let mut report = json!({
         "schema": "fr-workflow-1",
         "manifest_sha256": manifest_digest,
@@ -406,6 +436,10 @@ fn preflight_manifest(
         "executed": false,
         "passed": Value::Null,
     });
+    if let Some(revision) = resumed_revision {
+        report["resume_applied"] = json!(true);
+        report["source_revision"] = json!(revision);
+    }
     if let Some(request) = &manifest.acceptance_checks {
         report["acceptance_checks"] = json!(request);
     }
@@ -508,6 +542,10 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
         });
     }
 
+    ensure!(
+        !preflight.manifest.resume_applied || basis.is_some(),
+        "resume requires a reviewed workflow basis"
+    );
     if let Some(supplied) = basis {
         ensure!(
             supplied == preflight.workflow_basis,
@@ -546,13 +584,8 @@ fn execute(preflight: Preflight, write: bool, basis: Option<&str>) -> Result<Out
         report["reviewed_context_omitted"] = json!(omitted);
     }
     let transaction = manifest.transaction;
-    let planned_stages = stages(
-        manifest.check_original,
-        manifest.exercise_reversal,
-        manifest.patch.is_some(),
-        manifest.acceptance_checks.is_some(),
-    );
-    let mut applied = false;
+    let planned_stages = manifest_stages(&manifest);
+    let mut applied = manifest.resume_applied;
 
     for (index, stage) in planned_stages.into_iter().enumerate() {
         let next = workflow_stage_state(applied, stage as usize);

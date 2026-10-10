@@ -36,6 +36,9 @@ Copy its `workflow_basis` into the write. This omits that unchanged preflight en
 A failed stage stops later work and leaves their status `pending`. Inspect `transaction_status` and
 preserve check diagnostics. A pending transaction still requires the separate recovery route.
 
+For an unchanged applied transaction, `resume-applied: true` starts with fresh checks and requires
+a reviewed workflow basis. Read `docs/workflow-recovery.md` for admission and delivery limits.
+
 This workflow checks only project-declared commands. Independent behavior oracles and receiver
 checks remain separate evidence when the task requires them. Use the manual Checks, History and Git
 routes when no check configuration exists or when each transition needs external validation.
