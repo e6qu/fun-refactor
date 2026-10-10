@@ -20,6 +20,8 @@ body, 38-cell route and scalar comparisons. These are prescribed workflows, with
 Hosted run 38043863822 refreshed both Python repository tasks against the native change.
 All 365 behavior cases, interruption and patch replay passed. The catalog selects that report;
 roadmap status remains 7/18 demonstrated items and 0/4 completed milestones.
+Host-recovery run 38044199608 also refreshed the CLI binding: 430 handled-failure boundaries,
+430 process-exit boundaries and 224 model cases passed within the 15-minute hosted job limit.
 
 [PR #459](https://github.com/e6qu/fun-refactor/pull/459) closed the bounded client-delivery
 investigation. Its [retained results](../tests/agent-eval/opencode/changes/delivery-2026-10-09/README.md)

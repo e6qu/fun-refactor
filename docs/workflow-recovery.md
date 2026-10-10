@@ -102,3 +102,7 @@ The same run refreshed the earlier 40-cell body and 38-cell route comparisons. R
 [run 38043863822](https://github.com/e6qu/fun-refactor/actions/runs/38043863822) refreshed the two
 existing Python tasks, including 365 behavior cases, interruption and patch replay. These remain
 known scripted tasks. The roadmap stays at 7/18 demonstrated items and 0/4 completed milestones.
+
+The CLI change also required fresh [host-interruption evidence](https://github.com/e6qu/fun-refactor/actions/runs/38044199608).
+That run passed 430 handled-failure boundaries, 430 process-exit boundaries and 224 model cases.
+These checks concern interrupted writes, independently of the failed-check resume path above.
