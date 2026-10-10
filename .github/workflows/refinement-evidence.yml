@@ -45,6 +45,7 @@ on:
           - context-projection
           - workflow-routes
           - source-repair
+          - compiler-profile
 permissions:
   contents: read
 concurrency:
@@ -52,7 +53,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   refresh:
-    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair'
+    if: inputs.group != 'python-repositories' && inputs.group != 'roadmap-report' && inputs.group != 'discovery-pages' && inputs.group != 'index-resolution' && inputs.group != 'context-projection' && inputs.group != 'workflow-routes' && inputs.group != 'source-repair' && inputs.group != 'compiler-profile'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ contains(fromJSON('["host-recovery", "completion-workflows", "retained-proofs", "intent-action-context", "contexts"]'), inputs.group) && 15 || 60 }}
     env:
@@ -216,6 +217,39 @@ jobs:
         with:
           name: source-repair
           path: target/source-repair
+          if-no-files-found: error
+          retention-days: 7
+
+  compiler-profile:
+    if: inputs.group == 'compiler-profile'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup toolchain install stable --profile minimal
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: default
+      - run: cargo build --locked --bin fr
+      - name: Compare declared Rust and Python explanation features
+        run: python3 -B tools/compiler-profile.py --output target/compiler-profile/result.json
+      - name: Reject corrupted compiler and source observations
+        env:
+          FR_COMPILER_PROFILE_REPORT: target/compiler-profile/result.json
+        run: python3 -B tools/test-compiler-profile.py
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: compiler-profile
+          path: target/compiler-profile
           if-no-files-found: error
           retention-days: 7
 
