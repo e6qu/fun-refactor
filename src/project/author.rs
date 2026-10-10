@@ -1691,8 +1691,8 @@ impl Project<'_> {
             "semantic body replacement requires a file without parser errors."
         );
         let context = crate::transpile::read_module(language, source, parsed.root())?;
-        let mut function =
-            super::semantic::selected_function(&context, symbol).with_context(|| {
+        let mut function = super::semantic::selected_function(&context, symbol, self.index)
+            .with_context(|| {
                 format!(
                     "the {} '{}' has no exact semantic function model.",
                     symbol.kind.as_str(),
@@ -1780,13 +1780,14 @@ impl Project<'_> {
             "semantic body editing requires a file without parser errors."
         );
         let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
-        let function = super::semantic::selected_function(&context, symbol).with_context(|| {
-            format!(
-                "the {} '{}' has no exact semantic function model.",
-                symbol.kind.as_str(),
-                symbol.name
-            )
-        })?;
+        let function = super::semantic::selected_function(&context, symbol, self.index)
+            .with_context(|| {
+                format!(
+                    "the {} '{}' has no exact semantic function model.",
+                    symbol.kind.as_str(),
+                    symbol.name
+                )
+            })?;
         let current = super::semantic_change::SemanticBody {
             schema: super::semantic_ir::BODY_SCHEMA.into(),
             body: function.body,
@@ -1842,13 +1843,14 @@ impl Project<'_> {
             "semantic intent editing requires a file without parser errors."
         );
         let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
-        let function = super::semantic::selected_function(&context, symbol).with_context(|| {
-            format!(
-                "the {} '{}' has no exact semantic function model.",
-                symbol.kind.as_str(),
-                symbol.name
-            )
-        })?;
+        let function = super::semantic::selected_function(&context, symbol, self.index)
+            .with_context(|| {
+                format!(
+                    "the {} '{}' has no exact semantic function model.",
+                    symbol.kind.as_str(),
+                    symbol.name
+                )
+            })?;
         let current = super::semantic_change::SemanticBody {
             schema: super::semantic_ir::BODY_SCHEMA.into(),
             body: function.body,
@@ -1906,13 +1908,14 @@ impl Project<'_> {
             "scalar semantic editing requires a file without parser errors."
         );
         let context = crate::transpile::read_module(symbol.language, source, parsed.root())?;
-        let function = super::semantic::selected_function(&context, symbol).with_context(|| {
-            format!(
-                "the {} '{}' has no exact semantic function model.",
-                symbol.kind.as_str(),
-                symbol.name
-            )
-        })?;
+        let function = super::semantic::selected_function(&context, symbol, self.index)
+            .with_context(|| {
+                format!(
+                    "the {} '{}' has no exact semantic function model.",
+                    symbol.kind.as_str(),
+                    symbol.name
+                )
+            })?;
         let current = super::semantic_change::SemanticBody {
             schema: super::semantic_ir::BODY_SCHEMA.into(),
             body: function.body,

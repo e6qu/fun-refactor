@@ -4,7 +4,7 @@
 
 `fr` is a CLI for AI agents to understand code, make changes and check or prove results. The goal is correct work with less total agent effort and context. Progressive disclosure means starting with a small overview and asking for details only when needed.
 
-**7/18 technical acceptance items are demonstrated in their recorded test cases; 11 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
+**8/18 technical acceptance items are demonstrated in their recorded test cases; 10 remain open. 0/4 milestones are complete.** These counts are not a percentage of product readiness.
 
 The CLI already provides code navigation, bounded reads, reviewed edits, checks, undo/redo and patch delivery. Current tests cover useful cases of Python value tracing and restarting work after code changes. Support is limited to the language features stated in each test.
 
@@ -22,7 +22,7 @@ Implementation checkboxes say code was added. Demonstrated items say the specifi
 
 | Milestone | Implementation items | Demonstrated tests | State |
 |---|---:|---:|---|
-| A. Find relevant code and explain the evidence | 6/6 | 2/4 | open |
+| A. Find relevant code and explain the evidence | 6/6 | 3/4 | open |
 | B. Explain how values move through code | 4/5 | 1/4 | open |
 | C. Resume work and reuse correct answers | 6/6 | 2/4 | open |
 | D. Make checked changes and useful proofs | 1/6 | 2/6 | open |
@@ -57,11 +57,11 @@ Next: Select independent tasks and graders, complete worker resource and context
 
 ### A.compiler-profile: Relate explanations to compiler and runtime checks
 
-**State: open.** For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.
+**State: demonstrated.** For the declared Rust and Python language features, record build inputs and versions, disagreements with fr, repeated calls on one line, shadowed names and Unicode positions. Check both correct answers and explicit unsupported cases.
 
-Evidence or missing work: No qualifying retained evidence yet.
+Evidence or missing work: compiler-profile.
 
-Next: Collect the existing compiler and source-location tests into one reproducible report with an explicit list of supported features.
+Next: Keep the declared profile and ambiguity refusals passing; specify reusable Python behavior in B.contract.
 
 ### B.scalar: Trace simple values through package helpers
 
@@ -181,15 +181,15 @@ The entries below identify the stored test results. “Current” means their re
 
 | Result / test kind | Files verified | Input freshness | Scope and audit command |
 |---|---|---|---|
-| [exact-facts](../tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json) / deterministic | checked | current | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-06-explore-ci-flow-facts/result.json` |
+| [exact-facts](../tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json) / deterministic | checked | current | Nine scalar cases; exact AST links, omissions and stale refusal. Audit: `python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json` |
 | [package-flow](../tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json) / deterministic | checked | current | Finite package fixtures, clean agreement, repair and feature replay. Audit: `python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json` |
-| [repository-tasks](../tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json) / deterministic | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-delivery-python-repositories/result.json` |
+| [repository-tasks](../tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json) / deterministic | checked | current | Two pinned full Python repositories; deterministic bug/feature delivery with interruption. Audit: `python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json` |
 | [cache-measurements](../tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json) / measurement | checked | current | 288 samples on six finite scalar workloads; whole-analysis reuse only. Audit: `python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json` |
 | [host-recovery](../tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json) / fault-injection | checked | current | 224 model cases and native process interruption boundaries; not power loss. Audit: `python3 tools/host-recovery-acceptance.py --audit tests/agent-eval/results/2026-10-10-recovery-bindings-host-recovery/result.json` |
 | [structural](../tests/agent-eval/results/2026-09-28-structural-change/manifest.json) / deterministic | checked | historical | Rust rename/signature migration with 49 calls; frozen source bindings. Audit: `python3 tools/structural-change-acceptance.py --audit tests/agent-eval/results/2026-09-28-structural-change` |
 | [model-relations](../tests/agent-eval/results/2026-09-28-virtual-model-comparisons/manifest.json) / model-proof | checked | historical | Three Boolean model relations; no source implementation correspondence. Audit: `python3 tools/refinement-acceptance.py --audit tests/agent-eval/results/2026-09-28-virtual-model-comparisons` |
 | [rust-live-cohort](../tests/agent-eval/unknown-target/cohort.json) / live-agent | checked | historical | Four comparison trials, three diagnostics; three successes, ordinary feature failed. Rust only. Audit: `python3 tools/investigation-cohort.py` |
-| [compiler-evidence](../tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json) / compiler | checked | current | Pinned rustc/Cargo diagnostics, toolchain drift, disagreement and exact occurrence tests; consolidated task profile still open. Audit: `python3 tools/compiler-evidence-acceptance.py --audit tests/agent-eval/results/2026-09-29-calls-compiler-evidence/result.json` |
+| [compiler-profile](../tests/agent-eval/results/2026-10-10-compiler-profile/result.json) / compiler | checked | current | Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals. Audit: `python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-10-compiler-profile/result.json` |
 
 Exact changed input paths are retained in [the JSON report](roadmap-status.json).
 
@@ -197,7 +197,7 @@ Exact changed input paths are retained in [the JSON report](roadmap-status.json)
 
 - The goal is a general CLI that helps agents understand, change and prove things about code with less total effort and context. Passing the recorded examples does not establish that product goal.
 - The analyzer and SDK must not branch on benchmark repository names, paths, revisions or expected patches. Explicit user rules may select sources and uses; they cannot bypass language semantics or unsupported effects.
-- Version 2 strengthens the open evaluation requirements with unfamiliar projects and full agent-cost accounting. The seven previously demonstrated items keep their original narrow scope and evidence; no new experiment is claimed.
+- Demonstrated items retain their finite scope. Broader requirements need unfamiliar projects, independent language examples and complete agent-cost accounting.
 - The existing agent comparison used an older Luna model on two Rust tasks. The fr runs consumed more calls, context and time. There is no established general token or cost advantage, and no matched Sonnet or delegated-agent result here.
 - Current evidence means the recorded input hashes still match. It does not establish that every dependency was recorded; the independent behavior checks must also run.
 - Parsing a language does not imply full analysis or editing support. Dynamic imports, package initialization effects, runtime dispatch, merging namespace packages from multiple roots and wildcard export insertion remain limits of the current Python analysis or writer.

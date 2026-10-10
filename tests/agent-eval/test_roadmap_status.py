@@ -141,12 +141,13 @@ class RoadmapStatusTests(unittest.TestCase):
         def contents(version, remote):
             return (f'[package]\nname="example"\nversion="{version}"\n[dependencies]\n'
                     f'child={{path="child",version="{version}"}}\nremote="{remote}"\n')
-        path.write_text(contents('1.0.0', '2.0.0'))
-        expected = status.binding_digest(path, 'fr-flow-cache-acceptance-1')
-        path.write_text(contents('1.1.0', '2.0.0'))
-        self.assertEqual(expected, status.binding_digest(path, 'fr-flow-cache-acceptance-1'))
-        path.write_text(contents('1.1.0', '3.0.0'))
-        self.assertNotEqual(expected, status.binding_digest(path, 'fr-flow-cache-acceptance-1'))
+        for schema in ('fr-flow-cache-acceptance-1', 'fr-compiler-profile-1'):
+            path.write_text(contents('1.0.0', '2.0.0'))
+            expected = status.binding_digest(path, schema)
+            path.write_text(contents('1.1.0', '2.0.0'))
+            self.assertEqual(expected, status.binding_digest(path, schema))
+            path.write_text(contents('1.1.0', '3.0.0'))
+            self.assertNotEqual(expected, status.binding_digest(path, schema))
 
     def test_plan_checkbox_changes_require_catalog_review(self):
         path = self.root / 'PLAN.md'
