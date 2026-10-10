@@ -283,9 +283,9 @@ fn checked_evidence_requires_all_input_classes_in_native_and_lean() {
 fn retained_semantic_evidence_is_source_bound_and_internally_verified() {
     let output = Command::new("python3")
         .args([
-            "tools/semantic-evidence-acceptance.py",
+            "tools/compiler-profile.py",
             "--audit",
-            "tests/agent-eval/results/2026-09-29-calls-semantic-evidence/result.json",
+            "tests/agent-eval/results/2026-10-10-compiler-profile/result.json",
         ])
         .output()
         .unwrap();
