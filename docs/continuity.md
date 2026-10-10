@@ -30,7 +30,8 @@ collection.
 
 The [earlier streaming comparison](../tests/agent-eval/opencode/changes/streaming-2026-10-09/README.md)
 failed admission on macOS, with OpenCode dominating sampled CPU. Short controls alone cannot
-admit local client work. Routine PR checks replay frozen evidence without launching clients.
+admit local client work. Streaming CI replays frozen evidence. Separate path-selected transport
+controls use hosted clients with scripted replies; they do not call a live model.
 
 The earlier [packaging pilot](../tests/agent-eval/opencode/changes/configured-2026-10-08/README.md)
 remains permanently stopped. No new workstation capture or live model call is admitted.

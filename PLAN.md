@@ -58,7 +58,8 @@ The client-resource investigation is closed. Its [delivery diagnostic](tests/age
 did not identify a cause that justifies a client configuration change. The stopped packaging pilot
 and failed workstation admission remain failures; do not resume them or infer admission from short
 controls. Their reports and the [candidate review status](docs/candidate-review-status.md) retain
-the details. Routine CI replays frozen evidence without launching clients.
+the details. Streaming CI replays frozen evidence. Separate path-selected transport controls use
+hosted clients with scripted replies, without a live model.
 
 ## Next large chunk
 

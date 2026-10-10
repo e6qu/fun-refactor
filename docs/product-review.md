@@ -72,9 +72,10 @@ consumer review and reproducible retrieval; measure storage, build time and runt
 
 ## Pilot before expanding or deleting subsystems
 
-The [current plan](../PLAN.md#next-large-chunk) addresses CPU admission after the configured
-packaging pilot stopped. Short scripted controls passed but the first live call hit its CPU cap.
-Keep that failure and the three unstarted cells. No efficiency comparison follows from it.
+The configured packaging pilot stopped when its first live call hit the CPU cap.
+The later resource investigation found no justified client configuration fix and is closed.
+Keep the failed and three unstarted cells. The [current plan](../PLAN.md#next-large-chunk)
+continues tool work; it does not authorize restarting that pilot.
 
 The [source-reading report](native-read-outcomes.md) has no successful ordinary/fr pair.
 The [code-change report](native-change-outcomes.md) has ten behavior passes, two timeouts and no
