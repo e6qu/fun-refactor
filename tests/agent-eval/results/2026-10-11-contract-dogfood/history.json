@@ -1,0 +1,79 @@
+{
+  "applied": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+  ],
+  "pending": null,
+  "records": [
+    {
+      "basis": "4b7bb5f99d3eeaf38035d81981de3f69ad4e8dd74680f7e5bcb71dacac7c3e6f",
+      "changes": [
+        {
+          "after_exists": true,
+          "after_kind": "regular",
+          "after_mode": 420,
+          "before_exists": true,
+          "before_kind": "regular",
+          "before_mode": 420,
+          "diff": "--- a/dataflow.rs\n+++ b/dataflow.rs\n@@ -263,7 +263,10 @@\n             | \"comparison_operator\"\n             | \"parenthesized_expression\" => {\n                 let mut flow = Flow::new();\n-                for child in node.named_children(&mut node.walk()) {\n+                for child in node\n+                    .named_children(&mut node.walk())\n+                    .filter(|child| !child.is_extra())\n+                {\n                     merge(&mut flow, self.expression(child, env));\n                 }\n                 self.extend(flow, node, \"expression\")\n",
+          "path": "dataflow.rs"
+        }
+      ],
+      "compacted": false,
+      "context_basis": "frtb2:f1e6b4ddb3c0be3b1c9758d15e6861fc23564cadf7ea611bcb8bd6c1fe685b1a",
+      "id": 45,
+      "path_count": 1,
+      "paths": [
+        "dataflow.rs"
+      ],
+      "source_revision": "4474289ba2b75600ad363e61eff40f4f8a8e690ec43594582f761714c9abfc4c",
+      "status": "applied",
+      "validation": "reparse-strict"
+    }
+  ],
+  "redo": [],
+  "schema": 1
+}

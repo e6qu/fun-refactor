@@ -72,6 +72,9 @@ print(json.dumps({**outcome, "events": seen}))
     ("0 < 1 < sink(source())", True),
     ("sink(source()) if (True and not False) else 0", True),
     ("(False and stop(source())) or sink(source())", True),
+    ("sink(source() + # café 🦀 between operands\n        0)", True),
+    ("sink(+ # café 🦀 before operand\n        source())", True),
+    ("sink((source() # café 🦀 after operand\n        + 0))", True),
 ])
 def test_runtime_effects_and_exact_origins(tmp_path, expression, reachable):
     client, rules = install(tmp_path, expression)

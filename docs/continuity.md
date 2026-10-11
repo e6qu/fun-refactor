@@ -6,29 +6,26 @@ in Git and retained reports; this page describes the current handoff.
 
 ## Current result
 
-The [Rust/Python explanation profile](compiler-profile.md) covers eleven declared features and
-eighteen original or renamed/relocated cases, together with compiler and checked-origin evidence.
-Its 26 corruption tests reject missing coverage, invented facts and mismatched inputs.
+The [Python behavior contract](python-contract.md) compares 36 independent programs and their
+renamed/relocated equivalents: 72 cases across twelve declared rule families. It retains CPython
+outcomes separately from possible-flow answers, including unsupported and conservative results.
+Corruption controls check missing cases, altered outcomes, invented authority and source locations.
 
-Profile review caught a wrong-body selection for duplicate Python functions. Semantic queries
-and edit preparation now require unique source and lowered declarations, including containing
-classes. Decorated duplicates refuse; methods in distinct classes remain available. File-level
-inspection and bounded source remain the fallback when a declaration cannot be matched.
-
-Current source-bound repository, indexing and workflow evidence was collected again after that
-fix. Historical reports stay unchanged. The [source-repair](source-repair.md) and
-[resume](workflow-recovery.md) comparisons remain finite workflow evidence, without live models.
+The review caught comments being traversed as operands and reported as unsupported expressions.
+The general traversal now skips parser extras. Focused regressions cover three comment placements
+and compare runtime effects and exact witness locations. Full builds and evidence refreshes run
+on GitHub; scalar refreshes are split into four jobs with 15-minute limits.
 
 Roadmap status is 8/18 demonstrated acceptance items and 0/4 completed milestones. This does
 not establish a general agent-efficiency advantage or complete Rust/Python semantics.
 
 ## Next work
 
-Implement [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior): explicit
-language rules for evaluation order, assignments, calls, exceptions and source positions.
-Compare supported rules with independently authored executable examples and renamed/relocated
-variants. Preserve unsupported cases; fix defects through general rules, never repository names.
-The [plan](../PLAN.md#next-large-chunk) defines the next deliverable.
+Finish [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior). Map recursive
+summaries, static imports and every admitted call-binding form to the explicit rule inventory.
+Existing focused tests cover these separately; the current contract report does not claim them.
+Add independent executable examples and renamed/relocated variants before closing the gate.
+The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 
 ## Client-study boundary
 
@@ -48,6 +45,8 @@ The [candidate review table](candidate-review-status.md) owns task admission and
   work; full builds, candidate execution and evidence regeneration on GitHub.
 - Use `fr` for supported inspection and reviewed edits. Treat incorrect or impractical behavior
   as product evidence; use direct edits where no suitable operation exists.
+- Check active evidence hashes under `source_bindings`, `bindings` and `measurement_files`.
+  Index-resolution and compiler-profile reports bind all native source files and need refreshes after native edits.
 - Use configured OpenCode access and the existing `gh` login. Do not inspect or copy credentials.
 - Keep every commit message to one line of at most 80 characters, without a body or trailers.
   When authorized, wait for passing CI and squash-merge with an explicit subject and empty body.

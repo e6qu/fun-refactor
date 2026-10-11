@@ -38,33 +38,33 @@ show that an agent can independently diagnose arbitrary projects or that `fr` sa
 
 ## Latest measured result
 
-The [Rust/Python explanation profile](docs/compiler-profile.md) checks eleven declared features
-with eighteen original and renamed/relocated cases, plus the existing compiler and checked-origin
-collectors. It retains exact source locations, build inputs, toolchain identities, runtime outcomes
-and explicit unsupported results. Its 26 corruption tests reject missing cases and false claims.
+The [Python behavior contract](docs/python-contract.md) defines twelve rule families and compares
+36 independently written programs with CPython and `fr`. Renamed and relocated versions bring
+the total to 72 cases. The examples cover evaluation order, scalar assignments, calls, explicit
+exits and exact source locations. They also record conservative analysis differences and refusals.
 
-The review exposed a real selection bug: choosing the second same-named Python function returned
-the first body's model. Semantic queries and edit preparation now refuse ambiguous declarations
-in the source index or lowered model, including duplicate containing classes. Tests also preserve
-valid selections of same-named methods in distinct classes. This is a general matching rule.
+This work found that comments between arithmetic operands caused spurious unsupported-expression
+cutoffs. Operand traversal now skips parser extras. The fix applies to ordinary source syntax,
+without recognizing a benchmark, repository or expected answer.
 
-The profile demonstrates A.compiler-profile for its listed features. It does not establish complete
-language semantics, runtime dispatch, agent efficiency or source-connected proofs.
-The [source-repair](docs/source-repair.md) and [resume](docs/workflow-recovery.md) comparisons
-remain workflow regression gates with their stated limits.
+The contract remains a finite first coverage pass. B.contract is still open: recursive summaries,
+static imports and the full admitted call-binding inventory need the same cross-cutting comparison.
+The [compiler profile](docs/compiler-profile.md), repository delivery and workflow recovery
+comparisons remain separate regression gates. None establishes a general agent-efficiency advantage.
 
 ## Next large chunk
 
-Specify reusable Python behavior, acceptance item
+Complete the reusable Python behavior inventory, acceptance item
 [B.contract](docs/roadmap-status.md#bcontract-specify-reusable-python-behavior).
 An agent needs to know which language rules justify an answer and when to stop trusting it.
 
-1. Document evaluation order, assignments, calls, exceptions and source locations as language
-   rules. Distinguish supported behavior from normalization and unsupported constructs.
-2. Compare each supported rule with independently authored executable examples and renamed
-   or relocated equivalents. Include positive, negative and explicit unsupported outcomes.
-3. Fix exposed defects through reusable rules and regressions. Repository identities, fixture
-   names and expected answers must never select semantics.
+1. Map every admitted call-binding form, recursive summary and static import rule to explicit
+   examples and limits. Connect existing focused suites to that inventory without claiming their
+   coverage from the current 72-case report.
+2. Add independently written positive, negative and unsupported examples, plus renamed or
+   relocated equivalents. Keep CPython outcomes separate from possible-flow expectations.
+3. Close B.contract only when the inventory has no unexplained coverage holes. Fix exposed
+   defects through general rules; repository identities and expected answers must never select semantics.
 
 Keep repository and recovery gates passing. The independent live study still needs representative
 resource admission, actual fr-use accounting and complete parent/child costs. The

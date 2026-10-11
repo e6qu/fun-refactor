@@ -263,7 +263,10 @@ impl<'a, 'p, 't> Analyzer<'a, 'p, 't> {
             | "comparison_operator"
             | "parenthesized_expression" => {
                 let mut flow = Flow::new();
-                for child in node.named_children(&mut node.walk()) {
+                for child in node
+                    .named_children(&mut node.walk())
+                    .filter(|child| !child.is_extra())
+                {
                     merge(&mut flow, self.expression(child, env));
                 }
                 self.extend(flow, node, "expression")

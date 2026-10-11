@@ -23,35 +23,35 @@
   "evidence": [
     {
       "id": "exact-facts",
-      "path": "tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-flow-facts/result.json",
       "kind": "deterministic",
       "scope": "Nine scalar cases; exact AST links, omissions and stale refusal.",
-      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-flow-facts/result.json",
-      "sha256": "c3088084b9ea7f0e744a920ab7cfcae324cf8f4445a366b62c4ce3d7fbea29fd"
+      "audit": "python3 tools/flow-facts-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-flow-facts/result.json",
+      "sha256": "7f35ca266dd7ad24ea02e7583d4ed0620106cd32ef456a73209e53844faa0d57"
     },
     {
       "id": "package-flow",
-      "path": "tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-package-flow/result.json",
       "kind": "deterministic",
       "scope": "Finite package fixtures, clean agreement, repair and feature replay.",
-      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-package-flow/result.json",
-      "sha256": "552e9a7bd41c8de890a2e8ed30bff7209f5703ba9a065db1b8dcf47965b70572"
+      "audit": "python3 tools/package-flow-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-package-flow/result.json",
+      "sha256": "e0db933101e769768e6df4e94a1a667f2b21279f3864dfd566e1e26b1fc994cc"
     },
     {
       "id": "repository-tasks",
-      "path": "tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-python-repositories/result.json",
       "kind": "deterministic",
       "scope": "Two pinned full Python repositories; deterministic bug/feature delivery with interruption.",
-      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-10-selection-python-repositories/result.json",
-      "sha256": "e4ed14bffb4ab2a81e3a89a2c4cab78d31ae443bca73e806ba3b473e676c165a"
+      "audit": "python3 tools/python-repository-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-python-repositories/result.json",
+      "sha256": "807a6a84db508edd7ba61e1f109c6a1bf214756227130707887580a15adfe5cd"
     },
     {
       "id": "cache-measurements",
-      "path": "tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-flow-cache/result.json",
       "kind": "measurement",
       "scope": "288 samples on six finite scalar workloads; whole-analysis reuse only.",
-      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-09-30-assignments-flow-cache/result.json",
-      "sha256": "c9574376412a3596126a9f9803afe1d8a55a003f34bbe6bf2432bb8ba4cacf62"
+      "audit": "python3 tools/flow-cache-acceptance.py --audit tests/agent-eval/results/2026-10-11-contract-flow-cache/result.json",
+      "sha256": "3d306dd4f64bd20ab00acea6db854406a754cd00f1d95d9f41211615c6f77752"
     },
     {
       "id": "host-recovery",
@@ -87,11 +87,27 @@
     },
     {
       "id": "compiler-profile",
-      "path": "tests/agent-eval/results/2026-10-10-compiler-profile/result.json",
+      "path": "tests/agent-eval/results/2026-10-11-contract-compiler-profile/result.json",
       "kind": "compiler",
       "scope": "Eleven declared Rust/Python features; eighteen cases, compiler and runtime checks, explicit refusals.",
-      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-10-compiler-profile/result.json",
-      "sha256": "40ae2d47eabac2050bfc4d43b8cf737575f1c65fd877d317e7280164791274ad"
+      "audit": "python3 tools/compiler-profile.py --audit tests/agent-eval/results/2026-10-11-contract-compiler-profile/result.json",
+      "sha256": "79b9a6b7ea951e6a4014d03bf7b2b144fbf6f404fb7b1341e1685e545c060d8f"
+    },
+    {
+      "id": "python-contract",
+      "path": "tests/agent-eval/results/2026-10-11-python-contract-reviewed/result.json",
+      "kind": "semantic-contract",
+      "scope": "Twelve scalar rule families; 36 independent programs and 72 original/renamed cases. Partial B.contract coverage.",
+      "audit": "python3 tools/python-contract.py --audit tests/agent-eval/results/2026-10-11-python-contract-reviewed/result.json",
+      "sha256": "ca8f2099991b1c873e129dd3137ec1fd06637e7ce0e6390557ad56912fc3908a"
+    },
+    {
+      "id": "index-resolution",
+      "path": "tests/agent-eval/results/2026-10-11-contract-index-resolution/result.json",
+      "kind": "measurement",
+      "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim.",
+      "audit": "python3 tools/index-resolution-acceptance.py --verify tests/agent-eval/results/2026-10-11-contract-index-resolution/result.json",
+      "sha256": "040629df92d11eb69a41c50210d9ef31a10fb7b32cb022c693fae983ace2fdb1"
     }
   ],
   "obligations": [
@@ -215,7 +231,7 @@
       "id": "B.contract",
       "kind": "semantic-contract",
       "acceptance": "Document how evaluation order, assignments, function calls, exceptions and source locations are represented. For every supported construct, compare fr with Python execution across independently authored examples and renamed or relocated equivalents. Identify unsupported constructs explicitly. No repository identity or expected answer may select semantics.",
-      "next": "Define language rules first, with independent examples for each rule. Use real repositories to expose missing rules, not to define special cases.",
+      "next": "The 72-case scalar contract is a first coverage pass. Connect recursive summaries, static imports and every admitted call-binding form to the explicit rule inventory and independent executable examples.",
       "requires": [],
       "title": "Specify reusable Python behavior"
     },
