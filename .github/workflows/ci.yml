@@ -46,7 +46,8 @@ jobs:
           docker pull python:3.14-alpine
           echo "FR_STUDY_TEST_IMAGE=$(docker image inspect python:3.14-alpine --format '{{.Id}}')" >> "$GITHUB_ENV"
       - name: Install the pinned repository-oracle dependency
-        run: python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
+        run: |
+          python3 -m pip install --only-binary=:all: --require-hashes -r tests/agent-eval/python-repository-flow/runtime-requirements.txt
       - run: bash tools/check.sh study
       - name: Check pinned explanation behavior independently of the rubric
         run: python3 tools/check-explanation-repositories.py
