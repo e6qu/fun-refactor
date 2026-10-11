@@ -22,6 +22,11 @@ on GitHub; scalar refreshes are split into four jobs with 15-minute limits.
 Roadmap status is 9/18 demonstrated acceptance items and 0/4 completed milestones. This does
 not establish a general agent-efficiency advantage or complete Rust/Python semantics.
 
+The [repository-flow baseline](python-repository-flow.md) checks thirty cells in pinned Toolz,
+funcy and pydash snapshots. Sixty runtime executions agree with independent scalar inspection;
+renamed/relocated adapters preserve conclusions. All 24 emitted analyses remain incomplete,
+and six invalid response budgets refuse analysis. B.repository-flow remains open.
+
 ## Next work
 
 The final source-bound [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior)
@@ -33,8 +38,14 @@ and graph changes while ignoring workspace release numbers. The raw lockfile bin
 route gate to fail after a release. Refresh both `workflow-routes` and `source-repair` from one
 revision and use `retain-workflows` to verify their artifacts and corruption controls on GitHub.
 Keep historical reports intact. Pass full CI before merging; deep validation supersedes obsolete
-revisions, and every timeout stays unchanged. Then choose the independent and held-out projects for
-[B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects).
+revisions, and every timeout stays unchanged.
+
+Continue [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
+from its captured import/summary limits. Broaden project-derived examples beyond the authored
+identity adapters, and select an unopened replacement held-out project before analyzer edits.
+Pydash has now been inspected; retain its first failed opening and subsequent results. The native
+analyzer stayed frozen at the B.contract merge throughout this cohort. Unknown effects and
+exhausted budgets must continue to prevent a no-path claim.
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 
 ## Client-study boundary

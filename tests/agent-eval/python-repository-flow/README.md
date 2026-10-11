@@ -14,6 +14,14 @@ compare propagation with an overwritten value. Rename the entry and its imported
 then relocate the entry into another package. Keep the upstream implementation intact.
 Keep unknown-call and exhausted-budget results incomplete, even when runtime returns normally.
 
+Pydash first opened after coverage passed on revision `12844dee0`. That attempt stopped at
+independent inspection, before native analysis or runtime execution: the harness treated typing
+overloads as competing implementations. The inspector now distinguishes proven type-only
+declarations and checks that an optional variadic parameter is unused by the returned expression.
+The runner uses the same hash-pinned typing dependency for every project. These are harness
+corrections; the native analyzer stays frozen. Retain the first opening and all subsequent results.
+The project is not a fresh held-out candidate for later analyzer changes.
+
 These are scalar probes in complete repository snapshots, not autonomous investigations or
 general support for each library. The adapters are authored fixtures. A successful identity
 probe alone cannot establish general repository analysis; keep B.repository-flow open until
