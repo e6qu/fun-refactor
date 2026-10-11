@@ -2,7 +2,6 @@
 """Compare a declared scalar Python contract with CPython and retained fr reports."""
 import argparse
 import ast
-import hashlib
 import importlib.util
 import json
 import os
@@ -106,7 +105,7 @@ def audit_case(row, case):
             'analysis identity or claim changed')
     require(flow['target'] == definition['handle'] and flow['inputs']['summary_mode'] is True
             and flow['inputs']['context'] == 'html' and flow['inputs']['selection']['name'] == case['names']['entry']
-            and flow['inputs']['source'] == {'path': case['path'], 'digest': hashlib.sha256(case['source'].encode()).hexdigest()}
+            and flow['inputs']['source'] == {'path': case['path'], 'digest': profile.compiler.digest(case['source'])}
             and flow['inputs']['budget']['steps'] == case['steps']
             and flow['inputs']['budget']['bytes'] == 262144, 'analysis input basis changed')
     require(flow['assumptions'] == [

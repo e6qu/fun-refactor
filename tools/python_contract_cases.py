@@ -71,7 +71,7 @@ EXAMPLES = [
     example('propagate', 'rules', 'return sink(forward(source()))', [S, ['forward', 17], T], 17, witness=True),
     example('unicode-local', 'names locations', 'café = source(); return sink(café)', [S, T], 17, witness=True),
     example('unbound-local', 'names boundaries', 'sink(value)\nvalue = source()', raised='UnboundLocalError',
-            complete=False, cutoff='unbound'),
+            complete=False, cutoff='unknown-binding'),
     example('shadow-source', 'names boundaries', 'sink(source())\nsource = 0', raised='UnboundLocalError',
             complete=False, cutoff='ambiguous-call'),
     example('implicit-exception', 'boundaries', 'value = 1 // 0\nreturn sink(source())', raised='ZeroDivisionError', witness=True,
