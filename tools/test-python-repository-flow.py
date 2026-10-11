@@ -15,6 +15,25 @@ spec.loader.exec_module(flow)
 
 
 class RepositoryAdmission(unittest.TestCase):
+    def test_type_only_overloads_and_unused_varargs_do_not_hide_the_runtime_body(self):
+        source = ('import typing as t\n@t.overload\ndef relay(x: int, *extra): ...\n'
+                  '@t.overload\ndef relay(x: None = None, *extra): ...\n'
+                  'def relay(x=None, *extra):\n    return x\n')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'helper.py').write_text(source)
+            project = {'path': 'helper.py', 'function': 'relay'}
+            inspected = flow.inspection(root, project)
+            self.assertEqual((inspected['parameter'], inspected['unused_varargs'], inspected['type_only_declarations']),
+                             ('x', 'extra', 2))
+            for changed in [source.replace('return x', 'return extra[0]'),
+                            source.replace('import typing as t', 'import other as t'),
+                            source + 'def relay(x):\n    return 0\n',
+                            source.replace('@t.overload', '@other')]:
+                (root / 'helper.py').write_text(changed)
+                with self.assertRaises(ValueError):
+                    flow.inspection(root, project)
+
     def test_declared_budgets_fit_the_public_cli(self):
         flow.validate_cohort(flow.COHORT)
         for name, value in [('depth', 64), ('steps', 0), ('report_bytes', 1), ('depth', True)]:

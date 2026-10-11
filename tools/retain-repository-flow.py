@@ -121,10 +121,28 @@ def admission_failure(run_id, repository):
             'conclusion': 'failure', 'artifacts': [], 'reason': lines[0]}
 
 
+def inspection_failure(run_id, repository):
+    run, artifact, archive, jobs = download(run_id, repository)
+    require(run['conclusion'] == 'failure' and artifact['name'] == 'repository-flow-held-out'
+            and artifact['workflow_run']['id'] == run_id
+            and artifact['workflow_run']['head_sha'] == run['head_sha'], 'inspection failure identity changed')
+    files = retain.checked_reports(archive, artifact['digest'], ['pydash.tar.gz'])
+    created = datetime.fromisoformat(artifact['created_at'])
+    producers = [job for job in jobs if job['name'] == 'held-out' and job['run_id'] == run_id
+                 and job['conclusion'] == 'failure'
+                 and datetime.fromisoformat(job['started_at']) <= created <= datetime.fromisoformat(job['completed_at'])]
+    require(len(producers) == 1, 'inspection failure producer changed')
+    return files, {'run_id': run_id, 'source_commit': run['head_sha'], 'url': run['html_url'],
+                   'attempt': producers[0]['run_attempt'], 'producer_job_id': producers[0]['id'],
+                   'conclusion': 'failure', 'reason': 'type-only overloads rejected before analysis and runtime',
+                   'artifact_id': artifact['id'], 'artifact_digest': artifact['digest']}
+
+
 def audit(path):
     value = json.loads(path.read_bytes())
     manifest = json.loads((path.parent / 'manifest.json').read_bytes())
-    expected = {'result.json', 'historical-failure/result.json', 'historical-failure/toolz.tar.gz'}
+    expected = {'result.json', 'historical-failure/result.json', 'historical-failure/toolz.tar.gz',
+                'historical-inspection/pydash.tar.gz'}
     for phase in ('coverage', 'held-out'):
         expected.add(phase + '/result.json')
         expected.update(phase + '/' + project['id'] + '.tar.gz'
@@ -147,6 +165,7 @@ def main():
     parser.add_argument('--held-out-run', type=int)
     parser.add_argument('--failure-run', type=int)
     parser.add_argument('--admission-failure-run', type=int)
+    parser.add_argument('--inspection-failure-run', type=int)
     parser.add_argument('--prefix')
     parser.add_argument('--audit', type=Path)
     args = parser.parse_args()
@@ -157,6 +176,7 @@ def main():
     branch = os.environ.get('GITHUB_REF', '')
     require(branch.startswith('refs/heads/') and branch != 'refs/heads/main', 'retain into a working branch')
     require(args.coverage_run and args.held_out_run and args.failure_run and args.admission_failure_run
+            and args.inspection_failure_run
             and args.prefix and re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', args.prefix),
             'supply successful phase runs, the historical failure and a plain dated prefix')
     repository = os.environ['GITHUB_REPOSITORY']
@@ -164,6 +184,7 @@ def main():
               for name, run in [('coverage', args.coverage_run), ('held-out', args.held_out_run)]}
     historical_files, historical_identity = failure(args.failure_run, repository)
     admission_identity = admission_failure(args.admission_failure_run, repository)
+    inspected_files, inspected_identity = inspection_failure(args.inspection_failure_run, repository)
     relative = Path('tests/agent-eval/results') / (args.prefix + '-repository-flow')
     directory = ROOT / relative
     require(not directory.exists(), 'preserve prior evidence; choose a new directory')
@@ -175,11 +196,15 @@ def main():
     (directory / 'historical-failure').mkdir()
     for filename, data in historical_files.items():
         (directory / 'historical-failure' / filename).write_bytes(data)
+    (directory / 'historical-inspection').mkdir()
+    for filename, data in inspected_files.items():
+        (directory / 'historical-inspection' / filename).write_bytes(data)
     reports = [item[1] for item in phases.values()]
     value = {'schema': SCHEMA, 'source_bindings': flow.bindings(),
              'collections': {name: item[2] for name, item in phases.items()},
              'historical_failure': historical_identity,
              'admission_failure': admission_identity,
+             'inspection_failure': inspected_identity,
              'summary': flow.summary([row for report in reports for row in report['cases']])}
     (directory / 'result.json').write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
     manifest = {'schema': 'fr-python-repository-flow-evidence-1', 'collections': value['collections'],

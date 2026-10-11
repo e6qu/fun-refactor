@@ -43,7 +43,8 @@ def sha(data):
 def bindings():
     result = profile.bindings()
     for name in ('tools/python-repository-flow.py', 'tools/python_repository_flow_oracle.py',
-                 'tests/agent-eval/python-repository-flow/cohort.json'):
+                 'tests/agent-eval/python-repository-flow/cohort.json',
+                 'tests/agent-eval/python-repository-flow/runtime-requirements.txt'):
         result[name] = sha((ROOT / name).read_bytes())
     return result
 
@@ -93,19 +94,60 @@ def snapshot(data, project, destination):
 
 def inspection(root, project):
     source = (root / project['path']).read_bytes().decode()
-    nodes = [node for node in ast.parse(source).body
+    tree = ast.parse(source)
+    typing_aliases, overload_aliases = set(), set()
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.asname or alias.name.split('.')[0]
+                typing_aliases.discard(name)
+                overload_aliases.discard(name)
+                if alias.name in ('typing', 'typing_extensions'):
+                    typing_aliases.add(name)
+        if isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                name = alias.asname or alias.name
+                typing_aliases.discard(name)
+                overload_aliases.discard(name)
+                if node.module in ('typing', 'typing_extensions') and alias.name == 'overload':
+                    overload_aliases.add(name)
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+            typing_aliases.discard(node.name)
+            overload_aliases.discard(node.name)
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Delete)):
+            rebound = {child.id for child in ast.walk(node) if isinstance(child, ast.Name)
+                       and isinstance(child.ctx, (ast.Store, ast.Del))}
+            typing_aliases -= rebound
+            overload_aliases -= rebound
+    nodes = [node for node in tree.body
              if isinstance(node, ast.FunctionDef) and node.name == project['function']]
-    require(len(nodes) == 1, 'upstream helper selection is ambiguous')
-    node = nodes[0]
+    declarations = []
+    implementations = []
+    for node in nodes:
+        decorators = node.decorator_list
+        decorator = decorators[0] if len(decorators) == 1 else None
+        typed = ((isinstance(decorator, ast.Attribute) and decorator.attr == 'overload'
+                  and isinstance(decorator.value, ast.Name) and decorator.value.id in typing_aliases)
+                 or (isinstance(decorator, ast.Name) and decorator.id in overload_aliases))
+        stub = (len(node.body) == 1 and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant) and node.body[0].value.value is Ellipsis)
+        (declarations if typed and stub else implementations).append(node)
+    require(len(implementations) == 1 and nodes[-1] is implementations[0], 'upstream helper selection is ambiguous')
+    node = implementations[0]
     arguments = node.args.posonlyargs + node.args.args
     statements = list(node.body)
     if isinstance(statements[0], ast.Expr) and isinstance(statements[0].value, ast.Constant):
         statements.pop(0)
-    require(len(arguments) == 1 and not node.args.vararg and not node.args.kwarg and not node.args.kwonlyargs
+    require(len(arguments) == 1 and not node.args.kwarg and not node.args.kwonlyargs
             and not node.decorator_list and len(statements) == 1 and isinstance(statements[0], ast.Return)
             and isinstance(statements[0].value, ast.Name) and statements[0].value.id == arguments[0].arg,
             'upstream helper differs from the independently declared identity contract')
+    for default in node.args.defaults:
+        ast.literal_eval(default)
     return {'path': project['path'], 'name': node.name, 'parameter': arguments[0].arg,
+            'unused_varargs': node.args.vararg.arg if node.args.vararg else None,
+            'type_only_declarations': len(declarations),
             'source_sha256': sha(source.encode()), 'function': ast.get_source_segment(source, node)}
 
 
