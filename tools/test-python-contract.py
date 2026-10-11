@@ -281,6 +281,59 @@ class PythonContract(unittest.TestCase):
         row['flow']['completion']['normal_return'] = True
         self.reject(value)
 
+    def test_refusal_cannot_become_an_incomplete_report(self):
+        value, row = self.changed('refuse-entry-syntax/moved')
+        row['flow'] = {'complete': False, 'witnesses': []}
+        self.reject(value)
+
+    def test_refusal_exit_status_and_diagnostic(self):
+        for field, replacement in [('exit_code', 0), ('exit_code', True), ('stderr', '')]:
+            value, row = self.changed('refuse-import-entry/moved')
+            row['invocations'][1][field] = replacement
+            self.reject(value)
+        value, row = self.changed('refuse-entry-syntax/moved')
+        row['error']['error']['kind'] = 'refused'
+        self.reject(value)
+
+    def test_report_cannot_ignore_failed_invocation(self):
+        value, row = self.changed()
+        row['invocations'][1]['exit_code'] = 1
+        self.reject(value)
+
+    def test_depth_budget_is_bound_to_command_and_report(self):
+        for mutation in ('command', 'report'):
+            value, row = self.changed('discovery-depth-2-selected/moved')
+            if mutation == 'command':
+                command = row['commands'][1]
+                command[command.index('--depth') + 1] = '3'
+            else:
+                row['flow']['inputs']['budget']['depth'] = 3
+                row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+            self.reject(value)
+
+    def test_module_budget_cannot_admit_unloaded_source(self):
+        value, row = self.changed('import-module-limit-17-selected/moved')
+        path = 'renamed_unit16.py'
+        row['flow']['inputs']['modules']['files'][path] = contract.profile.compiler.digest(row['case']['files'][path])
+        row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+        self.reject(value)
+
+    def test_stub_candidate_cannot_disappear(self):
+        value, row = self.changed('import-ambiguous-stub-selected/moved')
+        candidate = row['flow']['inputs']['modules']['lookups'][0]['candidates']['engine.pyi']
+        candidate.clear()
+        candidate['status'] = 'missing'
+        row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+        self.reject(value)
+
+    def test_binding_budget_cannot_claim_a_resolved_function(self):
+        value, row = self.changed('import-binding-limit-selected/moved')
+        lookup = next(item for item in row['flow']['inputs']['modules']['lookups']
+                      if item['importer'] == row['case']['path'])
+        lookup['resolution'] = 'function'
+        row['flow']['input_digest'] = contract.profile.compiler.digest(row['flow']['inputs'])
+        self.reject(value)
+
     def test_summary_cannot_overstate_coverage(self):
         value, _ = self.changed()
         value['summary']['cases'] += 2

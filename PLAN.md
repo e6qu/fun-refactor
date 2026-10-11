@@ -49,6 +49,10 @@ The fix follows source syntax; it does not recognize a benchmark or expected ans
 
 The contract remains finite. B.contract is still open: discovery-depth limits, invalid syntax,
 CLI refusals, import ambiguity and shadowing, and module/binding-chain limits need explicit examples.
+The boundary branch now authors 37 additional programs and their renamed counterparts, for
+326 cases. Version-three collection separates CLI errors from emitted reports and checks exact
+budget-limited file inventories. Hosted collection and corruption controls must pass before these
+examples replace retained evidence or change acceptance counts.
 The [compiler profile](docs/compiler-profile.md), repository delivery and workflow recovery
 comparisons remain separate regression gates. None establishes a general agent-efficiency advantage.
 

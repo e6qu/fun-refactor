@@ -25,7 +25,10 @@ not establish a general agent-efficiency advantage or complete Rust/Python seman
 Finish [B.contract](roadmap-status.md#bcontract-specify-reusable-python-behavior). The remaining
 inventory gaps are discovery-depth limits, invalid syntax and CLI refusals, import ambiguity and
 shadowing, and module/binding-chain limits. Focused tests cover these separately; the contract
-report does not yet claim them. Add independent examples and renamed variants before closing the gate.
+report does not yet claim them. The boundary branch authors 37 new programs and renamed variants,
+and adds version-three CLI-error and budget evidence audits. Collect the 326-case report with the
+`python-contract` hosted refresh group, preserve diagnostic failures, and run the corruption controls.
+Only then replace evidence references, regenerate roadmap status and assess the gate.
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
 
 ## Client-study boundary
