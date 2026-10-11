@@ -67,7 +67,7 @@ no path. The first held-out opening and collector failures remain part of the ev
 Continue [B.repository-flow](docs/roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
 from the retained baseline. Address its import and summary boundaries through general rules,
 and broaden project-derived examples beyond identity adapters. Choose an unopened replacement
-held-out project before changing the analyzer; pydash has now been inspected. Freeze the revised
+held-out project before changing the analyzer. Treat pydash as coverage in future rounds. Freeze the revised
 implementation before evaluation. Use the same analyzer, public commands and declared source/sink configuration everywhere.
 Check selected and blocked values with runtime execution and independent inspection, and retain
 renamed or relocated equivalents. Unknown effects and exhausted budgets must prevent a no-path claim.

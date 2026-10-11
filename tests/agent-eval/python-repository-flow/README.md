@@ -1,6 +1,6 @@
 # Python repository value-flow cohort
 
-The selected revisions are recorded in [cohort.json](cohort.json). Toolz and funcy are
+The [selection record](cohort.json) pins the revisions. Toolz and funcy are
 coverage projects. Pydash is held out: consult its implementation only after the coverage
 collection passes on the exact evaluator revision. The analyzer starts frozen at the merged
 B.contract revision. Coverage may expose a general defect before the held-out gate; a later

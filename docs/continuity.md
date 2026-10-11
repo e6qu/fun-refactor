@@ -43,7 +43,7 @@ revisions, and every timeout stays unchanged.
 Continue [B.repository-flow](roadmap-status.md#brepository-flow-trace-values-in-unfamiliar-projects)
 from its captured import/summary limits. Broaden project-derived examples beyond the authored
 identity adapters, and select an unopened replacement held-out project before analyzer edits.
-Pydash has now been inspected; retain its first failed opening and subsequent results. The native
+Treat pydash as coverage in future rounds; retain its first failed opening and subsequent results. The native
 analyzer stayed frozen at the B.contract merge throughout this cohort. Unknown effects and
 exhausted budgets must continue to prevent a no-path claim.
 The [plan](../PLAN.md#next-large-chunk) defines the deliverable and remaining product gaps.
