@@ -52,6 +52,11 @@ Static module resolution has a separate [package-flow contract](package-flow.md)
 does not establish arbitrary imports, aliases, heap effects, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
 
+This first cross-cutting corpus contains 36 independently written programs and 72 total cases.
+It advances B.contract but does not close it. The next coverage pass must connect recursive
+summaries, static imports and every admitted call-binding form to the same explicit rule inventory.
+Existing focused suites cover those features separately; this report does not claim their coverage.
+
 ## Evidence and regression checks
 
 `tools/python-contract.py` collects CPython outcomes and bounded `fr` reports on GitHub runners.

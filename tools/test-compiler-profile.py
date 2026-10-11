@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
-REPORT = ROOT / 'tests/agent-eval/results/2026-10-10-compiler-profile/result.json'
+REPORT = ROOT / 'tests/agent-eval/results/2026-10-11-contract-compiler-profile/result.json'
 
 
 class CompilerProfile(unittest.TestCase):

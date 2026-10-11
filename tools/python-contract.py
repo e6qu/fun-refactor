@@ -2,6 +2,7 @@
 """Compare a declared scalar Python contract with CPython and retained fr reports."""
 import argparse
 import ast
+import hashlib
 import importlib.util
 import json
 import os
@@ -103,6 +104,17 @@ def audit_case(row, case):
     require(flow['schema'] == 'fr-dataflow-1' and flow['semantics'] == 'python-scalar-summaries-5'
             and flow['claim'] == 'possible-value-propagation' and flow['revision'] == found['revision'],
             'analysis identity or claim changed')
+    require(flow['target'] == definition['handle'] and flow['inputs']['summary_mode'] is True
+            and flow['inputs']['context'] == 'html' and flow['inputs']['selection']['name'] == case['names']['entry']
+            and flow['inputs']['source'] == {'path': case['path'], 'digest': hashlib.sha256(case['source'].encode()).hexdigest()}
+            and flow['inputs']['budget']['steps'] == case['steps']
+            and flow['inputs']['budget']['bytes'] == 262144, 'analysis input basis changed')
+    require(flow['assumptions'] == [
+        'scalar values; no aliases, monkey patching or implicit flows.',
+        'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
+        'explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.',
+        'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.'],
+        'analysis assumptions changed')
     require(flow['complete'] is case['expected_model']['complete'], 'completeness changed')
     require(bool(flow['witnesses']) is case['expected_model']['witness'], 'possible-flow answer changed')
     cutoff = case['expected_model']['cutoff']
