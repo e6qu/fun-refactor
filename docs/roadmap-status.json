@@ -120,6 +120,16 @@
       "kind": "measurement",
       "path": "tests/agent-eval/results/2026-10-11-coverage-index-resolution/result.json",
       "scope": "Complete symbol/reference digests on pinned indexing workloads; finite measurements, no general performance claim."
+    },
+    {
+      "audit": "python3 tools/retain-repository-flow.py --audit tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
+      "changed_sources": [],
+      "freshness": "current",
+      "id": "repository-flow",
+      "integrity": "checked",
+      "kind": "deterministic",
+      "path": "tests/agent-eval/results/2026-10-12-utility-flow-repository-flow/result.json",
+      "scope": "Three pinned utility libraries; authored scalar adapters, runtime contrasts, renames, relocation, incomplete boundaries and a frozen held-out project. Initial probes; B.repository-flow remains open."
     }
   ],
   "milestones": {
