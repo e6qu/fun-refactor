@@ -74,8 +74,8 @@ def ast_locations(case, path=None):
             continue
         span = (offsets[node.lineno - 1] + node.col_offset, offsets[node.end_lineno - 1] + node.end_col_offset)
         spans.add(span)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-            calls[span] = node.func.id
+        if isinstance(node, ast.Call):
+            calls[span] = node.func.id if isinstance(node.func, ast.Name) else None
     return spans, calls
 
 
@@ -189,9 +189,12 @@ def audit_case(row, case):
     pairs = []
     for witness in flow['witnesses']:
         trace = witness['trace']['occurrences']
+        endpoints = [index for index, point in enumerate(trace) if point == witness['site']]
         require(witness['claim'] == 'possible-value-propagation; path feasibility unchecked.'
                 and witness['rules'] == configuration(case)['version'] and witness['sink'] == case['names']['sink']
-                and trace[0]['role'] == 'source' and trace[-1] == witness['site'] and trace[-1]['role'] == 'sink',
+                and trace[0]['role'] == 'source' and witness['site']['role'] == 'sink'
+                and len(endpoints) == 1
+                and all(point['role'] == 'summary-call' for point in trace[endpoints[0] + 1:]),
                 'witness authority or endpoints changed')
         for occurrence in trace:
             path = occurrence['path']
@@ -204,10 +207,12 @@ def audit_case(row, case):
                     'witness source correspondence changed')
             if occurrence['role'] in ('source', 'sink'):
                 require(calls.get((start, end)) == case['names'][occurrence['role']], 'witness call identity changed')
+            if occurrence['role'] in ('summary-call', 'call-result'):
+                require((start, end) in calls, 'summary occurrence is not a call')
         first = trace[0]['location']['span']
-        last = trace[-1]['location']['span']
+        last = witness['site']['location']['span']
         pairs.append([sources.index((trace[0]['path'], first['start'], first['end'])),
-                      sinks.index((trace[-1]['path'], last['start'], last['end']))])
+                      sinks.index((witness['site']['path'], last['start'], last['end']))])
     require(sorted(pairs) == case['expected_model']['pairs'], 'source-to-sink pairing changed')
     expected = ['project', 'dataflow', definition['handle'], '--summaries',
                 *(['--imports'] if case['imports'] else []), '--rules', row['root'] + '/rules.json',

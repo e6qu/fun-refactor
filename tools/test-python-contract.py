@@ -244,6 +244,20 @@ class PythonContract(unittest.TestCase):
         row['flow']['witnesses'][1] = copy.deepcopy(row['flow']['witnesses'][0])
         self.reject(value)
 
+    def test_imported_sink_endpoint_and_caller_suffix_are_checked(self):
+        for mutation in ('endpoint', 'suffix-role', 'suffix-location'):
+            value, row = self.changed('import-helper-sink/moved')
+            witness = row['flow']['witnesses'][0]
+            points = witness['trace']['occurrences']
+            if mutation == 'endpoint':
+                witness['site'] = copy.deepcopy(points[-1])
+            elif mutation == 'suffix-role':
+                points[-1]['role'] = 'use'
+            else:
+                points[-1]['location'] = copy.deepcopy(points[1]['location'])
+                points[-1]['path'] = points[1]['path']
+            self.reject(value)
+
     def test_import_oracle_isolated_between_conflicting_modules(self):
         selected = next(case for case in contract.cases() if case['id'] == 'import-absolute-selected/original')
         discarded = next(case for case in contract.cases() if case['id'] == 'import-absolute-discarded/original')

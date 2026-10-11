@@ -50,6 +50,11 @@ statement, while the current scalar model can retain that statement with `comple
 Do not use that result as an exception-safety claim. Explicit raise tests check path termination
 and argument ordering; they do not establish exception-type correspondence.
 
+An unresolved import can stop Python before entry while `fr` retains argument origins through
+the unknown call. Such a witness is incomplete and cannot establish that the call can execute.
+Imported sink traces can end with caller records after the sink. The audit checks the exact
+sink site and permits only AST-backed summary calls after it.
+
 Static module resolution follows the [package-flow contract](agent-investigations.md#static-local-imports).
 This corpus does not establish arbitrary imports, heap aliases, async behavior or whole-language
 correctness. The repository-flow and effects roadmap obligations remain separate.
