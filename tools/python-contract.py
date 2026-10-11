@@ -11,18 +11,21 @@ import re
 import subprocess
 import sys
 import tempfile
+from functools import lru_cache
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'tools'), str(ROOT / 'sdk/python/src')]
 from python_contract_cases import EXAMPLES, RULES, cases
 from fr_ir.flow_summaries import FunctionSummaries
+from fr_ir.flow_dependencies import FlowDependencies
+from python_contract_oracle import execute
 from fr_ir.runtime import FrReport
 from evidence_basis import file_digest
 
 spec = importlib.util.spec_from_file_location('profile', ROOT / 'tools/compiler-profile.py')
 profile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profile)
-SCHEMA = 'fr-python-contract-1'
+SCHEMA = 'fr-python-contract-2'
 LIMITS = ('Finite scalar examples, not full Python correctness or path feasibility. '
           'Implicit exceptions, aliases and dynamic dispatch remain outside this model. '
           'Runtime observations cover only declared inputs. Retained output is not execution attestation. '
@@ -36,44 +39,37 @@ def require(condition, message):
 
 def bindings():
     result = profile.bindings()
-    for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'docs/python-contract.md',
+    for path in ('tools/python-contract.py', 'tools/python_contract_cases.py', 'tools/python_contract_oracle.py',
+                 'docs/python-contract.md', 'sdk/python/tests/test_flow_imports.py',
                  'sdk/python/tests/test_expression_control.py', 'sdk/python/src/fr_ir/flow_summaries.py'):
         result[path] = file_digest(ROOT / path)
     return dict(sorted(result.items()))
 
 
 def oracle(case):
-    events = []
-    def source():
-        events.append(['source', 17])
-        return 17
-    def sink(value):
-        events.append(['sink', value])
-        return value
-    def clean(value):
-        events.append(['clean', value])
-        return 0
-    def forward(value):
-        events.append(['forward', value])
-        return value
-    functions = {'source': source, 'sink': sink, 'clean': clean, 'forward': forward}
-    namespace = {case['names'][name]: function for name, function in functions.items()}
-    exec(compile(case['source'], case['path'], 'exec'), namespace)
-    returned, raised = None, None
-    try:
-        returned = namespace[case['names']['entry']]()
-    except Exception as error:
-        raised = type(error).__name__
-    return {'events': events, 'returned': returned, 'raised': raised}
+    # Cache only executions of the immutable authored input. Every retained row is
+    # still compared, including its exact runtime types, on every audit.
+    return json.loads(oracle_json(json.dumps(case, sort_keys=True, ensure_ascii=False)))
 
 
-def ast_locations(case):
-    lines = case['source'].encode().splitlines(keepends=True)
+@lru_cache(maxsize=512)
+def oracle_json(encoded):
+    case = json.loads(encoded)
+    if not case['imports']:
+        return json.dumps(execute(case, {}), ensure_ascii=False)
+    result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'tools/python_contract_oracle.py')],
+                            input=encoded, capture_output=True, text=True, check=True, timeout=10)
+    return result.stdout
+
+
+def ast_locations(case, path=None):
+    source = case['files'][path] if path else case['source']
+    lines = source.encode().splitlines(keepends=True)
     offsets = [0]
     for line in lines:
         offsets.append(offsets[-1] + len(line))
     spans, calls = set(), {}
-    for node in ast.walk(ast.parse(case['source'])):
+    for node in ast.walk(ast.parse(source)):
         if not hasattr(node, 'end_lineno') or node.end_lineno is None:
             continue
         span = (offsets[node.lineno - 1] + node.col_offset, offsets[node.end_lineno - 1] + node.end_col_offset)
@@ -87,6 +83,35 @@ def configuration(case):
     names = case['names']
     return {'version': 'python-contract-1', 'sources': [names['source']], 'sinks': [names['sink']],
             'sanitizers': {names['clean']: 'html'}, 'propagators': [names['forward']]}
+
+
+def audit_signature(function, definition, path, source, revision):
+    arguments = definition.args
+    parameters = [(node, kind) for nodes, kind in (
+        (arguments.posonlyargs, 'positional-only'), (arguments.args, 'positional-or-keyword'),
+        (arguments.kwonlyargs, 'keyword-only')) for node in nodes]
+    require([(item['name'], item['kind']) for item in function['signature']]
+            == [(node.arg, kind) for node, kind in parameters], 'callee signature changed')
+    positional = arguments.posonlyargs + arguments.args
+    defaults = [None] * (len(positional) - len(arguments.defaults)) + arguments.defaults + arguments.kw_defaults
+    lines = source.encode().splitlines(keepends=True)
+    for item, (node, _), default in zip(function['signature'], parameters, defaults):
+        start = sum(map(len, lines[:node.lineno - 1])) + node.col_offset
+        point = item['site']
+        require(point['path'] == path and point['revision'] == revision
+                and point['location'] == profile.location(source, start, start + len(node.arg.encode())),
+                'parameter source correspondence changed')
+        require((item['default'] is None) == (default is None), 'literal default presence changed')
+        if default is not None:
+            point = item['default']
+            start, end = point['location']['span']['start'], point['location']['span']['end']
+            expected_start = sum(map(len, lines[:default.lineno - 1])) + default.col_offset
+            expected_end = sum(map(len, lines[:default.end_lineno - 1])) + default.end_col_offset
+            require(point['path'] == path and point['revision'] == revision
+                    and point['location'] == profile.location(source, start, end)
+                    and start <= expected_start < expected_end <= end
+                    and ast.dump(ast.parse(source.encode()[start:end].decode(), mode='eval').body) == ast.dump(default),
+                    'default source correspondence changed')
 
 
 def audit_case(row, case):
@@ -116,12 +141,12 @@ def audit_case(row, case):
             and flow['context'] == 'html' and flow['inputs']['configuration'] == profile.compiler.digest({})
             and flow['inputs']['selection']['span'] == definition['location']['definition']['span']
             and flow['input_digest'] == profile.compiler.digest(flow['inputs']), 'report input digest changed')
-    require(flow['assumptions'] == [
+    assumptions = [
         'scalar values; no aliases, monkey patching or implicit flows.',
         'branch feasibility unchecked', 'external rules are caller-supplied contracts.',
         'explicit raises terminate; implicit exceptions, handlers and resource effects are outside this model.',
-        'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.'],
-        'analysis assumptions changed')
+        'finite origin sets; joins lose branch correlation; traces are derivations, not executable paths.']
+    require(flow['assumptions'] == assumptions, 'analysis assumptions changed')
     require(flow['complete'] is case['expected_model']['complete'], 'completeness changed')
     require(bool(flow['witnesses']) is case['expected_model']['witness'], 'possible-flow answer changed')
     cutoff = case['expected_model']['cutoff']
@@ -129,16 +154,38 @@ def audit_case(row, case):
     summaries = FunctionSummaries.from_report(FrReport(flow, ()))
     completion = case['expected_model']['completion']
     if completion is not None:
-        entry = summaries.for_function(case['names']['entry'])
+        entry = summaries.for_function((case['path'] + '::' if case['imports'] else '') + case['names']['entry'])
         require(profile.compiler.digest(flow['completion']) == profile.compiler.digest(completion)
                 and entry.normal_return is completion['normal_return']
                 and entry.may_raise is completion['may_raise'], 'normal or exceptional return changed')
     require(summaries.expression_control.path_feasibility is False, 'path feasibility claim changed')
     require(flow['assignment_control']['implicit_exceptions'] is False
             and flow['call_binding']['implicit_exceptions'] is False, 'implicit exception boundary changed')
-    spans, calls = ast_locations(case)
-    sources = sorted(span for span, name in calls.items() if name == case['names']['source'])
-    sinks = sorted(span for span, name in calls.items() if name == case['names']['sink'])
+    locations = {path: ast_locations(case, path) for path in case['files']}
+    sources = sorted((path, *span) for path, (_, calls) in locations.items()
+                     for span, name in calls.items() if name == case['names']['source'])
+    sinks = sorted((path, *span) for path, (_, calls) in locations.items()
+                   for span, name in calls.items() if name == case['names']['sink'])
+    if case['imports']:
+        dependencies = FlowDependencies.from_report(FrReport(flow, ()))
+        modules = flow['inputs']['modules']
+        require(modules['files'] == {path: profile.compiler.digest(source) for path, source in case['files'].items()},
+                'module source inventory changed')
+        require(dependencies.complete is modules['complete'], 'module completeness changed')
+        directories = {str(parent) for path in case['files'] for parent in Path(path).parents if str(parent) != '.'}
+        for lookup in [modules['entry'], *modules['lookups']]:
+            for path, fact in lookup['candidates'].items():
+                expected = ({'status': 'source', 'digest': profile.compiler.digest(case['files'][path])}
+                            if path in case['files'] else
+                            {'status': 'directory' if path in directories else 'missing'})
+                require(fact == expected, 'module candidate differs from declared files')
+    for identity, function in flow['function_summaries']['functions'].items():
+        path, name = identity.split('::', 1) if case['imports'] else (case['path'], identity)
+        require(path in case['files'], 'callee file changed')
+        definitions = [node for node in ast.walk(ast.parse(case['files'][path]))
+                       if isinstance(node, ast.FunctionDef) and node.name == name]
+        require(len(definitions) == 1, 'callee definition changed')
+        audit_signature(function, definitions[0], path, case['files'][path], flow['revision'])
     pairs = []
     for witness in flow['witnesses']:
         trace = witness['trace']['occurrences']
@@ -147,18 +194,23 @@ def audit_case(row, case):
                 and trace[0]['role'] == 'source' and trace[-1] == witness['site'] and trace[-1]['role'] == 'sink',
                 'witness authority or endpoints changed')
         for occurrence in trace:
+            path = occurrence['path']
+            require(path in locations, 'witness file changed')
+            spans, calls = locations[path]
             location = occurrence['location']
             start, end = location['span']['start'], location['span']['end']
-            require((start, end) in spans and location == profile.location(case['source'], start, end)
-                    and occurrence['path'] == case['path'] and occurrence['revision'] == flow['revision'],
+            require((start, end) in spans and location == profile.location(case['files'][path], start, end)
+                    and occurrence['revision'] == flow['revision'],
                     'witness source correspondence changed')
             if occurrence['role'] in ('source', 'sink'):
                 require(calls.get((start, end)) == case['names'][occurrence['role']], 'witness call identity changed')
         first = trace[0]['location']['span']
         last = trace[-1]['location']['span']
-        pairs.append([sources.index((first['start'], first['end'])), sinks.index((last['start'], last['end']))])
+        pairs.append([sources.index((trace[0]['path'], first['start'], first['end'])),
+                      sinks.index((trace[-1]['path'], last['start'], last['end']))])
     require(sorted(pairs) == case['expected_model']['pairs'], 'source-to-sink pairing changed')
-    expected = ['project', 'dataflow', definition['handle'], '--summaries', '--rules', row['root'] + '/rules.json',
+    expected = ['project', 'dataflow', definition['handle'], '--summaries',
+                *(['--imports'] if case['imports'] else []), '--rules', row['root'] + '/rules.json',
                 '--context', 'html', '--steps', str(case['steps']), '--bytes', '262144']
     require(row['commands'] == [['project', 'find', case['names']['entry']], expected], 'analysis inputs changed')
 
@@ -207,9 +259,10 @@ def measure(binary, output):
     with tempfile.TemporaryDirectory(prefix='fr-python-contract-') as temporary:
         for index, case in enumerate(cases()):
             root = Path(temporary) / str(index)
-            path = root / case['path']
-            path.parent.mkdir(parents=True)
-            path.write_text(case['source'])
+            for name, source in case['files'].items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(source.encode())
             rules = root / 'rules.json'
             rules.write_text(json.dumps(configuration(case)))
             commands = []
@@ -221,7 +274,8 @@ def measure(binary, output):
                 return json.loads(result.stdout)
             found = fr(['project', 'find', case['names']['entry']])
             handle = found['rows'][0][found['columns'].index('handle')]
-            flow = fr(['project', 'dataflow', handle, '--summaries', '--rules', str(rules), '--context', 'html',
+            flow = fr(['project', 'dataflow', handle, '--summaries', *(['--imports'] if case['imports'] else []),
+                       '--rules', str(rules), '--context', 'html',
                        '--steps', str(case['steps']), '--bytes', '262144'])
             row = {'case': case, 'runtime': oracle(case), 'find': found, 'flow': flow,
                    'configuration': configuration(case), 'root': str(root), 'commands': commands}
